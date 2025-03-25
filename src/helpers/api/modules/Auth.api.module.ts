@@ -19,6 +19,11 @@ class AuthApiModule extends BaseApiModule {
     return `${this.baseUrl}/${this.controller}/${methodUrl}`
   }
 
+  logoutRequest(): string {
+    const methodUrl = "logout"
+    return `${this.baseUrl}/${this.controller}/${methodUrl}`
+  }
+
   confirmLoginRequest(): string {
     const methodUrl = "phone/verify"
     return `${this.baseUrl}/${this.controller}/${methodUrl}`

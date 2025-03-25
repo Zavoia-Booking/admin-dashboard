@@ -1,51 +1,57 @@
 import { AuthGuard } from "@/guards/AuthGuard";
-import WebApi from "@/helpers/api/WebApi";
 import WebRequest from "@/helpers/api/WebRequest";
 import "@/styles/globals.css";
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { RootStore, initializeStore } from "@/stores/rootStore";
+
+let store: RootStore;
+
+const StoreContext = createContext<RootStore | null>(null);
+
+export const useStores = () => {
+  const context = useContext(StoreContext);
+  if (!context) throw new Error("StoreProvider is missing");
+  return context;
+};
 
 export default function App({ Component, pageProps: { session, ...pageProps } }: any) {
-  const [data, setData] = useState({
-    user: null,
-    isAuthenticated: false,
-  });
-  const [redirect, setRedirect] = useState('/');
-
+  store = initializeStore();
   const [loading, setLoading] = useState(true);
 
-  const autoLogin = async () => {
-    const authToken = localStorage.getItem('authToken');
-    if (authToken) {
-      WebRequest.SetAccessToken(authToken);
-      const currentUserRequest: any = await WebRequest.GET(WebApi.auth.getCurrentUser());
-      if ([200].includes(currentUserRequest.response.status))
-        setData({
-          user: currentUserRequest.data,
-          isAuthenticated: true
-        })
-    }
-    setLoading(false);
-  }
+  return (
+    <StoreContext.Provider value={store}>
+      <AppContent Component={Component} pageProps={pageProps} loading={loading} setLoading={setLoading} />
+    </StoreContext.Provider>
+  );
+}
+
+function AppContent({ Component, pageProps, loading, setLoading }: any) {
+  const store = useStores();
 
   useEffect(() => {
-    autoLogin()
-  }, [])
+    const autoLogin = async () => {
+      const authToken = localStorage.getItem('authToken');
+      if (authToken) {
+        WebRequest.SetAccessToken(authToken);
+        await store.userStore.checkAuth();
+      }
+      setLoading(false);
+    };
+    
+    autoLogin();
+  }, []);
 
   if (loading && Component.requireAuth) {
-    return null
+    return null;
   }
 
-  return (
-    <>
-      {Component.requireAuth ? (
-        <AuthGuard requiredRoles={Component.requiredRoles}>
-          <Component {...pageProps} />
-          <Toaster />
-        </AuthGuard>
-      ) : (
-        <Component {...pageProps} />
-      )}
-    </>
+  return Component.requireAuth ? (
+    <AuthGuard requiredRoles={Component.requiredRoles}>
+      <Component {...pageProps} />
+      <Toaster />
+    </AuthGuard>
+  ) : (
+    <Component {...pageProps} />
   );
 }

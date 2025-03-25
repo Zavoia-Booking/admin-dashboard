@@ -20,7 +20,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { UserRole, Permission } from "@/types/auth"
+import { UserRole } from "@/types/auth"
 import { useClientContext } from "@/contexts/clientContext"
 
 interface NavItem {
@@ -29,7 +29,6 @@ interface NavItem {
   icon?: LucideIcon
   isActive?: boolean
   roles: UserRole[]
-  permissions?: Permission[]
   items?: {
     title: string
     url: string
