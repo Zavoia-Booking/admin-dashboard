@@ -8,4 +8,7 @@ export default function RegisterPage() {
       </div>
     </div>
   )
-} 
+}
+
+// No authentication required for register page
+RegisterPage.requireAuth = false; 

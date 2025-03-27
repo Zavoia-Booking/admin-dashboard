@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { UserRole } from '@/types/auth';
 import {
   Table,
   TableBody,
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useClientContext } from '@/contexts/clientContext';
+import { useUserStore } from '@/hooks/useUserStore';
 // TODO: fix sonner / toast component
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
@@ -31,7 +32,7 @@ interface Service {
 }
 
 export default function ServicesPage() {
-  const { data: { user } } = useClientContext();
+  const { user } = useUserStore();
   const [services, setServices] = useState<Service[]>([
     {
       id: '1',
@@ -405,4 +406,8 @@ export default function ServicesPage() {
       </div>
     </AppLayout>
   );
-} 
+}
+
+// Add required roles for authentication
+ServicesPage.requireAuth = true;
+ServicesPage.requiredRoles = [UserRole.ADMIN, UserRole.SPECIALIST]; 

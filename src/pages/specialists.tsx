@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { UserRole } from '@/types/auth';
 import {
   Table,
   TableBody,
@@ -15,7 +16,6 @@ import { Plus, Pencil, Trash2, Mail } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useClientContext } from '@/contexts/clientContext';
 // TODO: fix sonner / toast component
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
@@ -31,8 +31,6 @@ interface Specialist {
 }
 
 export default function SpecialistsPage() {
-  const router = useRouter();
-  const { data: { user } } = useClientContext();
   const [specialists, setSpecialists] = useState<Specialist[]>([
     {
       id: '1',
@@ -418,3 +416,7 @@ export default function SpecialistsPage() {
     </AppLayout>
   );
 }
+
+// Add required roles for authentication
+SpecialistsPage.requireAuth = true;
+SpecialistsPage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER];

@@ -7,6 +7,8 @@ import {
   ClipboardList,
   type LucideIcon,
   Calendar,
+  UserCircle,
+  CalendarDays,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 
@@ -21,7 +23,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { UserRole } from "@/types/auth"
-import { useClientContext } from "@/contexts/clientContext"
+import { useStores } from "@/pages/_app"
 
 interface NavItem {
   title: string
@@ -61,31 +63,31 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    roles: ['admin', 'business_owner', 'business_manager', 'specialist'],
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.SPECIALIST],
   },
   {
     title: "Calendar",
     url: "/calendar",
     icon: Calendar,
-    roles: ['admin', 'business_owner', 'business_manager', 'specialist'],
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.SPECIALIST],
   },
   {
     title: "Specialists",
     url: "/specialists",
     icon: Users,
-    roles: ['admin', 'business_owner', 'business_manager'],
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER],
   },
   {
     title: "Services",
     url: "/services",
     icon: ClipboardList,
-    roles: ['admin', 'specialist'],
+    roles: [UserRole.ADMIN, UserRole.SPECIALIST],
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings2,
-    roles: ['admin', 'business_owner'],
+    roles: [UserRole.ADMIN, UserRole.OWNER],
     items: [
       {
         title: "General",
@@ -97,23 +99,44 @@ const navItems: NavItem[] = [
       },
     ],
   },
+  {
+    title: "Profile",
+    url: "/profile",
+    icon: UserCircle,
+    roles: [UserRole.SPECIALIST],
+  }
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { data: { user } } = useClientContext()
+  const { authStore } = useStores()
   const pathname = usePathname()
-
+  
   // Filter navigation items based on user's role
   const filteredNavItems = navItems
     .filter(item => {
-      // Check if user has the required role
-      if (!user) return false
-      return item.roles.includes(user.role as UserRole)
+      // Always show dashboard as fallback
+      if (item.url === "/dashboard") return true;
+      
+      // Show all items for admin role
+      if (authStore.user?.role === UserRole.ADMIN) return true;
+      
+      // Otherwise, check if user has the required role
+      return item.roles.includes(authStore.user?.role as UserRole)
     })
     .map(item => ({
       ...item,
       isActive: pathname === item.url || item.items?.some(subItem => pathname === subItem.url),
     }))
+
+  // If still loading and no user, show a loading indicator
+  if (authStore.isLoading && !authStore.user) {
+    return (
+      <div className="h-screen w-64 bg-background border-r flex flex-col items-center justify-center">
+        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <div className="text-sm text-muted-foreground">Loading sidebar...</div>
+      </div>
+    );
+  }
 
   return (
     <Sidebar collapsible="icon" {...props}>

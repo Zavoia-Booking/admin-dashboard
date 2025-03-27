@@ -2,45 +2,54 @@ import { useState } from "react"
 import { useRouter } from "next/router"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Icons } from "@/components/icons"
-
-const businessTypes = [
-  { value: "restaurant", label: "Restaurant" },
-  { value: "retail", label: "Retail" },
-  { value: "service", label: "Service" },
-  { value: "manufacturing", label: "Manufacturing" },
-  { value: "technology", label: "Technology" },
-  { value: "other", label: "Other" },
-]
+import { toast } from "sonner"
+import { UserRole } from "@/types/auth"
+import { useStores } from "@/pages/_app"
 
 export function RegisterForm() {
   const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const { authStore } = useStores()
+  
   const [formData, setFormData] = useState({
-    businessName: "",
-    phoneNumber: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
     email: "",
     password: "",
     confirmPassword: "",
-    businessType: "",
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    // TODO: Implement registration logic
-    console.log("Registration attempt with:", formData)
-    setIsLoading(false)
+    
+    // Validate form
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    
+    setError(null)
+    
+    const result = await authStore.register({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phone: formData.phone,
+      email: formData.email,
+      password: formData.password,
+      role: UserRole.OWNER,
+    });
+    
+    if (result.success) {
+      toast.success("Registration successful!");
+      router.push("/dashboard");
+    } else {
+      setError(result.message || "Registration failed. Please try again.");
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -51,35 +60,55 @@ export function RegisterForm() {
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl text-center">Create a business account</CardTitle>
+        <CardTitle className="text-2xl text-center">Create a Business Owner Account</CardTitle>
         <CardDescription className="text-center">
-          Enter your business details below to create your account
+          Enter your details below to create your account
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="businessName">Business Name</Label>
-          <Input
-            id="businessName"
-            name="businessName"
-            placeholder="Enter your business name"
-            type="text"
-            value={formData.businessName}
-            onChange={handleChange}
-            disabled={isLoading}
-            required
-          />
+        {error && (
+          <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+            {error}
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="firstName">First Name</Label>
+            <Input
+              id="firstName"
+              name="firstName"
+              placeholder="Enter your first name"
+              type="text"
+              value={formData.firstName}
+              onChange={handleChange}
+              disabled={authStore.isLoading}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="lastName">Last Name</Label>
+            <Input
+              id="lastName"
+              name="lastName"
+              placeholder="Enter your last name"
+              type="text"
+              value={formData.lastName}
+              onChange={handleChange}
+              disabled={authStore.isLoading}
+              required
+            />
+          </div>
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="phoneNumber">Phone Number</Label>
+          <Label htmlFor="phone">Phone Number</Label>
           <Input
-            id="phoneNumber"
-            name="phoneNumber"
+            id="phone"
+            name="phone"
             placeholder="Enter your phone number"
             type="tel"
-            value={formData.phoneNumber}
+            value={formData.phone}
             onChange={handleChange}
-            disabled={isLoading}
+            disabled={authStore.isLoading}
             required
           />
         </div>
@@ -92,28 +121,9 @@ export function RegisterForm() {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            disabled={isLoading}
+            disabled={authStore.isLoading}
             required
           />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="businessType">Business Type</Label>
-          <Select
-            value={formData.businessType}
-            onValueChange={(value: string) => setFormData(prev => ({ ...prev, businessType: value }))}
-            disabled={isLoading}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select business type" />
-            </SelectTrigger>
-            <SelectContent>
-              {businessTypes.map((type) => (
-                <SelectItem key={type.value} value={type.value}>
-                  {type.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="password">Password</Label>
@@ -124,7 +134,7 @@ export function RegisterForm() {
             type="password"
             value={formData.password}
             onChange={handleChange}
-            disabled={isLoading}
+            disabled={authStore.isLoading}
             required
           />
         </div>
@@ -137,14 +147,14 @@ export function RegisterForm() {
             type="password"
             value={formData.confirmPassword}
             onChange={handleChange}
-            disabled={isLoading}
+            disabled={authStore.isLoading}
             required
           />
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button className="w-full" onClick={handleSubmit} disabled={isLoading}>
-          {isLoading && (
+        <Button className="w-full" onClick={handleSubmit} disabled={authStore.isLoading}>
+          {authStore.isLoading && (
             <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
           )}
           Create Account
@@ -160,16 +170,16 @@ export function RegisterForm() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" disabled={isLoading}>
-            {isLoading ? (
+          <Button variant="outline" disabled={authStore.isLoading}>
+            {authStore.isLoading ? (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Icons.google className="mr-2 h-4 w-4" />
             )}
             Google
           </Button>
-          <Button variant="outline" disabled={isLoading}>
-            {isLoading ? (
+          <Button variant="outline" disabled={authStore.isLoading}>
+            {authStore.isLoading ? (
               <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Icons.github className="mr-2 h-4 w-4" />
@@ -182,7 +192,7 @@ export function RegisterForm() {
           <Button
             variant="link"
             className="p-0"
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/login")}
           >
             Sign in
           </Button>

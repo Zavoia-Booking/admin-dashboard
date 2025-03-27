@@ -6,6 +6,7 @@ import { BreadcrumbPage, BreadcrumbSeparator } from '../ui/breadcrumb';
 import { BreadcrumbItem, BreadcrumbLink, BreadcrumbList } from '../ui/breadcrumb';
 import { Breadcrumb } from '../ui/breadcrumb';
 import { Separator } from '../ui/separator';
+import React from 'react';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -39,10 +40,11 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Breadcrumb>
             </div>
           </header>
-          {children}
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            {children}
+          </div>
         </SidebarInset>
       </SidebarProvider>
-
     </div>
   );
 } 

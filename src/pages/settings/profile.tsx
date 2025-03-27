@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useClientContext } from '@/contexts/clientContext';
 // TODO: fix sonner / toast component
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
@@ -29,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserRole } from '@/types/auth';
 
 interface BusinessProfile {
   id: string;
@@ -67,7 +67,6 @@ interface BusinessProfile {
 }
 
 export default function BusinessProfilePage() {
-  const { data: { user } } = useClientContext();
   const [profile, setProfile] = useState<BusinessProfile>({
     id: '1',
     name: 'Beauty Salon',
@@ -573,4 +572,8 @@ export default function BusinessProfilePage() {
       </div>
     </AppLayout>
   );
-} 
+}
+
+// Add required roles for authentication
+BusinessProfilePage.requireAuth = true;
+BusinessProfilePage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER]; 
