@@ -26,7 +26,7 @@ interface PortfolioImage {
   caption: string;
 }
 
-interface SpecialistProfile {
+interface TeamMemberProfile {
   id: string;
   firstName: string;
   lastName: string;
@@ -78,8 +78,7 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     setLoading(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/specialist/profile');
+      const response = await fetch('/api/team-member/profile');
       const data = await response.json();
       setProfile(data);
     } catch (error) {
@@ -94,8 +93,7 @@ export default function ProfilePage() {
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/specialist/profile', {
+      const response = await fetch('/api/team-member/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -143,8 +141,7 @@ export default function ProfilePage() {
       formData.append('image', newImage);
       formData.append('caption', newImageCaption);
 
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/specialist/portfolio', {
+      const response = await fetch('/api/team-member/portfolio', {
         method: 'POST',
         body: formData,
       });
@@ -179,8 +176,7 @@ export default function ProfilePage() {
 
   const handleRemoveImage = async (id: string) => {
     try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/specialist/portfolio/${id}`, {
+      const response = await fetch(`/api/team-member/portfolio/${id}`, {
         method: 'DELETE',
       });
 
@@ -215,7 +211,7 @@ export default function ProfilePage() {
     <AppLayout>
       <div className="container mx-auto py-10">
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">My Profile</h1>
+          <h1 className="text-2xl font-bold">Personal Profile</h1>
           <Button onClick={handleSaveProfile} disabled={saving}>
             {saving ? (
               <>
@@ -471,5 +467,5 @@ export default function ProfilePage() {
 }
 
 // Add required roles for authentication
-ProfilePage.requireAuth = true;
-ProfilePage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.SPECIALIST, UserRole.CUSTOMER]; 
+// ProfilePage.requireAuth = true;
+// ProfilePage.requiredRoles = [UserRole.TEAM_MEMBER]; 

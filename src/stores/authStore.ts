@@ -2,7 +2,15 @@ import WebApi from '@/helpers/api/WebApi';
 import WebRequest from '@/helpers/api/WebRequest';
 import { makeAutoObservable, runInAction, action } from 'mobx';
 import { UserRole } from '@/types/auth';
-import { log } from 'console';
+import { NextRouter } from 'next/router';
+
+// Add router import and instance
+let router: NextRouter;
+
+// Method to initialize router
+export const initAuthRouter = (nextRouter: NextRouter) => {
+  router = nextRouter;
+};
 
 export interface User {
   id: string;
@@ -39,7 +47,9 @@ export class AuthStore {
       logout: action.bound,
       checkAuth: action.bound,
       register: action.bound,
-      setRedirect: action.bound
+      setRedirect: action.bound,
+      setAuthData: action.bound,
+      clearAuthData: action.bound
     }, { autoBind: true });
   }
 
@@ -64,112 +74,141 @@ export class AuthStore {
     this.isAuthenticated = authenticated;
   }
 
-  // Actions
-  login = async (email: string, password: string) => {
-    try {
-      this.isLoading = true;
+  // Centralized methods for managing auth state
+  setAuthData(token: string, user: User) {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('authToken', token);
+      WebRequest.SetAccessToken(token);
+    }
+    
+    runInAction(() => {
+      this.user = user;
+      this.isAuthenticated = true;
+      this.isLoading = false;
       this.error = null;
+    });
+  }
+
+  clearAuthData() {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      WebRequest.SetAccessToken('');
+    }
+    
+    runInAction(() => {
+      this.user = null;
+      this.isAuthenticated = false;
+      this.isLoading = false;
+      this.error = null;
+    });
+  }
+
+  // Actions
+  login = async (email: string, password: string): Promise<boolean> => {
+    try {
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
       
       const { response, data }: any = await WebRequest.POST(WebApi.auth.loginRequest(), { email, password });
-      console.log('data', data);
       
       if ([200, 201].includes(response.status)) {
-        // Use runInAction to batch updates for better performance
-        runInAction(() => {
-          localStorage.setItem('authToken', data.auth_token);
-          this.user = data.user;
-          this.isAuthenticated = true;
-          this.isLoading = false; // Reset loading state before redirect
-        });
+        // Set auth data in one centralized place
+        this.setAuthData(data.auth_token, data.user);
         
-        // Redirect to the saved redirect path or dashboard by default
+        // Get redirect path
         const redirectPath = localStorage.getItem('authRedirect') || '/dashboard';
         localStorage.removeItem('authRedirect'); // Clear after use
-        window.location.href = redirectPath;
+        
+        // Direct navigation - only if router is available
+        if (router) {
+          router.push(redirectPath);
+        }
+        
+        return true;
       } else {
         // Handle non-success status codes
         runInAction(() => {
           this.error = data?.message || 'Login failed. Please try again.';
-          this.isLoading = false; // Reset loading state
+          this.isLoading = false;
         });
+        return false;
       }
     } catch (error) {
       console.error('Login failed:', error);
       runInAction(() => {
         this.error = error instanceof Error ? error.message : 'Login failed';
-        this.isLoading = false; // Reset loading state
+        this.isLoading = false;
       });
+      return false;
     }
   }
 
-  logout = async () => {
+  logout = async (): Promise<boolean> => {
     try {
-      this.isLoading = true;
-      this.error = null;
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
       
       const { response }: any = await WebRequest.POST(WebApi.auth.logoutRequest(), {});
 
       if ([200, 201].includes(response.status)) {
-        // Use runInAction to batch updates for better performance
-        runInAction(() => {
-          localStorage.removeItem('authToken');
-          this.user = null;
-          this.isAuthenticated = false;
-          this.isLoading = false; // Reset loading state before redirect
-        });
-        window.location.href = '/login';
+        // Use centralized method to clear auth data
+        this.clearAuthData();
+        
+        // Direct navigation
+        if (router) {
+          router.push('/login');
+        }
+        
+        return true;
       } else {
         // Handle non-success status codes
         runInAction(() => {
           this.error = 'Logout failed. Please try again.';
-          this.isLoading = false; // Reset loading state
+          this.isLoading = false;
         });
+        return false;
       }
     } catch (error) {
       runInAction(() => {
         this.error = error instanceof Error ? error.message : 'An error occurred';
-        this.isLoading = false; // Reset loading state
+        this.isLoading = false;
       });
+      return false;
     }
   }
 
-  checkAuth = async () => {
+  checkAuth = async (): Promise<boolean> => {
     try {
-      this.isLoading = true;
-      this.error = null;
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
       
       const { response, data }: any = await WebRequest.GET(WebApi.auth.getCurrentUser());
       
       if ([200].includes(response.status)) {
+        // Use centralized method to set auth data (without token since we're just verifying)
         runInAction(() => {
           this.user = data;
           this.isAuthenticated = true;
-          this.isLoading = false; // Reset loading state
+          this.isLoading = false;
         });
+        return true;
       } else {
-        runInAction(() => {
-          this.user = null;
-          this.isAuthenticated = false;
-          this.isLoading = false; // Reset loading state
-        });
+        this.clearAuthData();
         throw new Error('Not authenticated');
       }
     } catch (error) {
-      runInAction(() => {
-        this.user = null;
-        this.isAuthenticated = false;
-        this.error = error instanceof Error ? error.message : 'An error occurred';
-        this.isLoading = false; // Reset loading state
-      });
-      
-      // If we get a 401 unauthorized error, clear any existing token
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-      }
+      this.clearAuthData();
+      return false;
     }
   }
 
-  // New helper method to register and auto-login
+  // Register and auto-login
   register = async (userData: {
     firstName: string,
     lastName: string,
@@ -177,37 +216,39 @@ export class AuthStore {
     email: string,
     password: string,
     role: UserRole
-  }) => {
+  }): Promise<boolean> => {
     try {
-      this.isLoading = true;
-      this.error = null;
+      runInAction(() => {
+        this.isLoading = true;
+        this.error = null;
+      });
       
       const { response, data }: any = await WebRequest.POST(WebApi.auth.registerRequest(), userData);
       
       if ([200, 201].includes(response.status) && data.auth_token) {
-        runInAction(() => {
-          localStorage.setItem('authToken', data.auth_token);
-          WebRequest.SetAccessToken(data.auth_token);
-          this.user = data.user;
-          this.isAuthenticated = true;
-          this.isLoading = false; // Reset loading state
-        });
+        // Use centralized method to set auth data
+        this.setAuthData(data.auth_token, data.user);
         
-        return { success: true };
+        // Direct navigation
+        if (router) {
+          router.push('/dashboard');
+        }
+        
+        return true;
       } else {
         runInAction(() => {
           this.error = data.message || "Registration failed. Please try again.";
-          this.isLoading = false; // Reset loading state
+          this.isLoading = false;
         });
-        return { success: false, message: data.message };
+        return false;
       }
     } catch (error: any) {
       console.error("Registration error:", error);
       runInAction(() => {
         this.error = error.message || "Registration failed. Please try again.";
-        this.isLoading = false; // Reset loading state
+        this.isLoading = false;
       });
-      return { success: false, message: error.message };
+      return false;
     }
   }
 } 

@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { RootStore, initializeStore } from "@/stores/rootStore";
 import { observer } from "mobx-react-lite";
 import { runInAction } from "mobx";
+import { useRouter } from "next/router";
+import { initAuthRouter } from "@/stores/authStore";
 
 // Create the store outside of the render cycle
 let store: RootStore;
@@ -29,84 +31,69 @@ export const useStores = () => {
 };
 
 const App = observer(({ Component, pageProps }: any) => {
-  const [isMounted, setIsMounted] = useState(false);
-  
-  // Get or create the store on client-side
+  const [mounted, setMounted] = useState(false);
   const [appStore] = useState(() => getOrCreateStore());
+  const router = useRouter();
 
-  // Client-side only code
   useEffect(() => {
-    setIsMounted(true);
+    // Initialize the router for auth store
+    // initAuthRouter(router);
     
-    const checkAuth = async () => {
-      // Make sure loading state is set to true at the beginning
-      runInAction(() => {
-        appStore.authStore.isLoading = true;
-      });
+    setMounted(true);
+    
+    // Commented out for development - skip authentication check
+    // const checkAuth = async () => {
+    //   // Skip if already authenticated
+    //   if (appStore.authStore.isAuthenticated && appStore.authStore.user) {
+    //     console.log("_app: Already authenticated, skipping auth check");
+    //     runInAction(() => {
+    //       appStore.authStore.isLoading = false;
+    //     });
+    //     return;
+    //   }
       
-      try {
-        // Check if we have a token
-        const authToken = localStorage.getItem('authToken');
-        if (authToken) {
-          WebRequest.SetAccessToken(authToken);
-          
-          try {
-            // Set a timeout for the auth check
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error('Auth check timeout')), 5000);
-            });
-            
-            // Race the auth check against the timeout
-            await Promise.race([
-              appStore.authStore.checkAuth(),
-              timeoutPromise
-            ]);
-            
-            // If we get here, checkAuth completed successfully
-            console.log("Auth check completed successfully");
-          } catch (error) {
-            console.error("Auth check failed or timed out:", error);
-            
-            // Explicitly handle timeout or auth check failure
-            runInAction(() => {
-              appStore.authStore.user = null;
-              appStore.authStore.isAuthenticated = false;
-              appStore.authStore.isLoading = false;
-            });
-            
-            // Clear token on error
-            localStorage.removeItem('authToken');
-          }
-        } else {
-          console.log("No auth token found, setting unauthenticated state");
-          // No token, make sure we're marked as not authenticated
-          runInAction(() => {
-            appStore.authStore.user = null;
-            appStore.authStore.isAuthenticated = false;
-            appStore.authStore.isLoading = false;
-          });
-        }
-      } catch (error) {
-        console.error("Unexpected error in auth check:", error);
-        runInAction(() => {
-          appStore.authStore.user = null;
-          appStore.authStore.isAuthenticated = false;
-          appStore.authStore.isLoading = false;
-        });
-      }
-    };
+    //   // Check if we have a token
+    //   const authToken = localStorage.getItem('authToken');
+      
+    //   if (!authToken) {
+    //     console.log("_app: No auth token found");
+    //     // No need to call clearAuthData since we're just initializing
+    //     runInAction(() => {
+    //       appStore.authStore.user = null;
+    //       appStore.authStore.isAuthenticated = false;
+    //       appStore.authStore.isLoading = false;
+    //     });
+    //     return;
+    //   }
+      
+    //   // We have a token, set it and check authentication
+    //   console.log("_app: Found token, verifying...");
+    //   WebRequest.SetAccessToken(authToken);
+      
+    //   try {
+    //     // Let the auth store handle the check and state updates
+    //     const isAuthenticated = await appStore.authStore.checkAuth();
+    //     console.log("_app: Auth check result:", isAuthenticated);
+        
+    //     // No need to manually update state as checkAuth does that for us
+    //   } catch (error) {
+    //     console.error("_app: Auth check failed:", error);
+    //     // The checkAuth method will clear auth data if it fails
+    //   }
+    // };
     
-    if (typeof window !== 'undefined') {
-      checkAuth();
-    } else {
-      runInAction(() => {
-        appStore.authStore.isLoading = false;
-      });
-    }
-  }, [appStore.authStore]);
+    // Run auth check only on client side
+    // if (typeof window !== 'undefined') {
+    //   checkAuth();
+    // } else {
+    //   runInAction(() => {
+    //     appStore.authStore.isLoading = false;
+    //   });
+    // }
+  }, [appStore.authStore, router]);
 
-  // Handle server-side rendering - don't attempt authentication
-  if (!isMounted) {
+  // For server-side rendering, show a simple loader
+  if (!mounted) {
     return (
       <div className="flex min-h-svh items-center justify-center">
         <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -114,18 +101,18 @@ const App = observer(({ Component, pageProps }: any) => {
     );
   }
 
-  console.log("App render - authStore.isLoading:", appStore.authStore.isLoading);
-
-  // This runs only on client side
+  // Client-side rendering without authentication (commented out for development)
   return (
     <StoreContext.Provider value={appStore}>
-      {Component.requireAuth ? (
+      {/* Commented out for development - bypass authentication */}
+      {/* {Component.requireAuth ? (
         <AuthGuard requiredRoles={Component.requiredRoles || []}>
           <Component {...pageProps} />
         </AuthGuard>
       ) : (
         <Component {...pageProps} />
-      )}
+      )} */}
+      <Component {...pageProps} />
       <Toaster position="top-right" />
     </StoreContext.Provider>
   );

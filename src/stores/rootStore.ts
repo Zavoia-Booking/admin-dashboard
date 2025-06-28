@@ -1,10 +1,13 @@
 import { AuthStore } from './authStore';
+import { BusinessStore } from './businessStore';
 
 export class RootStore {
   authStore: AuthStore;
+  businessStore: BusinessStore;
 
   constructor() {
     this.authStore = new AuthStore();
+    this.businessStore = new BusinessStore();
   }
 }
 

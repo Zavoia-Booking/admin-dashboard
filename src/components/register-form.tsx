@@ -35,20 +35,19 @@ export function RegisterForm() {
     
     setError(null)
     
-    const result = await authStore.register({
+    const response = await authStore.register({
       firstName: formData.firstName,
       lastName: formData.lastName,
       phone: formData.phone,
       email: formData.email,
       password: formData.password,
-      role: UserRole.OWNER,
+      role: UserRole.TEAM_MEMBER,
     });
-    
-    if (result.success) {
-      toast.success("Registration successful!");
-      router.push("/dashboard");
+    if (response) {
+      toast.success('Registration successful!');
+      router.push('/dashboard');
     } else {
-      setError(result.message || "Registration failed. Please try again.");
+      toast.error(authStore.error || 'Registration failed.');
     }
   }
 

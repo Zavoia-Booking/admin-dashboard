@@ -1,12 +1,13 @@
 import AuthApiModule from "./modules/Auth.api.module";
 import BaseApiModule from "./modules/Base.api.module";
+import BusinessApiModule from "./modules/Business.api.module";
 
 class WebApi {
 
   public readonly base: BaseApiModule;
 //   public readonly admin: AdminApiModule;
   public readonly auth: AuthApiModule;
-//   public readonly business: BusinessApiModule;
+  public readonly business: BusinessApiModule;
 //   public readonly schedule: ScheduleApiModule;
 //   public readonly specialist: SpecialistApiModule;
 //   public readonly user: UserApiModule;
@@ -15,7 +16,7 @@ class WebApi {
     this.base = new BaseApiModule();
     // this.admin = new AdminApiModule();
     this.auth = new AuthApiModule();
-    // this.business = new BusinessApiModule();
+    this.business = new BusinessApiModule();
     // this.schedule = new ScheduleApiModule();
     // this.specialist = new SpecialistApiModule();
     // this.user = new UserApiModule();

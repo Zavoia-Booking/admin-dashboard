@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Icons } from "@/components/icons"
 import { useStores } from "@/pages/_app"
+import { useRouter } from "next/router"
+import { toast } from "sonner"
 
 export function LoginForm({
   className,
@@ -14,10 +16,17 @@ export function LoginForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const { authStore } = useStores()
+  const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    await authStore.login(email, password)
+    
+    const success = await authStore.login(email, password)
+    
+    // Just show error toast if login failed
+    if (!success) {
+      toast.error(authStore.error || "Login failed. Please try again.")
+    }
   }
 
   return (

@@ -9,6 +9,7 @@ import {
   Calendar,
   UserCircle,
   CalendarDays,
+  MapPin,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 
@@ -63,31 +64,37 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.SPECIALIST],
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Calendar",
     url: "/calendar",
     icon: Calendar,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.SPECIALIST],
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
   },
   {
-    title: "Specialists",
-    url: "/specialists",
-    icon: Users,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER],
+    title: "Team Members",
+    url: "/team-members",
+    icon: ClipboardList,
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Services",
     url: "/services",
     icon: ClipboardList,
-    roles: [UserRole.ADMIN, UserRole.SPECIALIST],
+    roles: [UserRole.ADMIN, UserRole.TEAM_MEMBER],
+  },
+  {
+    title: "Locations",
+    url: "/locations",
+    icon: MapPin,
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings2,
-    roles: [UserRole.ADMIN, UserRole.OWNER],
+    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.TEAM_MEMBER],
     items: [
       {
         title: "General",
@@ -100,10 +107,10 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    title: "Profile",
+    title: "Personal Profile",
     url: "/profile",
     icon: UserCircle,
-    roles: [UserRole.SPECIALIST],
+    roles: [UserRole.TEAM_MEMBER],
   }
 ]
 
@@ -114,29 +121,32 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   // Filter navigation items based on user's role
   const filteredNavItems = navItems
     .filter(item => {
+      // Commented out for development - show all items without authentication
+      return true;
+      
       // Always show dashboard as fallback
-      if (item.url === "/dashboard") return true;
+      // if (item.url === "/dashboard") return true;
       
       // Show all items for admin role
-      if (authStore.user?.role === UserRole.ADMIN) return true;
+      // if (authStore.user?.role === UserRole.ADMIN) return true;
       
       // Otherwise, check if user has the required role
-      return item.roles.includes(authStore.user?.role as UserRole)
+      // return item.roles.includes(authStore.user?.role as UserRole)
     })
     .map(item => ({
       ...item,
       isActive: pathname === item.url || item.items?.some(subItem => pathname === subItem.url),
     }))
 
-  // If still loading and no user, show a loading indicator
-  if (authStore.isLoading && !authStore.user) {
-    return (
-      <div className="h-screen w-64 bg-background border-r flex flex-col items-center justify-center">
-        <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
-        <div className="text-sm text-muted-foreground">Loading sidebar...</div>
-      </div>
-    );
-  }
+  // Commented out for development - don't show loading state
+  // if (authStore.isLoading && !authStore.user) {
+  //   return (
+  //     <div className="h-screen w-64 bg-background border-r flex flex-col items-center justify-center">
+  //       <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+  //       <div className="text-sm text-muted-foreground">Loading sidebar...</div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <Sidebar collapsible="icon" {...props}>
