@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserRole } from '@/types/auth';
 import {
   Table,
@@ -12,11 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Mail, Users, PowerOff, Power } from "lucide-react";
+import { Pencil, Trash2, Mail, Users, PowerOff, Power, Filter, Search, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 // TODO: fix sonner / toast component
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
@@ -135,6 +135,23 @@ export default function TeamMembersPage() {
       status: 'pending',
       createdAt: '2024-02-20T15:45:00Z'
     }]);
+
+  // Filter and pagination state
+  const [filters, setFilters] = useState({
+    search: '',
+    role: 'all',
+    status: 'all',
+  });
+  const [appliedFilters, setAppliedFilters] = useState({
+    search: '',
+    role: 'all',
+    status: 'all',
+  });
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(5);
+
+  // Existing state
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -152,6 +169,65 @@ export default function TeamMembersPage() {
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
 
+  // Filter and pagination logic
+  const filteredTeamMembers = useMemo(() => {
+    return teamMembers.filter(teamMember => {
+      const matchesSearch = appliedFilters.search === '' || 
+        teamMember.firstName.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
+        teamMember.lastName.toLowerCase().includes(appliedFilters.search.toLowerCase()) ||
+        teamMember.email.toLowerCase().includes(appliedFilters.search.toLowerCase());
+      
+      const matchesRole = appliedFilters.role === 'all' || teamMember.role === appliedFilters.role;
+      const matchesStatus = appliedFilters.status === 'all' || teamMember.status === appliedFilters.status;
+      
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [teamMembers, appliedFilters]);
+
+  const paginatedTeamMembers = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredTeamMembers.slice(startIndex, endIndex);
+  }, [filteredTeamMembers, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredTeamMembers.length / itemsPerPage);
+
+  // Filter handlers
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...filters });
+    setCurrentPage(1); // Reset to first page when applying filters
+  };
+
+  const handleRemoveFilters = () => {
+    setFilters({ search: '', role: 'all', status: 'all' });
+    setAppliedFilters({ search: '', role: 'all', status: 'all' });
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = appliedFilters.search !== '' || appliedFilters.role !== 'all' || appliedFilters.status !== 'all';
+
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
   // Fetch team members on component mount
   useEffect(() => {
     fetchTeamMembers();
@@ -163,7 +239,7 @@ export default function TeamMembersPage() {
       const response = await fetch('/api/team-members');
       const data = await response.json();
       setTeamMembers(data);
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to fetch team members');
     }
   };
@@ -198,7 +274,7 @@ export default function TeamMembersPage() {
       setIsInviteDialogOpen(false);
       setNewInvite({ email: '', role: 'Team Member' });
       fetchTeamMembers();
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to send invitation');
     } finally {
       setIsConfirmDialogOpen(false);
@@ -535,6 +611,99 @@ export default function TeamMembersPage() {
             </DialogContent>
           </Dialog>
 
+          {/* Filters Section */}
+          <div className="mb-6">
+            <Collapsible open={isFiltersOpen} onOpenChange={setIsFiltersOpen}>
+              <div className="flex items-center justify-between">
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                    {isFiltersOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </CollapsibleTrigger>
+                                 {hasActiveFilters && (
+                   <Badge variant="secondary" className="ml-2">
+                     {[
+                       appliedFilters.search !== '',
+                       appliedFilters.role !== 'all',
+                       appliedFilters.status !== 'all'
+                     ].filter(Boolean).length} active filter{[
+                       appliedFilters.search !== '',
+                       appliedFilters.role !== 'all',
+                       appliedFilters.status !== 'all'
+                     ].filter(Boolean).length !== 1 ? 's' : ''}
+                   </Badge>
+                 )}
+              </div>
+              
+              <CollapsibleContent className="mt-4">
+                <div className="bg-gray-50 p-4 rounded-lg border">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="search">Search</Label>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="search"
+                          placeholder="Search by name or email..."
+                          value={filters.search}
+                          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="roleFilter">Role</Label>
+                      <Select
+                        value={filters.role}
+                        onValueChange={(value) => setFilters({ ...filters, role: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Roles" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Roles</SelectItem>
+                          <SelectItem value="Team Member">Team Member</SelectItem>
+                          <SelectItem value="Manager">Manager</SelectItem>
+                          <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="statusFilter">Status</Label>
+                      <Select
+                        value={filters.status}
+                        onValueChange={(value) => setFilters({ ...filters, status: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="All Statuses" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Statuses</SelectItem>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="inactive">Inactive</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button onClick={handleApplyFilters}>
+                      Apply Filters
+                    </Button>
+                    <Button variant="outline" onClick={handleRemoveFilters}>
+                      Remove Filters
+                    </Button>
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
           <Table className="rounded-xl bg-white overflow-hidden">
             <TableHeader>
               <TableRow className="bg-gray-100 border-b-2 border-gray-200">
@@ -549,7 +718,7 @@ export default function TeamMembersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teamMembers.map((teamMember, index) => (
+              {paginatedTeamMembers.map((teamMember, index) => (
                 <TableRow key={teamMember.id} className={`${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors border-b border-gray-200`}>
                   <TableCell className="font-medium px-6 py-4">{teamMember.firstName}</TableCell>
                   <TableCell className="font-medium px-6 py-4">{teamMember.lastName}</TableCell>
@@ -617,6 +786,91 @@ export default function TeamMembersPage() {
               ))}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {filteredTeamMembers.length > 0 && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-gray-500">
+                  Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredTeamMembers.length)} of {filteredTeamMembers.length} results
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="itemsPerPage" className="text-sm text-gray-500">
+                    Items per page:
+                  </Label>
+                  <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Previous
+                </Button>
+                
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter(page => {
+                      // Show first page, last page, current page, and pages around current page
+                      return page === 1 || 
+                             page === totalPages || 
+                             (page >= currentPage - 1 && page <= currentPage + 1);
+                    })
+                    .map((page, index, array) => {
+                      const prevPage = array[index - 1];
+                      const showEllipsis = prevPage && page > prevPage + 1;
+                      
+                      return (
+                        <React.Fragment key={page}>
+                          {showEllipsis && (
+                            <span className="px-2 text-gray-400">...</span>
+                          )}
+                          <Button
+                            variant={currentPage === page ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(page)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {page}
+                          </Button>
+                        </React.Fragment>
+                      );
+                    })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {filteredTeamMembers.length === 0 && (
+            <div className="mt-6 text-center py-8 text-gray-500">
+              {hasActiveFilters ? 'No team members match the current filters.' : 'No team members found.'}
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>
