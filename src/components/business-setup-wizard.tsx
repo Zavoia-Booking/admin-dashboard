@@ -674,39 +674,50 @@ export function BusinessSetupWizard() {
                   <Label>Working Hours</Label>
                   <div className="space-y-3">
                     {location.workingHours.map((hours, index) => (
-                      <div key={hours.day} className="flex items-center gap-3">
-                        <div className="w-20 text-sm font-medium">{hours.day}</div>
-                        <Switch
-                          checked={!hours.isClosed}
-                          onCheckedChange={(checked) => {
-                            const newHours = [...location.workingHours];
-                            newHours[index] = { ...hours, isClosed: !checked };
-                            setLocation({ ...location, workingHours: newHours });
-                          }}
-                        />
+                      <div
+                        key={hours.day}
+                        className="bg-white border border-muted rounded-xl p-4 flex flex-col gap-2 shadow-sm"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-base font-medium">{hours.day}</span>
+                          <Switch
+                            checked={!hours.isClosed}
+                            onCheckedChange={(checked) => {
+                              const newHours = [...location.workingHours];
+                              newHours[index] = { ...hours, isClosed: !checked };
+                              setLocation({ ...location, workingHours: newHours });
+                            }}
+                            className="!h-5 !w-9 !min-h-0 !min-w-0"
+                          />
+                        </div>
                         {!hours.isClosed && (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="time"
-                              value={hours.open}
-                              onChange={(e) => {
-                                const newHours = [...location.workingHours];
-                                newHours[index] = { ...hours, open: e.target.value };
-                                setLocation({ ...location, workingHours: newHours });
-                              }}
-                              className="w-24"
-                            />
-                            <span className="text-sm">to</span>
-                            <Input
-                              type="time"
-                              value={hours.close}
-                              onChange={(e) => {
-                                const newHours = [...location.workingHours];
-                                newHours[index] = { ...hours, close: e.target.value };
-                                setLocation({ ...location, workingHours: newHours });
-                              }}
-                              className="w-24"
-                            />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs text-muted-foreground">Open</span>
+                              <Input
+                                type="time"
+                                value={hours.open}
+                                onChange={(e) => {
+                                  const newHours = [...location.workingHours];
+                                  newHours[index] = { ...hours, open: e.target.value };
+                                  setLocation({ ...location, workingHours: newHours });
+                                }}
+                                className="h-9 px-2 text-sm border border-input rounded-md focus:ring-1 focus:ring-primary"
+                              />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <span className="text-xs text-muted-foreground">Close</span>
+                              <Input
+                                type="time"
+                                value={hours.close}
+                                onChange={(e) => {
+                                  const newHours = [...location.workingHours];
+                                  newHours[index] = { ...hours, close: e.target.value };
+                                  setLocation({ ...location, workingHours: newHours });
+                                }}
+                                className="h-9 px-2 text-sm border border-input rounded-md focus:ring-1 focus:ring-primary"
+                              />
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1046,11 +1057,13 @@ export function BusinessSetupWizard() {
           {/* Navigation */}
           {currentStep > 0 && currentStep < steps.length - 1 && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between pt-6 border-t">
-                <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-6 border-t">
+                {/* Left side buttons - stack vertically on mobile */}
+                <div className="flex flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
                     onClick={handleBack}
+                    className="flex-1 sm:flex-none"
                   >
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Back
@@ -1058,16 +1071,20 @@ export function BusinessSetupWizard() {
                   <Button
                     variant="outline"
                     onClick={handleSaveDraft}
+                    className="flex-1 sm:flex-none"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     Save & Exit
                   </Button>
                 </div>
-                <div className="flex gap-2">
+                
+                {/* Right side buttons - stack vertically on mobile */}
+                <div className="flex flex-col sm:flex-row gap-2">
                   {currentStep > 1 && (
                     <Button
                       variant="outline"
                       onClick={handleSkip}
+                      className="flex-1 sm:flex-none"
                     >
                       {currentStep === 4 ? 'Skip & Complete' : 'Skip'}
                     </Button>
@@ -1076,6 +1093,7 @@ export function BusinessSetupWizard() {
                     onClick={handleNext} 
                     disabled={isNextButtonDisabled()}
                     title={isNextButtonDisabled() ? "Please complete the form or use Skip to continue" : ""}
+                    className="flex-1 sm:flex-none"
                   >
                     {currentStep === 4 ? 'Complete Setup' : 'Next'}
                     <ArrowRight className="w-4 h-4 ml-2" />

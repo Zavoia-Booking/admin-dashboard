@@ -10,6 +10,8 @@ interface TeamMember {
   role: string;
   status: 'pending' | 'active' | 'inactive';
   createdAt: string;
+  location: string;
+  services: string[];
 }
 
 // Mock data for development
@@ -22,7 +24,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 123-4567',
     role: 'Manager',
     status: 'active',
-    createdAt: '2024-01-15T10:30:00Z'
+    createdAt: '2024-01-15T10:30:00Z',
+    location: 'Main Branch',
+    services: ['Hair Cut', 'Hair Color', 'Styling']
   },
   {
     id: '2',
@@ -32,7 +36,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 234-5678',
     role: 'Team Member',
     status: 'active',
-    createdAt: '2024-02-01T15:45:00Z'
+    createdAt: '2024-02-01T15:45:00Z',
+    location: 'Uptown Branch',
+    services: ['Facial', 'Skin Care']
   },
   {
     id: '3',
@@ -42,7 +48,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 345-6789',
     role: 'Manager',
     status: 'active',
-    createdAt: '2024-01-20T09:15:00Z'
+    createdAt: '2024-01-20T09:15:00Z',
+    location: 'Wellness Center',
+    services: ['Deep Tissue', 'Swedish', 'Hot Stone']
   },
   {
     id: '4',
@@ -52,7 +60,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 456-7890',
     role: 'Team Member',
     status: 'inactive',
-    createdAt: '2024-01-10T14:20:00Z'
+    createdAt: '2024-01-10T14:20:00Z',
+    location: 'Beauty Studio',
+    services: ['Microdermabrasion', 'Skin Care']
   },
   {
     id: '5',
@@ -62,7 +72,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 567-8901',
     role: 'Team Member',
     status: 'active',
-    createdAt: '2024-02-05T11:30:00Z'
+    createdAt: '2024-02-05T11:30:00Z',
+    location: 'Barber Shop',
+    services: ['Hair Cut', 'Beard Trim', 'Shave']
   },
   {
     id: '6',
@@ -72,7 +84,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 678-9012',
     role: 'Team Member',
     status: 'pending',
-    createdAt: '2024-02-10T16:45:00Z'
+    createdAt: '2024-02-10T16:45:00Z',
+    location: 'Spa Center',
+    services: ['Swedish', 'Facial']
   },
   {
     id: '7',
@@ -82,7 +96,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 789-0123',
     role: 'Manager',
     status: 'active',
-    createdAt: '2024-01-25T13:15:00Z'
+    createdAt: '2024-01-25T13:15:00Z',
+    location: 'Main Branch',
+    services: ['Hair Cut', 'Styling']
   },
   {
     id: '8',
@@ -92,7 +108,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 890-1234',
     role: 'Team Member',
     status: 'inactive',
-    createdAt: '2024-01-05T10:20:00Z'
+    createdAt: '2024-01-05T10:20:00Z',
+    location: 'Beauty Studio',
+    services: ['Skin Care', 'Microdermabrasion']
   },
   {
     id: '9',
@@ -102,7 +120,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 901-2345',
     role: 'Team Member',
     status: 'active',
-    createdAt: '2024-02-15T09:30:00Z'
+    createdAt: '2024-02-15T09:30:00Z',
+    location: 'Wellness Center',
+    services: ['Deep Tissue', 'Hot Stone']
   },
   {
     id: '10',
@@ -112,7 +132,9 @@ const mockTeamMembers: TeamMember[] = [
     phone: '+1 (555) 012-3456',
     role: 'Team Member',
     status: 'pending',
-    createdAt: '2024-02-20T15:45:00Z'
+    createdAt: '2024-02-20T15:45:00Z',
+    location: 'Main Branch',
+    services: ['Facial', 'Skin Care']
   }
 ];
 
@@ -135,7 +157,9 @@ export default function handler(
       phone,
       role: role || UserRole.TEAM_MEMBER,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      location: '',
+      services: []
     };
     
     mockTeamMembers.push(newTeamMember);
