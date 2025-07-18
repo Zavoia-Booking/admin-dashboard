@@ -15,6 +15,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
+import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
+import EditTeamMemberSlider from '@/components/EditTeamMemberSlider';
 
 interface TeamMember {
   id: string;
@@ -151,34 +157,47 @@ export default function TeamMembersPage() {
       location: 'Main Branch',
       services: ['Facial', 'Skin Care']
     }]);
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
+  const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [editingTeamMember, setEditingTeamMember] = useState<TeamMember | null>(null);
-  const [newInvite, setNewInvite] = useState({
-    email: '',
-    role: 'Team Member',
-    location: '',
-  });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
+  const [locationFilter, setLocationFilter] = useState('all');
   const [pendingAction, setPendingAction] = useState<{
-    type: 'delete' | 'resend' | 'invite' | 'update' | 'toggleStatus';
+    type: 'delete' | 'resend' | 'toggleStatus';
     teamMemberId?: string;
     teamMemberName?: string;
-    inviteData?: { email: string; role: string };
-    updateData?: TeamMember;
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [locations, setLocations] = useState<Array<{id: string, name: string}>>([]);
+
+  // Local filter state (used in filter card only)
+  const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
+  const [localRoleFilter, setLocalRoleFilter] = useState(roleFilter);
+  const [localLocationFilter, setLocalLocationFilter] = useState(locationFilter);
+
+  // Popover states
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [roleOpen, setRoleOpen] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
 
   // Fetch team members and locations on component mount
   useEffect(() => {
     fetchTeamMembers();
     fetchLocations();
   }, []);
+
+  // When opening the filter card, sync local state with main state
+  React.useEffect(() => {
+    if (showFilters) {
+      setLocalStatusFilter(statusFilter);
+      setLocalRoleFilter(roleFilter);
+      setLocalLocationFilter(locationFilter);
+    }
+  }, [showFilters, statusFilter, roleFilter, locationFilter]);
 
   const fetchTeamMembers = async () => {
     try {
@@ -202,20 +221,7 @@ export default function TeamMembersPage() {
     }
   };
 
-  const handleInviteTeamMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Show confirmation dialog instead of immediately sending
-    setPendingAction({
-      type: 'invite',
-      inviteData: { email: newInvite.email, role: newInvite.role }
-    });
-    setIsConfirmDialogOpen(true);
-  };
-
-  const confirmInvite = async () => {
-    if (!pendingAction || pendingAction.type !== 'invite' || !pendingAction.inviteData) return;
-
+  const handleInviteTeamMember = async (inviteData: { email: string; role: string; location: string }) => {
     try {
       // TODO: Replace with actual API call
       const response = await fetch('/api/team-members/invite', {
@@ -223,61 +229,44 @@ export default function TeamMembersPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(pendingAction.inviteData),
+        body: JSON.stringify(inviteData),
       });
 
       if (!response.ok) throw new Error('Failed to send invitation');
 
       toast.success('Invitation sent successfully');
-      setIsInviteDialogOpen(false);
-      setNewInvite({ email: '', role: 'Team Member', location: '' });
+      setIsInviteSliderOpen(false);
       fetchTeamMembers();
     } catch (error) {
       toast.error('Failed to send invitation');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
     }
   };
 
-  const handleEditTeamMember = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!editingTeamMember) return;
 
-    setPendingAction({
-      type: 'update',
-      updateData: editingTeamMember
-    });
-    setIsConfirmDialogOpen(true);
-  };
 
-  const confirmUpdate = async () => {
-    if (!pendingAction || pendingAction.type !== 'update' || !pendingAction.updateData) return;
-
+  const handleEditTeamMember = async (memberData: TeamMember) => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/team-members/${pendingAction.updateData.id}`, {
+      const response = await fetch(`/api/team-members/${memberData.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(pendingAction.updateData),
+        body: JSON.stringify(memberData),
       });
 
       if (!response.ok) throw new Error('Failed to update team member');
 
       toast.success('Team member updated successfully');
-      setIsEditDialogOpen(false);
+      setIsEditSliderOpen(false);
       setEditingTeamMember(null);
       fetchTeamMembers();
     } catch (error) {
       toast.error('Failed to update team member');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
     }
   };
+
+
 
   const handleToggleStatus = async (teamMember: TeamMember) => {
     const newStatus = teamMember.status === 'active' ? 'inactive' : 'active';
@@ -378,29 +367,15 @@ export default function TeamMembersPage() {
     }
   };
 
-  const openEditDialog = (teamMember: TeamMember) => {
+  const openEditSlider = (teamMember: TeamMember) => {
     setEditingTeamMember(teamMember);
-    setIsEditDialogOpen(true);
+    setIsEditSliderOpen(true);
   };
 
   const getConfirmDialogContent = () => {
     if (!pendingAction) return null;
 
     switch (pendingAction.type) {
-      case 'invite':
-        return {
-          title: 'Send Invitation',
-          description: `Are you sure you want to send an invitation to ${pendingAction.inviteData?.email}?`,
-          confirmText: 'Send Invitation',
-          onConfirm: confirmInvite
-        };
-      case 'update':
-        return {
-          title: 'Update Team Member',
-          description: `Are you sure you want to update ${pendingAction.updateData?.firstName} ${pendingAction.updateData?.lastName}?`,
-          confirmText: 'Update',
-          onConfirm: confirmUpdate
-        };
       case 'toggleStatus':
         return {
           title: 'Update Status',
@@ -455,7 +430,7 @@ export default function TeamMembersPage() {
     }
   };
 
-  // Filter team members based on search, status, and role
+  // Filter team members based on search, status, role, and location
   const filteredTeamMembers = teamMembers.filter(member => {
     const matchesSearch = member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -465,7 +440,8 @@ export default function TeamMembersPage() {
       (roleFilter === 'admin' && member.role === UserRole.ADMIN) ||
       (roleFilter === 'manager' && member.role === UserRole.MANAGER) ||
       (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
-    return matchesSearch && matchesStatus && matchesRole;
+    const matchesLocation = locationFilter === 'all' || member.location === locationFilter;
+    return matchesSearch && matchesStatus && matchesRole && matchesLocation;
   });
 
   // Get unique roles from data
@@ -478,6 +454,14 @@ export default function TeamMembersPage() {
   const filteredCount = filteredTeamMembers.length;
 
   const confirmDialogContent = getConfirmDialogContent();
+
+  // Calculate number of active filters
+  const activeFiltersCount = [
+    !!searchTerm,
+    statusFilter !== 'all',
+    roleFilter !== 'all',
+    locationFilter !== 'all'
+  ].filter(Boolean).length;
 
   return (
     <AppLayout>
@@ -494,227 +478,268 @@ export default function TeamMembersPage() {
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
           </div>
           <button
-            className="flex items-center justify-center h-11 w-11 rounded-lg border border-input bg-white hover:bg-muted transition-colors"
+            className={`
+              relative flex items-center justify-center h-9 w-9 rounded-md border border-input transition-all duration-200 ease-out
+              ${showFilters
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-white text-muted-foreground hover:text-foreground hover:bg-muted/50'}
+            `}
             onClick={() => setShowFilters(v => !v)}
             aria-label="Show filters"
           >
-            <Filter className="h-5 w-5 text-gray-500" />
+            <Filter className={`h-5 w-5 ${showFilters ? 'text-primary-foreground' : ''}`} />
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] flex items-center justify-center shadow">
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
-          <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="h-11 px-4 rounded-lg bg-black hover:bg-gray-800 flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                <span className="font-semibold">Invite Member</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Invite Team Member</DialogTitle>
-                <DialogDescription>
-                  Send an invitation to join your team.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleInviteTeamMember} className="space-y-4">
-                <div>
-                  <Label htmlFor="email" className="mb-2 block">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={newInvite.email}
-                    onChange={(e) => setNewInvite({ ...newInvite, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="role" className="mb-2 block">Role</Label>
-                  <Select value={newInvite.role} onValueChange={(value) => setNewInvite({ ...newInvite, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Team Member">Team Member</SelectItem>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="location" className="mb-2 block">Location</Label>
-                  <Select value={newInvite.location} onValueChange={(value) => setNewInvite({ ...newInvite, location: value })} required>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a location" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>{location.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full">Send Invitation</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            className="h-11 px-4 rounded-lg bg-black hover:bg-gray-800 flex items-center gap-2"
+            onClick={() => setIsInviteSliderOpen(true)}
+          >
+            <Plus className="h-5 w-5" />
+            <span className="font-semibold">Invite Member</span>
+          </Button>
           
-          {/* Edit Team Member Dialog */}
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit Team Member</DialogTitle>
-                <DialogDescription>
-                  Update team member information.
-                </DialogDescription>
-              </DialogHeader>
-              {editingTeamMember && (
-                <form onSubmit={handleEditTeamMember} className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName" className="mb-2 block">First Name</Label>
-                      <Input
-                        id="firstName"
-                        value={editingTeamMember.firstName}
-                        onChange={(e) => setEditingTeamMember({ ...editingTeamMember, firstName: e.target.value })}
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName" className="mb-2 block">Last Name</Label>
-                      <Input
-                        id="lastName"
-                        value={editingTeamMember.lastName}
-                        onChange={(e) => setEditingTeamMember({ ...editingTeamMember, lastName: e.target.value })}
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <Label htmlFor="editEmail" className="mb-2 block">Email</Label>
-                    <Input
-                      id="editEmail"
-                      type="email"
-                      value={editingTeamMember.email}
-                      onChange={(e) => setEditingTeamMember({ ...editingTeamMember, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="editPhone" className="mb-2 block">Phone</Label>
-                    <Input
-                      id="editPhone"
-                      value={editingTeamMember.phone}
-                      onChange={(e) => setEditingTeamMember({ ...editingTeamMember, phone: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="editRole" className="mb-2 block">Role</Label>
-                    <Select 
-                      value={editingTeamMember.role} 
-                      onValueChange={(value) => setEditingTeamMember({ ...editingTeamMember, role: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={UserRole.TEAM_MEMBER}>Team Member</SelectItem>
-                        <SelectItem value={UserRole.MANAGER}>Manager</SelectItem>
-                        <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="editLocation" className="mb-2 block">Location</Label>
-                    <Select 
-                      value={editingTeamMember.location || 'none'} 
-                      onValueChange={(value) => setEditingTeamMember({ ...editingTeamMember, location: value === 'none' ? '' : value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a location" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No location</SelectItem>
-                        {locations.map((location) => (
-                          <SelectItem key={location.id} value={location.name}>
-                            {location.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="flex-1">Update Team Member</Button>
-                    <Button 
-                      type="button" 
-                      variant="outline" 
-                      onClick={() => setIsEditDialogOpen(false)}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              )}
-            </DialogContent>
-          </Dialog>
+
         </div>
         {/* Filter Panel (dropdown style) */}
         {showFilters && (
           <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md">
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <Label className="mb-1 block">Role</Label>
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="All roles" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All roles</SelectItem>
-                    {uniqueRoles.map(role => (
-                      <SelectItem key={role} value={role}>{role}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Status Filter */}
               <div className="flex-1">
                 <Label className="mb-1 block">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={statusOpen}
+                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                    >
+                      {localStatusFilter === 'all' ? 'All statuses' : localStatusFilter.charAt(0).toUpperCase() + localStatusFilter.slice(1)}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0 z-[80]">
+                    <Command>
+                      <CommandInput placeholder="Search statuses..." />
+                      <CommandList>
+                        <CommandEmpty>No statuses found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              setLocalStatusFilter('all');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            All statuses
+                          </CommandItem>
+                          <CommandItem
+                            value="active"
+                            onSelect={() => {
+                              setLocalStatusFilter('active');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            Active
+                          </CommandItem>
+                          <CommandItem
+                            value="inactive"
+                            onSelect={() => {
+                              setLocalStatusFilter('inactive');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            Inactive
+                          </CommandItem>
+                          <CommandItem
+                            value="pending"
+                            onSelect={() => {
+                              setLocalStatusFilter('pending');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            Pending
+                          </CommandItem>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {/* Role Filter */}
+              <div className="flex-1">
+                <Label className="mb-1 block">Role</Label>
+                <Popover open={roleOpen} onOpenChange={setRoleOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={roleOpen}
+                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                    >
+                      {localRoleFilter === 'all' ? 'All roles' : localRoleFilter}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0 z-[80]">
+                    <Command>
+                      <CommandInput placeholder="Search roles..." />
+                      <CommandList>
+                        <CommandEmpty>No roles found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              setLocalRoleFilter('all');
+                              setRoleOpen(false);
+                            }}
+                          >
+                            All roles
+                          </CommandItem>
+                          {uniqueRoles.map(role => (
+                            <CommandItem
+                              key={role}
+                              value={role}
+                              onSelect={() => {
+                                setLocalRoleFilter(role);
+                                setRoleOpen(false);
+                              }}
+                            >
+                              {role}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              {/* Location Filter */}
+              <div className="flex-1">
+                <Label className="mb-1 block">Location</Label>
+                <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={locationOpen}
+                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                    >
+                      {localLocationFilter === 'all' ? 'All locations' : localLocationFilter}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0 z-[80]">
+                    <Command>
+                      <CommandInput placeholder="Search locations..." />
+                      <CommandList>
+                        <CommandEmpty>No locations found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              setLocalLocationFilter('all');
+                              setLocationOpen(false);
+                            }}
+                          >
+                            All locations
+                          </CommandItem>
+                          {Array.from(new Set(teamMembers.map(m => m.location).filter(Boolean))).map(location => (
+                            <CommandItem
+                              key={location}
+                              value={location}
+                              onSelect={() => {
+                                                               setLocalLocationFilter(location!);
+                               setLocationOpen(false);
+                             }}
+                           >
+                             {location}
+                           </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => { setRoleFilter('all'); setStatusFilter('all'); setShowFilters(false); }}>Clear filters</Button>
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setLocalStatusFilter('all');
+                  setLocalRoleFilter('all');
+                  setLocalLocationFilter('all');
+                }}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setStatusFilter(localStatusFilter);
+                  setRoleFilter(localRoleFilter);
+                  setLocationFilter(localLocationFilter);
+                  setShowFilters(false);
+                }}
+              >
+                Apply Filters
+              </Button>
             </div>
           </div>
         )}
-        {/* Active Filters as tags */}
-        <div className="flex flex-wrap gap-2">
-          {searchTerm && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Search: "{searchTerm}"
-              <button className="ml-2" onClick={() => setSearchTerm('')}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {roleFilter !== 'all' && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Role: {roleFilter}
-              <button className="ml-2" onClick={() => setRoleFilter('all')}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {statusFilter !== 'all' && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Status: {statusFilter}
-              <button className="ml-2" onClick={() => setStatusFilter('all')}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-        </div>
+        {/* Active Filter Badges - Always show when there are active filters */}
+        {(searchTerm || statusFilter !== 'all' || roleFilter !== 'all' || locationFilter !== 'all') && (
+          <div className="flex flex-wrap gap-2">
+            {searchTerm && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setSearchTerm('')}
+              >
+                Search: "{searchTerm}"
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {statusFilter !== 'all' && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setStatusFilter('all')}
+              >
+                Status: {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {roleFilter !== 'all' && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setRoleFilter('all')}
+              >
+                Role: {roleFilter}
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {locationFilter !== 'all' && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setLocationFilter('all')}
+              >
+                Location: {locationFilter}
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+          </div>
+        )}
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-lg border bg-white p-4 text-center">
@@ -735,7 +760,7 @@ export default function TeamMembersPage() {
           {filteredTeamMembers.length === 0 ? (
             <div className="rounded-lg border bg-white p-8 text-center">
               <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
-              <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setShowFilters(false); }}>Clear filters</Button>
+              <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
             </div>
           ) : (
             filteredTeamMembers.map(member => (
@@ -765,7 +790,7 @@ export default function TeamMembersPage() {
                     <button 
                       className="p-2 rounded hover:bg-muted" 
                       title="Edit"
-                      onClick={() => openEditDialog(member)}
+                      onClick={() => openEditSlider(member)}
                     >
                       <Edit className="h-5 w-5" />
                     </button>
@@ -838,6 +863,23 @@ export default function TeamMembersPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Invite Team Member Slider */}
+      <InviteTeamMemberSlider 
+        isOpen={isInviteSliderOpen}
+        onClose={() => setIsInviteSliderOpen(false)}
+        onInvite={handleInviteTeamMember}
+        locations={locations}
+      />
+      
+      {/* Edit Team Member Slider */}
+      <EditTeamMemberSlider 
+        isOpen={isEditSliderOpen}
+        onClose={() => setIsEditSliderOpen(false)}
+        onUpdate={handleEditTeamMember}
+        teamMember={editingTeamMember}
+        locations={locations}
+      />
     </AppLayout>
   );
 }

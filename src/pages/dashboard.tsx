@@ -1,7 +1,7 @@
 import { AppLayout } from "@/components/layouts/app-layout"
 import { UserRole } from "@/types/auth"
 import { useStores } from "@/pages/_app"
-import { BusinessSetupWizard } from "@/components/business-setup-wizard"
+import { SetupWizard } from "@/components/SetupWizard"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { 
@@ -23,7 +23,7 @@ export default function DashboardPage() {
     return (
       <AppLayout>
         <div className="space-y-6">
-          <BusinessSetupWizard />
+          <SetupWizard />
         </div>
       </AppLayout>
     )

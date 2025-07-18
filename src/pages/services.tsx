@@ -4,6 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, PowerOff, Power, Filter, Search, Plus, Clock, DollarSign, MoreVertical, X, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import AddServiceSlider from '@/components/AddServiceSlider';
+import EditServiceSlider from '@/components/EditServiceSlider';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +16,10 @@ import { AppLayout } from '@/components/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ChevronsUpDown, Check } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface Service {
   id: string;
@@ -111,26 +117,34 @@ export default function ServicesPage() {
   const [durationRange, setDurationRange] = useState({ min: '', max: '' });
   const [showFilters, setShowFilters] = useState(false);
 
+  // Local filter state (used in filter card only)
+  const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
+  const [localPriceRange, setLocalPriceRange] = useState(priceRange);
+  const [localDurationRange, setLocalDurationRange] = useState(durationRange);
+
+  // Popover states
+  const [statusOpen, setStatusOpen] = useState(false);
+
   // Dialog states
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
+  const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [newService, setNewService] = useState({
-    name: '',
-    price: 0,
-    duration: 0,
-    description: '',
-    status: 'enabled' as const,
-  });
   const [pendingAction, setPendingAction] = useState<{
-    type: 'delete' | 'create' | 'update' | 'toggleStatus';
+    type: 'delete' | 'toggleStatus';
     serviceId?: string;
     serviceName?: string;
-    createData?: typeof newService;
-    updateData?: Service;
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
+
+  // When opening the filter card, sync local state with main state
+  React.useEffect(() => {
+    if (showFilters) {
+      setLocalStatusFilter(statusFilter);
+      setLocalPriceRange(priceRange);
+      setLocalDurationRange(durationRange);
+    }
+  }, [showFilters, statusFilter, priceRange, durationRange]);
 
   // Filter logic
   const filteredServices = useMemo(() => {
@@ -162,19 +176,7 @@ export default function ServicesPage() {
     }
   };
 
-  const handleCreateService = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    setPendingAction({
-      type: 'create',
-      createData: { ...newService }
-    });
-    setIsConfirmDialogOpen(true);
-  };
-
-  const confirmCreate = async () => {
-    if (!pendingAction || pendingAction.type !== 'create' || !pendingAction.createData) return;
-
+  const handleCreateService = async (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled' }) => {
     try {
       // TODO: Replace with actual API call
       const response = await fetch('/api/services', {
@@ -182,59 +184,38 @@ export default function ServicesPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(pendingAction.createData),
+        body: JSON.stringify(serviceData),
       });
 
       if (!response.ok) throw new Error('Failed to create service');
 
       toast.success('Service created successfully');
-      setIsCreateDialogOpen(false);
-      setNewService({ name: '', price: 0, duration: 0, description: '', status: 'enabled' });
+      setIsCreateSliderOpen(false);
       fetchServices();
     } catch (error) {
       toast.error('Failed to create service');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
     }
   };
 
-  const handleEditService = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!editingService) return;
-
-    setPendingAction({
-      type: 'update',
-      updateData: { ...editingService }
-    });
-    setIsConfirmDialogOpen(true);
-  };
-
-  const confirmUpdate = async () => {
-    if (!pendingAction || pendingAction.type !== 'update' || !pendingAction.updateData) return;
-
+  const handleEditService = async (serviceData: Service) => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/services/${pendingAction.updateData.id}`, {
+      const response = await fetch(`/api/services/${serviceData.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(pendingAction.updateData),
+        body: JSON.stringify(serviceData),
       });
 
       if (!response.ok) throw new Error('Failed to update service');
 
       toast.success('Service updated successfully');
-      setIsEditDialogOpen(false);
+      setIsEditSliderOpen(false);
       setEditingService(null);
       fetchServices();
     } catch (error) {
       toast.error('Failed to update service');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
     }
   };
 
@@ -308,29 +289,15 @@ export default function ServicesPage() {
     }
   };
 
-  const openEditDialog = (service: Service) => {
+  const openEditSlider = (service: Service) => {
     setEditingService(service);
-    setIsEditDialogOpen(true);
+    setIsEditSliderOpen(true);
   };
 
   const getConfirmDialogContent = () => {
     if (!pendingAction) return null;
 
     switch (pendingAction.type) {
-      case 'create':
-        return {
-          title: 'Create Service',
-          description: `Are you sure you want to create the service "${pendingAction.createData?.name}"?`,
-          confirmText: 'Create Service',
-          onConfirm: confirmCreate
-        };
-      case 'update':
-        return {
-          title: 'Update Service',
-          description: `Are you sure you want to update "${pendingAction.updateData?.name}"?`,
-          confirmText: 'Update',
-          onConfirm: confirmUpdate
-        };
       case 'toggleStatus':
         return {
           title: 'Update Status',
@@ -372,6 +339,16 @@ export default function ServicesPage() {
 
   const confirmDialogContent = getConfirmDialogContent();
 
+  // Calculate number of active filters
+  const activeFiltersCount = [
+    !!searchTerm,
+    statusFilter !== 'all',
+    !!priceRange.min,
+    !!priceRange.max,
+    !!durationRange.min,
+    !!durationRange.max
+  ].filter(Boolean).length;
+
   return (
     <AppLayout>
       <div className="space-y-4 max-w-2xl mx-auto">
@@ -387,114 +364,223 @@ export default function ServicesPage() {
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
           </div>
           <button
-            className="flex items-center justify-center h-11 w-11 rounded-lg border border-input bg-white hover:bg-muted transition-colors"
+            className={`
+              relative flex items-center justify-center h-9 w-9 rounded-md border border-input transition-all duration-200 ease-out
+              ${showFilters
+                ? 'bg-primary text-primary-foreground shadow-sm'
+                : 'bg-white text-muted-foreground hover:text-foreground hover:bg-muted/50'}
+            `}
             onClick={() => setShowFilters(v => !v)}
             aria-label="Show filters"
           >
-            <Filter className="h-5 w-5 text-gray-500" />
+            <Filter className={`h-5 w-5 ${showFilters ? 'text-primary-foreground' : ''}`} />
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] flex items-center justify-center shadow">
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="h-11 px-4 rounded-lg bg-black hover:bg-gray-800 flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                <span className="font-semibold">Add Service</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Service</DialogTitle>
-                <DialogDescription>
-                  Create a new service for your business.
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateService} className="space-y-4">
-                <div>
-                  <Label htmlFor="name" className="mb-2 block">Service Name</Label>
-                  <Input
-                    id="name"
-                    value={newService.name}
-                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="price" className="mb-2 block">Price ($)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={newService.price}
-                      onChange={(e) => setNewService({ ...newService, price: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="duration" className="mb-2 block">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      min="1"
-                      value={newService.duration}
-                      onChange={(e) => setNewService({ ...newService, duration: parseInt(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="description" className="mb-2 block">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newService.description}
-                    onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                  />
-                </div>
-                <Button type="submit" className="w-full">Create Service</Button>
-              </form>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            className="h-11 px-4 rounded-lg bg-black hover:bg-gray-800 flex items-center gap-2"
+            onClick={() => setIsCreateSliderOpen(true)}
+          >
+            <Plus className="h-5 w-5" />
+            <span className="font-semibold">Add Service</span>
+          </Button>
         </div>
         
-        {/* Active Filters as tags */}
-        <div className="flex flex-wrap gap-2">
-          {searchTerm && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Search: "{searchTerm}"
-              <button className="ml-2" onClick={() => setSearchTerm('')}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {statusFilter !== 'all' && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Status: {statusFilter}
-              <button className="ml-2" onClick={() => setStatusFilter('all')}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {priceRange.min && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Min Price: ${priceRange.min}
-              <button className="ml-2" onClick={() => setPriceRange({ ...priceRange, min: '' })}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {priceRange.max && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Max Price: ${priceRange.max}
-              <button className="ml-2" onClick={() => setPriceRange({ ...priceRange, max: '' })}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {durationRange.min && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Min Duration: {durationRange.min}m
-              <button className="ml-2" onClick={() => setDurationRange({ ...durationRange, min: '' })}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-          {durationRange.max && (
-            <span className="inline-flex items-center bg-muted px-3 py-1 rounded-full text-sm">
-              Max Duration: {durationRange.max}m
-              <button className="ml-2" onClick={() => setDurationRange({ ...durationRange, max: '' })}><X className="h-4 w-4" /></button>
-            </span>
-          )}
-        </div>
+        {/* Filter Panel (dropdown style) */}
+        {showFilters && (
+          <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md">
+            <div className="flex flex-col sm:flex-row gap-4">
+              {/* Status Filter */}
+              <div className="flex-1">
+                <Label className="mb-1 block">Status</Label>
+                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={statusOpen}
+                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                    >
+                      {localStatusFilter === 'all' ? 'All statuses' : localStatusFilter.charAt(0).toUpperCase() + localStatusFilter.slice(1)}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0 z-[80]">
+                    <Command>
+                      <CommandInput placeholder="Search statuses..." />
+                      <CommandList>
+                        <CommandEmpty>No statuses found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value="all"
+                            onSelect={() => {
+                              setLocalStatusFilter('all');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            All statuses
+                          </CommandItem>
+                          <CommandItem
+                            value="enabled"
+                            onSelect={() => {
+                              setLocalStatusFilter('enabled');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            Enabled
+                          </CommandItem>
+                          <CommandItem
+                            value="disabled"
+                            onSelect={() => {
+                              setLocalStatusFilter('disabled');
+                              setStatusOpen(false);
+                            }}
+                          >
+                            Disabled
+                          </CommandItem>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="mb-1 block">Price Range</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Min"
+                    type="number"
+                    value={localPriceRange.min}
+                    onChange={(e) => setLocalPriceRange({ ...localPriceRange, min: e.target.value })}
+                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
+                  />
+                  <Input
+                    placeholder="Max"
+                    type="number"
+                    value={localPriceRange.max}
+                    onChange={(e) => setLocalPriceRange({ ...localPriceRange, max: e.target.value })}
+                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="mb-1 block">Duration Range (minutes)</Label>
+                <div className="flex space-x-2">
+                  <Input
+                    placeholder="Min"
+                    type="number"
+                    value={localDurationRange.min}
+                    onChange={(e) => setLocalDurationRange({ ...localDurationRange, min: e.target.value })}
+                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
+                  />
+                  <Input
+                    placeholder="Max"
+                    type="number"
+                    value={localDurationRange.max}
+                    onChange={(e) => setLocalDurationRange({ ...localDurationRange, max: e.target.value })}
+                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setLocalStatusFilter('all');
+                  setLocalPriceRange({ min: '', max: '' });
+                  setLocalDurationRange({ min: '', max: '' });
+                }}
+              >
+                Clear
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => {
+                  setStatusFilter(localStatusFilter);
+                  setPriceRange(localPriceRange);
+                  setDurationRange(localDurationRange);
+                  setShowFilters(false);
+                }}
+              >
+                Apply Filters
+              </Button>
+            </div>
+          </div>
+        )}
+        
+        {/* Active Filter Badges - Always show when there are active filters */}
+        {(searchTerm || statusFilter !== 'all' || priceRange.min || priceRange.max || durationRange.min || durationRange.max) && (
+          <div className="flex flex-wrap gap-2">
+            {searchTerm && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setSearchTerm('')}
+              >
+                Search: "{searchTerm}"
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {statusFilter !== 'all' && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setStatusFilter('all')}
+              >
+                Status: {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {priceRange.min && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setPriceRange({ ...priceRange, min: '' })}
+              >
+                Min Price: ${priceRange.min}
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {priceRange.max && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setPriceRange({ ...priceRange, max: '' })}
+              >
+                Max Price: ${priceRange.max}
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {durationRange.min && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setDurationRange({ ...durationRange, min: '' })}
+              >
+                Min Duration: {durationRange.min}m
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+            {durationRange.max && (
+              <Badge 
+                variant="secondary" 
+                className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                onClick={() => setDurationRange({ ...durationRange, max: '' })}
+              >
+                Max Duration: {durationRange.max}m
+                <X className="h-4 w-4 ml-1" />
+              </Badge>
+            )}
+          </div>
+        )}
         
         {/* Stats Cards */}
         <div className="grid grid-cols-4 gap-4">
@@ -515,70 +601,6 @@ export default function ServicesPage() {
             <div className="text-xs text-gray-500 mt-1">Bookings</div>
           </div>
         </div>
-        
-        {/* Filter Panel (dropdown style) */}
-        {showFilters && (
-          <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <Label className="mb-1 block">Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="enabled">Enabled</SelectItem>
-                    <SelectItem value="disabled">Disabled</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="mb-1 block">Price Range</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Min"
-                    type="number"
-                    value={priceRange.min}
-                    onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
-                    className="text-sm"
-                  />
-                  <Input
-                    placeholder="Max"
-                    type="number"
-                    value={priceRange.max}
-                    onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="mb-1 block">Duration Range</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Min"
-                    type="number"
-                    value={durationRange.min}
-                    onChange={(e) => setDurationRange({ ...durationRange, min: e.target.value })}
-                    className="text-sm"
-                  />
-                  <Input
-                    placeholder="Max"
-                    type="number"
-                    value={durationRange.max}
-                    onChange={(e) => setDurationRange({ ...durationRange, max: e.target.value })}
-                    className="text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end">
-              <Button variant="outline" size="sm" onClick={() => { setStatusFilter('all'); setPriceRange({ min: '', max: '' }); setDurationRange({ min: '', max: '' }); setShowFilters(false); }}>Clear filters</Button>
-            </div>
-          </div>
-        )}
         
         {/* Services Grid */}
         <div className="space-y-3">
@@ -608,13 +630,13 @@ export default function ServicesPage() {
                     <Switch
                       checked={service.status === 'enabled'}
                       onCheckedChange={() => handleToggleServiceStatus(service)}
-                      className={`!h-5 !w-9 !min-h-0 !min-w-0 ${service.status === 'enabled' ? 'bg-green-500' : 'bg-red-500'}`}
+                      className={`!h-5 !w-9 !min-h-0 !min-w-0`}
                     />
                     {/* Edit */}
                     <button
                       className="flex items-center justify-center h-9 w-9 rounded hover:bg-muted"
                       title="Edit"
-                      onClick={() => openEditDialog(service)}
+                      onClick={() => openEditSlider(service)}
                     >
                       <Edit className="h-5 w-5" />
                     </button>
@@ -685,64 +707,7 @@ export default function ServicesPage() {
           )
         )}
 
-        {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Service</DialogTitle>
-              <DialogDescription>
-                Update service information.
-              </DialogDescription>
-            </DialogHeader>
-            {editingService && (
-              <form onSubmit={handleEditService} className="space-y-4">
-                <div>
-                  <Label htmlFor="editName" className="mb-2 block">Service Name</Label>
-                  <Input
-                    id="editName"
-                    value={editingService.name}
-                    onChange={(e) => setEditingService({ ...editingService, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="editPrice" className="mb-2 block">Price ($)</Label>
-                    <Input
-                      id="editPrice"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={editingService.price}
-                      onChange={(e) => setEditingService({ ...editingService, price: parseFloat(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="editDuration" className="mb-2 block">Duration (minutes)</Label>
-                    <Input
-                      id="editDuration"
-                      type="number"
-                      min="1"
-                      value={editingService.duration}
-                      onChange={(e) => setEditingService({ ...editingService, duration: parseInt(e.target.value) || 0 })}
-                      required
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label htmlFor="editDescription" className="mb-2 block">Description</Label>
-                  <Textarea
-                    id="editDescription"
-                    value={editingService.description}
-                    onChange={(e) => setEditingService({ ...editingService, description: e.target.value })}
-                  />
-                </div>
-                <Button type="submit" className="w-full">Update Service</Button>
-              </form>
-            )}
-          </DialogContent>
-        </Dialog>
+
 
         {/* Confirmation Dialog */}
         <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
@@ -770,6 +735,21 @@ export default function ServicesPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Add Service Slider */}
+        <AddServiceSlider 
+          isOpen={isCreateSliderOpen}
+          onClose={() => setIsCreateSliderOpen(false)}
+          onCreate={handleCreateService}
+        />
+        
+        {/* Edit Service Slider */}
+        <EditServiceSlider 
+          isOpen={isEditSliderOpen}
+          onClose={() => setIsEditSliderOpen(false)}
+          onUpdate={handleEditService}
+          service={editingService}
+        />
       </div>
     </AppLayout>
   );

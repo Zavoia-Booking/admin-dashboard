@@ -15,7 +15,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <MobileHeader />
       
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className="flex-1 overflow-y-auto pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         <div className="px-4 py-4">
           {children}
         </div>

@@ -16,6 +16,8 @@ export function MobileHeader() {
     switch (pathname) {
       case '/dashboard':
         return 'Dashboard';
+      case '/calendar':
+        return 'Calendar';
       case '/team-members':
         return 'Team Members';
       case '/services':
