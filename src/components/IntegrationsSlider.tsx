@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, Plug, CreditCard, Calendar, Video, Mail, BarChart3, Star, FileText, Users, ExternalLink, Check, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Plug, CreditCard, Calendar, Video, Mail, BarChart3, Star, FileText, Users, ExternalLink, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { BaseSlider } from '@/components/common/BaseSlider';
 
 interface IntegrationsSliderProps {
   isOpen: boolean;
@@ -206,58 +207,6 @@ const IntegrationsSlider: React.FC<IntegrationsSliderProps> = ({ isOpen, onClose
     }
   ]);
 
-  // Touch/drag handling for mobile swipe to close
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const startX = useRef(0);
-  const currentX = useRef(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    currentX.current = e.touches[0].clientX;
-    const diff = currentX.current - startX.current;
-    if (diff > 0) {
-      setDragOffset(diff);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (dragOffset > 100) {
-      onClose();
-    }
-    setDragOffset(0);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    startX.current = e.clientX;
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    currentX.current = e.clientX;
-    const diff = currentX.current - startX.current;
-    if (diff > 0) {
-      setDragOffset(diff);
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (dragOffset > 100) {
-      onClose();
-    }
-    setDragOffset(0);
-  };
-
   const handleToggleIntegration = (integrationId: string) => {
     setIntegrations(prev => prev.map(integration => 
       integration.id === integrationId 
@@ -342,196 +291,153 @@ const IntegrationsSlider: React.FC<IntegrationsSliderProps> = ({ isOpen, onClose
   const connectedCount = integrations.filter(i => i.connected).length;
 
   return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-60 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
-      />
-      
-      {/* Sliding Panel */}
-      <div 
-        className={`fixed top-0 left-0 h-full w-full bg-background shadow-lg z-70 ${
-          !isDragging ? 'transition-transform duration-300 ease-out' : ''
-        } ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{
-          transform: isDragging 
-            ? `translateX(${dragOffset}px)` 
-            : undefined
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center p-2 border-b bg-card/50 relative">
-            <div className="bg-muted rounded-full p-1.5 shadow-sm">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={onClose}
-                className="rounded-full hover:bg-muted-foreground/10"
-                style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
-              >
-                <ArrowLeft className="h-3 w-3" />
-              </Button>
+    <BaseSlider
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Integrations"
+      contentClassName="bg-muted/50 scrollbar-hide"
+      footer={
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Close
+          </Button>
+          <Button
+            type="button"
+            onClick={() => {
+              toast.success('✅ Integration settings saved');
+              onClose();
+            }}
+            className="flex-1"
+          >
+            Save Changes
+          </Button>
+        </div>
+      }
+    >
+      <div className="max-w-md mx-auto space-y-6">
+        
+        {/* Stats Card */}
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-primary">{connectedCount}</div>
+              <div className="text-sm text-muted-foreground">Connected Services</div>
+              <div className="text-xs text-muted-foreground mt-1">
+                {integrations.length - connectedCount} available to connect
+              </div>
             </div>
-            <h2 className="text-lg font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Integrations</h2>
-          </div>
+          </CardContent>
+        </Card>
 
-          {/* Form Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-muted/50 scrollbar-hide">
-            <div className="max-w-md mx-auto space-y-6">
-              
-              {/* Stats Card */}
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                <CardContent className="p-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-primary">{connectedCount}</div>
-                    <div className="text-sm text-muted-foreground">Connected Services</div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {integrations.length - connectedCount} available to connect
-                    </div>
+        {/* Integration Categories */}
+        {categories.map(category => {
+          const categoryIntegrations = integrations.filter(i => i.category === category);
+          if (categoryIntegrations.length === 0) return null;
+          
+          const CategoryIcon = getCategoryIcon(category);
+          
+          return (
+            <Card key={category} className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+              <CardContent className="space-y-4">
+                {/* Category Header */}
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <CategoryIcon className="h-5 w-5 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
-
-              {/* Integration Categories */}
-              {categories.map(category => {
-                const categoryIntegrations = integrations.filter(i => i.category === category);
-                if (categoryIntegrations.length === 0) return null;
+                  <h3 className="text-base font-semibold text-foreground">{getCategoryTitle(category)}</h3>
+                </div>
                 
-                const CategoryIcon = getCategoryIcon(category);
-                
-                return (
-                  <Card key={category} className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                    <CardContent className="space-y-4">
-                      {/* Category Header */}
-                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                        <div className="p-2 rounded-xl bg-primary/10">
-                          <CategoryIcon className="h-5 w-5 text-primary" />
-                        </div>
-                        <h3 className="text-base font-semibold text-foreground">{getCategoryTitle(category)}</h3>
-                      </div>
-                      
-                      {/* Integrations List */}
-                      <div className="space-y-3">
-                        {categoryIntegrations.map(integration => {
-                          const IconComponent = integration.icon;
-                          
-                          return (
-                            <div key={integration.id} className="flex items-start justify-between gap-3">
-                              <div className="flex items-start gap-3 flex-1 min-w-0">
-                                <div className="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                                  <IconComponent className="h-5 w-5 text-muted-foreground" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-medium text-sm">{integration.name}</h4>
-                                    {getStatusBadge(integration)}
-                                  </div>
-                                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                                    {integration.description}
-                                  </p>
-                                  {integration.connected && integration.lastSync && (
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                      Last sync: {integration.lastSync}
-                                    </p>
-                                  )}
-                                  
-                                  {/* API Key Input for connected services that require it */}
-                                  {integration.connected && integration.requiresApiKey && (
-                                    <div className="mt-2 space-y-1">
-                                      <Label className="text-xs font-medium">API Key</Label>
-                                      <Input
-                                        type="password"
-                                        value={integration.apiKey || ''}
-                                        onChange={(e) => handleApiKeyUpdate(integration.id, e.target.value)}
-                                        className="border-0 bg-muted/50 focus:bg-background text-xs h-8"
-                                        placeholder="Enter your API key"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center gap-2 flex-shrink-0">
-                                {integration.connected && (
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      // Handle configure action
-                                      toast.info(`Configure ${integration.name} settings`);
-                                    }}
-                                    className="h-8 px-2 text-xs"
-                                  >
-                                    <ExternalLink className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                <Switch
-                                  checked={integration.connected}
-                                  onCheckedChange={() => handleToggleIntegration(integration.id)}
-                                  className="!h-5 !w-9 !min-h-0 !min-w-0"
+                {/* Integrations List */}
+                <div className="space-y-3">
+                  {categoryIntegrations.map(integration => {
+                    const IconComponent = integration.icon;
+                    
+                    return (
+                      <div key={integration.id} className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 flex-1 min-w-0">
+                          <div className="w-10 h-10 bg-muted/50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <IconComponent className="h-5 w-5 text-muted-foreground" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium text-sm">{integration.name}</h4>
+                              {getStatusBadge(integration)}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                              {integration.description}
+                            </p>
+                            {integration.connected && integration.lastSync && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Last sync: {integration.lastSync}
+                              </p>
+                            )}
+                            
+                            {/* API Key Input for connected services that require it */}
+                            {integration.connected && integration.requiresApiKey && (
+                              <div className="mt-2 space-y-1">
+                                <Label className="text-xs font-medium">API Key</Label>
+                                <Input
+                                  type="password"
+                                  value={integration.apiKey || ''}
+                                  onChange={(e) => handleApiKeyUpdate(integration.id, e.target.value)}
+                                  className="border-0 bg-muted/50 focus:bg-background text-xs h-8"
+                                  placeholder="Enter your API key"
                                 />
                               </div>
-                            </div>
-                          );
-                        })}
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {integration.connected && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                toast.info(`Configure ${integration.name} settings`);
+                              }}
+                              className="h-8 px-2 text-xs"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </Button>
+                          )}
+                          <Switch
+                            checked={integration.connected}
+                            onCheckedChange={() => handleToggleIntegration(integration.id)}
+                            className="!h-5 !w-9 !min-h-0 !min-w-0"
+                          />
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
 
-              {/* Help Card */}
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                <CardContent className="p-4 text-center">
-                  <div className="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Plug className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-medium text-sm mb-2">Need Help?</h3>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Check our integration guides for step-by-step setup instructions.
-                  </p>
-                  <Button variant="outline" size="sm" className="text-xs h-8">
-                    View Documentation
-                  </Button>
-                </CardContent>
-              </Card>
+        {/* Help Card */}
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <CardContent className="p-4 text-center">
+            <div className="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Plug className="h-6 w-6 text-muted-foreground" />
             </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-6 border-t bg-card/50">
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={onClose}
-                className="flex-1"
-              >
-                Close
-              </Button>
-              <Button 
-                onClick={() => {
-                  toast.success('✅ Integration settings saved');
-                  onClose();
-                }}
-                className="flex-1"
-              >
-                Save Changes
-              </Button>
-            </div>
-          </div>
-        </div>
+            <h3 className="font-medium text-sm mb-2">Need Help?</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Check our integration guides for step-by-step setup instructions.
+            </p>
+            <Button variant="outline" size="sm" className="text-xs h-8">
+              View Documentation
+            </Button>
+          </CardContent>
+        </Card>
       </div>
-    </>
+    </BaseSlider>
   );
 };
 

@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { toast } from 'sonner';
+import { BaseSlider } from '@/components/common/BaseSlider';
 
 interface Appointment {
   id: number;
@@ -425,365 +426,346 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       {/* Show normal edit form if editing occurrence */}
       {(!isRecurring || editMode === 'occurrence') && (
         <React.Fragment>
-          {/* Backdrop */}
-          <div 
-            className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-60 transition-opacity duration-300 ${
-              isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-            onClick={onClose}
-          />
-          {/* Sliding Panel */}
-          <div 
-            className={`fixed top-0 left-0 h-full w-full bg-background shadow-2xl z-70 ${
-              !isDragging ? 'transition-transform duration-300 ease-out' : ''
-            } ${isOpen && shouldAnimate ? 'translate-x-0' : 'translate-x-full'}`}
-            style={{
-              transform: isDragging 
-                ? `translateX(${dragOffset}px)` 
-                : undefined
-            }}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
+          <BaseSlider
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Edit Appointment"
+            contentClassName="bg-muted/50 scrollbar-hide"
+            footer={
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  form="edit-appointment-form"
+                  className="flex-1"
+                >
+                  Update Appointment
+                </Button>
+              </div>
+            }
           >
-            <div className="flex flex-col h-full">
-              {/* Header */}
-              <div className="flex items-center p-2 border-b bg-card/50 relative">
-                <div className="bg-muted rounded-full p-1.5 shadow-sm">
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    onClick={onClose}
-                    className="rounded-full hover:bg-muted-foreground/10"
-                    style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
-                  >
-                    <ArrowLeft className="h-3 w-3" />
-                  </Button>
-                </div>
-                <h2 className="text-lg font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Edit Appointment</h2>
+            {/* Quick Actions - restore original layout */}
+            <div className="py-3 bg-background/50">
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('cancel')}
+                  className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
+                >
+                  <Ban className="h-3 w-3" />
+                  Cancel
+                </Button>
+                <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleQuickAction('reminder')}
+                className="flex items-center gap-1 text-xs border-blue-500/20 text-blue-600 hover:bg-blue-50"
+              >
+                <Bell className="h-3 w-3" />
+                Reminder
+              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('no-show')}
+                  className="flex items-center gap-1 text-xs border-orange-500/20 text-orange-600 hover:bg-orange-50"
+                >
+                  <UserX className="h-3 w-3" />
+                  No-Show
+                </Button>
               </div>
-
-              {/* Quick Actions */}
-              <div className="px-4 py-3 border-b bg-background/50">
-                <div className="grid grid-cols-3 gap-2 mb-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAction('cancel')}
-                    className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
-                  >
-                    <Ban className="h-3 w-3" />
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAction('complete')}
-                    className="flex items-center gap-1 text-xs border-green-500/20 text-green-600 hover:bg-green-50"
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Complete
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAction('no-show')}
-                    className="flex items-center gap-1 text-xs border-orange-500/20 text-orange-600 hover:bg-orange-50"
-                  >
-                    <UserX className="h-3 w-3" />
-                    No-Show
-                  </Button>
-                  {/* Added Send Reminder button below */}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAction('reminder')}
-                    className="flex items-center gap-1 text-xs border-blue-500/20 text-blue-600 hover:bg-blue-50"
-                  >
-                    <Bell className="h-3 w-3" />
-                    Reminder
-                  </Button>
-                </div>
-              </div>
-
-              {/* Form Content */}
-              <div className="flex-1 overflow-y-auto p-6 bg-muted/50 scrollbar-hide">
-                <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-                  {/* Single Card with All Appointment Data */}
-                  <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-                    <CardContent className="space-y-8">
-                      {/* Client Information Section */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                          <div className="p-2 rounded-xl bg-primary/10">
-                            <User className="h-5 w-5 text-primary" />
-                          </div>
-                          <h3 className="text-base font-semibold text-foreground">Client Information</h3>
-                        </div>
-                        {!selectedClient ? (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium text-foreground">Search Client</Label>
-                            <Popover open={clientOpen} onOpenChange={setClientOpen}>
-                              <PopoverTrigger asChild>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={clientOpen}
-                                  className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                                >
-                                  Search by name, email or phone...
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-[350px] p-0 z-[80]">
-                                <Command>
-                                  <CommandInput placeholder="Search clients..." />
-                                  <CommandList>
-                                    <CommandEmpty>No clients found.</CommandEmpty>
-                                    <CommandGroup>
-                                      {mockClients.map((client) => (
-                                        <CommandItem
-                                          key={client.id}
-                                          value={`${client.firstName} ${client.lastName} ${client.email} ${client.phone}`}
-                                          onSelect={() => {
-                                            setFormData(prev => ({ ...prev, clientId: client.id }));
-                                            setClientOpen(false);
-                                          }}
-                                          className="flex items-center gap-3 p-3"
-                                        >
-                                          <Avatar className="h-8 w-8">
-                                            <AvatarImage src={client.avatar} />
-                                            <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
-                                          </Avatar>
-                                          <div className="flex-1">
-                                            <div className="font-medium">{client.firstName} {client.lastName}</div>
-                                            <div className="text-sm text-muted-foreground">{client.email}</div>
-                                            <div className="text-sm text-muted-foreground">{client.phone}</div>
-                                          </div>
-                                          <Check
-                                            className={cn(
-                                              "ml-auto h-4 w-4",
-                                              formData.clientId === client.id ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </CommandList>
-                                </Command>
-                              </PopoverContent>
-                            </Popover>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                            <Avatar className="h-10 w-10 flex-shrink-0">
-                              <AvatarImage src={selectedClient.avatar} />
-                              <AvatarFallback>{selectedClient.firstName[0]}{selectedClient.lastName[0]}</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-base truncate">{selectedClient.firstName} {selectedClient.lastName}</div>
-                              <div className="text-sm text-muted-foreground truncate">{selectedClient.email}</div>
-                              <div className="text-sm text-muted-foreground truncate">{selectedClient.phone}</div>
-                            </div>
+              <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleQuickAction('complete')}
+                  className="w-full flex items-center gap-1 text-xs border-green-500/20 text-green-600 hover:bg-green-50"
+                >
+                  <CheckCircle2 className="h-3 w-3" />
+                  Complete
+                </Button>
+            </div>
+            {/* Form Content */}
+            <form id="edit-appointment-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+              {/* Single Card with All Appointment Data */}
+              <Card className="border-0 bg-card/70 backdrop-blur-sm transition-all duration-300">
+                <CardContent className="space-y-8">
+                  {/* Client Information Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">Client Information</h3>
+                    </div>
+                    {!selectedClient ? (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-foreground">Search Client</Label>
+                        <Popover open={clientOpen} onOpenChange={setClientOpen}>
+                          <PopoverTrigger asChild>
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setFormData(prev => ({ ...prev, clientId: '' }))}
-                              className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                              variant="outline"
+                              role="combobox"
+                              aria-expanded={clientOpen}
+                              className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
                             >
-                              Change
+                              Search by name, email or phone...
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                             </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Service Details Section */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                          <div className="p-2 rounded-xl bg-primary/10">
-                            <Scissors className="h-5 w-5 text-primary" />
-                          </div>
-                          <h3 className="text-base font-semibold text-foreground">Service Details</h3>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground">Service</Label>
-                          <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={serviceOpen}
-                                className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                              >
-                                {formData.service || "Select a service"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[350px] p-0 z-[80]">
-                              <Command>
-                                <CommandInput placeholder="Search services..." />
-                                <CommandList>
-                                  <CommandEmpty>No services found.</CommandEmpty>
-                                  <CommandGroup>
-                                    {services.map((service) => (
-                                      <CommandItem
-                                        key={service}
-                                        value={service}
-                                        onSelect={() => {
-                                          setFormData(prev => ({ ...prev, service }));
-                                          setServiceOpen(false);
-                                        }}
-                                      >
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4",
-                                            formData.service === service ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
-                                        {service}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                </CommandList>
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                      </div>
-
-                      {/* Date & Time Section */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                          <div className="p-2 rounded-xl bg-primary/10">
-                            <Calendar className="h-5 w-5 text-primary" />
-                          </div>
-                          <h3 className="text-base font-semibold text-foreground">Date & Time</h3>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="date" className="text-sm font-medium text-foreground">Date</Label>
-                            <DatePicker
-                              id="date"
-                              selected={formData.date ? new Date(formData.date) : null}
-                              onChange={date => setFormData(prev => ({ ...prev, date: date ? date.toISOString().slice(0, 10) : '' }))}
-                              dateFormat="yyyy-MM-dd"
-                              className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
-                              placeholderText="Select date"
-                              popperClassName="z-[90]"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="time" className="text-sm font-medium text-foreground">Time</Label>
-                            <div className="flex gap-2 items-center">
-                              {/* Hour Dropdown */}
-                              <Popover open={hourOpen} onOpenChange={setHourOpen}>
-                                <PopoverTrigger asChild>
-                                  <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setHourOpen(true)}>
-                                    {hour}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                                  {Array.from({ length: 24 }, (_, i) => {
-                                    const val = String(i).padStart(2, '0');
-                                    return (
-                                      <button
-                                        key={val}
-                                        className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${hour === val ? 'bg-primary/10' : ''}`}
-                                        onClick={() => {
-                                          setFormData(prev => ({ ...prev, time: `${val}:${minute}` }));
-                                          setHourOpen(false);
-                                        }}
-                                      >
-                                        {val}
-                                      </button>
-                                    );
-                                  })}
-                                </PopoverContent>
-                              </Popover>
-                              <span className="text-muted-foreground font-medium">:</span>
-                              {/* Minute Dropdown */}
-                              <Popover open={minuteOpen} onOpenChange={setMinuteOpen}>
-                                <PopoverTrigger asChild>
-                                  <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setMinuteOpen(true)}>
-                                    {minute}
-                                  </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                                  {Array.from({ length: 60 }, (_, i) => {
-                                    const val = String(i).padStart(2, '0');
-                                    return (
-                                      <button
-                                        key={val}
-                                        className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${minute === val ? 'bg-primary/10' : ''}`}
-                                        onClick={() => {
-                                          setFormData(prev => ({ ...prev, time: `${hour}:${val}` }));
-                                          setMinuteOpen(false);
-                                        }}
-                                      >
-                                        {val}
-                                      </button>
-                                    );
-                                  })}
-                                </PopoverContent>
-                              </Popover>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Location Section */}
-                      <div className="space-y-4">
-                        <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                          <div className="p-2 rounded-xl bg-primary/10">
-                            <MapPin className="h-5 w-5 text-primary" />
-                          </div>
-                          <h3 className="text-base font-semibold text-foreground">Location</h3>
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-sm font-medium text-foreground">Select Location</Label>
-                          <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                role="combobox"
-                                aria-expanded={locationOpen}
-                                className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                              >
-                                {selectedLocation?.name || "Select location"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-[350px] p-0 z-[80]">
-                              <Command>
-                                <CommandInput placeholder="Search locations..." />
-                                                          <CommandList>
-                                <CommandEmpty>No locations found.</CommandEmpty>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[350px] p-0 z-[80]">
+                            <Command>
+                              <CommandInput placeholder="Search clients..." />
+                              <CommandList>
+                                <CommandEmpty>No clients found.</CommandEmpty>
                                 <CommandGroup>
-                                  {mockLocations.map((location) => (
+                                  {mockClients.map((client) => (
                                     <CommandItem
-                                      key={location.id}
-                                      value={location.name}
+                                      key={client.id}
+                                      value={`${client.firstName} ${client.lastName} ${client.email} ${client.phone}`}
                                       onSelect={() => {
-                                        setFormData(prev => ({ ...prev, location: location.id }));
-                                        setLocationOpen(false);
+                                        setFormData(prev => ({ ...prev, clientId: client.id }));
+                                        setClientOpen(false);
                                       }}
+                                      className="flex items-center gap-3 p-3"
                                     >
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarImage src={client.avatar} />
+                                        <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
+                                      </Avatar>
+                                      <div className="flex-1">
+                                        <div className="font-medium">{client.firstName} {client.lastName}</div>
+                                        <div className="text-sm text-muted-foreground">{client.email}</div>
+                                        <div className="text-sm text-muted-foreground">{client.phone}</div>
+                                      </div>
                                       <Check
                                         className={cn(
-                                          "mr-2 h-4 w-4",
-                                          formData.location === location.id ? "opacity-100" : "opacity-0"
+                                          "ml-auto h-4 w-4",
+                                          formData.clientId === client.id ? "opacity-100" : "opacity-0"
                                         )}
                                       />
-                                      {location.name}
                                     </CommandItem>
                                   ))}
                                 </CommandGroup>
                               </CommandList>
-                        </Command>
-                      </PopoverContent>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                        <Avatar className="h-10 w-10 flex-shrink-0">
+                          <AvatarImage src={selectedClient.avatar} />
+                          <AvatarFallback>{selectedClient.firstName[0]}{selectedClient.lastName[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-semibold text-base truncate">{selectedClient.firstName} {selectedClient.lastName}</div>
+                          <div className="text-sm text-muted-foreground truncate">{selectedClient.email}</div>
+                          <div className="text-sm text-muted-foreground truncate">{selectedClient.phone}</div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setFormData(prev => ({ ...prev, clientId: '' }))}
+                          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+                        >
+                          Change
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Service Details Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <Scissors className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">Service Details</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground">Service</Label>
+                      <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={serviceOpen}
+                            className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                          >
+                            {formData.service || "Select a service"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[350px] p-0 z-[80]">
+                          <Command>
+                            <CommandInput placeholder="Search services..." />
+                            <CommandList>
+                              <CommandEmpty>No services found.</CommandEmpty>
+                              <CommandGroup>
+                                {services.map((service) => (
+                                  <CommandItem
+                                    key={service}
+                                    value={service}
+                                    onSelect={() => {
+                                      setFormData(prev => ({ ...prev, service }));
+                                      setServiceOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.service === service ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {service}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
+
+                  {/* Date & Time Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <Calendar className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">Date & Time</h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="date" className="text-sm font-medium text-foreground">Date</Label>
+                        <DatePicker
+                          id="date"
+                          selected={formData.date ? new Date(formData.date) : null}
+                          onChange={date => setFormData(prev => ({ ...prev, date: date ? date.toISOString().slice(0, 10) : '' }))}
+                          dateFormat="yyyy-MM-dd"
+                          className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
+                          placeholderText="Select date"
+                          popperClassName="z-[90]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="time" className="text-sm font-medium text-foreground">Time</Label>
+                        <div className="flex gap-2 items-center">
+                          {/* Hour Dropdown */}
+                          <Popover open={hourOpen} onOpenChange={setHourOpen}>
+                            <PopoverTrigger asChild>
+                              <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setHourOpen(true)}>
+                                {hour}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                              {Array.from({ length: 24 }, (_, i) => {
+                                const val = String(i).padStart(2, '0');
+                                return (
+                                  <button
+                                    key={val}
+                                    className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${hour === val ? 'bg-primary/10' : ''}`}
+                                    onClick={() => {
+                                      setFormData(prev => ({ ...prev, time: `${val}:${minute}` }));
+                                      setHourOpen(false);
+                                    }}
+                                  >
+                                    {val}
+                                  </button>
+                                );
+                              })}
+                            </PopoverContent>
+                          </Popover>
+                          <span className="text-muted-foreground font-medium">:</span>
+                          {/* Minute Dropdown */}
+                          <Popover open={minuteOpen} onOpenChange={setMinuteOpen}>
+                            <PopoverTrigger asChild>
+                              <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setMinuteOpen(true)}>
+                                {minute}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                              {Array.from({ length: 60 }, (_, i) => {
+                                const val = String(i).padStart(2, '0');
+                                return (
+                                  <button
+                                    key={val}
+                                    className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${minute === val ? 'bg-primary/10' : ''}`}
+                                    onClick={() => {
+                                      setFormData(prev => ({ ...prev, time: `${hour}:${val}` }));
+                                      setMinuteOpen(false);
+                                    }}
+                                  >
+                                    {val}
+                                  </button>
+                                );
+                              })}
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Location Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <MapPin className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">Location</h3>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-foreground">Select Location</Label>
+                      <Popover open={locationOpen} onOpenChange={setLocationOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={locationOpen}
+                            className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                          >
+                            {selectedLocation?.name || "Select location"}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[350px] p-0 z-[80]">
+                          <Command>
+                            <CommandInput placeholder="Search locations..." />
+                            <CommandList>
+                              <CommandEmpty>No locations found.</CommandEmpty>
+                              <CommandGroup>
+                                {mockLocations.map((location) => (
+                                  <CommandItem
+                                    key={location.id}
+                                    value={location.name}
+                                    onSelect={() => {
+                                      setFormData(prev => ({ ...prev, location: location.id }));
+                                      setLocationOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        formData.location === location.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                    {location.name}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
                       </Popover>
                     </div>
                   </div>
@@ -907,30 +889,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                 </CardContent>
               </Card>
             </form>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-6 border-t bg-card/50">
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={onClose}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                className="flex-1"
-              >
-                Update Appointment
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* End of edit form fragment */}
-      </React.Fragment>
+          </BaseSlider>
+        </React.Fragment>
       )}
       {/* Confirmation Dialog */}
       <AlertDialog open={confirmationDialog.open} onOpenChange={(open) => 

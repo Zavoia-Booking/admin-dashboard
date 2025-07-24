@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, MapPin, Phone, Mail, AlertCircle, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MapPin, Phone, Mail, AlertCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
+import { BaseSlider } from '@/components/common/BaseSlider';
 
 interface Location {
   id: string;
@@ -35,7 +36,6 @@ interface EditLocationSliderProps {
   location: Location | null;
 }
 
-// Mock team members (should be replaced with API call in real app)
 const mockTeamMembers = [
   {
     id: '1',
@@ -80,17 +80,14 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 }) => {
   const [formData, setFormData] = useState<Location | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
 
-  // Populate form with location data when opened
   useEffect(() => {
     if (location && isOpen) {
       setFormData({ ...location });
     }
   }, [location, isOpen]);
 
-  // Reset form when slider closes (with delay to allow closing animation)
   React.useEffect(() => {
     if (!isOpen) {
       const timer = setTimeout(() => setFormData(null), 300);
@@ -98,101 +95,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     }
   }, [isOpen]);
 
-  // Handle animation timing
-  React.useEffect(() => {
-    if (isOpen) {
-      // Ensure component is in closed state first, then animate
-      setShouldAnimate(false);
-      const timer = setTimeout(() => setShouldAnimate(true), 10);
-      return () => clearTimeout(timer);
-    } else {
-      setShouldAnimate(false);
-    }
-  }, [isOpen]);
-
-  // Swipe gesture handling
-  const touchStartX = useRef<number>(0);
-  const touchCurrentX = useRef<number>(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const isMouseDown = useRef<boolean>(false);
-
-  const handleStart = (clientX: number, target: HTMLElement) => {
-    // Don't start drag on form elements
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || 
-        target.closest('button') || target.closest('input') || target.closest('textarea') || 
-        target.closest('[role="button"]') || target.closest('[role="switch"]')) {
-      return;
-    }
-    
-    touchStartX.current = clientX;
-    touchCurrentX.current = clientX;
-    setIsDragging(true);
-    isMouseDown.current = true;
-  };
-
-  const handleMove = (clientX: number) => {
-    if (!isDragging && !isMouseDown.current) return;
-    
-    touchCurrentX.current = clientX;
-    const diff = touchCurrentX.current - touchStartX.current;
-    
-    // Only allow rightward swipes (positive diff)
-    if (diff > 0) {
-      setDragOffset(Math.min(diff, 300)); // Cap at 300px
-    }
-  };
-
-  const handleEnd = () => {
-    if (!isDragging && !isMouseDown.current) return;
-    
-    const diff = touchCurrentX.current - touchStartX.current;
-    
-    // If swiped more than 100px to the right, close the slider
-    if (diff > 100) {
-      onClose();
-    }
-    
-    // Reset drag state
-    setIsDragging(false);
-    setDragOffset(0);
-    isMouseDown.current = false;
-  };
-
-  // Touch events
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    handleStart(e.touches[0].clientX, target);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    handleMove(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    handleEnd();
-  };
-
-  // Mouse events for desktop testing
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    handleStart(e.clientX, target);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    handleMove(e.clientX);
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    handleEnd();
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setShowConfirmDialog(true);
   };
 
@@ -210,197 +114,161 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
   if (!formData) return null;
 
+  function capitalize(str: string) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-60 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
-      />
-      
-      {/* Sliding Panel */}
-      <div 
-        className={`fixed top-0 left-0 h-full w-full bg-background shadow-2xl z-70 ${
-          !isDragging ? 'transition-transform duration-300 ease-out' : ''
-        } ${isOpen && shouldAnimate ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{
-          transform: isDragging 
-            ? `translateX(${dragOffset}px)` 
-            : undefined
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
+      <BaseSlider
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Edit Location"
+        contentClassName="bg-muted/50 scrollbar-hide"
+        footer={
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="edit-location-form"
+              className="flex-1"
+            >
+              Update Location
+            </Button>
+          </div>
+        }
       >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center p-2 border-b bg-card/50 relative">
-            <div className="bg-muted rounded-full p-1.5 shadow-sm">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={onClose}
-                className="rounded-full hover:bg-muted-foreground/10"
-                style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
-              >
-                <ArrowLeft className="h-3 w-3" />
-              </Button>
-            </div>
-            <h2 className="text-lg font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Edit Location</h2>
-          </div>
-
-          {/* Form Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-muted/50 scrollbar-hide">
-            <form onSubmit={handleSubmit} className="max-w-md mx-auto">
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-                <CardContent className="space-y-8">
-                  {/* Location Information Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                      <div className="p-2 rounded-xl bg-primary/10">
-                        <MapPin className="h-5 w-5 text-primary" />
-                      </div>
-                      <h3 className="text-base font-semibold text-foreground">Location Information</h3>
+        <form id="edit-location-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
+            <CardContent className="space-y-8">
+              {/* Location Information Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <MapPin className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">Location Information</h3>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-sm font-medium text-foreground">Location Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    placeholder="Enter location name..."
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="address" className="text-sm font-medium text-foreground">Address</Label>
+                  <Textarea
+                    id="address"
+                    placeholder="Enter full address..."
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    rows={3}
+                    className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe the location..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    rows={3}
+                    className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
+                  />
+                </div>
+                {/* Team Members Assigned Section */}
+                <div className="space-y-2 mt-6">
+                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <Users className="h-5 w-5 text-primary" />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="name" className="text-sm font-medium text-foreground">Location Name</Label>
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="Enter location name..."
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="address" className="text-sm font-medium text-foreground">Address</Label>
-                      <Textarea
-                        id="address"
-                        placeholder="Enter full address..."
-                        value={formData.address}
-                        onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                        rows={3}
-                        className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
-                      <Textarea
-                        id="description"
-                        placeholder="Describe the location..."
-                        value={formData.description}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                        rows={3}
-                        className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                      />
-                    </div>
-                    {/* Team Members Assigned Section */}
-                    <div className="space-y-2 mt-6">
-                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                        <div className="p-2 rounded-xl bg-primary/10">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        <h3 className="text-base font-semibold text-foreground">Assigned Team Members</h3>
-                        <Button
-                          type="button"
-                          size="sm"
-                          className="ml-auto"
-                          onClick={() => setIsInviteSliderOpen(true)}
-                        >
-                          Invite Member
-                        </Button>
-                      </div>
-                      <div className="space-y-2">
-                        {mockTeamMembers.filter(m => m.location === formData.name).length > 0 ? (
-                          mockTeamMembers.filter(m => m.location === formData.name).map(member => (
-                            <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                  <Users className="h-4 w-4 text-primary" />
-                                </div>
-                                <div>
-                                  <div className="font-medium text-sm">{member.firstName} {member.lastName}</div>
-                                  <div className="text-xs text-muted-foreground">{member.email} &middot; {member.role}</div>
-                                </div>
-                              </div>
+                    <h3 className="text-base font-semibold text-foreground">Assigned Team Members</h3>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="ml-auto"
+                      onClick={() => setIsInviteSliderOpen(true)}
+                    >
+                      Invite Member
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {mockTeamMembers.filter(m => m.location === formData.name).length > 0 ? (
+                      mockTeamMembers.filter(m => m.location === formData.name).map(member => (
+                        <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                              <Users className="h-4 w-4 text-primary" />
                             </div>
-                          ))
-                        ) : (
-                          <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border/50 text-center">
-                            <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                            <p className="text-sm text-muted-foreground">No team members assigned to this location</p>
+                            <div>
+                              <div className="font-medium text-sm">{member.firstName} {member.lastName}</div>
+                              <div className="text-xs text-muted-foreground">{member.email} &middot; {member.role}</div>
+                            </div>
                           </div>
-                        )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border/50 text-center">
+                        <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">No team members assigned to this location</p>
                       </div>
-                    </div>
+                    )}
                   </div>
+                </div>
+              </div>
 
-                  {/* Contact Information Section */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                      <div className="p-2 rounded-xl bg-primary/10">
-                        <Phone className="h-5 w-5 text-primary" />
-                      </div>
-                      <h3 className="text-base font-semibold text-foreground">Contact Information</h3>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="Enter email address..."
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">Phone Number</Label>
-                      <Input
-                        id="phoneNumber"
-                        type="tel"
-                        placeholder="Enter phone number..."
-                        value={formData.phoneNumber}
-                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                        className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                        required
-                      />
-                    </div>
+              {/* Contact Information Section */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Phone className="h-5 w-5 text-primary" />
                   </div>
-                </CardContent>
-              </Card>
-            </form>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-6 border-t bg-card/50">
-            <div className="flex gap-3">
-              <Button 
-                variant="outline" 
-                onClick={handleCancel}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSubmit}
-                className="flex-1"
-              >
-                Update Location
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+                  <h3 className="text-base font-semibold text-foreground">Contact Information</h3>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter email address..."
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">Phone Number</Label>
+                  <Input
+                    id="phoneNumber"
+                    type="tel"
+                    placeholder="Enter phone number..."
+                    value={formData.phoneNumber}
+                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
+                    required
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </BaseSlider>
 
       {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>

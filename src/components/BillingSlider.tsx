@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, CreditCard, Calendar, Download, Receipt, Crown, Check, Plus, Trash2, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { CreditCard, Calendar, Download, Receipt, Crown, Check, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { BaseSlider } from '@/components/common/BaseSlider';
 
 interface BillingSliderProps {
   isOpen: boolean;
@@ -99,58 +100,6 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   ]);
 
   const [autoRenew, setAutoRenew] = useState(subscription.autoRenew);
-  
-  // Touch/drag handling for mobile swipe to close
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const startX = useRef(0);
-  const currentX = useRef(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0].clientX;
-    setIsDragging(true);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    currentX.current = e.touches[0].clientX;
-    const diff = currentX.current - startX.current;
-    if (diff > 0) {
-      setDragOffset(diff);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (dragOffset > 100) {
-      onClose();
-    }
-    setDragOffset(0);
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    startX.current = e.clientX;
-    setIsDragging(true);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    currentX.current = e.clientX;
-    const diff = currentX.current - startX.current;
-    if (diff > 0) {
-      setDragOffset(diff);
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (!isDragging) return;
-    setIsDragging(false);
-    if (dragOffset > 100) {
-      onClose();
-    }
-    setDragOffset(0);
-  };
 
   const handleSetDefaultPayment = (methodId: string) => {
     setPaymentMethods(prev => prev.map(method => ({
@@ -212,7 +161,6 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   };
 
   const getCardIcon = (brand: string) => {
-    // In a real app, you'd use actual card brand icons
     return <CreditCard className="h-4 w-4" />;
   };
 
@@ -243,282 +191,226 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-60 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
-      />
-      
-      {/* Sliding Panel */}
-      <div 
-        className={`fixed top-0 left-0 h-full w-full bg-background shadow-lg z-70 ${
-          !isDragging ? 'transition-transform duration-300 ease-out' : ''
-        } ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
-        style={{
-          transform: isDragging 
-            ? `translateX(${dragOffset}px)` 
-            : undefined
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-      >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center p-2 border-b bg-card/50 relative">
-            <div className="bg-muted rounded-full p-1.5 shadow-sm">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={onClose}
-                className="rounded-full hover:bg-muted-foreground/10"
-                style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
-              >
-                <ArrowLeft className="h-3 w-3" />
-              </Button>
+    <BaseSlider
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Billing & Subscription"
+      contentClassName="bg-muted/50 scrollbar-hide"
+      footer={
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={onClose}
+            className="flex-1"
+          >
+            Close
+          </Button>
+          <Button 
+            onClick={() => {
+              toast.success('✅ Billing settings saved');
+              onClose();
+            }}
+            className="flex-1"
+          >
+            Save Changes
+          </Button>
+        </div>
+      }
+    >
+      <div className="max-w-md mx-auto space-y-6">
+        {/* Current Plan Section */}
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Crown className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">Current Plan</h3>
             </div>
-            <h2 className="text-lg font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Billing & Subscription</h2>
-          </div>
-
-          {/* Form Content */}
-          <div className="flex-1 overflow-y-auto p-6 bg-muted/50 scrollbar-hide">
-            <div className="max-w-md mx-auto space-y-6">
-              
-              {/* Current Plan Section */}
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <Crown className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Current Plan</h3>
-                  </div>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="font-medium text-lg">{getPlanName(subscription.plan)}</h4>
-                        <p className="text-sm text-muted-foreground">{getPlanPrice(subscription.plan)}/month</p>
-                      </div>
-                      <div className="text-right">
-                        {getStatusBadge(subscription.status)}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Renews {formatDate(subscription.currentPeriodEnd)}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-1">
-                          <Label className="text-sm font-medium text-foreground">Auto-Renewal</Label>
-                          <p className="text-xs text-muted-foreground">Automatically renew your subscription.</p>
-                        </div>
-                        <Switch
-                          checked={autoRenew}
-                          onCheckedChange={(checked) => {
-                            setAutoRenew(checked);
-                            toast.success(`Auto-renewal ${checked ? 'enabled' : 'disabled'}`);
-                          }}
-                          className="!h-5 !w-9 !min-h-0 !min-w-0"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        onClick={handleUpgradePlan}
-                        className="flex-1 h-10"
-                      >
-                        Upgrade Plan
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={handleCancelSubscription}
-                        className="flex-1 h-10 text-destructive hover:bg-destructive/10"
-                      >
-                        Cancel Plan
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Payment Methods Section */}
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <CreditCard className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Payment Methods</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {paymentMethods.map((method, index) => (
-                      <div key={method.id}>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-muted/50 rounded-lg flex items-center justify-center">
-                              {method.type === 'card' ? (
-                                getCardIcon(method.brand || '')
-                              ) : (
-                                <Receipt className="h-4 w-4" />
-                              )}
-                            </div>
-                            <div>
-                              {method.type === 'card' ? (
-                                <>
-                                  <p className="text-sm font-medium">
-                                    {method.brand} •••• {method.last4}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Expires {method.expiry}
-                                  </p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="text-sm font-medium">PayPal</p>
-                                  <p className="text-xs text-muted-foreground">{method.email}</p>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            {method.isDefault && (
-                              <Badge className="bg-primary/10 text-primary text-xs">Default</Badge>
-                            )}
-                            <div className="flex gap-1">
-                              {!method.isDefault && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleSetDefaultPayment(method.id)}
-                                  className="h-8 px-2 text-xs"
-                                >
-                                  Set Default
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeletePaymentMethod(method.id)}
-                                className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                        {index < paymentMethods.length - 1 && <Separator className="my-3" />}
-                      </div>
-                    ))}
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={handleAddPaymentMethod}
-                      className="w-full h-10 mt-3"
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Payment Method
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Billing History Section */}
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <Receipt className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Billing History</h3>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {invoices.map((invoice, index) => (
-                      <div key={invoice.id}>
-                        <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="text-sm font-medium">${invoice.amount.toFixed(2)}</p>
-                              {getInvoiceStatusBadge(invoice.status)}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{invoice.plan}</p>
-                            <p className="text-xs text-muted-foreground">{invoice.period}</p>
-                          </div>
-                          
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <p className="text-xs text-muted-foreground">{formatDate(invoice.date)}</p>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadInvoice(invoice)}
-                              className="h-8 px-2"
-                            >
-                              <Download className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        {index < invoices.length - 1 && <Separator className="my-3" />}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Plan Comparison */}
-              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-                <CardContent className="p-4 text-center">
-                  <div className="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Crown className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-medium text-sm mb-2">Need More Features?</h3>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Compare plans and find the perfect fit for your business.
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-medium text-lg">{getPlanName(subscription.plan)}</h4>
+                  <p className="text-sm text-muted-foreground">{getPlanPrice(subscription.plan)}/month</p>
+                </div>
+                <div className="text-right">
+                  {getStatusBadge(subscription.status)}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Renews {formatDate(subscription.currentPeriodEnd)}
                   </p>
-                  <Button variant="outline" size="sm" className="text-xs h-8">
-                    <ExternalLink className="h-3 w-3 mr-2" />
-                    Compare Plans
-                  </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-foreground">Auto-Renewal</Label>
+                    <p className="text-xs text-muted-foreground">Automatically renew your subscription.</p>
+                  </div>
+                  <Switch
+                    checked={autoRenew}
+                    onCheckedChange={(checked) => {
+                      setAutoRenew(checked);
+                      toast.success(`Auto-renewal ${checked ? 'enabled' : 'disabled'}`);
+                    }}
+                    className="!h-5 !w-9 !min-h-0 !min-w-0"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={handleUpgradePlan}
+                  className="flex-1 h-10"
+                >
+                  Upgrade Plan
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={handleCancelSubscription}
+                  className="flex-1 h-10 text-destructive hover:bg-destructive/10"
+                >
+                  Cancel Plan
+                </Button>
+              </div>
             </div>
-          </div>
-
-          {/* Footer Actions */}
-          <div className="p-6 border-t bg-card/50">
-            <div className="flex gap-3">
+          </CardContent>
+        </Card>
+        {/* Payment Methods Section */}
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <CreditCard className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">Payment Methods</h3>
+            </div>
+            <div className="space-y-3">
+              {paymentMethods.map((method, index) => (
+                <div key={method.id}>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-muted/50 rounded-lg flex items-center justify-center">
+                        {method.type === 'card' ? (
+                          getCardIcon(method.brand || '')
+                        ) : (
+                          <Receipt className="h-4 w-4" />
+                        )}
+                      </div>
+                      <div>
+                        {method.type === 'card' ? (
+                          <>
+                            <p className="text-sm font-medium">
+                              {method.brand} •••• {method.last4}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Expires {method.expiry}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm font-medium">PayPal</p>
+                            <p className="text-xs text-muted-foreground">{method.email}</p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {method.isDefault && (
+                        <Badge className="bg-primary/10 text-primary text-xs">Default</Badge>
+                      )}
+                      <div className="flex gap-1">
+                        {!method.isDefault && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleSetDefaultPayment(method.id)}
+                            className="h-8 px-2 text-xs"
+                          >
+                            Set Default
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeletePaymentMethod(method.id)}
+                          className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  {index < paymentMethods.length - 1 && <Separator className="my-3" />}
+                </div>
+              ))}
               <Button 
                 variant="outline" 
-                onClick={onClose}
-                className="flex-1"
+                onClick={handleAddPaymentMethod}
+                className="w-full h-10 mt-3"
               >
-                Close
-              </Button>
-              <Button 
-                onClick={() => {
-                  toast.success('✅ Billing settings saved');
-                  onClose();
-                }}
-                className="flex-1"
-              >
-                Save Changes
+                <Plus className="h-4 w-4 mr-2" />
+                Add Payment Method
               </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+        {/* Billing History Section */}
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+              <div className="p-2 rounded-xl bg-primary/10">
+                <Receipt className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="text-base font-semibold text-foreground">Billing History</h3>
+            </div>
+            <div className="space-y-3">
+              {invoices.map((invoice, index) => (
+                <div key={invoice.id}>
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="text-sm font-medium">${invoice.amount.toFixed(2)}</p>
+                        {getInvoiceStatusBadge(invoice.status)}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{invoice.plan}</p>
+                      <p className="text-xs text-muted-foreground">{invoice.period}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <p className="text-xs text-muted-foreground">{formatDate(invoice.date)}</p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDownloadInvoice(invoice)}
+                        className="h-8 px-2"
+                      >
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  {index < invoices.length - 1 && <Separator className="my-3" />}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        {/* Plan Comparison */}
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <CardContent className="p-4 text-center">
+            <div className="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
+              <Crown className="h-6 w-6 text-muted-foreground" />
+            </div>
+            <h3 className="font-medium text-sm mb-2">Need More Features?</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Compare plans and find the perfect fit for your business.
+            </p>
+            <Button variant="outline" size="sm" className="text-xs h-8">
+              <ExternalLink className="h-3 w-3 mr-2" />
+              Compare Plans
+            </Button>
+          </CardContent>
+        </Card>
       </div>
-    </>
+    </BaseSlider>
   );
 };
 

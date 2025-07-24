@@ -1,26 +1,19 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/router';
 import { UserRole } from '@/types/auth';
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Mail, Users, PowerOff, Power, Search, Filter, MoreVertical, X, MapPin, Phone, Edit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Plus, Mail, Search, Filter, X, MapPin, Phone, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronsUpDown, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronsUpDown } from "lucide-react";
 import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
-import EditTeamMemberSlider from '@/components/EditTeamMemberSlider';
 import TeamMemberProfileSlider from '@/components/TeamMemberProfileSlider';
 
 interface TeamMember {
@@ -939,15 +932,6 @@ export default function TeamMembersPage() {
         isOpen={isInviteSliderOpen}
         onClose={() => setIsInviteSliderOpen(false)}
         onInvite={handleInviteTeamMember}
-        locations={locations}
-      />
-      
-      {/* Edit Team Member Slider */}
-      <EditTeamMemberSlider 
-        isOpen={isEditSliderOpen}
-        onClose={() => setIsEditSliderOpen(false)}
-        onUpdate={handleEditTeamMember}
-        teamMember={editingTeamMember}
         locations={locations}
       />
 
