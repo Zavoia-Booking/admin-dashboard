@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Plus, Mail, Search, Filter, X, MapPin, Phone, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
 import { Badge } from "@/components/ui/badge";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronsUpDown } from "lucide-react";
 import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '@/components/TeamMemberProfileSlider';
+import { FilterPanel } from '@/components/common/FilterPanel';
 
 interface TeamMember {
   id: string;
@@ -193,11 +190,6 @@ export default function TeamMembersPage() {
   const [localRoleFilter, setLocalRoleFilter] = useState(roleFilter);
   const [localLocationFilter, setLocalLocationFilter] = useState(locationFilter);
 
-  // Popover states
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
-
   // Fetch team members and locations on component mount
   useEffect(() => {
     fetchTeamMembers();
@@ -322,29 +314,10 @@ export default function TeamMembersPage() {
     }
   };
 
-
-
-  const handleEditTeamMember = async (memberData: TeamMember) => {
-    try {
-      // TODO: Replace with actual API call
-      // Mock update - update the team member in the list
-      setTeamMembers(prev => prev.map(member => 
-        member.id === memberData.id ? memberData : member
-      ));
-      
-      toast.success('Team member updated successfully');
-      setIsEditSliderOpen(false);
-      setEditingTeamMember(null);
-    } catch (error) {
-      toast.error('Failed to update team member');
-    }
-  };
-
   const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
     if (!selectedTeamMember) return;
     
     try {
-      const updatedMember = { ...selectedTeamMember, ...updateData };
       // TODO: Replace with actual API call
       // Mock update - update the team member in the list
       
@@ -360,23 +333,6 @@ export default function TeamMembersPage() {
     } catch (error) {
       toast.error('Failed to update team member');
     }
-  };
-
-
-
-  const handleToggleStatus = async (teamMember: TeamMember) => {
-    const newStatus = teamMember.status === 'active' ? 'inactive' : 'active';
-    
-    setPendingAction({
-      type: 'toggleStatus',
-      toggleStatusData: {
-        id: teamMember.id,
-        name: `${teamMember.firstName} ${teamMember.lastName}`,
-        currentStatus: teamMember.status,
-        newStatus: newStatus
-      }
-    });
-    setIsConfirmDialogOpen(true);
   };
 
   const confirmToggleStatus = async () => {
@@ -411,8 +367,6 @@ export default function TeamMembersPage() {
       toast.error('Failed to remove team member');
     }
   };
-
-
 
   const handleResendInvitation = async (id: string) => {
     setPendingAction({
@@ -485,21 +439,6 @@ export default function TeamMembersPage() {
     }
   };
 
-  const getRoleBadge = (role: string) => {
-    switch (role) {
-      case UserRole.ADMIN:
-        return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>;
-      case UserRole.OWNER:
-        return <Badge className="bg-blue-100 text-blue-800">Owner</Badge>;
-      case UserRole.MANAGER:
-        return <Badge className="bg-orange-100 text-orange-800">Manager</Badge>;
-      case UserRole.TEAM_MEMBER:
-        return <Badge className="bg-gray-100 text-gray-800">Team Member</Badge>;
-      default:
-        return <Badge>{role}</Badge>;
-    }
-  };
-
   // Filter team members based on search, status, role, and location
   const filteredTeamMembers = teamMembers.filter(member => {
     const matchesSearch = member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -519,7 +458,6 @@ export default function TeamMembersPage() {
 
   // Stats
   const totalMembers = teamMembers.length;
-  const activeMembers = teamMembers.filter(m => m.status === 'active').length;
   const rolesCount = uniqueRoles.length;
   const filteredCount = filteredTeamMembers.length;
 
@@ -571,203 +509,74 @@ export default function TeamMembersPage() {
             <Plus className="h-5 w-5" />
             <span className="font-semibold">Invite Member</span>
           </Button>
-          
-
         </div>
         {/* Filter Panel (dropdown style) */}
         {showFilters && (
-          <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Status Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Status</Label>
-                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={statusOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localStatusFilter === 'all' ? 'All statuses' : localStatusFilter.charAt(0).toUpperCase() + localStatusFilter.slice(1)}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search statuses..." />
-                      <CommandList>
-                        <CommandEmpty>No statuses found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalStatusFilter('all');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            All statuses
-                          </CommandItem>
-                          <CommandItem
-                            value="active"
-                            onSelect={() => {
-                              setLocalStatusFilter('active');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Active
-                          </CommandItem>
-                          <CommandItem
-                            value="inactive"
-                            onSelect={() => {
-                              setLocalStatusFilter('inactive');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Inactive
-                          </CommandItem>
-                          <CommandItem
-                            value="pending"
-                            onSelect={() => {
-                              setLocalStatusFilter('pending');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Pending
-                          </CommandItem>
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Role Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Role</Label>
-                <Popover open={roleOpen} onOpenChange={setRoleOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={roleOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localRoleFilter === 'all' ? 'All roles' : localRoleFilter}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search roles..." />
-                      <CommandList>
-                        <CommandEmpty>No roles found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalRoleFilter('all');
-                              setRoleOpen(false);
-                            }}
-                          >
-                            All roles
-                          </CommandItem>
-                          {uniqueRoles.map(role => (
-                            <CommandItem
-                              key={role}
-                              value={role}
-                              onSelect={() => {
-                                setLocalRoleFilter(role);
-                                setRoleOpen(false);
-                              }}
-                            >
-                              {role}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Location Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Location</Label>
-                <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={locationOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localLocationFilter === 'all' ? 'All locations' : localLocationFilter}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search locations..." />
-                      <CommandList>
-                        <CommandEmpty>No locations found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalLocationFilter('all');
-                              setLocationOpen(false);
-                            }}
-                          >
-                            All locations
-                          </CommandItem>
-                          {Array.from(new Set(teamMembers.map(m => m.location).filter(Boolean))).map(location => (
-                            <CommandItem
-                              key={location}
-                              value={location}
-                              onSelect={() => {
-                                                               setLocalLocationFilter(location!);
-                               setLocationOpen(false);
-                             }}
-                           >
-                             {location}
-                           </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setLocalStatusFilter('all');
-                  setLocalRoleFilter('all');
-                  setLocalLocationFilter('all');
-                }}
-              >
-                Clear
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setStatusFilter(localStatusFilter);
-                  setRoleFilter(localRoleFilter);
-                  setLocationFilter(localLocationFilter);
-                  setShowFilters(false);
-                }}
-              >
-                Apply Filters
-              </Button>
-            </div>
-          </div>
+          <FilterPanel
+            open={showFilters}
+            onOpenChange={setShowFilters}
+            fields={[
+              {
+                type: 'select',
+                key: 'status',
+                label: 'Status',
+                value: localStatusFilter,
+                options: [
+                  { value: 'all', label: 'All statuses' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'pending', label: 'Pending' },
+                ],
+                searchable: true,
+              },
+              {
+                type: 'select',
+                key: 'role',
+                label: 'Role',
+                value: localRoleFilter,
+                options: [
+                  { value: 'all', label: 'All roles' },
+                  ...uniqueRoles.map(role => ({ value: role, label: role }))
+                ],
+                searchable: true,
+              },
+              {
+                type: 'select',
+                key: 'location',
+                label: 'Location',
+                value: localLocationFilter,
+                options: [
+                  { value: 'all', label: 'All locations' },
+                  ...Array.from(new Set(teamMembers.map(m => m.location).filter(Boolean))).map(location => ({ value: location!, label: location! }))
+                ],
+                searchable: true,
+              },
+              {
+                type: 'text',
+                key: 'search',
+                label: 'Search',
+                value: searchTerm,
+                placeholder: 'Search by name or email...'
+              },
+            ]}
+            onApply={values => {
+              setStatusFilter(values.status);
+              setRoleFilter(values.role);
+              setLocationFilter(values.location);
+              setSearchTerm(values.search);
+              setShowFilters(false);
+            }}
+            onClear={() => {
+              setStatusFilter('all');
+              setRoleFilter('all');
+              setLocationFilter('all');
+              setSearchTerm('');
+            }}
+          />
         )}
         {/* Active Filter Badges - Always show when there are active filters */}
         {(searchTerm || statusFilter !== 'all' || roleFilter !== 'all' || locationFilter !== 'all') && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-2">
             {searchTerm && (
               <Badge 
                 variant="secondary" 

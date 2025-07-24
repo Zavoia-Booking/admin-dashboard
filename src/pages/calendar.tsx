@@ -6,13 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { AppLayout } from '@/components/layouts/app-layout';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import DatePicker from '@/components/ui/date-picker';
-import { cn } from '@/lib/utils';
+import { FilterPanel } from '@/components/common/FilterPanel';
 
 // Helper function to get current week dates
 const getCurrentWeekDates = () => {
@@ -715,17 +711,17 @@ const Calendar = () => {
       setLocalClientEmailFilter(clientEmailFilter);
       setLocalClientPhoneFilter(clientPhoneFilter);
     }
-  }, [showFilters]);
+  }, [
+    showFilters,
+    selectedLocation,
+    selectedTeamMember,
+    selectedService,
+    selectedStatus,
+    clientNameFilter,
+    clientEmailFilter,
+    clientPhoneFilter
+  ]);
 
-  // Popover states
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
-  const [serviceOpen, setServiceOpen] = useState(false);
-  const [statusOpen, setStatusOpen] = useState(false);
-  const [clientNameOpen, setClientNameOpen] = useState(false);
-  const [clientEmailOpen, setClientEmailOpen] = useState(false);
-  const [clientPhoneOpen, setClientPhoneOpen] = useState(false);
-  
   // Add appointment slider state
   const [showAddAppointment, setShowAddAppointment] = useState(false);
   const [showEditAppointment, setShowEditAppointment] = useState(false);
@@ -806,47 +802,6 @@ const Calendar = () => {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
     return weekEnd;
-  };
-
-  const getMonthStart = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
-  };
-
-  const getMonthEnd = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0);
-  };
-
-  const formatViewModeDisplay = () => {
-    switch (viewMode) {
-      case 'day':
-        return selectedDate.toLocaleDateString('en-US', { 
-          month: 'short',
-          day: 'numeric'
-        });
-      case 'week':
-        const weekStart = getWeekStart(selectedDate);
-        const weekEnd = getWeekEnd(selectedDate);
-        const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
-        const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
-        const startDay = weekStart.getDate();
-        const endDay = weekEnd.getDate();
-        
-        if (startMonth === endMonth) {
-          return `${startMonth} ${startDay}-${endDay}`;
-        } else {
-          return `${startMonth} ${startDay}-${endMonth} ${endDay}`;
-        }
-      case 'month':
-        return selectedDate.toLocaleDateString('en-US', { 
-          month: 'long',
-          year: 'numeric'
-        });
-      default:
-        return selectedDate.toLocaleDateString('en-US', { 
-          month: 'short',
-          day: 'numeric'
-        });
-    }
   };
 
   const viewItems = getViewItems();
@@ -1030,7 +985,6 @@ const Calendar = () => {
     { value: 'pending', label: 'Pending' },
     { value: 'no-show', label: 'No Show' }
   ];
-  const uniqueClients = Array.from(new Set(mockAppointments.map(a => a.client.name))).sort();
 
   // Calculate number of active filters
   const activeFiltersCount = [
@@ -1078,8 +1032,6 @@ const Calendar = () => {
     
     return calendarDays;
   };
-
-  const calendarGrid = generateCalendarGrid();
 
   return (
     <AppLayout>
@@ -1159,306 +1111,95 @@ const Calendar = () => {
           </Button>
         </div>
 
-        {/* Filter Panel (dropdown style) - moved above view mode selector */}
         {showFilters && (
-          <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md mb-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Location Search/Select */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Location</Label>
-                <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={locationOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localSelectedLocation === 'all'
-                        ? 'All locations'
-                        : (mockLocations.find(l => l.id === localSelectedLocation)?.name || localSelectedLocation)}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search locations..." />
-                      <CommandList>
-                        <CommandEmpty>No locations found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalSelectedLocation('all');
-                              setLocationOpen(false);
-                            }}
-                          >
-                            All locations
-                          </CommandItem>
-                          {mockLocations.map((location) => (
-                            <CommandItem
-                              key={location.id}
-                              value={location.name}
-                              onSelect={() => {
-                                setLocalSelectedLocation(location.id);
-                                setLocationOpen(false);
-                              }}
-                            >
-                              {location.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Team Member Search/Select */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Team Member</Label>
-                <Popover open={teamOpen} onOpenChange={setTeamOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={teamOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localSelectedTeamMember === 'all'
-                        ? 'All team members'
-                        : (mockTeamMembers.find(m => m.id === localSelectedTeamMember)?.name || localSelectedTeamMember)}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search team members..." />
-                      <CommandList>
-                        <CommandEmpty>No team members found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalSelectedTeamMember('all');
-                              setTeamOpen(false);
-                            }}
-                          >
-                            All team members
-                          </CommandItem>
-                          {mockTeamMembers.map((member) => (
-                            <CommandItem
-                              key={member.id}
-                              value={member.name}
-                              onSelect={() => {
-                                setLocalSelectedTeamMember(member.id);
-                                setTeamOpen(false);
-                              }}
-                            >
-                              {member.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Service Search/Select */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Service</Label>
-                <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={serviceOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localSelectedService === 'all' ? 'All services' : localSelectedService}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search services..." />
-                      <CommandList>
-                        <CommandEmpty>No services found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalSelectedService('all');
-                              setServiceOpen(false);
-                            }}
-                          >
-                            All services
-                          </CommandItem>
-                          {uniqueServices.map((service) => (
-                            <CommandItem
-                              key={service}
-                              value={service}
-                              onSelect={() => {
-                                setLocalSelectedService(service);
-                                setServiceOpen(false);
-                              }}
-                            >
-                              {service}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Status Search/Select */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Status</Label>
-                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={statusOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {uniqueStatuses.find(s => s.value === localSelectedStatus)?.label || 'All statuses'}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search statuses..." />
-                      <CommandList>
-                        <CommandEmpty>No statuses found.</CommandEmpty>
-                        <CommandGroup>
-                          {uniqueStatuses.map((status) => (
-                            <CommandItem
-                              key={status.value}
-                              value={status.label}
-                              onSelect={() => {
-                                setLocalSelectedStatus(status.value);
-                                setStatusOpen(false);
-                              }}
-                            >
-                              {status.label}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              {/* Client Name Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Client Name</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <Input
-                    placeholder="Search by client name..."
-                    value={localClientNameFilter}
-                    onChange={(e) => setLocalClientNameFilter(e.target.value)}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base font-medium pr-8 w-full placeholder:font-medium"
-                    style={{ paddingLeft: '2.5rem' }}
-                  />
-                  {localClientNameFilter && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setLocalClientNameFilter('')}
-                      className="absolute right-1 top-1/2 h-6 w-6 p-0 -translate-y-1/2"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {/* Client Email Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Client Email</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <Input
-                    placeholder="Search by email..."
-                    value={localClientEmailFilter}
-                    onChange={(e) => setLocalClientEmailFilter(e.target.value)}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base font-medium pr-8 w-full placeholder:font-medium"
-                    style={{ paddingLeft: '2.5rem' }}
-                  />
-                  {localClientEmailFilter && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setLocalClientEmailFilter('')}
-                      className="absolute right-1 top-1/2 h-6 w-6 p-0 -translate-y-1/2"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-              {/* Client Phone Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Client Phone</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-                  <Input
-                    placeholder="Search by phone..."
-                    value={localClientPhoneFilter}
-                    onChange={(e) => setLocalClientPhoneFilter(e.target.value)}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base font-medium pr-8 w-full placeholder:font-medium"
-                    style={{ paddingLeft: '2.5rem' }}
-                  />
-                  {localClientPhoneFilter && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setLocalClientPhoneFilter('')}
-                      className="absolute right-1 top-1/2 h-6 w-6 p-0 -translate-y-1/2"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setLocalSelectedLocation('all');
-                  setLocalSelectedTeamMember('all');
-                  setLocalSelectedService('all');
-                  setLocalSelectedStatus('all');
-                  setLocalClientNameFilter('');
-                  setLocalClientEmailFilter('');
-                  setLocalClientPhoneFilter('');
-                }}
-              >
-                Clear
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setSelectedLocation(localSelectedLocation);
-                  setSelectedTeamMember(localSelectedTeamMember);
-                  setSelectedService(localSelectedService);
-                  setSelectedStatus(localSelectedStatus);
-                  setClientNameFilter(localClientNameFilter);
-                  setClientEmailFilter(localClientEmailFilter);
-                  setClientPhoneFilter(localClientPhoneFilter);
-                  setShowFilters(false);
-                }}
-              >
-                Apply Filters
-              </Button>
-            </div>
-          </div>
+          <FilterPanel
+            open={showFilters}
+            onOpenChange={setShowFilters}
+            fields={[
+              {
+                type: 'select',
+                key: 'location',
+                label: 'Location',
+                value: localSelectedLocation,
+                options: [
+                  { value: 'all', label: 'All locations' },
+                  ...mockLocations.map(l => ({ value: l.id, label: l.name }))
+                ],
+                searchable: true,
+              },
+              {
+                type: 'select',
+                key: 'teamMember',
+                label: 'Team Member',
+                value: localSelectedTeamMember,
+                options: [
+                  { value: 'all', label: 'All team members' },
+                  ...mockTeamMembers.map(m => ({ value: m.id, label: m.name }))
+                ],
+                searchable: true,
+              },
+              {
+                type: 'select',
+                key: 'service',
+                label: 'Service',
+                value: localSelectedService,
+                options: [
+                  { value: 'all', label: 'All services' },
+                  ...uniqueServices.map(s => ({ value: s, label: s }))
+                ],
+                searchable: true,
+              },
+              {
+                type: 'select',
+                key: 'status',
+                label: 'Status',
+                value: localSelectedStatus,
+                options: uniqueStatuses,
+                searchable: false,
+              },
+              {
+                type: 'text',
+                key: 'clientName',
+                label: 'Client Name',
+                value: localClientNameFilter,
+                placeholder: 'Search by client name...'
+              },
+              {
+                type: 'text',
+                key: 'clientEmail',
+                label: 'Client Email',
+                value: localClientEmailFilter,
+                placeholder: 'Search by email...'
+              },
+              {
+                type: 'text',
+                key: 'clientPhone',
+                label: 'Client Phone',
+                value: localClientPhoneFilter,
+                placeholder: 'Search by phone...'
+              },
+            ]}
+            onApply={(values: any) => {
+              setSelectedLocation(values.location);
+              setSelectedTeamMember(values.teamMember);
+              setSelectedService(values.service);
+              setSelectedStatus(values.status);
+              setClientNameFilter(values.clientName);
+              setClientEmailFilter(values.clientEmail);
+              setClientPhoneFilter(values.clientPhone);
+              setShowFilters(false);
+            }}
+            onClear={() => {
+              setSelectedLocation('all');
+              setSelectedTeamMember('all');
+              setSelectedService('all');
+              setSelectedStatus('all');
+              setClientNameFilter('');
+              setClientEmailFilter('');
+              setClientPhoneFilter('');
+            }}
+          />
         )}
-
         {/* Active Filter Badges - Always show when there are active filters */}
         {(selectedLocation !== 'all' || selectedTeamMember !== 'all' || selectedService !== 'all' || selectedStatus !== 'all' || clientNameFilter || clientEmailFilter || clientPhoneFilter) && (
           <div className="flex flex-wrap gap-2 mb-4">

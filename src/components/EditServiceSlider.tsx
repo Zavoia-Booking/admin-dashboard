@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Clock, FileText, Settings, AlertCircle, Users, Plus, X } from 'lucide-react';
+import { DollarSign, FileText, Settings, AlertCircle, Users, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,9 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronsUpDown, Check } from 'lucide-react';
 import { BaseSlider } from '@/components/common/BaseSlider';
-import { cn } from '@/lib/utils';
 
 interface StaffAssignment {
   name: string;
@@ -29,7 +27,7 @@ interface Service {
   createdAt: string;
   category?: string;
   bookings?: number;
-  staff: StaffAssignment[];
+  staff?: StaffAssignment[];
 }
 
 interface EditServiceSliderProps {

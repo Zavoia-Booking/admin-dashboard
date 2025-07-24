@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plug, CreditCard, Calendar, Video, Mail, BarChart3, Star, FileText, Users, ExternalLink, Check, X } from 'lucide-react';
+import { Plug, CreditCard, Calendar, Video, Mail, BarChart3, Star, FileText, Users, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { DollarSign, Clock, FileText, Settings, AlertCircle, Users, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { DollarSign, FileText, Settings, Users, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { BaseSlider } from '@/components/common/BaseSlider';
-import { cn } from '@/lib/utils';
 
 interface AddServiceSliderProps {
   isOpen: boolean;

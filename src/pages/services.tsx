@@ -1,25 +1,23 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, PowerOff, Power, Filter, Search, Plus, Clock, DollarSign, MoreVertical, X, Users } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Edit, Trash2, Filter, Search, Plus, Clock, X, Users } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import AddServiceSlider from '@/components/AddServiceSlider';
 import EditServiceSlider from '@/components/EditServiceSlider';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronsUpDown, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FilterPanel } from '@/components/common/FilterPanel';
+import { Input } from "@/components/ui/input";
+
+interface StaffAssignment {
+  name: string;
+  price?: number;
+  duration?: number;
+}
 
 interface Service {
   id: string;
@@ -31,7 +29,7 @@ interface Service {
   createdAt: string;
   category?: string;
   bookings?: number;
-  staff?: string[];
+  staff?: StaffAssignment[];
 }
 
 export default function ServicesPage() {
@@ -122,9 +120,6 @@ export default function ServicesPage() {
   const [localPriceRange, setLocalPriceRange] = useState(priceRange);
   const [localDurationRange, setLocalDurationRange] = useState(durationRange);
 
-  // Popover states
-  const [statusOpen, setStatusOpen] = useState(false);
-
   // Dialog states
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
@@ -176,7 +171,7 @@ export default function ServicesPage() {
     }
   };
 
-  const handleCreateService = async (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled'; staff?: string[] }) => {
+  const handleCreateService = async (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled'; staff?: StaffAssignment[] }) => {
     try {
       // TODO: Replace with actual API call
       const response = await fetch('/api/services', {
@@ -317,17 +312,6 @@ export default function ServicesPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'enabled':
-        return <Badge className="bg-green-100 text-green-800 w-fit">Enabled</Badge>;
-      case 'disabled':
-        return <Badge className="bg-gray-100 text-gray-800 w-fit">Disabled</Badge>;
-      default:
-        return <Badge className="w-fit">{status}</Badge>;
-    }
-  };
-
   const formatDuration = (minutes: number) => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -358,7 +342,7 @@ export default function ServicesPage() {
             <Input
               placeholder="Search services..."
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="h-11 text-base pr-12 pl-4 rounded-lg border border-input bg-white"
             />
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
@@ -391,134 +375,77 @@ export default function ServicesPage() {
         
         {/* Filter Panel (dropdown style) */}
         {showFilters && (
-          <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Status Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Status</Label>
-                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={statusOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localStatusFilter === 'all' ? 'All statuses' : localStatusFilter.charAt(0).toUpperCase() + localStatusFilter.slice(1)}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search statuses..." />
-                      <CommandList>
-                        <CommandEmpty>No statuses found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalStatusFilter('all');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            All statuses
-                          </CommandItem>
-                          <CommandItem
-                            value="enabled"
-                            onSelect={() => {
-                              setLocalStatusFilter('enabled');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Enabled
-                          </CommandItem>
-                          <CommandItem
-                            value="disabled"
-                            onSelect={() => {
-                              setLocalStatusFilter('disabled');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Disabled
-                          </CommandItem>
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="mb-1 block">Price Range</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Min"
-                    type="number"
-                    value={localPriceRange.min}
-                    onChange={(e) => setLocalPriceRange({ ...localPriceRange, min: e.target.value })}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
-                  />
-                  <Input
-                    placeholder="Max"
-                    type="number"
-                    value={localPriceRange.max}
-                    onChange={(e) => setLocalPriceRange({ ...localPriceRange, max: e.target.value })}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label className="mb-1 block">Duration Range (minutes)</Label>
-                <div className="flex space-x-2">
-                  <Input
-                    placeholder="Min"
-                    type="number"
-                    value={localDurationRange.min}
-                    onChange={(e) => setLocalDurationRange({ ...localDurationRange, min: e.target.value })}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
-                  />
-                  <Input
-                    placeholder="Max"
-                    type="number"
-                    value={localDurationRange.max}
-                    onChange={(e) => setLocalDurationRange({ ...localDurationRange, max: e.target.value })}
-                    className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setLocalStatusFilter('all');
-                  setLocalPriceRange({ min: '', max: '' });
-                  setLocalDurationRange({ min: '', max: '' });
-                }}
-              >
-                Clear
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setStatusFilter(localStatusFilter);
-                  setPriceRange(localPriceRange);
-                  setDurationRange(localDurationRange);
-                  setShowFilters(false);
-                }}
-              >
-                Apply Filters
-              </Button>
-            </div>
-          </div>
+          <FilterPanel
+            open={showFilters}
+            onOpenChange={setShowFilters}
+            fields={[
+              {
+                type: 'select',
+                key: 'status',
+                label: 'Status',
+                value: localStatusFilter,
+                options: [
+                  { value: 'all', label: 'All statuses' },
+                  { value: 'enabled', label: 'Enabled' },
+                  { value: 'disabled', label: 'Disabled' },
+                ],
+                searchable: true,
+              },
+              {
+                type: 'text',
+                key: 'priceMin',
+                label: 'Min Price',
+                value: localPriceRange.min,
+                placeholder: 'Min',
+              },
+              {
+                type: 'text',
+                key: 'priceMax',
+                label: 'Max Price',
+                value: localPriceRange.max,
+                placeholder: 'Max',
+              },
+              {
+                type: 'text',
+                key: 'durationMin',
+                label: 'Min Duration',
+                value: localDurationRange.min,
+                placeholder: 'Min',
+              },
+              {
+                type: 'text',
+                key: 'durationMax',
+                label: 'Max Duration',
+                value: localDurationRange.max,
+                placeholder: 'Max',
+              },
+              {
+                type: 'text',
+                key: 'search',
+                label: 'Search',
+                value: searchTerm,
+                placeholder: 'Search services...'
+              },
+            ]}
+            onApply={values => {
+              setStatusFilter(values.status);
+              setPriceRange({ min: values.priceMin, max: values.priceMax });
+              setDurationRange({ min: values.durationMin, max: values.durationMax });
+              setSearchTerm(values.search);
+              setShowFilters(false);
+            }}
+            onClear={() => {
+              setStatusFilter('all');
+              setPriceRange({ min: '', max: '' });
+              setDurationRange({ min: '', max: '' });
+              setSearchTerm('');
+            }}
+          />
         )}
         
         {/* Active Filter Badges - Always show when there are active filters */}
         {(searchTerm || statusFilter !== 'all' || priceRange.min || priceRange.max || durationRange.min || durationRange.max) && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-2">
             {searchTerm && (
               <Badge 
                 variant="secondary" 
@@ -545,7 +472,7 @@ export default function ServicesPage() {
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setPriceRange({ ...priceRange, min: '' })}
               >
-                Min Price: ${priceRange.min}
+                Min Price: {priceRange.min}
                 <X className="h-4 w-4 ml-1" />
               </Badge>
             )}
@@ -555,7 +482,7 @@ export default function ServicesPage() {
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setPriceRange({ ...priceRange, max: '' })}
               >
-                Max Price: ${priceRange.max}
+                Max Price: {priceRange.max}
                 <X className="h-4 w-4 ml-1" />
               </Badge>
             )}
@@ -704,8 +631,6 @@ export default function ServicesPage() {
             </div>
           )
         )}
-
-
 
         {/* Confirmation Dialog */}
         <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>

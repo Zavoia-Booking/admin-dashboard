@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Clock, Calendar, Settings, Edit, Trash2, Plus, X, Check, ChevronsUpDown, Power, AlertTriangle } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Calendar, Settings, Plus, X, Check, Power, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/router';
 import AddAppointmentSlider from '@/components/Calendar/AddAppointmentSlider';
 import { Button } from '@/components/ui/button';
@@ -61,11 +61,9 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   onDelete,
   locations
 }) => {
-  const [editingField, setEditingField] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
   const [roleOpen, setRoleOpen] = useState(false);
   const [localTeamMember, setLocalTeamMember] = useState<TeamMember | null>(null);
   const [isEditingContact, setIsEditingContact] = useState(false);

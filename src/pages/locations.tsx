@@ -1,26 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { UserRole } from '@/types/auth';
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Plus, Pencil, Trash2, Power, PowerOff, MapPin, Clock, Phone, Mail, MoreVertical, Search, Filter, X, Edit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Plus, Trash2, MapPin, Clock, Phone, Mail, Search, Filter, X, Edit } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { useStores } from '@/pages/_app';
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Switch } from "@/components/ui/switch";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ChevronsUpDown, Check } from "lucide-react";
 import AddLocationSlider from '@/components/AddLocationSlider';
 import EditLocationSlider from '@/components/EditLocationSlider';
 import EditWorkingHoursSlider from '@/components/EditWorkingHoursSlider';
+import { FilterPanel } from '@/components/common/FilterPanel';
 
 interface Location {
   id: string;
@@ -57,15 +49,6 @@ function capitalize(str: string) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// Helper to check if a day is today
-function isToday(day: string) {
-  const todayIdx = new Date().getDay(); // 0 (Sun) - 6 (Sat)
-  const map: Record<string, number> = {
-    sunday: 0, monday: 1, tuesday: 2, wednesday: 3, thursday: 4, friday: 5, saturday: 6
-  };
-  return map[day] === todayIdx;
-}
-
 // Helper to get short day names
 const shortDay = (day: string) => {
   const map: Record<string, string> = {
@@ -75,7 +58,6 @@ const shortDay = (day: string) => {
 };
 
 export default function LocationsPage() {
-  const { authStore } = useStores();
   const [locations, setLocations] = useState<Location[]>([
     {
       id: '1',
@@ -127,9 +109,6 @@ export default function LocationsPage() {
   
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-  
-  // Popover states
-  const [statusOpen, setStatusOpen] = useState(false);
   
   const [isWorkingHoursSliderOpen, setIsWorkingHoursSliderOpen] = useState(false);
   const [editingWorkingHoursLocation, setEditingWorkingHoursLocation] = useState<Location | null>(null);
@@ -229,53 +208,6 @@ export default function LocationsPage() {
     }
   };
 
-  const handleEditLocation = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingLocation) return;
-
-    try {
-      const response = await fetch(`/api/locations/${editingLocation.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(editingLocation),
-      });
-
-      if (!response.ok) throw new Error('Failed to update location');
-
-      toast.success('Location updated successfully');
-      setIsEditSliderOpen(false);
-      setEditingLocation(null);
-      fetchLocations();
-    } catch (error) {
-      toast.error('Failed to update location');
-    }
-  };
-
-  const handleToggleLocationStatus = async (location: Location) => {
-    try {
-      const newStatus = location.status === 'active' ? 'inactive' : 'active';
-      const response = await fetch(`/api/locations/${location.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...location,
-          status: newStatus,
-        }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update location status');
-
-      toast.success(`Location ${newStatus} successfully`);
-      fetchLocations();
-    } catch (error) {
-      toast.error('Failed to update location status');
-    }
-  };
-
   const handleDeleteLocation = async (id: string) => {
     try {
       const response = await fetch(`/api/locations/${id}`, {
@@ -295,22 +227,6 @@ export default function LocationsPage() {
     setEditingLocation(location);
     setIsEditSliderOpen(true);
   };
-
-  const updateWorkingHours = (day: keyof typeof defaultWorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
-    if (!editingLocation) return;
-    setEditingLocation({
-      ...editingLocation,
-      workingHours: {
-        ...editingLocation.workingHours,
-        [day]: {
-          ...editingLocation.workingHours[day],
-          [field]: value,
-        },
-      },
-    });
-  };
-
-
 
   const updateLocationDayHours = (locationId: string, day: string, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
     setLocations(locations.map(location => {
@@ -333,74 +249,6 @@ export default function LocationsPage() {
   const openDayEditModal = (location: Location, day: string, dayLabel: string) => {
     setEditingDayData({ location, day, dayLabel });
     setIsDayEditModalOpen(true);
-  };
-
-  const renderWorkingHoursForm = (workingHours: typeof defaultWorkingHours, updateFn: (day: keyof typeof defaultWorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => void) => {
-    const days = [
-      { key: 'monday', label: 'Monday' },
-      { key: 'tuesday', label: 'Tuesday' },
-      { key: 'wednesday', label: 'Wednesday' },
-      { key: 'thursday', label: 'Thursday' },
-      { key: 'friday', label: 'Friday' },
-      { key: 'saturday', label: 'Saturday' },
-      { key: 'sunday', label: 'Sunday' },
-    ] as const;
-
-    return (
-      <div className="space-y-4">
-        <Label className="text-base font-semibold">Working Hours</Label>
-        {days.map(({ key, label }) => (
-          <div key={key} className="bg-white rounded-xl shadow-xs p-4 flex flex-col gap-2 border">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-semibold text-base">{capitalize(label)}</span>
-              {workingHours[key].isOpen ? (
-                <button
-                  type="button"
-                  className="px-2 py-0 rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium"
-                  onClick={() => updateFn(key, 'isOpen', false)}
-                >
-                  Mark as Closed
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="px-2 py-0 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-medium"
-                  onClick={() => updateFn(key, 'isOpen', true)}
-                >
-                  Mark as Open
-                </button>
-              )}
-            </div>
-            {workingHours[key].isOpen ? (
-              <>
-                <div>
-                  <Label className="text-xs text-gray-500 mb-1 block">Opening Time</Label>
-                  <Input
-                    type="time"
-                    value={workingHours[key].open}
-                    onChange={(e) => updateFn(key, 'open', e.target.value)}
-                    className="h-10 text-center"
-                  />
-                </div>
-                <div className="mt-2">
-                  <Label className="text-xs text-gray-500 mb-1 block">Closing Time</Label>
-                  <Input
-                    type="time"
-                    value={workingHours[key].close}
-                    onChange={(e) => updateFn(key, 'close', e.target.value)}
-                    className="h-10 text-center"
-                  />
-                </div>
-              </>
-            ) : (
-              <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-400 italic text-sm mt-2">
-                This location is closed on {capitalize(label)}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
   };
 
   const getStatusBadge = (status: string) => {
@@ -465,90 +313,44 @@ export default function LocationsPage() {
         
         {/* Filter Panel (dropdown style) */}
         {showFilters && (
-          <div className="rounded-lg border border-input bg-white p-4 flex flex-col gap-4 shadow-md">
-            <div className="flex flex-col sm:flex-row gap-4">
-              {/* Status Filter */}
-              <div className="flex-1">
-                <Label className="mb-1 block">Status</Label>
-                <Popover open={statusOpen} onOpenChange={setStatusOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={statusOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {localStatusFilter === 'all' ? 'All statuses' : localStatusFilter.charAt(0).toUpperCase() + localStatusFilter.slice(1)}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search statuses..." />
-                      <CommandList>
-                        <CommandEmpty>No statuses found.</CommandEmpty>
-                        <CommandGroup>
-                          <CommandItem
-                            value="all"
-                            onSelect={() => {
-                              setLocalStatusFilter('all');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            All statuses
-                          </CommandItem>
-                          <CommandItem
-                            value="active"
-                            onSelect={() => {
-                              setLocalStatusFilter('active');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Active
-                          </CommandItem>
-                          <CommandItem
-                            value="inactive"
-                            onSelect={() => {
-                              setLocalStatusFilter('inactive');
-                              setStatusOpen(false);
-                            }}
-                          >
-                            Inactive
-                          </CommandItem>
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  setLocalStatusFilter('all');
-                }}
-              >
-                Clear
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => {
-                  setStatusFilter(localStatusFilter);
-                  setShowFilters(false);
-                }}
-              >
-                Apply Filters
-              </Button>
-            </div>
-          </div>
+          <FilterPanel
+            open={showFilters}
+            onOpenChange={setShowFilters}
+            fields={[
+              {
+                type: 'select',
+                key: 'status',
+                label: 'Status',
+                value: localStatusFilter,
+                options: [
+                  { value: 'all', label: 'All statuses' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'inactive', label: 'Inactive' },
+                ],
+                searchable: true,
+              },
+              {
+                type: 'text',
+                key: 'search',
+                label: 'Search',
+                value: searchTerm,
+                placeholder: 'Search locations...'
+              },
+            ]}
+            onApply={values => {
+              setStatusFilter(values.status);
+              setSearchTerm(values.search);
+              setShowFilters(false);
+            }}
+            onClear={() => {
+              setStatusFilter('all');
+              setSearchTerm('');
+            }}
+          />
         )}
-        
         {/* Active Filter Badges - Always show when there are active filters */}
         {(searchTerm || statusFilter !== 'all') && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 mb-2">
             {searchTerm && (
               <Badge 
                 variant="secondary" 
