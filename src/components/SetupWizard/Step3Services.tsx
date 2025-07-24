@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -39,16 +39,43 @@ const Step3Services: React.FC<Step3Props> = ({ data, onUpdate }) => {
   const [newService, setNewService] = useState({ name: '', price: 0, duration: 60 });
   const [editingSuggested, setEditingSuggested] = useState<number | null>(null);
   const [editingSuggestedData, setEditingSuggestedData] = useState({ name: '', price: 0, duration: 60 });
+  const [recentlyAddedServiceId, setRecentlyAddedServiceId] = useState<string | null>(null);
+  const servicesSectionRef = useRef<HTMLDivElement>(null);
   const suggestions = suggestedServices[data.industry] || [];
+
+  // Clear recently added service highlight after animation
+  useEffect(() => {
+    if (recentlyAddedServiceId) {
+      const timer = setTimeout(() => {
+        setRecentlyAddedServiceId(null);
+      }, 700);
+      return () => clearTimeout(timer);
+    }
+  }, [recentlyAddedServiceId]);
+
+  const scrollToService = (serviceId: string) => {
+    setTimeout(() => {
+      const serviceElement = document.getElementById(`service-${serviceId}`);
+      if (serviceElement) {
+        serviceElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }, 100);
+  };
 
   const addService = () => {
     if (newService.name.trim()) {
+      const serviceId = Date.now().toString();
       const service = {
-        id: Date.now().toString(),
+        id: serviceId,
         ...newService
       };
       onUpdate({ services: [...data.services, service] });
       setNewService({ name: '', price: 0, duration: 60 });
+      setRecentlyAddedServiceId(serviceId);
+      scrollToService(serviceId);
     }
   };
 
@@ -67,20 +94,26 @@ const Step3Services: React.FC<Step3Props> = ({ data, onUpdate }) => {
   };
 
   const confirmSuggestedService = () => {
+    const serviceId = Date.now().toString();
     const service = {
-      id: Date.now().toString(),
+      id: serviceId,
       ...editingSuggestedData
     };
     onUpdate({ services: [...data.services, service] });
     cancelEditingSuggested();
+    setRecentlyAddedServiceId(serviceId);
+    scrollToService(serviceId);
   };
 
   const addSuggestedService = (suggested: { name: string; price: number; duration: number }) => {
+    const serviceId = Date.now().toString();
     const service = {
-      id: Date.now().toString(),
+      id: serviceId,
       ...suggested
     };
     onUpdate({ services: [...data.services, service] });
+    setRecentlyAddedServiceId(serviceId);
+    scrollToService(serviceId);
   };
 
   return (
@@ -202,16 +235,21 @@ const Step3Services: React.FC<Step3Props> = ({ data, onUpdate }) => {
 
       {/* Current Services */}
       {data.services.length > 0 && (
-        <div className="space-y-3">
+        <div ref={servicesSectionRef} className="space-y-3">
           <Label className="text-sm font-medium">Your Services</Label>
           <div className="space-y-2">
             {data.services.map((service) => (
-              <div
-                key={service.id}
-                className="flex items-center justify-between p-3 bg-card border rounded-lg"
-              >
-                <div className="flex-1">
-                  <div className="font-medium">{service.name}</div>
+                              <div
+                  key={service.id}
+                  id={`service-${service.id}`}
+                  className={`flex items-center justify-between p-3 bg-card border rounded-lg transition-all duration-300 ${
+                    recentlyAddedServiceId === service.id 
+                      ? 'bg-emerald-50 border-emerald-200 scale-105 shadow-lg' 
+                      : ''
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium">{service.name}</div>
                   <div className="text-sm text-muted-foreground flex items-center gap-3">
                     <span className="flex items-center gap-1">
                       <DollarSign className="h-3 w-3" />

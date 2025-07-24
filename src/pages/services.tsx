@@ -176,7 +176,7 @@ export default function ServicesPage() {
     }
   };
 
-  const handleCreateService = async (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled' }) => {
+  const handleCreateService = async (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled'; staff?: string[] }) => {
     try {
       // TODO: Replace with actual API call
       const response = await fetch('/api/services', {
@@ -613,25 +613,48 @@ export default function ServicesPage() {
             return (
               <div
                 key={service.id}
-                className={`rounded-xl border bg-white p-6 flex flex-col gap-2 shadow-sm ${isInactive ? 'opacity-60 pointer-events-none' : ''}`}
+                className={`rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200 ${isInactive ? 'opacity-60' : ''}`}
+                onClick={() => openEditSlider(service)}
               >
-                {/* Top Row: Name, Status, Toggle, Actions */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-semibold text-lg truncate">{service.name}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold w-fit ${isInactive ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-800'}`}>{isInactive ? 'Inactive' : 'Active'}</span>
-                    </div>
-                    {/* Category badge */}
-                    <span className="inline-block mt-2 mb-1 bg-white border px-2 py-0.5 rounded-full text-xs font-medium shadow-sm w-fit">{category}</span>
+                                {/* Service Name and Status Row */}
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-lg truncate">{service.name}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${isInactive ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-800'}`}>{isInactive ? 'Inactive' : 'Active'}</span>
+                </div>
+                {/* Description */}
+                <div className="text-sm text-gray-600 mb-2">{service.description}</div>
+                
+                {/* Info Row */}
+                <div className="flex items-center gap-6 text-sm mb-2">
+                  <div className="flex items-center gap-1 text-gray-700">
+                    <Clock className="h-4 w-4" />
+                    <span>{formatDuration(service.duration)}</span>
                   </div>
-                  {/* Action Icons: always interactive and full opacity */}
-                  <div className="flex items-center gap-1 pointer-events-auto opacity-100">
+                  <div className="flex items-center gap-1 text-gray-700">
+                    <span>${service.price}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-gray-700">
+                    <Users className="h-4 w-4" />
+                    <span>{bookings} booked</span>
+                  </div>
+                </div>
+                
+                {/* Separator */}
+                <div className="border-t border-gray-200"></div>
+                
+                {/* Action Buttons Row */}
+                <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
+                  {/* Column 1: Toggle */}
+                  <div className="flex items-center gap-1">
                     <Switch
                       checked={service.status === 'enabled'}
                       onCheckedChange={() => handleToggleServiceStatus(service)}
                       className={`!h-5 !w-9 !min-h-0 !min-w-0`}
                     />
+                  </div>
+                  
+                  {/* Column 2: Edit/Delete */}
+                  <div className="flex items-center gap-1">
                     {/* Edit */}
                     <button
                       className="flex items-center justify-center h-9 w-9 rounded hover:bg-muted"
@@ -650,32 +673,7 @@ export default function ServicesPage() {
                     </button>
                   </div>
                 </div>
-                {/* Description */}
-                <div className="text-sm text-gray-600 mb-2">{service.description}</div>
-                {/* Info Row */}
-                <div className="flex items-center gap-6 text-sm mb-2">
-                  <div className="flex items-center gap-1 text-gray-700">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatDuration(service.duration)}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-gray-700">
-                    <DollarSign className="h-4 w-4" />
-                    <span>${service.price}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-gray-700">
-                    <Users className="h-4 w-4" />
-                    <span>{bookings} booked</span>
-                  </div>
-                </div>
-                {/* Staff Row */}
-                <div className="mt-1">
-                  <span className="text-xs text-gray-500 font-medium">Available Staff:</span>
-                  <div className="flex flex-wrap gap-2 mt-1">
-                    {staff.map((s) => (
-                      <span key={s} className="bg-white border px-2 py-0.5 rounded-full text-xs font-medium shadow-sm">{s}</span>
-                    ))}
-                  </div>
-                </div>
+
               </div>
             );
           })}

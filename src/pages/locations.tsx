@@ -592,40 +592,10 @@ export default function LocationsPage() {
         <div className="space-y-3">
           {filteredLocations.map((location) => (
             <div key={location.id} className="rounded-xl border bg-white p-6 flex flex-col gap-2 shadow-sm">
-              {/* Top Row: Name, Status, Actions */}
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex flex-col min-w-0 flex-1">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-semibold text-lg truncate">{location.name}</span>
-                    {getStatusBadge(location.status)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    className="flex items-center justify-center h-9 w-9 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors"
-                    title="Edit Working Hours"
-                    aria-label="Edit Working Hours"
-                    onClick={() => { setEditingWorkingHoursLocation(location); setIsWorkingHoursSliderOpen(true); }}
-                  >
-                    <Clock className="h-5 w-5" />
-                  </button>
-                  <button
-                    className="flex items-center justify-center h-9 w-9 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors"
-                    title="Edit Location"
-                    aria-label="Edit Location"
-                    onClick={() => openEditSlider(location)}
-                  >
-                    <Edit className="h-5 w-5" />
-                  </button>
-                  <button
-                    className="flex items-center justify-center h-9 w-9 rounded hover:bg-red-50 active:bg-red-100 text-red-600 transition-colors"
-                    title="Delete Location"
-                    aria-label="Delete Location"
-                    onClick={() => { setLocationToDelete(location); setIsDeleteDialogOpen(true); }}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </button>
-                </div>
+              {/* Top Row: Name and Status */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-lg truncate">{location.name}</span>
+                {getStatusBadge(location.status)}
               </div>
               {/* Info Rows */}
               <div className="flex flex-col gap-1 text-sm mt-2">
@@ -677,6 +647,34 @@ export default function LocationsPage() {
                 <div className="flex justify-between text-xs text-gray-500 mt-2">
                   <span>Open: {Object.values(location.workingHours).filter(d => d.isOpen).length} days</span>
                   <span>Closed: {Object.values(location.workingHours).filter(d => !d.isOpen).length} days</span>
+                </div>
+              </div>
+              {/* Actions Row at Bottom */}
+              <hr className="my-2 border-gray-200" />
+              <div className="flex items-center justify-end gap-2 mt-2">
+                <div
+                  className="flex items-center justify-center h-8 w-8 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer"
+                  title="Edit Working Hours"
+                  aria-label="Edit Working Hours"
+                  onClick={() => { setEditingWorkingHoursLocation(location); setIsWorkingHoursSliderOpen(true); }}
+                >
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div
+                  className="flex items-center justify-center h-8 w-8 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer"
+                  title="Edit Location"
+                  aria-label="Edit Location"
+                  onClick={() => openEditSlider(location)}
+                >
+                  <Edit className="h-5 w-5" />
+                </div>
+                <div
+                  className="flex items-center justify-center h-8 w-8 rounded hover:bg-red-50 active:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                  title="Delete Location"
+                  aria-label="Delete Location"
+                  onClick={() => { setLocationToDelete(location); setIsDeleteDialogOpen(true); }}
+                >
+                  <Trash2 className="h-5 w-5" />
                 </div>
               </div>
             </div>

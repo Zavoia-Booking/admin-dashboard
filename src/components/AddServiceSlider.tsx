@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, DollarSign, Clock, FileText, Settings, AlertCircle } from 'lucide-react';
+import { ArrowLeft, DollarSign, Clock, FileText, Settings, AlertCircle, Users, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -7,11 +7,20 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
 
 interface AddServiceSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled' }) => void;
+  onCreate: (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled'; staff: StaffAssignment[] }) => void;
+}
+
+interface StaffAssignment {
+  name: string;
+  price?: number;
+  duration?: number;
 }
 
 interface ServiceFormData {
@@ -20,6 +29,7 @@ interface ServiceFormData {
   duration: number;
   description: string;
   status: 'enabled' | 'disabled';
+  staff: StaffAssignment[];
 }
 
 const initialFormData: ServiceFormData = {
@@ -27,7 +37,8 @@ const initialFormData: ServiceFormData = {
   price: 0,
   duration: 0,
   description: '',
-  status: 'enabled'
+  status: 'enabled',
+  staff: [],
 };
 
 const AddServiceSlider: React.FC<AddServiceSliderProps> = ({ 
@@ -38,6 +49,19 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const [formData, setFormData] = useState<ServiceFormData>(initialFormData);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [staffOpen, setStaffOpen] = useState(false);
+
+  // Available staff for selection (mock data - replace with actual API call)
+  const availableStaff = [
+    'Emma Thompson',
+    'David Kim', 
+    'Alex Rodriguez',
+    'Maria Garcia',
+    'Sarah Wilson',
+    'Michael Chen',
+    'Lisa Johnson',
+    'Robert James'
+  ];
 
   // Reset form when slider closes
   React.useEffect(() => {
@@ -147,7 +171,10 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   };
 
   const handleConfirmCreate = () => {
-    onCreate(formData);
+    // No change needed: staff array already contains optional price/duration, and defaults are in formData
+    onCreate({
+      ...formData,
+    });
     setShowConfirmDialog(false);
     onClose();
     setFormData(initialFormData);
@@ -248,6 +275,9 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                       </div>
                       <h3 className="text-base font-semibold text-foreground">Pricing & Duration</h3>
                     </div>
+                    <div className="mb-2 text-xs text-muted-foreground">
+                      All assigned team members will use this price and duration unless a custom value is set for them below.
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="price" className="text-sm font-medium text-foreground">Price ($)</Label>
@@ -312,6 +342,157 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                           />
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Available Staff Section */}
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                      <div className="p-2 rounded-xl bg-primary/10">
+                        <Users className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-base font-semibold text-foreground">Available Staff</h3>
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-foreground">Assigned Staff Members</Label>
+                      
+                      {/* Current Staff List */}
+                      <div className="space-y-2">
+                        {formData.staff && formData.staff.length > 0 ? (
+                          formData.staff.map((staffMember, idx) => (
+                            <div key={staffMember.name} className="flex flex-col gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                    <Users className="h-4 w-4 text-primary" />
+                                  </div>
+                                  <span className="text-sm font-medium">{staffMember.name}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setFormData({
+                                      ...formData,
+                                      staff: formData.staff.filter(s => s.name !== staffMember.name)
+                                    });
+                                  }}
+                                  className="p-1 rounded hover:bg-destructive/10 text-destructive"
+                                  title="Remove staff member"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              </div>
+                              {/* Toggle for custom price/duration */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-muted-foreground">Custom price and duration?</span>
+                                <Switch
+                                  checked={staffMember.price !== undefined || staffMember.duration !== undefined}
+                                  onCheckedChange={(checked: boolean) => {
+                                    const updated = [...formData.staff];
+                                    if (checked) {
+                                      updated[idx] = {
+                                        ...updated[idx],
+                                        price: formData.price,
+                                        duration: formData.duration
+                                      };
+                                    } else {
+                                      updated[idx] = { ...updated[idx], price: undefined, duration: undefined };
+                                    }
+                                    setFormData({ ...formData, staff: updated });
+                                  }}
+                                  className="!h-5 !w-9 !min-h-0 !min-w-0"
+                                />
+                              </div>
+                              {(staffMember.price !== undefined || staffMember.duration !== undefined) && (
+                                <div className="flex gap-2 mt-2">
+                                  <div className="flex flex-col w-32">
+                                    <Label className="text-xs mb-1">Price ($)</Label>
+                                    <Input
+                                      type="number"
+                                      min="0"
+                                      step="0.01"
+                                      placeholder={`Custom Price (default: $${formData.price})`}
+                                      value={staffMember.price === undefined ? '' : staffMember.price}
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const updated = [...formData.staff];
+                                        const val = e.target.value;
+                                        updated[idx] = { ...updated[idx], price: val === '' ? undefined : parseFloat(val) };
+                                        setFormData({ ...formData, staff: updated });
+                                      }}
+                                      className="border-0 bg-muted/50 focus:bg-background h-10 text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex flex-col w-40">
+                                    <Label className="text-xs mb-1">Duration (minutes)</Label>
+                                    <Input
+                                      type="number"
+                                      min="1"
+                                      placeholder={`Custom Duration (default: ${formData.duration}m)`}
+                                      value={staffMember.duration === undefined ? '' : staffMember.duration}
+                                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                                        const updated = [...formData.staff];
+                                        const val = e.target.value;
+                                        updated[idx] = { ...updated[idx], duration: val === '' ? undefined : parseInt(val) };
+                                        setFormData({ ...formData, staff: updated });
+                                      }}
+                                      className="border-0 bg-muted/50 focus:bg-background h-10 text-sm"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border/50 text-center">
+                            <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No staff members assigned</p>
+                            <p className="text-xs text-muted-foreground">Add staff members who can provide this service</p>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Add Staff Button */}
+                      <Popover open={staffOpen} onOpenChange={setStaffOpen}>
+                        <PopoverTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="w-full h-10 border-dashed border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Staff Member
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0 z-[80]">
+                          <Command>
+                            <CommandInput placeholder="Search staff members..." />
+                            <CommandList>
+                              <CommandEmpty>No staff members found.</CommandEmpty>
+                              <CommandGroup>
+                                {availableStaff
+                                  .filter(staff => !formData.staff.some(s => s.name === staff))
+                                  .map((staff) => (
+                                    <CommandItem
+                                      key={staff}
+                                      value={staff}
+                                      onSelect={() => {
+                                        setFormData({
+                                          ...formData,
+                                          staff: [...formData.staff, { name: staff }]
+                                        });
+                                        setStaffOpen(false);
+                                      }}
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      {staff}
+                                    </CommandItem>
+                                  ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   </div>
                 </CardContent>

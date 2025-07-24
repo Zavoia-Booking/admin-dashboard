@@ -21,6 +21,7 @@ import { ChevronsUpDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
 import EditTeamMemberSlider from '@/components/EditTeamMemberSlider';
+import TeamMemberProfileSlider from '@/components/TeamMemberProfileSlider';
 
 interface TeamMember {
   id: string;
@@ -33,6 +34,15 @@ interface TeamMember {
   createdAt: string;
   location?: string;
   services?: string[];
+  workingHours?: {
+    monday: { open: string; close: string; isOpen: boolean };
+    tuesday: { open: string; close: string; isOpen: boolean };
+    wednesday: { open: string; close: string; isOpen: boolean };
+    thursday: { open: string; close: string; isOpen: boolean };
+    friday: { open: string; close: string; isOpen: boolean };
+    saturday: { open: string; close: string; isOpen: boolean };
+    sunday: { open: string; close: string; isOpen: boolean };
+  };
 }
 
 export default function TeamMembersPage() {
@@ -46,8 +56,17 @@ export default function TeamMembersPage() {
       role: 'Senior Stylist',
       status: 'active',
       createdAt: '2024-01-15T10:30:00Z',
-      location: 'Main Branch',
-      services: ['Hair Cut', 'Hair Color', 'Styling']
+      location: 'Downtown Salon',
+      services: ['Hair Cut', 'Hair Color', 'Styling'],
+      workingHours: {
+        monday: { open: '08:00', close: '18:00', isOpen: true },
+        tuesday: { open: '08:00', close: '18:00', isOpen: true },
+        wednesday: { open: '08:00', close: '18:00', isOpen: true },
+        thursday: { open: '08:00', close: '18:00', isOpen: true },
+        friday: { open: '08:00', close: '18:00', isOpen: true },
+        saturday: { open: '09:00', close: '16:00', isOpen: true },
+        sunday: { open: '10:00', close: '15:00', isOpen: false },
+      }
     },
     {
       id: '2',
@@ -58,7 +77,7 @@ export default function TeamMembersPage() {
       role: 'Massage Therapist',
       status: 'active',
       createdAt: '2024-02-01T15:45:00Z',
-      location: 'Wellness Center',
+      location: 'Westside Branch',
       services: ['Deep Tissue', 'Swedish', 'Hot Stone']
     },
     {
@@ -70,7 +89,7 @@ export default function TeamMembersPage() {
       role: 'Barber',
       status: 'active',
       createdAt: '2024-01-20T09:15:00Z',
-      location: 'Barber Shop',
+      location: 'Mall Location',
       services: ['Hair Cut', 'Beard Trim', 'Shave']
     },
     {
@@ -82,7 +101,7 @@ export default function TeamMembersPage() {
       role: UserRole.TEAM_MEMBER,
       status: 'inactive',
       createdAt: '2024-01-10T14:20:00Z',
-      location: 'Uptown Branch',
+      location: 'Downtown Salon',
       services: ['Facial', 'Skin Care']
     },
     {
@@ -159,8 +178,10 @@ export default function TeamMembersPage() {
     }]);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
+  const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [editingTeamMember, setEditingTeamMember] = useState<TeamMember | null>(null);
+  const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -202,9 +223,9 @@ export default function TeamMembersPage() {
   const fetchTeamMembers = async () => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch('/api/team-members');
-      const data = await response.json();
-      setTeamMembers(data);
+      // Use the existing mock data from the state
+      // The teamMembers state is already initialized with mock data
+      console.log('Using mock team members data - Emma should be available');
     } catch (error) {
       toast.error('Failed to fetch team members');
     }
@@ -213,9 +234,71 @@ export default function TeamMembersPage() {
   const fetchLocations = async () => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch('/api/locations');
-      const data = await response.json();
-      setLocations(data.map((loc: any) => ({ id: loc.id, name: loc.name })));
+      // Mock location data with working hours for testing
+      const mockLocations = [
+        {
+          id: '1',
+          name: 'Downtown Salon',
+          address: '123 Main Street, Downtown, City, State 12345',
+          email: 'downtown@salon.com',
+          phoneNumber: '(555) 123-4567',
+          description: 'Our flagship location in the heart of downtown',
+          workingHours: {
+            monday: { open: '09:00', close: '17:00', isOpen: true },
+            tuesday: { open: '09:00', close: '17:00', isOpen: true },
+            wednesday: { open: '09:00', close: '17:00', isOpen: true },
+            thursday: { open: '09:00', close: '17:00', isOpen: true },
+            friday: { open: '09:00', close: '17:00', isOpen: true },
+            saturday: { open: '10:00', close: '15:00', isOpen: true },
+            sunday: { open: '10:00', close: '15:00', isOpen: false },
+          },
+          status: 'active',
+          createdAt: '2024-01-15T10:30:00Z'
+        },
+        {
+          id: '2',
+          name: 'Westside Branch',
+          address: '456 West Avenue, Westside, City, State 12345',
+          email: 'westside@salon.com',
+          phoneNumber: '(555) 987-6543',
+          description: 'Convenient location for westside residents',
+          workingHours: {
+            monday: { open: '08:00', close: '18:00', isOpen: true },
+            tuesday: { open: '08:00', close: '18:00', isOpen: true },
+            wednesday: { open: '08:00', close: '18:00', isOpen: true },
+            thursday: { open: '08:00', close: '18:00', isOpen: true },
+            friday: { open: '08:00', close: '18:00', isOpen: true },
+            saturday: { open: '09:00', close: '16:00', isOpen: true },
+            sunday: { open: '10:00', close: '15:00', isOpen: true },
+          },
+          status: 'active',
+          createdAt: '2024-02-01T15:45:00Z'
+        },
+        {
+          id: '3',
+          name: 'Mall Location',
+          address: '789 Shopping Center, Mall District, City, State 12345',
+          email: 'mall@salon.com',
+          phoneNumber: '(555) 456-7890',
+          description: 'Located inside the shopping mall for convenience',
+          workingHours: {
+            monday: { open: '10:00', close: '20:00', isOpen: true },
+            tuesday: { open: '10:00', close: '20:00', isOpen: true },
+            wednesday: { open: '10:00', close: '20:00', isOpen: true },
+            thursday: { open: '10:00', close: '20:00', isOpen: true },
+            friday: { open: '10:00', close: '20:00', isOpen: true },
+            saturday: { open: '09:00', close: '18:00', isOpen: true },
+            sunday: { open: '11:00', close: '17:00', isOpen: true },
+          },
+          status: 'inactive',
+          createdAt: '2024-01-20T09:15:00Z'
+        }
+      ];
+      
+      setLocations(mockLocations.map((loc: any) => ({ id: loc.id, name: loc.name })));
+      
+      // Store full location data for working hours access
+      (window as any).mockLocationData = mockLocations;
     } catch (error) {
       toast.error('Failed to fetch locations');
     }
@@ -224,19 +307,23 @@ export default function TeamMembersPage() {
   const handleInviteTeamMember = async (inviteData: { email: string; role: string; location: string }) => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch('/api/team-members/invite', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(inviteData),
-      });
-
-      if (!response.ok) throw new Error('Failed to send invitation');
-
+      // Mock invitation - add to team members list
+      const newMember: TeamMember = {
+        id: Date.now().toString(),
+        firstName: 'New',
+        lastName: 'Member',
+        email: inviteData.email,
+        phone: '+1 (555) 000-0000',
+        role: inviteData.role,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        location: inviteData.location,
+        services: []
+      };
+      
+      setTeamMembers(prev => [...prev, newMember]);
       toast.success('Invitation sent successfully');
       setIsInviteSliderOpen(false);
-      fetchTeamMembers();
     } catch (error) {
       toast.error('Failed to send invitation');
     }
@@ -247,20 +334,36 @@ export default function TeamMembersPage() {
   const handleEditTeamMember = async (memberData: TeamMember) => {
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/team-members/${memberData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(memberData),
-      });
-
-      if (!response.ok) throw new Error('Failed to update team member');
-
+      // Mock update - update the team member in the list
+      setTeamMembers(prev => prev.map(member => 
+        member.id === memberData.id ? memberData : member
+      ));
+      
       toast.success('Team member updated successfully');
       setIsEditSliderOpen(false);
       setEditingTeamMember(null);
-      fetchTeamMembers();
+    } catch (error) {
+      toast.error('Failed to update team member');
+    }
+  };
+
+  const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
+    if (!selectedTeamMember) return;
+    
+    try {
+      const updatedMember = { ...selectedTeamMember, ...updateData };
+      // TODO: Replace with actual API call
+      // Mock update - update the team member in the list
+      
+      // Update local state
+      setTeamMembers(prev => prev.map(member => 
+        member.id === selectedTeamMember.id ? { ...member, ...updateData } : member
+      ));
+      
+      // Update selected team member
+      setSelectedTeamMember(prev => prev ? { ...prev, ...updateData } : null);
+      
+      toast.success('Team member updated successfully');
     } catch (error) {
       toast.error('Failed to update team member');
     }
@@ -288,18 +391,14 @@ export default function TeamMembersPage() {
 
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/team-members/${pendingAction.toggleStatusData.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: pendingAction.toggleStatusData.newStatus }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update status');
+      // Mock status update
+      setTeamMembers(prev => prev.map(member => 
+        member.id === pendingAction.toggleStatusData!.id 
+          ? { ...member, status: pendingAction.toggleStatusData!.newStatus as 'active' | 'inactive' }
+          : member
+      ));
 
       toast.success(`Status updated to ${pendingAction.toggleStatusData.newStatus}`);
-      fetchTeamMembers();
     } catch (error) {
       toast.error('Failed to update status');
     } finally {
@@ -309,34 +408,18 @@ export default function TeamMembersPage() {
   };
 
   const handleDeleteTeamMember = async (id: string) => {
-    setPendingAction({
-      type: 'delete',
-      teamMemberId: id,
-      teamMemberName: teamMembers.find(tm => tm.id === id)?.firstName + ' ' + teamMembers.find(tm => tm.id === id)?.lastName
-    });
-    setIsConfirmDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!pendingAction || pendingAction.type !== 'delete' || !pendingAction.teamMemberId) return;
-
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/team-members/${pendingAction.teamMemberId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete team member');
+      // Mock delete - remove from team members list
+      setTeamMembers(prev => prev.filter(member => member.id !== id));
 
       toast.success('Team member removed successfully');
-      fetchTeamMembers();
     } catch (error) {
       toast.error('Failed to remove team member');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
     }
   };
+
+
 
   const handleResendInvitation = async (id: string) => {
     setPendingAction({
@@ -352,12 +435,7 @@ export default function TeamMembersPage() {
 
     try {
       // TODO: Replace with actual API call
-      const response = await fetch(`/api/team-members/${pendingAction.teamMemberId}/resend-invitation`, {
-        method: 'POST',
-      });
-
-      if (!response.ok) throw new Error('Failed to resend invitation');
-
+      // Mock resend invitation
       toast.success('Invitation resent successfully');
     } catch (error) {
       toast.error('Failed to resend invitation');
@@ -372,6 +450,11 @@ export default function TeamMembersPage() {
     setIsEditSliderOpen(true);
   };
 
+  const openProfileSlider = (teamMember: TeamMember) => {
+    setSelectedTeamMember(teamMember);
+    setIsProfileSliderOpen(true);
+  };
+
   const getConfirmDialogContent = () => {
     if (!pendingAction) return null;
 
@@ -383,13 +466,7 @@ export default function TeamMembersPage() {
           confirmText: 'Update Status',
           onConfirm: confirmToggleStatus
         };
-      case 'delete':
-        return {
-          title: 'Remove Team Member',
-          description: `Are you sure you want to remove ${pendingAction.teamMemberName} from the organisation?`,
-          confirmText: 'Remove',
-          onConfirm: confirmDelete
-        };
+
       case 'resend':
         return {
           title: 'Resend Invitation',
@@ -470,7 +547,7 @@ export default function TeamMembersPage() {
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
             <Input
-              placeholder="Search members..."
+              placeholder="Search..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="h-11 text-base pr-12 pl-4 rounded-lg border border-input bg-white"
@@ -764,7 +841,11 @@ export default function TeamMembersPage() {
             </div>
           ) : (
             filteredTeamMembers.map(member => (
-              <div key={member.id} className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm">
+              <div 
+                key={member.id} 
+                className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
+                onClick={() => openProfileSlider(member)}
+              >
                 <div className="flex flex-row items-start gap-4">
                   {/* Avatar */}
                   <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
@@ -782,7 +863,10 @@ export default function TeamMembersPage() {
                       <button 
                         className="p-2 rounded hover:bg-muted text-blue-600" 
                         title="Resend Invitation"
-                        onClick={() => handleResendInvitation(member.id)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleResendInvitation(member.id);
+                        }}
                       >
                         <Mail className="h-5 w-5" />
                       </button>
@@ -790,16 +874,12 @@ export default function TeamMembersPage() {
                     <button 
                       className="p-2 rounded hover:bg-muted" 
                       title="Edit"
-                      onClick={() => openEditSlider(member)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditSlider(member);
+                      }}
                     >
                       <Edit className="h-5 w-5" />
-                    </button>
-                    <button 
-                      className="p-2 rounded hover:bg-muted text-red-600" 
-                      title="Delete"
-                      onClick={() => handleDeleteTeamMember(member.id)}
-                    >
-                      <Trash2 className="h-5 w-5" />
                     </button>
                   </div>
                 </div>
@@ -818,16 +898,6 @@ export default function TeamMembersPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-700">
                         <MapPin className="h-4 w-4" />
                         <span>{member.location}</span>
-                      </div>
-                    )}
-                    {member.services && member.services.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-xs text-gray-500 mb-1">Services:</div>
-                        <div className="flex flex-wrap gap-2">
-                          {member.services.map((s: string) => (
-                            <span key={s} className="bg-white border px-2 py-0.5 rounded-full text-xs font-medium shadow-sm">{s}</span>
-                          ))}
-                        </div>
                       </div>
                     )}
                   </div>
@@ -878,6 +948,16 @@ export default function TeamMembersPage() {
         onClose={() => setIsEditSliderOpen(false)}
         onUpdate={handleEditTeamMember}
         teamMember={editingTeamMember}
+        locations={locations}
+      />
+
+      {/* Team Member Profile Slider */}
+      <TeamMemberProfileSlider 
+        isOpen={isProfileSliderOpen}
+        onClose={() => setIsProfileSliderOpen(false)}
+        teamMember={selectedTeamMember}
+        onUpdate={handleUpdateTeamMember}
+        onDelete={handleDeleteTeamMember}
         locations={locations}
       />
     </AppLayout>

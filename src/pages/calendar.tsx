@@ -158,7 +158,8 @@ const mockAppointments = [
     date: new Date(weekDates[0]), // Sunday
     status: 'completed',
     location: 'downtown',
-    teamMembers: ['sarah', 'jessica'] // Multiple team members
+    teamMembers: ['sarah', 'jessica'], // Multiple team members
+    seriesId: 'series-123', // <-- Make this appointment recurring
   },
   {
     id: 2,

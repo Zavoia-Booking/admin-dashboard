@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, MapPin, Phone, Mail, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Mail, AlertCircle, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
 
 interface Location {
   id: string;
@@ -34,6 +35,43 @@ interface EditLocationSliderProps {
   location: Location | null;
 }
 
+// Mock team members (should be replaced with API call in real app)
+const mockTeamMembers = [
+  {
+    id: '1',
+    firstName: 'Emma',
+    lastName: 'Thompson',
+    email: 'emma@salon.com',
+    phone: '+1 (555) 123-4567',
+    role: 'Senior Stylist',
+    status: 'active',
+    createdAt: '2024-01-15T10:30:00Z',
+    location: 'Downtown Salon',
+  },
+  {
+    id: '2',
+    firstName: 'Alex',
+    lastName: 'Rodriguez',
+    email: 'alex@wellness.com',
+    phone: '+1 (555) 234-5678',
+    role: 'Massage Therapist',
+    status: 'active',
+    createdAt: '2024-02-01T15:45:00Z',
+    location: 'Westside Branch',
+  },
+  {
+    id: '3',
+    firstName: 'David',
+    lastName: 'Kim',
+    email: 'david@barbershop.com',
+    phone: '+1 (555) 456-7890',
+    role: 'Barber',
+    status: 'active',
+    createdAt: '2024-01-20T09:15:00Z',
+    location: 'Mall Location',
+  },
+];
+
 const EditLocationSlider: React.FC<EditLocationSliderProps> = ({ 
   isOpen, 
   onClose, 
@@ -43,6 +81,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const [formData, setFormData] = useState<Location | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [shouldAnimate, setShouldAnimate] = useState(false);
+  const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
 
   // Populate form with location data when opened
   useEffect(() => {
@@ -263,6 +302,45 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                         className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
                       />
                     </div>
+                    {/* Team Members Assigned Section */}
+                    <div className="space-y-2 mt-6">
+                      <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                        <div className="p-2 rounded-xl bg-primary/10">
+                          <Users className="h-5 w-5 text-primary" />
+                        </div>
+                        <h3 className="text-base font-semibold text-foreground">Assigned Team Members</h3>
+                        <Button
+                          type="button"
+                          size="sm"
+                          className="ml-auto"
+                          onClick={() => setIsInviteSliderOpen(true)}
+                        >
+                          Invite Member
+                        </Button>
+                      </div>
+                      <div className="space-y-2">
+                        {mockTeamMembers.filter(m => m.location === formData.name).length > 0 ? (
+                          mockTeamMembers.filter(m => m.location === formData.name).map(member => (
+                            <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                  <Users className="h-4 w-4 text-primary" />
+                                </div>
+                                <div>
+                                  <div className="font-medium text-sm">{member.firstName} {member.lastName}</div>
+                                  <div className="text-xs text-muted-foreground">{member.email} &middot; {member.role}</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border/50 text-center">
+                            <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                            <p className="text-sm text-muted-foreground">No team members assigned to this location</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   {/* Contact Information Section */}
@@ -344,6 +422,16 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Invite Team Member Slider */}
+      <InviteTeamMemberSlider
+        isOpen={isInviteSliderOpen}
+        onClose={() => setIsInviteSliderOpen(false)}
+        onInvite={() => setIsInviteSliderOpen(false)}
+        locations={[
+          { id: formData.id, name: formData.name }
+        ]}
+      />
     </>
   );
 };
