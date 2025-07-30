@@ -4,109 +4,19 @@ import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Edit, Trash2, Filter, Search, Plus, Clock, X, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import AddServiceSlider from '@/components/AddServiceSlider';
-import EditServiceSlider from '@/components/EditServiceSlider';
+import AddServiceSlider from '@/components/Services/AddServiceSlider';
+import EditServiceSlider from '@/components/Services/EditServiceSlider';
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
 import { Switch } from "@/components/ui/switch";
 import { FilterPanel } from '@/components/common/FilterPanel';
 import { Input } from "@/components/ui/input";
-
-interface StaffAssignment {
-  name: string;
-  price?: number;
-  duration?: number;
-}
-
-interface Service {
-  id: string;
-  name: string;
-  price: number;
-  duration: number; // in minutes
-  description: string;
-  status: 'enabled' | 'disabled';
-  createdAt: string;
-  category?: string;
-  bookings?: number;
-  staff?: StaffAssignment[];
-}
+import { mockServices } from '@/mocks/services.mock';
+import { Service, StaffAssignment } from '@/types/service';
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>([
-    {
-      id: '1',
-      name: 'Haircut',
-      price: 30,
-      duration: 30,
-      description: 'Basic haircut service including consultation and styling',
-      status: 'enabled',
-      createdAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      name: 'Hair Coloring',
-      price: 80,
-      duration: 120,
-      description: 'Full hair coloring service with premium products',
-      status: 'enabled',
-      createdAt: '2024-02-01T15:45:00Z'
-    },
-    {
-      id: '3',
-      name: 'Manicure',
-      price: 25,
-      duration: 45,
-      description: 'Classic manicure with polish',
-      status: 'disabled',
-      createdAt: '2024-01-20T09:15:00Z'
-    },
-    {
-      id: '4',
-      name: 'Pedicure',
-      price: 45,
-      duration: 60,
-      description: 'Luxury pedicure with massage',
-      status: 'enabled',
-      createdAt: '2024-01-10T14:20:00Z'
-    },
-    {
-      id: '5',
-      name: 'Facial Treatment',
-      price: 60,
-      duration: 60,
-      description: 'Deep cleansing facial with mask',
-      status: 'enabled',
-      createdAt: '2024-02-05T11:30:00Z'
-    },
-    {
-      id: '6',
-      name: 'Hot Stone Massage',
-      price: 120,
-      duration: 90,
-      description: 'Relaxing hot stone massage therapy',
-      status: 'enabled',
-      createdAt: '2024-02-08T12:15:00Z'
-    },
-    {
-      id: '7',
-      name: 'Eyebrow Shaping',
-      price: 20,
-      duration: 20,
-      description: 'Professional eyebrow shaping and trimming',
-      status: 'disabled',
-      createdAt: '2024-02-12T16:30:00Z'
-    },
-    {
-      id: '8',
-      name: 'Deep Conditioning',
-      price: 40,
-      duration: 45,
-      description: 'Intensive hair conditioning treatment',
-      status: 'enabled',
-      createdAt: '2024-02-15T10:45:00Z'
-    }
-  ]);
+  const [services, setServices] = useState<Service[]>(mockServices);
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -532,10 +442,7 @@ export default function ServicesPage() {
         {/* Services Grid */}
         <div className="space-y-3">
           {filteredServices.map((service) => {
-            // Mocked data for demo
-            const category = service.category || (service.id === '1' ? 'Hair Services' : service.id === '2' ? 'Wellness' : 'Skincare');
             const bookings = service.bookings || (service.id === '1' ? 45 : service.id === '2' ? 32 : 28);
-            const staff = service.staff || (service.id === '1' ? ['Emma Thompson', 'David Kim'] : service.id === '2' ? ['Alex Rodriguez'] : ['Maria Garcia']);
             const isInactive = service.status === 'disabled';
             return (
               <div

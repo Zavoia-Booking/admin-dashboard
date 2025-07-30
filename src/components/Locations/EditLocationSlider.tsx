@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
+import InviteTeamMemberSlider from '@/components/TeamMembers/InviteTeamMemberSlider';
 import { BaseSlider } from '@/components/common/BaseSlider';
 
 interface Location {

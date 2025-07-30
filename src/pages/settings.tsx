@@ -12,14 +12,14 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import BusinessInfoSlider from '@/components/BusinessInfoSlider';
-import AppointmentSettingsSlider from '@/components/AppointmentSettingsSlider';
-import WebsiteDomainSlider from '@/components/WebsiteDomainSlider';
-import IntegrationsSlider from '@/components/IntegrationsSlider';
-import ProfileSlider from '@/components/ProfileSlider';
-import BillingSlider from '@/components/BillingSlider';
-import SecuritySlider from '@/components/SecuritySlider';
-import AdvancedSettingsSlider from '@/components/AdvancedSettingsSlider';
+import BusinessInfoSlider from '@/components/Settings/BusinessInfoSlider';
+import AppointmentSettingsSlider from '@/components/Settings/AppointmentSettingsSlider';
+import WebsiteDomainSlider from '@/components/Settings/WebsiteDomainSlider';
+import IntegrationsSlider from '@/components/Settings/IntegrationsSlider';
+import ProfileSlider from '@/components/Settings/ProfileSlider';
+import BillingSlider from '@/components/Settings/BillingSlider';
+import SecuritySlider from '@/components/Settings/SecuritySlider';
+import AdvancedSettingsSlider from '@/components/Settings/AdvancedSettingsSlider';
 import { 
   Receipt, 
   Calendar, 

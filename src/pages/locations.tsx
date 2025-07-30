@@ -9,30 +9,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
 import { Badge } from "@/components/ui/badge";
-import AddLocationSlider from '@/components/AddLocationSlider';
-import EditLocationSlider from '@/components/EditLocationSlider';
-import EditWorkingHoursSlider from '@/components/EditWorkingHoursSlider';
+import AddLocationSlider from '@/components/Locations/AddLocationSlider';
+import EditLocationSlider from '@/components/Locations/EditLocationSlider';
+import EditWorkingHoursSlider from '@/components/Locations/EditWorkingHoursSlider';
 import { FilterPanel } from '@/components/common/FilterPanel';
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  email: string;
-  phoneNumber: string;
-  description: string;
-  workingHours: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
+import { mockLocations } from '@/mocks/locations.mock';
+import { LocationType } from '@/types/location';
 
 const defaultWorkingHours = {
   monday: { open: '09:00', close: '17:00', isOpen: true },
@@ -58,51 +40,10 @@ const shortDay = (day: string) => {
 };
 
 export default function LocationsPage() {
-  const [locations, setLocations] = useState<Location[]>([
-    {
-      id: '1',
-      name: 'Downtown Salon',
-      address: '123 Main Street, Downtown, City, State 12345',
-      email: 'downtown@salon.com',
-      phoneNumber: '(555) 123-4567',
-      description: 'Our flagship location in the heart of downtown',
-      workingHours: defaultWorkingHours,
-      status: 'active',
-      createdAt: '2024-01-15T10:30:00Z'
-    },
-    {
-      id: '2',
-      name: 'Westside Branch',
-      address: '456 West Avenue, Westside, City, State 12345',
-      email: 'westside@salon.com',
-      phoneNumber: '(555) 987-6543',
-      description: 'Convenient location for westside residents',
-      workingHours: {
-        ...defaultWorkingHours,
-        sunday: { open: '10:00', close: '15:00', isOpen: true },
-      },
-      status: 'active',
-      createdAt: '2024-02-01T15:45:00Z'
-    },
-    {
-      id: '3',
-      name: 'Mall Location',
-      address: '789 Shopping Center, Mall District, City, State 12345',
-      email: 'mall@salon.com',
-      phoneNumber: '(555) 456-7890',
-      description: 'Located inside the shopping mall for convenience',
-      workingHours: {
-        ...defaultWorkingHours,
-        saturday: { open: '09:00', close: '18:00', isOpen: true },
-        sunday: { open: '11:00', close: '17:00', isOpen: true },
-      },
-      status: 'inactive',
-      createdAt: '2024-01-20T09:15:00Z'
-    }
-  ]);
+  const [locations, setLocations] = useState<LocationType[]>(mockLocations);
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
-  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
+  const [editingLocation, setEditingLocation] = useState<LocationType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -111,12 +52,12 @@ export default function LocationsPage() {
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
   
   const [isWorkingHoursSliderOpen, setIsWorkingHoursSliderOpen] = useState(false);
-  const [editingWorkingHoursLocation, setEditingWorkingHoursLocation] = useState<Location | null>(null);
+  const [editingWorkingHoursLocation, setEditingWorkingHoursLocation] = useState<LocationType | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [locationToDelete, setLocationToDelete] = useState<Location | null>(null);
+  const [locationToDelete, setLocationToDelete] = useState<LocationType | null>(null);
   const [isDayEditModalOpen, setIsDayEditModalOpen] = useState(false);
   const [editingDayData, setEditingDayData] = useState<{
-    location: Location;
+    location: LocationType;
     day: string;
     dayLabel: string;
   } | null>(null);
@@ -140,14 +81,7 @@ export default function LocationsPage() {
   ].filter(Boolean).length;
 
   const fetchLocations = async () => {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/locations');
-      const data = await response.json();
-      setLocations(data);
-    } catch (error) {
-      toast.error('Failed to fetch locations');
-    }
+    setLocations(mockLocations);
   };
 
   const handleCreateLocationSlider = async (locationData: {
@@ -187,7 +121,7 @@ export default function LocationsPage() {
     }
   };
 
-  const handleEditLocationSlider = async (locationData: Location) => {
+  const handleEditLocationSlider = async (locationData: LocationType) => {
     try {
       const response = await fetch(`/api/locations/${locationData.id}`, {
         method: 'PUT',
@@ -223,7 +157,7 @@ export default function LocationsPage() {
     }
   };
 
-  const openEditSlider = (location: Location) => {
+  const openEditSlider = (location: LocationType) => {
     setEditingLocation(location);
     setIsEditSliderOpen(true);
   };
@@ -246,7 +180,7 @@ export default function LocationsPage() {
     }));
   };
 
-  const openDayEditModal = (location: Location, day: string, dayLabel: string) => {
+  const openDayEditModal = (location: LocationType, day: string, dayLabel: string) => {
     setEditingDayData({ location, day, dayLabel });
     setIsDayEditModalOpen(true);
   };

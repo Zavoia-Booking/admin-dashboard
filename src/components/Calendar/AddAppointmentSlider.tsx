@@ -11,6 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { BaseSlider } from '@/components/common/BaseSlider';
+import { mockLocations } from '@/mocks/locations.mock';
+import { mockTeamMembers } from '@/mocks/team-members.mock';
 
 interface AddAppointmentSliderProps {
   isOpen: boolean;
@@ -99,35 +101,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       email: 'sarah.williams@email.com', 
       phone: '+1 (555) 234-5678',
       avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'
-    }
-  ];
-
-  const mockLocations = [
-    { id: 'downtown', name: 'Downtown Studio' },
-    { id: 'uptown', name: 'Uptown Salon' },
-    { id: 'westside', name: 'Westside Branch' }
-  ];
-
-  const mockTeamMembers = [
-    { 
-      id: 'sarah', 
-      name: 'Sarah Johnson',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b388?w=150'
-    },
-    { 
-      id: 'mike', 
-      name: 'Mike Davis',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'
-    },
-    { 
-      id: 'jessica', 
-      name: 'Jessica Chen',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'
-    },
-    { 
-      id: 'alex', 
-      name: 'Alex Rodriguez',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
     }
   ];
 
@@ -687,10 +660,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           {selectedTeamMembers.map((member) => (
                             <div key={member.id} className="flex items-center gap-1 bg-muted rounded-lg px-2 h-8 min-w-[0] shadow-none">
                               <Avatar className="h-6 w-6 min-w-6">
-                                <AvatarImage src={member.avatar} />
-                                <AvatarFallback className="text-xs">{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                <AvatarFallback>{member.firstName[0]}{member.lastName[0]}</AvatarFallback>
                               </Avatar>
-                              <span className="text-sm font-medium leading-none truncate max-w-[5.5rem]">{member.name.split(' ')[0]}</span>
+                              <span className="text-sm font-medium leading-none truncate max-w-[5.5rem]">{member.firstName} {member.lastName}</span>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -732,7 +704,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                                 {mockTeamMembers.map((member) => (
                                   <CommandItem
                                     key={member.id}
-                                    value={member.name}
+                                    value={member.firstName + ' ' + member.lastName}
                                     onSelect={() => {
                                       const isSelected = formData.teamMembers.includes(member.id);
                                       if (isSelected) {
@@ -750,11 +722,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                                     className="flex items-center gap-3 p-3"
                                   >
                                     <Avatar className="h-8 w-8">
-                                      <AvatarImage src={member.avatar} />
-                                      <AvatarFallback>{member.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                      <AvatarFallback>{member.firstName[0]}{member.lastName[0]}</AvatarFallback>
                                     </Avatar>
                                     <div className="flex-1">
-                                      <div className="font-medium">{member.name}</div>
+                                      <div className="font-medium">{member.firstName} {member.lastName}</div>
                                     </div>
                                     <Check
                                       className={cn(

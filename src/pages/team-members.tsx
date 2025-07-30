@@ -9,163 +9,15 @@ import { Input } from "@/components/ui/input";
 import { toast } from 'sonner';
 import { AppLayout } from '@/components/layouts/app-layout';
 import { Badge } from "@/components/ui/badge";
-import InviteTeamMemberSlider from '@/components/InviteTeamMemberSlider';
-import TeamMemberProfileSlider from '@/components/TeamMemberProfileSlider';
+import InviteTeamMemberSlider from '@/components/TeamMembers/InviteTeamMemberSlider';
+import TeamMemberProfileSlider from '@/components/TeamMembers/TeamMemberProfileSlider';
 import { FilterPanel } from '@/components/common/FilterPanel';
-
-interface TeamMember {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  role: string;
-  status: 'pending' | 'active' | 'inactive';
-  createdAt: string;
-  location?: string;
-  services?: string[];
-  workingHours?: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-}
+import { mockTeamMembers } from '@/mocks/team-members.mock';
+import { mockLocations } from '@/mocks/locations.mock';
+import { TeamMember } from '@/types/team-member';
 
 export default function TeamMembersPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([
-    {
-      id: '1',
-      firstName: 'Emma',
-      lastName: 'Thompson',
-      email: 'emma@salon.com',
-      phone: '+1 (555) 123-4567',
-      role: 'Senior Stylist',
-      status: 'active',
-      createdAt: '2024-01-15T10:30:00Z',
-      location: 'Downtown Salon',
-      services: ['Hair Cut', 'Hair Color', 'Styling'],
-      workingHours: {
-        monday: { open: '08:00', close: '18:00', isOpen: true },
-        tuesday: { open: '08:00', close: '18:00', isOpen: true },
-        wednesday: { open: '08:00', close: '18:00', isOpen: true },
-        thursday: { open: '08:00', close: '18:00', isOpen: true },
-        friday: { open: '08:00', close: '18:00', isOpen: true },
-        saturday: { open: '09:00', close: '16:00', isOpen: true },
-        sunday: { open: '10:00', close: '15:00', isOpen: false },
-      }
-    },
-    {
-      id: '2',
-      firstName: 'Alex',
-      lastName: 'Rodriguez',
-      email: 'alex@wellness.com',
-      phone: '+1 (555) 234-5678',
-      role: 'Massage Therapist',
-      status: 'active',
-      createdAt: '2024-02-01T15:45:00Z',
-      location: 'Westside Branch',
-      services: ['Deep Tissue', 'Swedish', 'Hot Stone']
-    },
-    {
-      id: '3',
-      firstName: 'David',
-      lastName: 'Kim',
-      email: 'david@barbershop.com',
-      phone: '+1 (555) 456-7890',
-      role: 'Barber',
-      status: 'active',
-      createdAt: '2024-01-20T09:15:00Z',
-      location: 'Mall Location',
-      services: ['Hair Cut', 'Beard Trim', 'Shave']
-    },
-    {
-      id: '4',
-      firstName: 'Sarah',
-      lastName: 'Williams',
-      email: 'sarah.w@example.com',
-      phone: '+1 (555) 456-7890',
-      role: UserRole.TEAM_MEMBER,
-      status: 'inactive',
-      createdAt: '2024-01-10T14:20:00Z',
-      location: 'Downtown Salon',
-      services: ['Facial', 'Skin Care']
-    },
-    {
-      id: '5',
-      firstName: 'David',
-      lastName: 'Brown',
-      email: 'david.b@example.com',
-      phone: '+1 (555) 567-8901',
-      role: UserRole.TEAM_MEMBER,
-      status: 'active',
-      createdAt: '2024-02-05T11:30:00Z',
-      location: 'Downtown',
-      services: ['Massage', 'Hot Stone']
-    },
-    {
-      id: '6',
-      firstName: 'Emily',
-      lastName: 'Davis',
-      email: 'emily.d@example.com',
-      phone: '+1 (555) 678-9012',
-      role: UserRole.TEAM_MEMBER,
-      status: 'pending',
-      createdAt: '2024-02-10T16:45:00Z',
-      location: 'Spa Center',
-      services: ['Swedish', 'Facial']
-    },
-    {
-      id: '7',
-      firstName: 'Robert',
-      lastName: 'Miller',
-      email: 'robert.m@example.com',
-      phone: '+1 (555) 789-0123',
-      role: UserRole.ADMIN,
-      status: 'active',
-      createdAt: '2024-01-25T13:15:00Z',
-      location: 'Main Branch',
-      services: ['Hair Cut', 'Styling']
-    },
-    {
-      id: '8',
-      firstName: 'Lisa',
-      lastName: 'Anderson',
-      email: 'lisa.a@example.com',
-      phone: '+1 (555) 890-1234',
-      role: UserRole.TEAM_MEMBER,
-      status: 'inactive',
-      createdAt: '2024-01-05T10:20:00Z',
-      location: 'Beauty Studio',
-      services: ['Skin Care', 'Microdermabrasion']
-    },
-    {
-      id: '9',
-      firstName: 'James',
-      lastName: 'Wilson',
-      email: 'james.w@example.com',
-      phone: '+1 (555) 901-2345',
-      role: UserRole.TEAM_MEMBER,
-      status: 'active',
-      createdAt: '2024-02-15T09:30:00Z',
-      location: 'Wellness Center',
-      services: ['Deep Tissue', 'Hot Stone']
-    },
-    {
-      id: '10',
-      firstName: 'Maria',
-      lastName: 'Taylor',
-      email: 'maria.t@example.com',
-      phone: '+1 (555) 012-3456',
-      role: UserRole.TEAM_MEMBER,
-      status: 'pending',
-      createdAt: '2024-02-20T15:45:00Z',
-      location: 'Main Branch',
-      services: ['Facial', 'Skin Care']
-    }]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
@@ -220,66 +72,6 @@ export default function TeamMembersPage() {
     try {
       // TODO: Replace with actual API call
       // Mock location data with working hours for testing
-      const mockLocations = [
-        {
-          id: '1',
-          name: 'Downtown Salon',
-          address: '123 Main Street, Downtown, City, State 12345',
-          email: 'downtown@salon.com',
-          phoneNumber: '(555) 123-4567',
-          description: 'Our flagship location in the heart of downtown',
-          workingHours: {
-            monday: { open: '09:00', close: '17:00', isOpen: true },
-            tuesday: { open: '09:00', close: '17:00', isOpen: true },
-            wednesday: { open: '09:00', close: '17:00', isOpen: true },
-            thursday: { open: '09:00', close: '17:00', isOpen: true },
-            friday: { open: '09:00', close: '17:00', isOpen: true },
-            saturday: { open: '10:00', close: '15:00', isOpen: true },
-            sunday: { open: '10:00', close: '15:00', isOpen: false },
-          },
-          status: 'active',
-          createdAt: '2024-01-15T10:30:00Z'
-        },
-        {
-          id: '2',
-          name: 'Westside Branch',
-          address: '456 West Avenue, Westside, City, State 12345',
-          email: 'westside@salon.com',
-          phoneNumber: '(555) 987-6543',
-          description: 'Convenient location for westside residents',
-          workingHours: {
-            monday: { open: '08:00', close: '18:00', isOpen: true },
-            tuesday: { open: '08:00', close: '18:00', isOpen: true },
-            wednesday: { open: '08:00', close: '18:00', isOpen: true },
-            thursday: { open: '08:00', close: '18:00', isOpen: true },
-            friday: { open: '08:00', close: '18:00', isOpen: true },
-            saturday: { open: '09:00', close: '16:00', isOpen: true },
-            sunday: { open: '10:00', close: '15:00', isOpen: true },
-          },
-          status: 'active',
-          createdAt: '2024-02-01T15:45:00Z'
-        },
-        {
-          id: '3',
-          name: 'Mall Location',
-          address: '789 Shopping Center, Mall District, City, State 12345',
-          email: 'mall@salon.com',
-          phoneNumber: '(555) 456-7890',
-          description: 'Located inside the shopping mall for convenience',
-          workingHours: {
-            monday: { open: '10:00', close: '20:00', isOpen: true },
-            tuesday: { open: '10:00', close: '20:00', isOpen: true },
-            wednesday: { open: '10:00', close: '20:00', isOpen: true },
-            thursday: { open: '10:00', close: '20:00', isOpen: true },
-            friday: { open: '10:00', close: '20:00', isOpen: true },
-            saturday: { open: '09:00', close: '18:00', isOpen: true },
-            sunday: { open: '11:00', close: '17:00', isOpen: true },
-          },
-          status: 'inactive',
-          createdAt: '2024-01-20T09:15:00Z'
-        }
-      ];
-      
       setLocations(mockLocations.map((loc: any) => ({ id: loc.id, name: loc.name })));
       
       // Store full location data for working hours access
@@ -547,7 +339,7 @@ export default function TeamMembersPage() {
                 value: localLocationFilter,
                 options: [
                   { value: 'all', label: 'All locations' },
-                  ...Array.from(new Set(teamMembers.map(m => m.location).filter(Boolean))).map(location => ({ value: location!, label: location! }))
+                  ...mockLocations.map(location => ({ value: location.id, label: location.name }))
                 ],
                 searchable: true,
               },
@@ -613,7 +405,7 @@ export default function TeamMembersPage() {
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setLocationFilter('all')}
               >
-                Location: {locationFilter}
+                Location: {mockLocations.find(loc => loc.id === locationFilter)?.name}
                 <X className="h-4 w-4 ml-1" />
               </Badge>
             )}
@@ -699,7 +491,7 @@ export default function TeamMembersPage() {
                     {member.location && (
                       <div className="flex items-center gap-2 text-sm text-gray-700">
                         <MapPin className="h-4 w-4" />
-                        <span>{member.location}</span>
+                        <span>{mockLocations.find(loc => loc.id === member.location)?.name}</span>
                       </div>
                     )}
                   </div>
@@ -741,7 +533,7 @@ export default function TeamMembersPage() {
         isOpen={isInviteSliderOpen}
         onClose={() => setIsInviteSliderOpen(false)}
         onInvite={handleInviteTeamMember}
-        locations={locations}
+        locations={mockLocations.map(loc => ({ id: loc.id, name: loc.name }))}
       />
 
       {/* Team Member Profile Slider */}
@@ -751,7 +543,7 @@ export default function TeamMembersPage() {
         teamMember={selectedTeamMember}
         onUpdate={handleUpdateTeamMember}
         onDelete={handleDeleteTeamMember}
-        locations={locations}
+        locations={mockLocations.map(loc => ({ id: loc.id, name: loc.name }))}
       />
     </AppLayout>
   );

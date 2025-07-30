@@ -1,0 +1,167 @@
+import type { Appointment, Client } from '@/types/calendar';
+
+export const mockClients: Client[] = [
+  {
+    id: '1',
+    firstName: 'Amelia',
+    lastName: 'White',
+    email: 'amelia.white@email.com',
+    phone: '+1 (555) 123-4567',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b388?w=150',
+  },
+  {
+    id: '2',
+    firstName: 'Michael',
+    lastName: 'Johnson',
+    email: 'michael.johnson@email.com',
+    phone: '+1 (555) 987-6543',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+  },
+  {
+    id: '3',
+    firstName: 'Olivia',
+    lastName: 'Martinez',
+    email: 'olivia.martinez@email.com',
+    phone: '+1 (555) 901-2345',
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
+  },
+  {
+    id: '4',
+    firstName: 'James',
+    lastName: 'Taylor',
+    email: 'james.taylor@email.com',
+    phone: '+1 (555) 678-9012',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+  },
+  {
+    id: '5',
+    firstName: 'Sophia',
+    lastName: 'Wilson',
+    email: 'sophia.wilson@email.com',
+    phone: '+1 (555) 789-0123',
+    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b388?w=150',
+  },
+];
+
+export const mockAppointments: Appointment[] = [
+  // Completed, multiple team members, recurring
+  {
+    id: 1,
+    client: { name: 'Amelia White', initials: 'AW', avatar: mockClients[0].avatar },
+    service: 'Deep Conditioning',
+    time: '11:00 AM',
+    date: new Date(),
+    status: 'completed',
+    location: '1',
+    teamMembers: ['4', '1'],
+    seriesId: 'series-123',
+  },
+  // Pending, single team member
+  {
+    id: 2,
+    client: { name: 'Michael Johnson', initials: 'MJ', avatar: mockClients[1].avatar },
+    service: 'Scissor Cut',
+    time: '3:00 PM',
+    date: new Date(),
+    status: 'pending',
+    location: '2',
+    teamMembers: ['5'],
+    seriesId: '',
+  },
+  // No-show, edge time (early morning)
+  {
+    id: 3,
+    client: { name: 'Olivia Martinez', initials: 'OM', avatar: mockClients[2].avatar },
+    service: 'Hair & Beard Cut',
+    time: '7:00 AM',
+    date: new Date(),
+    status: 'no-show',
+    location: '3',
+    teamMembers: ['2'],
+    seriesId: '',
+  },
+  // Completed, overlapping time
+  {
+    id: 4,
+    client: { name: 'James Taylor', initials: 'JT', avatar: mockClients[3].avatar },
+    service: 'Beard Trim',
+    time: '11:00 AM',
+    date: new Date(),
+    status: 'completed',
+    location: '1',
+    teamMembers: ['5'],
+    seriesId: '',
+  },
+  // Pending, different location
+  {
+    id: 5,
+    client: { name: 'Sophia Wilson', initials: 'SW', avatar: mockClients[4].avatar },
+    service: 'Keratin Treatment',
+    time: '2:00 PM',
+    date: new Date(),
+    status: 'pending',
+    location: '2',
+    teamMembers: ['4'],
+    seriesId: '',
+  },
+  // Completed, single team member, recurring
+  {
+    id: 6,
+    client: { name: 'Amelia White', initials: 'AW', avatar: mockClients[0].avatar },
+    service: 'Hair Coloring',
+    time: '4:00 PM',
+    date: new Date(),
+    status: 'completed',
+    location: '3',
+    teamMembers: ['1'],
+    seriesId: 'series-456',
+  },
+  // Pending, edge time (late evening)
+  {
+    id: 7,
+    client: { name: 'Michael Johnson', initials: 'MJ', avatar: mockClients[1].avatar },
+    service: 'Facial',
+    time: '8:30 PM',
+    date: new Date(),
+    status: 'pending',
+    location: '1',
+    teamMembers: ['2'],
+    seriesId: '',
+  },
+  // Completed, multiple team members, different day
+  {
+    id: 8,
+    client: { name: 'Olivia Martinez', initials: 'OM', avatar: mockClients[2].avatar },
+    service: 'Wedding Hair Style',
+    time: '10:00 AM',
+    date: new Date(new Date().setDate(new Date().getDate() + 1)),
+    status: 'completed',
+    location: '1',
+    teamMembers: ['4', '1', '5'],
+    seriesId: '',
+  },
+  // No-show, single team member
+  {
+    id: 9,
+    client: { name: 'James Taylor', initials: 'JT', avatar: mockClients[3].avatar },
+    service: 'Perm Treatment',
+    time: '1:00 PM',
+    date: new Date(new Date().setDate(new Date().getDate() + 2)),
+    status: 'no-show',
+    location: '3',
+    teamMembers: ['1'],
+    seriesId: '',
+  },
+  // Completed, overlapping with another appointment
+  {
+    id: 10,
+    client: { name: 'Sophia Wilson', initials: 'SW', avatar: mockClients[4].avatar },
+    service: 'Classic Shave',
+    time: '11:00 AM',
+    date: new Date(),
+    status: 'completed',
+    location: '1',
+    teamMembers: ['2'],
+    seriesId: '',
+  },
+]; 
