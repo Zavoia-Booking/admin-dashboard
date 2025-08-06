@@ -164,4 +164,15 @@ export const mockAppointments: Appointment[] = [
     teamMembers: ['2'],
     seriesId: '',
   },
+  {
+    id: 11,
+    client: { name: 'Sophia Wilson 2', initials: 'SW', avatar: mockClients[4].avatar },
+    service: 'Classic Shave',
+    time: '11:00 AM',
+    date: new Date(),
+    status: 'completed',
+    location: '1',
+    teamMembers: ['2'],
+    seriesId: '',
+  },
 ]; 
