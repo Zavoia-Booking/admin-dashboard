@@ -410,7 +410,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             value={formData.recurrencePattern}
                             onChange={e => {
                               const pattern = e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-                              let update: Partial<AppointmentFormData> = { recurrencePattern: pattern };
+                              const update: Partial<AppointmentFormData> = { recurrencePattern: pattern };
                               if (pattern === 'weekly') {
                                 // Default to the day of the week of the selected date
                                 const date = formData.date ? new Date(formData.date) : new Date();
@@ -466,7 +466,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           value={formData.recurrencePattern}
                           onChange={e => {
                             const pattern = e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-                            let update: Partial<AppointmentFormData> = { recurrencePattern: pattern };
+                            const update: Partial<AppointmentFormData> = { recurrencePattern: pattern };
                             if (pattern === 'weekly') {
                               // Default to the day of the week of the selected date
                               const date = formData.date ? new Date(formData.date) : new Date();

@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 
 // Mock database for demonstration purposes
-let mockLocations: Record<string, any> = {
+const mockLocations: Record<string, any> = {
   '1': {
     id: '1',
     name: 'Downtown Salon',

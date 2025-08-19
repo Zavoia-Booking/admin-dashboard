@@ -393,7 +393,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
               Update Service
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to update the service "{formData.name}"? This will modify the service in your catalog.
+              {`Are you sure you want to update the service "{formData.name}"? This will modify the service in your catalog.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

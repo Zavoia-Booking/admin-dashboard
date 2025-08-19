@@ -2,13 +2,8 @@
 
 import React, { useState } from 'react';
 import { AppLayout } from '@/components/layouts/app-layout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
@@ -23,19 +18,14 @@ import AdvancedSettingsSlider from '@/components/Settings/AdvancedSettingsSlider
 import { 
   Receipt, 
   Calendar, 
-  Clock, 
-  Globe, 
+  Globe,
   User, 
   Plug, 
   CreditCard, 
   Shield, 
   AlertTriangle,
-  Copy,
-  Upload,
-  Plus,
   Trash2,
   Eye,
-  Settings2,
   ChevronRight,
   Check
 } from 'lucide-react';
@@ -226,7 +216,7 @@ const SettingsPage = () => {
               <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">
                 <Calendar className="h-6 w-6" />
               </div>
-              <h3 className="font-medium">Today's Schedule</h3>
+              <h3 className="font-medium">{"Today's Schedule"}</h3>
               <p className="text-sm text-muted-foreground">8 appointments</p>
             </CardContent>
           </Card>

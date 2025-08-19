@@ -77,7 +77,7 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
           <Rocket className="h-10 w-10 text-emerald-600" />
         </div>
         <h3 className="text-2xl font-bold text-foreground mb-2">
-          You're ready to go live! 🎉
+          {`You're ready to go live! 🎉`}
         </h3>
         <p className="text-muted-foreground">
           Your booking system is set up and ready to accept appointments

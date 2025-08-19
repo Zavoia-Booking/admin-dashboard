@@ -279,7 +279,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               Update Location
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to update the location "{formData.name}"? This will save all changes.
+              {`Are you sure you want to update the location "{formData.name}"? This will save all changes.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

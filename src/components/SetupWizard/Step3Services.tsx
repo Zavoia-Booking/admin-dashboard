@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Plus, X, Sparkles, Clock, DollarSign } from 'lucide-react';
 import { WizardData } from '@/hooks/useSetupWizard';
 
@@ -316,7 +315,7 @@ const Step3Services: React.FC<Step3Props> = ({ data, onUpdate }) => {
       {/* Skip Option */}
       <div className="text-center py-4 border-t">
         <p className="text-sm text-muted-foreground">
-          Don't worry! You can always add more services later from your dashboard.
+          {`Don't worry! You can always add more services later from your dashboard.`}
         </p>
       </div>
     </div>

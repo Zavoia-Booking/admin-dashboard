@@ -84,7 +84,7 @@ const Step2Location: React.FC<Step2Props> = ({ data, onUpdate }) => {
                     Google Maps Integration
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    We'll automatically create a map pin for your business location to help customers find you easily.
+                    {`We'll automatically create a map pin for your business location to help customers find you easily.`}
                   </p>
                 </div>
               </div>

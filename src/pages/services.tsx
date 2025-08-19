@@ -102,26 +102,27 @@ export default function ServicesPage() {
     }
   };
 
-  const handleEditService = async (serviceData: Service) => {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/services/${serviceData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(serviceData),
-      });
-
-      if (!response.ok) throw new Error('Failed to update service');
-
-      toast.success('Service updated successfully');
-      setIsEditSliderOpen(false);
-      setEditingService(null);
-      fetchServices();
-    } catch (error) {
-      toast.error('Failed to update service');
-    }
+  const handleEditService = async (serviceData: Service | any) => {
+    // TODO: Replace with actual API call
+    // try {
+    //   // TODO: Replace with actual API call
+    //   const response = await fetch(`/api/services/${serviceData.id}`, {
+    //     method: 'PUT',
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify(serviceData),
+    //   });
+    //
+    //   if (!response.ok) throw new Error('Failed to update service');
+    //
+    //   toast.success('Service updated successfully');
+    //   setIsEditSliderOpen(false);
+    //   setEditingService(null);
+    //   fetchServices();
+    // } catch (error) {
+    //   toast.error('Failed to update service');
+    // }
   };
 
   const handleToggleServiceStatus = async (service: Service) => {
@@ -362,7 +363,7 @@ export default function ServicesPage() {
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setSearchTerm('')}
               >
-                Search: "{searchTerm}"
+                Search: &#34;{searchTerm}&#34;
                 <X className="h-4 w-4 ml-1" />
               </Badge>
             )}

@@ -9,9 +9,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { X, Plus, Upload, Save, Trash2 } from 'lucide-react';
+import { X, Plus, Save, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { UserRole } from '@/types/auth';
 
 interface WorkingHours {
   day: string;
@@ -40,7 +39,7 @@ interface TeamMemberProfile {
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [profile, setProfile] = useState<SpecialistProfile>({
+  const [profile, setProfile] = useState<any>({
     id: '',
     firstName: '',
     lastName: '',
@@ -185,7 +184,7 @@ export default function ProfilePage() {
       // Remove the image from the portfolio
       setProfile({
         ...profile,
-        portfolioImages: profile.portfolioImages.filter(img => img.id !== id)
+        portfolioImages: profile.portfolioImages.filter((img: any) => img.id !== id)
       });
       
       toast.success('Image removed from portfolio');
@@ -306,7 +305,7 @@ export default function ProfilePage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {profile.workingHours.map((day, index) => (
+                  {profile.workingHours.map((day: any, index: number) => (
                     <div key={day.day} className="flex items-center space-x-4">
                       <div className="w-28">
                         <span className="font-medium">{day.day}</span>
@@ -422,7 +421,7 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                  {profile.portfolioImages.map(image => (
+                  {profile.portfolioImages.map((image: any) => (
                     <div
                       key={image.id}
                       className="relative group rounded-lg overflow-hidden border"

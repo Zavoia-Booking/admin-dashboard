@@ -1,4 +1,4 @@
-import type { Location, WorkingHours } from '@/types/location';
+import {LocationType, WorkingHours} from '@/types/location';
 
 const defaultWorkingHours: WorkingHours = {
   monday: { open: '09:00', close: '17:00', isOpen: true },
@@ -10,7 +10,7 @@ const defaultWorkingHours: WorkingHours = {
   sunday: { open: '10:00', close: '15:00', isOpen: false },
 };
 
-export const mockLocations: Location[] = [
+export const mockLocations: LocationType[] = [
   {
     id: '1',
     name: 'Downtown Salon',

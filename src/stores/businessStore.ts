@@ -1,7 +1,6 @@
 import WebApi from '@/helpers/api/WebApi';
 import WebRequest from '@/helpers/api/WebRequest';
 import { makeAutoObservable, runInAction, action } from 'mobx';
-import { UserRole } from '@/types/auth';
 
 // Business interface based on existing business models in the application
 export interface Business {
@@ -90,9 +89,7 @@ export class BusinessStore {
       
       const { response, data }: any = await WebRequest.POST(WebApi.business.createBusiness(), businessData);
 
-      console.log(
-        'response', data
-      );
+      console.log('response', data);
       
       if ([200, 201].includes(response.status)) {
         runInAction(() => {

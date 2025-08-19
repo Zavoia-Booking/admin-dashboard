@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Receipt, Copy, Building2, Mail, Phone, Clock, ChevronsUpDown, Check } from 'lucide-react';
+import { Copy, Building2, Mail, Clock, ChevronsUpDown, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -172,7 +172,7 @@ const BusinessInfoSlider: React.FC<BusinessInfoSliderProps> = ({ isOpen, onClose
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="businessEmail" className="text-sm font-medium text-foreground">Business Email</Label>
-                  <p className="text-xs text-muted-foreground">This is where we'll send appointment confirmations and notifications.</p>
+                  <p className="text-xs text-muted-foreground">This is where we&#39;ll send appointment confirmations and notifications.</p>
                   <Input
                     id="businessEmail"
                     type="email"

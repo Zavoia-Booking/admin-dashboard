@@ -1,12 +1,20 @@
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { useRouter } from "next/router"
 import { LoginForm } from "@/components/login-form"
-import { useStores } from "@/pages/_app"
+import {useSelector} from "react-redux";
 
 export default function LoginPage() {
   const router = useRouter()
-  const { authStore } = useStores()
-  const { isAuthenticated, isLoading } = authStore
+  // const { authStore } = useStores()
+  // const { isAuthenticated, isLoading } = authStore
+
+  const mainState: any = useSelector((state: any) => state.auth);
+
+  console.log('mainState', mainState)
+
+  // TODO
+  const { isAuthenticated, isLoading } = {isAuthenticated: true, isLoading: true}
+
 
   useEffect(() => {
     // If already authenticated, redirect to dashboard or saved path

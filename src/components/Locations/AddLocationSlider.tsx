@@ -306,7 +306,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               Create Location
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to create the location "{formData.name}"? This will add it to your locations list.
+              {`Are you sure you want to create the location "{formData.name}"? This will add it to your locations list.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

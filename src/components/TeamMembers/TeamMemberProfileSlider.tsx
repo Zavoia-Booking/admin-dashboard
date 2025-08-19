@@ -592,7 +592,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Customize this team member's weekly schedule.
+                {`Customize this team member's weekly schedule.`}
               </p>
               
               {/* Question for Location vs Custom Hours */}
@@ -657,7 +657,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <AlertTriangle className="h-4 w-4 text-yellow-600" />
                     <div className="text-sm text-yellow-800">
-                      Location "{teamMember.location}" working hours not found. Using custom hours.
+                      {`Location "${teamMember.location}" working hours not found. Using custom hours.`}
                     </div>
                   </div>
                 )
@@ -897,7 +897,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Account Permanently</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to permanently delete {teamMember.firstName} {teamMember.lastName}'s account? This action will remove the account and everything associated with it from the system. This action cannot be undone.
+              {`Are you sure you want to permanently delete {teamMember.firstName} {teamMember.lastName}'s account? This action will remove the account and everything associated with it from the system. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -922,7 +922,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Deactivate Team Member</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to deactivate {teamMember.firstName} {teamMember.lastName}'s account? The team member will not be visible to customers and will not be able to log into their account while deactivated. The account can be reactivated at any time.
+              {`Are you sure you want to deactivate {teamMember.firstName} {teamMember.lastName}'s account? The team member will not be visible to customers and will not be able to log into their account while deactivated. The account can be reactivated at any time.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

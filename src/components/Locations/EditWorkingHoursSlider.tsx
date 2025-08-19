@@ -214,7 +214,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
               Update Working Hours
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to update the working hours for "{formData.name}"? This will save all changes.
+              {`Are you sure you want to update the working hours for "{formData.name}"? This will save all changes.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

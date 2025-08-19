@@ -1,5 +1,4 @@
 import React from 'react';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Palette, Eye, Check } from 'lucide-react';
 import { WizardData } from '@/hooks/useSetupWizard';
@@ -132,10 +131,10 @@ const Step6Template: React.FC<Step6Props & { onNext?: () => void }> = ({ data, o
           <Palette className="h-5 w-5 text-blue-600 mt-0.5" />
           <div>
             <p className="text-sm font-medium text-blue-800 mb-1">
-              Don't worry about perfection!
+              {`Don't worry about perfection!`}
             </p>
             <p className="text-xs text-blue-700">
-              You can customize colors, fonts, and layout anytime after launch. We'll pre-fill your business information and logo.
+              {`You can customize colors, fonts, and layout anytime after launch. We'll pre-fill your business information and logo.`}
             </p>
           </div>
         </div>

@@ -368,7 +368,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Create New Service</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to create "{formData.name}" with a price of ${formData.price} and duration of {formData.duration} minutes?
+              {`Are you sure you want to create "{formData.name}" with a price of ${formData.price} and duration of {formData.duration} minutes?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -75,7 +75,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const firstDay = new Date(month.getFullYear(), month.getMonth(), 1);
     const lastDay = new Date(month.getFullYear(), month.getMonth() + 1, 0);
     
-    let currentWeekStart = getWeekStart(firstDay);
+    const currentWeekStart = getWeekStart(firstDay);
     
     while (currentWeekStart <= lastDay) {
       const weekEnd = getWeekEnd(currentWeekStart);

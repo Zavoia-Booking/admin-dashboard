@@ -375,7 +375,7 @@ export default function TeamMembersPage() {
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setSearchTerm('')}
               >
-                Search: "{searchTerm}"
+                Search: &#34;{searchTerm}&#34;
                 <X className="h-4 w-4 ml-1" />
               </Badge>
             )}

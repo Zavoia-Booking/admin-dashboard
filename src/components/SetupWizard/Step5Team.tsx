@@ -69,7 +69,7 @@ const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
           <Users className="h-6 w-6 text-primary" />
         </div>
         <div>
-          <h3 className="font-semibold text-foreground">Who's on your team?</h3>
+          <h3 className="font-semibold text-foreground">{`Who's on your team?`}</h3>
           <p className="text-sm text-muted-foreground">Invite team members to manage bookings and services</p>
         </div>
       </div>
@@ -207,7 +207,7 @@ const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
               <User className="h-5 w-5 text-emerald-600 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-emerald-800 mb-1">
-                  Perfect! You're all set to work solo
+                  {`Perfect! You're all set to work solo`}
                 </p>
                 <p className="text-xs text-emerald-700">
                   You can always invite team members later from your dashboard settings.

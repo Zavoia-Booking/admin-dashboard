@@ -24,7 +24,6 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { UserRole } from "@/types/auth"
-import { useStores } from "@/pages/_app"
 
 interface NavItem {
   title: string
@@ -115,7 +114,6 @@ const navItems: NavItem[] = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const { authStore } = useStores()
   const pathname = usePathname()
   
   // Filter navigation items based on user's role

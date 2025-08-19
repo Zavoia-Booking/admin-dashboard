@@ -5,16 +5,12 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
-import { Icons } from "@/components/icons"
 import { toast } from "sonner"
-import { UserRole } from "@/types/auth"
-import { useStores } from "@/pages/_app"
 
 export function RegisterForm() {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
-  const { authStore } = useStores()
-  
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -35,19 +31,23 @@ export function RegisterForm() {
     
     setError(null)
     
-    const response = await authStore.register({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-      email: formData.email,
-      password: formData.password,
-      role: UserRole.TEAM_MEMBER,
-    });
+    // const response = await authStore.register({
+    //   firstName: formData.firstName,
+    //   lastName: formData.lastName,
+    //   phone: formData.phone,
+    //   email: formData.email,
+    //   password: formData.password,
+    //   role: UserRole.TEAM_MEMBER,
+    // });
+
+    const response = {};
+
     if (response) {
       toast.success('Registration successful!');
       router.push('/dashboard');
     } else {
-      toast.error(authStore.error || 'Registration failed.');
+      // TODO
+      // toast.error(authStore.error || 'Registration failed.');
     }
   }
 
@@ -80,7 +80,7 @@ export function RegisterForm() {
               type="text"
               value={formData.firstName}
               onChange={handleChange}
-              disabled={authStore.isLoading}
+              // disabled={authStore.isLoading}
               required
             />
           </div>
@@ -93,7 +93,7 @@ export function RegisterForm() {
               type="text"
               value={formData.lastName}
               onChange={handleChange}
-              disabled={authStore.isLoading}
+              // disabled={authStore.isLoading}
               required
             />
           </div>
@@ -107,7 +107,7 @@ export function RegisterForm() {
             type="tel"
             value={formData.phone}
             onChange={handleChange}
-            disabled={authStore.isLoading}
+            // disabled={authStore.isLoading}
             required
           />
         </div>
@@ -120,7 +120,7 @@ export function RegisterForm() {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            disabled={authStore.isLoading}
+            // disabled={authStore.isLoading}
             required
           />
         </div>
@@ -133,7 +133,7 @@ export function RegisterForm() {
             type="password"
             value={formData.password}
             onChange={handleChange}
-            disabled={authStore.isLoading}
+            // disabled={authStore.isLoading}
             required
           />
         </div>
@@ -146,16 +146,20 @@ export function RegisterForm() {
             type="password"
             value={formData.confirmPassword}
             onChange={handleChange}
-            disabled={authStore.isLoading}
+            // disabled={authStore.isLoading}
             required
           />
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-4">
-        <Button className="w-full" onClick={handleSubmit} disabled={authStore.isLoading}>
-          {authStore.isLoading && (
-            <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-          )}
+        <Button
+            className="w-full"
+            onClick={handleSubmit}
+            // disabled={authStore.isLoading}
+        >
+          {/*{authStore.isLoading && (*/}
+          {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
+          {/*)}*/}
           Create Account
         </Button>
         <div className="relative">
@@ -169,21 +173,29 @@ export function RegisterForm() {
           </div>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <Button variant="outline" disabled={authStore.isLoading}>
-            {authStore.isLoading ? (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Icons.google className="mr-2 h-4 w-4" />
-            )}
+          <Button
+              variant="outline"
+              // disabled={authStore.isLoading}
+          >
+            {/*TODO*/}
+            {/*{authStore.isLoading ? (*/}
+            {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
+            {/*) : (*/}
+            {/*  <Icons.google className="mr-2 h-4 w-4" />*/}
+            {/*)}*/}
             Google
           </Button>
-          <Button variant="outline" disabled={authStore.isLoading}>
-            {authStore.isLoading ? (
-              <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Icons.github className="mr-2 h-4 w-4" />
-            )}
-            GitHub
+          {/*TODO*/}
+          <Button
+              variant="outline"
+              // disabled={authStore.isLoading}
+          >
+            {/*{authStore.isLoading ? (*/}
+            {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
+            {/*) : (*/}
+            {/*  <Icons.github className="mr-2 h-4 w-4" />*/}
+            {/*)}*/}
+            {/*GitHub*/}
           </Button>
         </div>
         <div className="text-center text-sm">

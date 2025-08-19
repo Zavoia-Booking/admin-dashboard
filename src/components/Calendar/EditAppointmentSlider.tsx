@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Calendar, Clock, User, MapPin, Scissors, Ban, CalendarCheck, CheckCircle2, UserX, Bell, Mail, MessageSquare, Phone } from 'lucide-react';
+import { Calendar, Clock, User, MapPin, Scissors, Ban, CheckCircle2, UserX, Bell, Mail, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { Card, CardContent} from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -358,12 +357,13 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     if (!time12h) return '00:00';
     const match = time12h.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
     if (!match) return time12h;
-    let [_, h, m, period] = match;
+    const [_, h, m, period] = match;
+
     let hour = parseInt(h, 10);
+
     if (period) {
-      period = period.toUpperCase();
-      if (period === 'AM' && hour === 12) hour = 0;
-      if (period === 'PM' && hour !== 12) hour += 12;
+      if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
+      if (period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
     }
     return `${String(hour).padStart(2, '0')}:${m}`;
   }
