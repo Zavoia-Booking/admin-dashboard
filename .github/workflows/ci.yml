@@ -1,0 +1,201 @@
+name: CI - Lint, Test, and Publish Image (develop)
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: "Commit SHA to build and publish (defaults to current)"
+        required: false
+        type: string
+      restrict_to_develop:
+        description: "Restrict to develop branch only?"
+        required: false
+        default: true
+        type: boolean
+      override_branch:
+        description: "Override branch when restrict_to_develop=false"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+concurrency:
+  group: ci-${{ github.repository }}-develop
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    name: Validate branch and commit
+    runs-on: ubuntu-latest
+    outputs:
+      allowed_branch: ${{ steps.setvars.outputs.allowed_branch }}
+      commit_sha: ${{ steps.setvars.outputs.commit_sha }}
+    steps:
+      - name: Checkout for validation
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine allowed branch and commit
+        id: setvars
+        env:
+          RESTRICT: ${{ inputs.restrict_to_develop }}
+          OVERRIDE: ${{ inputs.override_branch }}
+          DISPATCH_COMMIT: ${{ inputs.commit_sha }}
+        run: |
+          # Allowed branch
+          if [ "${RESTRICT:-true}" = "true" ]; then
+            ALLOWED=develop
+          else
+            if [ -z "$OVERRIDE" ]; then
+              echo "override_branch is required when restrict_to_develop=false" >&2
+              exit 1
+            fi
+            ALLOWED="$OVERRIDE"
+          fi
+          echo "allowed_branch=$ALLOWED" >> $GITHUB_OUTPUT
+
+          # Commit to build: input or the current ref's HEAD
+          if [ -n "$DISPATCH_COMMIT" ]; then
+            COMMIT_SHA="$DISPATCH_COMMIT"
+          else
+            COMMIT_SHA="${GITHUB_SHA}"
+          fi
+          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Ensure workflow ref matches allowed branch (for dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          REF_NAME="${GITHUB_REF##refs/heads/}"
+          if [ "$REF_NAME" != "${{ steps.setvars.outputs.allowed_branch }}" ]; then
+            echo "Must dispatch on branch '${{ steps.setvars.outputs.allowed_branch }}'. Current ref: $REF_NAME" >&2
+            exit 1
+          fi
+
+      - name: Ensure commit is in allowed branch
+        env:
+          ALLOWED_BRANCH: ${{ steps.setvars.outputs.allowed_branch }}
+          COMMIT: ${{ steps.setvars.outputs.commit_sha }}
+        run: |
+          git fetch origin "$ALLOWED_BRANCH" --prune --prune-tags
+          if git merge-base --is-ancestor "$COMMIT" "origin/$ALLOWED_BRANCH"; then
+            echo "Commit $COMMIT is contained in origin/$ALLOWED_BRANCH"
+          else
+            echo "Commit $COMMIT is NOT contained in origin/$ALLOWED_BRANCH" >&2
+            exit 1
+          fi
+
+  quality:
+    name: Lint and Test
+    runs-on: ubuntu-latest
+    needs: validate
+    if: needs.validate.result == 'success'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.commit_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: |
+          corepack enable
+          yarn --version
+          yarn install --frozen-lockfile
+
+      - name: Lint
+        run: yarn lint
+
+      - name: Test (if script present)
+        run: |
+          if [ -n "$(node -pe "require('./package.json').scripts?.test || ''")" ]; then
+            echo "Running tests..." && yarn test
+          else
+            echo "No test script found; skipping tests."
+          fi
+
+  image:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    needs: [validate, quality]
+    if: needs.validate.result == 'success'
+    outputs:
+      primary_ref: ${{ steps.outs.outputs.primary_ref }}
+      sha_ref: ${{ steps.outs.outputs.sha_ref }}
+      digest: ${{ steps.outs.outputs.digest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.validate.outputs.commit_sha }}
+
+      - name: Compute image refs (lowercased, short SHA)
+        id: refs
+        env:
+          PRIMARY_TAG: ${{ needs.validate.outputs.allowed_branch }}
+          COMMIT_SHA: ${{ needs.validate.outputs.commit_sha }}
+        run: |
+          IMAGE_NAME_LC="${GITHUB_REPOSITORY,,}"
+          SHORT_SHA="${COMMIT_SHA:0:12}"
+          echo "IMAGE_NAME_LC=$IMAGE_NAME_LC" >> $GITHUB_ENV
+          echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_ENV
+          echo "PRIMARY_TAG=${PRIMARY_TAG}" >> $GITHUB_ENV
+          echo "IMAGE_REF=${REGISTRY}/${IMAGE_NAME_LC}:${PRIMARY_TAG}" >> $GITHUB_ENV
+          echo "SHA_REF=${REGISTRY}/${IMAGE_NAME_LC}:sha-${SHORT_SHA}" >> $GITHUB_ENV
+          echo "CACHE_IMAGE=${REGISTRY}/${IMAGE_NAME_LC}-cache:buildpacks" >> $GITHUB_ENV
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install pack CLI (Buildpacks)
+        uses: buildpacks/github-actions/setup-pack@v5
+
+      - name: Build and publish image with Buildpacks (with cache)
+        run: |
+          echo "Building and publishing $IMAGE_REF"
+          pack build "$IMAGE_REF" \
+            --builder paketobuildpacks/builder-jammy-base \
+            --publish \
+            --path . \
+            --env NODE_ENV=production \
+            --env BP_NODE_RUN_SCRIPTS=build \
+            --cache-image "$CACHE_IMAGE"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Add short-sha tag pointing to same manifest
+        run: |
+          echo "Tagging $IMAGE_REF as $SHA_REF"
+          docker buildx imagetools create --tag "$SHA_REF" "$IMAGE_REF"
+
+      - name: Inspect pushed image to capture digest
+        id: outs
+        run: |
+          DIGEST=$(docker buildx imagetools inspect "$IMAGE_REF" | awk '/Digest:/ {print $2; exit}')
+          echo "primary_ref=$IMAGE_REF" >> $GITHUB_OUTPUT
+          echo "sha_ref=$SHA_REF" >> $GITHUB_OUTPUT
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Pushed digest: $DIGEST"
+
+      - name: Summary
+        run: |
+          echo "Primary: $IMAGE_REF" >> $GITHUB_STEP_SUMMARY
+          echo "Short SHA: $SHORT_SHA" >> $GITHUB_STEP_SUMMARY
+          echo "SHA Tag: $SHA_REF" >> $GITHUB_STEP_SUMMARY
+          echo "Digest: ${{ steps.outs.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
