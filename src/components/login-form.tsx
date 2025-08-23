@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useRouter } from "next/router"
 import {Link} from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function LoginForm({
   className,
@@ -14,6 +15,7 @@ export function LoginForm({
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const router = useRouter()
+  const text = useTranslations("LoginPage");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -28,14 +30,15 @@ export function LoginForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
+      {/*<LanguageSwitcher />*/}
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
           <form className="p-6 md:p-8" onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="flex flex-col items-center text-center">
-                <h1 className="text-2xl font-bold">Welcome back</h1>
+                <h1 className="text-2xl font-bold">{text("title")}</h1>
                 <p className="text-muted-foreground text-balance">
-                  Login to your Planr account
+                  Login to your Planrs account
                 </p>
               </div>
               {/*// TODO*/}
