@@ -1,14 +1,14 @@
 import { useState } from "react"
-import { useRouter } from "next/router"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { useNavigate } from "react-router-dom"
+import { Button } from "./ui/button"
+import { Input } from "./ui/input"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card"
+import { Label } from "./ui/label"
+import { Separator } from "./ui/separator"
 import { toast } from "sonner"
 
 export function RegisterForm() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
@@ -44,7 +44,7 @@ export function RegisterForm() {
 
     if (response) {
       toast.success('Registration successful!');
-      router.push('/dashboard');
+      navigate('/dashboard');
     } else {
       // TODO
       // toast.error(authStore.error || 'Registration failed.');
@@ -203,7 +203,7 @@ export function RegisterForm() {
           <Button
             variant="link"
             className="p-0"
-            onClick={() => router.push("/login")}
+              onClick={() => navigate("/login")}
           >
             Sign in
           </Button>

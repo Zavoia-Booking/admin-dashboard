@@ -1,20 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { Plus, Trash2, MapPin, Clock, Phone, Mail, Search, Filter, X, Edit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 import { toast } from 'sonner';
-import { AppLayout } from '@/components/layouts/app-layout';
-import { Badge } from "@/components/ui/badge";
-import AddLocationSlider from '@/components/Locations/AddLocationSlider';
-import EditLocationSlider from '@/components/Locations/EditLocationSlider';
-import EditWorkingHoursSlider from '@/components/Locations/EditWorkingHoursSlider';
-import { FilterPanel } from '@/components/common/FilterPanel';
-import { mockLocations } from '@/mocks/locations.mock';
-import { LocationType } from '@/types/location';
+import { AppLayout } from '../components/layouts/app-layout';
+import { Badge } from "../components/ui/badge";
+import AddLocationSlider from '../components/Locations/AddLocationSlider';
+import EditLocationSlider from '../components/Locations/EditLocationSlider';
+import EditWorkingHoursSlider from '../components/Locations/EditWorkingHoursSlider';
+import { FilterPanel } from '../components/common/FilterPanel';
+import { mockLocations } from '../mocks/locations.mock';
+import { LocationType } from '../types/location';
 
 const defaultWorkingHours = {
   monday: { open: '09:00', close: '17:00', isOpen: true },

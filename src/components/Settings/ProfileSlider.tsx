@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { User, Bell, Globe, Shield, Camera, ChevronsUpDown, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { BaseSlider } from '@/components/common/BaseSlider';
+import { cn } from '../../lib/utils';
+import { BaseSlider } from '../common/BaseSlider';
 
 interface ProfileSliderProps {
   isOpen: boolean;

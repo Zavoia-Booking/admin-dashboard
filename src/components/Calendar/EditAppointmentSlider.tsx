@@ -1,22 +1,22 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Calendar, Clock, User, MapPin, Scissors, Ban, CheckCircle2, UserX, Bell, Mail, MessageSquare } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent} from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '../ui/button';
+import { Card, CardContent} from '../ui/card';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { Switch } from '@/components/ui/switch';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { cn } from '../../lib/utils';
+import { Switch } from '../ui/switch';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { toast } from 'sonner';
-import { BaseSlider } from '@/components/common/BaseSlider';
-import { mockLocations } from '@/mocks/locations.mock';
-import { mockTeamMembers } from '@/mocks/team-members.mock';
+import { BaseSlider } from '../common/BaseSlider';
+import { mockLocations } from '../../mocks/locations.mock';
+import { mockTeamMembers } from '../../mocks/team-members.mock';
 
 interface Appointment {
   id: number;

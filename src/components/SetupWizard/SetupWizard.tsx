@@ -1,7 +1,7 @@
 import React from 'react';
-import { useRouter } from 'next/router';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { useSetupWizard } from '@/hooks/useSetupWizard';
+import { useSetupWizard } from '../../hooks/useSetupWizard';
 import WizardLayout from './WizardLayout';
 import Step1BusinessInfo from './Step1BusinessInfo';
 import Step2Location from './Step2Location';
@@ -50,7 +50,7 @@ const stepConfig = [
 ];
 
 const SetupWizard: React.FC = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   
   const {
     currentStep,
@@ -70,14 +70,14 @@ const SetupWizard: React.FC = () => {
     toast.success("Progress Saved", {
       description: "You can continue setup anytime from your dashboard.",
     });
-    router.push('/dashboard');
+    navigate('/dashboard');
   };
 
   const handleLaunch = () => {
     toast.success("🎉 Congratulations!", {
       description: "Your business is now live and ready to accept bookings!",
     });
-    router.push('/dashboard');
+    navigate('/dashboard');
   };
 
   const getCurrentStepConfig = () => stepConfig[currentStep - 1];

@@ -1,19 +1,19 @@
 'use client';
 
 import React, { useState, useMemo } from 'react';
-import { Button } from "@/components/ui/button";
+import { Button } from "../components/ui/button";
 import { Edit, Trash2, Filter, Search, Plus, Clock, X, Users } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import AddServiceSlider from '@/components/Services/AddServiceSlider';
-import EditServiceSlider from '@/components/Services/EditServiceSlider';
-import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import AddServiceSlider from '../components/Services/AddServiceSlider';
+import EditServiceSlider from '../components/Services/EditServiceSlider';
+import { Badge } from "../components/ui/badge";
 import { toast } from 'sonner';
-import { AppLayout } from '@/components/layouts/app-layout';
-import { Switch } from "@/components/ui/switch";
-import { FilterPanel } from '@/components/common/FilterPanel';
-import { Input } from "@/components/ui/input";
-import { mockServices } from '@/mocks/services.mock';
-import { Service, StaffAssignment } from '@/types/service';
+import { AppLayout } from '../components/layouts/app-layout';
+import { Switch } from "../components/ui/switch";
+import { FilterPanel } from '../components/common/FilterPanel';
+import { Input } from "../components/ui/input";
+import { mockServices } from '../mocks/services.mock';
+import type { Service, StaffAssignment } from '../types/service';
 
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>(mockServices);

@@ -1,20 +1,20 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { UserRole } from '@/types/auth';
-import { Button } from "@/components/ui/button";
+import { UserRole } from '../types/auth';
+import { Button } from "../components/ui/button";
 import { Plus, Mail, Search, Filter, X, MapPin, Phone, Edit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { Input } from "../components/ui/input";
 import { toast } from 'sonner';
-import { AppLayout } from '@/components/layouts/app-layout';
-import { Badge } from "@/components/ui/badge";
-import InviteTeamMemberSlider from '@/components/TeamMembers/InviteTeamMemberSlider';
-import TeamMemberProfileSlider from '@/components/TeamMembers/TeamMemberProfileSlider';
-import { FilterPanel } from '@/components/common/FilterPanel';
-import { mockTeamMembers } from '@/mocks/team-members.mock';
-import { mockLocations } from '@/mocks/locations.mock';
-import { TeamMember } from '@/types/team-member';
+import { AppLayout } from '../components/layouts/app-layout';
+import { Badge } from "../components/ui/badge";
+import InviteTeamMemberSlider from '../components/TeamMembers/InviteTeamMemberSlider';
+import TeamMemberProfileSlider from '../components/TeamMembers/TeamMemberProfileSlider';
+import { FilterPanel } from '../components/common/FilterPanel';
+import { mockTeamMembers } from '../mocks/team-members.mock';
+import { mockLocations } from '../mocks/locations.mock';
+import type { TeamMember } from '../types/team-member';
 
 export default function TeamMembersPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Clipboard, Calendar as CalendarIcon, Filter, X, CalendarDays, List, MapPin, Users } from 'lucide-react';
-import AddAppointmentSlider from '@/components/Calendar/AddAppointmentSlider';
-import EditAppointmentSlider from '@/components/Calendar/EditAppointmentSlider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { AppLayout } from '@/components/layouts/app-layout';
-import DatePicker from '@/components/ui/date-picker';
-import { FilterPanel } from '@/components/common/FilterPanel';
-import { mockAppointments, mockClients } from '@/mocks/calendar.mock';
-import { mockLocations } from '@/mocks/locations.mock';
-import { mockTeamMembers } from '@/mocks/team-members.mock';
+import AddAppointmentSlider from '../components/Calendar/AddAppointmentSlider';
+import EditAppointmentSlider from '../components/Calendar/EditAppointmentSlider';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
+import { AppLayout } from '../components/layouts/app-layout';
+import DatePicker from '../components/ui/date-picker';
+import { FilterPanel } from '../components/common/FilterPanel';
+import { mockAppointments, mockClients } from '../mocks/calendar.mock';
+import { mockLocations } from '../mocks/locations.mock';
+import { mockTeamMembers } from '../mocks/team-members.mock';
 
 const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 

@@ -1,20 +1,20 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AppLayout } from '@/components/layouts/app-layout';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AppLayout } from '../components/layouts/app-layout';
+import { Card, CardContent } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Separator } from '../components/ui/separator';
+import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
 import { toast } from 'sonner';
-import BusinessInfoSlider from '@/components/Settings/BusinessInfoSlider';
-import AppointmentSettingsSlider from '@/components/Settings/AppointmentSettingsSlider';
-import WebsiteDomainSlider from '@/components/Settings/WebsiteDomainSlider';
-import IntegrationsSlider from '@/components/Settings/IntegrationsSlider';
-import ProfileSlider from '@/components/Settings/ProfileSlider';
-import BillingSlider from '@/components/Settings/BillingSlider';
-import SecuritySlider from '@/components/Settings/SecuritySlider';
-import AdvancedSettingsSlider from '@/components/Settings/AdvancedSettingsSlider';
+import BusinessInfoSlider from '../components/Settings/BusinessInfoSlider';
+import AppointmentSettingsSlider from '../components/Settings/AppointmentSettingsSlider';
+import WebsiteDomainSlider from '../components/Settings/WebsiteDomainSlider';
+import IntegrationsSlider from '../components/Settings/IntegrationsSlider';
+import ProfileSlider from '../components/Settings/ProfileSlider';
+import BillingSlider from '../components/Settings/BillingSlider';
+import SecuritySlider from '../components/Settings/SecuritySlider';
+import AdvancedSettingsSlider from '../components/Settings/AdvancedSettingsSlider';
 import { 
   Receipt, 
   Calendar, 

@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { Shield, Key, Lock, AlertTriangle, Eye, EyeOff, Settings2, ChevronsUpDown, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
-import { BaseSlider } from '@/components/common/BaseSlider';
+import { cn } from '../../lib/utils';
+import { BaseSlider } from '../common/BaseSlider';
 
 interface SecuritySliderProps {
   isOpen: boolean;

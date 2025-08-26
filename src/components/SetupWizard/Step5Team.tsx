@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Switch } from '../ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Badge } from '../ui/badge';
 import { Users, Plus, X, User } from 'lucide-react';
-import { WizardData } from '@/hooks/useSetupWizard';
-import { UserRole } from '@/types/auth';
+import { WizardData } from '../../hooks/useSetupWizard';
+import { UserRole } from '../../types/auth';
 
 interface Step5Props {
   data: WizardData;

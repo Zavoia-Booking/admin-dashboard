@@ -1,7 +1,7 @@
 'use client';
 
-import { MobileBottomNav } from '@/components/mobile-bottom-nav';
-import { MobileHeader } from '@/components/mobile-header';
+import { MobileBottomNav } from '../mobile-bottom-nav';
+import { MobileHeader } from '../mobile-header';
 import React from 'react';
 
 interface AppLayoutProps {

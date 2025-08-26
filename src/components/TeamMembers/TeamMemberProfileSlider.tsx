@@ -1,22 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Clock, Calendar, Settings, Plus, X, Check, Power, AlertTriangle } from 'lucide-react';
-import { useRouter } from 'next/router';
-import AddAppointmentSlider from '@/components/Calendar/AddAppointmentSlider';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { BaseSlider } from '@/components/common/BaseSlider';
-import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
+import AddAppointmentSlider from '../Calendar/AddAppointmentSlider';
+import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Badge } from '../ui/badge';
+import { Switch } from '../ui/switch';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../ui/alert-dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { BaseSlider } from '../common/BaseSlider';
+import { cn } from '../../lib/utils';
 import { toast } from 'sonner';
-import { UserRole } from '@/types/auth';
+import { UserRole } from '../../types/auth';
 
 interface TeamMember {
   id: string;
@@ -71,7 +71,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const [useLocationHours, setUseLocationHours] = useState(true);
   const [locationWorkingHours, setLocationWorkingHours] = useState<typeof defaultWorkingHours | null>(null);
   const [isAddAppointmentSliderOpen, setIsAddAppointmentSliderOpen] = useState(false);
-  const router = useRouter();
+  const navigate = useNavigate();
 
   // Default working hours structure
   const defaultWorkingHours = {
@@ -479,7 +479,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <Button 
                   variant="outline" 
                   className="flex-1 h-10 bg-white border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 flex items-center justify-center"
-                  onClick={() => router.push('/calendar')}
+                  onClick={() => navigate('/calendar')}
                 >
                   <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
                   <span>View Calendar</span>

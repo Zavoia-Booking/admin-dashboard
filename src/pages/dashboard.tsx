@@ -1,7 +1,7 @@
-import { AppLayout } from "@/components/layouts/app-layout"
-import { SetupWizard } from "@/components/SetupWizard"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { AppLayout } from "../components/layouts/app-layout"
+import { SetupWizard } from "../components/SetupWizard"
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
+import { Button } from "../components/ui/button"
 import { 
   Users, 
   Calendar, 

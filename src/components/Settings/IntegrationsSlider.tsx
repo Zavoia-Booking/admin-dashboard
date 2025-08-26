@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { Plug, CreditCard, Calendar, Video, Mail, BarChart3, Star, FileText, Users, ExternalLink } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Switch } from '../ui/switch';
+import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
-import { BaseSlider } from '@/components/common/BaseSlider';
+import { BaseSlider } from '../common/BaseSlider';
 
 interface IntegrationsSliderProps {
   isOpen: boolean;

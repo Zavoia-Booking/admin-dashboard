@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
 import { Plus, X, Sparkles, Clock, DollarSign } from 'lucide-react';
-import { WizardData } from '@/hooks/useSetupWizard';
+import { WizardData } from '../../hooks/useSetupWizard';
 
 interface Step3Props {
   data: WizardData;

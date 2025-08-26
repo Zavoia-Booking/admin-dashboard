@@ -9,8 +9,8 @@ import {
   Briefcase,
   type LucideIcon,
 } from 'lucide-react';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
+import { useLocation } from 'react-router-dom';
+import { cn } from '../lib/utils';
 
 interface BottomNavItem {
   title: string;
@@ -52,7 +52,8 @@ const bottomNavItems: BottomNavItem[] = [
 ];
 
 export function MobileBottomNav() {
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg">

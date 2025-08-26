@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { AlertTriangle, Upload, Trash2, FileUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Button } from '../ui/button';
+import { Card, CardContent } from '../ui/card';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { toast } from 'sonner';
-import { BaseSlider } from '@/components/common/BaseSlider';
+import { BaseSlider } from '../common/BaseSlider';
 
 interface AdvancedSettingsSliderProps {
   isOpen: boolean;

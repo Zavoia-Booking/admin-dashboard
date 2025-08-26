@@ -1,4 +1,4 @@
-import {setAuthLoadingAction} from "@/slices/auth/actions";
+import {setAuthLoadingAction} from "./actions";
 
 type AuthState = {
     isAuthenticated: boolean;

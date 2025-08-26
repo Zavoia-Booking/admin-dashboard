@@ -1,4 +1,4 @@
-import {LocationType, WorkingHours} from '@/types/location';
+import type { LocationType, WorkingHours } from '../types/location';
 
 const defaultWorkingHours: WorkingHours = {
   monday: { open: '09:00', close: '17:00', isOpen: true },

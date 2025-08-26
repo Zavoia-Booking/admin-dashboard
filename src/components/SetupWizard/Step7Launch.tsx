@@ -1,9 +1,9 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
 import { Rocket, Link, Share2, CheckCircle, Circle, ExternalLink } from 'lucide-react';
-import { WizardData } from '@/hooks/useSetupWizard';
-import { useRouter } from 'next/router';
+import { WizardData } from '../../hooks/useSetupWizard';
+import { useNavigate } from 'react-router-dom';
 
 interface Step7Props {
   data: WizardData;
@@ -12,7 +12,7 @@ interface Step7Props {
 }
 
 const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const bookingLink = `book.appointmentpro.com/${data.businessName.toLowerCase().replace(/\s+/g, '-')}`;
   
   const checklist = [
@@ -170,7 +170,7 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
       {/* Launch Button */}
       <div className="pt-6 border-t">
         <Button 
-          onClick={() => router.push('/dashboard')}
+          onClick={() => navigate('/dashboard')}
           className="w-full h-12 text-lg gap-3 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
         >
           Go to Dashboard

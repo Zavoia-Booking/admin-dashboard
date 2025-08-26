@@ -1,7 +1,7 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import { Palette, Eye, Check } from 'lucide-react';
-import { WizardData } from '@/hooks/useSetupWizard';
+import { WizardData } from '../../hooks/useSetupWizard';
 
 interface Step6Props {
   data: WizardData;

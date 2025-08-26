@@ -11,19 +11,19 @@ import {
   CalendarDays,
   MapPin,
 } from "lucide-react"
-import { usePathname } from "next/navigation"
+import { useLocation } from "react-router-dom"
 
-import { NavMain } from "@/components/nav-main"
-import { NavUser } from "@/components/nav-user"
-import { LocationSwitcher } from "@/components/team-switcher"
+import { NavMain } from "./nav-main"
+import { NavUser } from "./nav-user"
+import { LocationSwitcher } from "./team-switcher"
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
-} from "@/components/ui/sidebar"
-import { UserRole } from "@/types/auth"
+} from "./ui/sidebar"
+import { UserRole } from "../types/auth"
 
 interface NavItem {
   title: string
@@ -114,7 +114,8 @@ const navItems: NavItem[] = [
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const pathname = usePathname()
+  const location = useLocation()
+  const pathname = location.pathname
   
   // Filter navigation items based on user's role
   const filteredNavItems = navItems

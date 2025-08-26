@@ -1,4 +1,4 @@
-import type { Service, StaffAssignment } from '@/types/service';
+import type { Service, StaffAssignment } from '../types/service';
 
 export const mockServices: Service[] = [
   {

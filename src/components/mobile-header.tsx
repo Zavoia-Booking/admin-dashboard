@@ -1,14 +1,15 @@
 'use client';
 
 import { Bell, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { usePathname } from 'next/navigation';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { useLocation } from 'react-router-dom';
 import { useState } from 'react';
 
 export function MobileHeader() {
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   // Get page title based on current path
