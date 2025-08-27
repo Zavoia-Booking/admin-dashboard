@@ -1,4 +1,4 @@
-import type { Appointment, Client } from '../types/calendar';
+import type { Appointment, Client } from '../shared/types/calendar';
 
 export const mockClients: Client[] = [
   {

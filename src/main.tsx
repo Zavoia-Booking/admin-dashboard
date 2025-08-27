@@ -1,9 +1,9 @@
 import { createRoot } from 'react-dom/client'
-import './styles/globals.css'
+import './shared/styles/globals.css'
 import App from './App.tsx'
 import { Provider } from 'react-redux'
-import { store } from './store/store.ts'
-import { Toaster } from './components/ui/sonner.tsx'
+import { store } from './app/providers/store.ts'
+import { Toaster } from './shared/components/ui/sonner.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
