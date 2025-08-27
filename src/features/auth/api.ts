@@ -1,20 +1,7 @@
-import config from "../../app/config/env";
+import http from "../../shared/lib/http";
 import type { RegisterOwnerPayload, AuthResponse } from "./types";
 
 export const registerOwnerRequest = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
-    const response = await fetch(`${config.API_URL}/auth/register-business-owner`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const message = errorBody?.message || 'Registration failed';
-        throw new Error(Array.isArray(message) ? message.join(', ') : message);
-    }
-
-    return response.json();
+    const { data } = await http.post<AuthResponse>(`/auth/register-business-owner`, payload);
+    return data;
 }

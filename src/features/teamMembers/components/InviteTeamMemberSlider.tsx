@@ -44,7 +44,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
 
   // Available roles
   const roles = [
-    { value: 'Admin', label: 'Admin' },
     { value: 'Manager', label: 'Manager' },
     { value: 'Team Member', label: 'Team Member' }
   ];

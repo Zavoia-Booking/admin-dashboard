@@ -1,4 +1,3 @@
-'use client';
 
 import React, { useState, useEffect } from 'react';
 import { UserRole } from '../../../shared/types/auth';
@@ -15,14 +14,17 @@ import { mockLocations } from '../../../mocks/locations.mock';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
+import { useDispatch, useSelector } from 'react-redux';
+import { inviteTeamMemberRequest } from '../../teamMembers/actions';
+import type { RootState } from '../../../app/providers/store';
 
 export default function TeamMembersPage() {
+  const dispatch = useDispatch();
+  const { error: inviteError, lastInvitation } = useSelector((state: RootState) => state.teamMembers);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
-  const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
-  const [editingTeamMember, setEditingTeamMember] = useState<TeamMember | null>(null);
   const [selectedTeamMember, setSelectedTeamMember] = useState<TeamMember | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -35,7 +37,7 @@ export default function TeamMembersPage() {
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [locations, setLocations] = useState<Array<{id: string, name: string}>>([]);
+  // Locations provided via mocks
 
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
@@ -71,9 +73,6 @@ export default function TeamMembersPage() {
   const fetchLocations = async () => {
     try {
       // TODO: Replace with actual API call
-      // Mock location data with working hours for testing
-      setLocations(mockLocations.map((loc: any) => ({ id: loc.id, name: loc.name })));
-      
       // Store full location data for working hours access
       (window as any).mockLocationData = mockLocations;
     } catch (error) {
@@ -82,29 +81,37 @@ export default function TeamMembersPage() {
   };
 
   const handleInviteTeamMember = async (inviteData: { email: string; role: string; location: string }) => {
-    try {
-      // TODO: Replace with actual API call
-      // Mock invitation - add to team members list
-      const newMember: TeamMember = {
-        id: Date.now().toString(),
-        firstName: 'New',
-        lastName: 'Member',
-        email: inviteData.email,
-        phone: '+1 (555) 000-0000',
-        role: inviteData.role,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        location: inviteData.location,
-        services: []
-      };
-      
-      setTeamMembers(prev => [...prev, newMember]);
+    // Map UI role labels to API roles
+    const apiRole = inviteData.role === 'Manager' ? 'manager' : 'team_member';
+    const locationId = Number(inviteData.location);
+    dispatch(inviteTeamMemberRequest({ email: inviteData.email, role: apiRole, locationId }));
+  };
+
+  useEffect(() => {
+    if (lastInvitation) {
       toast.success('Invitation sent successfully');
       setIsInviteSliderOpen(false);
-    } catch (error) {
-      toast.error('Failed to send invitation');
+      // Optionally append a pending member to local list using response
+      setTeamMembers(prev => ([...prev, {
+        id: Date.now().toString(),
+        firstName: 'Invited',
+        lastName: 'User',
+        email: lastInvitation.invitation.email,
+        phone: '+1 (555) 000-0000',
+        role: lastInvitation.invitation.role,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+        location: String(lastInvitation.invitation.locationId),
+        services: []
+      } as TeamMember]));
     }
-  };
+  }, [lastInvitation]);
+
+  useEffect(() => {
+    if (inviteError) {
+      toast.error(inviteError);
+    }
+  }, [inviteError]);
 
   const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
     if (!selectedTeamMember) return;
@@ -185,8 +192,7 @@ export default function TeamMembersPage() {
   };
 
   const openEditSlider = (teamMember: TeamMember) => {
-    setEditingTeamMember(teamMember);
-    setIsEditSliderOpen(true);
+    openProfileSlider(teamMember);
   };
 
   const openProfileSlider = (teamMember: TeamMember) => {
