@@ -1,6 +1,7 @@
 import { all } from "redux-saga/effects";
 import { authSaga } from "../../features/auth/saga";
+import { setupWizardSaga } from "../../features/setupWizard/saga";
 
 export function* rootSaga() {
-    yield all([authSaga()]);
+    yield all([authSaga(), setupWizardSaga()]);
 }

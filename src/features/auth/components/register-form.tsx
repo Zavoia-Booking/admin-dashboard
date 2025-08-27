@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "../../../shared/components/ui/button"
 import { Input } from "../../../shared/components/ui/input"
@@ -6,10 +6,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "../../../shared/components/ui/label"
 import { Separator } from "../../../shared/components/ui/separator"
 import { toast } from "sonner"
+import { useDispatch, useSelector } from "react-redux"
+import { registerOwnerRequest } from "../actions"
+import type { RootState } from "../../../app/providers/store"
 
 export function RegisterForm() {
   const navigate = useNavigate()
   const [error, setError] = useState<string | null>(null)
+  const dispatch = useDispatch();
+  const { isLoading, isAuthenticated, error: authError } = useSelector((state: RootState) => state.auth);
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -30,26 +35,26 @@ export function RegisterForm() {
     }
     
     setError(null)
-    
-    // const response = await authStore.register({
-    //   firstName: formData.firstName,
-    //   lastName: formData.lastName,
-    //   phone: formData.phone,
-    //   email: formData.email,
-    //   password: formData.password,
-    //   role: UserRole.TEAM_MEMBER,
-    // });
-
-    const response = {};
-
-    if (response) {
-      toast.success('Registration successful!');
-      navigate('/dashboard');
-    } else {
-      // TODO
-      // toast.error(authStore.error || 'Registration failed.');
-    }
+    dispatch(registerOwnerRequest({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      phone: formData.phone,
+      email: formData.email,
+      password: formData.password,
+    }));
   }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    if (authError) {
+      toast.error(authError);
+    }
+  }, [authError]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -80,7 +85,7 @@ export function RegisterForm() {
               type="text"
               value={formData.firstName}
               onChange={handleChange}
-              // disabled={authStore.isLoading}
+              disabled={isLoading}
               required
             />
           </div>
@@ -93,7 +98,7 @@ export function RegisterForm() {
               type="text"
               value={formData.lastName}
               onChange={handleChange}
-              // disabled={authStore.isLoading}
+              disabled={isLoading}
               required
             />
           </div>
@@ -107,7 +112,7 @@ export function RegisterForm() {
             type="tel"
             value={formData.phone}
             onChange={handleChange}
-            // disabled={authStore.isLoading}
+            disabled={isLoading}
             required
           />
         </div>
@@ -120,7 +125,7 @@ export function RegisterForm() {
             type="email"
             value={formData.email}
             onChange={handleChange}
-            // disabled={authStore.isLoading}
+            disabled={isLoading}
             required
           />
         </div>
@@ -133,7 +138,7 @@ export function RegisterForm() {
             type="password"
             value={formData.password}
             onChange={handleChange}
-            // disabled={authStore.isLoading}
+            disabled={isLoading}
             required
           />
         </div>
@@ -146,7 +151,7 @@ export function RegisterForm() {
             type="password"
             value={formData.confirmPassword}
             onChange={handleChange}
-            // disabled={authStore.isLoading}
+            disabled={isLoading}
             required
           />
         </div>
@@ -155,7 +160,7 @@ export function RegisterForm() {
         <Button
             className="w-full"
             onClick={handleSubmit}
-            // disabled={authStore.isLoading}
+            disabled={isLoading}
         >
           {/*{authStore.isLoading && (*/}
           {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
