@@ -8,27 +8,16 @@ import {
   LogOut,
   Sparkles,
 } from "lucide-react"
-
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "./ui/avatar"
+import {SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar} from "../ui/sidebar.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu"
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "./ui/sidebar"
+  DropdownMenuGroup, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "../ui/dropdown-menu.tsx";
+import {Avatar, AvatarFallback, AvatarImage} from "../ui/avatar.tsx";
+
 
 export function NavUser({
   user,
