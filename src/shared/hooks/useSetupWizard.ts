@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { UserRole } from '@/types/auth';
+import type { UserRole } from '../types/auth';
 
 export interface WizardData {
   // Step 1: Business Info

@@ -6,25 +6,12 @@ import {
   Calendar, 
   MapPin, 
   TrendingUp, 
-  Clock, 
   CheckCircle,
   Plus,
   ArrowRight
 } from "lucide-react"
-import { SetupWizard } from "../components"
 
 export default function DashboardPage() {
-  // Show business setup wizard if user is an owner without a business
-  // if (authStore.user?.role === UserRole.OWNER && !authStore.user.businessId) {
-    return (
-      <AppLayout>
-        <div className="space-y-6">
-          <SetupWizard />
-        </div>
-      </AppLayout>
-    )
-  // }
-
   // Show regular dashboard for all other users
   return (
     <AppLayout>

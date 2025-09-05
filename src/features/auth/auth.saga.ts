@@ -54,6 +54,8 @@ function* handleLogin(action: { type: string; payload: { email: string, password
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
+
+    console.log('response', response)
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
 

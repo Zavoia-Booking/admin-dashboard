@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import DashboardPage from './features/setupWizard/pages/dashboard'
+import SetupWizardPage from './features/setupWizard/pages/SetupWizard'
+import DashboardPage from './features/dashboard/pages/Dashboard'
 import CalendarPage from './features/calendar/pages/calendar'
 import LocationsPage from './features/locations/pages/locations'
 import ServicesPage from './features/services/pages/services'
@@ -12,15 +13,11 @@ import RegisterPage from './features/auth/pages/register'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 
 function App() {
-
-  // Boot hydration is handled by AuthGate (status === IDLE) to avoid re-triggering on navigation
-
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* Redirect old index to dashboard */}
         <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
+        <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
