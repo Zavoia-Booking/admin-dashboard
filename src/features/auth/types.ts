@@ -19,9 +19,27 @@ export type AuthUser = {
 
 export type AuthResponse = {
   message: string;
-  access_token: string;
-  refresh_token: string;
+  accessToken: string;
   user: AuthUser;
+  csrfToken: string;
 };
 
+export enum AuthStatusEnum {
+  IDLE = "idle",
+  LOADING = "loading",
+  AUTHENTICATED = "authenticated",
+  UNAUTHENTICATED = "unauthenticated",
+  ERROR = "error",
+}
 
+export interface AuthState {
+  accessToken: string | null;
+  csrfToken: string | null;
+  businessId: string | null;
+  user: AuthUser | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  status: AuthStatusEnum;
+  error: string | null;
+  lastRefreshAt: number | null;
+}

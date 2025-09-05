@@ -6,7 +6,6 @@ import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Button } from '../../../shared/components/ui/button';
 import { Separator } from '../../../shared/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
-import { toast } from 'sonner';
 import BusinessInfoSlider from '../components/BusinessInfoSlider';
 import AppointmentSettingsSlider from '../components/AppointmentSettingsSlider';
 import WebsiteDomainSlider from '../components/WebsiteDomainSlider';
@@ -15,22 +14,25 @@ import ProfileSlider from '../components/ProfileSlider';
 import BillingSlider from '../components/BillingSlider';
 import SecuritySlider from '../components/SecuritySlider';
 import AdvancedSettingsSlider from '../components/AdvancedSettingsSlider';
-import { 
-  Receipt, 
-  Calendar, 
+import {
+  Receipt,
+  Calendar,
   Globe,
-  User, 
-  Plug, 
-  CreditCard, 
-  Shield, 
+  User,
+  Plug,
+  CreditCard,
+  Shield,
   AlertTriangle,
   Trash2,
   Eye,
   ChevronRight,
   Check
 } from 'lucide-react';
+import { logoutRequestAction } from '../../auth/actions';
+import { useDispatch } from 'react-redux';
 
 const SettingsPage = () => {
+  const dispatch = useDispatch();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [showBusinessSlider, setShowBusinessSlider] = useState(false);
   const [showAppointmentSlider, setShowAppointmentSlider] = useState(false);
@@ -40,32 +42,9 @@ const SettingsPage = () => {
   const [showBillingSlider, setShowBillingSlider] = useState(false);
   const [showSecuritySlider, setShowSecuritySlider] = useState(false);
   const [showAdvancedSlider, setShowAdvancedSlider] = useState(false);
-  const [businessName, setBusinessName] = useState('Your Business Name');
-  const [industry, setIndustry] = useState('');
-  const [businessEmail, setBusinessEmail] = useState('business@example.com');
-  const [businessPhone, setBusinessPhone] = useState('+1 (555) 123-4567');
-  const [timeZone, setTimeZone] = useState('America/New_York');
-  const [bookingSlug, setBookingSlug] = useState('your-business');
-  const [defaultDuration, setDefaultDuration] = useState('60');
-  const [bufferTime, setBufferTime] = useState('15');
-  const [onlineBooking, setOnlineBooking] = useState(true);
-  const [bookingWindow, setBookingWindow] = useState('30');
-  const [cancellationWindow, setCancellationWindow] = useState('24');
-  const [noShowMinutes, setNoShowMinutes] = useState('15');
-  const [noShowEnabled, setNoShowEnabled] = useState(true);
-  const [reminder24h, setReminder24h] = useState(true);
-  const [reminder1h, setReminder1h] = useState(true);
-  const [timeFormat, setTimeFormat] = useState('12');
-  const [language, setLanguage] = useState('en');
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
 
-  const handleSave = (section: string) => {
-    toast.success('✅ Changes saved successfully');
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast.success('Copied to clipboard!');
+  const handleLogout = () => {
+    dispatch(logoutRequestAction.request());
   };
 
   const menuItems = [
@@ -133,8 +112,8 @@ const SettingsPage = () => {
         <div className="max-w-2xl mx-auto">
           {/* Back Button */}
           <div className="flex items-center gap-3 mb-6">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               onClick={() => setSelectedSection(null)}
               className="p-2"
             >
@@ -220,7 +199,7 @@ const SettingsPage = () => {
               <p className="text-sm text-muted-foreground">8 appointments</p>
             </CardContent>
           </Card>
-          
+
           <Card className="cursor-pointer hover:shadow-md transition-shadow">
             <CardContent className="p-4 text-center">
               <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -288,71 +267,71 @@ const SettingsPage = () => {
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
-            
+
             <Separator />
-            
+
             <button className="w-full flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors text-left text-destructive">
               <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
                 <Trash2 className="h-5 w-5 text-destructive" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1" onClick={handleLogout}>
                 <h3 className="font-medium">Log out</h3>
               </div>
               <ChevronRight className="h-5 w-5 text-muted-foreground" />
             </button>
-                     </CardContent>
-         </Card>
-       </div>
-       
-       {/* Business Information Slider */}
-       <BusinessInfoSlider 
-         isOpen={showBusinessSlider}
-         onClose={() => setShowBusinessSlider(false)}
-       />
-       
-       {/* Appointment Settings Slider */}
-       <AppointmentSettingsSlider 
-         isOpen={showAppointmentSlider}
-         onClose={() => setShowAppointmentSlider(false)}
-       />
-       
-       {/* Website & Domain Slider */}
-       <WebsiteDomainSlider 
-         isOpen={showWebsiteSlider}
-         onClose={() => setShowWebsiteSlider(false)}
-       />
-       
-       {/* Integrations Slider */}
-       <IntegrationsSlider 
-         isOpen={showIntegrationsSlider}
-         onClose={() => setShowIntegrationsSlider(false)}
-       />
-       
-       {/* Profile Slider */}
-       <ProfileSlider 
-         isOpen={showProfileSlider}
-         onClose={() => setShowProfileSlider(false)}
-       />
-       
-       {/* Billing Slider */}
-       <BillingSlider 
-         isOpen={showBillingSlider}
-         onClose={() => setShowBillingSlider(false)}
-       />
-       
-       {/* Security Slider */}
-       <SecuritySlider 
-         isOpen={showSecuritySlider}
-         onClose={() => setShowSecuritySlider(false)}
-       />
-       
-       {/* Advanced Settings Slider */}
-       <AdvancedSettingsSlider 
-         isOpen={showAdvancedSlider}
-         onClose={() => setShowAdvancedSlider(false)}
-       />
-     </AppLayout>
-   );
- };
- 
- export default SettingsPage; 
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Business Information Slider */}
+      <BusinessInfoSlider
+        isOpen={showBusinessSlider}
+        onClose={() => setShowBusinessSlider(false)}
+      />
+
+      {/* Appointment Settings Slider */}
+      <AppointmentSettingsSlider
+        isOpen={showAppointmentSlider}
+        onClose={() => setShowAppointmentSlider(false)}
+      />
+
+      {/* Website & Domain Slider */}
+      <WebsiteDomainSlider
+        isOpen={showWebsiteSlider}
+        onClose={() => setShowWebsiteSlider(false)}
+      />
+
+      {/* Integrations Slider */}
+      <IntegrationsSlider
+        isOpen={showIntegrationsSlider}
+        onClose={() => setShowIntegrationsSlider(false)}
+      />
+
+      {/* Profile Slider */}
+      <ProfileSlider
+        isOpen={showProfileSlider}
+        onClose={() => setShowProfileSlider(false)}
+      />
+
+      {/* Billing Slider */}
+      <BillingSlider
+        isOpen={showBillingSlider}
+        onClose={() => setShowBillingSlider(false)}
+      />
+
+      {/* Security Slider */}
+      <SecuritySlider
+        isOpen={showSecuritySlider}
+        onClose={() => setShowSecuritySlider(false)}
+      />
+
+      {/* Advanced Settings Slider */}
+      <AdvancedSettingsSlider
+        isOpen={showAdvancedSlider}
+        onClose={() => setShowAdvancedSlider(false)}
+      />
+    </AppLayout>
+  );
+};
+
+export default SettingsPage; 

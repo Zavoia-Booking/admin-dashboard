@@ -1,7 +1,16 @@
-import http from "../../shared/lib/http";
 import type { RegisterOwnerPayload, AuthResponse } from "./types";
+import { apiClient } from "../../shared/lib/http";
 
-export const registerOwnerRequest = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
-    const { data } = await http.post<AuthResponse>(`/auth/register-business-owner`, payload);
+export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/register-business-owner`, payload);
+    return data;
+}
+
+export const logoutApi = async (): Promise<void> => {
+    await apiClient().post(`/auth/logout`);
+}
+
+export const loginApi = async (payload: { email: string, password: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/login`, payload);
     return data;
 }

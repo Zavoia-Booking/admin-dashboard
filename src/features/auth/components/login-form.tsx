@@ -4,7 +4,9 @@ import { Button } from "../../../shared/components/ui/button"
 import { Card, CardContent } from "../../../shared/components/ui/card"
 import { Input } from "../../../shared/components/ui/input";
 import { Label } from "../../../shared/components/ui/label"
-import { Link } from "lucide-react";
+import { Link } from "react-router-dom";
+import { loginAction } from "../actions";
+import { useDispatch } from "react-redux";
 
 export function LoginForm({
   className,
@@ -12,16 +14,12 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const dispatch = useDispatch();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // const success = await authStore.login(email, password)
-    //
-    // // Just show error toast if login failed
-    // if (!success) {
-    //   toast.error(authStore.error || "Login failed. Please try again.")
-    // }
+
+    dispatch(loginAction.request({ email, password }))
   }
 
   return (
@@ -36,12 +34,6 @@ export function LoginForm({
                   Login to your Planr account
                 </p>
               </div>
-              {/*// TODO*/}
-              {/*{authStore.error && (*/}
-              {/*  <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">*/}
-              {/*    {authStore.error}*/}
-              {/*  </div>*/}
-              {/*)}*/}
               <div className="grid gap-3">
                 <Label htmlFor="email">Email</Label>
                 <Input
@@ -50,7 +42,6 @@ export function LoginForm({
                   placeholder="m@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  // disabled={authStore.isLoading}
                   required
                 />
               </div>
@@ -64,23 +55,15 @@ export function LoginForm({
                     Forgot your password?
                   </a>
                 </div>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  // disabled={authStore.isLoading}
-                  required 
+                  required
                 />
               </div>
-              {/*<Button type="submit" className="w-full" disabled={authStore.isLoading}>*/}
-              {/*  {authStore.isLoading ? (*/}
-              {/*    <>*/}
-              {/*      <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
-              {/*      Logging in...*/}
-              {/*    </>*/}
-              {/*  ) : "Login"}*/}
-              {/*</Button>*/}
+              <Button type="submit" className="w-full">Login</Button>
               <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                 <span className="bg-card text-muted-foreground relative z-10 px-2">
                   Or continue with
@@ -88,10 +71,9 @@ export function LoginForm({
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <Button
-                    variant="outline"
-                    type="button"
-                    className="w-full"
-                    // disabled={authStore.isLoading}
+                  variant="outline"
+                  type="button"
+                  className="w-full"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -102,10 +84,9 @@ export function LoginForm({
                   <span className="sr-only">Login with Apple</span>
                 </Button>
                 <Button
-                    variant="outline"
-                    type="button"
-                    className="w-full"
-                    // disabled={authStore.isLoading}
+                  variant="outline"
+                  type="button"
+                  className="w-full"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path
@@ -116,10 +97,9 @@ export function LoginForm({
                   <span className="sr-only">Login with Google</span>
                 </Button>
                 <Button
-                    variant="outline"
-                    type="button"
-                    className="w-full"
-                    // disabled={authStore.isLoading}
+                  variant="outline"
+                  type="button"
+                  className="w-full"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
                     <path

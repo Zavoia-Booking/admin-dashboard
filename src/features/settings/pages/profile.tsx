@@ -575,7 +575,3 @@ export default function BusinessProfilePage() {
     </AppLayout>
   );
 }
-
-// Add required roles for authentication
-// BusinessProfilePage.requireAuth = true;
-// BusinessProfilePage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER]; 

@@ -163,7 +163,3 @@ export default function DashboardPage() {
     </AppLayout>
   )
 }
-
-// Add required roles for authentication
-// DashboardPage.requireAuth = true;
-// DashboardPage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER]; 

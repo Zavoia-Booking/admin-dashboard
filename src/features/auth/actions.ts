@@ -1,17 +1,50 @@
-import { createAction } from "@reduxjs/toolkit";
-import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
+import { createAsyncAction, createAction } from "typesafe-actions";
+import type { RegisterOwnerPayload, AuthUser } from "./types";
 
-export const setAuthLoadingAction = createAction<boolean>('AUTH/SET/LOADING');
+export const setTokensAction = createAction(
+  'auth/SET_TOKENS',
+)<{ accessToken: string | null, csrfToken: string | null }>();
 
-export const loginAction = createAction<void>('AUTH/LOGIN');
+export const setAuthLoadingAction = createAction(
+  'auth/SET_AUTH_LOADING',
+)<{ isLoading: boolean }>();
 
-// Register owner flow
-export const registerOwnerRequest = createAction<RegisterOwnerPayload>('AUTH/REGISTER_OWNER/REQUEST');
-export const registerOwnerSuccess = createAction<AuthResponse>('AUTH/REGISTER_OWNER/SUCCESS');
-export const registerOwnerFailure = createAction<string>('AUTH/REGISTER_OWNER/FAILURE');
+export const setAuthUserAction = createAction(
+  'auth/SET_AUTH_USER',
+)<{ user: AuthUser | null }>();
 
-// Set user (e.g., after refresh/me)
-export const setAuthUser = createAction<AuthUser | null>('AUTH/SET/USER');
+export const setCsrfToken = createAction(
+  'auth/SET_CSRF_TOKEN',
+)<{ csrfToken: string | null }>();
 
-// Logout
-export const logoutAction = createAction('AUTH/LOGOUT');
+export const setBusinessId = createAction(
+  'auth/SET_BUSINESS_ID',
+)<{ businessId: string | null }>();
+
+export const setStatus = createAction(
+  'auth/SET_STATUS',
+)<{ status: "idle" | "loading" | "authenticated" | "unauthenticated" | "error" }>();
+
+export const hydrateSessionAction = createAsyncAction(
+  'auth/HYDRATE_SESSION_REQUEST',
+  'auth/HYDRATE_SESSION_SUCCESS',
+  'auth/HYDRATE_SESSION_FAILURE',
+)<void, { accessToken: string, csrfToken: string | null, businessId: string | null, user: AuthUser | null }, { message: string }>();
+
+export const registerOwnerRequestAction = createAsyncAction(
+  'auth/REGISTER_OWNER_REQUEST',
+  'auth/REGISTER_OWNER_SUCCESS',
+  'auth/REGISTER_OWNER_FAILURE',
+)<RegisterOwnerPayload, { user: AuthUser }, { message: string }>();
+
+export const logoutRequestAction = createAsyncAction(
+  'auth/LOGOUT_REQUEST',
+  'auth/LOGOUT_SUCCESS',
+  'auth/LOGOUT_FAILURE',
+)<void, void, { message: string }>();
+
+export const loginAction = createAsyncAction(
+  'auth/LOGIN_REQUEST',
+  'auth/LOGIN_SUCCESS',
+  'auth/LOGIN_FAILURE',
+)<{ email: string, password: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();

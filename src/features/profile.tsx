@@ -464,7 +464,3 @@ export default function ProfilePage() {
     </AppLayout>
   );
 }
-
-// Add required roles for authentication
-// ProfilePage.requireAuth = true;
-// ProfilePage.requiredRoles = [UserRole.TEAM_MEMBER]; 

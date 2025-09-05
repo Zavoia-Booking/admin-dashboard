@@ -1,27 +1,12 @@
 import { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { LoginForm } from "../components/login-form"
-import { useDispatch, useSelector } from "react-redux";
-import { loginAction } from "../actions";
+import { useSelector } from "react-redux";
+import type { RootState } from "../../../app/providers/store";
 
 export default function LoginPage() {
   const navigate = useNavigate()
-  const dispatch = useDispatch();
-  // const { authStore } = useStores()
-  // const { isAuthenticated, isLoading } = authStore
-
-  const mainState: any = useSelector((state: any) => state.auth);
-
-  console.log('mainState', mainState)
-
-  console.log('test', mainState)
-  useEffect(() => {
-    dispatch(loginAction())
-  },[dispatch]);
-
-  // TODO
-  const { isAuthenticated, isLoading } = {isAuthenticated: true, isLoading: true}
-
+  const { isAuthenticated, isLoading } = useSelector((state: RootState) => state.auth);
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
@@ -39,6 +24,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
-// No authentication required for login page
-LoginPage.requireAuth = false; 

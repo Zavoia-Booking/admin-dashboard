@@ -17,8 +17,10 @@ import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import { useDispatch, useSelector } from 'react-redux';
 import { inviteTeamMemberRequest } from '../../teamMembers/actions';
 import type { RootState } from '../../../app/providers/store';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 
 export default function TeamMembersPage() {
+  const isMobile = useIsMobile();
   const dispatch = useDispatch();
   const { error: inviteError, lastInvitation } = useSelector((state: RootState) => state.teamMembers);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
@@ -271,7 +273,7 @@ export default function TeamMembersPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-4 max-w-2xl mx-auto">
+      <div className={`space-y-4 ${isMobile ? 'max-w-2xl mx-auto' : ''}`}>
         {/* Top Controls: Search, Filter, Add */}
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
@@ -432,80 +434,125 @@ export default function TeamMembersPage() {
             <div className="text-xs text-gray-500 mt-1">Roles</div>
           </div>
         </div>
-        {/* Member Cards */}
-        <div className="space-y-3">
-          {filteredTeamMembers.length === 0 ? (
-            <div className="rounded-lg border bg-white p-8 text-center">
-              <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
-              <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
-            </div>
-          ) : (
-            filteredTeamMembers.map(member => (
-              <div 
-                key={member.id} 
-                className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
-                onClick={() => openProfileSlider(member)}
-              >
-                <div className="flex flex-row items-start gap-4">
-                  {/* Avatar */}
-                  <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
-                    {member.firstName[0]}{member.lastName[0]}
-                  </div>
-                  {/* Name, Role, Status */}
-                  <div className="flex flex-col justify-start min-w-0">
-                    <span className="font-semibold text-base truncate">{member.firstName} {member.lastName}</span>
-                    <span className="text-sm text-gray-500 truncate">{member.role}</span>
-                    {getStatusBadge(member.status)}
-                  </div>
-                  {/* Edit/Delete Icons */}
-                  <div className="flex-1 flex justify-end items-start gap-1">
-                    {member.status === 'pending' && (
+        {isMobile ? (
+          <div className="space-y-3">
+            {filteredTeamMembers.length === 0 ? (
+              <div className="rounded-lg border bg-white p-8 text-center">
+                <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
+                <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
+              </div>
+            ) : (
+              filteredTeamMembers.map(member => (
+                <div 
+                  key={member.id} 
+                  className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
+                  onClick={() => openProfileSlider(member)}
+                >
+                  <div className="flex flex-row items-start gap-4">
+                    <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
+                      {member.firstName[0]}{member.lastName[0]}
+                    </div>
+                    <div className="flex flex-col justify-start min-w-0">
+                      <span className="font-semibold text-base truncate">{member.firstName} {member.lastName}</span>
+                      <span className="text-sm text-gray-500 truncate">{member.role}</span>
+                      {getStatusBadge(member.status)}
+                    </div>
+                    <div className="flex-1 flex justify-end items-start gap-1">
+                      {member.status === 'pending' && (
+                        <button 
+                          className="p-2 rounded hover:bg-muted text-blue-600" 
+                          title="Resend Invitation"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleResendInvitation(member.id);
+                          }}
+                        >
+                          <Mail className="h-5 w-5" />
+                        </button>
+                      )}
                       <button 
-                        className="p-2 rounded hover:bg-muted text-blue-600" 
-                        title="Resend Invitation"
+                        className="p-2 rounded hover:bg-muted" 
+                        title="Edit"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleResendInvitation(member.id);
+                          openEditSlider(member);
                         }}
                       >
-                        <Mail className="h-5 w-5" />
+                        <Edit className="h-5 w-5" />
                       </button>
-                    )}
-                    <button 
-                      className="p-2 rounded hover:bg-muted" 
-                      title="Edit"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openEditSlider(member);
-                      }}
-                    >
-                      <Edit className="h-5 w-5" />
-                    </button>
+                    </div>
                   </div>
-                </div>
-                {/* Contact Info and Services, flush left under avatar */}
-                <div className="flex flex-row gap-4 mt-1">
-                  <div className="flex-1 flex flex-col gap-1">
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <Mail className="h-4 w-4" />
-                      <span>{member.email}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <Phone className="h-4 w-4" />
-                      <span>{member.phone}</span>
-                    </div>
-                    {member.location && (
+                  <div className="flex flex-row gap-4 mt-1">
+                    <div className="flex-1 flex flex-col gap-1">
                       <div className="flex items-center gap-2 text-sm text-gray-700">
-                        <MapPin className="h-4 w-4" />
-                        <span>{mockLocations.find(loc => loc.id === member.location)?.name}</span>
+                        <Mail className="h-4 w-4" />
+                        <span>{member.email}</span>
                       </div>
-                    )}
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <Phone className="h-4 w-4" />
+                        <span>{member.phone}</span>
+                      </div>
+                      {member.location && (
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <MapPin className="h-4 w-4" />
+                          <span>{mockLocations.find(loc => loc.id === member.location)?.name}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border bg-white">
+            {filteredTeamMembers.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">No team members found.</div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50">
+                  <tr className="text-left">
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">Email</th>
+                    <th className="px-4 py-3">Role</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Location</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTeamMembers.map((member) => (
+                    <tr key={member.id} className="border-t">
+                      <td className="px-4 py-3 font-medium">{member.firstName} {member.lastName}</td>
+                      <td className="px-4 py-3">{member.email}</td>
+                      <td className="px-4 py-3">{member.role}</td>
+                      <td className="px-4 py-3">{getStatusBadge(member.status)}</td>
+                      <td className="px-4 py-3">{mockLocations.find(loc => loc.id === member.location)?.name}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex justify-end gap-2">
+                          {member.status === 'pending' && (
+                            <button 
+                              className="px-2 py-1 text-blue-600 hover:underline"
+                              onClick={() => handleResendInvitation(member.id)}
+                            >
+                              Resend
+                            </button>
+                          )}
+                          <button 
+                            className="px-2 py-1 hover:underline"
+                            onClick={() => openEditSlider(member)}
+                          >
+                            Edit
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Confirmation Dialog */}
@@ -555,6 +602,3 @@ export default function TeamMembersPage() {
   );
 }
 
-// Add required roles for authentication
-// TeamMembersPage.requireAuth = true;
-// TeamMembersPage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER];

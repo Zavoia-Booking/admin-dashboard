@@ -1,27 +1,36 @@
 import { configureStore } from "@reduxjs/toolkit";
 import createSagaMiddleware from "redux-saga";
 import { rootSaga } from "./sagas";
-import authReducer from "../../features/auth/reducer";
+import { AuthReducer } from "../../features/auth/reducer";
 import setupWizardReducer from "../../features/setupWizard/reducer";
 import teamMembersReducer from "../../features/teamMembers/reducer";
+import { initApiClient } from "../../shared/lib/http";
+// --- create saga middleware ---
+const sagaMiddleware = createSagaMiddleware();
 
-const sagaMiddleware = createSagaMiddleware()
-
+// --- configure store ---
 export const store = configureStore({
-        reducer: {
-            auth: authReducer,
-            setupWizard: setupWizardReducer,
-            teamMembers: teamMembersReducer,
-        },
-        middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware({
-            thunk: false,
-        }).concat(sagaMiddleware),
-        devTools: import.meta.env.DEV
-    }
-)
+  reducer: {
+    auth: AuthReducer,
+    setupWizard: setupWizardReducer,
+    teamMembers: teamMembersReducer,
+  },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      thunk: false, // using sagas instead of thunk
+      // If your sagas/actions carry non-serializable payloads (e.g., Errors), disable or tune this:
+      serializableCheck: false,
+    }).concat(sagaMiddleware),
+  devTools: import.meta.env.DEV,
+});
 
-sagaMiddleware.run(rootSaga)
+// --- run root saga ---
+sagaMiddleware.run(rootSaga);
 
-export type RootState = ReturnType<typeof store.getState>;
-export type AppDispatch = typeof store.dispatch;
+// --- init axios client with the store (needed for interceptors to access state/dispatch) ---
+initApiClient(store);
+
+// --- types ---
+export type AppStore = typeof store;
+export type RootState = ReturnType<AppStore["getState"]>;
+export type AppDispatch = AppStore["dispatch"];

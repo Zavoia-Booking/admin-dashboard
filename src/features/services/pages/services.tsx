@@ -585,7 +585,3 @@ export default function ServicesPage() {
     </AppLayout>
   );
 }
-
-// Add required roles for authentication
-// ServicesPage.requireAuth = true;
-// ServicesPage.requiredRoles = [UserRole.ADMIN, UserRole.TEAM_MEMBER]; 

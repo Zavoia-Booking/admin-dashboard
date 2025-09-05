@@ -7,7 +7,7 @@ import { Label } from "../../../shared/components/ui/label"
 import { Separator } from "../../../shared/components/ui/separator"
 import { toast } from "sonner"
 import { useDispatch, useSelector } from "react-redux"
-import { registerOwnerRequest } from "../actions"
+import { registerOwnerRequestAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
 
 export function RegisterForm() {
@@ -35,7 +35,7 @@ export function RegisterForm() {
     }
     
     setError(null)
-    dispatch(registerOwnerRequest({
+    dispatch(registerOwnerRequestAction.request({
       firstName: formData.firstName,
       lastName: formData.lastName,
       phone: formData.phone,

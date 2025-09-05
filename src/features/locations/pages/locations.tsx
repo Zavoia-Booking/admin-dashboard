@@ -598,7 +598,3 @@ export default function LocationsPage() {
     </AppLayout>
   );
 }
-
-// Add required roles for authentication
-// LocationsPage.requireAuth = true;
-// LocationsPage.requiredRoles = [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER]; 

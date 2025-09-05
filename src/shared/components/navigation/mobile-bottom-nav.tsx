@@ -9,7 +9,7 @@ import {
   Briefcase,
   type LucideIcon,
 } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
 interface BottomNavItem {
@@ -61,9 +61,9 @@ export function MobileBottomNav() {
         {bottomNavItems.map((item) => {
           const isActive = pathname === item.url;
           return (
-            <a
+            <Link
               key={item.title}
-              href={item.url}
+              to={item.url}
               className={cn(
                 'flex flex-col items-center justify-center w-full py-2 px-1 rounded-lg transition-colors duration-200',
                 isActive
@@ -75,7 +75,7 @@ export function MobileBottomNav() {
               <span className={cn('text-xs font-medium', isActive ? 'text-blue-600' : 'text-gray-500')}>
                 {item.title}
               </span>
-            </a>
+            </Link>
           );
         })}
       </div>
