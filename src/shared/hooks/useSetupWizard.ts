@@ -1,71 +1,57 @@
 import { useState } from 'react';
-import type { UserRole } from '../types/auth';
+import type { WorkingHours } from '../types/location';
+import type { NewLocationPayload } from '../../features/locations/types';
+import type { BusinessInfo } from '../types/generalType';
+import type { InviteTeamMemberPayload } from '../types/team-member';
 
 export interface WizardData {
   // Step 1: Business Info
-  businessName: string;
-  industry: string;
-  description: string;
-  logo?: File;
-  
+  businessInfo: BusinessInfo;
+
   // Step 2: Location
-  isRemote: boolean;
-  address: string;
-  city: string;
-  
-  // Step 3: Services
-  services: Array<{
-    id: string;
-    name: string;
-    price: number;
-    duration: number;
-  }>;
-  
-  // Step 4: Schedule
-  schedule: Array<{
-    day: string;
-    open: string;
-    close: string;
-    isClosed: boolean;
-  }>;
-  bufferTime: number;
-  
-  // Step 5: Team
-  teamMembers: Array<{
-    email: string;
-    role: UserRole;
-  }>;
+  location: NewLocationPayload;
+
+  // Step 3: Team
+  teamMembers: InviteTeamMemberPayload[];
   worksSolo: boolean;
-  
-  // Step 6: Template
-  selectedTemplate: string;
-  
-  // Step 7: Launch
-  isLaunched: boolean;
 }
 
+const defaultWorkingHours: WorkingHours = {
+  monday: { open: '09:00', close: '17:00', isOpen: true },
+  tuesday: { open: '09:00', close: '17:00', isOpen: true },
+  wednesday: { open: '09:00', close: '17:00', isOpen: true },
+  thursday: { open: '09:00', close: '17:00', isOpen: true },
+  friday: { open: '09:00', close: '17:00', isOpen: true },
+  saturday: { open: '10:00', close: '15:00', isOpen: true },
+  sunday: { open: '10:00', close: '15:00', isOpen: false },
+};
+
 const initialData: WizardData = {
-  businessName: '',
-  industry: '',
-  description: '',
-  isRemote: false,
-  address: '',
-  city: '',
-  services: [],
-  schedule: [
-    { day: 'Monday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Tuesday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Wednesday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Thursday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Friday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Saturday', open: '09:00', close: '17:00', isClosed: true },
-    { day: 'Sunday', open: '09:00', close: '17:00', isClosed: true },
-  ],
-  bufferTime: 15,
+  businessInfo: {
+    name: '',
+    industry: '',
+    description: '',
+    email: '',
+    phone: '',
+    timezone: (typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC') as string,
+    country: '',
+    currency: 'USD',
+    instagramUrl: '',
+    facebookUrl: '',
+  },
+  location: {
+    isRemote: false,
+    name: '',
+    description: '',
+    phone: '',
+    email: '',
+    address: '',
+    isActive: true,
+    timezone: (typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC') as string,
+    workingHours: defaultWorkingHours,
+  },
   teamMembers: [],
   worksSolo: true,
-  selectedTemplate: '',
-  isLaunched: false,
 };
 
 export const useSetupWizard = () => {
@@ -73,7 +59,7 @@ export const useSetupWizard = () => {
   const [data, setData] = useState<WizardData>(initialData);
   const [isLoading, setSaving] = useState(false);
 
-  const totalSteps = 7;
+  const totalSteps = 4;
 
   const updateData = (newData: Partial<WizardData>) => {
     setData(prev => ({ ...prev, ...newData }));
@@ -130,9 +116,18 @@ export const useSetupWizard = () => {
   const canProceed = (step: number) => {
     switch (step) {
       case 1:
-        return data.businessName.trim() !== '' && data.industry !== '';
+        return data.businessInfo.name.trim() !== '' && data.businessInfo.industry !== '';
       case 2:
-        return data.isRemote || (data.address.trim() !== '' && data.city.trim() !== '');
+        if (data.location.isRemote) {
+          const hasContact = (data.location.email?.trim() ?? '') !== '' || data.location.phone.trim() !== '';
+          return data.location.name.trim() !== '' && data.location.timezone.trim() !== '' && hasContact;
+        }
+        return (
+          data.location.name.trim() !== '' &&
+          data.location.address?.trim() !== '' &&
+          (data.location.email?.trim() ?? '') !== '' &&
+          data.location.phone.trim() !== ''
+        );
       default:
         return true; // Other steps are optional
     }

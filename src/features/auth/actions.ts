@@ -48,3 +48,9 @@ export const loginAction = createAsyncAction(
   'auth/LOGIN_SUCCESS',
   'auth/LOGIN_FAILURE',
 )<{ email: string, password: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
+
+export const fetchCurrentUserAction = createAsyncAction(
+  'auth/FETCH_CURRENT_USER_REQUEST',
+  'auth/FETCH_CURRENT_USER_SUCCESS',
+  'auth/FETCH_CURRENT_USER_FAILURE',
+)<void, { user: AuthUser }, { message: string }>();

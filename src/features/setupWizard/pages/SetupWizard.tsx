@@ -2,48 +2,33 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSetupWizard } from '../../../shared/hooks/useSetupWizard';
+import { useDispatch } from 'react-redux';
+import { wizardCompleteAction } from '../actions';
 import WizardLayout from '../components/WizardLayout';
-import Step1BusinessInfo from '../components/Step1BusinessInfo';
-import Step2Location from '../components/Step2Location';
-import Step3Services from '../components/Step3Services';
-import Step4Schedule from '../components/Step4Schedule';
-import Step5Team from '../components/Step5Team';
-import Step6Template from '../components/Step6Template';
-import Step7Launch from '../components/Step7Launch';
+import StepBusinessInfo from '../components/StepBusinessInfo';
+import StepTeam from '../components/StepTeam';
+// import StepTemplate from '../components/StepTemplate';
+import StepLaunch from '../components/StepLaunch';
+import StepLocation from '../components/StepLocation';
 
 const stepConfig = [
   {
-    component: Step1BusinessInfo,
+    component: StepBusinessInfo,
     title: 'Tell Us About Your Business',
     subtitle: 'This helps us customize your booking setup.'
   },
   {
-    component: Step2Location,
+    component: StepLocation,
     title: 'Where Do You Offer Services?',
     subtitle: 'Help customers find you or let them know you offer remote services'
   },
   {
-    component: Step3Services,
-    title: 'What Services Do You Offer?',
-    subtitle: 'Add the services you want clients to book. You can always update them later.'
-  },
-  {
-    component: Step4Schedule,
-    title: 'When are you available?',
-    subtitle: 'Set your working hours so customers know when to book'
-  },
-  {
-    component: Step5Team,
+    component: StepTeam,
     title: 'Want to Add Your Team?',
     subtitle: 'Invite team members so they can take bookings, manage their schedule, or access the calendar.'
   },
   {
-    component: Step6Template,
-    title: 'Your Business. Your Look.',
-    subtitle: 'Choose a website template. We\'ll auto-fill your info—you can customize it later.'
-  },
-  {
-    component: Step7Launch,
+    component: StepLaunch,
     title: '🎉 You\'re Live!',
     subtitle: 'Your booking page and website are up and running. Start accepting appointments today.'
   }
@@ -51,6 +36,7 @@ const stepConfig = [
 
 const SetupWizardPage: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   
   const {
     currentStep,
@@ -73,13 +59,6 @@ const SetupWizardPage: React.FC = () => {
     navigate('/dashboard');
   };
 
-  const handleLaunch = () => {
-    toast.success("🎉 Congratulations!", {
-      description: "Your business is now live and ready to accept bookings!",
-    });
-    navigate('/dashboard');
-  };
-
   const getCurrentStepConfig = () => stepConfig[currentStep - 1];
   const { component: CurrentStepComponent, title, subtitle } = getCurrentStepConfig();
 
@@ -93,25 +72,22 @@ const SetupWizardPage: React.FC = () => {
       title={title}
       subtitle={subtitle}
       onPrevious={prevStep}
-      onNext={nextStep}
+      onNext={() => {
+        if (currentStep === totalSteps - 1) {
+          dispatch(wizardCompleteAction.request(data));
+        }
+        nextStep();
+      }}
       onSave={!isLastStep ? handleSave : undefined}
       canProceed={canProceed(currentStep)}
       isLoading={isLoading}
       showNext={!isLastStep}
-      nextLabel={currentStep === totalSteps - 1 ? (currentStep === 6 ? 'Launch My Business' : 'Review & Launch') : 'Continue'}
+      nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
     >
       {isLastStep ? (
-        <CurrentStepComponent 
-          data={data} 
-          onUpdate={updateData} 
-          onLaunch={handleLaunch}
-        />
+        <CurrentStepComponent data={data} onUpdate={updateData} />
       ) : (
-        <CurrentStepComponent 
-          data={data} 
-          onUpdate={updateData} 
-          {...(currentStep === 6 ? { onNext: nextStep } : {})}
-        />
+        <CurrentStepComponent data={data} onUpdate={updateData} />
       )}
     </WizardLayout>
   );

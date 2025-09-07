@@ -1,28 +1,26 @@
 import { takeLatest, call, put } from "redux-saga/effects";
-import { wizardSaveRequest, wizardSaveSuccess, wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure } from "./actions";
-import { saveWizardProgress, completeWizard } from "./api";
+import { wizardCompleteAction } from "./actions";
+import { completeWizardApi } from "./api";
 
-function* handleWizardSave() {
-  try {
-    yield call(saveWizardProgress, {});
-    yield put(wizardSaveSuccess());
-  } catch (error: any) {
-    yield put(wizardSaveFailure(error?.message || 'Failed to save progress'));
-  }
-}
+// function* handleWizardSave(action: { type: string; payload: any }) {
+//   try {
+//     yield call(saveWizardProgress, action.payload || {});
+//     yield put(wizardSaveAction.success());
+//   } catch (error: any) {
+//     yield put(wizardSaveAction.failure({ message: error?.message || 'Failed to save progress' }));
+//   }
+// }
 
-function* handleWizardComplete() {
+function* handleWizardComplete(action: { type: string; payload: any }) {
   try {
-    yield call(completeWizard, {});
-    yield put(wizardCompleteSuccess());
+    yield call(completeWizardApi, action.payload || {});
+    yield put(wizardCompleteAction.success());
   } catch (error: any) {
-    yield put(wizardCompleteFailure(error?.message || 'Failed to complete wizard'));
+    yield put(wizardCompleteAction.failure({ message: error?.message || 'Failed to complete wizard' }));
   }
 }
 
 export function* setupWizardSaga() {
-  yield takeLatest(wizardSaveRequest.type, handleWizardSave);
-  yield takeLatest(wizardCompleteRequest.type, handleWizardComplete);
+  // yield takeLatest(wizardSaveAction.request, handleWizardSave);
+  yield takeLatest(wizardCompleteAction.request, handleWizardComplete);
 }
-
-

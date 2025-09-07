@@ -1,4 +1,4 @@
-import type { RegisterOwnerPayload, AuthResponse } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
@@ -12,5 +12,10 @@ export const logoutApi = async (): Promise<void> => {
 
 export const loginApi = async (payload: { email: string, password: string }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>(`/auth/login`, payload);
+    return data;
+}
+
+export const getCurrentUserApi = async (): Promise<{ user: AuthUser }> => {
+    const { data } = await apiClient().get<{ user: AuthUser }>(`/auth/me`);
     return data;
 }

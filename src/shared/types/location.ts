@@ -22,6 +22,6 @@ export interface LocationType {
   phoneNumber: string;
   description: string;
   workingHours: WorkingHours;
-  status: 'active' | 'inactive';
+  isActive: boolean;
   createdAt: string;
 } 

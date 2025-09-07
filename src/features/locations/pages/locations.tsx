@@ -1,20 +1,23 @@
-'use client';
-
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { listLocationsAction } from '../actions';
+import { selectCurrentUser } from '../../auth/selectors';
 import { Plus, Trash2, MapPin, Clock, Phone, Mail, Search, Filter, X, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
 import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
+import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { Badge } from "../../../shared/components/ui/badge";
 import AddLocationSlider from '../components/AddLocationSlider';
 import EditLocationSlider from '../components/EditLocationSlider';
 import EditWorkingHoursSlider from '../components/EditWorkingHoursSlider';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
-import { mockLocations } from '../../../mocks/locations.mock';
 import type { LocationType } from '../../../shared/types/location';
 import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
+import { capitalize, shortDay } from '../utils';
+import { selectAllLocations } from '../selectors';
 
 const defaultWorkingHours = {
   monday: { open: '09:00', close: '17:00', isOpen: true },
@@ -26,31 +29,27 @@ const defaultWorkingHours = {
   sunday: { open: '10:00', close: '15:00', isOpen: false },
 };
 
-// Helper to capitalize day names
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
-
-// Helper to get short day names
-const shortDay = (day: string) => {
-  const map: Record<string, string> = {
-    monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun'
-  };
-  return map[day.toLowerCase()] || day;
-};
-
 export default function LocationsPage() {
-  const [locations, setLocations] = useState<LocationType[]>(mockLocations);
+  const dispatch = useDispatch();
+
+  const allLocations = useSelector(selectAllLocations);
+
+  console.log(allLocations);
+  // const currentLocation = useSelector(selectCurrentLocation);
+  // const isLocationLoading = useSelector(selectLocationLoading);
+  const user = useSelector(selectCurrentUser);
+
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
+  // const [isInfo, setIsInfo] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<LocationType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-  
+
   const [isWorkingHoursSliderOpen, setIsWorkingHoursSliderOpen] = useState(false);
   const [editingWorkingHoursLocation, setEditingWorkingHoursLocation] = useState<LocationType | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -62,13 +61,13 @@ export default function LocationsPage() {
     dayLabel: string;
   } | null>(null);
 
-  // Fetch locations on component mount
   useEffect(() => {
-    fetchLocations();
-  }, []);
+    if (user?.businessId) {
+      dispatch(listLocationsAction.request());
+    }
+  }, [dispatch, user]);
 
-  // When opening the filter card, sync local state with main state
-  React.useEffect(() => {
+  useEffect(() => {
     if (showFilters) {
       setLocalStatusFilter(statusFilter);
     }
@@ -80,46 +79,7 @@ export default function LocationsPage() {
     statusFilter !== 'all'
   ].filter(Boolean).length;
 
-  const fetchLocations = async () => {
-    setLocations(mockLocations);
-  };
 
-  const handleCreateLocationSlider = async (locationData: {
-    name: string;
-    address: string;
-    email: string;
-    phoneNumber: string;
-    description: string;
-    workingHours: {
-      monday: { open: string; close: string; isOpen: boolean };
-      tuesday: { open: string; close: string; isOpen: boolean };
-      wednesday: { open: string; close: string; isOpen: boolean };
-      thursday: { open: string; close: string; isOpen: boolean };
-      friday: { open: string; close: string; isOpen: boolean };
-      saturday: { open: string; close: string; isOpen: boolean };
-      sunday: { open: string; close: string; isOpen: boolean };
-    };
-    status: 'active' | 'inactive';
-  }) => {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/locations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(locationData),
-      });
-
-      if (!response.ok) throw new Error('Failed to create location');
-
-      toast.success('Location created successfully');
-      setIsCreateSliderOpen(false);
-      fetchLocations();
-    } catch (error) {
-      toast.error('Failed to create location');
-    }
-  };
 
   const handleEditLocationSlider = async (locationData: LocationType) => {
     try {
@@ -136,7 +96,7 @@ export default function LocationsPage() {
       toast.success('Location updated successfully');
       setIsEditSliderOpen(false);
       setEditingLocation(null);
-      fetchLocations();
+      // dispatch(fetchLocationByIdAction.request({ locationId: (user as any)?.businessId }))
     } catch (error) {
       toast.error('Failed to update location');
     }
@@ -151,7 +111,7 @@ export default function LocationsPage() {
       if (!response.ok) throw new Error('Failed to delete location');
 
       toast.success('Location deleted successfully');
-      fetchLocations();
+      // dispatch(fetchLocationByIdAction.request({ locationId: (user as any)?.businessId }))
     } catch (error) {
       toast.error('Failed to delete location');
     }
@@ -162,27 +122,20 @@ export default function LocationsPage() {
     setIsEditSliderOpen(true);
   };
 
-  const updateLocationDayHours = (locationId: string, day: string, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
-    setLocations(locations.map(location => {
-      if (location.id === locationId) {
-        return {
-          ...location,
-          workingHours: {
-            ...location.workingHours,
-            [day]: {
-              ...location.workingHours[day as keyof typeof defaultWorkingHours],
-              [field]: value,
-            },
-          },
-        };
-      }
-      return location;
-    }));
-  };
+  // const updateLocationDayHours = (locationId: string, day: string, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {};
 
   const openDayEditModal = (location: LocationType, day: string, dayLabel: string) => {
     setEditingDayData({ location, day, dayLabel });
     setIsDayEditModalOpen(true);
+  };
+
+  const updateLocationDayHours = (
+    _locationId: string,
+    _day: string,
+    _field: 'open' | 'close' | 'isOpen',
+    _value: string | boolean
+  ) => {
+    // TODO: Implement updating working hours via state or dispatch
   };
 
   const getStatusBadge = (status: string) => {
@@ -197,22 +150,23 @@ export default function LocationsPage() {
   };
 
   // Filter locations based on search and status
-  const filteredLocations = locations.filter(location => {
+  const filteredLocations = allLocations.filter(location => {
     const matchesSearch = location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       location.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       location.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || location.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || location.isActive === (statusFilter === 'active');
     return matchesSearch && matchesStatus;
   });
 
   return (
     <AppLayout>
+      <BusinessSetupGate>
       <div className="space-y-4 max-w-2xl mx-auto">
         {/* Top Controls: Search, Filter, Add */}
         <div className="flex gap-2 items-center">
           <div className="relative flex-1">
             <Input
-              placeholder="Search locations..."
+              placeholder="Search location..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="h-11 text-base pr-12 pl-4 rounded-lg border border-input bg-white"
@@ -241,10 +195,10 @@ export default function LocationsPage() {
             onClick={() => setIsCreateSliderOpen(true)}
           >
             <Plus className="h-5 w-5" />
-            <span className="font-semibold">Add Location</span>
+            <span className="font-semibold">Add New</span>
           </Button>
         </div>
-        
+
         {/* Filter Panel (dropdown style) */}
         {showFilters && (
           <FilterPanel
@@ -286,8 +240,8 @@ export default function LocationsPage() {
         {(searchTerm || statusFilter !== 'all') && (
           <div className="flex flex-wrap gap-2 mb-2">
             {searchTerm && (
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setSearchTerm('')}
               >
@@ -296,8 +250,8 @@ export default function LocationsPage() {
               </Badge>
             )}
             {statusFilter !== 'all' && (
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                 onClick={() => setStatusFilter('all')}
               >
@@ -311,15 +265,15 @@ export default function LocationsPage() {
         {/* Stats Cards */}
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-lg border bg-white p-4 text-center">
-            <div className="text-2xl font-bold text-blue-600">{locations.length}</div>
+            <div className="text-2xl font-bold text-blue-600">{allLocations.length}</div>
             <div className="text-xs text-gray-500 mt-1">Total</div>
           </div>
           <div className="rounded-lg border bg-white p-4 text-center">
-            <div className="text-2xl font-bold text-green-600">{locations.filter(l => l.status === 'active').length}</div>
+            <div className="text-2xl font-bold text-green-600">{allLocations.filter(l => l.isActive === true).length}</div>
             <div className="text-xs text-gray-500 mt-1">Active</div>
           </div>
           <div className="rounded-lg border bg-white p-4 text-center">
-            <div className="text-2xl font-bold text-gray-600">{locations.filter(l => l.status === 'inactive').length}</div>
+            <div className="text-2xl font-bold text-gray-600">{allLocations.filter(l => l.isActive === false).length}</div>
             <div className="text-xs text-gray-500 mt-1">Inactive</div>
           </div>
         </div>
@@ -331,7 +285,7 @@ export default function LocationsPage() {
               {/* Top Row: Name and Status */}
               <div className="flex items-center justify-between gap-2">
                 <span className="font-semibold text-lg truncate">{location.name}</span>
-                {getStatusBadge(location.status)}
+                {getStatusBadge(location.isActive ? 'active' : 'inactive')}
               </div>
               {/* Info Rows */}
               <div className="flex flex-col gap-1 text-sm mt-2">
@@ -442,7 +396,7 @@ export default function LocationsPage() {
         {/* Edit Dialog - Replaced with EditLocationSlider */}
 
         {/* Working Hours Slider */}
-        <EditWorkingHoursSlider 
+        <EditWorkingHoursSlider
           isOpen={isWorkingHoursSliderOpen}
           onClose={() => {
             setIsWorkingHoursSliderOpen(false);
@@ -461,7 +415,7 @@ export default function LocationsPage() {
               if (!response.ok) throw new Error('Failed to update working hours');
 
               toast.success('Working hours updated successfully');
-              fetchLocations();
+              // dispatch(fetchLocationByIdAction.request({ locationId: (user as any)?.businessId }))
             } catch (error) {
               toast.error('Failed to update working hours');
             }
@@ -479,9 +433,9 @@ export default function LocationsPage() {
               </DialogDescription>
             </DialogHeader>
             {editingDayData && (() => {
-              const currentLocation = locations.find(loc => loc.id === editingDayData.location.id);
+              const currentLocation = allLocations.find(loc => loc.id === editingDayData.location.id);
               const currentDayHours = currentLocation?.workingHours[editingDayData.day as keyof typeof defaultWorkingHours];
-              
+
               return (
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -581,20 +535,20 @@ export default function LocationsPage() {
         </Dialog>
 
         {/* Add Location Slider */}
-        <AddLocationSlider 
+        <AddLocationSlider
           isOpen={isCreateSliderOpen}
           onClose={() => setIsCreateSliderOpen(false)}
-          onCreate={handleCreateLocationSlider}
         />
-        
+
         {/* Edit Location Slider */}
-        <EditLocationSlider 
+        <EditLocationSlider
           isOpen={isEditSliderOpen}
           onClose={() => setIsEditSliderOpen(false)}
           onUpdate={handleEditLocationSlider}
           location={editingLocation}
         />
       </div>
+      </BusinessSetupGate>
     </AppLayout>
   );
 }

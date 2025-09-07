@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState } from 'react';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Card, CardContent } from '../../../shared/components/ui/card';

@@ -8,6 +8,7 @@ import { Textarea } from '../../../shared/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import InviteTeamMemberSlider from '../../teamMembers/components/InviteTeamMemberSlider';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import type { LocationType } from '../../../shared/types/location';
 
 interface Location {
   id: string;
@@ -32,8 +33,8 @@ interface Location {
 interface EditLocationSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (locationData: Location) => void;
-  location: Location | null;
+  onUpdate: (locationData: LocationType) => void;
+  location: LocationType | null;
 }
 
 const mockTeamMembers = [
@@ -78,7 +79,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   onUpdate, 
   location 
 }) => {
-  const [formData, setFormData] = useState<Location | null>(null);
+  const [formData, setFormData] = useState<LocationType | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
 

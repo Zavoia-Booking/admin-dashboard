@@ -2,50 +2,39 @@ import React from 'react';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';
 import { Rocket, Link, Share2, CheckCircle, Circle, ExternalLink } from 'lucide-react';
-import type { WizardData } from '../../../shared/hooks/useSetupWizard';
+import type { StepProps } from '../types';
 import { useNavigate } from 'react-router-dom';
 
-interface Step7Props {
-  data: WizardData;
-  onUpdate: (data: Partial<WizardData>) => void;
-  onLaunch?: () => void;
-}
-
-const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
+const StepLaunch: React.FC<StepProps> = ({ data }) => {
   const navigate = useNavigate();
-  const bookingLink = `book.appointmentpro.com/${data.businessName.toLowerCase().replace(/\s+/g, '-')}`;
+  const bookingLink = `book.appointmentpro.com/${data.businessInfo.name.toLowerCase().replace(/\s+/g, '-')}`;
+  const businessCompleted = data.businessInfo.name.trim() !== '' && data.businessInfo.industry !== '';
+  const locationCompleted = data.location.isRemote
+    ? (data.location.name?.trim() || '') !== '' && (data.location.timezone?.trim() || '') !== '' && (((data.location.email?.trim() || '') !== '') || (data.location.phone?.trim() || '') !== '')
+    : (data.location.name?.trim() || '') !== '' && (data.location.address?.trim() || '') !== '' && ((data.location.email?.trim() || '') !== '') && (data.location.phone?.trim() || '') !== '';
+  const workingHoursOpenDays = Object.values(data.location.workingHours || {}).filter(d => d.isOpen).length;
   
   const checklist = [
-    { 
-      label: 'Business information', 
-      completed: data.businessName && data.industry,
-      required: true
+    {
+      label: 'Business information',
+      completed: businessCompleted,
+      required: true,
     },
-    { 
-      label: 'Location setup', 
-      completed: data.isRemote || (data.address && data.city),
-      required: true
+    {
+      label: 'Location setup',
+      completed: locationCompleted,
+      required: true,
     },
-    { 
-      label: 'Services added', 
-      completed: data.services.length > 0,
-      required: false
+    {
+      label: 'Working hours configured',
+      completed: workingHoursOpenDays > 0,
+      required: true,
     },
-    { 
-      label: 'Schedule configured', 
-      completed: data.schedule.some(day => !day.isClosed),
-      required: false
-    },
-    { 
-      label: 'Team members invited', 
+    {
+      label: 'Team members invited',
       completed: data.worksSolo || data.teamMembers.length > 0,
-      required: false
+      required: false,
     },
-    { 
-      label: 'Website template selected', 
-      completed: data.selectedTemplate !== '',
-      required: false
-    }
   ];
 
   const completedRequired = checklist.filter(item => item.required && item.completed).length;
@@ -53,15 +42,8 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
   const completedOptional = checklist.filter(item => !item.required && item.completed).length;
   const totalOptional = checklist.filter(item => !item.required).length;
 
-  const canLaunch = completedRequired === totalRequired;
-
-  const handleLaunch = () => {
-    onUpdate({ isLaunched: true });
-    onLaunch?.();
-  };
-
   const shareWhatsApp = () => {
-    const message = `🎉 My business is now online! Book appointments with ${data.businessName} at ${bookingLink}`;
+    const message = `🎉 My business is now online! Book appointments with ${data.businessInfo.name} at ${bookingLink}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -77,7 +59,7 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
           <Rocket className="h-10 w-10 text-emerald-600" />
         </div>
         <h3 className="text-2xl font-bold text-foreground mb-2">
-          {`You're ready to go live! 🎉`}
+          {`Congratulations! 🎉`}
         </h3>
         <p className="text-muted-foreground">
           Your booking system is set up and ready to accept appointments
@@ -135,7 +117,7 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
           </Button>
           <Button size="sm" variant="outline" className="gap-2">
             <ExternalLink className="h-4 w-4" />
-            Preview Site
+            Preview
           </Button>
         </div>
       </div>
@@ -161,9 +143,6 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
         <h4 className="font-semibold text-emerald-800 mb-2">🎯 Next Steps</h4>
         <ul className="text-sm text-emerald-700 space-y-1">
           <li>• Complete your profile and add more services</li>
-          <li>• Set up payment processing</li>
-          <li>• Customize your website design</li>
-          <li>• Configure email notifications</li>
           <li>• Invite team members to manage bookings</li>
         </ul>
       </div>
@@ -180,4 +159,4 @@ const Step7Launch: React.FC<Step7Props> = ({ data, onUpdate, onLaunch }) => {
   );
 };
 
-export default Step7Launch; 
+export default StepLaunch; 

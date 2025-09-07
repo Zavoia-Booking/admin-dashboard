@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Button } from '../../../shared/components/ui/button';
@@ -6,26 +6,31 @@ import { Switch } from '../../../shared/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
 import { Badge } from '../../../shared/components/ui/badge';
 import { Users, Plus, X, User } from 'lucide-react';
-import type { WizardData } from '../../../shared/hooks/useSetupWizard';
+import type { StepProps } from '../types';
 import { UserRole } from '../../../shared/types/auth';
+import { useForm } from 'react-hook-form';
+import { getRoleBadgeColor, getRoleDisplayName } from '../utils';
 
-interface Step5Props {
-  data: WizardData;
-  onUpdate: (data: Partial<WizardData>) => void;
-}
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
-  const [newMember, setNewMember] = useState({ email: '', role: UserRole.TEAM_MEMBER });
+const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
+  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isValid } } = useForm<{ email: string; role: UserRole }>({
+    defaultValues: { email: '', role: UserRole.TEAM_MEMBER },
+    mode: 'onChange',
+  });
 
-  const addTeamMember = () => {
-    if (newMember.email.trim()) {
-      onUpdate({ 
-        teamMembers: [...data.teamMembers, newMember],
-        worksSolo: false 
-      });
-      setNewMember({ email: '', role: UserRole.TEAM_MEMBER });
-    }
-  };
+  const addTeamMember = handleSubmit(({ email, role }) => {
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail) return;
+    const duplicate = data.teamMembers.some(m => m.email.toLowerCase() === trimmedEmail);
+    if (duplicate) return;
+    const invitation = { id: Date.now().toString(), email: trimmedEmail, role, status: 'pending' as const };
+    onUpdate({ 
+      teamMembers: [...data.teamMembers, invitation],
+      worksSolo: false 
+    });
+    reset({ email: '', role });
+  });
 
   const removeMember = (index: number) => {
     const newMembers = data.teamMembers.filter((_, i) => i !== index);
@@ -40,26 +45,6 @@ const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
       worksSolo,
       teamMembers: worksSolo ? [] : data.teamMembers 
     });
-  };
-
-  const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN: return 'bg-red-100 text-red-800 border-red-200';
-      case UserRole.TEAM_MEMBER: return 'bg-blue-100 text-blue-800 border-blue-200';
-      case UserRole.MANAGER: return 'bg-green-100 text-green-800 border-green-200';
-      case UserRole.OWNER: return 'bg-purple-100 text-purple-800 border-purple-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getRoleDisplayName = (role: UserRole) => {
-    switch (role) {
-      case UserRole.ADMIN: return 'Admin';
-      case UserRole.TEAM_MEMBER: return 'Team Member';
-      case UserRole.MANAGER: return 'Manager';
-      case UserRole.OWNER: return 'Owner';
-      default: return 'Unknown';
-    }
   };
 
   return (
@@ -139,26 +124,22 @@ const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
                 <Input
                   type="email"
                   placeholder="team.member@example.com"
-                  value={newMember.email}
-                  onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
                   className="h-11"
+                  {...register('email', { required: true, pattern: emailRegex })}
                 />
+                {errors.email && (
+                  <div className="text-xs text-red-600">Enter a valid email address</div>
+                )}
                 <Select
-                  value={newMember.role}
+                  value={watch('role')}
                   onValueChange={(value: UserRole) => 
-                    setNewMember(prev => ({ ...prev, role: value }))
+                    setValue('role', value, { shouldDirty: true, shouldTouch: true })
                   }
                 >
                   <SelectTrigger className="h-11 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={UserRole.ADMIN}>
-                      <div className="text-left">
-                        <div className="font-medium">Admin</div>
-                        <div className="text-xs text-muted-foreground">Full access to all features</div>
-                      </div>
-                    </SelectItem>
                     <SelectItem value={UserRole.TEAM_MEMBER}>
                       <div className="text-left">
                         <div className="font-medium">Team Member</div>
@@ -175,7 +156,7 @@ const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
                 </Select>
                 <Button 
                   onClick={addTeamMember} 
-                  disabled={!newMember.email.trim()} 
+                  disabled={!isValid} 
                   className="w-full gap-2"
                 >
                   <Plus className="h-4 w-4" />
@@ -221,4 +202,4 @@ const Step5Team: React.FC<Step5Props> = ({ data, onUpdate }) => {
   );
 };
 
-export default Step5Team; 
+export default StepTeam; 
