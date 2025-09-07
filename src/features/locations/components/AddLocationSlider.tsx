@@ -1,54 +1,25 @@
 import React, { useState } from 'react';
+import { useDispatch } from 'react-redux';
 import { MapPin, Phone, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
+import { Switch } from '../../../shared/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { createLocationAction } from '../actions';
+import type { NewLocationPayload } from '../types';
+import type { WorkingHours } from '../../../shared/types/location';
+import { useForm } from 'react-hook-form';
 
 interface AddLocationSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (locationData: {
-    name: string;
-    address: string;
-    email: string;
-    phoneNumber: string;
-    description: string;
-    workingHours: {
-      monday: { open: string; close: string; isOpen: boolean };
-      tuesday: { open: string; close: string; isOpen: boolean };
-      wednesday: { open: string; close: string; isOpen: boolean };
-      thursday: { open: string; close: string; isOpen: boolean };
-      friday: { open: string; close: string; isOpen: boolean };
-      saturday: { open: string; close: string; isOpen: boolean };
-      sunday: { open: string; close: string; isOpen: boolean };
-    };
-    status: 'active' | 'inactive';
-  }) => void;
 }
 
-interface LocationFormData {
-  name: string;
-  address: string;
-  email: string;
-  phoneNumber: string;
-  description: string;
-  workingHours: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-  status: 'active' | 'inactive';
-}
-
-const defaultWorkingHours = {
+const defaultWorkingHours: WorkingHours = {
   monday: { open: '09:00', close: '17:00', isOpen: true },
   tuesday: { open: '09:00', close: '17:00', isOpen: true },
   wednesday: { open: '09:00', close: '17:00', isOpen: true },
@@ -58,14 +29,16 @@ const defaultWorkingHours = {
   sunday: { open: '10:00', close: '15:00', isOpen: false },
 };
 
-const initialFormData: LocationFormData = {
+const initialFormData: NewLocationPayload = {
+  isRemote: false,
   name: '',
   address: '',
   email: '',
-  phoneNumber: '',
+  phone: '',
   description: '',
   workingHours: defaultWorkingHours,
-  status: 'active'
+  isActive: true,
+  timezone: 'UTC',
 };
 
 function capitalize(str: string) {
@@ -74,46 +47,47 @@ function capitalize(str: string) {
 
 const AddLocationSlider: React.FC<AddLocationSliderProps> = ({ 
   isOpen, 
-  onClose, 
-  onCreate 
+  onClose 
 }) => {
-  const [formData, setFormData] = useState<LocationFormData>(initialFormData);
+  const dispatch = useDispatch();
+  const defaultValues: NewLocationPayload = {
+    ...initialFormData,
+    timezone: (typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC') as string,
+  };
+  const { register, handleSubmit, reset, watch } = useForm({ defaultValues });
+  const currentWorkingHours = watch('workingHours') as WorkingHours;
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   React.useEffect(() => {
     if (!isOpen) {
-      setFormData(initialFormData);
+      reset(defaultValues);
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmCreate = () => {
-    onCreate(formData);
+    dispatch(createLocationAction.request({ location: watch() }));
     setShowConfirmDialog(false);
     onClose();
-    setFormData(initialFormData);
+    reset(defaultValues);
   };
 
   const handleCancel = () => {
     onClose();
-    setFormData(initialFormData);
   };
 
   const updateWorkingHours = (day: keyof typeof defaultWorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
-    setFormData({
-      ...formData,
-      workingHours: {
-        ...formData.workingHours,
-        [day]: {
-          ...formData.workingHours[day],
-          [field]: value,
-        },
+    const updated: WorkingHours = {
+      ...currentWorkingHours,
+      [day]: {
+        ...currentWorkingHours[day],
+        [field]: value as any,
       },
-    });
+    } as WorkingHours;
+    reset({ ...watch(), workingHours: updated });
   };
 
   return (
@@ -143,7 +117,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
           </div>
         }
       >
-        <form id="add-location-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+        <form id="add-location-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-8">
               {/* Location Information Section */}
@@ -160,10 +134,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     id="name"
                     type="text"
                     placeholder="Enter location name..."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
+                    {...register('name', { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -171,11 +143,9 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   <Textarea
                     id="address"
                     placeholder="Enter full address..."
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     rows={3}
                     className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                    required
+                    {...register('address', { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -183,10 +153,9 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   <Textarea
                     id="description"
                     placeholder="Describe the location..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
+                    {...register('description')}
                   />
                 </div>
               </div>
@@ -205,22 +174,18 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     id="email"
                     type="email"
                     placeholder="Enter email address..."
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
+                    {...register('email', { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">Phone Number</Label>
+                  <Label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</Label>
                   <Input
-                    id="phoneNumber"
+                    id="phone"
                     type="tel"
                     placeholder="Enter phone number..."
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
+                    {...register('phone', { required: true })}
                   />
                 </div>
               </div>
@@ -234,7 +199,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   <h3 className="text-base font-semibold text-foreground">Working Hours</h3>
                 </div>
                 <div className="space-y-3">
-                  {Object.entries(formData.workingHours).map(([day, hours]) => (
+                  {(Object.entries(currentWorkingHours) as [string, WorkingHours['monday']][]).map(([day, hours]) => (
                     <div key={day} className="bg-white rounded-xl shadow-xs p-4 flex flex-col gap-2 border">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-base">{capitalize(day)}</span>
@@ -292,6 +257,30 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   ))}
                 </div>
               </div>
+              {/* Location Settings */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-foreground">Active</Label>
+                  </div>
+                  <Switch
+                    checked={!!watch('isActive')}
+                    onCheckedChange={(checked) => {
+                      reset({ ...watch(), isActive: checked });
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="text-sm font-medium text-foreground">Timezone</Label>
+                  <Input
+                    id="timezone"
+                    type="text"
+                    placeholder="e.g., America/New_York"
+                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
+                    {...register('timezone', { required: true })}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </form>
@@ -306,7 +295,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               Create Location
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to create the location "{formData.name}"? This will add it to your locations list.`}
+              {`Are you sure you want to create the location "${watch('name')}"?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

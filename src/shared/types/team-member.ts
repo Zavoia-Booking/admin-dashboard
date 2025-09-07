@@ -1,3 +1,5 @@
+import type { UserRole } from "./auth";
+
 export interface TeamMember {
   id: string;
   firstName: string;
@@ -18,4 +20,9 @@ export interface TeamMember {
     saturday: { open: string; close: string; isOpen: boolean };
     sunday: { open: string; close: string; isOpen: boolean };
   };
-} 
+}
+
+export type InviteTeamMemberPayload = {
+  email: string;
+  role: UserRole;
+}

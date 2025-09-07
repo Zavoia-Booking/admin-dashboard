@@ -3,6 +3,7 @@ import { watchTokenHandler } from "../../features/auth/hydrateSession.saga";
 import { authSaga } from "../../features/auth/auth.saga";
 import { setupWizardSaga } from "../../features/setupWizard/saga";
 import { teamMembersSaga } from "../../features/teamMembers/saga";
+import { locationsSaga } from "../../features/locations/saga";
 
 export function* rootSaga() {
     yield all([
@@ -10,5 +11,6 @@ export function* rootSaga() {
         authSaga(),
         setupWizardSaga(), 
         teamMembersSaga(),
+        locationsSaga(),
     ]);
 }

@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { MobileBottomNav } from '../navigation/mobile-bottom-nav';
 import { MobileHeader } from '../navigation/mobile-header';

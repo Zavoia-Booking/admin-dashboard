@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "../../../shared/components/ui/button";
 import { Label } from '../../../shared/components/ui/label';

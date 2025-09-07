@@ -1,5 +1,3 @@
-'use client';
-
 import React, { useState, useEffect } from 'react';
 import { AppLayout } from '../shared/components/layouts/app-layout';
 import { Button } from '../shared/components/ui/button';

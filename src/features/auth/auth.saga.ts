@@ -7,9 +7,10 @@ import {
   setCsrfToken,
   logoutRequestAction,
   loginAction,
+  fetchCurrentUserAction,
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi } from "./api";
-import type { RegisterOwnerPayload, AuthResponse } from "./types";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi } from "./api";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 
 function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOwnerPayload }): Generator<any, void, any> {
   try {
@@ -54,8 +55,6 @@ function* handleLogin(action: { type: string; payload: { email: string, password
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-
-    console.log('response', response)
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
 
@@ -72,5 +71,16 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(registerOwnerRequestAction.request, handleRegisterOwnerRequest),
     takeLatest(logoutRequestAction.request, handleLogout),
     takeLatest(loginAction.request, handleLogin),
+    takeLatest(fetchCurrentUserAction.request, handleFetchCurrentUser),
   ]);
+}
+
+function* handleFetchCurrentUser(): Generator<any, void, any> {
+  try {
+    const user : AuthUser = (yield call(getCurrentUserApi)) as any;
+    yield put(setAuthUserAction({ user }));
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || "Fetch current user failed";
+    yield put(fetchCurrentUserAction.failure({ message }));
+  }
 }

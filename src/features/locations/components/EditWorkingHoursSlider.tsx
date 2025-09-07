@@ -6,6 +6,7 @@ import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import type { LocationType } from '../../../shared/types/location';
 
 interface Location {
   id: string;
@@ -30,8 +31,8 @@ interface Location {
 interface EditWorkingHoursSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (locationData: Location) => void;
-  location: Location | null;
+  onUpdate: (locationData: LocationType) => void;
+  location: LocationType | null;
 }
 
 const defaultWorkingHours = {
@@ -54,7 +55,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
   onUpdate, 
   location 
 }) => {
-  const [formData, setFormData] = useState<Location | null>(null);
+  const [formData, setFormData] = useState<LocationType | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   useEffect(() => {

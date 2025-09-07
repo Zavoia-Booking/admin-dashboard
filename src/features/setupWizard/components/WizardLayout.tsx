@@ -2,22 +2,7 @@ import React from 'react';
 import { Progress } from '../../../shared/components/ui/progress';
 import { Button } from '../../../shared/components/ui/button';
 import { Save, ArrowLeft, ArrowRight } from 'lucide-react';
-
-interface WizardLayoutProps {
-  currentStep: number;
-  totalSteps: number;
-  progress: number;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  onPrevious?: () => void;
-  onNext?: () => void;
-  onSave?: () => void;
-  canProceed: boolean;
-  isLoading: boolean;
-  showNext?: boolean;
-  nextLabel?: string;
-}
+import type { WizardLayoutProps } from '../types';
 
 const WizardLayout: React.FC<WizardLayoutProps> = ({
   currentStep,

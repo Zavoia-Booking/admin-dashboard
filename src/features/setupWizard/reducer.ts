@@ -1,4 +1,4 @@
-import { wizardInit, wizardSetStep, wizardNext, wizardPrev, wizardUpdateData, wizardSaveRequest, wizardSaveSuccess, wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure } from "./actions";
+import { wizardSaveAction, wizardCompleteAction } from "./actions";
 
 type WizardState = {
   currentStep: number;
@@ -18,35 +18,17 @@ const initialState: WizardState = {
 
 export default function setupWizardReducer(state: WizardState = initialState, action: any) {
   switch (action.type) {
-    case wizardInit.type: {
-      return { ...initialState };
-    }
-    case wizardSetStep.type: {
-      const next = Math.min(Math.max(action.payload, 1), state.totalSteps);
-      return { ...state, currentStep: next };
-    }
-    case wizardNext.type: {
-      const next = Math.min(state.currentStep + 1, state.totalSteps);
-      return { ...state, currentStep: next };
-    }
-    case wizardPrev.type: {
-      const prev = Math.max(state.currentStep - 1, 1);
-      return { ...state, currentStep: prev };
-    }
-    case wizardUpdateData.type: {
-      return { ...state, data: { ...state.data, ...action.payload } };
-    }
-    case wizardSaveRequest.type:
-    case wizardCompleteRequest.type: {
+    case wizardSaveAction.request:
+    case wizardCompleteAction.request: {
       return { ...state, isLoading: true, error: null };
     }
-    case wizardSaveSuccess.type:
-    case wizardCompleteSuccess.type: {
+    case wizardSaveAction.success:
+    case wizardCompleteAction.success: {
       return { ...state, isLoading: false };
     }
-    case wizardSaveFailure.type:
-    case wizardCompleteFailure.type: {
-      return { ...state, isLoading: false, error: action.payload };
+    case wizardSaveAction.failure:
+    case wizardCompleteAction.failure: {
+      return { ...state, isLoading: false, error: action.payload?.message };
     }
     default:
       return state;
