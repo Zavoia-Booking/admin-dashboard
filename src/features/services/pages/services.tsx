@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+'use client';
+
+import React, {useState, useMemo, useCallback, useEffect} from 'react';
 import { Edit, Trash2, Filter, Search, Plus, Clock, X, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
 import AddServiceSlider from '../components/AddServiceSlider';
@@ -8,13 +10,20 @@ import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Switch } from "../../../shared/components/ui/switch";
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
-import { mockServices } from '../../../mocks/services.mock';
-import type { Service, StaffAssignment } from '../../../shared/types/service';
+import type { Service } from '../../../shared/types/service';
 import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
+import {getServicesListSelector} from "../selectors.ts";
+import {useDispatch, useSelector} from "react-redux";
+import type {CreateServicePayload, EditServicePayload} from "../types.ts";
+import {createServicesAction, deleteServicesAction, editServicesAction, getServicesAction} from "../actions.ts";
+import {selectCurrentLocation} from "../../locations/selectors.ts";
 
 export default function ServicesPage() {
-  const [services, setServices] = useState<Service[]>(mockServices);
+  const services: Array<Service> = useSelector(getServicesListSelector);
+  const currentLocation = useSelector(selectCurrentLocation);
+
+  const dispatch = useDispatch();
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,59 +77,69 @@ export default function ServicesPage() {
     });
   }, [services, searchTerm, statusFilter, priceRange, durationRange]);
 
-  const fetchServices = async () => {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/services');
-      const data = await response.json();
-      setServices(data);
-    } catch (error) {
-      toast.error('Failed to fetch services');
+  useEffect(() => {
+    dispatch(getServicesAction.request())
+  }, [dispatch]);
+
+
+  // const fetchServices = async () => {
+  //   try {
+  //     // TODO: Replace with actual API call
+  //     const response = await fetch('/api/services');
+  //     const data = await response.json();
+  //     setServices(data);
+  //   } catch (error: any) {
+  //     toast.error('Failed to fetch services');
+  //   }
+  // };
+
+  const handleCreateService = useCallback((serviceData: any) => {
+    const {description, duration, name, price} = serviceData;
+
+    const createPayload: CreateServicePayload = {
+      description,
+      duration,
+      locationIds: [currentLocation?.id],
+      name,
+      price,
+      teamMembers: []
     }
-  };
 
-  const handleCreateService = async (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled'; staff?: StaffAssignment[] }) => {
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch('/api/services', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(serviceData),
-      });
+    dispatch(createServicesAction.request(createPayload))
+    setIsCreateSliderOpen(false);
 
-      if (!response.ok) throw new Error('Failed to create service');
+  },[dispatch, currentLocation]);
 
-      toast.success('Service created successfully');
-      setIsCreateSliderOpen(false);
-      fetchServices();
-    } catch (error) {
-      toast.error('Failed to create service');
+  const handleEditService = useCallback( (serviceData: Service | any) => {
+    if (!serviceData) {
+      return;
     }
-  };
 
-  const handleEditService = async (serviceData: Service | any) => {
-    // TODO: Replace with actual API call
-    // try {
-    //   // TODO: Replace with actual API call
-    //   const response = await fetch(`/api/services/${serviceData.id}`, {
-    //     method: 'PUT',
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify(serviceData),
-    //   });
-    //
-    //   if (!response.ok) throw new Error('Failed to update service');
-    //
-    //   toast.success('Service updated successfully');
-    //   setIsEditSliderOpen(false);
-    //   setEditingService(null);
-    //   fetchServices();
-    // } catch (error) {
-    //   toast.error('Failed to update service');
-    // }
+    const {description, duration, name, price, teamMembers, locationIds, id} = serviceData;
+
+    const payload: EditServicePayload = {
+      description,
+      duration,
+      locationIds,
+      name,
+      price,
+      teamMembers,
+      id,
+    }
+
+    setIsEditSliderOpen(false);
+    setEditingService(null);
+
+    dispatch(editServicesAction.request(payload))
+  }, [dispatch]);
+
+  const handleDeleteService = async (id: string) => {
+    setPendingAction({
+      type: 'delete',
+      serviceId: id,
+      serviceName: services.find(s => s.id === id)?.name
+    });
+    setIsConfirmDialogOpen(true);
   };
 
   const handleToggleServiceStatus = async (service: Service) => {
@@ -154,8 +173,10 @@ export default function ServicesPage() {
       if (!response.ok) throw new Error('Failed to update service status');
 
       toast.success(`Service ${pendingAction.toggleStatusData.newStatus} successfully`);
-      fetchServices();
-    } catch (error) {
+      // TODO
+      // fetchServices();
+    } catch (error: unknown) {
+      console.log(error)
       toast.error('Failed to update service status');
     } finally {
       setIsConfirmDialogOpen(false);
@@ -163,34 +184,12 @@ export default function ServicesPage() {
     }
   };
 
-  const handleDeleteService = async (id: string) => {
-    setPendingAction({
-      type: 'delete',
-      serviceId: id,
-      serviceName: services.find(s => s.id === id)?.name
-    });
-    setIsConfirmDialogOpen(true);
-  };
-
   const confirmDelete = async () => {
     if (!pendingAction || pendingAction.type !== 'delete' || !pendingAction.serviceId) return;
 
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/services/${pendingAction.serviceId}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete service');
-
-      toast.success('Service deleted successfully');
-      fetchServices();
-    } catch (error) {
-      toast.error('Failed to delete service');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
-    }
+    dispatch(deleteServicesAction.request({serviceId: pendingAction.serviceId}));
+    setIsConfirmDialogOpen(false);
+    setPendingAction(null);
   };
 
   const openEditSlider = (service: Service) => {
@@ -418,7 +417,7 @@ export default function ServicesPage() {
           </div>
         )}
         
-        {/* Stats Cards */}
+         Stats Cards
         <div className="grid grid-cols-4 gap-4">
           <div className="rounded-lg border bg-white p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">{services.length}</div>
