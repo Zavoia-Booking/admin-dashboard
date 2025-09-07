@@ -11,6 +11,7 @@ import {
 } from "./actions";
 import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
+import { listLocationsAction } from "../locations/actions";
 
 function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOwnerPayload }): Generator<any, void, any> {
   try {
@@ -51,6 +52,9 @@ function* handleLogin(action: { type: string; payload: { email: string, password
 
     // Store access token in Redux (memory) + optional CSRF token
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+
+    // Fetch locations post-login
+    yield put(listLocationsAction.request());
     if (response.csrfToken) {
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }

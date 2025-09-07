@@ -2,14 +2,14 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSetupWizard } from '../../../shared/hooks/useSetupWizard';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { wizardCompleteAction } from '../actions';
 import WizardLayout from '../components/WizardLayout';
 import StepBusinessInfo from '../components/StepBusinessInfo';
 import StepTeam from '../components/StepTeam';
-// import StepTemplate from '../components/StepTemplate';
 import StepLaunch from '../components/StepLaunch';
 import StepLocation from '../components/StepLocation';
+import { selectCurrentUser } from '../../auth/selectors';
 
 const stepConfig = [
   {
@@ -37,6 +37,7 @@ const stepConfig = [
 const SetupWizardPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const user = useSelector(selectCurrentUser);
   
   const {
     currentStep,
@@ -65,31 +66,47 @@ const SetupWizardPage: React.FC = () => {
   const isLastStep = currentStep === totalSteps;
 
   return (
-    <WizardLayout
-      currentStep={currentStep}
-      totalSteps={totalSteps}
-      progress={getProgress()}
-      title={title}
-      subtitle={subtitle}
-      onPrevious={prevStep}
-      onNext={() => {
-        if (currentStep === totalSteps - 1) {
-          dispatch(wizardCompleteAction.request(data));
-        }
-        nextStep();
-      }}
-      onSave={!isLastStep ? handleSave : undefined}
-      canProceed={canProceed(currentStep)}
-      isLoading={isLoading}
-      showNext={!isLastStep}
-      nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
-    >
-      {isLastStep ? (
-        <CurrentStepComponent data={data} onUpdate={updateData} />
-      ) : (
-        <CurrentStepComponent data={data} onUpdate={updateData} />
-      )}
-    </WizardLayout>
+    user?.wizardCompleted ? (
+      <div className="max-w-2xl mx-auto text-center py-12">
+        <h2 className="text-2xl font-bold mb-4">Thank You for Completing Your Business Setup!</h2>
+        <p className="text-gray-600 mb-8">
+          Your business is now ready to go. You can start adding services, inviting team members, 
+          and customizing your booking experience through the dashboard.
+        </p>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark"
+        >
+          Go to Dashboard
+        </button>
+      </div>
+    ) : (
+      <WizardLayout
+        currentStep={currentStep}
+        totalSteps={totalSteps}
+        progress={getProgress()}
+        title={title}
+        subtitle={subtitle}
+        onPrevious={prevStep}
+        onNext={() => {
+          if (currentStep === totalSteps - 1) {
+            dispatch(wizardCompleteAction.request(data));
+          }
+          nextStep();
+        }}
+        onSave={!isLastStep ? handleSave : undefined}
+        canProceed={canProceed(currentStep)}
+        isLoading={isLoading}
+        showNext={!isLastStep}
+        nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
+      >
+        {isLastStep ? (
+          <CurrentStepComponent data={data} onUpdate={updateData} />
+        ) : (
+          <CurrentStepComponent data={data} onUpdate={updateData} />
+        )}
+      </WizardLayout>
+    )
   );
 };
 

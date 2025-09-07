@@ -33,8 +33,6 @@ export default function LocationsPage() {
   const dispatch = useDispatch();
 
   const allLocations = useSelector(selectAllLocations);
-
-  console.log(allLocations);
   // const currentLocation = useSelector(selectCurrentLocation);
   // const isLocationLoading = useSelector(selectLocationLoading);
   const user = useSelector(selectCurrentUser);

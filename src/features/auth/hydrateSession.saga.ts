@@ -1,6 +1,7 @@
 import { call, put, takeLatest, select, delay, all } from "redux-saga/effects";
 import { refreshSession } from "../../shared/lib/http";
 import { hydrateSessionAction, setTokensAction } from "./actions";
+import { listLocationsAction } from "../locations/actions";
 import type { RootState } from "../../app/providers/store";
 // no-op
 
@@ -59,6 +60,12 @@ export function* watchTokenHandler(): Generator<any, void, any> {
   yield all([
     watchHydrateSession(),
     watchProactiveRefresh(),
+    // Also listen for hydrate success and fetch locations to restore current location
+    (function* () {
+      yield takeLatest(hydrateSessionAction.success, function* () {
+        yield put(listLocationsAction.request());
+      });
+    })(),
   ]);
 }
 

@@ -35,6 +35,9 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
     case getType(actions.createLocationAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };
 
+    case getType(actions.setCurrentLocation):
+      return { ...state, current: action.payload.location };
+
     default:
       return state;
   }

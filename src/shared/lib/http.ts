@@ -36,7 +36,7 @@ function decodeJwt<T = any>(token: string): T | null {
 }
 
 // We pass the store in, so interceptors can access/getState/dispatch without circular deps
-export function createApiClient(store: Store<{ auth: AuthState }>): AxiosInstance {
+export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosInstance {
   const client = axios.create({
     baseURL: API_BASE_URL,
     withCredentials: true,
@@ -46,6 +46,7 @@ export function createApiClient(store: Store<{ auth: AuthState }>): AxiosInstanc
   client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const state = store.getState();
     const accessToken = state.auth.accessToken;
+    const currentLocationId: string | undefined = state?.locations?.current?.id;
     const url = config.url ?? "";
     const isRefreshCall = url.startsWith(REFRESH_ENDPOINT);
     const isLogoutCall = url.startsWith(LOGOUT_ENDPOINT);
@@ -57,6 +58,9 @@ export function createApiClient(store: Store<{ auth: AuthState }>): AxiosInstanc
     if (csrfHeaderNeeded && config.headers) {
       const csrf = state.auth.csrfToken ?? readCookie(CSRF_COOKIE_NAME);
       if (csrf) config.headers["x-csrf-token"] = csrf;
+    }
+    if (currentLocationId && config.headers) {
+      (config.headers as any)["x-location-id"] = currentLocationId;
     }
     return config;
   });

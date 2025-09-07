@@ -1,4 +1,4 @@
-import { createAsyncAction } from "typesafe-actions";
+import { createAsyncAction, createAction } from "typesafe-actions";
 import type { LocationType } from "../../shared/types/location";
 import type { NewLocationPayload } from "./types";
 
@@ -19,5 +19,9 @@ export const listLocationsAction = createAsyncAction(
   'locations/LIST_LOCATIONS_SUCCESS',
   'locations/LIST_LOCATIONS_FAILURE',
 )<void, { locations: LocationType[] }, { message: string }>();
+
+export const setCurrentLocation = createAction(
+  'locations/SET_CURRENT_LOCATION',
+)<{ location: LocationType | null }>();
 
 

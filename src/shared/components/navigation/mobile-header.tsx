@@ -1,15 +1,16 @@
-import { Bell, Search } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { useLocation } from 'react-router-dom';
-import { useState } from 'react';
 import { SidebarTrigger } from '../ui/sidebar';
+import { useDispatch, useSelector } from 'react-redux';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { selectAllLocations, selectCurrentLocation } from '../../../features/locations/selectors';
+import { setCurrentLocation } from '../../../features/locations/actions';
 
 export function MobileHeader() {
   const location = useLocation();
   const pathname = location.pathname;
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const dispatch = useDispatch();
+  const allLocations = useSelector(selectAllLocations);
+  const current = useSelector(selectCurrentLocation);
 
   // Get page title based on current path
   const getPageTitle = () => {
@@ -29,7 +30,7 @@ export function MobileHeader() {
       case '/settings':
         return 'Settings';
       default:
-        return 'Planr Admin';
+        return 'Admin';
     }
   };
 
@@ -44,35 +45,29 @@ export function MobileHeader() {
 
         {/* Right side - Search and Notifications */}
         <div className="flex items-center space-x-2">
-          {isSearchOpen ? (
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Search..."
-                className="w-48 h-9"
-                autoFocus
-                onBlur={() => setIsSearchOpen(false)}
-              />
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10"
-              onClick={() => setIsSearchOpen(true)}
+          {allLocations && allLocations.length > 1 ? (
+            <Select
+              value={current?.id || ''}
+              onValueChange={(value) => {
+                const next = allLocations.find(l => l.id === value) || null;
+                dispatch(setCurrentLocation({ location: next }));
+                try { localStorage.setItem('currentLocationId', value); } catch {}
+              }}
             >
-              <Search className="h-5 w-5" />
-            </Button>
+              <SelectTrigger className="min-w-[160px] h-10">
+                <SelectValue placeholder={current?.name || 'Select location'} />
+              </SelectTrigger>
+              <SelectContent>
+                {allLocations.map(l => (
+                  <SelectItem key={l.id} value={l.id}>
+                    {l.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="text-sm text-gray-600">{current?.name || 'No location'}</span>
           )}
-          
-          <Button variant="ghost" size="icon" className="h-10 w-10 relative">
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-          </Button>
-          
-          <Avatar className="h-8 w-8">
-            <AvatarImage src="/avatars/shadcn.jpg" />
-            <AvatarFallback>U</AvatarFallback>
-          </Avatar>
         </div>
       </div>
     </header>

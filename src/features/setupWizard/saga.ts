@@ -1,6 +1,7 @@
 import { takeLatest, call, put } from "redux-saga/effects";
 import { wizardCompleteAction } from "./actions";
 import { completeWizardApi } from "./api";
+import { fetchCurrentUserAction } from "../auth/actions";
 
 // function* handleWizardSave(action: { type: string; payload: any }) {
 //   try {
@@ -15,6 +16,7 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
   try {
     yield call(completeWizardApi, action.payload || {});
     yield put(wizardCompleteAction.success());
+    yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
     yield put(wizardCompleteAction.failure({ message: error?.message || 'Failed to complete wizard' }));
   }
