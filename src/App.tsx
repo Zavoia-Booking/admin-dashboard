@@ -34,7 +34,7 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/services" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </BrowserRouter>
   )
