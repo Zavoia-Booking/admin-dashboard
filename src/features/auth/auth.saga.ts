@@ -8,8 +8,10 @@ import {
   logoutRequestAction,
   loginAction,
   fetchCurrentUserAction,
+  forgotPasswordAction,
+  resetPasswordAction,
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi } from "./api";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { listLocationsAction } from "../locations/actions";
 
@@ -76,6 +78,8 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(logoutRequestAction.request, handleLogout),
     takeLatest(loginAction.request, handleLogin),
     takeLatest(fetchCurrentUserAction.request, handleFetchCurrentUser),
+    takeLatest(forgotPasswordAction.request, handleForgotPassword),
+    takeLatest(resetPasswordAction.request, handleResetPassword),
   ]);
 }
 
@@ -86,5 +90,24 @@ function* handleFetchCurrentUser(): Generator<any, void, any> {
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Fetch current user failed";
     yield put(fetchCurrentUserAction.failure({ message }));
+  }
+}
+
+function* handleForgotPassword(action: { type: string; payload: { email: string } }) {
+  try {
+    yield call(forgotPasswordApi, action.payload);
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || "Forgot password failed";
+    yield put(forgotPasswordAction.failure(message));
+  }
+}
+
+function* handleResetPassword(action: { type: string; payload: { token: string, password: string } }) {
+  try {
+    yield call(resetPasswordApi, action.payload);
+    yield put(resetPasswordAction.success());
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || "Reset password failed";
+    yield put(resetPasswordAction.failure(message));
   }
 }

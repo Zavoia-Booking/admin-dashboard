@@ -10,6 +10,7 @@ import SettingsProfilePage from './features/settings/pages/profile'
 import ProfilePage from './features/profile'
 import LoginPage from './features/auth/pages/login'
 import RegisterPage from './features/auth/pages/register'
+import ResetPasswordPage from './features/auth/pages/reset-password'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Main */}
         <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />

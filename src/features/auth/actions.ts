@@ -54,3 +54,15 @@ export const fetchCurrentUserAction = createAsyncAction(
   'auth/FETCH_CURRENT_USER_SUCCESS',
   'auth/FETCH_CURRENT_USER_FAILURE',
 )<void, { user: AuthUser }, { message: string }>();
+
+export const forgotPasswordAction = createAsyncAction(
+  'auth/FORGOT_PASSWORD_REQUEST',
+  'auth/FORGOT_PASSWORD_SUCCESS',
+  'auth/FORGOT_PASSWORD_FAILURE',
+)<{ email: string }, void, { message: string }>();
+
+export const resetPasswordAction = createAsyncAction(
+  'auth/RESET_PASSWORD_REQUEST',
+  'auth/RESET_PASSWORD_SUCCESS',
+  'auth/RESET_PASSWORD_FAILURE',
+)<{ token: string, password: string }, void, { message: string }>();

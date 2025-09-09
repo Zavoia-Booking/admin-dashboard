@@ -19,3 +19,11 @@ export const getCurrentUserApi = async (): Promise<{ user: AuthUser }> => {
     const { data } = await apiClient().get<{ user: AuthUser }>(`/auth/me`);
     return data;
 }
+
+export const forgotPasswordApi = async (payload: { email: string }): Promise<void> => {
+    await apiClient().post(`/auth/forgot-password`, payload);
+}
+
+export const resetPasswordApi = async (payload: { token: string, password: string }): Promise<void> => {
+    await apiClient().post(`/auth/reset-password`, payload);
+}
