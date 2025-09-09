@@ -1,24 +1,24 @@
-import type {Service, StaffAssignment} from "../../shared/types/service.ts";
+import type { Service } from "../../shared/types/service.ts";
 
 export type ServicesState = {
-    services: Array<Service>;
+  services: Service[];
 };
 
 export type CreateServicePayload = {
-    name: string;
-    price: number;
-    duration: number;
-    description: string;
-    staff?: StaffAssignment[],
-    teamMembers: Array<unknown>,
-    locationIds: Array<number>,
+  name: string;
+  price: number;
+  duration: number;
+  description: string;
+  isActive: boolean;
+  locationIds: number[],
 }
+
 export type EditServicePayload = {
-    name: string,
-    description: string,
-    duration: number
-    price: number;
-    teamMembers: Array<unknown>,
-    locationIds: Array<unknown>,
-    id: string,
+  name: string,
+  description: string,
+  duration: number
+  price: number;
+  locationIds: number[],
+  id: number,
+  isActive: boolean,
 }

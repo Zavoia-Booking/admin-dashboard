@@ -15,7 +15,7 @@ export interface WorkingHours {
 }
 
 export interface LocationType {
-  id: string;
+  id: number;
   name: string;
   address: string;
   email: string;

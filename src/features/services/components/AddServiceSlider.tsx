@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
-import { DollarSign, FileText, Settings, Users, Plus, X } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useDispatch, useSelector } from 'react-redux';
+import { DollarSign, FileText, Settings } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
@@ -7,30 +9,29 @@ import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Switch } from '../../../shared/components/ui/switch';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import { mockTeamMembers } from '../../../mocks/team-members.mock';
+// import { mockTeamMembers } from '../../../mocks/team-members.mock';
+import { createServicesAction } from '../actions.ts';
+import { getCurrentLocationSelector } from '../../locations/selectors.ts';
+import type { CreateServicePayload } from '../types.ts';
 
 interface AddServiceSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (serviceData: { name: string; price: number; duration: number; description: string; status: 'enabled' | 'disabled'; staff: StaffAssignment[] }) => void;
 }
 
-interface StaffAssignment {
-  name: string;
-  price?: number;
-  duration?: number;
-}
+// interface StaffAssignment {
+//   name: string;
+//   price?: number;
+//   duration?: number;
+// }
 
 interface ServiceFormData {
   name: string;
   price: number;
   duration: number;
   description: string;
-  status: 'enabled' | 'disabled';
-  staff: StaffAssignment[];
+  isActive: boolean;
 }
 
 const initialFormData: ServiceFormData = {
@@ -38,44 +39,55 @@ const initialFormData: ServiceFormData = {
   price: 0,
   duration: 0,
   description: '',
-  status: 'enabled',
-  staff: [],
+  isActive: true,
 };
 
-const AddServiceSlider: React.FC<AddServiceSliderProps> = ({ 
+const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   isOpen, 
-  onClose, 
-  onCreate 
+  onClose
 }) => {
-  const [formData, setFormData] = useState<ServiceFormData>(initialFormData);
+  const dispatch = useDispatch();
+  const currentLocation = useSelector(getCurrentLocationSelector);
+  const { register, handleSubmit, watch, setValue, reset, getValues } = useForm<ServiceFormData>({
+    defaultValues: initialFormData,
+  });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [staffOpen, setStaffOpen] = useState(false);
+  // const [staffOpen, setStaffOpen] = useState(false);
+  // const [staffAssignments, setStaffAssignments] = useState<StaffAssignment[]>([]);
 
   // Reset form when slider closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) {
-      setFormData(initialFormData);
+      reset(initialFormData);
+      // setStaffAssignments([]);
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmCreate = () => {
-    // No change needed: staff array already contains optional price/duration, and defaults are in formData
-    onCreate({
-      ...formData,
-    });
+    const { name, price, duration, description } = getValues();
+    const payload: CreateServicePayload = {
+      name,
+      price,
+      duration,
+      description,
+      isActive: true,
+      locationIds: currentLocation ? [currentLocation.id] : [],
+    };
+    dispatch(createServicesAction.request(payload));
     setShowConfirmDialog(false);
     onClose();
-    setFormData(initialFormData);
+    reset(initialFormData);
+    // setStaffAssignments([]);
   };
 
   const handleCancel = () => {
     onClose();
-    setFormData(initialFormData);
+    reset(initialFormData);
+    // setStaffAssignments([]);
   };
 
   return (
@@ -105,7 +117,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
           </div>
         }
       >
-        <form id="add-service-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+        <form id="add-service-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-8">
               {/* Service Information Section */}
@@ -122,8 +134,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                     id="name"
                     type="text"
                     placeholder="Enter service name..."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    {...register('name', { required: true })}
                     className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                     required
                   />
@@ -133,8 +144,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   <Textarea
                     id="description"
                     placeholder="Describe what this service includes..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    {...register('description')}
                     className="min-h-[80px] text-base border-border/50 bg-background/50 backdrop-blur-sm resize-none"
                     rows={3}
                   />
@@ -156,8 +166,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                       id="price"
                       type="number"
                       placeholder="0.00"
-                      value={formData.price || ''}
-                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                      {...register('price', { required: true, valueAsNumber: true, min: 0 })}
                       className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                       min="0"
                       step="0.01"
@@ -170,8 +179,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                       id="duration"
                       type="number"
                       placeholder="30"
-                      value={formData.duration || ''}
-                      onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 0 })}
+                      {...register('duration', { required: true, valueAsNumber: true, min: 1 })}
                       className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                       min="1"
                       step="1"
@@ -181,7 +189,8 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                 </div>
               </div>
 
-              {/* Staff Assignment Section */}
+              {/* Staff Assignment Section - commented for future use */}
+              {/**
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-2 border-b border-border/50">
                   <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/20">
@@ -191,11 +200,9 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                 </div>
                 <div className="space-y-3">
                   <Label className="text-sm font-medium text-foreground">Assigned Staff Members</Label>
-                  
-                  {/* Current Staff List */}
                   <div className="space-y-2">
-                    {formData.staff.length > 0 ? (
-                      formData.staff.map((staffMember, idx) => (
+                    {staffAssignments.length > 0 ? (
+                      staffAssignments.map((staffMember, idx) => (
                         <div key={staffMember.name} className="flex flex-col gap-2 p-3 bg-muted/30 rounded-lg border border-border/50">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -207,10 +214,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                             <button
                               type="button"
                               onClick={() => {
-                                setFormData({
-                                  ...formData,
-                                  staff: formData.staff.filter(s => s.name !== staffMember.name)
-                                });
+                                setStaffAssignments(prev => prev.filter(s => s.name !== staffMember.name));
                               }}
                               className="p-1 rounded hover:bg-destructive/10 text-destructive"
                               title="Remove staff member"
@@ -218,23 +222,22 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                               <X className="h-4 w-4" />
                             </button>
                           </div>
-                          {/* Toggle for custom price/duration */}
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-xs text-muted-foreground">Custom price and duration?</span>
                             <Switch
                               checked={staffMember.price !== undefined || staffMember.duration !== undefined}
                               onCheckedChange={(checked: boolean) => {
-                                const updated = [...formData.staff];
+                                const updated = [...staffAssignments];
                                 if (checked) {
                                   updated[idx] = {
                                     ...updated[idx],
-                                    price: formData.price,
-                                    duration: formData.duration
+                                    price: watch('price'),
+                                    duration: watch('duration')
                                   };
                                 } else {
                                   updated[idx] = { ...updated[idx], price: undefined, duration: undefined };
                                 }
-                                setFormData({ ...formData, staff: updated });
+                                setStaffAssignments(updated);
                               }}
                               className="!h-5 !w-9 !min-h-0 !min-w-0"
                             />
@@ -247,13 +250,13 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                                   type="number"
                                   min="0"
                                   step="0.01"
-                                  placeholder={`Custom Price (default: $${formData.price})`}
+                                  placeholder={`Custom Price (default: $${watch('price')})`}
                                   value={staffMember.price === undefined ? '' : staffMember.price}
                                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                    const updated = [...formData.staff];
+                                    const updated = [...staffAssignments];
                                     const val = e.target.value;
                                     updated[idx] = { ...updated[idx], price: val === '' ? undefined : parseFloat(val) };
-                                    setFormData({ ...formData, staff: updated });
+                                    setStaffAssignments(updated);
                                   }}
                                   className="border-0 bg-muted/50 focus:bg-background h-10 text-sm"
                                 />
@@ -263,13 +266,13 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                                 <Input
                                   type="number"
                                   min="1"
-                                  placeholder={`Custom Duration (default: ${formData.duration}m)`}
+                                  placeholder={`Custom Duration (default: ${watch('duration')}m)`}
                                   value={staffMember.duration === undefined ? '' : staffMember.duration}
                                   onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                    const updated = [...formData.staff];
+                                    const updated = [...staffAssignments];
                                     const val = e.target.value;
                                     updated[idx] = { ...updated[idx], duration: val === '' ? undefined : parseInt(val) };
-                                    setFormData({ ...formData, staff: updated });
+                                    setStaffAssignments(updated);
                                   }}
                                   className="border-0 bg-muted/50 focus:bg-background h-10 text-sm"
                                 />
@@ -286,8 +289,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                       </div>
                     )}
                   </div>
-                  
-                  {/* Add Staff Button */}
                   <Popover open={staffOpen} onOpenChange={setStaffOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -307,16 +308,13 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                           <CommandEmpty>No staff members found.</CommandEmpty>
                           <CommandGroup>
                             {mockTeamMembers
-                              .filter(staff => !formData.staff.some(s => s.name === staff.firstName + ' ' + staff.lastName))
+                              .filter(staff => !staffAssignments.some(s => s.name === staff.firstName + ' ' + staff.lastName))
                               .map((staff) => (
                                 <CommandItem
                                   key={staff.id}
                                   value={staff.firstName + ' ' + staff.lastName}
                                   onSelect={() => {
-                                    setFormData({
-                                      ...formData,
-                                      staff: [...formData.staff, { name: staff.firstName + ' ' + staff.lastName }]
-                                    });
+                                    setStaffAssignments(prev => ([...prev, { name: staff.firstName + ' ' + staff.lastName }]));
                                     setStaffOpen(false);
                                   }}
                                 >
@@ -331,6 +329,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   </Popover>
                 </div>
               </div>
+              */}
 
               {/* Service Settings Section */}
               <div className="space-y-4">
@@ -344,16 +343,14 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-foreground">Service Status</Label>
                     <p className="text-xs text-muted-foreground">
-                      {formData.status === 'enabled' 
+                      {watch('isActive') === true 
                         ? 'Service is available for booking' 
                         : 'Service is hidden from clients'}
                     </p>
                   </div>
                   <Switch
-                    checked={formData.status === 'enabled'}
-                    onCheckedChange={(checked) => 
-                      setFormData({ ...formData, status: checked ? 'enabled' : 'disabled' })
-                    }
+                    checked={watch('isActive') === true}
+                    onCheckedChange={(checked) => setValue('isActive', checked ? true : false)}
                   />
                 </div>
               </div>
@@ -368,7 +365,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Create New Service</AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to create "{formData.name}" with a price of ${formData.price} and duration of {formData.duration} minutes?`}
+              {`Are you sure you want to create "${getValues('name')}" with a price of $${getValues('price')} and duration of ${getValues('duration')} minutes?`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -5,14 +5,11 @@ export interface StaffAssignment {
 }
 
 export interface Service {
-  id: string;
+  id: number;
   name: string;
   price: number;
   duration: number; // in minutes
   description: string;
-  status: 'enabled' | 'disabled';
+  isActive: boolean;
   createdAt: string;
-  category?: string;
-  bookings?: number;
-  staff: StaffAssignment[];
 }

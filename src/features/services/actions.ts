@@ -1,12 +1,12 @@
-import {createAsyncAction} from "typesafe-actions";
-import type {CreateServicePayload, EditServicePayload} from "./types.ts";
-import type {Service} from "../../shared/types/service.ts";
+import { createAsyncAction } from "typesafe-actions";
+import type { CreateServicePayload, EditServicePayload } from "./types.ts";
+import type { Service } from "../../shared/types/service.ts";
 
-export const getServicesAction= createAsyncAction(
+export const getServicesAction = createAsyncAction(
     "GET/SERVICES/REQUEST",
     "GET/SERVICES/SUCCESS",
     "GET/SERVICES/FAILURE"
-)<void, Array<Service>, unknown>();
+)<void, Service[], unknown>();
 
 export const createServicesAction = createAsyncAction(
     "CREATE/SERVICES/REQUEST",
@@ -18,10 +18,10 @@ export const editServicesAction = createAsyncAction(
     "EDIT/SERVICES/REQUEST",
     "EDIT/SERVICES/SUCCESS",
     "EDIT/SERVICES/FAILURE"
-)<EditServicePayload, unknown, unknown>();;
+)<EditServicePayload, unknown, unknown>();
 
 export const deleteServicesAction = createAsyncAction(
     "DELETE/SERVICES/REQUEST",
     "DELETE/SERVICES/SUCCESS",
     "DELETE/SERVICES/FAILURE"
-)<{serviceId: number| string}, unknown, unknown>();
+)<{ serviceId: number }, unknown, unknown>();

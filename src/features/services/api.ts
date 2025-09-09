@@ -1,19 +1,19 @@
-import type {CreateServicePayload, EditServicePayload} from "./types.ts";
+import type { CreateServicePayload, EditServicePayload } from "./types.ts";
 import { apiClient } from "../../shared/lib/http";
-import type {AuthResponse} from "../auth/types.ts";
+import type { Service } from "../../shared/types/service.ts";
 
 export const getServicesRequest = () => {
-     return apiClient().get<AuthResponse>(`/services`);
+  return apiClient().get<Service[]>(`/services`);
 }
 
 export const createServicesRequest = (payload: CreateServicePayload) => {
-    return apiClient().post<AuthResponse>('/services', payload);
+  return apiClient().post<{ message: string }>('/services/create', payload);
 }
 
-export const editServicesRequest = (serviceId: string, payload: Partial<EditServicePayload>) => {
-    return apiClient().put<AuthResponse>(`/services/${serviceId}`, payload);
+export const editServicesRequest = (serviceId: number, payload: Partial<EditServicePayload>) => {
+  return apiClient().post<{ message: string }>(`/services/edit/${serviceId}`, payload);
 }
 
-export const deleteServiceRequest = (serviceId: number | string) => {
-    return apiClient().delete<AuthResponse>(`/services/${serviceId}`);
+export const deleteServiceRequest = (serviceId: number) => {
+  return apiClient().delete<{ message: string }>(`/services/${serviceId}`);
 }
