@@ -6,6 +6,7 @@ import setupWizardReducer from "../../features/setupWizard/reducer";
 import teamMembersReducer from "../../features/teamMembers/reducer";
 import { LocationsReducer } from "../../features/locations/reducer";
 import { initApiClient } from "../../shared/lib/http";
+import { ServicesReducer } from "../../features/services/reducer.ts";
 // --- create saga middleware ---
 const sagaMiddleware = createSagaMiddleware();
 
@@ -16,6 +17,7 @@ export const store = configureStore({
     setupWizard: setupWizardReducer,
     teamMembers: teamMembersReducer,
     locations: LocationsReducer,
+    services: ServicesReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
