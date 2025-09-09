@@ -1,25 +1,27 @@
-import { inviteTeamMemberRequest, inviteTeamMemberSuccess, inviteTeamMemberFailure } from "./actions";
+import { getType } from "typesafe-actions";
+import { inviteTeamMemberAction, listTeamMembersAction } from "./actions";
+import type { TeamMember } from "../../shared/types/team-member";
 
 type TeamMembersState = {
-  isInviting: boolean;
+  teamMembers: TeamMember[];
   error: string | null;
-  lastInvitation: any | null;
 };
 
 const initialState: TeamMembersState = {
-  isInviting: false,
+  teamMembers: [],
   error: null,
-  lastInvitation: null,
 };
 
 export default function teamMembersReducer(state: TeamMembersState = initialState, action: any) {
   switch (action.type) {
-    case inviteTeamMemberRequest.type:
-      return { ...state, isInviting: true, error: null };
-    case inviteTeamMemberSuccess.type:
-      return { ...state, isInviting: false, lastInvitation: action.payload };
-    case inviteTeamMemberFailure.type:
-      return { ...state, isInviting: false, error: action.payload };
+    case getType(inviteTeamMemberAction.failure):
+      return { ...state, error: action.payload.message };
+
+    case getType(listTeamMembersAction.success):
+      return { ...state, teamMembers: action.payload.teamMembers, error: null };
+
+    case getType(listTeamMembersAction.failure):
+      return { ...state, error: action.payload.message };
     default:
       return state;
   }

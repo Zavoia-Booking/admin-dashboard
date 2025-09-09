@@ -12,33 +12,22 @@ import AddLocationSlider from '../components/AddLocationSlider';
 import EditLocationSlider from '../components/EditLocationSlider';
 import EditWorkingHoursSlider from '../components/EditWorkingHoursSlider';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
-import type { LocationType } from '../../../shared/types/location';
+import type { LocationType, WorkingHours, WorkingHoursDay } from '../../../shared/types/location';
 import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { capitalize, shortDay } from '../utils';
-import { selectAllLocations } from '../selectors';
-
-const defaultWorkingHours = {
-  monday: { open: '09:00', close: '17:00', isOpen: true },
-  tuesday: { open: '09:00', close: '17:00', isOpen: true },
-  wednesday: { open: '09:00', close: '17:00', isOpen: true },
-  thursday: { open: '09:00', close: '17:00', isOpen: true },
-  friday: { open: '09:00', close: '17:00', isOpen: true },
-  saturday: { open: '10:00', close: '15:00', isOpen: true },
-  sunday: { open: '10:00', close: '15:00', isOpen: false },
-};
+import { getAllLocationsSelector } from '../selectors';
+import { updateLocationAction } from '../actions';
+import { defaultWorkingHours } from '../constants';
 
 export default function LocationsPage() {
   const dispatch = useDispatch();
 
-  const allLocations = useSelector(selectAllLocations);
-  // const currentLocation = useSelector(selectCurrentLocation);
-  // const isLocationLoading = useSelector(selectLocationLoading);
+  const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
   const user = useSelector(selectCurrentUser);
 
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
-  // const [isInfo, setIsInfo] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<LocationType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -58,6 +47,7 @@ export default function LocationsPage() {
     day: string;
     dayLabel: string;
   } | null>(null);
+  const [dayEditDraft, setDayEditDraft] = useState<WorkingHoursDay | null>(null);
 
   useEffect(() => {
     if (user?.businessId) {
@@ -79,26 +69,7 @@ export default function LocationsPage() {
 
 
 
-  const handleEditLocationSlider = async (locationData: LocationType) => {
-    try {
-      const response = await fetch(`/api/locations/${locationData.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(locationData),
-      });
-
-      if (!response.ok) throw new Error('Failed to update location');
-
-      toast.success('Location updated successfully');
-      setIsEditSliderOpen(false);
-      setEditingLocation(null);
-      // dispatch(fetchLocationByIdAction.request({ locationId: (user as any)?.businessId }))
-    } catch (error) {
-      toast.error('Failed to update location');
-    }
-  };
+  // edit handled via EditLocationSlider dispatch
 
   const handleDeleteLocation = async (id: string) => {
     try {
@@ -120,20 +91,26 @@ export default function LocationsPage() {
     setIsEditSliderOpen(true);
   };
 
-  // const updateLocationDayHours = (locationId: string, day: string, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {};
-
   const openDayEditModal = (location: LocationType, day: string, dayLabel: string) => {
     setEditingDayData({ location, day, dayLabel });
+    const initial = location.workingHours[day as keyof typeof defaultWorkingHours];
+    setDayEditDraft({ ...initial });
     setIsDayEditModalOpen(true);
   };
 
   const updateLocationDayHours = (
     _locationId: string,
     _day: string,
-    _field: 'open' | 'close' | 'isOpen',
-    _value: string | boolean
+    field: 'open' | 'close' | 'isOpen',
+    value: string | boolean
   ) => {
-    // TODO: Implement updating working hours via state or dispatch
+    setDayEditDraft(prev => {
+      if (!prev) return prev as any;
+      return {
+        ...prev,
+        [field]: value as any,
+      } as WorkingHoursDay;
+    });
   };
 
   const getStatusBadge = (status: string) => {
@@ -293,7 +270,7 @@ export default function LocationsPage() {
                 </div>
                 <div className="flex items-center gap-2 text-gray-500">
                   <Phone className="h-4 w-4" />
-                  <span>{location.phoneNumber}</span>
+                  <span>{location.phone}</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-500">
                   <Mail className="h-4 w-4" />
@@ -400,24 +377,6 @@ export default function LocationsPage() {
             setIsWorkingHoursSliderOpen(false);
             setEditingWorkingHoursLocation(null);
           }}
-          onUpdate={async (locationData) => {
-            try {
-              const response = await fetch(`/api/locations/${locationData.id}`, {
-                method: 'PUT',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(locationData),
-              });
-
-              if (!response.ok) throw new Error('Failed to update working hours');
-
-              toast.success('Working hours updated successfully');
-              // dispatch(fetchLocationByIdAction.request({ locationId: (user as any)?.businessId }))
-            } catch (error) {
-              toast.error('Failed to update working hours');
-            }
-          }}
           location={editingWorkingHoursLocation}
         />
 
@@ -432,7 +391,7 @@ export default function LocationsPage() {
             </DialogHeader>
             {editingDayData && (() => {
               const currentLocation = allLocations.find(loc => loc.id === editingDayData.location.id);
-              const currentDayHours = currentLocation?.workingHours[editingDayData.day as keyof typeof defaultWorkingHours];
+              const currentDayHours = dayEditDraft || currentLocation?.workingHours[editingDayData.day as keyof typeof defaultWorkingHours];
 
               return (
                 <div className="space-y-4">
@@ -487,8 +446,20 @@ export default function LocationsPage() {
                   <div className="flex gap-2 pt-2">
                     <Button
                       onClick={() => {
+                        if (!editingDayData || !currentLocation || !dayEditDraft) {
+                          setIsDayEditModalOpen(false);
+                          setEditingDayData(null);
+                          setDayEditDraft(null);
+                          return;
+                        }
+                        const updatedWorkingHours: WorkingHours = {
+                          ...currentLocation.workingHours,
+                          [editingDayData.day]: dayEditDraft,
+                        } as WorkingHours;
+                        dispatch(updateLocationAction.request({ location: { id: editingDayData.location.id, workingHours: updatedWorkingHours } }));
                         setIsDayEditModalOpen(false);
                         setEditingDayData(null);
+                        setDayEditDraft(null);
                       }}
                       className="flex-1"
                     >
@@ -542,7 +513,6 @@ export default function LocationsPage() {
         <EditLocationSlider
           isOpen={isEditSliderOpen}
           onClose={() => setIsEditSliderOpen(false)}
-          onUpdate={handleEditLocationSlider}
           location={editingLocation}
         />
       </div>

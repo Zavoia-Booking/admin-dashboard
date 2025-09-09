@@ -1,8 +1,10 @@
+import type { UserRole } from "../../shared/types/auth";
+
 export type InviteTeamMemberResponse = {
     message: string;
     invitation: {
         email: string;
-        role: string;
+        role: UserRole;
         locationId: number;
         invitationToken: string;
         magicLink: string;
@@ -12,6 +14,6 @@ export type InviteTeamMemberResponse = {
 
 export type InviteTeamMemberPayload = {
     email: string;
-    role: 'manager' | 'team_member';
+    role: UserRole;
     locationId: number;
 };

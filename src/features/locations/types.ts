@@ -11,10 +11,26 @@ export interface NewLocationPayload {
   name: string;
   description?: string;
   phone: string;
-  email?: string;
+  email: string;
   address?: string;
-  isActive?: boolean;
   timezone: string;
   workingHours: WorkingHours;
   isRemote: boolean;
+}
+
+export interface EditLocationType {
+  id: string;
+  name: string;
+  address: string;
+  email: string;
+  phone: string;
+  description: string;
+  timezone: string;
+  isRemote: boolean;
+  isActive: boolean;
+}
+
+export interface EditLocationWorkingHours {
+  id: string;
+  workingHours: WorkingHours;
 }

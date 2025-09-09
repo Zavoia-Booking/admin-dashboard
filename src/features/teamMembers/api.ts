@@ -1,19 +1,8 @@
 import { apiClient } from "../../shared/lib/http";
-import type { InviteTeamMemberPayload, InviteTeamMemberResponse } from "./types";
+import type { TeamMember } from "../../shared/types/team-member";
 
-export const inviteTeamMember = async (payload: InviteTeamMemberPayload): Promise<InviteTeamMemberResponse> => {
-  try {
-    const { data } = await apiClient().post<InviteTeamMemberResponse>(
-      '/auth/invite-team-member',
-      {
-        email: payload.email,
-        role: payload.role,
-        locationId: payload.locationId,
-      }
-    );
-    return data;
-  } catch (err: any) {
-    throw err;
-  }
-}
+export const listTeamMembersApi = async (): Promise<{ teamMembers: TeamMember[] }> => {
+  const { data } = await apiClient().get<{ teamMembers: TeamMember[] }>('/auth/team-members');
+  return data;
+};
 

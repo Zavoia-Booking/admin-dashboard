@@ -1,4 +1,6 @@
-// Helper to capitalize day names
+import type { EditLocationType } from "./types";
+import type { LocationType } from "../../shared/types/location";
+
 export const capitalize = (str: string) => {
     return str.charAt(0).toUpperCase() + str.slice(1);
 }
@@ -10,3 +12,17 @@ export const shortDay = (day: string) => {
     };
     return map[day.toLowerCase()] || day;
 };
+
+export const mapLocationForEdit = (location: LocationType): EditLocationType => {
+    return {
+        id: location.id,
+        name: location.name,
+        address: location.address,
+        email: location.email,
+        phone: location.phone,
+        description: location.description,
+        timezone: location.timezone,
+        isRemote: location.isRemote,
+        isActive: location.isActive,
+    };
+}

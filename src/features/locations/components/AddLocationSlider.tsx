@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { MapPin, Phone, Clock, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
@@ -13,23 +13,15 @@ import { createLocationAction } from '../actions';
 import type { NewLocationPayload } from '../types';
 import type { WorkingHours } from '../../../shared/types/location';
 import { useForm } from 'react-hook-form';
+import { defaultWorkingHours } from '../constants';
+import { capitalize } from '../utils';
 
 interface AddLocationSliderProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const defaultWorkingHours: WorkingHours = {
-  monday: { open: '09:00', close: '17:00', isOpen: true },
-  tuesday: { open: '09:00', close: '17:00', isOpen: true },
-  wednesday: { open: '09:00', close: '17:00', isOpen: true },
-  thursday: { open: '09:00', close: '17:00', isOpen: true },
-  friday: { open: '09:00', close: '17:00', isOpen: true },
-  saturday: { open: '10:00', close: '15:00', isOpen: true },
-  sunday: { open: '10:00', close: '15:00', isOpen: false },
-};
-
-const initialFormData: NewLocationPayload = {
+const defaultValues: NewLocationPayload = {
   isRemote: false,
   name: '',
   address: '',
@@ -37,28 +29,19 @@ const initialFormData: NewLocationPayload = {
   phone: '',
   description: '',
   workingHours: defaultWorkingHours,
-  isActive: true,
   timezone: 'UTC',
 };
-
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
 
 const AddLocationSlider: React.FC<AddLocationSliderProps> = ({ 
   isOpen, 
   onClose 
 }) => {
   const dispatch = useDispatch();
-  const defaultValues: NewLocationPayload = {
-    ...initialFormData,
-    timezone: (typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC') as string,
-  };
-  const { register, handleSubmit, reset, watch } = useForm({ defaultValues });
+  const { register, handleSubmit, reset, watch } = useForm<NewLocationPayload>({ defaultValues });
   const currentWorkingHours = watch('workingHours') as WorkingHours;
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) {
       reset(defaultValues);
     }
@@ -261,12 +244,12 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">Active</Label>
+                    <Label className="text-sm font-medium text-foreground">Remote location</Label>
                   </div>
                   <Switch
-                    checked={!!watch('isActive')}
+                    checked={!!watch('isRemote')}
                     onCheckedChange={(checked) => {
-                      reset({ ...watch(), isActive: checked });
+                      reset({ ...watch(), isRemote: checked });
                     }}
                   />
                 </div>

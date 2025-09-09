@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import type { WorkingHours } from '../types/location';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { wizardLoadDraftAction, wizardSaveAction } from '../../features/setupWizard/actions';
 import type { NewLocationPayload } from '../../features/locations/types';
 import type { BusinessInfo } from '../types/generalType';
 import type { InviteTeamMemberPayload } from '../types/team-member';
+import { getWizardDataSelector } from '../../features/setupWizard/selectors';
 
 export interface WizardData {
   // Step 1: Business Info
@@ -16,50 +18,22 @@ export interface WizardData {
   worksSolo: boolean;
 }
 
-const defaultWorkingHours: WorkingHours = {
-  monday: { open: '09:00', close: '17:00', isOpen: true },
-  tuesday: { open: '09:00', close: '17:00', isOpen: true },
-  wednesday: { open: '09:00', close: '17:00', isOpen: true },
-  thursday: { open: '09:00', close: '17:00', isOpen: true },
-  friday: { open: '09:00', close: '17:00', isOpen: true },
-  saturday: { open: '10:00', close: '15:00', isOpen: true },
-  sunday: { open: '10:00', close: '15:00', isOpen: false },
-};
-
-const initialData: WizardData = {
-  businessInfo: {
-    name: '',
-    industry: '',
-    description: '',
-    email: '',
-    phone: '',
-    timezone: (typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC') as string,
-    country: '',
-    currency: 'USD',
-    instagramUrl: '',
-    facebookUrl: '',
-  },
-  location: {
-    isRemote: false,
-    name: '',
-    description: '',
-    phone: '',
-    email: '',
-    address: '',
-    isActive: true,
-    timezone: (typeof Intl !== 'undefined' && Intl.DateTimeFormat ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC') as string,
-    workingHours: defaultWorkingHours,
-  },
-  teamMembers: [],
-  worksSolo: true,
-};
-
 export const useSetupWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [data, setData] = useState<WizardData>(initialData);
+  const reducerData = useSelector(getWizardDataSelector);
+  const [data, setData] = useState<WizardData>(reducerData);
   const [isLoading, setSaving] = useState(false);
+  const dispatch = useDispatch();
 
   const totalSteps = 4;
+
+  useEffect(() => {
+    dispatch(wizardLoadDraftAction.request());
+  }, [dispatch]);
+
+  useEffect(() => {
+    setData(reducerData);
+  }, [reducerData]);
 
   const updateData = (newData: Partial<WizardData>) => {
     setData(prev => ({ ...prev, ...newData }));
@@ -102,11 +76,15 @@ export const useSetupWizard = () => {
 
   const saveAndFinishLater = async () => {
     setSaving(true);
-    // Simulate save
-    setTimeout(() => {
+    try {
+      await new Promise<void>((resolve) => {
+        // fire-and-forget via saga, but we resolve immediately for UX responsiveness
+        dispatch(wizardSaveAction.request(data));
+        resolve();
+      });
+    } finally {
       setSaving(false);
-      // In real app, navigate to dashboard with saved state
-    }, 1000);
+    }
   };
 
   const getProgress = () => {

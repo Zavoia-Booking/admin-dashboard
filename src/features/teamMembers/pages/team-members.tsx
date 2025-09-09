@@ -9,22 +9,22 @@ import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Badge } from "../../../shared/components/ui/badge";
 import InviteTeamMemberSlider from '../components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '../components/TeamMemberProfileSlider';
-import { mockTeamMembers } from '../../../mocks/team-members.mock';
 import { mockLocations } from '../../../mocks/locations.mock';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import { useDispatch, useSelector } from 'react-redux';
-import { inviteTeamMemberRequest } from '../../teamMembers/actions';
+import { inviteTeamMemberAction, listTeamMembersAction } from '../../teamMembers/actions';
 import type { RootState } from '../../../app/providers/store';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
+import { selectTeamMembers } from '../selectors';
 
 export default function TeamMembersPage() {
   const isMobile = useIsMobile();
   const dispatch = useDispatch();
-  const { error: inviteError, lastInvitation } = useSelector((state: RootState) => state.teamMembers);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
+  const { error: inviteError } = useSelector((state: RootState) => state.teamMembers);
+  const teamMembers = useSelector(selectTeamMembers);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
   const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -47,14 +47,14 @@ export default function TeamMembersPage() {
   const [localRoleFilter, setLocalRoleFilter] = useState(roleFilter);
   const [localLocationFilter, setLocalLocationFilter] = useState(locationFilter);
 
-  // Fetch team members and locations on component mount
   useEffect(() => {
-    fetchTeamMembers();
-    fetchLocations();
+    dispatch(listTeamMembersAction.request());
   }, []);
 
+  console.log('teamMembers', teamMembers);
+
   // When opening the filter card, sync local state with main state
-  React.useEffect(() => {
+  useEffect(() => {
     if (showFilters) {
       setLocalStatusFilter(statusFilter);
       setLocalRoleFilter(roleFilter);
@@ -62,53 +62,12 @@ export default function TeamMembersPage() {
     }
   }, [showFilters, statusFilter, roleFilter, locationFilter]);
 
-  const fetchTeamMembers = async () => {
-    try {
-      // TODO: Replace with actual API call
-      // Use the existing mock data from the state
-      // The teamMembers state is already initialized with mock data
-      console.log('Using mock team members data - Emma should be available');
-    } catch (error) {
-      toast.error('Failed to fetch team members');
-    }
-  };
-
-  const fetchLocations = async () => {
-    try {
-      // TODO: Replace with actual API call
-      // Store full location data for working hours access
-      (window as any).mockLocationData = mockLocations;
-    } catch (error) {
-      toast.error('Failed to fetch locations');
-    }
-  };
-
   const handleInviteTeamMember = async (inviteData: { email: string; role: string; location: string }) => {
     // Map UI role labels to API roles
-    const apiRole = inviteData.role === 'Manager' ? 'manager' : 'team_member';
+    const apiRole = inviteData.role === 'Manager' ? UserRole.MANAGER : UserRole.TEAM_MEMBER;
     const locationId = Number(inviteData.location);
-    dispatch(inviteTeamMemberRequest({ email: inviteData.email, role: apiRole, locationId }));
+    dispatch(inviteTeamMemberAction.request({ email: inviteData.email, role: apiRole, locationId }));
   };
-
-  useEffect(() => {
-    if (lastInvitation) {
-      toast.success('Invitation sent successfully');
-      setIsInviteSliderOpen(false);
-      // Optionally append a pending member to local list using response
-      setTeamMembers(prev => ([...prev, {
-        id: Date.now().toString(),
-        firstName: 'Invited',
-        lastName: 'User',
-        email: lastInvitation.invitation.email,
-        phone: '+1 (555) 000-0000',
-        role: lastInvitation.invitation.role,
-        status: 'pending',
-        createdAt: new Date().toISOString(),
-        location: String(lastInvitation.invitation.locationId),
-        services: []
-      } as TeamMember]));
-    }
-  }, [lastInvitation]);
 
   useEffect(() => {
     if (inviteError) {
@@ -116,68 +75,68 @@ export default function TeamMembersPage() {
     }
   }, [inviteError]);
 
-  const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
-    if (!selectedTeamMember) return;
+  // const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
+  //   if (!selectedTeamMember) return;
 
-    try {
-      // TODO: Replace with actual API call
-      // Mock update - update the team member in the list
+  //   try {
+  //     // TODO: Replace with actual API call
+  //     // Mock update - update the team member in the list
 
-      // Update local state
-      setTeamMembers(prev => prev.map(member =>
-        member.id === selectedTeamMember.id ? { ...member, ...updateData } : member
-      ));
+  //     // Update local state
+  //     setTeamMembers(prev => prev.map(member =>
+  //       member.id === selectedTeamMember.id ? { ...member, ...updateData } : member
+  //     ));
 
-      // Update selected team member
-      setSelectedTeamMember(prev => prev ? { ...prev, ...updateData } : null);
+  //     // Update selected team member
+  //     setSelectedTeamMember(prev => prev ? { ...prev, ...updateData } : null);
 
-      toast.success('Team member updated successfully');
-    } catch (error) {
-      toast.error('Failed to update team member');
-    }
-  };
+  //     toast.success('Team member updated successfully');
+  //   } catch (error) {
+  //     toast.error('Failed to update team member');
+  //   }
+  // };
 
-  const confirmToggleStatus = async () => {
-    if (!pendingAction || pendingAction.type !== 'toggleStatus' || !pendingAction.toggleStatusData) return;
+  // const confirmToggleStatus = async () => {
+  //   if (!pendingAction || pendingAction.type !== 'toggleStatus' || !pendingAction.toggleStatusData) return;
 
-    try {
-      // TODO: Replace with actual API call
-      // Mock status update
-      setTeamMembers(prev => prev.map(member =>
-        member.id === pendingAction.toggleStatusData!.id
-          ? { ...member, status: pendingAction.toggleStatusData!.newStatus as 'active' | 'inactive' }
-          : member
-      ));
+  //   try {
+  //     // TODO: Replace with actual API call
+  //     // Mock status update
+  //     setTeamMembers(prev => prev.map(member =>
+  //       member.id === pendingAction.toggleStatusData!.id
+  //         ? { ...member, status: pendingAction.toggleStatusData!.newStatus as 'active' | 'inactive' }
+  //         : member
+  //     ));
 
-      toast.success(`Status updated to ${pendingAction.toggleStatusData.newStatus}`);
-    } catch (error) {
-      toast.error('Failed to update status');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
-    }
-  };
+  //     toast.success(`Status updated to ${pendingAction.toggleStatusData.newStatus}`);
+  //   } catch (error) {
+  //     toast.error('Failed to update status');
+  //   } finally {
+  //     setIsConfirmDialogOpen(false);
+  //     setPendingAction(null);
+  //   }
+  // };
 
-  const handleDeleteTeamMember = async (id: string) => {
-    try {
-      // TODO: Replace with actual API call
-      // Mock delete - remove from team members list
-      setTeamMembers(prev => prev.filter(member => member.id !== id));
+  // const handleDeleteTeamMember = async (id: string) => {
+  //   try {
+  //     // TODO: Replace with actual API call
+  //     // Mock delete - remove from team members list
+  //     setTeamMembers(prev => prev.filter(member => member.id !== id));
 
-      toast.success('Team member removed successfully');
-    } catch (error) {
-      toast.error('Failed to remove team member');
-    }
-  };
+  //     toast.success('Team member removed successfully');
+  //   } catch (error) {
+  //     toast.error('Failed to remove team member');
+  //   }
+  // };
 
-  const handleResendInvitation = async (id: string) => {
-    setPendingAction({
-      type: 'resend',
-      teamMemberId: id,
-      teamMemberName: teamMembers.find(tm => tm.id === id)?.firstName + ' ' + teamMembers.find(tm => tm.id === id)?.lastName
-    });
-    setIsConfirmDialogOpen(true);
-  };
+  // const handleResendInvitation = async (id: string) => {
+  //   setPendingAction({
+  //     type: 'resend',
+  //     teamMemberId: id,
+  //     teamMemberName: teamMembers.find(tm => tm.id === id)?.firstName + ' ' + teamMembers.find(tm => tm.id === id)?.lastName
+  //   });
+  //   setIsConfirmDialogOpen(true);
+  // };
 
   const confirmResend = async () => {
     if (!pendingAction || pendingAction.type !== 'resend' || !pendingAction.teamMemberId) return;
@@ -212,7 +171,9 @@ export default function TeamMembersPage() {
           title: 'Update Status',
           description: `Are you sure you want to change ${pendingAction.toggleStatusData?.name}'s status from ${pendingAction.toggleStatusData?.currentStatus} to ${pendingAction.toggleStatusData?.newStatus}?`,
           confirmText: 'Update Status',
-          onConfirm: confirmToggleStatus
+          onConfirm: () => {
+            // confirmToggleStatus
+          }
         };
 
       case 'resend':
@@ -241,13 +202,12 @@ export default function TeamMembersPage() {
   };
 
   // Filter team members based on search, status, role, and location
-  const filteredTeamMembers = teamMembers.filter(member => {
+  const filteredTeamMembers = teamMembers.filter((member: TeamMember) => {
     const matchesSearch = member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       member.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
     const matchesRole = roleFilter === 'all' ||
-      (roleFilter === 'admin' && member.role === UserRole.ADMIN) ||
       (roleFilter === 'manager' && member.role === UserRole.MANAGER) ||
       (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
     const matchesLocation = locationFilter === 'all' || member.location === locationFilter;
@@ -255,7 +215,7 @@ export default function TeamMembersPage() {
   });
 
   // Get unique roles from data
-  const uniqueRoles = Array.from(new Set(teamMembers.map(m => m.role)));
+  const uniqueRoles = Array.from(new Set(teamMembers.map((m: TeamMember) => m.role)));
 
   // Stats
   const totalMembers = teamMembers.length;
@@ -331,17 +291,17 @@ export default function TeamMembersPage() {
                   ],
                   searchable: true,
                 },
-                {
-                  type: 'select',
-                  key: 'role',
-                  label: 'Role',
-                  value: localRoleFilter,
-                  options: [
-                    { value: 'all', label: 'All roles' },
-                    ...uniqueRoles.map(role => ({ value: role, label: role }))
-                  ],
-                  searchable: true,
-                },
+                // {
+                //   type: 'select',
+                //   key: 'role',
+                //   label: 'Role',
+                //   value: localRoleFilter,
+                //   options: [
+                //     { value: 'all', label: 'All roles' },
+                //     ...uniqueRoles.map((role: UserRole) => ({ value: role, label: role as string }))
+                //   ],
+                //   searchable: true,
+                // },
                 {
                   type: 'select',
                   key: 'location',
@@ -428,7 +388,7 @@ export default function TeamMembersPage() {
               <div className="text-xs text-gray-500 mt-1">{filteredCount === totalMembers ? 'Total Members' : 'Filtered Members'}</div>
             </div>
             <div className="rounded-lg border bg-white p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{filteredTeamMembers.filter(m => m.status === 'active').length}</div>
+              <div className="text-2xl font-bold text-green-600">{filteredTeamMembers.filter((m: TeamMember) => m.status === 'active').length}</div>
               <div className="text-xs text-gray-500 mt-1">Active</div>
             </div>
             <div className="rounded-lg border bg-white p-4 text-center">
@@ -444,7 +404,7 @@ export default function TeamMembersPage() {
                   <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
                 </div>
               ) : (
-                filteredTeamMembers.map(member => (
+                filteredTeamMembers.map((member: TeamMember) => (
                   <div
                     key={member.id}
                     className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
@@ -466,7 +426,7 @@ export default function TeamMembersPage() {
                             title="Resend Invitation"
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleResendInvitation(member.id);
+                              // handleResendInvitation(member.id);
                             }}
                           >
                             <Mail className="h-5 w-5" />
@@ -523,7 +483,7 @@ export default function TeamMembersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTeamMembers.map((member) => (
+                    {filteredTeamMembers.map((member: TeamMember) => (
                       <tr key={member.id} className="border-t">
                         <td className="px-4 py-3 font-medium">{member.firstName} {member.lastName}</td>
                         <td className="px-4 py-3">{member.email}</td>
@@ -535,7 +495,9 @@ export default function TeamMembersPage() {
                             {member.status === 'pending' && (
                               <button
                                 className="px-2 py-1 text-blue-600 hover:underline"
-                                onClick={() => handleResendInvitation(member.id)}
+                                onClick={() => {
+                                  // handleResendInvitation(member.id);
+                                }}
                               >
                                 Resend
                               </button>
@@ -595,9 +557,13 @@ export default function TeamMembersPage() {
         <TeamMemberProfileSlider
           isOpen={isProfileSliderOpen}
           onClose={() => setIsProfileSliderOpen(false)}
-          teamMember={selectedTeamMember}
-          onUpdate={handleUpdateTeamMember}
-          onDelete={handleDeleteTeamMember}
+          teamMember={selectedTeamMember as TeamMember}
+          onUpdate={() => {
+            // handleUpdateTeamMember
+          }}
+          onDelete={() => {
+            // handleDeleteTeamMember
+          }}
           locations={mockLocations.map(loc => ({ id: loc.id, name: loc.name }))}
         />
       </BusinessSetupGate>

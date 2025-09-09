@@ -6,7 +6,7 @@ export interface TeamMember {
   lastName: string;
   email: string;
   phone: string;
-  role: string;
+  role: UserRole;
   status: 'pending' | 'active' | 'inactive';
   createdAt: string;
   location?: string;

@@ -26,6 +26,9 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
     case getType(actions.createLocationAction.request):
       return { ...state, isLoading: true, error: null };
 
+    case getType(actions.updateLocationAction.request):
+      return { ...state, isLoading: true, error: null };
+
     case getType(actions.listLocationsAction.success):
       return { ...state, isLoading: false, allLocations: action.payload.locations, error: null };
 
@@ -33,6 +36,9 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(actions.createLocationAction.failure):
+      return { ...state, isLoading: false, error: action.payload.message };
+
+    case getType(actions.updateLocationAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(actions.setCurrentLocation):

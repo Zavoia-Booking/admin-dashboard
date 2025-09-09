@@ -28,7 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../shared/components/ui/select";
-import { UserRole } from '../../../shared/types/auth';
 
 interface BusinessProfile {
   id: string;

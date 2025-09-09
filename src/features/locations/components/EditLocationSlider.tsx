@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, AlertCircle, Users } from 'lucide-react';
+import { useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
+import { MapPin, Phone, AlertCircle, Users } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
@@ -9,115 +11,62 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import InviteTeamMemberSlider from '../../teamMembers/components/InviteTeamMemberSlider';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { LocationType } from '../../../shared/types/location';
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  email: string;
-  phoneNumber: string;
-  description: string;
-  workingHours: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
+import type { EditLocationType } from '../types';
+import { updateLocationAction } from '../actions';
+import { mockTeamMembers } from '../../../mocks/team-members.mock';
+import { Switch } from '../../../shared/components/ui/switch';
+import { mapLocationForEdit } from '../utils';
 
 interface EditLocationSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (locationData: LocationType) => void;
   location: LocationType | null;
 }
-
-const mockTeamMembers = [
-  {
-    id: '1',
-    firstName: 'Emma',
-    lastName: 'Thompson',
-    email: 'emma@salon.com',
-    phone: '+1 (555) 123-4567',
-    role: 'Senior Stylist',
-    status: 'active',
-    createdAt: '2024-01-15T10:30:00Z',
-    location: 'Downtown Salon',
-  },
-  {
-    id: '2',
-    firstName: 'Alex',
-    lastName: 'Rodriguez',
-    email: 'alex@wellness.com',
-    phone: '+1 (555) 234-5678',
-    role: 'Massage Therapist',
-    status: 'active',
-    createdAt: '2024-02-01T15:45:00Z',
-    location: 'Westside Branch',
-  },
-  {
-    id: '3',
-    firstName: 'David',
-    lastName: 'Kim',
-    email: 'david@barbershop.com',
-    phone: '+1 (555) 456-7890',
-    role: 'Barber',
-    status: 'active',
-    createdAt: '2024-01-20T09:15:00Z',
-    location: 'Mall Location',
-  },
-];
 
 const EditLocationSlider: React.FC<EditLocationSliderProps> = ({ 
   isOpen, 
   onClose, 
-  onUpdate, 
   location 
 }) => {
-  const [formData, setFormData] = useState<LocationType | null>(null);
+  const dispatch = useDispatch();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
 
+  const { register, handleSubmit, reset, watch } = useForm<EditLocationType>();
+
   useEffect(() => {
     if (location && isOpen) {
-      setFormData({ ...location });
+      reset({
+        name: location.name,
+        address: location.address,
+        email: location.email,
+        phone: location.phone,
+        description: location.description,
+        timezone: location.timezone,
+        isRemote: location.isRemote,
+        isActive: location.isActive,
+      });
     }
-  }, [location, isOpen]);
+  }, [location, isOpen, reset]);
 
-  React.useEffect(() => {
-    if (!isOpen) {
-      const timer = setTimeout(() => setFormData(null), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+  if (!location) return null;
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmUpdate = () => {
-    if (formData) {
-      onUpdate(formData);
-      setShowConfirmDialog(false);
-      onClose();
-    }
+    const updates = watch();
+    const mappedLocation: EditLocationType = mapLocationForEdit(location);
+    const payload: EditLocationType = { ...mappedLocation, ...updates };
+    dispatch(updateLocationAction.request({ location: payload }));
+    setShowConfirmDialog(false);
+    onClose();
   };
 
   const handleCancel = () => {
     onClose();
   };
-
-  if (!formData) return null;
-
-  function capitalize(str: string) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
 
   return (
     <>
@@ -146,7 +95,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           </div>
         }
       >
-        <form id="edit-location-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+        <form id="edit-location-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-8">
               {/* Location Information Section */}
@@ -163,10 +112,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     id="name"
                     type="text"
                     placeholder="Enter location name..."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
+                    {...register('name', { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -174,11 +121,9 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   <Textarea
                     id="address"
                     placeholder="Enter full address..."
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                     rows={3}
                     className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                    required
+                    {...register('address', { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -186,10 +131,9 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   <Textarea
                     id="description"
                     placeholder="Describe the location..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={3}
                     className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
+                    {...register('description')}
                   />
                 </div>
                 {/* Team Members Assigned Section */}
@@ -209,8 +153,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     </Button>
                   </div>
                   <div className="space-y-2">
-                    {mockTeamMembers.filter(m => m.location === formData.name).length > 0 ? (
-                      mockTeamMembers.filter(m => m.location === formData.name).map(member => (
+                    {mockTeamMembers.filter(m => m.location === watch('name')).length > 0 ? (
+                      mockTeamMembers.filter(m => m.location === watch('name')).map(member => (
                         <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
@@ -247,22 +191,59 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     id="email"
                     type="email"
                     placeholder="Enter email address..."
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
+                    {...register('email', { required: true })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">Phone Number</Label>
+                  <Label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</Label>
                   <Input
-                    id="phoneNumber"
+                    id="phone"
                     type="tel"
                     placeholder="Enter phone number..."
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
+                    {...register('phone', { required: true })}
+                  />
+                </div>
+              </div>
+
+              {/* Location Settings */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-foreground">Active</Label>
+                  </div>
+                  <Switch
+                    checked={!!watch('isActive')}
+                    onCheckedChange={(checked) => {
+                      const current = watch();
+                      const next: EditLocationType = { ...current, isActive: checked } as EditLocationType;
+                      reset(next);
+                    }}
+                  />
+                </div>
+                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium text-foreground">Remote location</Label>
+                  </div>
+                  <Switch
+                    checked={!!watch('isRemote')}
+                    onCheckedChange={(checked) => {
+                      const current = watch();
+                      // ensure we keep other values intact
+                      const next: EditLocationType = { ...current, isRemote: checked } as EditLocationType;
+                      reset(next);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="timezone" className="text-sm font-medium text-foreground">Timezone</Label>
+                  <Input
+                    id="timezone"
+                    type="text"
+                    placeholder="e.g., America/New_York"
+                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
+                    {...register('timezone', { required: true })}
                   />
                 </div>
               </div>
@@ -280,7 +261,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               Update Location
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to update the location "{formData.name}"? This will save all changes.`}
+              {`Are you sure you want to update the location "${watch('name')}"? This will save all changes.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -298,7 +279,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         onClose={() => setIsInviteSliderOpen(false)}
         onInvite={() => setIsInviteSliderOpen(false)}
         locations={[
-          { id: formData.id, name: formData.name }
+          { id: location.id, name: watch('name') }
         ]}
       />
     </>

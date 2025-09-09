@@ -2,15 +2,16 @@ import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '../ui/sidebar';
 import { useDispatch, useSelector } from 'react-redux';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { selectAllLocations, selectCurrentLocation } from '../../../features/locations/selectors';
+import { getAllLocationsSelector, getCurrentLocationSelector } from '../../../features/locations/selectors';
 import { setCurrentLocation } from '../../../features/locations/actions';
+import type { LocationType } from '../../../shared/types/location';
 
 export function MobileHeader() {
   const location = useLocation();
   const pathname = location.pathname;
   const dispatch = useDispatch();
-  const allLocations = useSelector(selectAllLocations);
-  const current = useSelector(selectCurrentLocation);
+  const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
+  const current = useSelector(getCurrentLocationSelector);
 
   // Get page title based on current path
   const getPageTitle = () => {

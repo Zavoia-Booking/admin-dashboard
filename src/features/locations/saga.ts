@@ -1,10 +1,12 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
-import { createLocationAction, fetchLocationByIdAction, listLocationsAction, setCurrentLocation } from "./actions";
-import { createLocationApi, getLocationByIdApi, listLocationsApi } from "./api";
+import { createLocationAction, fetchLocationByIdAction, listLocationsAction, setCurrentLocation, updateLocationAction } from "./actions";
+import { createLocationApi, getLocationByIdApi, listLocationsApi, updateLocationApi } from "./api";
+import type { LocationType } from "../../shared/types/location";
+import type { ActionType } from "typesafe-actions";
 
-function* handleFetchLocationById(action: { type: string; payload: { locationId: string | number } }): Generator<any, void, any> {
+function* handleFetchLocationById(action: ActionType<typeof fetchLocationByIdAction.request>) {
   try {
-    const location = yield call(getLocationByIdApi, action.payload.locationId);
+    const location: LocationType = yield call(getLocationByIdApi, action.payload.locationId);
     yield put(fetchLocationByIdAction.success({ location }));
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Failed to fetch location";
@@ -16,16 +18,28 @@ export function* locationsSaga(): Generator<any, void, any> {
   yield all([
     takeLatest(fetchLocationByIdAction.request, handleFetchLocationById),
     takeLatest(createLocationAction.request, handleCreateLocation),
+    takeLatest(updateLocationAction.request, handleUpdateLocation),
     takeLatest(listLocationsAction.request, handleListLocations),
   ]);
 }
-function* handleCreateLocation(action: { type: string; payload: { location: any } }): Generator<any, void, any> {
+
+function* handleCreateLocation(action: ActionType<typeof createLocationAction.request>) {
   try {
     yield call(createLocationApi, action.payload.location);
     yield put(listLocationsAction.request());
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Failed to create location";
     yield put(createLocationAction.failure({ message }));
+  }
+}
+
+function* handleUpdateLocation(action: ActionType<typeof updateLocationAction.request>) {
+  try {
+    yield call(updateLocationApi, action.payload.location);
+    yield put(listLocationsAction.request());
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || "Failed to update location";
+    yield put(updateLocationAction.failure({ message }));
   }
 }
 

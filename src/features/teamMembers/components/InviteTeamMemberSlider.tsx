@@ -1,31 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Mail, MapPin, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
+import { useForm } from 'react-hook-form';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { cn } from '../../../shared/lib/utils';
+import { UserRole } from '../../../shared/types/auth';
 
 interface InviteTeamMemberSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (inviteData: { email: string; role: string; location: string }) => void;
+  onInvite: (inviteData: { email: string; role: string; }) => void;
   locations: Array<{ id: string; name: string }>;
 }
 
 interface InviteFormData {
   email: string;
-  role: string;
+  role: UserRole;
   location: string;
 }
 
 const initialFormData: InviteFormData = {
   email: '',
-  role: 'Team Member',
+  role: UserRole.TEAM_MEMBER,
   location: ''
 };
 
@@ -35,7 +37,9 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   onInvite, 
   locations 
 }) => {
-  const [formData, setFormData] = useState<InviteFormData>(initialFormData);
+  const { register, handleSubmit, setValue, reset, formState: { errors }, watch } = useForm<InviteFormData>({
+    defaultValues: initialFormData
+  });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   // Popover states
@@ -44,32 +48,36 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
 
   // Available roles
   const roles = [
-    { value: 'Manager', label: 'Manager' },
-    { value: 'Team Member', label: 'Team Member' }
+    { value: UserRole.MANAGER, label: 'Manager' },
+    { value: UserRole.TEAM_MEMBER, label: 'Team Member' }
   ];
 
   // Reset form when slider closes
-  React.useEffect(() => {
+  useEffect(() => {
     if (!isOpen) {
-      setFormData(initialFormData);
+      reset(initialFormData);
     }
-  }, [isOpen]);
+  }, [isOpen, reset]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmInvite = () => {
-    onInvite(formData);
+    const data: InviteFormData = {
+      email: watch('email'),
+      role: watch('role') as UserRole,
+      location: watch('location')
+    };
+    onInvite(data);
     setShowConfirmDialog(false);
     onClose();
-    setFormData(initialFormData);
+    reset(initialFormData);
   };
 
   const handleCancel = () => {
     onClose();
-    setFormData(initialFormData);
+    reset(initialFormData);
   };
 
   return (
@@ -99,7 +107,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
           </div>
         }
       >
-        <form id="invite-team-member-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+        <form id="invite-team-member-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-8">
               {/* Contact Information Section */}
@@ -116,10 +124,9 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                     id="email"
                     type="email"
                     placeholder="Enter email address..."
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    aria-invalid={!!errors.email}
                     className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                    required
+                    {...register('email', { required: true })}
                   />
                 </div>
               </div>
@@ -142,7 +149,10 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                         aria-expanded={roleOpen}
                         className="w-full h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm justify-between"
                       >
-                        {formData.role || "Select role..."}
+                        {/* role is stored via RHF hidden input */}
+                        {/* Show selected value by watching via UI state replacement */}
+                        {/* For simplicity, we display from data attr later */}
+                        Select role...
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -157,14 +167,14 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                                 key={role.value}
                                 value={role.value}
                                 onSelect={(currentValue) => {
-                                  setFormData({ ...formData, role: currentValue });
+                                  setValue('role', currentValue as UserRole, { shouldDirty: true, shouldTouch: true });
                                   setRoleOpen(false);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    formData.role === role.value ? "opacity-100" : "opacity-0"
+                                    "opacity-0"
                                   )}
                                 />
                                 {role.label}
@@ -175,6 +185,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <input type="hidden" {...register('role')} name="role" value={undefined as any} />
                 </div>
               </div>
 
@@ -196,9 +207,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                         aria-expanded={locationOpen}
                         className="w-full h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm justify-between"
                       >
-                        {formData.location 
-                          ? locations.find(loc => loc.id === formData.location)?.name 
-                          : "Select location..."}
+                        Select location...
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -213,14 +222,14 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                                 key={location.id}
                                 value={location.name}
                                 onSelect={() => {
-                                  setFormData({ ...formData, location: location.id });
+                                  setValue('location', location.id, { shouldDirty: true, shouldTouch: true });
                                   setLocationOpen(false);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    formData.location === location.id ? "opacity-100" : "opacity-0"
+                                    "opacity-0"
                                   )}
                                 />
                                 {location.name}
@@ -231,6 +240,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  <input type="hidden" {...register('location', { required: true })} name="location" value={undefined as any} />
                 </div>
               </div>
             </CardContent>
@@ -244,7 +254,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Send Invitation</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to send an invitation to {formData.email} as a {formData.role}?
+              Are you sure you want to send an invitation to {watch('email')} as a {watch('role')}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

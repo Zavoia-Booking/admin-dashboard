@@ -9,44 +9,53 @@ import { toast } from "sonner"
 import { useDispatch, useSelector } from "react-redux"
 import { registerOwnerRequestAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
+import { useForm } from "react-hook-form"
+
+type FormValues = {
+  firstName: string
+  lastName: string
+  phone: string
+  email: string
+  password: string
+  confirmPassword: string
+}
 
 export function RegisterForm() {
   const navigate = useNavigate()
-  const [error, setError] = useState<string | null>(null)
+  const [error, setTopError] = useState<string | null>(null)
   const dispatch = useDispatch();
   const { isLoading, isAuthenticated, error: authError } = useSelector((state: RootState) => state.auth);
 
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
+    mode: 'onSubmit',
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      phone: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    }
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    // Validate form
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
+  const onSubmit = (values: FormValues) => {
+    if (values.password !== values.confirmPassword) {
+      setTopError("Passwords do not match");
       return;
     }
-    
-    setError(null)
+    setTopError(null)
     dispatch(registerOwnerRequestAction.request({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      phone: formData.phone,
-      email: formData.email,
-      password: formData.password,
-    }));
+      firstName: values.firstName,
+      lastName: values.lastName,
+      phone: values.phone,
+      email: values.email,
+      password: values.password,
+    }))
   }
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate('/welcome');
     }
   }, [isAuthenticated, navigate]);
 
@@ -56,11 +65,6 @@ export function RegisterForm() {
     }
   }, [authError]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-
   return (
     <Card>
       <CardHeader className="space-y-1">
@@ -69,151 +73,126 @@ export function RegisterForm() {
           Enter your details below to create your account
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4">
-        {error && (
-          <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
-            {error}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <CardContent className="grid gap-4">
+          {(error || errors.firstName || errors.lastName || errors.email || errors.password || errors.confirmPassword) && (
+            <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
+              {error || errors.firstName?.message || errors.lastName?.message || errors.email?.message || errors.password?.message || errors.confirmPassword?.message}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="firstName">First Name</Label>
+              <Input
+                id="firstName"
+                placeholder="Enter your first name"
+                type="text"
+                disabled={isLoading}
+                aria-invalid={!!errors.firstName}
+                {...register('firstName', { required: 'First name is required' })}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="lastName">Last Name</Label>
+              <Input
+                id="lastName"
+                placeholder="Enter your last name"
+                type="text"
+                disabled={isLoading}
+                aria-invalid={!!errors.lastName}
+                {...register('lastName', { required: 'Last name is required' })}
+              />
+            </div>
           </div>
-        )}
-        <div className="grid grid-cols-2 gap-4">
           <div className="grid gap-2">
-            <Label htmlFor="firstName">First Name</Label>
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
-              id="firstName"
-              name="firstName"
-              placeholder="Enter your first name"
-              type="text"
-              value={formData.firstName}
-              onChange={handleChange}
+              id="phone"
+              placeholder="Enter your phone number"
+              type="tel"
               disabled={isLoading}
-              required
+              aria-invalid={!!errors.phone}
+              {...register('phone', { required: 'Phone number is required' })}
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="lastName">Last Name</Label>
+            <Label htmlFor="email">Email</Label>
             <Input
-              id="lastName"
-              name="lastName"
-              placeholder="Enter your last name"
-              type="text"
-              value={formData.lastName}
-              onChange={handleChange}
+              id="email"
+              placeholder="Enter your email"
+              type="email"
               disabled={isLoading}
-              required
+              aria-invalid={!!errors.email}
+              {...register('email', {
+                required: 'Email is required',
+                pattern: { value: /[^@\s]+@[^@\s]+\.[^@\s]+/, message: 'Enter a valid email' },
+              })}
             />
           </div>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="phone">Phone Number</Label>
-          <Input
-            id="phone"
-            name="phone"
-            placeholder="Enter your phone number"
-            type="tel"
-            value={formData.phone}
-            onChange={handleChange}
-            disabled={isLoading}
-            required
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            name="email"
-            placeholder="Enter your email"
-            type="email"
-            value={formData.email}
-            onChange={handleChange}
-            disabled={isLoading}
-            required
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="password">Password</Label>
-          <Input
-            id="password"
-            name="password"
-            placeholder="Create a password"
-            type="password"
-            value={formData.password}
-            onChange={handleChange}
-            disabled={isLoading}
-            required
-          />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <Input
-            id="confirmPassword"
-            name="confirmPassword"
-            placeholder="Confirm your password"
-            type="password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            disabled={isLoading}
-            required
-          />
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4">
-        <Button
-            className="w-full"
-            onClick={handleSubmit}
-            disabled={isLoading}
-        >
-          {/*{authStore.isLoading && (*/}
-          {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
-          {/*)}*/}
-          Create Account
-        </Button>
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <Separator className="w-full" />
+          <div className="grid gap-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              placeholder="Create a password"
+              type="password"
+              disabled={isLoading}
+              aria-invalid={!!errors.password}
+              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Min 6 characters' } })}
+            />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
+          <div className="grid gap-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <Input
+              id="confirmPassword"
+              placeholder="Confirm your password"
+              type="password"
+              disabled={isLoading}
+              aria-invalid={!!errors.confirmPassword}
+              {...register('confirmPassword', { required: 'Please confirm your password' })}
+            />
           </div>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
+        </CardContent>
+        <CardFooter className="flex flex-col gap-4">
           <Button
-              variant="outline"
-              // disabled={authStore.isLoading}
+              className="w-full"
+              type="submit"
+              disabled={isLoading}
           >
-            {/*TODO*/}
-            {/*{authStore.isLoading ? (*/}
-            {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
-            {/*) : (*/}
-            {/*  <Icons.google className="mr-2 h-4 w-4" />*/}
-            {/*)}*/}
-            Google
+            Create Account
           </Button>
-          {/*TODO*/}
-          <Button
-              variant="outline"
-              // disabled={authStore.isLoading}
-          >
-            {/*{authStore.isLoading ? (*/}
-            {/*  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />*/}
-            {/*) : (*/}
-            {/*  <Icons.github className="mr-2 h-4 w-4" />*/}
-            {/*)}*/}
-            {/*GitHub*/}
-          </Button>
-        </div>
-        <div className="text-center text-sm">
-          Already have an account?{" "}
-          <Button
-            variant="link"
-            className="p-0"
-              onClick={() => navigate("/login")}
-          >
-            Sign in
-          </Button>
-        </div>
-      </CardFooter>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">
+                Or continue with
+              </span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Button
+                variant="outline"
+            >
+              Google
+            </Button>
+            <Button
+                variant="outline"
+            >
+            </Button>
+          </div>
+          <div className="text-center text-sm">
+            Already have an account?{" "}
+            <Button
+              variant="link"
+              className="p-0"
+                onClick={() => navigate("/login")}
+            >
+              Sign in
+            </Button>
+          </div>
+        </CardFooter>
+      </form>
     </Card>
   )
 } 

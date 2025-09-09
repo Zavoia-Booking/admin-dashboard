@@ -17,37 +17,13 @@ import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { cn } from '../../../shared/lib/utils';
 import { toast } from 'sonner';
 import { UserRole } from '../../../shared/types/auth';
-
-interface TeamMember {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  role: string;
-  status: 'pending' | 'active' | 'inactive';
-  createdAt: string;
-  location?: string;
-  services?: string[];
-  workingHours?: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-  accessLevel?: 'admin' | 'staff' | 'readonly';
-  canReceiveNotifications?: boolean;
-  canManageOwnCalendar?: boolean;
-  googleCalendarSync?: boolean;
-}
+import { getRoleDisplayName } from '../../setupWizard/utils';
+import type { TeamMember } from '../../../shared/types/team-member';
 
 interface TeamMemberProfileSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  teamMember: TeamMember | null;
+  teamMember: TeamMember;
   onUpdate: (data: Partial<TeamMember>) => void;
   onDelete: (id: string) => void;
   locations: Array<{ id: string; name: string }>;
@@ -216,10 +192,8 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
     );
   };
 
-  const getRoleBadge = (role: string) => {
+  const getRoleBadge = (role: UserRole) => {
     switch (role) {
-      case UserRole.ADMIN:
-        return <Badge className="bg-purple-100 text-purple-800">Admin</Badge>;
       case UserRole.OWNER:
         return <Badge className="bg-blue-100 text-blue-800">Owner</Badge>;
       case UserRole.MANAGER:
@@ -227,7 +201,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
       case UserRole.TEAM_MEMBER:
         return <Badge className="bg-gray-100 text-gray-800">Team Member</Badge>;
       default:
-        return <Badge variant="secondary">{role}</Badge>;
+        return <Badge variant="secondary">{getRoleDisplayName(role)}</Badge>;
     }
   };
 
@@ -750,7 +724,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <div className="space-y-2">
                   <Label>Role</Label>
                   <div className="flex items-center gap-2">
-                    {getRoleBadge(teamMember.role)}
+                    {getRoleBadge(teamMember.role as UserRole)}
                     <Popover open={roleOpen} onOpenChange={setRoleOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm">Change Role</Button>
@@ -789,8 +763,8 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <div className="space-y-2">
                   <Label>Access Level</Label>
                   <Select 
-                    value={teamMember.accessLevel || 'staff'} 
-                    onValueChange={(value) => onUpdate({ accessLevel: value as any })}
+                    value={teamMember.role || 'staff'} 
+                    onValueChange={(value) => onUpdate({ role: value as any })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -808,15 +782,17 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <div className="flex items-center justify-between">
                   <Label>Can receive notifications?</Label>
                   <Switch 
-                    checked={teamMember.canReceiveNotifications ?? true}
-                    onCheckedChange={(checked) => onUpdate({ canReceiveNotifications: checked })}
+                    checked={true}
+                    // onCheckedChange={(checked) => onUpdate({ canReceiveNotifications: checked })}
+                    onCheckedChange={(checked) => console.log(checked)}
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>Can manage own calendar?</Label>
                   <Switch 
-                    checked={teamMember.canManageOwnCalendar ?? true}
-                    onCheckedChange={(checked) => onUpdate({ canManageOwnCalendar: checked })}
+                    checked={true}
+                    // onCheckedChange={(checked) => onUpdate({ canManageOwnCalendar: checked })}
+                    onCheckedChange={(checked) => console.log(checked)}
                   />
                 </div>
               </div>
@@ -825,10 +801,12 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <Label>Google Calendar Sync</Label>
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    {teamMember.googleCalendarSync ? 'Connected' : 'Not Connected'}
+                    {/* {teamMember.googleCalendarSync ? 'Connected' : 'Not Connected'} */}
+                    {true ? 'Connected' : 'Not Connected'}
                   </span>
                   <Button variant="outline" size="sm">
-                    {teamMember.googleCalendarSync ? 'Disconnect' : 'Connect'}
+                    {/* {teamMember.googleCalendarSync ? 'Disconnect' : 'Connect'} */}
+                    {true ? 'Disconnect' : 'Connect'}
                   </Button>
                 </div>
               </div>

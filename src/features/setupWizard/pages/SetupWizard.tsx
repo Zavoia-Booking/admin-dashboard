@@ -62,11 +62,10 @@ const SetupWizardPage: React.FC = () => {
 
   const getCurrentStepConfig = () => stepConfig[currentStep - 1];
   const { component: CurrentStepComponent, title, subtitle } = getCurrentStepConfig();
-
   const isLastStep = currentStep === totalSteps;
 
   return (
-    user?.wizardCompleted ? (
+    user?.wizardCompleted && currentStep < totalSteps ? (
       <div className="max-w-2xl mx-auto text-center py-12">
         <h2 className="text-2xl font-bold mb-4">Thank You for Completing Your Business Setup!</h2>
         <p className="text-gray-600 mb-8">

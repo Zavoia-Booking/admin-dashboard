@@ -1,9 +1,18 @@
-import type { LocationState } from "./types";
+import { getLocationStateSelector } from "../../app/providers/selectors";
+import { createSelector } from "@reduxjs/toolkit";
 
-export const selectLocationState = (s: { locations: LocationState }) => s.locations;
-export const selectCurrentLocation = (s: { locations: LocationState }) => s.locations.current;
-export const selectLocationLoading = (s: { locations: LocationState }) => s.locations.isLoading;
-export const selectLocationError = (s: { locations: LocationState }) => s.locations.error;
-export const selectAllLocations = (s: { locations: LocationState }) => s.locations.allLocations;
+export const getAllLocationsSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.allLocations
+});
 
+export const getCurrentLocationSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.current
+});
 
+export const getLocationLoadingSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.isLoading
+});
+
+export const getLocationErrorSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.error
+});

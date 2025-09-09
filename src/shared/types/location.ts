@@ -19,9 +19,11 @@ export interface LocationType {
   name: string;
   address: string;
   email: string;
-  phoneNumber: string;
+  phone: string;
   description: string;
   workingHours: WorkingHours;
   isActive: boolean;
   createdAt: string;
-} 
+  timezone: string;
+  isRemote: boolean;
+}
