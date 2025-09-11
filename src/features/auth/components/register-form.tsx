@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "../../../shared/components/ui/button"
+import { AlertCircle } from "lucide-react"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card"
 import { Label } from "../../../shared/components/ui/label"
@@ -10,6 +11,9 @@ import { useDispatch, useSelector } from "react-redux"
 import { registerOwnerRequestAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
 import { useForm } from "react-hook-form"
+import { PasswordStrength } from "./PasswordStrength"
+import { nameRules, sanitizeName, phoneRules, emailRules, sanitizePhoneToE164Draft, validatePasswordPolicy } from "../validation"
+import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 
 type FormValues = {
   firstName: string
@@ -23,11 +27,13 @@ type FormValues = {
 export function RegisterForm() {
   const navigate = useNavigate()
   const [error, setTopError] = useState<string | null>(null)
+  const [pwFocused, setPwFocused] = useState<boolean>(false)
   const dispatch = useDispatch();
   const { isLoading, isAuthenticated, error: authError } = useSelector((state: RootState) => state.auth);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    mode: 'onSubmit',
+  const { register, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue } = useForm<FormValues>({
+    mode: 'onChange',
+    reValidateMode: 'onChange',
     defaultValues: {
       firstName: '',
       lastName: '',
@@ -36,6 +42,14 @@ export function RegisterForm() {
       password: '',
       confirmPassword: '',
     }
+  })
+  
+  const firstNameField = register('firstName', nameRules as any);
+  const lastNameField = register('lastName', nameRules as any);
+
+  const passwordField = register('password', {
+    required: 'Password is required',
+    validate: (value) => validatePasswordPolicy(value),
   })
 
   const onSubmit = (values: FormValues) => {
@@ -75,12 +89,12 @@ export function RegisterForm() {
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="grid gap-4">
-          {(error || errors.firstName || errors.lastName || errors.email || errors.password || errors.confirmPassword) && (
+          {error && (
             <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
-              {error || errors.firstName?.message || errors.lastName?.message || errors.email?.message || errors.password?.message || errors.confirmPassword?.message}
+              {error}
             </div>
           )}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div className="grid gap-2">
               <Label htmlFor="firstName">First Name</Label>
               <Input
@@ -89,8 +103,20 @@ export function RegisterForm() {
                 type="text"
                 disabled={isLoading}
                 aria-invalid={!!errors.firstName}
-                {...register('firstName', { required: 'First name is required' })}
+                className={errors.firstName ? 'border-destructive focus-visible:ring-destructive bg-[#FFFAFA]' : undefined}
+                autoComplete="given-name"
+                {...firstNameField}
+                onChange={(e) => {
+                  const value = sanitizeName((e.target as HTMLInputElement).value);
+                  setValue('firstName', value, { shouldValidate: true, shouldDirty: true });
+                }}
               />
+              {errors.firstName && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span>{String(errors.firstName.message)}</span>
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <Label htmlFor="lastName">Last Name</Label>
@@ -100,8 +126,20 @@ export function RegisterForm() {
                 type="text"
                 disabled={isLoading}
                 aria-invalid={!!errors.lastName}
-                {...register('lastName', { required: 'Last name is required' })}
+                className={errors.lastName ? 'border-destructive focus-visible:ring-destructive bg-[#FFFAFA]' : undefined}
+                autoComplete="family-name"
+                {...lastNameField}
+                onChange={(e) => {
+                  const value = sanitizeName((e.target as HTMLInputElement).value);
+                  setValue('lastName', value, { shouldValidate: true, shouldDirty: true });
+                }}
               />
+              {errors.lastName && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span>{String(errors.lastName.message)}</span>
+                </p>
+              )}
             </div>
           </div>
           <div className="grid gap-2">
@@ -112,8 +150,22 @@ export function RegisterForm() {
               type="tel"
               disabled={isLoading}
               aria-invalid={!!errors.phone}
-              {...register('phone', { required: 'Phone number is required' })}
+              className={errors.phone ? 'border-destructive focus-visible:ring-destructive bg-[#FFFAFA]' : undefined}
+              autoComplete="tel"
+              {...register('phone', phoneRules as any)}
+              inputMode="tel"
+              onChange={(e) => {
+                const raw = (e.target as HTMLInputElement).value;
+                const value = sanitizePhoneToE164Draft(raw);
+                setValue('phone', value, { shouldValidate: true, shouldDirty: true });
+              }}
             />
+            {errors.phone && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>{String(errors.phone.message)}</span>
+              </p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
@@ -123,22 +175,44 @@ export function RegisterForm() {
               type="email"
               disabled={isLoading}
               aria-invalid={!!errors.email}
-              {...register('email', {
-                required: 'Email is required',
-                pattern: { value: /[^@\s]+@[^@\s]+\.[^@\s]+/, message: 'Enter a valid email' },
-              })}
+              className={errors.email ? 'border-destructive focus-visible:ring-destructive bg-[#FFFAFA]' : undefined}
+              autoComplete="email"
+              {...register('email', emailRules as any)}
             />
+            {errors.email && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>{String(errors.email.message)}</span>
+              </p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              placeholder="Create a password"
-              type="password"
-              disabled={isLoading}
-              aria-invalid={!!errors.password}
-              {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Min 6 characters' } })}
-            />
+            <Popover open={pwFocused} onOpenChange={setPwFocused}>
+              <PopoverTrigger asChild>
+                <Input
+                  id="password"
+                  placeholder="Create a password"
+                  type="password"
+                  disabled={isLoading}
+                  aria-invalid={!!errors.password}
+                  className={errors.password ? 'border-destructive focus-visible:ring-destructive bg-[#FFFAFA]' : undefined}
+                  onFocus={() => setPwFocused(true)}
+                  {...passwordField}
+                  onBlur={(e) => { passwordField.onBlur(e); setPwFocused(false); }}
+                />
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" sideOffset={8} className="p-0 border-none bg-transparent shadow-none w-auto">
+                <PasswordStrength password={watch('password')} variant="panel" />
+              </PopoverContent>
+            </Popover>
+            <PasswordStrength password={watch('password')} />
+            {errors.password && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>{String(errors.password.message)}</span>
+              </p>
+            )}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="confirmPassword">Confirm Password</Label>
@@ -148,15 +222,25 @@ export function RegisterForm() {
               type="password"
               disabled={isLoading}
               aria-invalid={!!errors.confirmPassword}
-              {...register('confirmPassword', { required: 'Please confirm your password' })}
+              className={errors.confirmPassword ? 'border-destructive focus-visible:ring-destructive bg-[#FFFAFA]' : undefined}
+              {...register('confirmPassword', {
+                required: 'Please confirm your password',
+                validate: (value, formValues) => value === (formValues as any)?.password || 'Passwords do not match',
+              })}
             />
+            {errors.confirmPassword && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>{String(errors.confirmPassword.message)}</span>
+              </p>
+            )}
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <Button
               className="w-full"
               type="submit"
-              disabled={isLoading}
+              disabled={isLoading || !isValid || isSubmitting}
           >
             Create Account
           </Button>
