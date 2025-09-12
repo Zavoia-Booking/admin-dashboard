@@ -44,36 +44,38 @@ export function MobileHeader() {
           <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
         </div>
 
-        {/* Right side - Search and Notifications */}
+        {/* Right side - Location switcher (hidden on Locations page) */}
         <div className="flex items-center space-x-2">
-          {allLocations && allLocations.length > 1 ? (
-            <Select
-              value={current?.id ? String(current.id) : 'all'}
-              onValueChange={(value) => {
-                if (value === 'all') {
-                  dispatch(setCurrentLocation({ location: null }));
-                  try { localStorage.removeItem('currentLocationId'); } catch {}
-                } else {
-                  const next = allLocations.find(l => String(l.id) === value) || null;
-                  dispatch(setCurrentLocation({ location: next }));
-                  try { if (next?.id != null) localStorage.setItem('currentLocationId', String(next.id)); } catch {}
-                }
-              }}
-            >
-              <SelectTrigger className="min-w-[180px] h-10">
-                <SelectValue placeholder={current?.name || 'All locations'} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All locations</SelectItem>
-                {allLocations.map(l => (
-                  <SelectItem key={l.id} value={String(l.id)}>
-                    {l.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className="text-sm text-gray-600">{current?.name || 'No location'}</span>
+          {pathname !== '/locations' && (
+            allLocations && allLocations.length > 1 ? (
+              <Select
+                value={current?.id ? String(current.id) : 'all'}
+                onValueChange={(value) => {
+                  if (value === 'all') {
+                    dispatch(setCurrentLocation({ location: null }));
+                    try { localStorage.removeItem('currentLocationId'); } catch {}
+                  } else {
+                    const next = allLocations.find(l => String(l.id) === value) || null;
+                    dispatch(setCurrentLocation({ location: next }));
+                    try { if (next?.id != null) localStorage.setItem('currentLocationId', String(next.id)); } catch {}
+                  }
+                }}
+              >
+                <SelectTrigger className="min-w-[180px] h-10">
+                  <SelectValue placeholder={current?.name || 'All locations'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All locations</SelectItem>
+                  {allLocations.map(l => (
+                    <SelectItem key={l.id} value={String(l.id)}>
+                      {l.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="text-sm text-gray-600">{current?.name || 'No location'}</span>
+            )
           )}
         </div>
       </div>

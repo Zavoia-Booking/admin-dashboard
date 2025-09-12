@@ -18,4 +18,4 @@ export const cancelInvitationAction = createAsyncAction(
   'teamMembers/CANCEL_INVITATION_REQUEST',
   'teamMembers/CANCEL_INVITATION_SUCCESS',
   'teamMembers/CANCEL_INVITATION_FAILURE',
-)<{ id: string }, void, { message: string }>();
+)<{ id: number }, void, { message: string }>();

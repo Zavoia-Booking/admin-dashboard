@@ -35,7 +35,7 @@ export default function TeamMembersPage() {
   const [locationFilter, setLocationFilter] = useState('all');
   const [pendingAction, setPendingAction] = useState<{
     type: 'delete' | 'resend' | 'toggleStatus' | 'cancelInvite';
-    teamMemberId?: string;
+    teamMemberId?: number;
     teamMemberName?: string;
     email?: string;
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };

@@ -14,7 +14,7 @@ import { UserRole } from '../../../shared/types/auth';
 import type { InviteTeamMemberPayload } from '../types';
 import { userRoles } from '../../../shared/constants';
 import { useDispatch, useSelector } from 'react-redux';
-import { getAllLocationsSelector, getCurrentLocationSelector } from '../../locations/selectors';
+import { getCurrentLocationSelector } from '../../locations/selectors';
 import { inviteTeamMemberAction } from '../actions';
 
 interface InviteTeamMemberSliderProps {
@@ -25,7 +25,6 @@ interface InviteTeamMemberSliderProps {
 const initialFormData: InviteTeamMemberPayload = {
   email: '',
   role: UserRole.TEAM_MEMBER,
-  locationIds: [],
 };
 
 const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({ 
@@ -36,13 +35,13 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   const { register, handleSubmit, setValue, reset, formState: { errors }, watch } = useForm<InviteTeamMemberPayload>({
     defaultValues: initialFormData
   });
-  const locations = useSelector(getAllLocationsSelector);
+  // const locations = useSelector(getAllLocationsSelector);
   const currentLocation = useSelector(getCurrentLocationSelector);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   // Popover states
   const [roleOpen, setRoleOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
+  
 
   // Prefill/lock location based on current location, and reset form when slider closes
   useEffect(() => {
@@ -50,12 +49,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       reset(initialFormData);
       return;
     }
-    if (currentLocation?.id) {
-      setValue('locationIds', [currentLocation.id], { shouldDirty: true, shouldTouch: true });
-    } else {
-      // allow free selection on All locations
-      setValue('locationIds', [], { shouldDirty: true, shouldTouch: true });
-    }
+    // no per-form locations when All locations
   }, [isOpen, reset, setValue, currentLocation?.id]);
 
   const onSubmit = () => {
@@ -66,7 +60,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     const data: InviteTeamMemberPayload = {
       email: watch('email'),
       role: watch('role') as UserRole,
-      locationIds: watch('locationIds')
     };
     dispatch(inviteTeamMemberAction.request(data));
     setShowConfirmDialog(false);
@@ -197,66 +190,15 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                   </div>
                   <h3 className="text-base font-semibold text-foreground">Location Assignment</h3>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Location</Label>
-                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={locationOpen}
-                        className="w-full h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm justify-between"
-                        disabled={!!currentLocation?.id}
-                      >
-                        {(() => {
-                          const selected = (watch('locationIds') || []) as number[];
-                          if (currentLocation?.id) return currentLocation.name;
-                          if (selected.length === 0) return 'Select locations...';
-                          const names = selected
-                            .map(id => locations.find(l => l.id === id)?.name)
-                            .filter(Boolean) as string[];
-                          return names.length === 1 ? names[0] : `${names.length} selected`;
-                        })()}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0 z-[80]">
-                      <Command>
-                        <CommandInput placeholder="Search locations..." />
-                        <CommandList>
-                          <CommandEmpty>No locations found.</CommandEmpty>
-                          <CommandGroup>
-                            {locations.map((location) => (
-                              <CommandItem
-                                key={location.id}
-                                value={location.name}
-                                onSelect={() => {
-                                  if (currentLocation?.id) return;
-                                  const current = new Set((watch('locationIds') || []) as number[]);
-                                  if (current.has(location.id)) {
-                                    current.delete(location.id);
-                                  } else {
-                                    current.add(location.id);
-                                  }
-                                  setValue('locationIds', Array.from(current), { shouldDirty: true, shouldTouch: true });
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    (((watch('locationIds') || []) as number[]).includes(location.id) ? 'opacity-100' : 'opacity-0')
-                                  )}
-                                />
-                                {location.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  <input type="hidden" {...register('locationIds', { required: true })} name="locationIds" value={undefined as any} />
-                </div>
+                {currentLocation ? (
+                  <div className="text-sm text-muted-foreground">
+                    Inviting to current location: <span className="font-medium text-foreground">{currentLocation.name}</span>. Switch location in the header to invite to a different location.
+                  </div>
+                ) : (
+                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
+                    This invitation will be sent for all business locations. Switch to a specific location in the header to target only that location.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

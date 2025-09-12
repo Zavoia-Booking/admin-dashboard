@@ -17,7 +17,7 @@ import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { capitalize, shortDay } from '../utils';
-import { getAllLocationsSelector } from '../selectors';
+import { getAllLocationsSelector, getCurrentLocationSelector } from '../selectors';
 import { updateLocationAction } from '../actions';
 import { defaultWorkingHours } from '../constants';
  
@@ -29,6 +29,7 @@ export default function LocationsPage() {
   const user = useSelector(selectCurrentUser);
 
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
+  const currentLocation = useSelector(getCurrentLocationSelector);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<LocationType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');

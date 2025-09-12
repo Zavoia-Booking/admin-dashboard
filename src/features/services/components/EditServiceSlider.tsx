@@ -28,6 +28,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const currentLocation = useSelector(getCurrentLocationSelector);
+  
   const { register, handleSubmit, reset, setValue, getValues, watch } = useForm<EditServicePayload>({
     defaultValues: {
       id: service?.id ?? 0,
@@ -36,7 +37,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       duration: service?.duration ?? 0,
       price: service?.price ?? 0,
       isActive: service?.isActive ?? true,
-      locationIds: currentLocation ? [currentLocation.id] : [],
     }
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -51,7 +51,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         duration: service.duration,
         price: service.price,
         isActive: service.isActive,
-        locationIds: currentLocation ? [currentLocation.id] : [],
       });
     }
   }, [service, isOpen, reset, currentLocation]);
@@ -77,7 +76,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       duration,
       price,
       isActive,
-      locationIds: currentLocation ? [currentLocation.id] : [],
+      
     };
     dispatch(editServicesAction.request(payload));
     setShowConfirmDialog(false);
@@ -199,6 +198,15 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   </div>
                   <h3 className="text-base font-semibold text-foreground">Service Settings</h3>
                 </div>
+                {currentLocation ? (
+                  <div className="text-sm text-muted-foreground">
+                    Updating for current location: <span className="font-medium text-foreground">{currentLocation.name}</span>. Switch location in the header to edit this service in another location.
+                  </div>
+                ) : (
+                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
+                    This update will apply across all business locations. Switch to a specific location in the header to target only that location.
+                  </div>
+                )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-foreground">Service Status</Label>
