@@ -1,35 +1,38 @@
-export const mockTeamMembers = [
+import type { TeamMember } from "../shared/types/team-member.ts";
+import { UserRole } from "../shared/types/auth.ts";
+
+export const mockTeamMembers: Array<TeamMember> = [
   {
-    id: '1',
+    id: 1,
     firstName: 'Emma',
     lastName: 'Thompson',
     email: 'emma@salon.com',
     phone: '+1 (555) 123-4567',
-    role: 'Senior Stylist',
+    role: UserRole.TEAM_MEMBER,
     status: 'active',
     createdAt: '2024-01-15T10:30:00Z',
-    location: 'Downtown Salon',
+    location: 1,
   },
   {
-    id: '2',
+    id: 2,
     firstName: 'Alex',
     lastName: 'Rodriguez',
     email: 'alex@wellness.com',
     phone: '+1 (555) 234-5678',
-    role: 'Massage Therapist',
+    role: UserRole.TEAM_MEMBER,
     status: 'active',
     createdAt: '2024-02-01T15:45:00Z',
-    location: 'Westside Branch',
+    location: 2,
   },
   {
-    id: '3',
+    id: 3,
     firstName: 'David',
     lastName: 'Kim',
     email: 'david@barbershop.com',
     phone: '+1 (555) 456-7890',
-    role: 'Barber',
+    role: UserRole.TEAM_MEMBER,
     status: 'active',
     createdAt: '2024-01-20T09:15:00Z',
-    location: 'Mall Location',
+    location: 3,
   },
 ];

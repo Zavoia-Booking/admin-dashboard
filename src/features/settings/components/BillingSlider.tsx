@@ -160,6 +160,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   };
 
   const getCardIcon = (brand: string) => {
+    console.log('brand', brand)
     return <CreditCard className="h-4 w-4" />;
   };
 

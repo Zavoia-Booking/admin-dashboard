@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "../../../shared/components/ui/button";
 import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
@@ -6,12 +6,10 @@ import { Input } from '../../../shared/components/ui/input';
 import { Switch } from '../../../shared/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../shared/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
-
-// TODO: fix sonner / toast component
 import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 
-import { Plus, Trash2, Upload, Clock, MapPin, Check, X } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -122,6 +120,8 @@ export default function BusinessProfilePage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<'add' | 'remove' | null>(null);
 
+  console.log('selectedTeamMember', selectedTeamMember)
+
   useEffect(() => {
     // Populate with example team members
     setTeamMembers([
@@ -168,16 +168,11 @@ export default function BusinessProfilePage() {
     ]);
   }, []);
 
-  const handleImageUpload = async (type: 'slideshow' | 'hero' | 'logo', file: File) => {
-    // TODO: Implement image upload
-    toast.success('Image uploaded successfully');
-  };
-
   const handleSaveProfile = async () => {
     try {
       // TODO: Implement profile update
       toast.success('Profile updated successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update profile');
     }
   };

@@ -23,7 +23,7 @@ interface PortfolioImage {
   caption: string;
 }
 
-interface TeamMemberProfile {
+export interface TeamMemberProfile {
   id: string;
   firstName: string;
   lastName: string;
@@ -101,7 +101,7 @@ export default function ProfilePage() {
       if (!response.ok) throw new Error('Failed to update profile');
 
       toast.success('Profile updated successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to update profile');
     } finally {
       setSaving(false);
@@ -166,7 +166,7 @@ export default function ProfilePage() {
       setPreviewUrl(null);
       
       toast.success('Image added to portfolio');
-    } catch (error) {
+    } catch {
       toast.error('Failed to add image to portfolio');
     }
   };
@@ -186,7 +186,7 @@ export default function ProfilePage() {
       });
       
       toast.success('Image removed from portfolio');
-    } catch (error) {
+    } catch {
       toast.error('Failed to remove image from portfolio');
     }
   };

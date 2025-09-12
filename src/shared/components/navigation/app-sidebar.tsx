@@ -118,7 +118,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   
   // Filter navigation items based on user's role
   const filteredNavItems = navItems
-    .filter(item => {
+    .filter(() => {
       // Commented out for development - show all items without authentication
       return true;
       
