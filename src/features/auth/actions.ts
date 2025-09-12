@@ -66,3 +66,7 @@ export const resetPasswordAction = createAsyncAction(
   'auth/RESET_PASSWORD_SUCCESS',
   'auth/RESET_PASSWORD_FAILURE',
 )<{ token: string, password: string }, void, { message: string }>();
+
+export const clearAuthErrorAction = createAction(
+  'auth/CLEAR_AUTH_ERROR',
+)<void>();

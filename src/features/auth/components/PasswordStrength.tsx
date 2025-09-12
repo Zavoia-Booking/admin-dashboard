@@ -1,9 +1,10 @@
 import { cn } from "../../../shared/lib/utils";
+import { Check, X } from "lucide-react";
 
 type PasswordStrengthProps = {
   password: string;
   className?: string;
-  variant?: "inline" | "panel";
+  variant?: "inline" | "panel" | "bar";
 };
 
 type StrengthLevel = {
@@ -44,6 +45,49 @@ export const getPasswordStrength = (password: string): StrengthLevel => {
 export const PasswordStrength = ({ password, className, variant = "inline" }: PasswordStrengthProps) => {
   const { score, label, checks } = getPasswordStrength(password);
 
+  if (variant === "bar") {
+    const labelTint =
+      score <= 20
+        ? "text-destructive"
+        : score <= 40
+        ? "text-orange-500"
+        : score <= 60
+        ? "text-yellow-500"
+        : score <= 80
+        ? "text-emerald-500"
+        : "text-green-600";
+
+    const fillColor =
+      score <= 20
+        ? "bg-destructive"
+        : score <= 40
+        ? "bg-orange-500"
+        : score <= 60
+        ? "bg-yellow-500"
+        : score <= 80
+        ? "bg-emerald-500"
+        : "bg-green-600";
+
+    return (
+      <div className={cn("w-full", className)}>
+        <div className="mb-1 flex items-center justify-between text-xs">
+          <span className="font-semibold text-foreground">Password strength</span>
+          <span className={cn("font-medium", labelTint)}>{label}</span>
+        </div>
+        <div
+          className="relative h-2 w-full overflow-hidden rounded-full bg-muted"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={score}
+          aria-label="Password strength"
+        >
+          <div className={cn("h-full rounded-full transition-all", fillColor)} style={{ width: `${Math.max(4, score)}%` }} />
+        </div>
+      </div>
+    );
+  }
+
   if (variant === "panel") {
     const labelTint =
       score <= 20
@@ -65,6 +109,7 @@ export const PasswordStrength = ({ password, className, variant = "inline" }: Pa
         <div className="mb-2 h-px w-full bg-border" />
         <ul className="space-y-1 text-[11px] text-foreground">
           <PanelItem met={checks.hasMinLength} text="Minimum 8 characters" />
+          <PanelItem met={checks.hasLower} text="At least one Lowercase (a–z)" />
           <PanelItem met={checks.hasUpper} text="At least one Uppercase (A–Z)" />
           <PanelItem met={checks.hasNumber} text="At least one Number (0–9)" />
           <PanelItem met={checks.hasSymbol} text="At least one Special character (@$!%*?&)" />
@@ -102,7 +147,11 @@ export const PasswordStrength = ({ password, className, variant = "inline" }: Pa
 const PanelItem = ({ met, text }: { met: boolean; text: string }) => {
   return (
     <li className="flex items-center gap-2">
-      <span className={cn("inline-block h-1.5 w-1.5 rounded-full", met ? "bg-emerald-500" : "bg-muted-foreground/40")} />
+      {met ? (
+        <Check className="h-3 w-3 text-emerald-500" />
+      ) : (
+        <X className="h-3 w-3 text-red-500" />
+      )}
       <span className={cn(met ? "text-foreground" : "text-muted-foreground")}>{text}</span>
     </li>
   );

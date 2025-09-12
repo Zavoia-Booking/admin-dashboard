@@ -29,8 +29,19 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Registration failed";
-    yield put(registerOwnerRequestAction.failure(message));
+    let message = "Registration failed";
+    
+    if (error?.response?.data?.message) {
+      // Handle array of messages or single message
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    yield put(registerOwnerRequestAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
   }
@@ -65,8 +76,19 @@ function* handleLogin(action: { type: string; payload: { email: string, password
     yield put(setAuthUserAction({ user: response.user }));
 
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Login failed";
-    yield put(loginAction.failure(message));
+    let message = "Login failed";
+    
+    if (error?.response?.data?.message) {
+      // Handle array of messages or single message
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    yield put(loginAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
   }
