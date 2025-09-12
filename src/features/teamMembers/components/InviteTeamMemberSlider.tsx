@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Mail, MapPin, UserPlus, ChevronsUpDown, Check } from 'lucide-react';
+import { User, Mail, UserPlus, ChevronsUpDown, Check, MapPin } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
@@ -11,65 +11,64 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { cn } from '../../../shared/lib/utils';
 import { UserRole } from '../../../shared/types/auth';
+import type { InviteTeamMemberPayload } from '../types';
+import { userRoles } from '../../../shared/constants';
+import { useDispatch, useSelector } from 'react-redux';
+import { getAllLocationsSelector, getCurrentLocationSelector } from '../../locations/selectors';
+import { inviteTeamMemberAction } from '../actions';
 
 interface InviteTeamMemberSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onInvite: (inviteData: { email: string; role: string; }) => void;
-  locations: Array<{ id: string; name: string }>;
 }
 
-interface InviteFormData {
-  email: string;
-  role: UserRole;
-  location: string;
-}
-
-const initialFormData: InviteFormData = {
+const initialFormData: InviteTeamMemberPayload = {
   email: '',
   role: UserRole.TEAM_MEMBER,
-  location: ''
+  locationIds: [],
 };
 
 const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({ 
   isOpen, 
   onClose, 
-  onInvite, 
-  locations 
 }) => {
-  const { register, handleSubmit, setValue, reset, formState: { errors }, watch } = useForm<InviteFormData>({
+  const dispatch = useDispatch();
+  const { register, handleSubmit, setValue, reset, formState: { errors }, watch } = useForm<InviteTeamMemberPayload>({
     defaultValues: initialFormData
   });
+  const locations = useSelector(getAllLocationsSelector);
+  const currentLocation = useSelector(getCurrentLocationSelector);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   // Popover states
   const [roleOpen, setRoleOpen] = useState(false);
   const [locationOpen, setLocationOpen] = useState(false);
 
-  // Available roles
-  const roles = [
-    { value: UserRole.MANAGER, label: 'Manager' },
-    { value: UserRole.TEAM_MEMBER, label: 'Team Member' }
-  ];
-
-  // Reset form when slider closes
+  // Prefill/lock location based on current location, and reset form when slider closes
   useEffect(() => {
     if (!isOpen) {
       reset(initialFormData);
+      return;
     }
-  }, [isOpen, reset]);
+    if (currentLocation?.id) {
+      setValue('locationIds', [currentLocation.id], { shouldDirty: true, shouldTouch: true });
+    } else {
+      // allow free selection on All locations
+      setValue('locationIds', [], { shouldDirty: true, shouldTouch: true });
+    }
+  }, [isOpen, reset, setValue, currentLocation?.id]);
 
   const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmInvite = () => {
-    const data: InviteFormData = {
+    const data: InviteTeamMemberPayload = {
       email: watch('email'),
       role: watch('role') as UserRole,
-      location: watch('location')
+      locationIds: watch('locationIds')
     };
-    onInvite(data);
+    dispatch(inviteTeamMemberAction.request(data));
     setShowConfirmDialog(false);
     onClose();
     reset(initialFormData);
@@ -149,10 +148,11 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                         aria-expanded={roleOpen}
                         className="w-full h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm justify-between"
                       >
-                        {/* role is stored via RHF hidden input */}
-                        {/* Show selected value by watching via UI state replacement */}
-                        {/* For simplicity, we display from data attr later */}
-                        Select role...
+                        {(() => {
+                          const value = watch('role') as unknown as UserRole | undefined;
+                          const selected = userRoles.find(r => r.value === value);
+                          return selected ? selected.label : 'Select role...';
+                        })()}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -162,7 +162,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                         <CommandList>
                           <CommandEmpty>No roles found.</CommandEmpty>
                           <CommandGroup>
-                            {roles.map((role) => (
+                            {userRoles.map((role) => (
                               <CommandItem
                                 key={role.value}
                                 value={role.value}
@@ -174,7 +174,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    "opacity-0"
+                                    (watch('role') === role.value ? 'opacity-100' : 'opacity-0')
                                   )}
                                 />
                                 {role.label}
@@ -198,7 +198,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                   <h3 className="text-base font-semibold text-foreground">Location Assignment</h3>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Primary Location</Label>
+                  <Label className="text-sm font-medium text-foreground">Location</Label>
                   <Popover open={locationOpen} onOpenChange={setLocationOpen}>
                     <PopoverTrigger asChild>
                       <Button
@@ -206,8 +206,17 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                         role="combobox"
                         aria-expanded={locationOpen}
                         className="w-full h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm justify-between"
+                        disabled={!!currentLocation?.id}
                       >
-                        Select location...
+                        {(() => {
+                          const selected = (watch('locationIds') || []) as number[];
+                          if (currentLocation?.id) return currentLocation.name;
+                          if (selected.length === 0) return 'Select locations...';
+                          const names = selected
+                            .map(id => locations.find(l => l.id === id)?.name)
+                            .filter(Boolean) as string[];
+                          return names.length === 1 ? names[0] : `${names.length} selected`;
+                        })()}
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -222,14 +231,20 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                                 key={location.id}
                                 value={location.name}
                                 onSelect={() => {
-                                  setValue('location', location.id, { shouldDirty: true, shouldTouch: true });
-                                  setLocationOpen(false);
+                                  if (currentLocation?.id) return;
+                                  const current = new Set((watch('locationIds') || []) as number[]);
+                                  if (current.has(location.id)) {
+                                    current.delete(location.id);
+                                  } else {
+                                    current.add(location.id);
+                                  }
+                                  setValue('locationIds', Array.from(current), { shouldDirty: true, shouldTouch: true });
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    "opacity-0"
+                                    (((watch('locationIds') || []) as number[]).includes(location.id) ? 'opacity-100' : 'opacity-0')
                                   )}
                                 />
                                 {location.name}
@@ -240,7 +255,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                       </Command>
                     </PopoverContent>
                   </Popover>
-                  <input type="hidden" {...register('location', { required: true })} name="location" value={undefined as any} />
+                  <input type="hidden" {...register('locationIds', { required: true })} name="locationIds" value={undefined as any} />
                 </div>
               </div>
             </CardContent>

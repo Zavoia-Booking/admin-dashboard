@@ -26,6 +26,9 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
 function* loadDraftData() {
   try {
     const { wizardData } = yield call(getWizardDraftApi);
+    if (!wizardData || Object.keys(wizardData).length === 0) {
+      return;
+    }
     yield put(wizardLoadDraftAction.success(wizardData));
   } catch (error: any) {
     yield put(wizardLoadDraftAction.failure({ message: error?.message || 'Failed to load draft' }));

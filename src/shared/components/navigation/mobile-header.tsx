@@ -48,19 +48,25 @@ export function MobileHeader() {
         <div className="flex items-center space-x-2">
           {allLocations && allLocations.length > 1 ? (
             <Select
-              value={current?.id || ''}
+              value={current?.id ? String(current.id) : 'all'}
               onValueChange={(value) => {
-                const next = allLocations.find(l => l.id === value) || null;
-                dispatch(setCurrentLocation({ location: next }));
-                try { localStorage.setItem('currentLocationId', value); } catch {}
+                if (value === 'all') {
+                  dispatch(setCurrentLocation({ location: null }));
+                  try { localStorage.removeItem('currentLocationId'); } catch {}
+                } else {
+                  const next = allLocations.find(l => String(l.id) === value) || null;
+                  dispatch(setCurrentLocation({ location: next }));
+                  try { if (next?.id != null) localStorage.setItem('currentLocationId', String(next.id)); } catch {}
+                }
               }}
             >
-              <SelectTrigger className="min-w-[160px] h-10">
-                <SelectValue placeholder={current?.name || 'Select location'} />
+              <SelectTrigger className="min-w-[180px] h-10">
+                <SelectValue placeholder={current?.name || 'All locations'} />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="all">All locations</SelectItem>
                 {allLocations.map(l => (
-                  <SelectItem key={l.id} value={l.id}>
+                  <SelectItem key={l.id} value={String(l.id)}>
                     {l.name}
                   </SelectItem>
                 ))}

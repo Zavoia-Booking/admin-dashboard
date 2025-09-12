@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Edit, Trash2, Filter, Search, Plus, Clock, X, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
 import AddServiceSlider from '../components/AddServiceSlider';
@@ -78,9 +78,8 @@ export default function ServicesPage() {
   }, [services, searchTerm, statusFilter, priceRange, durationRange]);
 
   useEffect(() => {
-    if (currentLocation?.id) {
-      dispatch(getServicesAction.request());
-    }
+    // Refetch whenever location changes, including when cleared to "All locations"
+    dispatch(getServicesAction.request());
   }, [dispatch, currentLocation?.id]);
 
   // creation handled inside AddServiceSlider via react-hook-form + dispatch

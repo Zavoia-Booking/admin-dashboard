@@ -1,8 +1,17 @@
 import { apiClient } from "../../shared/lib/http";
-import type { TeamMember } from "../../shared/types/team-member";
+import type { InviteTeamMemberPayload, TeamMember } from "../../shared/types/team-member";
+import type { InviteTeamMemberResponse } from "./types";
 
 export const listTeamMembersApi = async (): Promise<{ teamMembers: TeamMember[] }> => {
-  const { data } = await apiClient().get<{ teamMembers: TeamMember[] }>('/auth/team-members');
+  const { data } = await apiClient().get<{ teamMembers: TeamMember[] }>('/team/members');
   return data;
 };
 
+export const inviteTeamMemberApi = async (payload: InviteTeamMemberPayload): Promise<InviteTeamMemberResponse> => {
+  const { data } = await apiClient().post<InviteTeamMemberResponse>('/auth/invite-team-member', payload);
+  return data;
+};
+
+export const cancelInvitationApi = async (id: number): Promise<void> => {
+  await apiClient().post(`/auth/cancel-invitation/${id}`);
+};

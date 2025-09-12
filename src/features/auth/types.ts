@@ -43,3 +43,15 @@ export interface AuthState {
   error: string | null;
   lastRefreshAt: number | null;
 }
+
+export type RegisterMemberPayload = {
+  token: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  password: string;
+};
+
+export type RegisterMemberResponse = {
+  message: string;
+};
