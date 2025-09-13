@@ -108,16 +108,16 @@ export function RegisterForm() {
 
   return (
     <Card className="w-full max-w-lg mx-auto">
-      <CardHeader className="space-y-1 px-6 py-6 md:px-8 md:py-8">
-        <CardTitle className="text-2xl md:text-3xl text-center">Create a Business Owner Account</CardTitle>
-        <CardDescription className="text-center text-sm md:text-base">
+      <CardHeader className="space-y-1 px-6 py-4 md:px-8 md:py-6">
+        <CardTitle className="text-xl md:text-2xl text-center">Create a Business Owner Account</CardTitle>
+        <CardDescription className="text-center text-sm">
           Enter your details below to create your account
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <CardContent className="flex flex-col gap-4 px-6 md:px-8">
-          <div className="flex flex-col md:flex-row gap-4 md:gap-6">
-            <div className="flex-1 grid gap-2">
+        <CardContent className="flex flex-col gap-3 px-6 md:px-8">
+          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
+            <div className="flex-1 grid gap-1.5">
               <label htmlFor="firstName" className="text-sm font-medium text-gray-700">
                 First Name
               </label>
@@ -128,7 +128,7 @@ export function RegisterForm() {
                   type="text"
                   disabled={isLoading}
                   aria-invalid={!!errors.firstName}
-                  className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.firstName ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                  className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.firstName ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                   autoComplete="given-name"
                   {...firstNameField}
                   onChange={(e) => {
@@ -145,7 +145,7 @@ export function RegisterForm() {
                 </p>
               )}
             </div>
-            <div className="flex-1 grid gap-2">
+            <div className="flex-1 grid gap-1.5">
               <label htmlFor="lastName" className="text-sm font-medium text-gray-700">
                 Last Name
               </label>
@@ -156,7 +156,7 @@ export function RegisterForm() {
                   type="text"
                   disabled={isLoading}
                   aria-invalid={!!errors.lastName}
-                  className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.lastName ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                  className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.lastName ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                   autoComplete="family-name"
                   {...lastNameField}
                   onChange={(e) => {
@@ -174,7 +174,7 @@ export function RegisterForm() {
               )}
             </div>
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <label htmlFor="phone" className="text-sm font-medium text-gray-700">
               Phone Number
             </label>
@@ -185,7 +185,7 @@ export function RegisterForm() {
                 type="tel"
                 disabled={isLoading}
                 aria-invalid={!!errors.phone}
-                className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.phone ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.phone ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                 autoComplete="tel"
                 {...register('phone', {
                   required: 'Phone number is required',
@@ -207,7 +207,7 @@ export function RegisterForm() {
               </p>
             )}
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <label htmlFor="email" className="text-sm font-medium text-gray-700">
               Email Address
             </label>
@@ -218,7 +218,7 @@ export function RegisterForm() {
                 type="email"
                 disabled={isLoading}
                 aria-invalid={!!errors.email}
-                className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.email ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.email ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                 autoComplete="email"
                 {...register('email', {
                   required: 'Email is required',
@@ -234,7 +234,7 @@ export function RegisterForm() {
               </p>
             )}
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <label htmlFor="password" className="text-sm font-medium text-gray-700">
               Password
             </label>
@@ -247,7 +247,7 @@ export function RegisterForm() {
                     type={showPassword ? "text" : "password"}
                     disabled={isLoading}
                     aria-invalid={!!errors.password}
-                    className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.password ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                    className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.password ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                     {...passwordField}
                     onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
                     onBlur={(e) => { passwordField.onBlur(e); setPwFocused(false); }}
@@ -274,15 +274,15 @@ export function RegisterForm() {
               </PopoverContent>
             </Popover>
             {pwInteracted && (
-              <div className="mt-3">
+              <div className="mt-2">
                 <PasswordStrength password={watch('password')} variant="bar" />
               </div>
             )}
           </div>
         </CardContent>
-        <CardFooter className="flex flex-col gap-4 pt-8 px-6 md:px-8 pb-6 md:pb-8">
+        <CardFooter className="flex flex-col gap-3 pt-4 md:pt-6 px-6 md:px-8 pb-4 md:pb-6">
             <Button
-                className="w-full h-12 bg-white text-black hover:bg-gray-100 border border-gray-300 font-medium rounded-lg disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:hover:bg-gray-200 transition-colors cursor-pointer"
+                className="w-full h-10 md:h-12 bg-white text-black hover:bg-gray-100 border border-gray-300 font-medium rounded-lg disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:hover:bg-gray-200 transition-colors cursor-pointer"
                 type="submit"
                 disabled={isLoading || !isValid || isSubmitting}
             >
@@ -294,7 +294,7 @@ export function RegisterForm() {
                 "Sign Up"
               )}
             </Button>
-          <div className="relative flex items-center my-6 w-full">
+          <div className="relative flex items-center my-4 md:my-6 w-full">
             <div className="flex-1 h-px bg-gray-300 min-w-0"></div>
             <span className="px-4 text-sm text-gray-400 bg-white whitespace-nowrap">Or</span>
             <div className="flex-1 h-px bg-gray-300 min-w-0"></div>
@@ -302,7 +302,7 @@ export function RegisterForm() {
           <div className="grid grid-cols-1 gap-4">
             <Button
               variant="outline"
-              className="w-full h-12 bg-white text-gray-700 border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full h-10 md:h-12 bg-white text-gray-700 border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-3 cursor-pointer"
             >
               <svg className="w-6 h-6" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
