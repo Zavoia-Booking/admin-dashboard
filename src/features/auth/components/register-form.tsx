@@ -4,13 +4,14 @@ import { Button } from "../../../shared/components/ui/button"
 import { AlertCircle, User, Mail, Phone, Eye, EyeOff } from "lucide-react"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card"
+import { Spinner } from "../../../shared/components/ui/spinner"
 import { toast } from "sonner"
 import { useDispatch, useSelector } from "react-redux"
 import { registerOwnerRequestAction, clearAuthErrorAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
 import { useForm } from "react-hook-form"
 import { PasswordStrength } from "./PasswordStrength"
-import { nameRules, sanitizeName, phoneRules, emailRules, sanitizePhoneToE164Draft, validatePasswordPolicy } from "../validation"
+import { sanitizeName, isE164, sanitizePhoneToE164Draft, validatePasswordPolicy } from "../validation"
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 
 type FormValues = {
@@ -41,8 +42,16 @@ export function RegisterForm() {
     }
   })
   
-  const firstNameField = register('firstName', nameRules as any);
-  const lastNameField = register('lastName', nameRules as any);
+  const firstNameField = register('firstName', {
+    required: 'This field is required',
+    minLength: { value: 2, message: 'Must be at least 2 characters' },
+    maxLength: { value: 50, message: 'Must be under 50 characters' },
+  });
+  const lastNameField = register('lastName', {
+    required: 'This field is required',
+    minLength: { value: 2, message: 'Must be at least 2 characters' },
+    maxLength: { value: 50, message: 'Must be under 50 characters' },
+  });
 
   const passwordField = register('password', {
     required: 'Password is required',
@@ -178,7 +187,10 @@ export function RegisterForm() {
                 aria-invalid={!!errors.phone}
                 className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.phone ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                 autoComplete="tel"
-                {...register('phone', phoneRules as any)}
+                {...register('phone', {
+                  required: 'Phone number is required',
+                  validate: (value: string) => isE164(value) || 'Enter a valid phone number',
+                })}
                 inputMode="tel"
                 onChange={(e) => {
                   const raw = (e.target as HTMLInputElement).value;
@@ -208,7 +220,10 @@ export function RegisterForm() {
                 aria-invalid={!!errors.email}
                 className={`h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.email ? 'border-destructive bg-[#FFFAFA]' : ''}`}
                 autoComplete="email"
-                {...register('email', emailRules as any)}
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: { value: /[^@\s]+@[^@\s]+\.[^@\s]+/, message: 'Enter a valid email' },
+                })}
               />
               <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             </div>
@@ -266,13 +281,19 @@ export function RegisterForm() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-4 pt-8 px-6 md:px-8 pb-6 md:pb-8">
-          <Button
-              className="w-full h-12 bg-white text-black hover:bg-gray-100 border border-gray-300 font-medium rounded-lg disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:hover:bg-gray-200 transition-colors cursor-pointer"
-              type="submit"
-              disabled={isLoading || !isValid || isSubmitting}
-          >
-            Sign Up
-          </Button>
+            <Button
+                className="w-full h-12 bg-white text-black hover:bg-gray-100 border border-gray-300 font-medium rounded-lg disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:hover:bg-gray-200 transition-colors cursor-pointer"
+                type="submit"
+                disabled={isLoading || !isValid || isSubmitting}
+            >
+              {(isLoading || isSubmitting) ? (
+                <div className="flex items-center justify-center gap-3">
+                  <Spinner size="sm" color="info" />
+                </div>
+              ) : (
+                "Sign Up"
+              )}
+            </Button>
           <div className="relative flex items-center my-6 w-full">
             <div className="flex-1 h-px bg-gray-300 min-w-0"></div>
             <span className="px-4 text-sm text-gray-400 bg-white whitespace-nowrap">Or</span>
