@@ -62,9 +62,13 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
     if (accessToken && config.headers) {
       config.headers["Authorization"] = `Bearer ${accessToken}`;
     }
+    // Always try to send CSRF token for protected endpoints
     if (csrfHeaderNeeded && config.headers) {
-      const csrf = state.auth.csrfToken ?? readCookie(CSRF_COOKIE_NAME);
-      if (csrf) config.headers["x-csrf-token"] = csrf;
+      // First try Redux, then fall back to cookie (important for page reloads)
+      const csrf = state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME);
+      if (csrf) {
+        config.headers["x-csrf-token"] = csrf;
+      }
     }
     if (currentLocationId && config.headers) {
       (config.headers as any)["x-location-id"] = currentLocationId;
@@ -126,7 +130,7 @@ export function apiClient(): AxiosInstance {
 async function performRefresh(): Promise<string> {
   if (!_storeRef) throw new Error("API client not initialized");
   const state = _storeRef.getState();
-  const csrf = state.auth.csrfToken ?? readCookie(CSRF_COOKIE_NAME);
+  const csrf = state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME);
   const { data } = await axios.post(
     `${API_BASE_URL}${REFRESH_ENDPOINT}`,
     {},

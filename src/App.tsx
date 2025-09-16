@@ -13,6 +13,7 @@ import RegisterPage from './features/auth/pages/register'
 import ResetPasswordPage from './features/auth/pages/reset-password'
 import RegisterMemberPage from './features/auth/pages/register-member'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
+import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register/team-member" element={<RegisterMemberPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
 
         {/* Main */}
         <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />

@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleAuthAction } from "./actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -122,6 +122,34 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(clearAuthErrorAction): {
       return { ...state, error: null };
+    }
+
+    case getType(googleAuthAction.request): {
+      return { ...state, isLoading: true, error: null };
+    }
+
+    case getType(googleAuthAction.success): {
+      const { accessToken, csrfToken, user } = action.payload;
+      return {
+        ...state,
+        accessToken,
+        csrfToken,
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        status: AuthStatusEnum.AUTHENTICATED,
+        error: null,
+        businessId: user?.businessId?.toString() || null,
+      };
+    }
+
+    case getType(googleAuthAction.failure): {
+      return { 
+        ...state, 
+        isLoading: false, 
+        error: action.payload.message,
+        status: AuthStatusEnum.ERROR 
+      };
     }
 
     default:

@@ -32,3 +32,8 @@ export const registerMemberApi = async (payload: RegisterMemberPayload): Promise
     const { data } = await apiClient().post<RegisterMemberResponse>(`/auth/register/member`, payload);
     return data;
 };
+
+export const googleAuthApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/google/code`, payload);
+    return data;
+};

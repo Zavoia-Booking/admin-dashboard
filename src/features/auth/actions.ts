@@ -76,3 +76,9 @@ export const registerMemberAction = createAsyncAction(
   'teamMembers/REGISTER_MEMBER_SUCCESS',
   'teamMembers/REGISTER_MEMBER_FAILURE',
 )<RegisterMemberPayload, RegisterMemberResponse, { message: string }>();
+
+export const googleAuthAction = createAsyncAction(
+  'auth/GOOGLE_AUTH_REQUEST',
+  'auth/GOOGLE_AUTH_SUCCESS',
+  'auth/GOOGLE_AUTH_FAILURE',
+)<{ code: string, redirectUri: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();

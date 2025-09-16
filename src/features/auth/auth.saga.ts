@@ -10,9 +10,10 @@ import {
   fetchCurrentUserAction,
   forgotPasswordAction,
   resetPasswordAction,
-  registerMemberAction
+  registerMemberAction,
+  googleAuthAction
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, registerMemberApi } from "./api";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, registerMemberApi, googleAuthApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { listLocationsAction } from "../locations/actions";
 
@@ -29,6 +30,7 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
 
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
+    yield put(registerOwnerRequestAction.success({ user: response.user }));
   } catch (error: any) {
     let message = "Registration failed";
     
@@ -75,6 +77,11 @@ function* handleLogin(action: { type: string; payload: { email: string, password
 
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
+    yield put(loginAction.success({ 
+      accessToken: response.accessToken, 
+      csrfToken: response.csrfToken ?? null, 
+      user: response.user 
+    }));
 
   } catch (error: any) {
     let message = "Login failed";
@@ -104,6 +111,7 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(forgotPasswordAction.request, handleForgotPassword),
     takeLatest(resetPasswordAction.request, handleResetPassword),
     takeLatest(registerMemberAction.request, handleRegisterMember),
+    takeLatest(googleAuthAction.request, handleGoogleAuth),
   ]);
 }
 
@@ -143,5 +151,48 @@ function* handleRegisterMember(action: ReturnType<typeof registerMemberAction.re
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || 'Failed to register member';
     yield put(registerMemberAction.failure({ message }));
+  }
+}
+
+function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) {
+  try {
+    yield put(setAuthLoadingAction({ isLoading: true }));
+    const response: AuthResponse = yield call(googleAuthApi, action.payload);
+
+    // Store access token in Redux (memory) + optional CSRF token
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    
+    // Fetch locations post-authentication (same as login)
+    yield put(listLocationsAction.request());
+    if (response.csrfToken) {
+      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
+    }
+
+    // Store user
+    yield put(setAuthUserAction({ user: response.user }));
+    yield put(googleAuthAction.success({ 
+      accessToken: response.accessToken, 
+      csrfToken: response.csrfToken ?? null, 
+      user: response.user 
+    }));
+
+    // Let the useEffect in register form handle the redirect when isAuthenticated becomes true
+
+  } catch (error: any) {
+    let message = "Google authentication failed";
+    
+    if (error?.response?.data?.message) {
+      // Handle array of messages or single message
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    yield put(googleAuthAction.failure({ message }));
+  } finally {
+    yield put(setAuthLoadingAction({ isLoading: false }));
   }
 }

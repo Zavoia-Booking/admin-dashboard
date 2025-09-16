@@ -8,6 +8,13 @@ import type { RootState } from "../../app/providers/store";
 
 function* hydrateSessionWorker(): Generator<any, void, any> {
   try {
+    // Skip hydrate during Google OAuth redirect callback (race avoidance)
+    const urlHasCode = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code");
+    const hasAccessToken: string | null = yield select((s: RootState) => s.auth.accessToken);
+    if (urlHasCode && !hasAccessToken) {
+      return;
+    }
+
     // Trigger refresh via single-flight helper (also updates redux)
     // refreshSession already updates Redux state; nothing else needed here
     yield call(refreshSession);
