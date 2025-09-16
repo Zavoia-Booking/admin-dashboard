@@ -94,7 +94,7 @@ export const useSetupWizard = () => {
   const canProceed = (step: number) => {
     switch (step) {
       case 1:
-        return data.businessInfo.name.trim() !== '' && data.businessInfo.industry !== '';
+        return data.businessInfo?.name?.trim() !== '' && data.businessInfo?.industry !== '';
       case 2:
         if (data.location.isRemote) {
           const hasContact = (data.location.email?.trim() ?? '') !== '' || data.location.phone.trim() !== '';

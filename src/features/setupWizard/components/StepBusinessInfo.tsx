@@ -3,10 +3,11 @@ import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
-import { Upload, Building2 } from 'lucide-react';
+import { Upload, Building2, Phone, AlertCircle } from 'lucide-react';
 import type { WizardData } from '../../../shared/hooks/useSetupWizard';
 import { useForm } from 'react-hook-form';
 import type { StepProps } from '../types';
+import { isE164, sanitizePhoneToE164Draft } from '../../auth/validation';
 
 const industries = [  
   'Beauty & Wellness',
@@ -31,8 +32,9 @@ const countries = [
 ];
 
 const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
-  const { register, watch, setValue, reset } = useForm<WizardData>({
+  const { register, watch, setValue, reset, formState: { errors } } = useForm<WizardData>({
     defaultValues: data,
+    mode: 'onChange',
   });
 
   useEffect(() => {
@@ -112,8 +114,33 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
             <Input id="businessInfo.email" type="email" placeholder="you@business.com" className="h-11" {...register('businessInfo.email' as any)} />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="businessInfo.phone" className="text-sm font-medium">Business Phone</Label>
-            <Input id="businessInfo.phone" type="tel" placeholder="+1 555 123 4567" className="h-11" {...register('businessInfo.phone' as any)} />
+            <Label htmlFor="businessInfo.phone" className="text-sm font-medium">Business Phone *</Label>
+            <div className="relative">
+              <Input 
+                id="businessInfo.phone" 
+                type="tel" 
+                placeholder="+1 555 123 4567" 
+                className={`h-11 pr-10 ${errors.businessInfo?.phone ? 'border-destructive bg-red-50' : ''}`}
+                autoComplete="tel"
+                inputMode="tel"
+                {...register('businessInfo.phone' as any, {
+                  required: 'Phone number is required',
+                  validate: (value: string) => isE164(value) || 'Enter a valid phone number',
+                })}
+                onChange={(e) => {
+                  const raw = (e.target as HTMLInputElement).value;
+                  const value = sanitizePhoneToE164Draft(raw);
+                  setValue('businessInfo.phone' as any, value, { shouldValidate: true, shouldDirty: true });
+                }}
+              />
+              <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            </div>
+            {errors.businessInfo?.phone && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>{String(errors.businessInfo.phone.message)}</span>
+              </p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="businessInfo.timezone" className="text-sm font-medium">Timezone</Label>

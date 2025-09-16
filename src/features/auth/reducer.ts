@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction } from "./actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -118,6 +118,10 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(logoutRequestAction.failure): {
       return { ...state, error: action.payload.message };
+    }
+
+    case getType(clearAuthErrorAction): {
+      return { ...state, error: null };
     }
 
     default:
