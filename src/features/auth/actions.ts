@@ -1,5 +1,5 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
-import type { RegisterOwnerPayload, AuthUser } from "./types";
+import type { RegisterOwnerPayload, AuthUser, RegisterMemberResponse, RegisterMemberPayload } from "./types";
 
 export const setTokensAction = createAction(
   'auth/SET_TOKENS',
@@ -70,3 +70,9 @@ export const resetPasswordAction = createAsyncAction(
 export const clearAuthErrorAction = createAction(
   'auth/CLEAR_AUTH_ERROR',
 )<void>();
+
+export const registerMemberAction = createAsyncAction(
+  'teamMembers/REGISTER_MEMBER_REQUEST',
+  'teamMembers/REGISTER_MEMBER_SUCCESS',
+  'teamMembers/REGISTER_MEMBER_FAILURE',
+)<RegisterMemberPayload, RegisterMemberResponse, { message: string }>();

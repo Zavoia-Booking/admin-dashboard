@@ -1,7 +1,7 @@
 import type { UserRole } from "./auth";
 
 export interface TeamMember {
-  id: string;
+  id: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -9,8 +9,8 @@ export interface TeamMember {
   role: UserRole;
   status: 'pending' | 'active' | 'inactive';
   createdAt: string;
-  location?: string;
-  services?: string[];
+  location?: number;
+  services?: number[];
   workingHours?: {
     monday: { open: string; close: string; isOpen: boolean };
     tuesday: { open: string; close: string; isOpen: boolean };

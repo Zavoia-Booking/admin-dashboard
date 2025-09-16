@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { UserRole } from '../../../shared/types/auth';
 import { Button } from "../../../shared/components/ui/button";
 import { Plus, Mail, Search, Filter, X, MapPin, Phone, Edit } from "lucide-react";
@@ -14,17 +14,17 @@ import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import { useDispatch, useSelector } from 'react-redux';
-import { inviteTeamMemberAction, listTeamMembersAction } from '../../teamMembers/actions';
-import type { RootState } from '../../../app/providers/store';
+import { cancelInvitationAction, listTeamMembersAction } from '../../teamMembers/actions';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { selectTeamMembers } from '../selectors';
+import { getCurrentLocationSelector } from '../../locations/selectors.ts';
 
 export default function TeamMembersPage() {
   const isMobile = useIsMobile();
   const dispatch = useDispatch();
-  const { error: inviteError } = useSelector((state: RootState) => state.teamMembers);
   const teamMembers = useSelector(selectTeamMembers);
+  const currentLocation = useSelector(getCurrentLocationSelector);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
   const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -34,9 +34,10 @@ export default function TeamMembersPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [locationFilter, setLocationFilter] = useState('all');
   const [pendingAction, setPendingAction] = useState<{
-    type: 'delete' | 'resend' | 'toggleStatus';
-    teamMemberId?: string;
+    type: 'delete' | 'resend' | 'toggleStatus' | 'cancelInvite';
+    teamMemberId?: number;
     teamMemberName?: string;
+    email?: string;
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -44,36 +45,20 @@ export default function TeamMembersPage() {
 
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-  const [localRoleFilter, setLocalRoleFilter] = useState(roleFilter);
+  
   const [localLocationFilter, setLocalLocationFilter] = useState(locationFilter);
 
   useEffect(() => {
     dispatch(listTeamMembersAction.request());
-  }, []);
-
-  console.log('teamMembers', teamMembers);
+  }, [dispatch, currentLocation?.id]);
 
   // When opening the filter card, sync local state with main state
   useEffect(() => {
     if (showFilters) {
       setLocalStatusFilter(statusFilter);
-      setLocalRoleFilter(roleFilter);
       setLocalLocationFilter(locationFilter);
     }
-  }, [showFilters, statusFilter, roleFilter, locationFilter]);
-
-  const handleInviteTeamMember = async (inviteData: { email: string; role: string; location: string }) => {
-    // Map UI role labels to API roles
-    const apiRole = inviteData.role === 'Manager' ? UserRole.MANAGER : UserRole.TEAM_MEMBER;
-    const locationId = Number(inviteData.location);
-    dispatch(inviteTeamMemberAction.request({ email: inviteData.email, role: apiRole, locationId }));
-  };
-
-  useEffect(() => {
-    if (inviteError) {
-      toast.error(inviteError);
-    }
-  }, [inviteError]);
+  }, [showFilters, statusFilter, locationFilter]);
 
   // const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
   //   if (!selectedTeamMember) return;
@@ -153,6 +138,16 @@ export default function TeamMembersPage() {
     }
   };
 
+  const confirmCancelInvite = async () => {
+    if (!pendingAction || pendingAction.type !== 'cancelInvite' || !pendingAction.teamMemberId) return;
+    try {
+      dispatch(cancelInvitationAction.request({ id: pendingAction.teamMemberId }));
+    } finally {
+      setIsConfirmDialogOpen(false);
+      setPendingAction(null);
+    }
+  };
+
   const openEditSlider = (teamMember: TeamMember) => {
     openProfileSlider(teamMember);
   };
@@ -183,6 +178,13 @@ export default function TeamMembersPage() {
           confirmText: 'Resend',
           onConfirm: confirmResend
         };
+      case 'cancelInvite':
+        return {
+          title: 'Cancel Invitation',
+          description: `Cancel the invitation for ${pendingAction.email}?`,
+          confirmText: 'Cancel Invitation',
+          onConfirm: confirmCancelInvite,
+        };
       default:
         return null;
     }
@@ -203,9 +205,9 @@ export default function TeamMembersPage() {
 
   // Filter team members based on search, status, role, and location
   const filteredTeamMembers = teamMembers.filter((member: TeamMember) => {
-    const matchesSearch = member.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (member.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (member.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
     const matchesRole = roleFilter === 'all' ||
       (roleFilter === 'manager' && member.role === UserRole.MANAGER) ||
@@ -309,7 +311,7 @@ export default function TeamMembersPage() {
                   value: localLocationFilter,
                   options: [
                     { value: 'all', label: 'All locations' },
-                    ...mockLocations.map(location => ({ value: location.id, label: location.name }))
+                    ...mockLocations.map(location => ({ value: String(location.id), label: location.name }))
                   ],
                   searchable: true,
                 },
@@ -375,7 +377,7 @@ export default function TeamMembersPage() {
                   className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                   onClick={() => setLocationFilter('all')}
                 >
-                  Location: {mockLocations.find(loc => loc.id === locationFilter)?.name}
+                  Location: {mockLocations.find(loc => String(loc.id) === locationFilter)?.name}
                   <X className="h-4 w-4 ml-1" />
                 </Badge>
               )}
@@ -404,66 +406,93 @@ export default function TeamMembersPage() {
                   <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
                 </div>
               ) : (
-                filteredTeamMembers.map((member: TeamMember) => (
-                  <div
-                    key={member.id}
-                    className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
-                    onClick={() => openProfileSlider(member)}
-                  >
-                    <div className="flex flex-row items-start gap-4">
-                      <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
-                        {member.firstName[0]}{member.lastName[0]}
-                      </div>
-                      <div className="flex flex-col justify-start min-w-0">
-                        <span className="font-semibold text-base truncate">{member.firstName} {member.lastName}</span>
-                        <span className="text-sm text-gray-500 truncate">{member.role}</span>
-                        {getStatusBadge(member.status)}
-                      </div>
-                      <div className="flex-1 flex justify-end items-start gap-1">
-                        {member.status === 'pending' && (
-                          <button
-                            className="p-2 rounded hover:bg-muted text-blue-600"
-                            title="Resend Invitation"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // handleResendInvitation(member.id);
-                            }}
-                          >
-                            <Mail className="h-5 w-5" />
-                          </button>
-                        )}
-                        <button
-                          className="p-2 rounded hover:bg-muted"
-                          title="Edit"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEditSlider(member);
-                          }}
-                        >
-                          <Edit className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex flex-row gap-4 mt-1">
-                      <div className="flex-1 flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Mail className="h-4 w-4" />
-                          <span>{member.email}</span>
+                filteredTeamMembers.map((member: TeamMember) => {
+                  const canEdit = member.status !== 'pending';
+                  const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
+                  const safeInitials = `${(member.firstName?.[0] || member.email?.[0] || '?')}${(member.lastName?.[0] || '')}`;
+                  const displayPhone = member.phone || 'Phone not set yet';
+                  return (
+                    <div
+                      key={member.id}
+                      className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
+                      onClick={() => {
+                        if (!canEdit) {
+                          toast.info('Cannot edit a pending invite until they complete registration.');
+                          return;
+                        }
+                        openProfileSlider(member);
+                      }}
+                    >
+                      <div className="flex flex-row items-start gap-4">
+                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
+                          {safeInitials}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Phone className="h-4 w-4" />
-                          <span>{member.phone}</span>
+                        <div className="flex flex-col justify-start min-w-0">
+                          <span className="font-semibold text-base truncate">{displayName || member.email}</span>
+                          <span className="text-sm text-gray-500 truncate">{member.role}</span>
+                          {getStatusBadge(member.status)}
                         </div>
-                        {member.location && (
+                        <div className="flex-1 flex justify-end items-start gap-1">
+                          {member.status === 'pending' && (
+                            <div className="flex items-center gap-1">
+                              <button
+                                className="p-2 rounded hover:bg-muted text-blue-600"
+                                title="Resend Invitation"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  // handleResendInvitation(member.id);
+                                }}
+                              >
+                                <Mail className="h-5 w-5" />
+                              </button>
+                              <button
+                                className="p-2 rounded hover:bg-red-50 text-red-600"
+                                title="Cancel Invitation"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, email: member.email });
+                                  setIsConfirmDialogOpen(true);
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                          {canEdit && (
+                            <button
+                              className="p-2 rounded hover:bg-muted"
+                              title="Edit"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditSlider(member);
+                              }}
+                            >
+                              <Edit className="h-5 w-5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex flex-row gap-4 mt-1">
+                        <div className="flex-1 flex flex-col gap-1">
                           <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <MapPin className="h-4 w-4" />
-                            <span>{mockLocations.find(loc => loc.id === member.location)?.name}</span>
+                            <Mail className="h-4 w-4" />
+                            <span>{member.email}</span>
                           </div>
-                        )}
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <Phone className="h-4 w-4" />
+                            <span>{displayPhone}</span>
+                          </div>
+                          {member.location && (
+                            <div className="flex items-center gap-2 text-sm text-gray-700">
+                              <MapPin className="h-4 w-4" />
+                              <span>{mockLocations.find(loc => String(loc.id) === member.location)?.name}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           ) : (
@@ -483,35 +512,55 @@ export default function TeamMembersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredTeamMembers.map((member: TeamMember) => (
+                    {filteredTeamMembers.map((member: TeamMember) => {
+                      const canEdit = member.status !== 'pending';
+                      const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
+                      return (
                       <tr key={member.id} className="border-t">
-                        <td className="px-4 py-3 font-medium">{member.firstName} {member.lastName}</td>
+                        <td className="px-4 py-3 font-medium">{displayName || member.email}</td>
                         <td className="px-4 py-3">{member.email}</td>
                         <td className="px-4 py-3">{member.role}</td>
                         <td className="px-4 py-3">{getStatusBadge(member.status)}</td>
-                        <td className="px-4 py-3">{mockLocations.find(loc => loc.id === member.location)?.name}</td>
+                        <td className="px-4 py-3">{mockLocations.find(loc => String(loc.id) === member.location)?.name}</td>
                         <td className="px-4 py-3">
                           <div className="flex justify-end gap-2">
                             {member.status === 'pending' && (
+                              <>
+                                <button
+                                  className="px-2 py-1 text-blue-600 hover:underline"
+                                  onClick={() => {
+                                    // handleResendInvitation(member.id);
+                                  }}
+                                >
+                                  Resend
+                                </button>
+                                <button
+                                  className="px-2 py-1 text-red-600 hover:underline"
+                                  onClick={() => {
+                                    setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, teamMemberName: displayName || member.email });
+                                    setIsConfirmDialogOpen(true);
+                                  }}
+                                >
+                                  Cancel invitation
+                                </button>
+                              </>
+                            )}
+                            {canEdit ? (
                               <button
-                                className="px-2 py-1 text-blue-600 hover:underline"
-                                onClick={() => {
-                                  // handleResendInvitation(member.id);
-                                }}
+                                className="px-2 py-1 hover:underline"
+                                onClick={() => openEditSlider(member)}
                               >
-                                Resend
+                                Edit
+                              </button>
+                            ) : (
+                              <button className="px-2 py-1 text-gray-400 cursor-not-allowed" disabled>
+                                Edit
                               </button>
                             )}
-                            <button
-                              className="px-2 py-1 hover:underline"
-                              onClick={() => openEditSlider(member)}
-                            >
-                              Edit
-                            </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    );})}
                   </tbody>
                 </table>
               )}
@@ -549,8 +598,6 @@ export default function TeamMembersPage() {
         <InviteTeamMemberSlider
           isOpen={isInviteSliderOpen}
           onClose={() => setIsInviteSliderOpen(false)}
-          onInvite={handleInviteTeamMember}
-          locations={mockLocations.map(loc => ({ id: loc.id, name: loc.name }))}
         />
 
         {/* Team Member Profile Slider */}
@@ -564,7 +611,7 @@ export default function TeamMembersPage() {
           onDelete={() => {
             // handleDeleteTeamMember
           }}
-          locations={mockLocations.map(loc => ({ id: loc.id, name: loc.name }))}
+          locations={mockLocations.map(loc => ({ id: String(loc.id), name: loc.name }))}
         />
       </BusinessSetupGate>
     </AppLayout>

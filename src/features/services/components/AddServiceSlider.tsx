@@ -14,6 +14,7 @@ import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { createServicesAction } from '../actions.ts';
 import { getCurrentLocationSelector } from '../../locations/selectors.ts';
 import type { CreateServicePayload } from '../types.ts';
+ 
 
 interface AddServiceSliderProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ interface ServiceFormData {
   duration: number;
   description: string;
   isActive: boolean;
+  // removed locationIds; apply to all when no current location
 }
 
 const initialFormData: ServiceFormData = {
@@ -40,6 +42,7 @@ const initialFormData: ServiceFormData = {
   duration: 0,
   description: '',
   isActive: true,
+  
 };
 
 const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
@@ -48,10 +51,13 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const currentLocation = useSelector(getCurrentLocationSelector);
+  // Keep selector in case future UI needs; currently showing info when All locations
+  // const allLocations = useSelector(getAllLocationsSelector);
   const { register, handleSubmit, watch, setValue, reset, getValues } = useForm<ServiceFormData>({
     defaultValues: initialFormData,
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
   // const [staffOpen, setStaffOpen] = useState(false);
   // const [staffAssignments, setStaffAssignments] = useState<StaffAssignment[]>([]);
 
@@ -62,6 +68,8 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       // setStaffAssignments([]);
     }
   }, [isOpen, reset]);
+
+  // no per-form location state when All locations
 
   const onSubmit = () => {
     setShowConfirmDialog(true);
@@ -75,7 +83,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       duration,
       description,
       isActive: true,
-      locationIds: currentLocation ? [currentLocation.id] : [],
     };
     dispatch(createServicesAction.request(payload));
     setShowConfirmDialog(false);
@@ -339,6 +346,16 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   </div>
                   <h3 className="text-base font-semibold text-foreground">Service Settings</h3>
                 </div>
+                {currentLocation ? (
+                  <div className="text-sm text-muted-foreground">
+                    Assigning to current location: <span className="font-medium text-foreground">{currentLocation.name}</span>.
+                    Switch location in the header to apply to another location.
+                  </div>
+                ) : (
+                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
+                    This service will be created across all business locations. Switch to a specific location in the header to create it only there.
+                  </div>
+                )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-foreground">Service Status</Label>

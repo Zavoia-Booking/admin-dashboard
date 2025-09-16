@@ -10,8 +10,9 @@ import {
   fetchCurrentUserAction,
   forgotPasswordAction,
   resetPasswordAction,
+  registerMemberAction
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi } from "./api";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, registerMemberApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { listLocationsAction } from "../locations/actions";
 
@@ -102,6 +103,7 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(fetchCurrentUserAction.request, handleFetchCurrentUser),
     takeLatest(forgotPasswordAction.request, handleForgotPassword),
     takeLatest(resetPasswordAction.request, handleResetPassword),
+    takeLatest(registerMemberAction.request, handleRegisterMember),
   ]);
 }
 
@@ -131,5 +133,15 @@ function* handleResetPassword(action: { type: string; payload: { token: string, 
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Reset password failed";
     yield put(resetPasswordAction.failure(message));
+  }
+}
+
+function* handleRegisterMember(action: ReturnType<typeof registerMemberAction.request>) {
+  try {
+    yield call(registerMemberApi, action.payload);
+    window.location.href = "/login";
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || 'Failed to register member';
+    yield put(registerMemberAction.failure({ message }));
   }
 }

@@ -10,7 +10,6 @@ export type CreateServicePayload = {
   duration: number;
   description: string;
   isActive: boolean;
-  locationIds: number[],
 }
 
 export type EditServicePayload = {
@@ -18,7 +17,6 @@ export type EditServicePayload = {
   description: string,
   duration: number
   price: number;
-  locationIds: number[],
   id: number,
   isActive: boolean,
 }

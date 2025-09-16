@@ -17,9 +17,10 @@ import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { capitalize, shortDay } from '../utils';
-import { getAllLocationsSelector } from '../selectors';
+import { getAllLocationsSelector, getCurrentLocationSelector } from '../selectors';
 import { updateLocationAction } from '../actions';
 import { defaultWorkingHours } from '../constants';
+ 
 
 export default function LocationsPage() {
   const dispatch = useDispatch();
@@ -28,6 +29,7 @@ export default function LocationsPage() {
   const user = useSelector(selectCurrentUser);
 
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
+  const currentLocation = useSelector(getCurrentLocationSelector);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingLocation, setEditingLocation] = useState<LocationType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,6 +54,7 @@ export default function LocationsPage() {
   useEffect(() => {
     if (user?.businessId) {
       dispatch(listLocationsAction.request());
+      
     }
   }, [dispatch, user]);
 
@@ -71,7 +74,7 @@ export default function LocationsPage() {
 
   // edit handled via EditLocationSlider dispatch
 
-  const handleDeleteLocation = async (id: string) => {
+  const handleDeleteLocation = async (id: number) => {
     try {
       const response = await fetch(`/api/locations/${id}`, {
         method: 'DELETE',
@@ -99,7 +102,7 @@ export default function LocationsPage() {
   };
 
   const updateLocationDayHours = (
-    _locationId: string,
+    _locationId: number,
     _day: string,
     field: 'open' | 'close' | 'isOpen',
     value: string | boolean
@@ -314,6 +317,7 @@ export default function LocationsPage() {
                   <span>Closed: {Object.values(location.workingHours).filter(d => !d.isOpen).length} days</span>
                 </div>
               </div>
+              
               {/* Actions Row at Bottom */}
               <hr className="my-2 border-gray-200" />
               <div className="flex items-center justify-end gap-2 mt-2">

@@ -19,7 +19,7 @@ export interface NewLocationPayload {
 }
 
 export interface EditLocationType {
-  id: string;
+  id: number;
   name: string;
   address: string;
   email: string;
@@ -31,6 +31,6 @@ export interface EditLocationType {
 }
 
 export interface EditLocationWorkingHours {
-  id: string;
+  id: number;
   workingHours: WorkingHours;
 }

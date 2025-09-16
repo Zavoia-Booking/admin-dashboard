@@ -1,7 +1,7 @@
-import type { RootState } from "../../app/providers/store";
+import { createSelector } from "@reduxjs/toolkit";
+import { getTeamMembersStateSelector } from "../../app/providers/selectors";
 
-export const selectTeamMembersState = (s: RootState) => s.teamMembers;
-export const selectTeamMembers = (s: RootState) => s.teamMembers.teamMembers;
-export const selectTeamMembersError = (s: RootState) => s.teamMembers.error;
+export const selectTeamMembers = createSelector(getTeamMembersStateSelector, (state) => state.teamMembers);
+export const selectTeamMembersError = createSelector(getTeamMembersStateSelector, (state) => state.error);
 
 

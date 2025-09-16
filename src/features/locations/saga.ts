@@ -53,7 +53,7 @@ function* handleListLocations(): Generator<any, void, any> {
     let nextCurrent = null as any;
     if (Array.isArray(locations) && locations.length > 0) {
       if (storedId) {
-        nextCurrent = locations.find((l: any) => l.id === storedId) || null;
+        nextCurrent = locations.find((l: any) => l.id == storedId) || null;
       }
       if (!nextCurrent) {
         nextCurrent = locations.find((l: any) => l.isActive) || locations[0] || null;

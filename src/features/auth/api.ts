@@ -1,4 +1,4 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, RegisterMemberResponse, RegisterMemberPayload } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
@@ -27,3 +27,8 @@ export const forgotPasswordApi = async (payload: { email: string }): Promise<voi
 export const resetPasswordApi = async (payload: { token: string, password: string }): Promise<void> => {
     await apiClient().post(`/auth/reset-password`, payload);
 }
+
+export const registerMemberApi = async (payload: RegisterMemberPayload): Promise<RegisterMemberResponse> => {
+    const { data } = await apiClient().post<RegisterMemberResponse>(`/auth/register/member`, payload);
+    return data;
+};

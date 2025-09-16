@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useForm } from 'react-hook-form';
-import { MapPin, Phone, AlertCircle, Users } from 'lucide-react';
+import { MapPin, Phone, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import InviteTeamMemberSlider from '../../teamMembers/components/InviteTeamMemberSlider';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { LocationType } from '../../../shared/types/location';
 import type { EditLocationType } from '../types';
 import { updateLocationAction } from '../actions';
-import { mockTeamMembers } from '../../../mocks/team-members.mock';
 import { Switch } from '../../../shared/components/ui/switch';
 import { mapLocationForEdit } from '../utils';
 
@@ -30,7 +28,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 }) => {
   const dispatch = useDispatch();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
 
   const { register, handleSubmit, reset, watch } = useForm<EditLocationType>();
 
@@ -136,45 +133,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     {...register('description')}
                   />
                 </div>
-                {/* Team Members Assigned Section */}
-                <div className="space-y-2 mt-6">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Assigned Team Members</h3>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="ml-auto"
-                      onClick={() => setIsInviteSliderOpen(true)}
-                    >
-                      Invite Member
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    {mockTeamMembers.filter(m => m.location === watch('name')).length > 0 ? (
-                      mockTeamMembers.filter(m => m.location === watch('name')).map(member => (
-                        <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                              <Users className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-sm">{member.firstName} {member.lastName}</div>
-                              <div className="text-xs text-muted-foreground">{member.email} &middot; {member.role}</div>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border/50 text-center">
-                        <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">No team members assigned to this location</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
 
               {/* Contact Information Section */}
@@ -272,16 +230,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Invite Team Member Slider */}
-      <InviteTeamMemberSlider
-        isOpen={isInviteSliderOpen}
-        onClose={() => setIsInviteSliderOpen(false)}
-        onInvite={() => setIsInviteSliderOpen(false)}
-        locations={[
-          { id: location.id, name: watch('name') }
-        ]}
-      />
     </>
   );
 };
