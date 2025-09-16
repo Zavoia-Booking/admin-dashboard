@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { Button } from "../../../shared/components/ui/button"
-import { AlertCircle, User, Mail, Phone, Eye, EyeOff } from "lucide-react"
+import { AlertCircle, User, Mail, Eye, EyeOff } from "lucide-react"
 import { Input } from "../../../shared/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card"
 import { Spinner } from "../../../shared/components/ui/spinner"
@@ -11,13 +11,12 @@ import { registerOwnerRequestAction, clearAuthErrorAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
 import { useForm } from "react-hook-form"
 import { PasswordStrength } from "./PasswordStrength"
-import { sanitizeName, isE164, sanitizePhoneToE164Draft, validatePasswordPolicy } from "../validation"
+import { sanitizeName, validatePasswordPolicy } from "../validation"
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 
 type FormValues = {
   firstName: string
   lastName: string
-  phone: string
   email: string
   password: string
 }
@@ -36,7 +35,6 @@ export function RegisterForm() {
     defaultValues: {
       firstName: '',
       lastName: '',
-      phone: '',
       email: '',
       password: '',
     }
@@ -62,7 +60,6 @@ export function RegisterForm() {
     dispatch(registerOwnerRequestAction.request({
       firstName: values.firstName,
       lastName: values.lastName,
-      phone: values.phone,
       email: values.email,
       password: values.password,
     }))
@@ -173,39 +170,6 @@ export function RegisterForm() {
                 </p>
               )}
             </div>
-          </div>
-          <div className="grid gap-1.5">
-            <label htmlFor="phone" className="text-sm font-medium text-gray-700">
-              Phone Number
-            </label>
-            <div className="relative">
-              <Input
-                id="phone"
-                placeholder="eg. +1 (555) 123-4567"
-                type="tel"
-                disabled={isLoading}
-                aria-invalid={!!errors.phone}
-                className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.phone ? 'border-destructive bg-[#FFFAFA]' : ''}`}
-                autoComplete="tel"
-                {...register('phone', {
-                  required: 'Phone number is required',
-                  validate: (value: string) => isE164(value) || 'Enter a valid phone number',
-                })}
-                inputMode="tel"
-                onChange={(e) => {
-                  const raw = (e.target as HTMLInputElement).value;
-                  const value = sanitizePhoneToE164Draft(raw);
-                  setValue('phone', value, { shouldValidate: true, shouldDirty: true });
-                }}
-              />
-              <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            </div>
-            {errors.phone && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <span>{String(errors.phone.message)}</span>
-              </p>
-            )}
           </div>
           <div className="grid gap-1.5">
             <label htmlFor="email" className="text-sm font-medium text-gray-700">
