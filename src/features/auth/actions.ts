@@ -82,3 +82,38 @@ export const googleAuthAction = createAsyncAction(
   'auth/GOOGLE_AUTH_SUCCESS',
   'auth/GOOGLE_AUTH_FAILURE',
 )<{ code: string, redirectUri: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
+
+// In-flow Google collision modal controls
+export const openAccountLinkingModal = createAction(
+  'auth/OPEN_ACCOUNT_LINKING_MODAL',
+)<{ suggestedNext?: string; txId?: string }>();
+
+export const closeAccountLinkingModal = createAction(
+  'auth/CLOSE_ACCOUNT_LINKING_MODAL',
+)<void>();
+
+// Re-auth then link actions
+export const reauthForLinkAction = createAsyncAction(
+  'auth/REAUTH_FOR_LINK_REQUEST',
+  'auth/REAUTH_FOR_LINK_SUCCESS',
+  'auth/REAUTH_FOR_LINK_FAILURE',
+)<{ email: string; password: string }, { proof: string }, { message: string }>();
+
+export const linkGoogleAction = createAsyncAction(
+  'auth/LINK_GOOGLE_REQUEST',
+  'auth/LINK_GOOGLE_SUCCESS',
+  'auth/LINK_GOOGLE_FAILURE',
+)<{ tx_id: string; proof: string }, { message: string }, { message: string }>();
+
+export const unlinkGoogleAction = createAsyncAction(
+  'auth/UNLINK_GOOGLE_REQUEST',
+  'auth/UNLINK_GOOGLE_SUCCESS',
+  'auth/UNLINK_GOOGLE_FAILURE',
+)<{ password: string }, { message: string }, { message: string }>();
+
+// Link Google from Settings by exchanging auth code (authenticated user)
+export const linkGoogleByCodeAction = createAsyncAction(
+  'auth/LINK_GOOGLE_BY_CODE_REQUEST',
+  'auth/LINK_GOOGLE_BY_CODE_SUCCESS',
+  'auth/LINK_GOOGLE_BY_CODE_FAILURE',
+)<{ code: string; redirectUri: string }, { message: string; user: AuthUser; accessToken?: string; csrfToken?: string | null }, { message: string }>();

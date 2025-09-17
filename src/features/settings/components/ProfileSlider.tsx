@@ -11,6 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from 'sonner';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import GoogleAccountManager from './GoogleAccountManager';
 
 interface ProfileSliderProps {
   isOpen: boolean;
@@ -560,6 +561,8 @@ const ProfileSlider: React.FC<ProfileSliderProps> = ({ isOpen, onClose }) => {
                     />
                   </div>
                 </div>
+                {/* Google Account Management */}
+                <GoogleAccountManager />
               </div>
             </div>
           </CardContent>

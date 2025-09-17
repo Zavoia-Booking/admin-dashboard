@@ -14,6 +14,7 @@ import ResetPasswordPage from './features/auth/pages/reset-password'
 import RegisterMemberPage from './features/auth/pages/register-member'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
+import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <AccountLinkingModal />
     </BrowserRouter>
   )
 }

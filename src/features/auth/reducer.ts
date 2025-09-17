@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleAuthAction } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleAuthAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction } from "./actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -17,6 +17,10 @@ const initialState: AuthState = {
   status: AuthStatusEnum.IDLE,
   error: null,
   lastRefreshAt: null,
+  isAccountLinkingModalOpen: false,
+  pendingLinkTxId: undefined,
+  linkingLoading: false,
+  linkingError: null,
 };
 
 export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialState, action: Actions) => {
@@ -122,6 +126,42 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(clearAuthErrorAction): {
       return { ...state, error: null };
+    }
+
+    case getType(openAccountLinkingModal): {
+      return { ...state, isAccountLinkingModalOpen: true, pendingLinkTxId: action.payload.txId } as any;
+    }
+
+    case getType(closeAccountLinkingModal): {
+      return { ...state, isAccountLinkingModalOpen: false, pendingLinkTxId: null } as any;
+    }
+
+    // Linking flow states
+    case getType(reauthForLinkAction.request):
+    case getType(linkGoogleAction.request): {
+      return { ...state, linkingLoading: true, linkingError: null } as any;
+    }
+
+    case getType(reauthForLinkAction.failure):
+    case getType(linkGoogleAction.failure): {
+      return { ...state, linkingLoading: false, linkingError: (action as any).payload.message } as any;
+    }
+
+    case getType(linkGoogleAction.success): {
+      return { ...state, linkingLoading: false, linkingError: null, isAccountLinkingModalOpen: false, pendingLinkTxId: undefined } as any;
+    }
+
+    // Unlink Google account handlers
+    case getType(unlinkGoogleAction.request): {
+      return { ...state, linkingLoading: true, linkingError: null } as any;
+    }
+
+    case getType(unlinkGoogleAction.success): {
+      return { ...state, linkingLoading: false, linkingError: null } as any;
+    }
+
+    case getType(unlinkGoogleAction.failure): {
+      return { ...state, linkingLoading: false, linkingError: (action as any).payload.message } as any;
     }
 
     case getType(googleAuthAction.request): {

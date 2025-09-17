@@ -12,6 +12,8 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "../ui/avatar"
+import { useDispatch } from "react-redux"
+import { logoutRequestAction } from "../../../features/auth/actions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,11 +40,10 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const dispatch = useDispatch()
 
-  const handleLogout = async () => {
-    // Simplified - logout handles redirect internally
-    // TODO
-    // await authStore.logout()
+  const handleLogout = () => {
+    dispatch(logoutRequestAction.request())
   }
 
   return (

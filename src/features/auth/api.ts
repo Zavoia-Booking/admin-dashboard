@@ -37,3 +37,23 @@ export const googleAuthApi = async (payload: { code: string, redirectUri: string
     const { data } = await apiClient().post<AuthResponse>(`/auth/google/code`, payload);
     return data;
 };
+
+export const reauthForLinkApi = async (payload: { email: string; password: string }): Promise<{ proof: string }> => {
+    const { data } = await apiClient().post<{ proof: string }>(`/auth/link/google/re-auth`, payload);
+    return data;
+};
+
+export const linkGoogleApi = async (payload: { tx_id: string; proof: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/link/google`, payload);
+    return data;
+};
+
+export const unlinkGoogleApi = async (payload: { password: string }): Promise<{ message: string }> => {
+    const { data } = await apiClient().post<{ message: string }>(`/auth/unlink/google`, payload);
+    return data;
+};
+
+export const linkGoogleByCodeApi = async (payload: { code: string; redirectUri: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/link/google/by-code`, payload);
+    return data;
+};

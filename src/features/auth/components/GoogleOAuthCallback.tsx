@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import { googleAuthAction } from "../actions";
+import { googleAuthAction, linkGoogleByCodeAction } from "../actions";
+import { refreshSession } from "../../../shared/lib/http";
 import type { RootState } from "../../../app/providers/store";
 import { Spinner } from "../../../shared/components/ui/spinner";
 
@@ -27,17 +28,30 @@ export default function GoogleOAuthCallback() {
 
     if (code) {
       const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/callback`;
+      const mode = sessionStorage.getItem('oauthMode');
 
-      dispatch(
-        googleAuthAction.request({
-          code,
-          redirectUri,
-        })
-      );
-
-      // Clean the URL (remove query params) to avoid double-dispatch on reload
-      if (location.search) {
-        navigate("/auth/callback", { replace: true });
+      if (mode === 'link') {
+        // Dedup: process each Google code only once
+        const lastCode = sessionStorage.getItem('oauthLastCode');
+        if (lastCode === code) {
+          return;
+        }
+        sessionStorage.setItem('oauthLastCode', code);
+        // Ensure access token exists after redirect (Redux lost memory on reload)
+        (async () => {
+          try { await refreshSession(); } catch {}
+          dispatch(linkGoogleByCodeAction.request({ code, redirectUri }));
+          // For linking, clean URL but stay on callback page to avoid register page flash
+          if (location.search) {
+            window.history.replaceState({}, '', '/auth/callback');
+          }
+        })();
+      } else {
+        dispatch(googleAuthAction.request({ code, redirectUri }));
+        // Clean the URL (remove query params) to avoid double-dispatch on reload
+        if (location.search) {
+          navigate("/auth/callback", { replace: true });
+        }
       }
     } else {
       // No code present; send back to register
@@ -47,7 +61,11 @@ export default function GoogleOAuthCallback() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/welcome", { replace: true });
+      const mode = sessionStorage.getItem('oauthMode');
+      // Only redirect for register flow; linking flow handles its own redirect in saga
+      if (mode !== 'link') {
+        navigate("/welcome", { replace: true });
+      }
     }
   }, [isAuthenticated, navigate]);
 
