@@ -4,10 +4,15 @@ import App from './App.tsx'
 import { Provider } from 'react-redux'
 import { store } from './app/providers/store.ts'
 import { Toaster } from './shared/components/ui/sonner.tsx'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
-    <App />
-    <Toaster position="top-right" />
+    <GoogleOAuthProvider clientId={googleClientId}>
+      <App />
+      <Toaster position="top-right" />
+    </GoogleOAuthProvider>
   </Provider>
 )

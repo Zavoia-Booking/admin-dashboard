@@ -15,6 +15,11 @@ export type AuthUser = {
   businessId: number | null;
   emailVerified?: boolean;
   wizardCompleted?: boolean;
+  googleSub?: string | null;
+  provider?: string;
+  registeredVia?: string;
+  providerData?: string | null;
+  lastGoogleLoginAt?: Date | null;
 };
 
 export type AuthResponse = {
@@ -42,6 +47,10 @@ export interface AuthState {
   status: AuthStatusEnum;
   error: string | null;
   lastRefreshAt: number | null;
+  isAccountLinkingModalOpen?: boolean;
+  pendingLinkTxId?: string;
+  linkingLoading?: boolean;
+  linkingError?: string | null;
 }
 
 export type RegisterMemberPayload = {
