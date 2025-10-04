@@ -1,4 +1,7 @@
-import { wizardInit, wizardSetStep, wizardNext, wizardPrev, wizardUpdateData, wizardSaveRequest, wizardSaveSuccess, wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure } from "./actions";
+import {
+  wizardInit, wizardSetStep, wizardNext, wizardPrev, wizardUpdateData, wizardSaveRequest, wizardSaveSuccess,
+  wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure
+} from "./actions";
 
 type WizardState = {
   currentStep: number;

@@ -14,6 +14,8 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
 } 
 
 function* handleListTeamMembers(action: ReturnType<typeof listTeamMembersAction.request>) {
+  console.log(action.payload);
+
   try {
     const response: { teamMembers: TeamMember[] } = yield call(listTeamMembersApi);
     yield put(listTeamMembersAction.success(response));

@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, MapPin, Scissors, Ban, CheckCircle2, UserX, Bell, Mail, MessageSquare } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent} from '../../../shared/components/ui/card';
+import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
@@ -15,20 +15,11 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { toast } from 'sonner';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import type { Appointment } from "../../../shared/types/calendar.ts";
 import { mockLocations } from '../../../mocks/locations.mock';
 import { mockTeamMembers } from '../../../mocks/team-members.mock';
-
-interface Appointment {
-  id: number;
-  client: { name: string; initials: string; avatar: string };
-  service: string;
-  time: string;
-  date: Date;
-  status: string;
-  location: string;
-  teamMembers: string[];
-  seriesId?: string; // Added for recurring appointments
-}
+import { mockClients } from "../../../mocks/clients.ts";
+import { mockServices } from "../../../mocks/services.mock.ts";
 
 interface EditAppointmentSliderProps {
   isOpen: boolean;
@@ -70,30 +61,32 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [showSeriesSlider, setShowSeriesSlider] = useState(false);
 
+  console.log(shouldAnimate);
   // Swipe gesture handling
-  const touchStartX = useRef<number>(0);
-  const touchCurrentX = useRef<number>(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState(0);
-  const isMouseDown = useRef<boolean>(false);
+  // const touchStartX = useRef<number>(0);
+  // const touchCurrentX = useRef<number>(0);
+  // const [isDragging, setIsDragging] = useState(false);
+  // const [dragOffset, setDragOffset] = useState(0);
+  // const isMouseDown = useRef<boolean>(false);
 
   // Populate form with appointment data when opened
   useEffect(() => {
     if (appointment && isOpen) {
-      // Find matching client
-      const matchingClient = mockClients.find(client => 
-        `${client.firstName} ${client.lastName}` === appointment.client.name
-      );
-      
-      setFormData({
-        clientId: matchingClient?.id || '',
-        service: appointment.service,
-        date: appointment.date.toISOString().split('T')[0],
-        time: convertTo24Hour(appointment.time),
-        location: appointment.location,
-        teamMembers: appointment.teamMembers,
-        notes: ''
-      });
+      // TODO
+      // // Find matching client
+      // const matchingClient = mockClients.find(client =>
+      //   `${client.firstName} ${client.lastName}` === appointment.client.name
+      // );
+      //
+      // setFormData({
+      //   clientId: matchingClient?.id || '',
+      //   service: appointment.service.name,
+      //   date: appointment.scheduledAt.toISOString(),
+      //   time: convertTo24Hour(appointment.endsAt),
+      //   location: `${appointment.location}`,
+      //   teamMembers: appointment.teamMembers.map((item) => `${item}`),
+      //   notes: ''
+      // });
     }
   }, [appointment, isOpen]);
 
@@ -115,164 +108,89 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     }
   }, [showSeriesSlider]);
 
-  const handleStart = (clientX: number) => {
-    touchStartX.current = clientX;
-    touchCurrentX.current = clientX;
-    setIsDragging(true);
-    isMouseDown.current = true;
-  };
+  // const handleStart = (clientX: number) => {
+  //   touchStartX.current = clientX;
+  //   touchCurrentX.current = clientX;
+  //   setIsDragging(true);
+  //   isMouseDown.current = true;
+  // };
 
-  const handleMove = (clientX: number) => {
-    if (!isDragging && !isMouseDown.current) return;
-    
-    touchCurrentX.current = clientX;
-    const diff = touchCurrentX.current - touchStartX.current;
-    
-    // Only allow rightward swipes (positive diff)
-    if (diff > 0) {
-      setDragOffset(Math.min(diff, 300)); // Cap at 300px
-    }
-  };
+  // const handleMove = (clientX: number) => {
+  //   if (!isDragging && !isMouseDown.current) return;
+  //
+  //   touchCurrentX.current = clientX;
+  //   const diff = touchCurrentX.current - touchStartX.current;
+  //
+  //   // Only allow rightward swipes (positive diff)
+  //   if (diff > 0) {
+  //     setDragOffset(Math.min(diff, 300)); // Cap at 300px
+  //   }
+  // };
 
-  const handleEnd = () => {
-    if (!isDragging && !isMouseDown.current) return;
-    
-    const diff = touchCurrentX.current - touchStartX.current;
-    
-    // If swiped more than 100px to the right, close the slider
-    if (diff > 100) {
-      onClose();
-    }
-    
-    // Reset drag state
-    setIsDragging(false);
-    setDragOffset(0);
-    isMouseDown.current = false;
-  };
+  // const handleEnd = () => {
+  //   if (!isDragging && !isMouseDown.current) return;
+  //
+  //   const diff = touchCurrentX.current - touchStartX.current;
+  //
+  //   // If swiped more than 100px to the right, close the slider
+  //   if (diff > 100) {
+  //     onClose();
+  //   }
+  //
+  //   // Reset drag state
+  //   setIsDragging(false);
+  //   setDragOffset(0);
+  //   isMouseDown.current = false;
+  // };
+  // // Touch events
+  // const handleTouchStart = (e: React.TouchEvent) => {
+  //   const target = e.target as HTMLElement;
+  //   if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('[role="button"]')) {
+  //     return;
+  //   }
+  //   handleStart(e.touches[0].clientX);
+  // };
+  //
+  // const handleTouchMove = (e: React.TouchEvent) => {
+  //   if (!isDragging) return;
+  //   handleMove(e.touches[0].clientX);
+  // };
+  //
+  // const handleTouchEnd = (e: React.TouchEvent) => {
+  //   if (!isDragging) return;
+  //   handleEnd();
+  // };
+  //
+  // // Mouse events for desktop testing
+  // const handleMouseDown = (e: React.MouseEvent) => {
+  //   const target = e.target as HTMLElement;
+  //   if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('[role="button"]')) {
+  //     return;
+  //   }
+  //   handleStart(e.clientX);
+  // };
+  //
+  // const handleMouseMove = (e: React.MouseEvent) => {
+  //   if (!isDragging) return;
+  //   handleMove(e.clientX);
+  // };
+  //
+  // const handleMouseUp = (e: React.MouseEvent) => {
+  //   if (!isDragging) return;
+  //   handleEnd();
+  // };
+  //
 
-  // Touch events
-  const handleTouchStart = (e: React.TouchEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('[role="button"]')) {
-      return;
-    }
-    handleStart(e.touches[0].clientX);
-  };
+  const services = mockServices.map(service => service.name)
+  const clients = mockClients;
+  const locations = mockLocations;
+  const teamMembers = mockTeamMembers;
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    handleMove(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    handleEnd();
-  };
-
-  // Mouse events for desktop testing
-  const handleMouseDown = (e: React.MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('[role="button"]')) {
-      return;
-    }
-    handleStart(e.clientX);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    handleMove(e.clientX);
-  };
-
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    handleEnd();
-  };
-
-  // Mock data
-  const mockClients = [
-    { 
-      id: '1', 
-      firstName: 'Amelia', 
-      lastName: 'White', 
-      email: 'amelia.white@email.com', 
-      phone: '+1 (555) 123-4567',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b388?w=150'
-    },
-    { 
-      id: '2', 
-      firstName: 'Michael', 
-      lastName: 'Johnson', 
-      email: 'michael.johnson@email.com', 
-      phone: '+1 (555) 987-6543',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'
-    },
-    { 
-      id: '3', 
-      firstName: 'Oliver', 
-      lastName: 'Thompson', 
-      email: 'oliver.thompson@email.com', 
-      phone: '+1 (555) 456-7890',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
-    },
-    { 
-      id: '4', 
-      firstName: 'Emma', 
-      lastName: 'Davis', 
-      email: 'emma.davis@email.com', 
-      phone: '+1 (555) 234-5678',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'
-    }
-  ];
-
-  const services = [
-    'Haircut & Style',
-    'Hair Wash & Blow Dry',
-    'Hair Color',
-    'Hair Highlights',
-    'Deep Conditioning',
-    'Beard Trim & Style',
-    'Hair & Beard Cut',
-    'Wedding Hair Style',
-    'Scissor Cut',
-    'Hair Color Treatment',
-    'Keratin Treatment',
-    'Classic Haircut',
-    'Balayage Highlights',
-    'Beard Grooming',
-    'Hair Extensions',
-    'Mustache Trim'
-  ];
-
-  // Add a mockAppointments array with at least one recurring appointment
-  const mockAppointments = [
-    {
-      id: 1,
-      client: { name: 'Amelia White', initials: 'AW', avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b388?w=150' },
-      service: 'Haircut & Style',
-      time: '10:00 AM',
-      date: new Date(),
-      status: 'confirmed',
-      location: 'downtown',
-      teamMembers: ['sarah'],
-      seriesId: 'series-123', // This makes it recurring
-    },
-    {
-      id: 2,
-      client: { name: 'Michael Johnson', initials: 'MJ', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150' },
-      service: 'Beard Trim & Style',
-      time: '2:00 PM',
-      date: new Date(),
-      status: 'confirmed',
-      location: 'uptown',
-      teamMembers: ['mike'],
-      // No seriesId, not recurring
-    },
-  ];
 
   // Helper functions
-  const selectedClient = mockClients.find(client => client.id === formData.clientId);
-  const selectedLocation = mockLocations.find(location => location.id === formData.location);
-  const selectedTeamMembers = mockTeamMembers.filter(member => formData.teamMembers.includes(member.id));
+  const selectedClient = clients.find(client => client.id === formData.clientId);
+  const selectedLocation = locations.find(location => `${location.id}` === formData.location);
+  const selectedTeamMembers = teamMembers.filter(member => formData.teamMembers.includes(`${member.id}`));
 
   // Quick action handlers
   const handleQuickAction = (type: 'cancel' | 'complete' | 'no-show' | 'reminder') => {
@@ -304,14 +222,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     });
   };
 
-  const handleReschedule = () => {
-    // Focus on the date input to open date picker
-    const dateInput = document.getElementById('date') as HTMLInputElement;
-    if (dateInput) {
-      dateInput.focus();
-      dateInput.showPicker?.();
-    }
-  };
+  // const handleReschedule = () => {
+  //   // Focus on the date input to open date picker
+  //   const dateInput = document.getElementById('date') as HTMLInputElement;
+  //   if (dateInput) {
+  //     dateInput.focus();
+  //     dateInput.showPicker?.();
+  //   }
+  // };
 
   const executeAction = () => {
     if (!confirmationDialog.type) return;
@@ -351,22 +269,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
 
   const hour = formData.time ? formData.time.split(':')[0] : '00';
   const minute = formData.time ? formData.time.split(':')[1] : '00';
-
-  // Helper function to convert 12-hour time to 24-hour format
-  function convertTo24Hour(time12h: string): string {
-    if (!time12h) return '00:00';
-    const match = time12h.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
-    if (!match) return time12h;
-    const [_, h, m, period] = match;
-
-    let hour = parseInt(h, 10);
-
-    if (period) {
-      if (period.toUpperCase() === 'AM' && hour === 12) hour = 0;
-      if (period.toUpperCase() === 'PM' && hour !== 12) hour += 12;
-    }
-    return `${String(hour).padStart(2, '0')}:${m}`;
-  }
 
   return (
     <BaseSlider
@@ -469,7 +371,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                         <CommandList>
                           <CommandEmpty>No clients found.</CommandEmpty>
                           <CommandGroup>
-                            {mockClients.map((client) => (
+                            {clients.map((client) => (
                               <CommandItem
                                 key={client.id}
                                 value={`${client.firstName} ${client.lastName} ${client.email} ${client.phone}`}
@@ -687,19 +589,19 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                       <CommandList>
                         <CommandEmpty>No locations found.</CommandEmpty>
                         <CommandGroup>
-                          {mockLocations.map((location) => (
+                          {locations.map((location) => (
                             <CommandItem
                               key={location.id}
                               value={location.name}
                               onSelect={() => {
-                                setFormData(prev => ({ ...prev, location: location.id }));
+                                setFormData((prev)  => ({ ...prev, location: `${location.id}` }));
                                 setLocationOpen(false);
                               }}
                             >
                               <Check
                                 className={cn(
                                   "mr-2 h-4 w-4",
-                                  formData.location === location.id ? "opacity-100" : "opacity-0"
+                                  formData.location === `${location.id}` ? "opacity-100" : "opacity-0"
                                 )}
                               />
                               {location.name}
@@ -736,7 +638,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                         onClick={() => {
                           setFormData(prev => ({
                             ...prev,
-                            teamMembers: prev.teamMembers.filter(id => id !== member.id)
+                            teamMembers: prev.teamMembers.filter(id => id !== `${member.id}`)
                           }));
                         }}
                         className="h-6 w-6 p-0 ml-1 hover:bg-destructive/20 hover:text-destructive rounded-full flex items-center justify-center"
@@ -776,11 +678,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                               key={member.id}
                               value={member.firstName + ' ' + member.lastName}
                               onSelect={() => {
-                                const isSelected = formData.teamMembers.includes(member.id);
-                                setFormData(prev => ({
+                                const isSelected = formData.teamMembers.includes(`${member.id}`);
+                                setFormData((prev: any) => ({
                                   ...prev,
                                   teamMembers: isSelected
-                                    ? prev.teamMembers.filter(id => id !== member.id)
+                                    ? prev.teamMembers.filter((id: any) => id !== member.id)
                                     : [...prev.teamMembers, member.id]
                                 }));
                               }}
@@ -795,7 +697,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                               <Check
                                 className={cn(
                                   "ml-auto h-4 w-4",
-                                  formData.teamMembers.includes(member.id) ? "opacity-100" : "opacity-0"
+                                  formData.teamMembers.includes(`${member.id}`) ? "opacity-100" : "opacity-0"
                                 )}
                               />
                             </CommandItem>

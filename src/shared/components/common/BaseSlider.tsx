@@ -114,7 +114,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
     handleMove(e.touches[0].clientX);
   };
 
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchEnd = () => {
     if (!isDragging) return;
     handleEnd();
   };
@@ -130,7 +130,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
     handleMove(e.clientX);
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
+  const handleMouseUp = () => {
     if (!isDragging) return;
     handleEnd();
   };
