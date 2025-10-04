@@ -62,10 +62,19 @@ export default function GoogleOAuthCallback() {
   useEffect(() => {
     if (isAuthenticated) {
       const mode = sessionStorage.getItem('oauthMode');
-      // Only redirect for register flow; linking flow handles its own redirect in saga
-      if (mode !== 'link') {
+      const context = sessionStorage.getItem('oauthContext');
+      // Linking flow handles redirect in saga
+      if (mode === 'link') return;
+      try { sessionStorage.removeItem('oauthContext'); } catch {}
+
+      if (context === 'register') {
         navigate("/welcome", { replace: true });
+        return;
       }
+      // default/login context: redirect back or dashboard
+      const redirectPath = localStorage.getItem('authRedirect') || '/dashboard';
+      try { localStorage.removeItem('authRedirect'); } catch {}
+      navigate(redirectPath, { replace: true });
     }
   }, [isAuthenticated, navigate]);
 

@@ -56,6 +56,28 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       return { ...state, isLoading: true };
     }
 
+    case getType(loginAction.success): {
+      const { user } = action.payload;
+      return {
+        ...state,
+        isAuthenticated: true,
+        user,
+        error: null,
+        isLoading: false,
+        status: AuthStatusEnum.AUTHENTICATED,
+      };
+    }
+
+    case getType(loginAction.failure): {
+      return {
+        ...state,
+        isAuthenticated: false,
+        error: action.payload.message,
+        isLoading: false,
+        status: AuthStatusEnum.ERROR,
+      };
+    }
+
     case getType(setAuthUserAction): {
       return {
         ...state,
