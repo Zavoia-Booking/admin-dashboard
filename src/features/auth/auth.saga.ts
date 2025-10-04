@@ -82,11 +82,19 @@ function* handleLogin(action: { type: string; payload: { email: string, password
 
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
+    // Ensure latest user data
+    yield put(fetchCurrentUserAction.request());
     yield put(loginAction.success({ 
       accessToken: response.accessToken, 
       csrfToken: response.csrfToken ?? null, 
       user: response.user 
     }));
+
+    // Toast success (lazy import to avoid bundle weight on cold paths)
+    try {
+      const { toast } = yield import('sonner');
+      toast.success('Welcome back!');
+    } catch {}
 
   } catch (error: any) {
     let message = "Login failed";
@@ -252,9 +260,7 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     yield put(linkGoogleAction.success({ message: 'Google account linked successfully!' }));
     yield put(closeAccountLinkingModal());
     
-    // Determine context; for register flow we stay on wizard
-    let context: string | null = null;
-    try { context = sessionStorage.getItem('linkContext'); } catch {}
+    // Determine context; for register flow we stay on wizard (handled elsewhere)
     const { toast } = yield import('sonner');
     toast.success('Google account linked!');
     
