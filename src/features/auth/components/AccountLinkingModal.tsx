@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../../app/providers/store";
 import { closeAccountLinkingModal, reauthForLinkAction } from "../actions";
 import { Button } from "../../../shared/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card";
 import CredentialsForm from "../../../shared/components/auth/CredentialsForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
@@ -35,13 +36,15 @@ export default function AccountLinkingModal() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-sm rounded-lg bg-white p-5 shadow-xl">
-        <h2 className="text-lg font-semibold mb-2">Link Google to your account</h2>
-        <p className="text-sm text-gray-600 mb-4">
-          To finish connecting Google, please confirm your account password. This helps us keep your account secure.
-        </p>
-        <div className="flex flex-col gap-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <Card className="w-full max-w-lg">
+        <CardHeader className="space-y-1 px-6 py-4 md:px-8 md:py-6">
+          <CardTitle className="text-xl md:text-2xl text-center">Link Google to your account</CardTitle>
+          <CardDescription className="text-center text-sm">
+            To finish connecting Google, please confirm your account password. This helps keep your account secure.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 px-6 md:px-8">
           <CredentialsForm
             onSubmit={({ email, password }) => {
               dispatch(reauthForLinkAction.request({ email, password }));
@@ -49,15 +52,18 @@ export default function AccountLinkingModal() {
             submitLabel="Link account"
             isLoading={!!isLinking}
           />
+        </CardContent>
+        <CardFooter className="flex flex-col gap-3 pt-0 md:pt-6 px-6 md:px-8 pb-4 md:pb-6">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={handleCancel}
-            className="w-full"
+            className="w-full bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            disabled={!!isLinking}
           >
             Cancel
           </Button>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

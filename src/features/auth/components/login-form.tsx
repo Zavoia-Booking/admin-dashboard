@@ -3,36 +3,28 @@ import { cn } from "../../../shared/lib/utils"
 import { Button } from "../../../shared/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../shared/components/ui/card"
 import { Input } from "../../../shared/components/ui/input";
-import { Label } from "../../../shared/components/ui/label"
+import { Label } from "../../../shared/components/ui/label";
 import { Link } from "react-router-dom";
 import { loginAction, forgotPasswordAction, clearAuthErrorAction } from "../actions";
 import { useDispatch, useSelector } from "react-redux";
-import { useForm } from "react-hook-form";
-import { Eye, EyeOff, AlertCircle } from "lucide-react";
-import { Spinner } from "../../../shared/components/ui/spinner";
 import { toast } from "sonner";
 import type { RootState } from "../../../app/providers/store";
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
+import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/components/auth/CredentialsForm"
+import { useRef } from "react";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const [showPassword, setShowPassword] = useState(false)
   const [isForgotMode, setIsForgotMode] = useState(false)
   const [forgotSubmitted, setForgotSubmitted] = useState(false)
   const dispatch = useDispatch();
   const { isLoading, error: authError } = useSelector((s: RootState) => s.auth)
+  const credRef = useRef<CredentialsFormHandle | null>(null);
 
-  type FormValues = { email: string; password: string }
-  const { register, handleSubmit, formState: { errors, isValid, isSubmitting }, reset } = useForm<FormValues>({
-    mode: 'onChange',
-    reValidateMode: 'onChange',
-    defaultValues: { email: '', password: '' },
-  })
-
-  const onSubmit = (values: FormValues) => {
-    dispatch(loginAction.request({ email: values.email, password: values.password }))
+  const handleCredentialsSubmit = ({ email, password }: { email: string; password: string }) => {
+    dispatch(loginAction.request({ email, password }));
   }
 
   const handleForgotSubmit = (e: React.FormEvent) => {
@@ -59,87 +51,33 @@ export function LoginForm({
           padding: '16px',
         } as React.CSSProperties,
       })
-      reset()
-      setShowPassword(false)
+      // Reset credentials form state (clear fields, hide password)
+      try { credRef.current?.reset(); credRef.current?.hidePassword(); } catch {}
       dispatch(clearAuthErrorAction())
     }
-  }, [authError, dispatch, reset])
+  }, [authError, dispatch])
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
         <CardContent className="grid p-0 md:grid-cols-2">
           {!isForgotMode ? (
-            <form className="p-6 md:p-8" onSubmit={handleSubmit(onSubmit)} noValidate>
+            <div className="p-6 md:p-8">
               <div className="flex flex-col gap-6">
                 <CardHeader className="p-0">
                   <CardTitle className="text-xl md:text-2xl text-center">Welcome back</CardTitle>
                   <CardDescription className="text-center text-sm">Login to your account</CardDescription>
                 </CardHeader>
-                <div className="grid gap-3">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="m@example.com"
-                    aria-invalid={!!errors.email}
-                    disabled={isLoading}
-                    {...register('email', {
-                      required: 'Email is required',
-                      pattern: { value: /[^@\s]+@[^@\s]+\.[^@\s]+/, message: 'Enter a valid email' },
-                    })}
-                  />
-                  {errors.email && (
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{String(errors.email.message)}</span>
-                    </p>
-                  )}
+                <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel="Login" isLoading={isLoading} />
+                <div className="flex justify-end -mt-2">
+                  <button
+                    type="button"
+                    onClick={() => { setIsForgotMode(true); setForgotSubmitted(false); }}
+                    className="text-sm underline-offset-2 hover:underline"
+                  >
+                    Forgot your password?
+                  </button>
                 </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center">
-                    <Label htmlFor="password">Password</Label>
-                    <button
-                      type="button"
-                      onClick={() => { setIsForgotMode(true); setForgotSubmitted(false); }}
-                      className="ml-auto text-sm underline-offset-2 hover:underline"
-                    >
-                      Forgot your password?
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      aria-invalid={!!errors.password}
-                      disabled={isLoading}
-                      {...register('password', { required: 'Password is required' })}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0 border-0 bg-transparent w-6 h-6 flex items-center justify-center cursor-pointer"
-                      onClick={() => setShowPassword(!showPassword)}
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  {errors.password && (
-                    <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{String(errors.password.message)}</span>
-                    </p>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading || !isValid || isSubmitting}>
-                  {(isLoading || isSubmitting) ? (
-                    <div className="flex items-center justify-center gap-3">
-                      <Spinner size="sm" color="info" />
-                    </div>
-                  ) : (
-                    "Login"
-                  )}
-                </Button>
                 <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                   <span className="bg-card text-muted-foreground relative z-10 px-2">
                     Or continue with
@@ -155,7 +93,7 @@ export function LoginForm({
                   </Link>
                 </div>
               </div>
-            </form>
+            </div>
           ) : (
             <form className="p-6 md:p-8" onSubmit={handleForgotSubmit}>
               <div className="flex flex-col gap-6">
