@@ -266,7 +266,7 @@ export function RegisterForm() {
             <span className="px-4 text-sm text-gray-400 bg-white whitespace-nowrap">Or</span>
             <div className="flex-1 h-px bg-gray-300 min-w-0"></div>
           </div>
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-4 w-full">
             {/* Reusable Google sign-in button */}
             <GoogleSignInButton context="register" disabled={isLoading} className="w-full h-10 md:h-12" />
           </div>
@@ -275,7 +275,8 @@ export function RegisterForm() {
             <Button
               variant="link"
               className="p-0 cursor-pointer"
-                onClick={() => navigate("/login")}
+              type="button"
+              onClick={() => navigate("/login")}
             >
               Sign in
             </Button>

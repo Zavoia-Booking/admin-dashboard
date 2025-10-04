@@ -3,11 +3,34 @@ import type { RootState } from "../../../app/providers/store";
 import { closeAccountLinkingModal, reauthForLinkAction } from "../actions";
 import { Button } from "../../../shared/components/ui/button";
 import CredentialsForm from "../../../shared/components/auth/CredentialsForm";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useCallback } from "react";
 
 export default function AccountLinkingModal() {
   const dispatch = useDispatch();
   const open = useSelector((s: RootState) => (s as any).auth.isAccountLinkingModalOpen);
   const isLinking = useSelector((s: RootState) => (s as any).auth.linkingLoading) as boolean | undefined;
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleCancel = useCallback(() => {
+    dispatch(closeAccountLinkingModal());
+    let returnTo: string | null = null;
+    let context: string | null = null;
+    try {
+      returnTo = sessionStorage.getItem('oauthReturnTo');
+      context = sessionStorage.getItem('oauthContext');
+      sessionStorage.removeItem('oauthMode');
+      sessionStorage.removeItem('oauthReturnTo');
+      sessionStorage.removeItem('oauthLastCode');
+      sessionStorage.removeItem('linkContext');
+      sessionStorage.removeItem('oauthContext');
+    } catch {}
+    if (location.pathname === '/auth/callback') {
+      const fallback = returnTo || (context === 'register' ? '/register' : '/login');
+      navigate(fallback, { replace: true });
+    }
+  }, [dispatch, location.pathname, navigate]);
 
   if (!open) return null;
 
@@ -26,7 +49,13 @@ export default function AccountLinkingModal() {
             submitLabel="Link account"
             isLoading={!!isLinking}
           />
-          <Button variant="ghost" onClick={() => dispatch(closeAccountLinkingModal())} className="w-full">Cancel</Button>
+          <Button
+            variant="ghost"
+            onClick={handleCancel}
+            className="w-full"
+          >
+            Cancel
+          </Button>
         </div>
       </div>
     </div>
