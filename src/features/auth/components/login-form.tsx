@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react"
 import { cn } from "../../../shared/lib/utils"
-import { Button } from "../../../shared/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../shared/components/ui/card"
-import { Input } from "../../../shared/components/ui/input";
-import { Label } from "../../../shared/components/ui/label";
 import { Link } from "react-router-dom";
 import { loginAction, forgotPasswordAction, clearAuthErrorAction } from "../actions";
 import { useDispatch, useSelector } from "react-redux";
@@ -12,6 +9,7 @@ import type { RootState } from "../../../app/providers/store";
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
 import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/components/auth/CredentialsForm"
 import { useRef } from "react";
+import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline";
 
 export function LoginForm({
   className,
@@ -27,12 +25,7 @@ export function LoginForm({
     dispatch(loginAction.request({ email, password }));
   }
 
-  const handleForgotSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const email = (document.getElementById('forgot-email') as HTMLInputElement)?.value || ''
-    dispatch(forgotPasswordAction.request({ email }))
-    setForgotSubmitted(true)
-  }
+  // inline forgot password handled by ForgotPasswordInline component
 
   useEffect(() => {
     if (authError) {
@@ -69,11 +62,12 @@ export function LoginForm({
                   <CardDescription className="text-center text-sm">Login to your account</CardDescription>
                 </CardHeader>
                 <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel="Login" isLoading={isLoading} />
-                <div className="flex justify-end -mt-2">
+                <div className="flex justify-center mt-1">
                   <button
                     type="button"
                     onClick={() => { setIsForgotMode(true); setForgotSubmitted(false); }}
-                    className="text-sm underline-offset-2 hover:underline"
+                    className="text-sm text-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                    aria-label="Forgot your password?"
                   >
                     Forgot your password?
                   </button>
@@ -95,46 +89,12 @@ export function LoginForm({
               </div>
             </div>
           ) : (
-            <form className="p-6 md:p-8" onSubmit={handleForgotSubmit}>
-              <div className="flex flex-col gap-6">
-                <div className="flex flex-col items-center text-center">
-                  <h1 className="text-2xl font-bold">Forgot password</h1>
-                  <p className="text-muted-foreground text-balance">
-                    Enter your email and we will send you a reset link.
-                  </p>
-                </div>
-                {!forgotSubmitted ? (
-                  <>
-                    <div className="grid gap-3">
-                      <Label htmlFor="forgot-email">Email</Label>
-                      <Input
-                        id="forgot-email"
-                        type="email"
-                        placeholder="m@example.com"
-                        required
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button type="submit" className="w-full">Reset Password</Button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsForgotMode(false)}
-                      className="text-sm underline-offset-2 hover:underline"
-                    >
-                      Back to login
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
-                      If an account exists for the provided email, you will receive an email with instructions to reset your password.
-                    </div>
-                    <Button type="button" className="w-full" onClick={() => setIsForgotMode(false)}>Back to login</Button>
-                  </>
-                )}
-              </div>
-            </form>
+            <ForgotPasswordInline
+              isSubmitted={forgotSubmitted}
+              isLoading={isLoading}
+              onSubmit={(email) => { dispatch(forgotPasswordAction.request({ email })); setForgotSubmitted(true); }}
+              onBack={() => setIsForgotMode(false)}
+            />
           )}
           <div className="bg-muted relative hidden md:block">
             <img
