@@ -76,25 +76,23 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   };
 
   const handleConfirmCreate = () => {
-    const { name, price, duration, description } = getValues();
+    const { name, price, duration, description, isActive } = getValues();
     const payload: CreateServicePayload = {
       name,
       price,
       duration,
       description,
-      isActive: true,
+      isActive,
     };
     dispatch(createServicesAction.request(payload));
     setShowConfirmDialog(false);
     onClose();
     reset(initialFormData);
-    // setStaffAssignments([]);
   };
 
   const handleCancel = () => {
     onClose();
     reset(initialFormData);
-    // setStaffAssignments([]);
   };
 
   return (

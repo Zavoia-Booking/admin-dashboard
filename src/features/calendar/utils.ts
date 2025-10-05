@@ -1,6 +1,7 @@
 // Helper functions to get date ranges based on selected date
 import { AppointmentViewMode, type CalendarFilters } from "./types.ts";
 import type { Appointment } from "../../shared/types/calendar.ts";
+import { ALL } from "../../shared/constants.ts";
 
 export const getWeekStart = (date: Date) => {
     const day = date.getDay();
@@ -67,7 +68,7 @@ export const STATUS_LIST = [
     { value: 'no-show', label: 'No Show' }
 ];
 
-export const ALL = 'all'
+
 export const DEFAULT_FILTERS: CalendarFilters = {
     location: ALL,
     teamMember: ALL,
