@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
+import AddressComposer from '../../../shared/components/common/AddressComposer';
 import { Switch } from '../../../shared/components/ui/switch';
 import { MapPin, Wifi } from 'lucide-react';
 import type { WizardData } from '../../../shared/hooks/useSetupWizard';
@@ -21,6 +22,8 @@ const StepLocation: React.FC<StepProps> = ({ data, onUpdate }) => {
   }, [watch, onUpdate]);
 
   const currentWorkingHours = (watch('location') as any)?.workingHours as WorkingHours;
+
+  // address compose handled by AddressComposer
 
   const updateWorkingHours = (day: keyof WorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
     const updated: WorkingHours = {
@@ -89,7 +92,10 @@ const StepLocation: React.FC<StepProps> = ({ data, onUpdate }) => {
               <Label htmlFor="location.address" className="text-sm font-medium">
                 Address *
               </Label>
-              <Input id="location.address" placeholder="123 Main Street" className="h-11" {...register('location.address' as any)} />
+              <AddressComposer
+                value={watch('location.address' as any) as any}
+                onChange={(next) => setValue('location.address' as any, next, { shouldDirty: true, shouldTouch: true })}
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
