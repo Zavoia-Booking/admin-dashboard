@@ -1,13 +1,27 @@
-import { all, call, put, takeLatest } from "redux-saga/effects";
-import { createServicesAction, deleteServicesAction, editServicesAction, getServicesAction } from "./actions.ts";
+import { all, call, put, select, takeLatest } from "redux-saga/effects";
+import {
+    createServicesAction,
+    deleteServicesAction,
+    editServicesAction,
+    getServicesAction, setServiceFilterAction,
+    toggleStatusServiceAction
+} from "./actions.ts";
 import { createServicesRequest, deleteServiceRequest, editServicesRequest, getServicesRequest } from "./api.ts";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { Service } from "../../shared/types/service.ts";
+import type { EditServicePayload, ServiceFilterState } from "./types.ts";
+import { getServicesFilterSelector } from "./selectors.ts";
+import { mapToGenericFilter } from "./utils.ts";
 
 function* handleGetServices() {
+    
+    const filters: ServiceFilterState = yield select(getServicesFilterSelector);
+
+    const mappedFilters = mapToGenericFilter(filters);
+
     try {
-        const response: { data: { services: Service[] } } = yield call(getServicesRequest);
+        const response: { data: { services: Service[] } } = yield call(getServicesRequest, mappedFilters);
         if (response.data) {
             yield put(getServicesAction.success(response.data.services))
         }
@@ -58,11 +72,37 @@ function* handleEditServices(action: ActionType<typeof editServicesAction.reques
     }
 }
 
+function* handleToggleStatusService(action: ActionType<typeof toggleStatusServiceAction.request>) {
+    const { description, duration, id, isActive, name, price } = action.payload;
+    
+    const editPayload: Partial<EditServicePayload> = {
+        description,
+        duration,
+        isActive: !isActive,
+        name, 
+        price
+    }
+
+    const response: { data: unknown } = yield call(editServicesRequest, id, editPayload);
+
+    if (response.data) {
+        toast.success('Toggled service status successfully')
+        yield put(getServicesAction.request())
+    }
+}
+
+function* handleSetServiceFilters(action: ActionType<typeof setServiceFilterAction.request>) {
+    yield put(setServiceFilterAction.success(action.payload))
+    yield put(getServicesAction.request())
+}
+
 export function* servicesSaga(): Generator<unknown, void, unknown> {
     yield all([
         takeLatest(getServicesAction.request, handleGetServices),
         takeLatest(createServicesAction.request, handleCreateServices),
         takeLatest(editServicesAction.request, handleEditServices),
         takeLatest(deleteServicesAction.request, handleDeleteService),
+        takeLatest(toggleStatusServiceAction.request, handleToggleStatusService),
+        takeLatest(setServiceFilterAction.request, handleSetServiceFilters),
     ]);
 }

@@ -1,62 +1,55 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import { Edit, Trash2, Filter, Search, Plus, Clock, X, Users } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { Edit, Trash2, Clock } from "lucide-react";
 import AddServiceSlider from '../components/AddServiceSlider';
 import EditServiceSlider from '../components/EditServiceSlider';
-import { Badge } from "../../../shared/components/ui/badge";
-import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Switch } from "../../../shared/components/ui/switch";
-import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import type { Service } from '../../../shared/types/service';
 import { Button } from '../../../shared/components/ui/button';
-import { Input } from '../../../shared/components/ui/input';
-import { getServicesListSelector } from "../selectors.ts";
+import { getAddFormSelector, getServicesListSelector } from "../selectors.ts";
 import { useDispatch, useSelector } from "react-redux";
-import { deleteServicesAction, getServicesAction } from "../actions.ts";
+import {
+  deleteServicesAction,
+  getServicesAction,
+  toggleAddFormAction,
+  toggleStatusServiceAction
+} from "../actions.ts";
 import { getCurrentLocationSelector } from "../../locations/selectors.ts";
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate.tsx';
+import { useConfirmRadix } from "../../../shared/hooks/useConfirm.tsx";
+import { ServiceFilters } from "../components/ServiceFilters.tsx";
+import { ALL } from "../../../shared/constants.ts";
 
 export default function ServicesPage() {
   const services: Service[] = useSelector(getServicesListSelector);
   const currentLocation = useSelector(getCurrentLocationSelector);
+  const { ConfirmDialog, confirm } = useConfirmRadix();
 
   const dispatch = useDispatch();
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(ALL);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [durationRange, setDurationRange] = useState({ min: '', max: '' });
-  const [showFilters, setShowFilters] = useState(false);
-
-  // Local filter state (used in filter card only)
-  const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-  const [localPriceRange, setLocalPriceRange] = useState(priceRange);
-  const [localDurationRange, setLocalDurationRange] = useState(durationRange);
 
   // Dialog states
-  const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
+  const isCreateSliderOpen = useSelector(getAddFormSelector);
+  // const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
-  const [pendingAction, setPendingAction] = useState<{
-    type: 'delete' | 'toggleStatus';
-    serviceId?: number;
-    serviceName?: string;
-    toggleStatusData?: { id: number; name: string; currentStatus: string; newStatus: string };
-  } | null>(null);
 
   // When opening the filter card, sync local state with main state
   useEffect(() => {
-    if (showFilters) {
-      setLocalStatusFilter(statusFilter);
-      setLocalPriceRange(priceRange);
-      setLocalDurationRange(durationRange);
-    }
-  }, [showFilters, statusFilter, priceRange, durationRange]);
+    // TODO
+    // if (showFilters) {
+    //   setLocalStatusFilter(statusFilter);
+    //   setLocalPriceRange(priceRange);
+    //   setLocalDurationRange(durationRange);
+    // }
+  }, [statusFilter, priceRange, durationRange]);
 
   // Filter logic
   const filteredServices = useMemo(() => {
@@ -65,7 +58,7 @@ export default function ServicesPage() {
         service.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = statusFilter === 'all' || service.isActive === (statusFilter === 'enabled');
+      const matchesStatus = statusFilter === ALL || service.isActive === (statusFilter === 'enabled');
 
       const matchesMinPrice = priceRange.min === '' || service.price >= parseFloat(priceRange.min);
       const matchesMaxPrice = priceRange.max === '' || service.price <= parseFloat(priceRange.max);
@@ -78,97 +71,39 @@ export default function ServicesPage() {
   }, [services, searchTerm, statusFilter, priceRange, durationRange]);
 
   useEffect(() => {
-    // Refetch whenever location changes, including when cleared to "All locations"
     dispatch(getServicesAction.request());
   }, [dispatch, currentLocation?.id]);
 
-  // creation handled inside AddServiceSlider via react-hook-form + dispatch
-
-  const handleDeleteService = async (id: number) => {
-    setPendingAction({
-      type: 'delete',
-      serviceId: id,
-      serviceName: services.find((service: Service) => service.id === id)?.name
+  const handleDeleteService = useCallback((service: Service) => {
+    void confirm({
+      title: `Delete “${service.name}”?`,
+      content: 'This action is permanent and cannot be undone.',
+      confirmationText: 'Delete',
+      destructive: true,
+      dismissible: false,
+      onConfirm: () => {
+        dispatch(deleteServicesAction.request({ serviceId: service.id }));
+      },
     });
-    setIsConfirmDialogOpen(true);
-  };
+  },[dispatch, confirm]);
 
   const handleToggleServiceStatus = async (service: Service) => {
-    const newStatus = service.isActive ? 'disabled' : 'enabled';
-
-    setPendingAction({
-      type: 'toggleStatus',
-      toggleStatusData: {
-        id: service.id,
-        name: service.name,
-        currentStatus: service.isActive ? 'enabled' : 'disabled',
-        newStatus: newStatus
-      }
+    void await confirm({
+      title: `Update status`,
+      content: `Are you sure you want to change status to the service "${service.name}.`,
+      confirmationText: 'Toggle',
+      cancellationText: 'Cancel',
+      destructive: false,
+      dismissible: true,
+      onConfirm: () => {
+        dispatch(toggleStatusServiceAction.request(service));
+      },
     });
-    setIsConfirmDialogOpen(true);
-  };
-
-  const confirmToggleStatus = async () => {
-    if (!pendingAction || pendingAction.type !== 'toggleStatus' || !pendingAction.toggleStatusData) return;
-
-    try {
-      // TODO: Replace with actual API call
-      const response = await fetch(`/api/services/${pendingAction.toggleStatusData.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: pendingAction.toggleStatusData.newStatus }),
-      });
-
-      if (!response.ok) throw new Error('Failed to update service status');
-
-      toast.success(`Service ${pendingAction.toggleStatusData.newStatus} successfully`);
-      // TODO
-      // fetchServices();
-    } catch (error: unknown) {
-      console.log(error)
-      toast.error('Failed to update service status');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
-    }
-  };
-
-  const confirmDelete = async () => {
-    if (!pendingAction || pendingAction.type !== 'delete' || !pendingAction.serviceId) return;
-
-    dispatch(deleteServicesAction.request({ serviceId: pendingAction.serviceId }));
-    setIsConfirmDialogOpen(false);
-    setPendingAction(null);
   };
 
   const openEditSlider = (service: Service) => {
     setEditingService(service);
     setIsEditSliderOpen(true);
-  };
-
-  const getConfirmDialogContent = () => {
-    if (!pendingAction) return null;
-
-    switch (pendingAction.type) {
-      case 'toggleStatus':
-        return {
-          title: 'Update Status',
-          description: `Are you sure you want to ${pendingAction.toggleStatusData?.newStatus} the service "${pendingAction.toggleStatusData?.name}"?`,
-          confirmText: 'Update Status',
-          onConfirm: confirmToggleStatus
-        };
-      case 'delete':
-        return {
-          title: 'Delete Service',
-          description: `Are you sure you want to delete "${pendingAction.serviceName}"? This action cannot be undone.`,
-          confirmText: 'Delete',
-          onConfirm: confirmDelete
-        };
-      default:
-        return null;
-    }
   };
 
   const formatDuration = (minutes: number) => {
@@ -180,195 +115,11 @@ export default function ServicesPage() {
     return `${mins}m`;
   };
 
-  const confirmDialogContent = getConfirmDialogContent();
-
-  // Calculate number of active filters
-  const activeFiltersCount = [
-    !!searchTerm,
-    statusFilter !== 'all',
-    !!priceRange.min,
-    !!priceRange.max,
-    !!durationRange.min,
-    !!durationRange.max
-  ].filter(Boolean).length;
-
   return (
     <AppLayout>
-      <BusinessSetupGate>
+       <BusinessSetupGate>
         <div className="space-y-4 max-w-2xl mx-auto">
-          {/* Top Controls: Search, Filter, Add */}
-          <div className="flex gap-2 items-center">
-            <div className="relative flex-1">
-              <Input
-                placeholder="Search services..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-11 text-base pr-12 pl-4 rounded-lg border border-input bg-white"
-              />
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
-            </div>
-            <button
-              className={`
-              relative flex items-center justify-center h-9 w-9 rounded-md border border-input transition-all duration-200 ease-out
-              ${showFilters
-                  ? 'bg-primary text-primary-foreground shadow-sm'
-                  : 'bg-white text-muted-foreground hover:text-foreground hover:bg-muted/50'}
-            `}
-              onClick={() => setShowFilters(v => !v)}
-              aria-label="Show filters"
-            >
-              <Filter className={`h-5 w-5 ${showFilters ? 'text-primary-foreground' : ''}`} />
-              {activeFiltersCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full px-1.5 py-0.5 min-w-[20px] flex items-center justify-center shadow">
-                  {activeFiltersCount}
-                </span>
-              )}
-            </button>
-            <Button
-              className="h-11 px-4 rounded-lg bg-black hover:bg-gray-800 flex items-center gap-2"
-              onClick={() => setIsCreateSliderOpen(true)}
-            >
-              <Plus className="h-5 w-5" />
-              <span className="font-semibold">Add Service</span>
-            </Button>
-          </div>
-
-          {/* Filter Panel (dropdown style) */}
-          {showFilters && (
-            <FilterPanel
-              open={showFilters}
-              onOpenChange={setShowFilters}
-              fields={[
-                {
-                  type: 'select',
-                  key: 'status',
-                  label: 'Status',
-                  value: localStatusFilter,
-                  options: [
-                    { value: 'all', label: 'All statuses' },
-                    { value: 'enabled', label: 'Enabled' },
-                    { value: 'disabled', label: 'Disabled' },
-                  ],
-                  searchable: true,
-                },
-                {
-                  type: 'text',
-                  key: 'priceMin',
-                  label: 'Min Price',
-                  value: localPriceRange.min,
-                  placeholder: 'Min',
-                },
-                {
-                  type: 'text',
-                  key: 'priceMax',
-                  label: 'Max Price',
-                  value: localPriceRange.max,
-                  placeholder: 'Max',
-                },
-                {
-                  type: 'text',
-                  key: 'durationMin',
-                  label: 'Min Duration',
-                  value: localDurationRange.min,
-                  placeholder: 'Min',
-                },
-                {
-                  type: 'text',
-                  key: 'durationMax',
-                  label: 'Max Duration',
-                  value: localDurationRange.max,
-                  placeholder: 'Max',
-                },
-                {
-                  type: 'text',
-                  key: 'search',
-                  label: 'Search',
-                  value: searchTerm,
-                  placeholder: 'Search services...'
-                },
-              ]}
-              onApply={values => {
-                setStatusFilter(values.status);
-                setPriceRange({ min: values.priceMin, max: values.priceMax });
-                setDurationRange({ min: values.durationMin, max: values.durationMax });
-                setSearchTerm(values.search);
-                setShowFilters(false);
-              }}
-              onClear={() => {
-                setStatusFilter('all');
-                setPriceRange({ min: '', max: '' });
-                setDurationRange({ min: '', max: '' });
-                setSearchTerm('');
-              }}
-            />
-          )}
-
-          {/* Active Filter Badges - Always show when there are active filters */}
-          {(searchTerm || statusFilter !== 'all' || priceRange.min || priceRange.max || durationRange.min || durationRange.max) && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {searchTerm && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                  onClick={() => setSearchTerm('')}
-                >
-                  Search: &#34;{searchTerm}&#34;
-                  <X className="h-4 w-4 ml-1" />
-                </Badge>
-              )}
-              {statusFilter !== 'all' && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                  onClick={() => setStatusFilter('all')}
-                >
-                  Status: {statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
-                  <X className="h-4 w-4 ml-1" />
-                </Badge>
-              )}
-              {priceRange.min && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                  onClick={() => setPriceRange({ ...priceRange, min: '' })}
-                >
-                  Min Price: {priceRange.min}
-                  <X className="h-4 w-4 ml-1" />
-                </Badge>
-              )}
-              {priceRange.max && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                  onClick={() => setPriceRange({ ...priceRange, max: '' })}
-                >
-                  Max Price: {priceRange.max}
-                  <X className="h-4 w-4 ml-1" />
-                </Badge>
-              )}
-              {durationRange.min && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                  onClick={() => setDurationRange({ ...durationRange, min: '' })}
-                >
-                  Min Duration: {durationRange.min}m
-                  <X className="h-4 w-4 ml-1" />
-                </Badge>
-              )}
-              {durationRange.max && (
-                <Badge
-                  variant="secondary"
-                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                  onClick={() => setDurationRange({ ...durationRange, max: '' })}
-                >
-                  Max Duration: {durationRange.max}m
-                  <X className="h-4 w-4 ml-1" />
-                </Badge>
-              )}
-            </div>
-          )}
-
+          <ServiceFilters/>
           Stats Cards
           <div className="grid grid-cols-4 gap-4">
             <div className="rounded-lg border bg-white p-4 text-center">
@@ -393,7 +144,7 @@ export default function ServicesPage() {
           <div className="space-y-3">
             {filteredServices.map((service) => {
               // const bookings = service.bookings || (service.id === 1 ? 45 : service.id === 2 ? 32 : 28);
-              const isInactive = service.isActive === false;
+              const isInactive = !service.isActive;
               return (
                 <div
                   key={service.id}
@@ -416,10 +167,6 @@ export default function ServicesPage() {
                     </div>
                     <div className="flex items-center gap-1 text-gray-700">
                       <span>${service.price}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-gray-700">
-                      <Users className="h-4 w-4" />
-                      <span>0 booked</span>
                     </div>
                   </div>
 
@@ -451,7 +198,7 @@ export default function ServicesPage() {
                       <button
                         className="flex items-center justify-center h-9 w-9 rounded hover:bg-muted text-red-600"
                         title="Delete"
-                        onClick={() => handleDeleteService(service.id)}
+                        onClick={() => handleDeleteService(service)}
                       >
                         <Trash2 className="h-5 w-5" />
                       </button>
@@ -465,15 +212,14 @@ export default function ServicesPage() {
 
           {/* Empty State */}
           {filteredServices.length === 0 && (
-            (searchTerm || statusFilter !== 'all' || priceRange.min || priceRange.max || durationRange.min || durationRange.max) ? (
+            (searchTerm || statusFilter !== ALL|| priceRange.min || priceRange.max || durationRange.min || durationRange.max) ? (
               <div className="rounded-lg border bg-white p-8 text-center">
                 <div className="mb-4 text-gray-500">No services found matching your filters.</div>
                 <Button variant="outline" onClick={() => {
                   setSearchTerm('');
-                  setStatusFilter('all');
+                  setStatusFilter(ALL);
                   setPriceRange({ min: '', max: '' });
                   setDurationRange({ min: '', max: '' });
-                  setShowFilters(false);
                 }}>
                   Clear filters
                 </Button>
@@ -488,38 +234,14 @@ export default function ServicesPage() {
               </div>
             )
           )}
-
-          {/* Confirmation Dialog */}
-          <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>{confirmDialogContent?.title}</DialogTitle>
-                <DialogDescription>
-                  {confirmDialogContent?.description}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex space-x-2">
-                <Button
-                  onClick={confirmDialogContent?.onConfirm}
-                  className="flex-1"
-                >
-                  {confirmDialogContent?.confirmText}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsConfirmDialogOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <ConfirmDialog/>
 
           {/* Add Service Slider */}
           <AddServiceSlider
             isOpen={isCreateSliderOpen}
-            onClose={() => setIsCreateSliderOpen(false)}
+            onClose={()=> {
+              dispatch(toggleAddFormAction(false))
+            }}
           />
 
           {/* Edit Service Slider */}

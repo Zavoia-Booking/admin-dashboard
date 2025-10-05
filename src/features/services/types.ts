@@ -2,6 +2,12 @@ import type { Service } from "../../shared/types/service.ts";
 
 export type ServicesState = {
   services: Service[];
+  filters: ServiceFilterState;
+  addFormOpen: boolean,
+  editForm: {
+    open: boolean,
+    item: null | Service,
+  },
 };
 
 export type CreateServicePayload = {
@@ -19,4 +25,13 @@ export type EditServicePayload = {
   price: number;
   id: number,
   isActive: boolean,
+}
+
+export type ServiceFilterState = {
+  searchTerm: string,
+  status: string,
+  priceMin: string,
+  priceMax: string,
+  durationMin: string,
+  durationMax: string
 }
