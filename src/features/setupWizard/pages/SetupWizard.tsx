@@ -63,10 +63,11 @@ const SetupWizardPage: React.FC = () => {
   const getCurrentStepConfig = () => stepConfig[currentStep - 1];
   const { component: CurrentStepComponent, title, subtitle } = getCurrentStepConfig();
   const isLastStep = currentStep === totalSteps;
+  const stepLabels = ['Business Info', 'Location', 'Team', 'Launch'];
 
   return (
     user?.wizardCompleted && currentStep < totalSteps ? (
-      <div className="max-w-2xl mx-auto text-center py-12">
+      <div className="max-w-2xl mx-auto text-center py-12 cursor-default">
         <h2 className="text-2xl font-bold mb-4">Thank You for Completing Your Business Setup!</h2>
         <p className="text-gray-600 mb-8">
           Your business is now ready to go. You can start adding services, inviting team members, 
@@ -86,6 +87,8 @@ const SetupWizardPage: React.FC = () => {
         progress={getProgress()}
         title={title}
         subtitle={subtitle}
+        stepLabels={stepLabels}
+        onClose={() => navigate('/dashboard')}
         onPrevious={prevStep}
         onNext={() => {
           if (currentStep === totalSteps - 1) {

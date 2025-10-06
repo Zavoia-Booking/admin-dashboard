@@ -13,7 +13,7 @@ type WizardState = {
 
 const initialState: WizardState = {
   currentStep: 1,
-  totalSteps: 7,
+  totalSteps: 4,
   data: {
     businessInfo: {
       name: '',

@@ -1,41 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Textarea } from '../../../shared/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
 import { Upload, Building2, Phone, AlertCircle } from 'lucide-react';
 import type { WizardData } from '../../../shared/hooks/useSetupWizard';
 import { useForm } from 'react-hook-form';
 import type { StepProps } from '../types';
 import { isE164, sanitizePhoneToE164Draft } from '../../auth/validation';
+import { industryApi } from '../../../shared/api/industry.api';
+import type { Industry } from '../../../shared/types/industry';
 
-const industries = [  
-  'Beauty & Wellness',
-  'Healthcare',
-  'Professional Services',
-  'Fitness & Sports',
-  'Education & Training',
-  'Automotive',
-  'Home Services',
-  'Legal Services',
-  'Consulting',
-  'Other'
-];
-
-const currencies = ['USD', 'EUR', 'GBP', 'RON'];
-const countries = [
-  'Romania',
-  'United States',
-  'United Kingdom',
-  'Europe',
-  'Other'
-];
 
 const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
+  const [industries, setIndustries] = useState<Industry[]>([]);
+  const [isLoadingIndustries, setIsLoadingIndustries] = useState(true);
+
   const { register, watch, setValue, reset, formState: { errors } } = useForm<WizardData>({
     defaultValues: data,
     mode: 'onChange',
   });
+
+  useEffect(() => {
+    const fetchIndustries = async () => {
+      try {
+        const data = await industryApi.getAll();
+        // Sort: "Other" always last, rest alphabetically
+        const sorted = data.sort((a, b) => {
+          if (a.slug === 'other') return 1;
+          if (b.slug === 'other') return -1;
+          return a.name.localeCompare(b.name);
+        });
+        setIndustries(sorted);
+      } catch (error) {
+        console.error('Failed to fetch industries:', error);
+      } finally {
+        setIsLoadingIndustries(false);
+      }
+    };
+    fetchIndustries();
+  }, []);
 
   useEffect(() => {
     reset(data);
@@ -49,7 +52,7 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
   }, [watch, onUpdate]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 cursor-default">
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-primary/10 rounded-lg">
           <Building2 className="h-6 w-6 text-primary" />
@@ -62,7 +65,7 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
 
       <div className="grid gap-6">
         <div className="space-y-2">
-          <Label htmlFor="businessInfo.name" className="text-sm font-medium">
+          <Label htmlFor="businessInfo.name" className="text-sm font-medium cursor-default">
             Business Name *
           </Label>
           <Input
@@ -73,29 +76,58 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="businessInfo.industry" className="text-sm font-medium">
+        <div className="space-y-3">
+          <Label className="text-sm font-medium cursor-default">
             Industry *
           </Label>
-          <Select value={watch('businessInfo.industry' as any)} onValueChange={(value) => setValue('businessInfo.industry' as any, value, { shouldDirty: true, shouldTouch: true })}>
-            <SelectTrigger className="h-11 w-full">
-              <SelectValue placeholder="Select your industry" />
-            </SelectTrigger>
-            <SelectContent>
-              {industries.map((industry) => (
-                <SelectItem key={industry} value={industry}>
-                  {industry}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
           <p className="text-xs text-muted-foreground">
             This helps us suggest relevant services and templates
           </p>
+          {isLoadingIndustries ? (
+            <div className="text-sm text-muted-foreground">Loading industries...</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="radiogroup" aria-label="Select industry">
+              {industries.map((industry) => {
+                const isSelected = watch('businessInfo.industry' as any) === industry.id;
+                return (
+                  <button
+                    key={industry.id}
+                    type="button"
+                    onClick={() => setValue('businessInfo.industry' as any, industry.id, { shouldDirty: true, shouldTouch: true })}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setValue('businessInfo.industry' as any, industry.id, { shouldDirty: true, shouldTouch: true });
+                      }
+                    }}
+                    role="radio"
+                    aria-checked={isSelected}
+                    tabIndex={0}
+                    className={`
+                      group relative flex items-center justify-center min-h-[52px] px-3 py-2 rounded-lg border text-sm font-normal transition-colors cursor-pointer
+                      ${isSelected
+                        ? 'border-primary bg-primary/5 text-primary shadow-xs'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
+                      } focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30
+                    `}
+                  >
+                    <span className="text-center leading-tight select-none">{industry.name}</span>
+                    {isSelected && (
+                      <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 shadow-sm flex items-center justify-center animate-in zoom-in-50 duration-200">
+                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="businessInfo.description" className="text-sm font-medium">
+          <Label htmlFor="businessInfo.description" className="text-sm font-medium cursor-default">
             Business Description
           </Label>
           <Textarea
@@ -110,11 +142,26 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
         {/* Contact & Regional */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="businessInfo.email" className="text-sm font-medium">Business Email</Label>
-            <Input id="businessInfo.email" type="email" placeholder="you@business.com" className="h-11" {...register('businessInfo.email' as any)} />
+            <Label htmlFor="businessInfo.email" className="text-sm font-medium cursor-default">Business Email</Label>
+            <Input 
+              id="businessInfo.email" 
+              type="email" 
+              placeholder="you@business.com" 
+              className={`h-11 ${errors.businessInfo?.email ? 'border-destructive bg-red-50' : ''}`}
+              autoComplete="email"
+              {...register('businessInfo.email' as any, {
+                pattern: { value: /[^@\s]+@[^@\s]+\.[^@\s]+/, message: 'Enter a valid email' },
+              })} 
+            />
+            {errors.businessInfo?.email && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <AlertCircle className="h-3.5 w-3.5" />
+                <span>{String(errors.businessInfo.email.message)}</span>
+              </p>
+            )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="businessInfo.phone" className="text-sm font-medium">Business Phone *</Label>
+            <Label htmlFor="businessInfo.phone" className="text-sm font-medium cursor-default">Business Phone *</Label>
             <div className="relative">
               <Input 
                 id="businessInfo.phone" 
@@ -142,52 +189,10 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
               </p>
             )}
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="businessInfo.timezone" className="text-sm font-medium">Timezone</Label>
-            <Input id="businessInfo.timezone" type="text" placeholder="America/New_York" className="h-11" {...register('businessInfo.timezone' as any)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="businessInfo.country" className="text-sm font-medium">Country/Region</Label>
-            <Select value={watch('businessInfo.country' as any)} onValueChange={(value) => setValue('businessInfo.country' as any, value, { shouldDirty: true, shouldTouch: true })}>
-              <SelectTrigger className="h-11 w-full">
-                <SelectValue placeholder="Select country/region" />
-              </SelectTrigger>
-              <SelectContent>
-                {countries.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="businessInfo.currency" className="text-sm font-medium">Currency</Label>
-            <Select value={watch('businessInfo.currency' as any)} onValueChange={(value) => setValue('businessInfo.currency' as any, value, { shouldDirty: true, shouldTouch: true })}>
-              <SelectTrigger className="h-11 w-full">
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {currencies.map((c) => (
-                  <SelectItem key={c} value={c}>{c}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {/* Socials */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="businessInfo.instagramUrl" className="text-sm font-medium">Instagram</Label>
-            <Input id="businessInfo.instagramUrl" type="url" placeholder="https://instagram.com/yourbrand" className="h-11" {...register('businessInfo.instagramUrl' as any)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="businessInfo.facebookUrl" className="text-sm font-medium">Facebook</Label>
-            <Input id="businessInfo.facebookUrl" type="url" placeholder="https://facebook.com/yourbrand" className="h-11" {...register('businessInfo.facebookUrl' as any)} />
-          </div>
         </div>
 
         <div className="space-y-2">
-          <Label className="text-sm font-medium">Business Logo (Optional)</Label>
+          <Label className="text-sm font-medium cursor-default">Business Logo (Optional)</Label>
           <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-1">

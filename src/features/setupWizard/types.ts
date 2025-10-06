@@ -15,8 +15,9 @@ export interface WizardLayoutProps {
 	onPrevious?: () => void;
 	onNext?: () => void;
 	onSave?: () => void;
+	onClose?: () => void;
 	canProceed: boolean;
 	isLoading: boolean;
-	showNext?: boolean;
 	nextLabel?: string;
+	stepLabels?: string[];
 }
