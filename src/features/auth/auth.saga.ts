@@ -83,11 +83,19 @@ function* handleLogin(action: { type: string; payload: { email: string, password
 
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
-    yield put(loginAction.success({ 
+    // Ensure latest user data
+    yield put(fetchCurrentUserAction.request());
+    yield put(loginAction.success({
       accessToken: response.accessToken, 
       csrfToken: response.csrfToken ?? null, 
       user: response.user 
     }));
+
+    // Toast success (lazy import to avoid bundle weight on cold paths)
+    try {
+      const { toast } = yield import('sonner');
+      toast.success('Welcome back!');
+    } catch {}
 
   } catch (error: any) {
     let message = "Login failed";
@@ -207,7 +215,7 @@ function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) 
     }
     
     if (code === 'account_exists_unlinked_google') {
-      try { sessionStorage.setItem('linkContext', 'register'); } catch {}
+      try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
       yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
       return;
     }
@@ -253,14 +261,12 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     yield put(linkGoogleAction.success({ message: 'Google account linked successfully!' }));
     yield put(closeAccountLinkingModal());
     
-    // Determine context; for register flow we stay on wizard
-    let context: string | null = null;
-    try { context = sessionStorage.getItem('linkContext'); } catch {}
+    // Determine context; for register flow we stay on wizard (handled elsewhere)
     const { toast } = yield import('sonner');
     toast.success('Google account linked!');
     
     // Clear context marker
-    try { sessionStorage.removeItem('linkContext'); } catch {}
+    try { sessionStorage.removeItem('linkContext'); } catch { /* empty */ }
     
     // For register flow: do not redirect. For other contexts we also avoid forced redirect here.
     // If a redirect is desired elsewhere, handle it in that flow.
@@ -313,7 +319,7 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     if (!existingToken) {
       try {
         yield call(refreshSession);
-      } catch (e) {
+      } catch {
         // continue; backend fallback might still succeed with refresh cookie
       }
     }
@@ -328,7 +334,7 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     try {
       sessionStorage.setItem('postLinkToast', 'Google account linked to your profile');
       sessionStorage.setItem('postLinkToastType', 'success');
-    } catch {}
+    } catch { /* empty */ }
     
     // Route back to the stored returnTo if present
     setTimeout(() => {
@@ -349,13 +355,13 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     try {
       sessionStorage.setItem('postLinkToast', message);
       sessionStorage.setItem('postLinkToastType', 'error');
-    } catch {}
+    } catch { /* empty */ }
     // Safety: if we're stuck on the callback route, bounce back to Settings so UI doesn't hang
     try {
       const returnTo = sessionStorage.getItem('oauthReturnTo') || '/settings';
       sessionStorage.removeItem('oauthMode');
       sessionStorage.removeItem('oauthReturnTo');
       window.location.replace(returnTo);
-    } catch {}
+    } catch { /* empty */ }
   }
 }

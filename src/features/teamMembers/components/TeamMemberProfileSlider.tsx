@@ -25,7 +25,7 @@ interface TeamMemberProfileSliderProps {
   onClose: () => void;
   teamMember: TeamMember;
   onUpdate: (data: Partial<TeamMember>) => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string | number) => void;
   locations: Array<{ id: string; name: string }>;
 }
 
@@ -35,7 +35,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   teamMember,
   onUpdate,
   onDelete,
-  locations
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
@@ -83,7 +82,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   // Fetch location working hours when team member changes
   useEffect(() => {
     if (teamMember?.location) {
-      fetchLocationWorkingHours(teamMember.location);
+      fetchLocationWorkingHours(`${teamMember.location}`);
     }
   }, [teamMember?.location]);
 
@@ -525,16 +524,17 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                           <CommandEmpty>No services found.</CommandEmpty>
                           <CommandGroup>
                             {availableServices
-                              .filter(service => !localTeamMember?.services?.includes(service))
+                              .filter(service => !localTeamMember?.services?.includes(+service))
                               .map((service) => (
                                 <CommandItem
                                   key={service}
                                   value={service}
                                   onSelect={() => {
-                                    setLocalTeamMember(prev => prev ? {
-                                      ...prev,
-                                      services: [...(prev.services || []), service]
-                                    } : null);
+                                    // TODO
+                                    // setLocalTeamMember((prev) => prev ? {
+                                    //   ...prev,
+                                    //   services: [...(prev.services || []), service]
+                                    // } : null);
                                     setServicesOpen(false);
                                   }}
                                 >
@@ -802,11 +802,11 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
                     {/* {teamMember.googleCalendarSync ? 'Connected' : 'Not Connected'} */}
-                    {true ? 'Connected' : 'Not Connected'}
+                    {'Connected'}
                   </span>
                   <Button variant="outline" size="sm">
                     {/* {teamMember.googleCalendarSync ? 'Disconnect' : 'Connect'} */}
-                    {true ? 'Disconnect' : 'Connect'}
+                    {'Disconnect'}
                   </Button>
                 </div>
               </div>
@@ -854,7 +854,8 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Change Account Status</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to change the status of this account to {teamMember.status === 'active' ? 'inactive' : 'active'}? Your customers will no longer see this team member.
+              Are you sure you want to change the status of this account to
+              {teamMember.status === 'active' ? 'inactive' : 'active'} ? Your customers will no longer see this team member.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

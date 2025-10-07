@@ -49,7 +49,7 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
 
         {/* Fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/calendar" replace />} />
       </Routes>
       <AccountLinkingModal />
     </BrowserRouter>

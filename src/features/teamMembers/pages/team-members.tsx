@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { UserRole } from '../../../shared/types/auth';
 import { Button } from "../../../shared/components/ui/button";
@@ -16,7 +15,7 @@ import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import { useDispatch, useSelector } from 'react-redux';
-import { cancelInvitationAction, listTeamMembersAction } from '../../teamMembers/actions';
+import { cancelInvitationAction, listTeamMembersAction } from '../actions.ts';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { selectTeamMembers } from '../selectors';
@@ -132,7 +131,7 @@ export default function TeamMembersPage() {
       // TODO: Replace with actual API call
       // Mock resend invitation
       toast.success('Invitation resent successfully');
-    } catch (error) {
+    } catch {
       toast.error('Failed to resend invitation');
     } finally {
       setIsConfirmDialogOpen(false);
@@ -216,7 +215,7 @@ export default function TeamMembersPage() {
     const matchesRole = roleFilter === 'all' ||
       (roleFilter === 'manager' && member.role === UserRole.MANAGER) ||
       (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
-    const matchesLocation = locationFilter === 'all' || String(member.location) === locationFilter;
+    const matchesLocation = locationFilter === 'all' || (`${member?.location}` === locationFilter);
     return matchesSearch && matchesStatus && matchesRole && matchesLocation;
   });
 
@@ -495,7 +494,7 @@ export default function TeamMembersPage() {
                           {member.location && (
                             <div className="flex items-center gap-2 text-sm text-gray-700">
                               <MapPin className="h-4 w-4" />
-                              <span>{mockLocations.find(loc => loc.id === member.location)?.name}</span>
+                              <span>{mockLocations.find(loc => String(loc.id) === `${member.location}`)?.name}</span>
                             </div>
                           )}
                         </div>

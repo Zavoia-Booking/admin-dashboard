@@ -80,8 +80,25 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
+  const getInvoiceStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge className="bg-green-100 text-green-800 text-xs">Paid</Badge>;
+      case 'pending':
+        return <Badge className="bg-yellow-100 text-yellow-800 text-xs">Pending</Badge>;
+      case 'overdue':
+        return <Badge className="bg-red-100 text-red-800 text-xs">Overdue</Badge>;
+      default:
+        return <Badge className="bg-gray-100 text-gray-800 text-xs">{status}</Badge>;
+    }
+  };
+
+  const getCardIcon = (brand: string) => {
+    console.log('brand', brand)
+    return <CreditCard className="h-4 w-4" />;
+  };
+
+  const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',

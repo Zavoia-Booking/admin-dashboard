@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Button } from '../../../shared/components/ui/button';
