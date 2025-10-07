@@ -76,6 +76,7 @@ function* handleLogin(action: { type: string; payload: { email: string, password
 
     // Fetch locations post-login
     yield put(listLocationsAction.request());
+    yield put(fetchCurrentUserAction.request());
     if (response.csrfToken) {
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }

@@ -9,6 +9,8 @@ import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Badge } from "../../../shared/components/ui/badge";
 import InviteTeamMemberSlider from '../components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '../components/TeamMemberProfileSlider';
+import TrialBanner from '../components/TrialBanner';
+import PendingPaymentBanner from '../components/PendingPaymentBanner';
 import { mockLocations } from '../../../mocks/locations.mock';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
@@ -45,7 +47,7 @@ export default function TeamMembersPage() {
 
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-  
+
   const [localLocationFilter, setLocalLocationFilter] = useState(locationFilter);
 
   useEffect(() => {
@@ -198,6 +200,8 @@ export default function TeamMembersPage() {
         return <Badge className="bg-gray-100 text-gray-800 w-fit">Inactive</Badge>;
       case 'pending':
         return <Badge className="bg-orange-100 text-orange-800 w-fit">Pending</Badge>;
+      case 'pending_payment':
+        return <Badge className="bg-amber-100 text-amber-800 w-fit">Pending Payment</Badge>;
       default:
         return <Badge className="w-fit">{status.toUpperCase()}</Badge>;
     }
@@ -212,7 +216,7 @@ export default function TeamMembersPage() {
     const matchesRole = roleFilter === 'all' ||
       (roleFilter === 'manager' && member.role === UserRole.MANAGER) ||
       (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
-    const matchesLocation = locationFilter === 'all' || member.location === locationFilter;
+    const matchesLocation = locationFilter === 'all' || String(member.location) === locationFilter;
     return matchesSearch && matchesStatus && matchesRole && matchesLocation;
   });
 
@@ -238,6 +242,12 @@ export default function TeamMembersPage() {
     <AppLayout>
       <BusinessSetupGate>
         <div className={`space-y-4 ${isMobile ? 'max-w-2xl mx-auto' : ''}`}>
+          {/* Trial Banner */}
+          <TrialBanner />
+          
+          {/* Pending Payment Banner */}
+          <PendingPaymentBanner />
+          
           {/* Top Controls: Search, Filter, Add */}
           <div className="flex gap-2 items-center">
             <div className="relative flex-1">
@@ -485,7 +495,7 @@ export default function TeamMembersPage() {
                           {member.location && (
                             <div className="flex items-center gap-2 text-sm text-gray-700">
                               <MapPin className="h-4 w-4" />
-                              <span>{mockLocations.find(loc => String(loc.id) === member.location)?.name}</span>
+                              <span>{mockLocations.find(loc => loc.id === member.location)?.name}</span>
                             </div>
                           )}
                         </div>
@@ -516,51 +526,52 @@ export default function TeamMembersPage() {
                       const canEdit = member.status !== 'pending';
                       const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
                       return (
-                      <tr key={member.id} className="border-t">
-                        <td className="px-4 py-3 font-medium">{displayName || member.email}</td>
-                        <td className="px-4 py-3">{member.email}</td>
-                        <td className="px-4 py-3">{member.role}</td>
-                        <td className="px-4 py-3">{getStatusBadge(member.status)}</td>
-                        <td className="px-4 py-3">{mockLocations.find(loc => String(loc.id) === member.location)?.name}</td>
-                        <td className="px-4 py-3">
-                          <div className="flex justify-end gap-2">
-                            {member.status === 'pending' && (
-                              <>
+                        <tr key={member.id} className="border-t">
+                          <td className="px-4 py-3 font-medium">{displayName || member.email}</td>
+                          <td className="px-4 py-3">{member.email}</td>
+                          <td className="px-4 py-3">{member.role}</td>
+                          <td className="px-4 py-3">{getStatusBadge(member.status)}</td>
+                          <td className="px-4 py-3">{mockLocations.find(loc => loc.id === member.location)?.name}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex justify-end gap-2">
+                              {member.status === 'pending' && (
+                                <>
+                                  <button
+                                    className="px-2 py-1 text-blue-600 hover:underline"
+                                    onClick={() => {
+                                      // handleResendInvitation(member.id);
+                                    }}
+                                  >
+                                    Resend
+                                  </button>
+                                  <button
+                                    className="px-2 py-1 text-red-600 hover:underline"
+                                    onClick={() => {
+                                      setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, teamMemberName: displayName || member.email });
+                                      setIsConfirmDialogOpen(true);
+                                    }}
+                                  >
+                                    Cancel invitation
+                                  </button>
+                                </>
+                              )}
+                              {canEdit ? (
                                 <button
-                                  className="px-2 py-1 text-blue-600 hover:underline"
-                                  onClick={() => {
-                                    // handleResendInvitation(member.id);
-                                  }}
+                                  className="px-2 py-1 hover:underline"
+                                  onClick={() => openEditSlider(member)}
                                 >
-                                  Resend
+                                  Edit
                                 </button>
-                                <button
-                                  className="px-2 py-1 text-red-600 hover:underline"
-                                  onClick={() => {
-                                    setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, teamMemberName: displayName || member.email });
-                                    setIsConfirmDialogOpen(true);
-                                  }}
-                                >
-                                  Cancel invitation
+                              ) : (
+                                <button className="px-2 py-1 text-gray-400 cursor-not-allowed" disabled>
+                                  Edit
                                 </button>
-                              </>
-                            )}
-                            {canEdit ? (
-                              <button
-                                className="px-2 py-1 hover:underline"
-                                onClick={() => openEditSlider(member)}
-                              >
-                                Edit
-                              </button>
-                            ) : (
-                              <button className="px-2 py-1 text-gray-400 cursor-not-allowed" disabled>
-                                Edit
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );})}
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}

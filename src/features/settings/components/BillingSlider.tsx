@@ -1,193 +1,102 @@
-import React, { useState } from 'react';
-import { CreditCard, Download, Receipt, Crown, Plus, Trash2, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { CreditCard, Crown, ExternalLink, Loader2, Users, Calendar, CheckCircle, TrendingUp } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
-import { Label } from '../../../shared/components/ui/label';
-import { Switch } from '../../../shared/components/ui/switch';
 import { Badge } from '../../../shared/components/ui/badge';
+import { Progress } from '../../../shared/components/ui/progress';
 import { Separator } from '../../../shared/components/ui/separator';
 import { toast } from 'sonner';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { selectCurrentUser } from '../../auth/selectors';
+import { getPricingSummary, getCustomerPortalUrl } from '../api';
+import type { PricingSummary } from '../types';
 
 interface BillingSliderProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface PaymentMethod {
-  id: string;
-  type: 'card' | 'paypal' | 'bank';
-  last4?: string;
-  brand?: string;
-  expiry?: string;
-  isDefault: boolean;
-  email?: string;
-}
-
-interface Invoice {
-  id: string;
-  date: string;
-  amount: number;
-  status: 'paid' | 'pending' | 'overdue';
-  plan: string;
-  period: string;
-  downloadUrl?: string;
-}
-
-interface Subscription {
-  plan: 'starter' | 'professional' | 'enterprise';
-  status: 'active' | 'canceled' | 'past_due';
-  currentPeriodEnd: string;
-  autoRenew: boolean;
-  cancelAtPeriodEnd: boolean;
-}
-
 const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
-  const [subscription] = useState<Subscription>({
-    plan: 'professional',
-    status: 'active',
-    currentPeriodEnd: '2024-03-15',
-    autoRenew: true,
-    cancelAtPeriodEnd: false,
-  });
+  const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
+  const [pricingSummary, setPricingSummary] = useState<PricingSummary | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [portalLoading, setPortalLoading] = useState(false);
 
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([
-    {
-      id: '1',
-      type: 'card',
-      last4: '4242',
-      brand: 'Visa',
-      expiry: '12/26',
-      isDefault: true,
-    },
-    {
-      id: '2',
-      type: 'paypal',
-      email: 'john.doe@example.com',
-      isDefault: false,
-    },
-  ]);
-
-  const [invoices] = useState<Invoice[]>([
-    {
-      id: 'inv_001',
-      date: '2024-02-15',
-      amount: 29.99,
-      status: 'paid',
-      plan: 'Professional',
-      period: 'Feb 15 - Mar 15, 2024',
-      downloadUrl: '/invoices/inv_001.pdf',
-    },
-    {
-      id: 'inv_002',
-      date: '2024-01-15',
-      amount: 29.99,
-      status: 'paid',
-      plan: 'Professional',
-      period: 'Jan 15 - Feb 15, 2024',
-      downloadUrl: '/invoices/inv_002.pdf',
-    },
-    {
-      id: 'inv_003',
-      date: '2023-12-15',
-      amount: 29.99,
-      status: 'paid',
-      plan: 'Professional',
-      period: 'Dec 15, 2023 - Jan 15, 2024',
-      downloadUrl: '/invoices/inv_003.pdf',
-    },
-  ]);
-
-  const [autoRenew, setAutoRenew] = useState(subscription.autoRenew);
-
-  const handleSetDefaultPayment = (methodId: string) => {
-    setPaymentMethods(prev => prev.map(method => ({
-      ...method,
-      isDefault: method.id === methodId
-    })));
-    toast.success('Default payment method updated');
-  };
-
-  const handleDeletePaymentMethod = (methodId: string) => {
-    if (paymentMethods.find(m => m.id === methodId)?.isDefault) {
-      toast.error('Cannot delete default payment method');
-      return;
+  useEffect(() => {
+    if (isOpen) {
+      loadPricingSummary();
     }
-    setPaymentMethods(prev => prev.filter(method => method.id !== methodId));
-    toast.success('Payment method removed');
+  }, [isOpen]);
+
+  const loadPricingSummary = async () => {
+    try {
+      setLoading(true);
+      const data = await getPricingSummary();
+      setPricingSummary(data);
+    } catch (error) {
+      console.error('Failed to fetch pricing summary:', error);
+      toast.error('Failed to load billing information');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleAddPaymentMethod = () => {
-    toast.info('Add payment method flow would be implemented here');
+  const handleManageSubscription = async () => {
+    try {
+      setPortalLoading(true);
+      const returnUrl = window.location.origin + '/settings';
+      const { url } = await getCustomerPortalUrl(returnUrl);
+      window.location.href = url;
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || 'Failed to open customer portal');
+      setPortalLoading(false);
+    }
   };
 
-  const handleDownloadInvoice = (invoice: Invoice) => {
-    toast.success(`Downloading invoice ${invoice.id}`);
+  const handleAddSeats = () => {
+    navigate('/upgrade');
+    onClose();
   };
 
-  const handleUpgradePlan = () => {
-    toast.info('Upgrade plan flow would be implemented here');
-  };
-
-  const handleCancelSubscription = () => {
-    toast.info('Cancel subscription flow would be implemented here');
-  };
-
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = () => {
+    const status = currentUser?.subscription?.status;
+    
+    if (currentUser?.entitlements?.status === 'trial') {
+      return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
+    }
+    
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800 text-xs">Active</Badge>;
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case 'canceled':
-        return <Badge className="bg-red-100 text-red-800 text-xs">Canceled</Badge>;
+        return <Badge className="bg-red-100 text-red-800">Canceled</Badge>;
       case 'past_due':
-        return <Badge className="bg-yellow-100 text-yellow-800 text-xs">Past Due</Badge>;
+        return <Badge className="bg-amber-100 text-amber-800">Past Due</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800 text-xs">{status}</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
     }
   };
 
-  const getInvoiceStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-100 text-green-800 text-xs">Paid</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 text-xs">Pending</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-100 text-red-800 text-xs">Overdue</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800 text-xs">{status}</Badge>;
-    }
-  };
-
-  const getCardIcon = (brand: string) => {
-    return <CreditCard className="h-4 w-4" />;
-  };
-
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
-      month: 'short',
+      month: 'long',
       day: 'numeric'
     });
   };
 
-  const getPlanName = (plan: string) => {
-    switch (plan) {
-      case 'starter': return 'Starter';
-      case 'professional': return 'Professional';
-      case 'enterprise': return 'Enterprise';
-      default: return plan;
-    }
+  const calculateSeatUsage = () => {
+    const paidSeats = currentUser?.entitlements?.paidTeamSeats || 0;
+    const usedSeats = pricingSummary?.currentTeamMembersCount || 0;
+    const percentage = paidSeats > 0 ? (usedSeats / paidSeats) * 100 : 0;
+    return { paidSeats, usedSeats, percentage };
   };
 
-  const getPlanPrice = (plan: string) => {
-    switch (plan) {
-      case 'starter': return '$9.99';
-      case 'professional': return '$29.99';
-      case 'enterprise': return '$99.99';
-      default: return '$0';
-    }
-  };
+  const seatUsage = calculateSeatUsage();
 
   return (
     <BaseSlider
@@ -204,213 +113,277 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
           >
             Close
           </Button>
-          <Button 
-            onClick={() => {
-              toast.success('✅ Billing settings saved');
-              onClose();
-            }}
-            className="flex-1"
-          >
-            Save Changes
-          </Button>
         </div>
       }
     >
       <div className="max-w-md mx-auto space-y-6">
-        {/* Current Plan Section */}
-        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Crown className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground">Current Plan</h3>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="font-medium text-lg">{getPlanName(subscription.plan)}</h4>
-                  <p className="text-sm text-muted-foreground">{getPlanPrice(subscription.plan)}/month</p>
-                </div>
-                <div className="text-right">
-                  {getStatusBadge(subscription.status)}
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Renews {formatDate(subscription.currentPeriodEnd)}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">Auto-Renewal</Label>
-                    <p className="text-xs text-muted-foreground">Automatically renew your subscription.</p>
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+            <p className="text-sm text-muted-foreground">Loading billing information...</p>
+          </div>
+        ) : (
+          <>
+            {/* Current Subscription Card */}
+            <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
+                    <Crown className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <Switch
-                    checked={autoRenew}
-                    onCheckedChange={(checked) => {
-                      setAutoRenew(checked);
-                      toast.success(`Auto-renewal ${checked ? 'enabled' : 'disabled'}`);
-                    }}
-                    className="!h-5 !w-9 !min-h-0 !min-w-0"
-                  />
+                  <h3 className="text-base font-semibold text-foreground">Current Subscription</h3>
                 </div>
-              </div>
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  onClick={handleUpgradePlan}
-                  className="flex-1 h-10"
-                >
-                  Upgrade Plan
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={handleCancelSubscription}
-                  className="flex-1 h-10 text-destructive hover:bg-destructive/10"
-                >
-                  Cancel Plan
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Payment Methods Section */}
-        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <CreditCard className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground">Payment Methods</h3>
-            </div>
-            <div className="space-y-3">
-              {paymentMethods.map((method, index) => (
-                <div key={method.id}>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-muted/50 rounded-lg flex items-center justify-center">
-                        {method.type === 'card' ? (
-                          getCardIcon(method.brand || '')
-                        ) : (
-                          <Receipt className="h-4 w-4" />
-                        )}
-                      </div>
-                      <div>
-                        {method.type === 'card' ? (
-                          <>
-                            <p className="text-sm font-medium">
-                              {method.brand} •••• {method.last4}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Expires {method.expiry}
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <p className="text-sm font-medium">PayPal</p>
-                            <p className="text-xs text-muted-foreground">{method.email}</p>
-                          </>
-                        )}
-                      </div>
+
+                <div className="space-y-4">
+                  {/* Plan Header */}
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg">
+                        {pricingSummary?.planName || 'Free Plan'}
+                      </h4>
+                      <p className="text-sm text-muted-foreground">
+                        {pricingSummary?.planTier || 'free'}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {method.isDefault && (
-                        <Badge className="bg-primary/10 text-primary text-xs">Default</Badge>
-                      )}
-                      <div className="flex gap-1">
-                        {!method.isDefault && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleSetDefaultPayment(method.id)}
-                            className="h-8 px-2 text-xs"
-                          >
-                            Set Default
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeletePaymentMethod(method.id)}
-                          className="h-8 px-2 text-xs text-destructive hover:bg-destructive/10"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
+                    {getStatusBadge()}
                   </div>
-                  {index < paymentMethods.length - 1 && <Separator className="my-3" />}
-                </div>
-              ))}
-              <Button 
-                variant="outline" 
-                onClick={handleAddPaymentMethod}
-                className="w-full h-10 mt-3"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Payment Method
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Billing History Section */}
-        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-          <CardContent className="space-y-4">
-            <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Receipt className="h-5 w-5 text-primary" />
-              </div>
-              <h3 className="text-base font-semibold text-foreground">Billing History</h3>
-            </div>
-            <div className="space-y-3">
-              {invoices.map((invoice, index) => (
-                <div key={invoice.id}>
-                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
-                    <div className="flex-1 min-w-0">
+
+                  {/* Trial Info */}
+                  {currentUser?.entitlements?.status === 'trial' && (
+                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="text-sm font-medium">${invoice.amount.toFixed(2)}</p>
-                        {getInvoiceStatusBadge(invoice.status)}
+                        <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                          Trial Active
+                        </span>
                       </div>
-                      <p className="text-xs text-muted-foreground">{invoice.plan}</p>
-                      <p className="text-xs text-muted-foreground">{invoice.period}</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        {currentUser.entitlements.daysRemaining} days remaining
+                      </p>
+                      {currentUser.subscription?.trialEndsAt && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Ends {formatDate(currentUser.subscription.trialEndsAt)}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <p className="text-xs text-muted-foreground">{formatDate(invoice.date)}</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDownloadInvoice(invoice)}
-                        className="h-8 px-2"
-                      >
-                        <Download className="h-3 w-3" />
-                      </Button>
+                  )}
+
+                  {/* Pricing Breakdown */}
+                  {pricingSummary && (
+                    <div className="space-y-2 bg-muted/50 rounded-lg p-4">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Base Plan</span>
+                        <span className="font-medium">
+                          ${pricingSummary.basePlanPrice.toFixed(2)}/month
+                        </span>
+                      </div>
+                      
+                      {pricingSummary.currentTeamMembersCount > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            Team Members ({pricingSummary.currentTeamMembersCount} × ${pricingSummary.pricePerTeamMember.toFixed(2)})
+                          </span>
+                          <span className="font-medium">
+                            ${pricingSummary.totalTeamMembersCost.toFixed(2)}/month
+                          </span>
+                        </div>
+                      )}
+
+                      <Separator className="my-2" />
+
+                      <div className="flex justify-between">
+                        <span className="font-semibold">Total</span>
+                        <span className="text-xl font-bold text-primary">
+                          ${pricingSummary.totalMonthlyCost.toFixed(2)}/month
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Next Billing Date */}
+                  {currentUser?.subscription?.currentPeriodEnd && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Next billing date</span>
+                      <span className="font-medium">
+                        {formatDate(currentUser.subscription.currentPeriodEnd)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Manage Button */}
+                  <Button
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="w-full"
+                  >
+                    {portalLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Manage Subscription
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Seats Usage */}
+            <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/20">
+                    <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">Team Member Seats</h3>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Usage Stats */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Seats in use</span>
+                      <span className="font-semibold">
+                        {seatUsage.usedSeats} of {seatUsage.paidSeats}
+                      </span>
+                    </div>
+                    <Progress value={seatUsage.percentage} className="h-2" />
+                    <p className="text-xs text-muted-foreground">
+                      {seatUsage.paidSeats - seatUsage.usedSeats} seat{seatUsage.paidSeats - seatUsage.usedSeats !== 1 ? 's' : ''} available
+                    </p>
+                  </div>
+
+                  {/* Pricing Info */}
+                  {pricingSummary && (
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">Price per seat</span>
+                        <span className="text-sm font-semibold">
+                          ${pricingSummary.pricePerTeamMember.toFixed(2)}/month
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Add Seats Button */}
+                  <Button
+                    variant="outline"
+                    onClick={handleAddSeats}
+                    className="w-full"
+                  >
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Add More Seats
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Plan Features */}
+            {currentUser?.entitlements && (
+              <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                    <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/20">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <h3 className="text-base font-semibold text-foreground">Your Plan Includes</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Maximum Locations</span>
+                      <span className="text-sm font-semibold">
+                        {currentUser.entitlements.maxLocations === -1 
+                          ? 'Unlimited' 
+                          : currentUser.entitlements.maxLocations}
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Maximum Team Members</span>
+                      <span className="text-sm font-semibold">
+                        {currentUser.entitlements.maxTeamMembers === -1 
+                          ? 'Unlimited' 
+                          : currentUser.entitlements.maxTeamMembers}
+                      </span>
+                    </div>
+                    <Separator />
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">Paid Team Seats</span>
+                      <span className="text-sm font-semibold">
+                        Unlimited
+                      </span>
                     </div>
                   </div>
-                  {index < invoices.length - 1 && <Separator className="my-3" />}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        {/* Plan Comparison */}
-        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-          <CardContent className="p-4 text-center">
-            <div className="w-12 h-12 bg-muted/50 rounded-lg flex items-center justify-center mx-auto mb-3">
-              <Crown className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium text-sm mb-2">Need More Features?</h3>
-            <p className="text-xs text-muted-foreground mb-3">
-              Compare plans and find the perfect fit for your business.
-            </p>
-            <Button variant="outline" size="sm" className="text-xs h-8">
-              <ExternalLink className="h-3 w-3 mr-2" />
-              Compare Plans
-            </Button>
-          </CardContent>
-        </Card>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Quick Actions */}
+            <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+              <CardContent className="space-y-3">
+                <h3 className="text-sm font-semibold text-foreground mb-3">Quick Actions</h3>
+                
+                <Button
+                  variant="outline"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full justify-start"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Update Payment Method
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={handleManageSubscription}
+                  disabled={portalLoading}
+                  className="w-full justify-start"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Invoices
+                </Button>
+
+                {currentUser?.subscription?.status === 'active' && (
+                  <Button
+                    variant="outline"
+                    onClick={handleManageSubscription}
+                    disabled={portalLoading}
+                    className="w-full justify-start text-destructive hover:bg-destructive/10"
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Cancel Subscription
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Upgrade CTA */}
+            {currentUser?.entitlements?.status === 'trial' && (
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
+                <CardContent className="p-6 text-center">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <Crown className="h-6 w-6 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-base mb-2">Upgrade Before Trial Ends</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get {currentUser.entitlements.daysRemaining} days left to try all features. Upgrade now to continue without interruption.
+                  </p>
+                  <Button onClick={handleAddSeats} className="w-full">
+                    Upgrade Now
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
       </div>
     </BaseSlider>
   );
 };
 
-export default BillingSlider; 
+export default BillingSlider;

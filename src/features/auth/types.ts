@@ -20,6 +20,22 @@ export type AuthUser = {
   registeredVia?: string;
   providerData?: string | null;
   lastGoogleLoginAt?: Date | null;
+  subscription?: {
+    status: string | null;
+    planTier: string | null;
+    planName: string | null;
+    currentPeriodEnd: string | null;
+    cancelAtPeriodEnd: boolean;
+    trialEndsAt: string | null;
+  };
+  entitlements?: {
+    entitled: boolean;
+    status: 'trial' | 'active' | 'expired' | null;
+    daysRemaining: number;
+    maxLocations: number;
+    maxTeamMembers: number;
+    paidTeamSeats: number;
+  };
 };
 
 export type AuthResponse = {

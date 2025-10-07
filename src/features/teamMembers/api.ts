@@ -1,9 +1,9 @@
 import { apiClient } from "../../shared/lib/http";
-import type { InviteTeamMemberPayload, TeamMember } from "../../shared/types/team-member";
+import type { InviteTeamMemberPayload, TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import type { InviteTeamMemberResponse } from "./types";
 
-export const listTeamMembersApi = async (): Promise<{ teamMembers: TeamMember[] }> => {
-  const { data } = await apiClient().get<{ teamMembers: TeamMember[] }>('/team/members');
+export const listTeamMembersApi = async (): Promise<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }> => {
+  const { data } = await apiClient().get<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>('/team/members');
   return data;
 };
 
