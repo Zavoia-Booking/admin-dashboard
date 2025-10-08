@@ -19,6 +19,8 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
   nextLabel = 'Continue',
   onClose,
   stepLabels,
+  onGoToStep,
+  showNext,
 }) => {
   return (
     <div className="min-h-screen bg-background cursor-default">
@@ -27,7 +29,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
           {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-4 border-b bg-white/80">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold text-foreground">Project Setup Wizard</h1>
+              <h1 className="text-base font-semibold text-foreground">Business Setup Wizard</h1>
             </div>
             <div className="flex items-center gap-2">
               {onSave && (
@@ -46,7 +48,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
 
           <div className="grid grid-cols-12">
             {/* Left rail */}
-            <aside className="col-span-4 border-r bg-gray-50 px-4 py-6">
+            <aside className="col-span-4 border-r bg-gray-100 px-4 py-6">
               <div className="mb-4">
                 <Progress value={progress} className="h-1.5 [&>div]:bg-emerald-600 bg-white mb-2" />
                 <div className="text-xs text-muted-foreground">{Math.round(progress)}% completed</div>
@@ -57,7 +59,13 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   const isActive = stepNum === currentStep;
                   const isDone = stepNum < currentStep;
                   return (
-                    <li key={idx} className={`flex items-center gap-2 rounded-md px-2 py-2 ${isActive ? 'bg-white border' : ''}`}>
+                    <li
+                      key={idx}
+                      className={`flex items-center gap-2 rounded-md px-2 py-2 ${isActive ? 'bg-white border' : ''} ${isDone && onGoToStep ? 'cursor-pointer hover:bg-white/70' : ''}`}
+                      onClick={() => {
+                        if (isDone && onGoToStep) onGoToStep(stepNum);
+                      }}
+                    >
                       {isDone ? (
                         <Check className="h-4 w-4 text-emerald-600" />
                       ) : (
@@ -86,10 +94,12 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <ArrowLeft className="h-4 w-4" />
                   Back
                 </Button>
-                <Button onClick={onNext} disabled={!canProceed} className="gap-2 h-11 w-40 cursor-pointer">
-                  {nextLabel}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
+                {showNext !== false && (
+                  <Button onClick={onNext} disabled={!canProceed} className="gap-2 h-11 w-40 cursor-pointer">
+                    {nextLabel}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </section>
           </div>

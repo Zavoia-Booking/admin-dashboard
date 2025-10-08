@@ -16,6 +16,7 @@ export interface NewLocationPayload {
   timezone: string;
   workingHours: WorkingHours;
   isRemote: boolean;
+  isActive: boolean;
 }
 
 export interface EditLocationType {

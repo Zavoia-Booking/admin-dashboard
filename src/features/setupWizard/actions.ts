@@ -17,6 +17,6 @@ export const wizardLoadDraftAction = createAsyncAction(
   'wizard/LOAD_DRAFT_REQUEST',
   'wizard/LOAD_DRAFT_SUCCESS',
   'wizard/LOAD_DRAFT_FAILURE',
-)<void, { wizardData: Partial<WizardData> }, { message: string }>();
+)<void, Partial<WizardData>, { message: string }>();
 
 

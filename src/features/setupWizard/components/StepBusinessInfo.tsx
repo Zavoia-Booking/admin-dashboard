@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Textarea } from '../../../shared/components/ui/textarea';
@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import type { StepProps } from '../types';
 import { isE164, sanitizePhoneToE164Draft } from '../../auth/validation';
 import { industryApi } from '../../../shared/api/industry.api';
+import IndustrySelector from './IndustrySelector';
 import type { Industry } from '../../../shared/types/industry';
 
 
@@ -19,6 +20,21 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
     defaultValues: data,
     mode: 'onChange',
   });
+
+  const selectedIndustryId = useMemo(() => (data as any)?.businessInfo?.industryId, [data]);
+
+  const handleSelectIndustry = useCallback((industryId: number) => {
+    setValue('businessInfo.industryId' as any, industryId, { shouldDirty: true, shouldTouch: true });
+    onUpdate({ businessInfo: { ...(data as any).businessInfo, industryId } } as any);
+  }, [data, onUpdate, setValue]);
+
+  const handleBusinessPhoneChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const value = sanitizePhoneToE164Draft(raw);
+    setValue('businessInfo.phone' as any, value, { shouldValidate: true, shouldDirty: true });
+  }, [setValue]);
+
+  // no-op placeholder removed; IndustryOption is a memoized component above
 
   useEffect(() => {
     const fetchIndustries = async () => {
@@ -86,43 +102,11 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
           {isLoadingIndustries ? (
             <div className="text-sm text-muted-foreground">Loading industries...</div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="radiogroup" aria-label="Select industry">
-              {industries.map((industry) => {
-                const isSelected = watch('businessInfo.industry' as any) === industry.id;
-                return (
-                  <button
-                    key={industry.id}
-                    type="button"
-                    onClick={() => setValue('businessInfo.industry' as any, industry.id, { shouldDirty: true, shouldTouch: true })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        setValue('businessInfo.industry' as any, industry.id, { shouldDirty: true, shouldTouch: true });
-                      }
-                    }}
-                    role="radio"
-                    aria-checked={isSelected}
-                    tabIndex={0}
-                    className={`
-                      group relative flex items-center justify-center min-h-[52px] px-3 py-2 rounded-lg border text-sm font-normal transition-colors cursor-pointer
-                      ${isSelected
-                        ? 'border-primary bg-primary/5 text-primary shadow-xs'
-                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-                      } focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30
-                    `}
-                  >
-                    <span className="text-center leading-tight select-none">{industry.name}</span>
-                    {isSelected && (
-                      <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 shadow-sm flex items-center justify-center animate-in zoom-in-50 duration-200">
-                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            <IndustrySelector
+              industries={industries}
+              selectedId={selectedIndustryId}
+              onSelect={handleSelectIndustry}
+            />
           )}
         </div>
 
@@ -174,11 +158,7 @@ const StepBusinessInfo: React.FC<StepProps> = ({ data, onUpdate }) => {
                   required: 'Phone number is required',
                   validate: (value: string) => isE164(value) || 'Enter a valid phone number',
                 })}
-                onChange={(e) => {
-                  const raw = (e.target as HTMLInputElement).value;
-                  const value = sanitizePhoneToE164Draft(raw);
-                  setValue('businessInfo.phone' as any, value, { shouldValidate: true, shouldDirty: true });
-                }}
+                onChange={handleBusinessPhoneChange}
               />
               <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             </div>

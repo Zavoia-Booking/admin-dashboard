@@ -20,4 +20,6 @@ export interface WizardLayoutProps {
 	isLoading: boolean;
 	nextLabel?: string;
 	stepLabels?: string[];
+	onGoToStep?: (step: number) => void;
+	showNext?: boolean;
 }

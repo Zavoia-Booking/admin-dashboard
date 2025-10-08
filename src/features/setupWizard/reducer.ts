@@ -17,7 +17,7 @@ const initialState: WizardState = {
   data: {
     businessInfo: {
       name: '',
-      industry: '',
+      industryId: 0,
       description: '',
       email: '',
       phone: '',
@@ -36,6 +36,7 @@ const initialState: WizardState = {
       address: '',
       timezone: '',
       workingHours: defaultWorkingHours,
+      isActive: true,
     },
     teamMembers: [],
     worksSolo: true,
@@ -46,22 +47,40 @@ const initialState: WizardState = {
 
 export default function setupWizardReducer(state: WizardState = initialState, action: any) {
   switch (action.type) {
-    case wizardSaveAction.request:
-    case wizardCompleteAction.request: {
+    case getType(wizardSaveAction.request):
+    case getType(wizardCompleteAction.request): {
       return { ...state, isLoading: true, error: null };
     }
     case getType(wizardLoadDraftAction.request): {
       return { ...state, isLoading: true, error: null };
     }
     case getType(wizardSaveAction.success):
-    case wizardCompleteAction.success: {
+    case getType(wizardCompleteAction.success): {
       return { ...state, isLoading: false };
     }
     case getType(wizardLoadDraftAction.success): {
-      return { ...state, isLoading: false, data: action.payload };
+      const payload = action.payload as Partial<WizardData>;
+      
+      return {
+        ...state,
+        isLoading: false,
+        data: {
+          ...state.data,
+          ...payload,
+          businessInfo: {
+            ...state.data.businessInfo,
+            ...(payload.businessInfo || {} as any),
+          },
+          location: {
+            ...state.data.location,
+            ...(payload.location || {} as any),
+          },
+          teamMembers: payload.teamMembers ?? state.data.teamMembers,
+        },
+      };
     }
     case getType(wizardSaveAction.failure):
-    case wizardCompleteAction.failure: {
+    case getType(wizardCompleteAction.failure): {
       return { ...state, isLoading: false, error: action.payload?.message };
     }
     case getType(wizardLoadDraftAction.failure): {

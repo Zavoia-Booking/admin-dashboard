@@ -47,6 +47,7 @@ const SetupWizardPage: React.FC = () => {
     updateData,
     nextStep,
     prevStep,
+    goToStep,
     saveAndFinishLater,
     getProgress,
     canProceed
@@ -88,6 +89,7 @@ const SetupWizardPage: React.FC = () => {
         title={title}
         subtitle={subtitle}
         stepLabels={stepLabels}
+        onGoToStep={goToStep}
         onClose={() => navigate('/dashboard')}
         onPrevious={prevStep}
         onNext={() => {

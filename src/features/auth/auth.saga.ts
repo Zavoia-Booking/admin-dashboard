@@ -74,8 +74,11 @@ function* handleLogin(action: { type: string; payload: { email: string, password
     // Store access token in Redux (memory) + optional CSRF token
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
 
-    // Fetch locations post-login
-    yield put(listLocationsAction.request());
+    // Fetch locations post-login only if user has a business
+    const hasBusinessLogin = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
+    if (hasBusinessLogin) {
+      yield put(listLocationsAction.request());
+    }
     if (response.csrfToken) {
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
@@ -179,8 +182,11 @@ function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) 
     // Store access token in Redux (memory) + optional CSRF token
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
     
-    // Fetch locations post-authentication (same as login)
-    yield put(listLocationsAction.request());
+    // Fetch locations post-authentication only if user has a business
+    const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
+    if (hasBusinessGoogle) {
+      yield put(listLocationsAction.request());
+    }
     if (response.csrfToken) {
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }

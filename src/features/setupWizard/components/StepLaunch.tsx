@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 const StepLaunch: React.FC<StepProps> = ({ data }) => {
   const navigate = useNavigate();
   const bookingLink = `book.appointmentpro.com/${data.businessInfo.name.toLowerCase().replace(/\s+/g, '-')}`;
-  const businessCompleted = data.businessInfo.name.trim() !== '' && data.businessInfo.industry !== '';
+  const businessCompleted = data.businessInfo.name.trim() !== '' && Number.isInteger((data.businessInfo as any).industryId) && (data.businessInfo as any).industryId > 0;
   const locationCompleted = data.location.isRemote
     ? (data.location.name?.trim() || '') !== '' && (data.location.timezone?.trim() || '') !== '' && (((data.location.email?.trim() || '') !== '') || (data.location.phone?.trim() || '') !== '')
     : (data.location.name?.trim() || '') !== '' && (data.location.address?.trim() || '') !== '' && ((data.location.email?.trim() || '') !== '') && (data.location.phone?.trim() || '') !== '';
