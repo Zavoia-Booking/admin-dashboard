@@ -28,6 +28,11 @@ const bottomNavItems: BottomNavItem[] = [
     icon: Calendar,
   },
   {
+    title: 'Assignments',
+    url: '/assignments',
+    icon: Briefcase,
+  },
+  {
     title: 'Team',
     url: '/team-members',
     icon: Users,

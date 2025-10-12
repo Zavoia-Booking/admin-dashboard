@@ -13,3 +13,7 @@ export const getTeamMemberById = (list: Array<TeamMember>, id: number): TeamMemb
     return location.id === id;
   })
 }
+
+export const getUserFullName = (item: any): string => {
+  return `${item.firstName} ${item.lastName}`
+}
