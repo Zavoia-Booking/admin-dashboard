@@ -71,6 +71,12 @@ const navItems: NavItem[] = [
     roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
   },
   {
+    title: "Assignments",
+    url: "/assignments",
+    icon: ClipboardList,
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+  },
+  {
     title: "Team Members",
     url: "/team-members",
     icon: ClipboardList,

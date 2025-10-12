@@ -9,6 +9,7 @@ import { initApiClient } from "../../shared/lib/http";
 import { ServicesReducer } from "../../features/services/reducer.ts";
 import { CalendarReducer } from "../../features/calendar/reducer.ts";
 import settingsReducer from "../../features/settings/reducer";
+import { AssignmentsReducer } from "../../features/assignments/reducer.ts";
 // --- create saga middleware ---
 const sagaMiddleware = createSagaMiddleware();
 
@@ -21,6 +22,7 @@ export const store = configureStore({
     locations: LocationsReducer,
     services: ServicesReducer,
     calendarView: CalendarReducer,
+    assignments: AssignmentsReducer,
     settings: settingsReducer,
   },
   middleware: (getDefaultMiddleware) =>

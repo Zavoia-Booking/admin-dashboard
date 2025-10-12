@@ -17,6 +17,7 @@ import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import InfoPageComponent from './features/settings/pages/info-page'
+import AssignmentsPage from './features/assignments/pages/assignments'
 
 function App() {
   return (
@@ -37,6 +38,7 @@ function App() {
         <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
         <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
         <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
+        <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
         <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
         <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
         <Route path="/settings/profile" element={<ProtectedRoute element={<SettingsProfilePage />} />} />
