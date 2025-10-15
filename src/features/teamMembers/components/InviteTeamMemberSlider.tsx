@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, UserPlus, ChevronsUpDown, Check, MapPin } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { User, Mail, UserPlus, ChevronsUpDown, Check, MapPin, Loader2, Users, CreditCard } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
@@ -15,7 +16,13 @@ import type { InviteTeamMemberPayload } from '../types';
 import { userRoles } from '../../../shared/constants';
 import { useDispatch, useSelector } from 'react-redux';
 import { getCurrentLocationSelector } from '../../locations/selectors';
-import { inviteTeamMemberAction } from '../actions';
+import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction } from '../actions';
+import { selectInviteResponse, selectIsInviting, selectTeamMembersSummary } from '../selectors';
+import { selectCurrentUser } from '../../auth/selectors';
+import { getPricingSummary } from '../../settings/api';
+import type { PricingSummary } from '../../settings/types';
+import { toast } from 'sonner';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface InviteTeamMemberSliderProps {
   isOpen: boolean;
@@ -32,12 +39,23 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   onClose, 
 }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { register, handleSubmit, setValue, reset, formState: { errors }, watch } = useForm<InviteTeamMemberPayload>({
     defaultValues: initialFormData
   });
   // const locations = useSelector(getAllLocationsSelector);
   const currentLocation = useSelector(getCurrentLocationSelector);
+  const currentUser = useSelector(selectCurrentUser);
+  const teamMembersSummary = useSelector(selectTeamMembersSummary);
+  const inviteResponse = useSelector(selectInviteResponse);
+  const isInviting = useSelector(selectIsInviting);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [processingPayment, setProcessingPayment] = useState(false);
+  const [pricingSummary, setPricingSummary] = useState<PricingSummary | null>(null);
+  const [loadingPricing, setLoadingPricing] = useState(false);
+  const processedResponseRef = useRef<string | null>(null);
+  const invitedEmailRef = useRef<string | null>(null);
+  const invitationCreatedRef = useRef<boolean>(false);
   
   // Popover states
   const [roleOpen, setRoleOpen] = useState(false);
@@ -46,25 +64,143 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   // Prefill/lock location based on current location, and reset form when slider closes
   useEffect(() => {
     if (!isOpen) {
+      // If an invitation was created but user closed slider (e.g., cancelled payment), refresh the list
+      if (invitationCreatedRef.current) {
+        dispatch(listTeamMembersAction.request());
+        invitationCreatedRef.current = false;
+      }
+      
       reset(initialFormData);
+      setProcessingPayment(false);
+      processedResponseRef.current = null;
+      setPricingSummary(null);
+      dispatch(clearInviteResponseAction());
       return;
     }
     // no per-form locations when All locations
-  }, [isOpen, reset, setValue, currentLocation?.id]);
+  }, [isOpen, reset, setValue, currentLocation?.id, dispatch]);
+
+  // Fetch pricing summary when slider opens
+  useEffect(() => {
+    if (isOpen && !pricingSummary && !loadingPricing) {
+      setLoadingPricing(true);
+      getPricingSummary()
+        .then((data) => {
+          setPricingSummary(data);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch pricing summary:', error);
+        })
+        .finally(() => {
+          setLoadingPricing(false);
+        });
+    }
+  }, [isOpen, pricingSummary, loadingPricing]);
+
+  // Handle invite response - process payment if needed
+  useEffect(() => {
+    if (!inviteResponse || processingPayment) return;
+
+    // Create a unique key for this response to prevent duplicate processing
+    const responseKey = inviteResponse.clientSecret || inviteResponse.message;
+    if (processedResponseRef.current === responseKey) return;
+    
+    processedResponseRef.current = responseKey;
+
+    const handlePayment = async () => {
+      // Mark that an invitation was created (team member record exists in DB)
+      invitationCreatedRef.current = true;
+
+      if (inviteResponse.requiresAction && inviteResponse.clientSecret) {
+        // Payment authentication required
+        setProcessingPayment(true);
+        try {
+          const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+          
+          if (!publishableKey) {
+            throw new Error('Stripe publishable key not configured');
+          }
+
+          const stripe = await loadStripe(publishableKey);
+          if (!stripe) {
+            throw new Error('Failed to load Stripe');
+          }
+
+          // Confirm the payment - this will open Stripe's payment UI if needed
+          const { error } = await stripe.confirmCardPayment(inviteResponse.clientSecret);
+
+          if (error) {
+            // Payment cancelled or failed - refresh list to show pending_payment member
+            toast.error(error.message || 'Payment failed');
+            dispatch(listTeamMembersAction.request());
+            dispatch(clearInviteResponseAction());
+            setProcessingPayment(false);
+            invitationCreatedRef.current = false; // Clear flag since we're handling it
+            onClose();
+            reset(initialFormData);
+          } else {
+            // Payment confirmed - redirect to success page
+            dispatch(listTeamMembersAction.request());
+            dispatch(clearInviteResponseAction());
+            invitationCreatedRef.current = false; // Clear flag since we're handling it
+            onClose();
+            reset(initialFormData);
+            setProcessingPayment(false);
+            const email = invitedEmailRef.current || '';
+            navigate(`/team-members/invitation-success?email=${encodeURIComponent(email)}&payment=true`);
+          }
+        } catch (err: any) {
+          // Payment processing error - refresh list to show pending_payment member
+          toast.error(err?.message || 'Payment processing failed');
+          dispatch(listTeamMembersAction.request());
+          dispatch(clearInviteResponseAction());
+          setProcessingPayment(false);
+          invitationCreatedRef.current = false; // Clear flag since we're handling it
+          onClose();
+          reset(initialFormData);
+        }
+      } else if (inviteResponse.paymentComplete === true) {
+        // Payment completed - redirect to success page
+        dispatch(clearInviteResponseAction());
+        invitationCreatedRef.current = false; // Clear flag since we're handling it
+        onClose();
+        reset(initialFormData);
+        const email = invitedEmailRef.current || '';
+        navigate(`/team-members/invitation-success?email=${encodeURIComponent(email)}&payment=true`);
+      } else if (inviteResponse.paymentComplete === false) {
+        // Payment required but not complete yet - member created with pending_payment status
+        // Don't clear invitationCreatedRef - we want to refresh on manual slider close
+        toast.info(inviteResponse.message);
+        setProcessingPayment(false);
+      } else {
+        // Simple success response without payment fields - redirect to success page (no payment required)
+        dispatch(clearInviteResponseAction());
+        invitationCreatedRef.current = false; // Clear flag since we're handling it
+        onClose();
+        reset(initialFormData);
+        const email = invitedEmailRef.current || '';
+        navigate(`/team-members/invitation-success?email=${encodeURIComponent(email)}&payment=false`);
+      }
+    };
+
+    handlePayment();
+  }, [inviteResponse]);
 
   const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmInvite = () => {
+    const email = watch('email');
     const data: InviteTeamMemberPayload = {
-      email: watch('email'),
+      email,
       role: watch('role') as UserRole,
     };
+    // Store email for success page redirect
+    invitedEmailRef.current = email;
     dispatch(inviteTeamMemberAction.request(data));
     setShowConfirmDialog(false);
-    onClose();
-    reset(initialFormData);
+    // Don't close the slider - wait for response
   };
 
   const handleCancel = () => {
@@ -85,6 +221,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
               variant="outline" 
               onClick={handleCancel}
               className="flex-1"
+              disabled={isInviting || processingPayment}
             >
               Cancel
             </Button>
@@ -92,9 +229,19 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
               type="submit"
               form="invite-team-member-form"
               className="flex-1 gap-2"
+              disabled={isInviting || processingPayment}
             >
-              <UserPlus className="h-4 w-4" />
-              Send Invitation
+              {isInviting || processingPayment ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {processingPayment ? 'Processing Payment...' : 'Sending...'}
+                </>
+              ) : (
+                <>
+                  <UserPlus className="h-4 w-4" />
+                  Send Invitation
+                </>
+              )}
             </Button>
           </div>
         }
@@ -102,6 +249,74 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
         <form id="invite-team-member-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-8">
+              {/* Subscription & Pricing Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
+                    <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">Subscription Info</h3>
+                </div>
+                {loadingPricing ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium text-foreground">Price per Team Member</span>
+                      </div>
+                      <span className="text-sm font-semibold text-foreground">
+                        {pricingSummary ? `$${pricingSummary.pricePerTeamMember.toFixed(2)}/${pricingSummary.currency === 'usd' ? 'month' : pricingSummary.currency}` : 'N/A'}
+                      </span>
+                    </div>
+                    
+                    {(() => {
+                      const paidSeats = currentUser?.entitlements?.paidTeamSeats ?? pricingSummary?.currentTeamMembersCount ?? 0;
+                      const usedSeats = (teamMembersSummary?.active ?? 0) + (teamMembersSummary?.pending ?? 0);
+                      const availableSeats = paidSeats - usedSeats;
+                      const hasAvailableSeats = availableSeats > 0;
+
+                      return (
+                        <>
+                          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium text-foreground">Paid Seats</span>
+                            </div>
+                            <span className="text-sm font-semibold text-foreground">
+                              {paidSeats}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm font-medium text-foreground">Used Seats</span>
+                            </div>
+                            <span className="text-sm font-semibold text-foreground">
+                              {usedSeats} / {paidSeats}
+                            </span>
+                          </div>
+
+                          {hasAvailableSeats ? (
+                            <div className="text-xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 p-3 rounded-lg">
+                              ✓ You have {availableSeats} available seat{availableSeats !== 1 ? 's' : ''}. No additional charge for this invitation.
+                            </div>
+                          ) : (
+                            <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-3 rounded-lg">
+                              ⚠  Adding a new team member will incur an additional charge of ${pricingSummary?.pricePerTeamMember.toFixed(2) ?? '0.00'}/month.
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+
               {/* Contact Information Section */}
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-2 border-b border-border/50">

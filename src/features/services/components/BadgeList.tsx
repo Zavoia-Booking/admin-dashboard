@@ -1,34 +1,27 @@
 import { type FC, useCallback } from "react";
-import { ALL } from "../../../shared/constants.ts";
-import type { CalendarFilters } from "../types.ts";
 import { X } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
-import { mockLocations } from "../../../mocks/locations.mock.ts";
-import { mockTeamMembers } from "../../../mocks/team-members.mock.ts";
-import { findItemByKey } from "./utils.tsx";
+import type { ServiceFilterState } from "../types.ts";
+import { ALL } from "../../../shared/constants.ts";
 
 interface IProps {
-    filters: CalendarFilters
-    changeFilters: (filters: CalendarFilters) => void
+    filters: ServiceFilterState
+    changeFilters: (filters: ServiceFilterState) => void
 }
 
 export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
-    const locations = mockLocations
-    const teamMembers = mockTeamMembers
-
     const canShowFilterBadges = useCallback((): boolean => {
         return !!(
-            filters.location !== ALL ||
-            filters.teamMember !== ALL ||
-            filters.service !== ALL ||
             filters.status !== ALL ||
-            filters.clientName ||
-            filters.email ||
-            filters.phoneNumber
+            filters.searchTerm ||
+            filters.priceMin ||
+            filters.priceMax ||
+            filters.durationMin ||
+            filters.durationMax
         );
     }, [filters])
 
-    const { location, teamMember, service, status, clientName, email, phoneNumber } = filters
+    const { searchTerm, status, priceMin, priceMax, durationMin, durationMax } = filters
 
     const setFilters = useCallback((filterKey: string, filterValue: string|number|boolean) => {
         const newFilters = {
@@ -39,81 +32,66 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
 
     }, [changeFilters, filters])
 
-    const getTeamMemberInfo = useCallback(() => {
-        const teamMember = findItemByKey(teamMembers, 'id', filters.teamMember);
-        return teamMember ? `Team: ${teamMember.firstName} ${teamMember.lastName}` : filters.teamMember;
-    }, [teamMembers, filters])
-
     return (<>
         {canShowFilterBadges() && (
             <div className="flex flex-wrap gap-2 mb-4">
-                {location !== ALL && (
-                    <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('location', ALL)}
-                    >
-                        Location: {findItemByKey(locations, 'id', filters.location)?.name || filters.location}
-                        <X className="h-4 w-4 ml-1"/>
-                    </Badge>
-                )}
-                {teamMember !== ALL && (
-                    <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('teamMember', ALL)}
-                    >
-                        {getTeamMemberInfo()}
-                        <X className="h-4 w-4 ml-1"/>
-                    </Badge>
-                )}
-                {service !== ALL && (
-                    <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('service', ALL)}
-                    >
-                        Service: {service}
-                        <X className="h-4 w-4 ml-1"/>
-                    </Badge>
-                )}
                 {status !== ALL && (
                     <Badge
                         variant="secondary"
                         className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('status', ALL)}
+                        onClick={() => setFilters('status', '')}
                     >
-                        {`Status: ${filters.status}`}
+                        Service: {status}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
-                {clientName && (
+                {searchTerm && (
                     <Badge
                         variant="secondary"
                         className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('clientName', '')}
+                        onClick={() => setFilters('searchTerm', '')}
                     >
-                        Name: {clientName}
+                        Search by {searchTerm}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
-                {email && (
+                {priceMin && (
                     <Badge
                         variant="secondary"
                         className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('email', '')}
+                        onClick={() => setFilters('priceMin', '')}
                     >
-                        Email: {email}
+                        Price min: {priceMin}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
-                {phoneNumber && (
+                {priceMax && (
                     <Badge
                         variant="secondary"
                         className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('phoneNumber', '')}
+                        onClick={() => setFilters('priceMax', '')}
                     >
-                        Phone: {phoneNumber}
+                        Price max: {priceMax}
+                        <X className="h-4 w-4 ml-1"/>
+                    </Badge>
+                )}
+                {durationMin && (
+                    <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                        onClick={() => setFilters('durationMin', '')}
+                    >
+                        Duration min: {durationMin}
+                        <X className="h-4 w-4 ml-1"/>
+                    </Badge>
+                )}
+                {durationMax && (
+                    <Badge
+                        variant="secondary"
+                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                        onClick={() => setFilters('durationMax', '')}
+                    >
+                        Duration max: {durationMax}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}

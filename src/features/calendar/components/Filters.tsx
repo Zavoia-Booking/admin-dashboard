@@ -9,7 +9,7 @@ import {
 } from "../actions.ts";
 import { AppointmentViewType, type CalendarFilters } from "../types.ts";
 import { getFiltersSelector, getViewTypeSelector } from "../selectors.ts";
-import { ALL, getDefaultCalendarFilters, getStartEndDate, STATUS_LIST } from "../utils.ts";
+import { getDefaultCalendarFilters, getStartEndDate, STATUS_LIST } from "../utils.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
 import { Clipboard, Calendar as CalendarIcon, Filter, List } from 'lucide-react';
 import DatePicker from "../../../shared/components/ui/date-picker.tsx";
@@ -20,6 +20,7 @@ import { getServicesListSelector } from "../../services/selectors.ts";
 import type { Service } from "../../../shared/types/service.ts";
 import { getAllLocationsSelector } from "../../locations/selectors.ts";
 import { selectTeamMembers } from "../../teamMembers/selectors.ts";
+import { ALL } from "../../../shared/constants.ts";
 
 type FilterValues = {
     location: string,
@@ -89,7 +90,6 @@ export const Filters: FC<IProps> = () => {
     const handleToggleViewType = useCallback((viewType: AppointmentViewType) => {
         dispatch(setViewTypeAction(viewType))
     }, [dispatch])
-
 
     const handleChangeDate = useCallback((date: Date) => {
 
