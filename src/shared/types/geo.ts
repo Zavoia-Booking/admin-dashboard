@@ -1,7 +1,8 @@
 export interface AddressSuggestion {
   id: string; // provider-specific id (e.g., LocationIQ place_id as string)
   displayName: string; // human readable, formatted
-  address: string; // primary address line if available; fallback to displayName
+  address: string; // street name only (without house number)
+  streetNumber?: string; // house/building number
   lat: number;
   lng: number;
   city?: string;
