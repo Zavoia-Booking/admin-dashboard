@@ -138,12 +138,14 @@ export function RegisterForm() {
                 />
                 <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
-              {errors.firstName && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <span>{String(errors.firstName.message)}</span>
-                </p>
-              )}
+              <div className="h-5">
+                {errors.firstName && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span>{String(errors.firstName.message)}</span>
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex-1 grid gap-1.5">
               <label htmlFor="lastName" className="text-sm font-medium text-gray-700">
@@ -166,12 +168,14 @@ export function RegisterForm() {
                 />
                 <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
-              {errors.lastName && (
-                <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <span>{String(errors.lastName.message)}</span>
-                </p>
-              )}
+              <div className="h-5">
+                {errors.lastName && (
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                    <AlertCircle className="h-3.5 w-3.5" />
+                    <span>{String(errors.lastName.message)}</span>
+                  </p>
+                )}
+              </div>
             </div>
           </div>
           <div className="grid gap-1.5">
@@ -194,12 +198,14 @@ export function RegisterForm() {
               />
               <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             </div>
-            {errors.email && (
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-                <AlertCircle className="h-3.5 w-3.5" />
-                <span>{String(errors.email.message)}</span>
-              </p>
-            )}
+            <div className="h-5">
+              {errors.email && (
+                <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  <span>{String(errors.email.message)}</span>
+                </p>
+              )}
+            </div>
           </div>
           <div className="grid gap-1.5">
             <label htmlFor="password" className="text-sm font-medium text-gray-700">
