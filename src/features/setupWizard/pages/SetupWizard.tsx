@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useSetupWizard } from '../../../shared/hooks/useSetupWizard';
@@ -10,6 +10,7 @@ import StepTeam from '../components/StepTeam';
 import StepLaunch from '../components/StepLaunch';
 import StepLocation from '../components/StepLocation';
 import { selectCurrentUser } from '../../auth/selectors';
+import type { StepHandle } from '../types';
 
 const stepConfig = [
   {
@@ -38,6 +39,8 @@ const SetupWizardPage: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const user = useSelector(selectCurrentUser);
+  const stepRef = useRef<StepHandle>(null);
+  const [canProceedToNext, setCanProceedToNext] = useState(false);
   
   const {
     currentStep,
@@ -49,22 +52,57 @@ const SetupWizardPage: React.FC = () => {
     prevStep,
     goToStep,
     saveAndFinishLater,
-    getProgress,
-    canProceed
+    getProgress
   } = useSetupWizard();
 
+  const getCurrentStepConfig = () => stepConfig[currentStep - 1];
+  const { component: CurrentStepComponent, title, subtitle } = getCurrentStepConfig();
+  const isLastStep = currentStep === totalSteps;
+  const stepLabels = ['Business Info', 'Location', 'Team', 'Launch'];
+
   const handleSave = async () => {
-    await saveAndFinishLater();
+    // Get current form data from the step and pass directly to save
+    let formData = {};
+    if (stepRef.current) {
+      formData = stepRef.current.getFormData();
+      updateData(formData); // Also update Redux for consistency
+    }
+    await saveAndFinishLater(formData);
     toast.success("Progress Saved", {
       description: "You can continue setup anytime from your dashboard.",
     });
     navigate('/dashboard');
   };
 
-  const getCurrentStepConfig = () => stepConfig[currentStep - 1];
-  const { component: CurrentStepComponent, title, subtitle } = getCurrentStepConfig();
-  const isLastStep = currentStep === totalSteps;
-  const stepLabels = ['Business Info', 'Location', 'Team', 'Launch'];
+  const handleValidityChange = (isValid: boolean) => {
+    setCanProceedToNext(isValid);
+  };
+
+  // Enable button for last step by default
+  useEffect(() => {
+    if (isLastStep) {
+      setCanProceedToNext(true);
+    }
+  }, [isLastStep]);
+
+  const handleNext = async () => {
+    // Validate form before proceeding
+    if (stepRef.current) {
+      const isValid = await stepRef.current.triggerValidation();
+      if (!isValid) {
+        return; // Don't proceed if validation fails
+      }
+      
+      // Sync form data to Redux after validation passes
+      const formData = stepRef.current.getFormData();
+      updateData(formData);
+    }
+    
+    if (currentStep === totalSteps - 1) {
+      dispatch(wizardCompleteAction.request(data));
+    }
+    nextStep();
+  };
 
   return (
     user?.wizardCompleted && currentStep < totalSteps ? (
@@ -92,22 +130,17 @@ const SetupWizardPage: React.FC = () => {
         onGoToStep={goToStep}
         onClose={() => navigate('/dashboard')}
         onPrevious={prevStep}
-        onNext={() => {
-          if (currentStep === totalSteps - 1) {
-            dispatch(wizardCompleteAction.request(data));
-          }
-          nextStep();
-        }}
+        onNext={handleNext}
         onSave={!isLastStep ? handleSave : undefined}
-        canProceed={canProceed(currentStep)}
+        canProceed={canProceedToNext}
         isLoading={isLoading}
         showNext={!isLastStep}
         nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
       >
         {isLastStep ? (
-          <CurrentStepComponent data={data} onUpdate={updateData} />
+          <CurrentStepComponent data={data} />
         ) : (
-          <CurrentStepComponent data={data} onUpdate={updateData} />
+          <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} />
         )}
       </WizardLayout>
     )

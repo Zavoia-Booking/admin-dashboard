@@ -1,65 +1,81 @@
-import React from 'react';
+import { forwardRef, useImperativeHandle, useEffect, useCallback, useState } from 'react';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Button } from '../../../shared/components/ui/button';
 import { Switch } from '../../../shared/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
 import { Badge } from '../../../shared/components/ui/badge';
-import { Users, Plus, X, User } from 'lucide-react';
-import type { StepProps } from '../types';
+import { Plus, X, User } from 'lucide-react';
+import type { StepProps, StepHandle } from '../types';
 import { UserRole } from '../../../shared/types/auth';
 import { useForm } from 'react-hook-form';
 import { getRoleBadgeColor, getRoleDisplayName } from '../utils';
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
+const StepTeam = forwardRef<StepHandle, StepProps>(({ data, onValidityChange }, ref) => {
+  // Local state for team data
+  const [localTeamMembers, setLocalTeamMembers] = useState(data.teamMembers || []);
+  const [localWorksSolo, setLocalWorksSolo] = useState(data.worksSolo || false);
+
   const { register, handleSubmit, reset, setValue, watch, formState: { errors, isValid } } = useForm<{ email: string; role: UserRole }>({
     defaultValues: { email: '', role: UserRole.TEAM_MEMBER },
     mode: 'onChange',
   });
 
+  // Notify parent that team step is always valid
+  useEffect(() => {
+    if (onValidityChange) {
+      onValidityChange(true);
+    }
+  }, [onValidityChange]);
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    getFormData: () => ({ 
+      teamMembers: localTeamMembers, 
+      worksSolo: localWorksSolo 
+    }),
+    triggerValidation: async () => true, // No validation needed for this step
+    isValid: () => true, // Team step is always valid (optional)
+  }));
+
+  // Sync local state when data changes from Redux
+  useEffect(() => {
+    setLocalTeamMembers(data.teamMembers || []);
+    setLocalWorksSolo(data.worksSolo || false);
+  }, [data]);
+
   const addTeamMember = handleSubmit(({ email, role }) => {
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) return;
-    const duplicate = data.teamMembers.some(m => m.email.toLowerCase() === trimmedEmail);
+    const duplicate = localTeamMembers.some(m => m.email.toLowerCase() === trimmedEmail);
     if (duplicate) return;
     const invitation = { id: Date.now().toString(), email: trimmedEmail, role, status: 'pending' as const };
-    onUpdate({ 
-      teamMembers: [...data.teamMembers, invitation],
-      worksSolo: false 
-    });
+    setLocalTeamMembers(prev => [...prev, invitation]);
+    setLocalWorksSolo(false);
     reset({ email: '', role });
   });
 
-  const removeMember = (index: number) => {
-    const newMembers = data.teamMembers.filter((_, i) => i !== index);
-    onUpdate({ 
-      teamMembers: newMembers,
-      worksSolo: newMembers.length === 0 
+  const removeMember = useCallback((index: number) => {
+    setLocalTeamMembers(prev => {
+      const newMembers = prev.filter((_, i) => i !== index);
+      if (newMembers.length === 0) {
+        setLocalWorksSolo(true);
+      }
+      return newMembers;
     });
-  };
+  }, []);
 
-  const handleWorksSoloChange = (worksSolo: boolean) => {
-    onUpdate({ 
-      worksSolo,
-      teamMembers: worksSolo ? [] : data.teamMembers 
-    });
-  };
+  const handleWorksSoloChange = useCallback((worksSolo: boolean) => {
+    setLocalWorksSolo(worksSolo);
+    if (worksSolo) {
+      setLocalTeamMembers([]);
+    }
+  }, []);
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Users className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-foreground">{`Who's on your team?`}</h3>
-          <p className="text-sm text-muted-foreground">Invite team members to manage bookings and services</p>
-        </div>
-      </div>
-
-      <div className="space-y-6">
         {/* Solo Work Toggle */}
         <div className="bg-accent/20 border border-accent/30 rounded-lg p-4">
           <div className="flex items-center justify-between">
@@ -76,21 +92,21 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
             </div>
             <Switch
               id="worksSolo"
-              checked={data.worksSolo}
+              checked={localWorksSolo}
               onCheckedChange={handleWorksSoloChange}
-              className={`!h-5 !w-9 !min-h-0 !min-w-0 ${data.worksSolo ? 'bg-green-500' : 'bg-red-500'}`}
+              className={`!h-5 !w-9 !min-h-0 !min-w-0 ${localWorksSolo ? 'bg-green-500' : 'bg-red-500'}`}
             />
           </div>
         </div>
 
-        {!data.worksSolo && (
+        {!localWorksSolo && (
           <>
             {/* Current Team Members */}
-            {data.teamMembers.length > 0 && (
+            {localTeamMembers.length > 0 && (
               <div className="space-y-3">
                 <Label className="text-sm font-medium">Team Members</Label>
                 <div className="space-y-2">
-                  {data.teamMembers.map((member, index) => (
+                  {localTeamMembers.map((member, index) => (
                     <div
                       key={index}
                       className="flex items-center justify-between p-3 bg-card border rounded-lg"
@@ -124,19 +140,21 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
                 <Input
                   type="email"
                   placeholder="team.member@example.com"
-                  className="h-11"
+                  className="h-10 border-gray-200 hover:border-gray-300 focus:border-blue-400 transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0"
                   {...register('email', { required: true, pattern: emailRegex })}
                 />
-                {errors.email && (
-                  <div className="text-xs text-red-600">Enter a valid email address</div>
-                )}
+                <div className="h-5">
+                  {errors.email && (
+                    <div className="text-xs text-red-600">Enter a valid email address</div>
+                  )}
+                </div>
                 <Select
                   value={watch('role')}
                   onValueChange={(value: UserRole) => 
                     setValue('role', value, { shouldDirty: true, shouldTouch: true })
                   }
                 >
-                  <SelectTrigger className="h-11 w-full">
+                  <SelectTrigger className="h-10 w-full border-gray-200 hover:border-gray-300 focus:border-blue-400 transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -168,7 +186,7 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
             {/* Info Box */}
             <div className="bg-muted/50 border border-muted rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Users className="h-8 w-8 text-muted-foreground mt-0.5" />
+                <User className="h-8 w-8 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm font-medium text-foreground mb-1">
                     Team invitations
@@ -182,7 +200,7 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
           </>
         )}
 
-        {data.worksSolo && (
+        {localWorksSolo && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <User className="h-5 w-5 text-emerald-600 mt-0.5" />
@@ -197,9 +215,10 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
-};
+});
+
+StepTeam.displayName = 'StepTeam';
 
 export default StepTeam; 
