@@ -1,4 +1,4 @@
-import { createAsyncAction } from "typesafe-actions";
+import { createAsyncAction, createAction } from "typesafe-actions";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 
 export const wizardSaveAction = createAsyncAction(
@@ -18,5 +18,7 @@ export const wizardLoadDraftAction = createAsyncAction(
   'wizard/LOAD_DRAFT_SUCCESS',
   'wizard/LOAD_DRAFT_FAILURE',
 )<void, Partial<WizardData>, { message: string }>();
+
+export const wizardUpdateDataAction = createAction('wizard/UPDATE_DATA')<Partial<WizardData>>();
 
 

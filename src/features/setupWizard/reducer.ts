@@ -1,7 +1,7 @@
 import { getType } from "typesafe-actions";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 import { defaultWorkingHours } from "../locations/constants";
-import { wizardSaveAction, wizardCompleteAction, wizardLoadDraftAction } from "./actions";
+import { wizardSaveAction, wizardCompleteAction, wizardLoadDraftAction, wizardUpdateDataAction } from "./actions";
 
 type WizardState = {
   currentStep: number;
@@ -40,6 +40,7 @@ const initialState: WizardState = {
     },
     teamMembers: [],
     worksSolo: true,
+    currentStep: 1,
   },
   isLoading: false,
   error: null,
@@ -85,6 +86,25 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
     }
     case getType(wizardLoadDraftAction.failure): {
       return { ...state, isLoading: false, error: action.payload?.message };
+    }
+    case getType(wizardUpdateDataAction): {
+      const payload = action.payload as Partial<WizardData>;
+      return {
+        ...state,
+        data: {
+          ...state.data,
+          ...payload,
+          businessInfo: {
+            ...state.data.businessInfo,
+            ...(payload.businessInfo || {}),
+          },
+          location: {
+            ...state.data.location,
+            ...(payload.location || {}),
+          },
+          teamMembers: payload.teamMembers ?? state.data.teamMembers,
+        },
+      };
     }
     default:
       return state;

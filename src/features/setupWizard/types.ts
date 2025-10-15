@@ -1,8 +1,14 @@
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 
+export interface StepHandle {
+	getFormData: () => Partial<WizardData>;
+	triggerValidation: () => Promise<boolean>;
+	isValid: () => boolean;
+}
+
 export interface StepProps {
 	data: WizardData;
-	onUpdate: (data: Partial<WizardData>) => void;
+	onValidityChange?: (isValid: boolean) => void;
 }
 
 export interface WizardLayoutProps {

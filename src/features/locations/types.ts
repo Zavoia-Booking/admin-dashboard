@@ -13,6 +13,14 @@ export interface NewLocationPayload {
   phone: string;
   email: string;
   address?: string;
+  // Address components for wizard (optional, used for pre-filling on load)
+  addressComponents?: {
+    street?: string;
+    streetNumber?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+  };
   timezone: string;
   workingHours: WorkingHours;
   isRemote: boolean;

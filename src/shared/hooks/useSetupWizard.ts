@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { wizardLoadDraftAction, wizardSaveAction } from '../../features/setupWizard/actions';
+import { wizardLoadDraftAction, wizardSaveAction, wizardUpdateDataAction } from '../../features/setupWizard/actions';
 import type { NewLocationPayload } from '../../features/locations/types';
 import type { BusinessInfo } from '../types/generalType';
 import type { InviteTeamMemberPayload } from '../types/team-member';
 import { getWizardDataSelector } from '../../features/setupWizard/selectors';
+import type { RootState } from '../../app/providers/store';
+import { isE164 } from '../../features/auth/validation';
 
 export interface WizardData {
   // Step 1: Business Info
@@ -16,6 +18,7 @@ export interface WizardData {
   // Step 3: Team
   teamMembers: InviteTeamMemberPayload[];
   worksSolo: boolean;
+  currentStep?: number;
 }
 
 export const useSetupWizard = () => {
@@ -24,8 +27,11 @@ export const useSetupWizard = () => {
   const [data, setData] = useState<WizardData>(reducerData);
   const [isLoading, setSaving] = useState(false);
   const dispatch = useDispatch();
+  const saveResolverRef = useRef<(() => void) | null>(null);
+  const isLoadingState = useSelector((state: RootState) => state.setupWizard.isLoading);
 
   const totalSteps = 4;
+  const [hydratedFromDraft, setHydratedFromDraft] = useState(false);
 
   useEffect(() => {
     dispatch(wizardLoadDraftAction.request());
@@ -33,11 +39,28 @@ export const useSetupWizard = () => {
 
   useEffect(() => {
     setData(reducerData);
-  }, [reducerData]);
+    // Sync step from draft only once on initial hydration
+    const draftStep = (reducerData as any)?.currentStep;
+    if (!hydratedFromDraft) {
+      if (typeof draftStep === 'number' && draftStep >= 1 && draftStep <= totalSteps) {
+        setCurrentStep(draftStep);
+      }
+      setHydratedFromDraft(true);
+    }
+  }, [reducerData, hydratedFromDraft]);
 
-  const updateData = (newData: Partial<WizardData>) => {
-    setData(prev => ({ ...prev, ...newData }));
-  };
+  // Listen for save completion
+  useEffect(() => {
+    if (!isLoadingState && saveResolverRef.current) {
+      saveResolverRef.current();
+      saveResolverRef.current = null;
+    }
+  }, [isLoadingState]);
+
+  const updateData = useCallback((newData: Partial<WizardData>) => {
+    // Update both local state and Redux to keep them in sync
+    dispatch(wizardUpdateDataAction(newData));
+  }, [dispatch]);
 
   const scrollToWizardContent = () => {
     // Scroll to the wizard content area instead of the window top
@@ -50,18 +73,28 @@ export const useSetupWizard = () => {
     }
   };
 
+  const persistStep = (s: number) => {
+    setData(prev => ({ ...prev, currentStep: s } as any));
+  };
+
   const nextStep = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
-      // Scroll to wizard content when navigating to next step
+      setCurrentStep(prev => {
+        const next = prev + 1;
+        persistStep(next);
+        return next;
+      });
       scrollToWizardContent();
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-      // Scroll to wizard content when navigating to previous step
+      setCurrentStep(prev => {
+        const next = prev - 1;
+        persistStep(next);
+        return next;
+      });
       scrollToWizardContent();
     }
   };
@@ -69,18 +102,22 @@ export const useSetupWizard = () => {
   const goToStep = (step: number) => {
     if (step >= 1 && step <= totalSteps) {
       setCurrentStep(step);
-      // Scroll to wizard content when navigating directly to a step
+      persistStep(step);
       scrollToWizardContent();
     }
   };
 
-  const saveAndFinishLater = async () => {
+  const saveAndFinishLater = async (additionalData?: Partial<WizardData>) => {
     setSaving(true);
     try {
+      // Wait for save to complete
       await new Promise<void>((resolve) => {
-        // fire-and-forget via saga, but we resolve immediately for UX responsiveness
-        dispatch(wizardSaveAction.request(data));
-        resolve();
+        saveResolverRef.current = resolve;
+        // Merge current form data with Redux data
+        const dataToSave = additionalData 
+          ? { ...reducerData, ...additionalData, currentStep } 
+          : { ...(reducerData as any), currentStep };
+        dispatch(wizardSaveAction.request(dataToSave as any));
       });
     } finally {
       setSaving(false);
@@ -91,10 +128,14 @@ export const useSetupWizard = () => {
     return Math.round((currentStep / totalSteps) * 100);
   };
 
-  const canProceed = (step: number) => {
+  const canProceed = (step: number): boolean => {
     switch (step) {
-      case 1:
-        return data.businessInfo?.name?.trim() !== '' && Number.isInteger((data.businessInfo as any)?.industryId) && (data.businessInfo as any).industryId > 0;
+      case 1: {
+        const hasName = data.businessInfo?.name?.trim() !== '';
+        const hasIndustry = Number.isInteger((data.businessInfo as any)?.industryId) && (data.businessInfo as any).industryId > 0;
+        const hasValidPhone = !!(data.businessInfo?.phone && isE164(data.businessInfo.phone));
+        return hasName && hasIndustry && hasValidPhone;
+      }
       case 2:
         if (data.location.isRemote) {
           const hasContact = (data.location.email?.trim() ?? '') !== '' || data.location.phone.trim() !== '';

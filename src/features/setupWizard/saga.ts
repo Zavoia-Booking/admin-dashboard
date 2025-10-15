@@ -7,6 +7,7 @@ import { listLocationsAction } from "../locations/actions";
 function* handleWizardSave(action: { type: string; payload: any }) {
   try {
     yield call(saveWizardDraftApi, action.payload || {});
+    yield put(wizardSaveAction.success());
   } catch (error: any) {
     yield put(wizardSaveAction.failure({ message: error?.message || 'Failed to save progress' }));
   }
