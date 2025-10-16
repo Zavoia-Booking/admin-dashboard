@@ -27,12 +27,12 @@ export const getCustomerPortalUrlAction = createAsyncAction(
   'settings/GET_CUSTOMER_PORTAL_URL_FAILURE',
 )<{ returnUrl: string }, { url: string }, { message: string }>();
 
-// Cancel Subscription Actions
-export const cancelSubscriptionAction = createAsyncAction(
-  'settings/CANCEL_SUBSCRIPTION_REQUEST',
-  'settings/CANCEL_SUBSCRIPTION_SUCCESS',
-  'settings/CANCEL_SUBSCRIPTION_FAILURE',
-)<void, { success: boolean }, { message: string }>();
+// Modify Subscription Actions (cancel or keep)
+export const modifySubscriptionAction = createAsyncAction(
+  'settings/MODIFY_SUBSCRIPTION_REQUEST',
+  'settings/MODIFY_SUBSCRIPTION_SUCCESS',
+  'settings/MODIFY_SUBSCRIPTION_FAILURE',
+)<{ action: 'cancel' | 'keep' }, { success: boolean }, { message: string }>();
 
 // Cancel Removal Actions
 export const cancelRemovalAction = createAsyncAction(

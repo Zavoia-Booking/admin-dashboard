@@ -3,20 +3,21 @@ import {
   getSubscriptionSummaryAction,
   createCheckoutSessionAction,
   getCustomerPortalUrlAction,
-  cancelSubscriptionAction,
+  modifySubscriptionAction,
   cancelRemovalAction,
 } from "./actions";
 import {
   getSubscriptionSummary,
   createCheckoutSession,
   getCustomerPortalUrl,
-  cancelSubscription,
+  modifySubscription,
   cancelRemoval,
 } from "./api";
 import type {
   SubscriptionSummary,
   CheckoutResponse,
 } from "./types";
+import { fetchCurrentUserAction } from "../auth/actions";
 
 function* handleGetSubscriptionSummary() {
   try {
@@ -59,16 +60,21 @@ function* handleGetCustomerPortalUrl(action: ReturnType<typeof getCustomerPortal
   }
 }
 
-function* handleCancelSubscription() {
+function* handleModifySubscription(action: ReturnType<typeof modifySubscriptionAction.request>) {
   try {
-    const response: { success: boolean } = yield call(cancelSubscription);
-    yield put(cancelSubscriptionAction.success({ success: response.success }));
-    
+    const response: { success: boolean } = yield call(modifySubscription, action.payload.action);
+    yield put(modifySubscriptionAction.success({ success: response.success }));
+
     // Refresh pricing summary to reflect the cancellation
     yield put(getSubscriptionSummaryAction.request());
+    yield put(fetchCurrentUserAction.request());
+
+    if (action.payload.action === 'cancel') {
+      window.location.href = '/info?type=subscription-cancelled';
+    }
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to cancel subscription';
-    yield put(cancelSubscriptionAction.failure({ message }));
+    const message = error?.response?.data?.message || error?.message || 'Failed to modify subscription';
+    yield put(modifySubscriptionAction.failure({ message }));
   }
 }
 
@@ -81,7 +87,7 @@ function* handleCancelRemoval() {
     yield put(getSubscriptionSummaryAction.request());
     
     // Redirect to success page
-    window.location.href = '/cancel-removal-success';
+    window.location.href = '/info?type=cancel-removal-success';
   } catch (error: any) {
     const message = error?.response?.data?.message || error?.message || 'Failed to cancel removal';
     yield put(cancelRemovalAction.failure({ message }));
@@ -93,7 +99,7 @@ export function* settingsSaga() {
     takeLatest(getSubscriptionSummaryAction.request, handleGetSubscriptionSummary),
     takeLatest(createCheckoutSessionAction.request, handleCreateCheckoutSession),
     takeLatest(getCustomerPortalUrlAction.request, handleGetCustomerPortalUrl),
-    takeLatest(cancelSubscriptionAction.request, handleCancelSubscription),
+    takeLatest(modifySubscriptionAction.request, handleModifySubscription),
     takeLatest(cancelRemovalAction.request, handleCancelRemoval),
   ]);
 }

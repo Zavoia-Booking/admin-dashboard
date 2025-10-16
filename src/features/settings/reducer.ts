@@ -3,7 +3,7 @@ import {
   getSubscriptionSummaryAction,
   createCheckoutSessionAction,
   getCustomerPortalUrlAction,
-  cancelSubscriptionAction,
+  modifySubscriptionAction,
   cancelRemovalAction,
   clearSettingsErrorAction,
   clearCheckoutResponseAction,
@@ -19,7 +19,7 @@ const initialState: SettingsState = {
     subscriptionSummary: false,
     checkoutSession: false,
     customerPortal: false,
-    cancelSubscription: false,
+    modifySubscription: false,
     cancelRemoval: false,
   },
 };
@@ -96,25 +96,25 @@ export default function settingsReducer(state: SettingsState = initialState, act
         error: action.payload.message,
       };
 
-    // Cancel Subscription
-    case getType(cancelSubscriptionAction.request):
+    // Modify Subscription
+    case getType(modifySubscriptionAction.request):
       return {
         ...state,
-        isLoading: { ...state.isLoading, cancelSubscription: true },
+        isLoading: { ...state.isLoading, modifySubscription: true },
         error: null,
       };
 
-    case getType(cancelSubscriptionAction.success):
+    case getType(modifySubscriptionAction.success):
       return {
         ...state,
-        isLoading: { ...state.isLoading, cancelSubscription: false },
+        isLoading: { ...state.isLoading, modifySubscription: false },
         error: null,
       };
 
-    case getType(cancelSubscriptionAction.failure):
+    case getType(modifySubscriptionAction.failure):
       return {
         ...state,
-        isLoading: { ...state.isLoading, cancelSubscription: false },
+        isLoading: { ...state.isLoading, modifySubscription: false },
         error: action.payload.message,
       };
 
