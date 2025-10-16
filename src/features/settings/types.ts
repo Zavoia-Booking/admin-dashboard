@@ -5,7 +5,7 @@ export type PricingBreakdownItem = {
   totalPrice: number;
 };
 
-export type PricingSummary = {
+export type SubscriptionSummary = {
   planTier: string;
   planName: string;
   basePlanPrice: number;
@@ -15,6 +15,15 @@ export type PricingSummary = {
   totalMonthlyCost: number;
   currency: string;
   breakdown: PricingBreakdownItem[];
+  paidSeats: number;        // User bought X seats
+  usedSeats: number;        // Currently using X seats
+  availableSeats: number;   // Can invite X more team members
+  scheduled?: {
+    scheduledSeats: number | null;
+    nextPeriodStart: string | null;
+    nextPeriodTeamMembersCost: number | null;
+    nextPeriodTotalMonthlyCost: number | null;
+  };
 };
 
 export type CheckoutPayload = {
@@ -27,22 +36,18 @@ export type CheckoutResponse = {
   url: string;
 };
 
+
+// Seats update/removal API contracts
 export type UpdateSeatsPayload = {
+  // number of seats to add (delta, not total)
   seats: number;
-  successUrl: string;
-  cancelUrl: string;
 };
 
 export type UpdateSeatsResponse = {
-  url?: string;
   success?: boolean;
-  seats?: number;
-  subscriptionId?: string;
-  status?: string;
-  requiresAction?: boolean;
-  clientSecret?: string;
-  paymentIntentStatus?: string;
-  message?: string;
+  url?: string;                // optional Stripe Checkout URL
+  requiresAction?: boolean;    // if payment intent requires confirmation
+  clientSecret?: string | null;
 };
 
 export type PendingUser = {
@@ -52,13 +57,16 @@ export type PendingUser = {
   createdAt: string;
 };
 
-export type PendingPaymentCost = {
-  hasPendingPayments: boolean;
-  pendingPaymentCount: number;
-  pricePerSeat: number;
-  totalCost: number;
-  currency: string;
-  currentPaidSeats?: number;
-  newTotalSeats?: number;
-  pendingUsers: PendingUser[];
+export type SettingsState = {
+  subscriptionSummary: SubscriptionSummary | null;
+  checkoutResponse: CheckoutResponse | null;
+  customerPortalUrl: string | null;
+  error: string | null;
+  isLoading: {
+    subscriptionSummary: boolean;
+    checkoutSession: boolean;
+    customerPortal: boolean;
+    cancelSubscription: boolean;
+    cancelRemoval: boolean;
+  };
 };

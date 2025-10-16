@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import { CreditCard, Crown, ExternalLink, Loader2, Users, Calendar, CheckCircle, TrendingUp } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { Crown, ExternalLink, Loader2, Users, Calendar, CheckCircle, TrendingUp } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Badge } from '../../../shared/components/ui/badge';
@@ -10,8 +9,19 @@ import { Separator } from '../../../shared/components/ui/separator';
 import { toast } from 'sonner';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { selectCurrentUser } from '../../auth/selectors';
-import { getPricingSummary, getCustomerPortalUrl } from '../api';
-import type { PricingSummary } from '../types';
+import { getSubscriptionSummaryAction, getCustomerPortalUrlAction, createCheckoutSessionAction, cancelSubscriptionAction, cancelRemovalAction } from '../actions';
+import { updateSeats } from '../api';
+import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
+import { useNavigate } from 'react-router-dom';
+import {
+  selectSubscriptionSummary,
+  selectIsLoadingSubscriptionSummary,
+  selectIsLoadingCustomerPortal,
+  selectIsLoadingCheckoutSession,
+  selectIsLoadingCancelSubscription,
+  selectIsLoadingCancelRemoval
+} from '../selectors';
+import { loadStripe } from '@stripe/stripe-js';
 
 interface BillingSliderProps {
   isOpen: boolean;
@@ -19,55 +29,208 @@ interface BillingSliderProps {
 }
 
 const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
-  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
-  const [pricingSummary, setPricingSummary] = useState<PricingSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [portalLoading, setPortalLoading] = useState(false);
+  const subscriptionSummary = useSelector(selectSubscriptionSummary);
+  const loading = useSelector(selectIsLoadingSubscriptionSummary);
+  const portalLoading = useSelector(selectIsLoadingCustomerPortal);
+  const checkoutLoading = useSelector(selectIsLoadingCheckoutSession);
+  const cancelLoading = useSelector(selectIsLoadingCancelSubscription);
+  const cancelRemovalLoading = useSelector(selectIsLoadingCancelRemoval);
+
+  const [updatingSeats, setUpdatingSeats] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
+  const [totalSeats, setTotalSeats] = useState<number>(0);
+  const { ConfirmDialog, confirm } = useConfirmRadix();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (currentUser?.entitlements?.status === 'active') {
+      const paid = subscriptionSummary?.paidSeats || 0;
+      setTotalSeats(paid);
+    }
+
+    if (currentUser?.entitlements?.status === 'trial') {
+      setTotalSeats(subscriptionSummary?.currentTeamMembersCount || 0);
+    }
+
+    // cancelled subscription
+    if (currentUser?.entitlements?.status === 'no_subscription') {
+      setTotalSeats(subscriptionSummary?.paidSeats || 0);
+    }
+  }, [currentUser?.entitlements?.status, subscriptionSummary?.paidSeats, subscriptionSummary?.currentTeamMembersCount]);
 
   useEffect(() => {
     if (isOpen) {
-      loadPricingSummary();
+      dispatch(getSubscriptionSummaryAction.request());
     }
-  }, [isOpen]);
+  }, [isOpen, dispatch]);
 
-  const loadPricingSummary = async () => {
-    try {
-      setLoading(true);
-      const data = await getPricingSummary();
-      setPricingSummary(data);
-    } catch (error) {
-      console.error('Failed to fetch pricing summary:', error);
-      toast.error('Failed to load billing information');
-    } finally {
-      setLoading(false);
-    }
+  const hasScheduledChange = !!(subscriptionSummary?.scheduled && subscriptionSummary.scheduled.scheduledSeats != null);
+
+  const handleManagePaymentMethodAndInvoices = () => {
+    const returnUrl = window.location.origin + '/settings?open=billing';
+    dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
   };
 
-  const handleManageSubscription = async () => {
-    try {
-      setPortalLoading(true);
-      const returnUrl = window.location.origin + '/settings';
-      const { url } = await getCustomerPortalUrl(returnUrl);
-      window.location.href = url;
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message || 'Failed to open customer portal');
-      setPortalLoading(false);
-    }
+  const handleRenewSubscription = async () => {
+    // Confirmation before creating a new subscription
+    const base = subscriptionSummary?.basePlanPrice || 0;
+    const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
+    const currency = subscriptionSummary?.currency || '';
+    const estimated = base + perSeat * (Number(totalSeats) || 0);
+    const confirmed = await confirm({
+      title: 'Start new subscription',
+      content: totalSeats > 0 ? 
+      `Proceed to subscribe with ${totalSeats} total seat${totalSeats !== 1 ? 's' : ''}? You will be charged ${estimated.toFixed(2)} ${currency} now.` : 
+      `Proceed to subscribe? You will be charged ${estimated.toFixed(2)} ${currency} now.`,
+      confirmationText: 'Continue',
+      cancellationText: 'Cancel',
+    });
+
+    if (!confirmed) return;
+
+    // Set loading state for renew subscription
+    setUpdatingSeats(true);
+
+    // Create new subscription with base plan + seats
+    dispatch(createCheckoutSessionAction.request({
+      seats: totalSeats,
+      successUrl: `${window.location.origin}/subscription-success`,
+      cancelUrl: `${window.location.origin}/settings`,
+    }));
   };
 
-  const handleAddSeats = () => {
-    navigate('/upgrade');
-    onClose();
+  const handleCancelSubscription = async () => {
+    const confirmed = await confirm({
+      title: 'Cancel Subscription',
+      content: 'Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period.',
+      confirmationText: 'Cancel Subscription',
+      cancellationText: 'Keep Subscription',
+    });
+
+    if (!confirmed) return;
+
+    dispatch(cancelSubscriptionAction.request());
+  };
+
+  const handleCancelRemoval = async () => {
+    const confirmed = await confirm({
+      title: 'Undo Scheduled Cancellation',
+      content: 'Are you sure you want to undo the scheduled seat cancellation? Your current seats will remain active.',
+      confirmationText: 'Undo Cancellation',
+      cancellationText: 'Keep Scheduled',
+    });
+
+    if (!confirmed) return;
+
+    dispatch(cancelRemovalAction.request());
+  };
+
+  const handleUpgrade = async () => {
+    const isTrial = currentUser?.entitlements?.status === 'trial';
+    const isExpiredTrial = currentUser?.entitlements?.status === 'expired' || currentUser?.entitlements?.status === 'no_subscription';
+
+    if (isTrial || isExpiredTrial) {
+      // Trial user or expired trial: Create checkout with configured seats or current team members
+      // Set loading state for trial/expired trial users
+      setUpdatingSeats(true);
+
+      // Create new subscription with base plan + seats
+      dispatch(createCheckoutSessionAction.request({
+        seats: totalSeats,
+        successUrl: `${window.location.origin}/subscription-success`,
+        cancelUrl: `${window.location.origin}/settings`,
+      }));
+    } else {
+      // Active subscription: Update existing seats
+
+      // Ask for confirmation before applying changes (delta strictly vs paid seats)
+      const paid = subscriptionSummary?.paidSeats || 0;
+      const scheduledNextTotal = subscriptionSummary?.scheduled?.scheduledSeats ?? null;
+      const desiredTotal = totalSeats;
+
+      // Scenario 1: user set the input to the already-scheduled next month total
+      if (scheduledNextTotal != null && desiredTotal === scheduledNextTotal) {
+        toast.info('You already have this change scheduled for the next billing period.');
+        return;
+      }
+
+      // Scenario 2: no change vs paid seats
+      if (desiredTotal === paid) {
+        return;
+      }
+      const delta = desiredTotal - paid;
+      const pricePerSeat = subscriptionSummary?.pricePerTeamMember || 0;
+      const isAdding = delta > 0;
+      const additionalCost = isAdding ? delta * pricePerSeat : 0;
+
+      setIsConfirming(true);
+      const confirmed = await confirm({
+        title: isAdding ? 'Confirm seat increase' : 'Confirm seat reduction',
+        content: isAdding
+          ? `You are adding ${delta} seat${delta !== 1 ? 's' : ''}. You will be charged $${additionalCost.toFixed(2)} now.`
+          : `You are removing ${Math.abs(delta)} seat${Math.abs(delta) !== 1 ? 's' : ''}. Removed seats remain active until the end of the billing period.`,
+        confirmationText: isAdding ? 'Add seats' : 'Remove seats',
+        cancellationText: 'Cancel',
+      });
+      setIsConfirming(false);
+
+      if (!confirmed) return;
+
+      try {
+        setUpdatingSeats(true);
+        const response = await updateSeats({ seats: totalSeats });
+
+        // Check if payment requires additional authentication
+        if (response.requiresAction && response.clientSecret) {
+          // Handle client-side payment confirmation
+          const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+          if (!publishableKey) {
+            throw new Error('Stripe publishable key not configured');
+          }
+
+          const stripe = await loadStripe(publishableKey);
+          if (!stripe) {
+            throw new Error('Failed to load Stripe');
+          }
+
+          // Confirm the payment - this will open Stripe's payment UI if needed
+          const { error } = await stripe.confirmCardPayment(response.clientSecret);
+
+          if (error) {
+            toast.error(error.message || 'Payment failed');
+          } else {
+            // Payment confirmed - redirect to success page
+            toast.success('Payment confirmed! Seats updated successfully.');
+            window.location.href = '/seats-update-success';
+          }
+        } else if (response.url) {
+          // Redirect to Stripe payment page (Checkout flow)
+          window.location.href = response.url;
+        } else if (response.success) {
+          // Payment completed without additional action
+          toast.success('Seats updated successfully!');
+          window.location.href = '/seats-update-success';
+        } else {
+          throw new Error('Seat update failed');
+        }
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || 'Failed to update seats');
+      } finally {
+        setUpdatingSeats(false);
+      }
+    }
   };
 
   const getStatusBadge = () => {
     const status = currentUser?.subscription?.status;
-    
+
     if (currentUser?.entitlements?.status === 'trial') {
       return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
     }
-    
+
     switch (status) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800">Active</Badge>;
@@ -80,24 +243,6 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const getInvoiceStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge className="bg-green-100 text-green-800 text-xs">Paid</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-100 text-yellow-800 text-xs">Pending</Badge>;
-      case 'overdue':
-        return <Badge className="bg-red-100 text-red-800 text-xs">Overdue</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800 text-xs">{status}</Badge>;
-    }
-  };
-
-  const getCardIcon = (brand: string) => {
-    console.log('brand', brand)
-    return <CreditCard className="h-4 w-4" />;
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -107,13 +252,48 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   };
 
   const calculateSeatUsage = () => {
-    const paidSeats = currentUser?.entitlements?.paidTeamSeats || 0;
-    const usedSeats = pricingSummary?.currentTeamMembersCount || 0;
-    const percentage = paidSeats > 0 ? (usedSeats / paidSeats) * 100 : 0;
-    return { paidSeats, usedSeats, percentage };
+    const isTrial = currentUser?.entitlements?.status === 'trial';
+
+    if (isTrial) {
+      // Trial: Use current team members count (can invite unlimited)
+      const usedSeats = subscriptionSummary?.currentTeamMembersCount || 0;
+      return { paidSeats: 0, usedSeats, percentage: 0 };
+    } else {
+      // Active subscription: Use paid seats and used seats
+      const paidSeats = subscriptionSummary?.paidSeats || 0;
+      const usedSeats = subscriptionSummary?.usedSeats || 0;
+      const percentage = paidSeats > 0 ? (usedSeats / paidSeats) * 100 : 0;
+      return { paidSeats, usedSeats, percentage };
+    }
   };
 
   const seatUsage = calculateSeatUsage();
+
+  const getTeamSeatsText = () => {
+    if (currentUser?.entitlements?.status === 'trial') {
+      const seats = subscriptionSummary?.currentTeamMembersCount || 0;
+      return `${seats} × $${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}`;
+    }
+    // For active subscriptions, show paid seats in breakdown
+    const seats = subscriptionSummary?.paidSeats || 0;
+    return `${seats} × $${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}`;
+  };
+
+  const getTeamSeatsCost = () => {
+    if (currentUser?.entitlements?.status === 'trial') {
+      const seats = subscriptionSummary?.currentTeamMembersCount || 0;
+      return seats * (subscriptionSummary?.pricePerTeamMember || 0);
+    }
+    // For active subscriptions, calculate based on desired seats or paid seats
+    const seats = subscriptionSummary?.paidSeats || 0;
+    return seats * (subscriptionSummary?.pricePerTeamMember || 0);
+  };
+
+  const getTotalCost = () => {
+    const basePlanCost = subscriptionSummary?.basePlanPrice || 0;
+    const teamSeatsCost = getTeamSeatsCost();
+    return basePlanCost + teamSeatsCost;
+  };
 
   return (
     <BaseSlider
@@ -123,8 +303,8 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
       contentClassName="bg-muted/50 scrollbar-hide"
       footer={
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={onClose}
             className="flex-1"
           >
@@ -134,6 +314,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
       }
     >
       <div className="max-w-md mx-auto space-y-6">
+        <ConfirmDialog />
         {loading ? (
           <div className="flex flex-col items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
@@ -156,10 +337,10 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="font-semibold text-lg">
-                        {pricingSummary?.planName || 'Free Plan'}
+                        {subscriptionSummary?.planName || 'Free Plan'}
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        {pricingSummary?.planTier || 'free'}
+                        {subscriptionSummary?.planTier || 'free'}
                       </p>
                     </div>
                     {getStatusBadge()}
@@ -186,32 +367,42 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                   )}
 
                   {/* Pricing Breakdown */}
-                  {pricingSummary && (
+                  {subscriptionSummary && (
                     <div className="space-y-2 bg-muted/50 rounded-lg p-4">
+                      {/* Scheduled changes notice */}
+                      {/* {subscriptionSummary.scheduled && subscriptionSummary.scheduled.scheduledSeats != null && subscriptionSummary.scheduled.scheduledSeats > 0 && (
+                        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-800">
+                          <div className="text-sm font-medium">Scheduled change</div>
+                          <div className="text-xs mt-1">
+                            Seats scheduled for cancellation: {subscriptionSummary.paidSeats - subscriptionSummary.scheduled.scheduledSeats}
+                            <br />
+                            Next bill amount: <span className="font-semibold"> ${Number(subscriptionSummary.scheduled.nextPeriodTotalMonthlyCost || 0).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      )} */}
+
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Base Plan</span>
                         <span className="font-medium">
-                          ${pricingSummary.basePlanPrice.toFixed(2)}/month
+                          ${subscriptionSummary.basePlanPrice.toFixed(2)}/month
                         </span>
                       </div>
-                      
-                      {pricingSummary.currentTeamMembersCount > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">
-                            Team Members ({pricingSummary.currentTeamMembersCount} × ${pricingSummary.pricePerTeamMember.toFixed(2)})
-                          </span>
-                          <span className="font-medium">
-                            ${pricingSummary.totalTeamMembersCost.toFixed(2)}/month
-                          </span>
-                        </div>
-                      )}
+
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          Team Seats ({getTeamSeatsText()})
+                        </span>
+                        <span className="font-medium">
+                          ${getTeamSeatsCost().toFixed(2)}/month
+                        </span>
+                      </div>
 
                       <Separator className="my-2" />
 
                       <div className="flex justify-between">
                         <span className="font-semibold">Total</span>
                         <span className="text-xl font-bold text-primary">
-                          ${pricingSummary.totalMonthlyCost.toFixed(2)}/month
+                          ${getTotalCost().toFixed(2)}/month
                         </span>
                       </div>
                     </div>
@@ -227,24 +418,238 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     </div>
                   )}
 
-                  {/* Manage Button */}
-                  <Button
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                    className="w-full"
-                  >
-                    {portalLoading ? (
+                  {/* Seats Management */}
+                  <div className="space-y-3 border rounded-lg p-3 bg-background/60">
+                    {hasScheduledChange && (
+                      <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Seat changes are locked</div>
+                        <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                          You have a scheduled seat change. To modify seats, first undo the scheduled cancellation.
+                        </p>
+                      </div>
+                    )}
+                    {/* Show current seats */}
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-foreground">Current seats</label>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isConfirming || hasScheduledChange}
+                          onClick={() => {
+                            const used = subscriptionSummary?.usedSeats || 0;
+                            const desired = (Number(totalSeats) || 0) - 1;
+                            if (desired < used) {
+                              toast.info(`You currently have ${used} seat${used !== 1 ? 's' : ''} in use. Remove a team member first to reduce seats.`, {
+                                action: {
+                                  label: 'Team members',
+                                  onClick: () => navigate('/team-members')
+                                }
+                              });
+                              setTotalSeats(used);
+                              return;
+                            }
+                            setTotalSeats(desired);
+                          }}
+                        >
+                          -
+                        </Button>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={subscriptionSummary?.usedSeats || 0}
+                          step={1}
+                          value={totalSeats}
+                          readOnly={isConfirming || hasScheduledChange}
+                          onChange={(e) => {
+                            const sanitized = e.target.value.replace(/[^0-9]/g, '');
+                            const nextVal = sanitized === '' ? 0 : Number(sanitized);
+                            const used = subscriptionSummary?.usedSeats || 0;
+                            if (nextVal < used) {
+                              toast.info(`You currently have ${used} seat${used !== 1 ? 's' : ''} in use. Remove a team member first to reduce seats.`, {
+                                action: {
+                                  label: 'Team members',
+                                  onClick: () => navigate('/team-members')
+                                }
+                              });
+                              setTotalSeats(used);
+                              return;
+                            }
+                            setTotalSeats(nextVal);
+                          }}
+                          className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                          placeholder="0"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={isConfirming || hasScheduledChange}
+                          onClick={() => {
+                            const next = (Number(totalSeats) || 0) + 1;
+                            setTotalSeats(next);
+                          }}
+                        >
+                          +
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Show scheduled removal */}
+                    {subscriptionSummary?.scheduled?.scheduledSeats != null && (
+                      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                              Scheduled for removal: {subscriptionSummary.paidSeats - subscriptionSummary.scheduled.scheduledSeats} seat{(subscriptionSummary.paidSeats - subscriptionSummary.scheduled.scheduledSeats) !== 1 ? 's' : ''}
+                            </div>
+                            <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                              Available next month: {subscriptionSummary.scheduled.scheduledSeats} seat{subscriptionSummary.scheduled.scheduledSeats !== 1 ? 's' : ''}
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleCancelRemoval}
+                            disabled={cancelRemovalLoading}
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                          >
+                            {cancelRemovalLoading ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Undo'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Show adding seats info (delta strictly vs paid seats) */}
+                    {(() => {
+                      const paid = subscriptionSummary?.paidSeats || 0;
+                      const desiredTotal = Number(totalSeats) || 0;
+                      const delta = desiredTotal - paid;
+                      const pricePerSeat = subscriptionSummary?.pricePerTeamMember || 0;
+
+                      if (currentUser?.entitlements?.status === 'no_subscription') {
+                        return null;
+                      }
+
+                      if (delta > 0) {
+                        const additionalCost = delta * pricePerSeat;
+                        return (
+                          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                              <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                              <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                Adding {delta} seat{delta !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            <p className="text-xs text-blue-700 dark:text-blue-300">
+                              You'll be charged <span className="font-semibold">${additionalCost.toFixed(2)}</span> now for the additional seat{delta !== 1 ? 's' : ''}.
+                            </p>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {/* Upgrade Seats Button */}
+                  {
+                    currentUser?.entitlements?.status !== 'no_subscription' && (
                       <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Loading...
-                      </>
-                    ) : (
-                      <>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Manage Subscription
+                        <Button
+                          onClick={handleUpgrade}
+                          disabled={currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats}
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          {(currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats) ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {currentUser?.entitlements?.status === 'trial' ? 'Creating...' : 'Updating...'}
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 mr-2" />
+                              {currentUser?.entitlements?.status === 'trial' ? 'Upgrade' : 'Apply Seat Changes'}
+                            </>
+                          )}
+                        </Button>
                       </>
                     )}
-                  </Button>
+
+                  {/* Manage Payment Method and Invoices */}
+                  {
+                    currentUser?.entitlements?.status === 'active' && (
+                      <>
+                        <Button
+                          onClick={handleManagePaymentMethodAndInvoices}
+                          disabled={portalLoading}
+                          className="w-full"
+                        >
+                          {portalLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {'Loading...'}
+                            </>
+                          ) : (
+                            <>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Payment Method & Invoices
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )
+                  }
+
+                  {/* Renew Subscription Button */}
+                  {
+                    currentUser?.entitlements?.status === 'no_subscription' && (
+                      <>
+                        <Button
+                          onClick={handleRenewSubscription}
+                          disabled={checkoutLoading}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {checkoutLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            <>
+                              <TrendingUp className="h-4 w-4 mr-2" />
+                              Renew Subscription
+                            </>
+                          )}
+                        </Button>
+                      </>
+                    )
+                  }
+
+                  {/* Cancel Subscription Button */}
+                  {
+                    currentUser?.entitlements?.status === 'active' && (
+                      <>
+                        <Button
+                          onClick={handleCancelSubscription}
+                          disabled={cancelLoading}
+                          variant="destructive"
+                          className="w-full"
+                        >
+                          {cancelLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Cancelling...
+                            </>
+                          ) : (
+                            'Cancel Subscription'
+                          )}
+                        </Button>
+                      </>
+                    )
+                  }
                 </div>
               </CardContent>
             </Card>
@@ -265,36 +670,33 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Seats in use</span>
                       <span className="font-semibold">
-                        {seatUsage.usedSeats} of {seatUsage.paidSeats}
+                        {currentUser?.entitlements?.status === 'trial'
+                          ? `${seatUsage.usedSeats} (Trial)`
+                          : `${seatUsage.usedSeats} of ${seatUsage.paidSeats}`
+                        }
                       </span>
                     </div>
                     <Progress value={seatUsage.percentage} className="h-2" />
                     <p className="text-xs text-muted-foreground">
-                      {seatUsage.paidSeats - seatUsage.usedSeats} seat{seatUsage.paidSeats - seatUsage.usedSeats !== 1 ? 's' : ''} available
+                      {currentUser?.entitlements?.status === 'trial'
+                        ? 'Unlimited seats available during trial'
+                        : `${subscriptionSummary?.availableSeats || 0} seat${(subscriptionSummary?.availableSeats || 0) !== 1 ? 's' : ''} available`
+                      }
                     </p>
                   </div>
 
                   {/* Pricing Info */}
-                  {pricingSummary && (
+                  {subscriptionSummary && (
                     <div className="bg-muted/50 rounded-lg p-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Price per seat</span>
                         <span className="text-sm font-semibold">
-                          ${pricingSummary.pricePerTeamMember.toFixed(2)}/month
+                          ${subscriptionSummary.pricePerTeamMember.toFixed(2)}/month
                         </span>
                       </div>
                     </div>
                   )}
 
-                  {/* Add Seats Button */}
-                  <Button
-                    variant="outline"
-                    onClick={handleAddSeats}
-                    className="w-full"
-                  >
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Add More Seats
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -314,8 +716,8 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Maximum Locations</span>
                       <span className="text-sm font-semibold">
-                        {currentUser.entitlements.maxLocations === -1 
-                          ? 'Unlimited' 
+                        {currentUser.entitlements.maxLocations === -1
+                          ? 'Unlimited'
                           : currentUser.entitlements.maxLocations}
                       </span>
                     </div>
@@ -323,76 +725,12 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     <div className="flex items-center justify-between">
                       <span className="text-sm text-muted-foreground">Maximum Team Members</span>
                       <span className="text-sm font-semibold">
-                        {currentUser.entitlements.maxTeamMembers === -1 
-                          ? 'Unlimited' 
+                        {currentUser.entitlements.maxTeamMembers === -1
+                          ? 'Unlimited'
                           : currentUser.entitlements.maxTeamMembers}
                       </span>
                     </div>
-                    <Separator />
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Paid Team Seats</span>
-                      <span className="text-sm font-semibold">
-                        Unlimited
-                      </span>
-                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Quick Actions */}
-            <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-              <CardContent className="space-y-3">
-                <h3 className="text-sm font-semibold text-foreground mb-3">Quick Actions</h3>
-                
-                <Button
-                  variant="outline"
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  className="w-full justify-start"
-                >
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Update Payment Method
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={handleManageSubscription}
-                  disabled={portalLoading}
-                  className="w-full justify-start"
-                >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  View Invoices
-                </Button>
-
-                {currentUser?.subscription?.status === 'active' && (
-                  <Button
-                    variant="outline"
-                    onClick={handleManageSubscription}
-                    disabled={portalLoading}
-                    className="w-full justify-start text-destructive hover:bg-destructive/10"
-                  >
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Cancel Subscription
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Upgrade CTA */}
-            {currentUser?.entitlements?.status === 'trial' && (
-              <Card className="border-0 shadow-lg bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20">
-                <CardContent className="p-6 text-center">
-                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mx-auto mb-3">
-                    <Crown className="h-6 w-6 text-white" />
-                  </div>
-                  <h3 className="font-semibold text-base mb-2">Upgrade Before Trial Ends</h3>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Get {currentUser.entitlements.daysRemaining} days left to try all features. Upgrade now to continue without interruption.
-                  </p>
-                  <Button onClick={handleAddSeats} className="w-full">
-                    Upgrade Now
-                  </Button>
                 </CardContent>
               </Card>
             )}

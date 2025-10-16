@@ -7,6 +7,7 @@ import { teamMembersSaga } from "../../features/teamMembers/saga";
 import { locationsSaga } from "../../features/locations/saga";
 import { servicesSaga } from "../../features/services/saga.ts";
 import { calendarSaga } from "../../features/calendar/saga.ts";
+import { settingsSaga } from "../../features/settings/saga";
 
 export function* rootSaga() {
     yield all([
@@ -17,5 +18,6 @@ export function* rootSaga() {
         locationsSaga(),
         servicesSaga(),
         calendarSaga(),
+        settingsSaga(),
     ]);
 }

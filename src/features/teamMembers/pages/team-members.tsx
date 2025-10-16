@@ -9,7 +9,6 @@ import { Badge } from "../../../shared/components/ui/badge";
 import InviteTeamMemberSlider from '../components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '../components/TeamMemberProfileSlider';
 import TrialBanner from '../components/TrialBanner';
-import PendingPaymentBanner from '../components/PendingPaymentBanner';
 import { mockLocations } from '../../../mocks/locations.mock';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
@@ -199,8 +198,6 @@ export default function TeamMembersPage() {
         return <Badge className="bg-gray-100 text-gray-800 w-fit">Inactive</Badge>;
       case 'pending':
         return <Badge className="bg-orange-100 text-orange-800 w-fit">Pending</Badge>;
-      case 'pending_payment':
-        return <Badge className="bg-amber-100 text-amber-800 w-fit">Pending Payment</Badge>;
       default:
         return <Badge className="w-fit">{status.toUpperCase()}</Badge>;
     }
@@ -212,9 +209,7 @@ export default function TeamMembersPage() {
       (member.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (member.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
-    const matchesRole = roleFilter === 'all' ||
-      (roleFilter === 'manager' && member.role === UserRole.MANAGER) ||
-      (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
+    const matchesRole = roleFilter === 'all' || (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
     const matchesLocation = locationFilter === 'all' || (`${member?.location}` === locationFilter);
     return matchesSearch && matchesStatus && matchesRole && matchesLocation;
   });
@@ -243,10 +238,7 @@ export default function TeamMembersPage() {
         <div className={`space-y-4 ${isMobile ? 'max-w-2xl mx-auto' : ''}`}>
           {/* Trial Banner */}
           <TrialBanner />
-          
-          {/* Pending Payment Banner */}
-          <PendingPaymentBanner />
-          
+
           {/* Top Controls: Search, Filter, Add */}
           <div className="flex gap-2 items-center">
             <div className="relative flex-1">

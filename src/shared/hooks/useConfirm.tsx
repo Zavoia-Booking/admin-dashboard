@@ -164,7 +164,7 @@ export function useConfirmRadix() {
           }) => {
         const baseContentProps = attachDismissHandlers({
             className:
-                `fixed left-1/2 top-1/2 z-50 w-[95vw] max-w-md -translate-x-1/2 -translate-y-1/2
+                `fixed left-1/2 top-1/2 z-[10000] w-[95vw] max-w-md -translate-x-1/2 -translate-y-1/2
          rounded-2xl bg-white p-6 shadow-xl outline-none
          dark:bg-neutral-900
          data-[state=open]:animate-in data-[state=closed]:animate-out
@@ -173,7 +173,7 @@ export function useConfirmRadix() {
 
         const overlayProps = {
             className:
-                `fixed inset-0 z-40 bg-black/50
+                `fixed inset-0 z-[9999] bg-black/50
          data-[state=open]:animate-in data-[state=closed]:animate-out
          data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0`,
         };

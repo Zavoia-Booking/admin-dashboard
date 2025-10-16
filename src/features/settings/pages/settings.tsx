@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Button } from '../../../shared/components/ui/button';
@@ -31,6 +32,7 @@ import { useDispatch } from 'react-redux';
 
 const SettingsPage = () => {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSection, setSelectedSection] = useState<string | null>(null);
   const [showBusinessSlider, setShowBusinessSlider] = useState(false);
   const [showAppointmentSlider, setShowAppointmentSlider] = useState(false);
@@ -40,6 +42,16 @@ const SettingsPage = () => {
   const [showBillingSlider, setShowBillingSlider] = useState(false);
   const [showSecuritySlider, setShowSecuritySlider] = useState(false);
   const [showAdvancedSlider, setShowAdvancedSlider] = useState(false);
+
+  // Check for URL parameters to auto-open sliders
+  useEffect(() => {
+    const openParam = searchParams.get('open');
+    if (openParam === 'billing') {
+      setShowBillingSlider(true);
+      // Remove the parameter from URL after opening
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleLogout = () => {
     dispatch(logoutRequestAction.request());
@@ -53,27 +65,27 @@ const SettingsPage = () => {
       icon: Receipt,
       action: () => setShowBusinessSlider(true)
     },
-    {
-      id: 'appointments',
-      title: 'Appointment Settings',
-      description: 'Booking preferences and schedules',
-      icon: Calendar,
-      action: () => setShowAppointmentSlider(true)
-    },
-    {
-      id: 'website',
-      title: 'Website & Domain',
-      description: 'Templates and custom domains',
-      icon: Globe,
-      action: () => setShowWebsiteSlider(true)
-    },
-    {
-      id: 'integrations',
-      title: 'Integrations',
-      description: 'Connect external services',
-      icon: Plug,
-      action: () => setShowIntegrationsSlider(true)
-    },
+    // {
+    //   id: 'appointments',
+    //   title: 'Appointment Settings',
+    //   description: 'Booking preferences and schedules',
+    //   icon: Calendar,
+    //   action: () => setShowAppointmentSlider(true)
+    // },
+    // {
+    //   id: 'website',
+    //   title: 'Website & Domain',
+    //   description: 'Templates and custom domains',
+    //   icon: Globe,
+    //   action: () => setShowWebsiteSlider(true)
+    // },
+    // {
+    //   id: 'integrations',
+    //   title: 'Integrations',
+    //   description: 'Connect external services',
+    //   icon: Plug,
+    //   action: () => setShowIntegrationsSlider(true)
+    // },
     {
       id: 'profile',
       title: 'Your Profile',
@@ -88,20 +100,20 @@ const SettingsPage = () => {
       icon: CreditCard,
       action: () => setShowBillingSlider(true)
     },
-    {
-      id: 'security',
-      title: 'Security',
-      description: 'Password management and 2FA',
-      icon: Shield,
-      action: () => setShowSecuritySlider(true)
-    },
-    {
-      id: 'advanced',
-      title: 'Advanced Settings',
-      description: 'Data export and danger zone',
-      icon: AlertTriangle,
-      action: () => setShowAdvancedSlider(true)
-    }
+    // {
+    //   id: 'security',
+    //   title: 'Security',
+    //   description: 'Password management and 2FA',
+    //   icon: Shield,
+    //   action: () => setShowSecuritySlider(true)
+    // },
+    // {
+    //   id: 'advanced',
+    //   title: 'Advanced Settings',
+    //   description: 'Data export and danger zone',
+    //   icon: AlertTriangle,
+    //   action: () => setShowAdvancedSlider(true)
+    // }
   ];
 
   if (selectedSection) {
