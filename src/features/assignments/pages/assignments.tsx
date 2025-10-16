@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
-import { Input } from '../../../shared/components/ui/input';
 import {
   Table,
   TableBody,
@@ -31,6 +30,10 @@ import AddAssignmentSlider from "../components/AddAssignmentSlider.tsx";
 import { ChartBarDecreasing } from "lucide-react";
 import ViewAssignmentDetailsSlider from "../components/ViewAssignmentDetailsSlider.tsx";
 import { closeViewDetailsFormAction } from "../actions.ts";
+import type { Service } from "../../../shared/types/service.ts";
+import { getServicesListSelector } from "../../services/selectors.ts";
+import { useForm } from "react-hook-form";
+import { ALL } from "../../../shared/constants.ts";
 
 export default function AssignmentsPage() {
   const dispatch = useDispatch();
@@ -39,18 +42,27 @@ export default function AssignmentsPage() {
   const filters = useSelector(getAssignmentsFiltersSelector);
   const addForm = useSelector(getAddAssignmentFormSelector);
   const viewDetails = useSelector(getViewDetailsPopupSelector);
+  const services: Service[] = useSelector(getServicesListSelector);
 
-  const [localSearch, setLocalSearch] = useState(filters.search);
-  const [localStatus, setLocalStatus] = useState(filters.status);
+  const { 
+    register,
+    handleSubmit, 
+    reset 
+  } = useForm<AssignmentFilterState>({
+    defaultValues: { serviceId: filters.serviceId },
+  });
 
   useEffect(() => {
     dispatch(listAssignmentsAction.request());
   }, [dispatch]);
 
-  const applyFilters = () => {
-    const next: AssignmentFilterState = { ...filters, search: localSearch, status: localStatus };
-    dispatch(setAssignmentFiltersAction.request(next));
-  };
+  useEffect(() => {
+    reset({ serviceId: filters.serviceId });
+  }, [filters, reset]);
+
+  const applyFilters = handleSubmit((data) => {
+    dispatch(setAssignmentFiltersAction.request(data));
+  });
 
   const handleCloseAddForm = () => {
     dispatch(toggleAssignmentFormAction(false))
@@ -80,19 +92,23 @@ export default function AssignmentsPage() {
             <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2 items-center">
-              <Input placeholder="Search assignments" value={localSearch} onChange={(e) => setLocalSearch(e.target.value)} />
-              <select className="border rounded px-2 py-2" value={localStatus} onChange={(e) => setLocalStatus(e.target.value as any)}>
-                <option value="all">All</option>
-                <option value="open">Open</option>
-                <option value="in_progress">In Progress</option>
-                <option value="completed">Completed</option>
-                <option value="archived">Archived</option>
+            <form onSubmit={applyFilters} className="flex gap-2 items-center">
+              <select
+                  id="service"
+                  className="w-full border rounded px-3 py-2"
+                  {...register('serviceId')}
+              >
+                <option value={ALL}>ALL Services</option>
+                {services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {service.name} - ${service.price} ({service.duration}min)
+                    </option>
+                ))}
               </select>
-              <Button variant="secondary" onClick={applyFilters}>
-                <Filter className="h-4 w-4 mr-2" /> Apply
+              <Button type="submit" variant="secondary">
+                <Filter className="h-4 w-4 mr-2"/> Apply
               </Button>
-            </div>
+            </form>
           </CardContent>
         </Card>
 
