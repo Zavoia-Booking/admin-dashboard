@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../../shared/components/ui/button';
 import { getServicesListSelector } from '../../services/selectors';
@@ -12,6 +12,7 @@ import { Card, CardContent } from '../../../shared/components/ui/card.tsx';
 import { Label } from "@radix-ui/react-label";
 import { Switch } from "../../../shared/components/ui/switch.tsx";
 import { Clock5, DollarSign  } from "lucide-react";
+import { Controller, useForm } from 'react-hook-form';
 import type { AssignmentFormData, AssignmentRequestPayload } from "../types.ts";
 
 interface IProps {
@@ -19,42 +20,36 @@ interface IProps {
   onClose: () => void;
 }
 
+const defaultValues: AssignmentFormData ={
+  serviceId: null,
+  userId: null,
+  customPrice: false,
+  customDuration: false,
+  customPriceValue: 0,
+  customDurationValue: 0,
+}
+
 const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
   const dispatch = useDispatch();
   const services: Service[] = useSelector(getServicesListSelector);
   const teamMembers: TeamMember[] = useSelector(selectTeamMembers);
-  
-  const [formData, setFormData] = useState<AssignmentFormData>({
-    serviceId: null,
-    userId: null,
-    customPrice: false,
-    customDuration: false,
-    customPriceValue: 0,
-    customDurationValue: 0,
-  });
 
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    control
+  } = useForm<AssignmentFormData>({ defaultValues });
 
-  const handleServiceChange = (serviceId: string) => {
-    const service = services.find(s => s.id === parseInt(serviceId));
-    setSelectedService(service || null);
-    setFormData(prev => ({
-      ...prev,
-      serviceId: service ? service.id : null,
-    }));
-  };
+  useEffect(() => {
+    reset(defaultValues);
+  }, [reset, isOpen]);
+  const watchedServiceId = watch('serviceId');
+  const selectedService = services.find(s => s.id === (watchedServiceId ?? -1)) || null;
 
-  const handleUserChange = (userId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      userId: userId ? parseInt(userId) : null,
-    }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const { userId, serviceId, customDuration, customPrice, customPriceValue, customDurationValue } = formData;
+  const onSubmit = handleSubmit((data) => {
+    const { userId, serviceId, customDuration, customPrice, customPriceValue, customDurationValue } = data;
 
     if (!userId || !serviceId) {
       return;
@@ -65,11 +60,11 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
       serviceId,
       customDuration: customDuration ? customDurationValue : null,
       customPrice: customPrice ? customPriceValue : null,
-    }
+    };
 
     dispatch(createAssignmentAction.request(payload));
     dispatch(toggleAssignmentFormAction(false));
-  };
+  });
 
   return (
     <>
@@ -89,8 +84,8 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
                 Cancel
               </Button>
               <Button
-                  onClick={handleSubmit}
-                  form="add-service-form"
+                  type="submit"
+                  form="add-assignment-form"
                   className="flex-1"
               >
                 Create Assignment
@@ -98,7 +93,7 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
             </div>
           }
       >
-        <form className="max-w-md mx-auto">
+        <form id="add-assignment-form" className="max-w-md mx-auto" onSubmit={onSubmit}>
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-8">
               {/* Service Selector */}
@@ -106,10 +101,8 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
                 <Label htmlFor="service">Service</Label>
                 <select
                     id="service"
-                    value={formData.serviceId || ''}
-                    onChange={(e) => handleServiceChange(e.target.value)}
                     className="w-full border rounded px-3 py-2"
-                    required
+                    {...register('serviceId', { valueAsNumber: true, required: true })}
                 >
                   <option value="">Select a service</option>
                   {services.map((service) => (
@@ -125,10 +118,8 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
                 <Label htmlFor="user">Team Member</Label>
                 <select
                     id="user"
-                    value={formData.userId || ''}
-                    onChange={(e) => handleUserChange(e.target.value)}
                     className="w-full border rounded px-3 py-2"
-                    required
+                    {...register('userId', { valueAsNumber: true, required: true })}
                 >
                   <option value="">Select a team member</option>
                   {teamMembers
@@ -144,12 +135,16 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
               {/* Custom Price Option */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Switch
-                      id="useCustomPrice"
-                      checked={formData.customPrice}
-                      onCheckedChange={(checked) =>
-                          setFormData(prev => ({ ...prev, customPrice: checked }))
-                      }
+                  <Controller
+                    control={control}
+                    name="customPrice"
+                    render={({ field: { value, onChange } }) => (
+                      <Switch
+                        id="useCustomPrice"
+                        checked={!!value}
+                        onCheckedChange={onChange}
+                      />
+                    )}
                   />
                   <Label htmlFor="useCustomPrice">Use custom price</Label>
                 </div>
@@ -158,13 +153,13 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
               <div className="flex items-center gap-3 pb-2 border-b border-border/50">
                 <div className={
                   `p-2 rounded-xl
-                   ${!formData.customPrice ? 'bg-green-100': 'bg-gray-100' } 
-                   ${!formData.customPrice ? 'dark:bg-green-900/20': 'dark:bg-gray-900/20' } 
+                   ${!watch('customPrice') ? 'bg-green-100': 'bg-gray-100' } 
+                   ${!watch('customPrice') ? 'dark:bg-green-900/20': 'dark:bg-gray-900/20' } 
                   `}>
                   <DollarSign className={
                     `h-5 w-5 
-                    ${!formData.customPrice ? 'text-green-600': 'text-gray-600' } 
-                    ${!formData.customPrice ? 'dark:text-green-400': 'dark:text-gray-400'}`
+                    ${!watch('customPrice') ? 'text-green-600': 'text-gray-600' } 
+                    ${!watch('customPrice') ? 'dark:text-green-400': 'dark:text-gray-400'}`
                   }/>
                 </div>
                 <div className="text-base font-semibold text-foreground">
@@ -173,20 +168,16 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Custom Price Input */}
-              {formData.customPrice && (
+              {watch('customPrice') && (
                   <div className="space-y-2">
                     <Label htmlFor="customPrice">Custom Price</Label>
                     <Input
                         id="customPrice"
                         type="number"
                         placeholder="Custom price"
-                        value={formData.customPriceValue}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          customPriceValue: parseFloat(e.target.value) || 0
-                        }))}
                         min="0"
                         step="0.01"
+                        {...register('customPriceValue', { valueAsNumber: true })}
                     />
                   </div>
               )}
@@ -194,31 +185,31 @@ const AddAssignmentSlider: React.FC<IProps> = ({ isOpen, onClose }) => {
               {/* Custom Duration Option */}
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
-                  <Switch
-                      id="useCustomDuration"
-                      checked={formData.customDuration}
-                      onCheckedChange={(checked) =>
-                          setFormData(prev => ({ ...prev, customDuration: checked }))
-                      }
+                  <Controller
+                    control={control}
+                    name="customDuration"
+                    render={({ field: { value, onChange } }) => (
+                      <Switch
+                        id="useCustomDuration"
+                        checked={!!value}
+                        onCheckedChange={onChange}
+                      />
+                    )}
                   />
                   <Label htmlFor="useCustomDuration">Use custom duration</Label>
                 </div>
               </div>
 
               {/* Custom Duration Input */}
-              {formData.customDuration && (
+              {watch('customDuration') && (
                   <div className="space-y-2">
                     <Label htmlFor="customDuration">Custom Duration</Label>
                     <Input
                         id="customDuration"
                         type="number"
                         placeholder="Custom duration (minutes)"
-                        value={formData.customDurationValue}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          customDurationValue: parseInt(e.target.value) || 0
-                        }))}
                         min="1"
+                        {...register('customDurationValue', { valueAsNumber: true })}
                     />
                   </div>
               )}

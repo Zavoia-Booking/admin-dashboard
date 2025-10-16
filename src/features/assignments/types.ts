@@ -1,5 +1,6 @@
 import type { FilterItem } from "../../shared/types/common";
 import { FilterOperator } from "../../shared/types/common";
+import { ALL } from "../../shared/constants.ts";
 
 export type Assignment = {
   id: number;
@@ -33,9 +34,7 @@ export type AssignmentSummary = {
 };
 
 export type AssignmentFilterState = {
-  status: "all" | "open" | "in_progress" | "completed" | "archived";
-  search: string;
-  locationId: number | "all";
+  serviceId: number | string;
 };
 
 export type AssignmentsState = {
@@ -57,24 +56,17 @@ export type AssignmentsState = {
 
 export function mapAssignmentFiltersToGeneric(filters: AssignmentFilterState): Array<FilterItem> {
   const items: Array<FilterItem> = [];
-  const { status, search, locationId } = filters;
-  if (search.trim().length > 0) {
-    items.push({ field: 'assignment.title', operator: FilterOperator.CONTAINS, value: search.trim() });
-  }
-  if (status !== "all") {
-    items.push({ field: 'assignment.status', operator: FilterOperator.EQUALS, value: status });
-  }
-  if (locationId !== "all") {
-    items.push({ field: 'assignment.locationId', operator: FilterOperator.EQUALS, value: Number(locationId) });
+  const { serviceId } = filters;
+
+  if (serviceId !== "all") {
+    items.push({ field: 'service.id', operator: FilterOperator.EQUALS, value: Number(serviceId) });
   }
   return items;
 }
 
 export function getDefaultAssignmentFilters(): AssignmentFilterState {
   return {
-    status: "all",
-    search: "",
-    locationId: "all",
+    serviceId: ALL,
   };
 }
 
