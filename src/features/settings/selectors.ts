@@ -10,5 +10,5 @@ export const selectSettingsError = (s: { settings: SettingsState }) => s.setting
 export const selectIsLoadingSubscriptionSummary = (s: { settings: SettingsState }) => s.settings.isLoading.subscriptionSummary;
 export const selectIsLoadingCheckoutSession = (s: { settings: SettingsState }) => s.settings.isLoading.checkoutSession;
 export const selectIsLoadingCustomerPortal = (s: { settings: SettingsState }) => s.settings.isLoading.customerPortal;
-export const selectIsLoadingCancelSubscription = (s: { settings: SettingsState }) => s.settings.isLoading.cancelSubscription;
+export const selectIsLoadingModifySubscription = (s: { settings: SettingsState }) => s.settings.isLoading.modifySubscription;
 export const selectIsLoadingCancelRemoval = (s: { settings: SettingsState }) => s.settings.isLoading.cancelRemoval;

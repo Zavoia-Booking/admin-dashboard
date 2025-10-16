@@ -16,9 +16,7 @@ import RegisterMemberPage from './features/auth/pages/register-member'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
-import SubscriptionSuccessPage from './features/settings/pages/subscription-success'
-import SeatsUpdateSuccessPage from './features/settings/pages/seats-update-success'
-import CancelRemovalSuccessPage from './features/settings/pages/cancel-removal-success'
+import InfoPageComponent from './features/settings/pages/info-page'
 
 function App() {
   return (
@@ -44,11 +42,9 @@ function App() {
         <Route path="/settings/profile" element={<ProtectedRoute element={<SettingsProfilePage />} />} />
         <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
 
-        {/* Stripe */}
-        <Route path="/subscription-success" element={<SubscriptionSuccessPage />} />
+        {/* Info Pages */}
+        <Route path="/info" element={<InfoPageComponent />} />
         <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
-        <Route path="/seats-update-success" element={<ProtectedRoute element={<SeatsUpdateSuccessPage />} />} />
-        <Route path="/cancel-removal-success" element={<ProtectedRoute element={<CancelRemovalSuccessPage />} />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/calendar" replace />} />

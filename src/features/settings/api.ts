@@ -21,8 +21,8 @@ export const getCustomerPortalUrl = async (returnUrl: string): Promise<{ url: st
   return response.data;
 };
 
-export const cancelSubscription = async (): Promise<{ success: boolean }> => {
-  const response = await apiClient().post<{ success: boolean }>('/billing/cancel-subscription');
+export const modifySubscription = async (action: 'cancel' | 'keep'): Promise<{ success: boolean }> => {
+  const response = await apiClient().post<{ success: boolean }>(`/billing/modify-subscription?action=${action}`);
   return response.data;
 };
 

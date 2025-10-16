@@ -66,7 +66,7 @@ export type SettingsState = {
     subscriptionSummary: boolean;
     checkoutSession: boolean;
     customerPortal: boolean;
-    cancelSubscription: boolean;
+    modifySubscription: boolean;
     cancelRemoval: boolean;
   };
 };

@@ -30,6 +30,8 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
 
   const subscriptionStatus = currentUser?.subscription?.status;
   const isCancelled = subscriptionStatus === 'canceled';
+  const entStatus = currentUser?.entitlements?.status;
+  const isExpiredOrNoSubscription = entStatus === 'expired' || entStatus === 'no_subscription';
   
   // Check if in trial - based on trialEndsAt field, not subscription status
   const trialEndsAt = currentUser?.subscription?.trialEndsAt;
@@ -56,7 +58,29 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
     );
   }
 
-  // Case 2: Cancelled - need to renew
+  // Case 2: Expired trial or no subscription - must subscribe
+  if (isExpiredOrNoSubscription) {
+    return (
+      <div className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 p-4 rounded-lg space-y-3">
+        <p className="font-semibold text-base">⚠️ Subscription required</p>
+        <p>
+          You need an active subscription to invite team members.
+        </p>
+        <Button 
+          onClick={() => {
+            onClose();
+            navigate('/settings?open=billing');
+          }}
+          variant="outline"
+          className="w-full"
+        >
+          Go to billing
+        </Button>
+      </div>
+    );
+  }
+
+  // Case 3: Cancelled - need to renew
   if (isCancelled) {
     return (
       <div className="text-xs text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 p-4 rounded-lg space-y-3">
@@ -77,7 +101,7 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
     );
   }
 
-  // Case 3: Active subscription
+  // Case 4: Active subscription
   return (
     <>
       <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">

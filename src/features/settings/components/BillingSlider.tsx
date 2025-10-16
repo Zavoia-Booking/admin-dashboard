@@ -9,7 +9,7 @@ import { Separator } from '../../../shared/components/ui/separator';
 import { toast } from 'sonner';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { selectCurrentUser } from '../../auth/selectors';
-import { getSubscriptionSummaryAction, getCustomerPortalUrlAction, createCheckoutSessionAction, cancelSubscriptionAction, cancelRemovalAction } from '../actions';
+import { getSubscriptionSummaryAction, getCustomerPortalUrlAction, createCheckoutSessionAction, modifySubscriptionAction, cancelRemovalAction } from '../actions';
 import { updateSeats } from '../api';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import { useNavigate } from 'react-router-dom';
@@ -18,7 +18,7 @@ import {
   selectIsLoadingSubscriptionSummary,
   selectIsLoadingCustomerPortal,
   selectIsLoadingCheckoutSession,
-  selectIsLoadingCancelSubscription,
+  selectIsLoadingModifySubscription,
   selectIsLoadingCancelRemoval
 } from '../selectors';
 import { loadStripe } from '@stripe/stripe-js';
@@ -35,7 +35,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   const loading = useSelector(selectIsLoadingSubscriptionSummary);
   const portalLoading = useSelector(selectIsLoadingCustomerPortal);
   const checkoutLoading = useSelector(selectIsLoadingCheckoutSession);
-  const cancelLoading = useSelector(selectIsLoadingCancelSubscription);
+  const cancelLoading = useSelector(selectIsLoadingModifySubscription);
   const cancelRemovalLoading = useSelector(selectIsLoadingCancelRemoval);
 
   const [updatingSeats, setUpdatingSeats] = useState(false);
@@ -54,6 +54,10 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
       setTotalSeats(subscriptionSummary?.currentTeamMembersCount || 0);
     }
 
+    if (currentUser?.entitlements?.status === 'expired') {
+      setTotalSeats(subscriptionSummary?.currentTeamMembersCount || 0);
+    }
+
     // cancelled subscription
     if (currentUser?.entitlements?.status === 'no_subscription') {
       setTotalSeats(subscriptionSummary?.paidSeats || 0);
@@ -67,6 +71,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   }, [isOpen, dispatch]);
 
   const hasScheduledChange = !!(subscriptionSummary?.scheduled && subscriptionSummary.scheduled.scheduledSeats != null);
+  const isSubscriptionScheduledForCancellation = currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd;
 
   const handleManagePaymentMethodAndInvoices = () => {
     const returnUrl = window.location.origin + '/settings?open=billing';
@@ -96,22 +101,26 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
     // Create new subscription with base plan + seats
     dispatch(createCheckoutSessionAction.request({
       seats: totalSeats,
-      successUrl: `${window.location.origin}/subscription-success`,
+      successUrl: `${window.location.origin}/info?type=subscription-success`,
       cancelUrl: `${window.location.origin}/settings`,
     }));
   };
 
-  const handleCancelSubscription = async () => {
+  const handleSubscriptionStatusChange = async () => {
+    const isScheduledForCancellation = currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd;
+    
     const confirmed = await confirm({
-      title: 'Cancel Subscription',
-      content: 'Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period.',
-      confirmationText: 'Cancel Subscription',
-      cancellationText: 'Keep Subscription',
+      title: isScheduledForCancellation ? 'Keep Subscription' : 'Cancel Subscription',
+      content: isScheduledForCancellation 
+        ? 'Are you sure you want to keep your subscription? This will undo the scheduled cancellation and your subscription will continue normally.'
+        : 'Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period.',
+      confirmationText: isScheduledForCancellation ? 'Keep Subscription' : 'Cancel Subscription',
+      cancellationText: isScheduledForCancellation ? 'Keep Cancellation' : 'Keep Subscription',
     });
 
     if (!confirmed) return;
 
-    dispatch(cancelSubscriptionAction.request());
+    dispatch(modifySubscriptionAction.request({ action: isScheduledForCancellation ? 'keep' : 'cancel' }));
   };
 
   const handleCancelRemoval = async () => {
@@ -132,14 +141,29 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
     const isExpiredTrial = currentUser?.entitlements?.status === 'expired' || currentUser?.entitlements?.status === 'no_subscription';
 
     if (isTrial || isExpiredTrial) {
+      // Ask for confirmation before starting subscription from trial/expired trial
+      const base = subscriptionSummary?.basePlanPrice || 0;
+      const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
+      const currency = subscriptionSummary?.currency || '';
+      const estimated = base + perSeat * (Number(totalSeats) || 0);
+
+      const confirmed = await confirm({
+        title: 'Start new subscription',
+        content: totalSeats > 0 
+          ? `Proceed to subscribe with ${totalSeats} total seat${totalSeats !== 1 ? 's' : ''}? You will be charged ${estimated.toFixed(2)} ${currency} now.`
+          : `Proceed to subscribe? You will be charged ${estimated.toFixed(2)} ${currency} now.`,
+        confirmationText: 'Continue',
+        cancellationText: 'Cancel',
+      });
+
+      if (!confirmed) return;
+
       // Trial user or expired trial: Create checkout with configured seats or current team members
-      // Set loading state for trial/expired trial users
       setUpdatingSeats(true);
 
-      // Create new subscription with base plan + seats
       dispatch(createCheckoutSessionAction.request({
         seats: totalSeats,
-        successUrl: `${window.location.origin}/subscription-success`,
+        successUrl: `${window.location.origin}/info?type=subscription-success`,
         cancelUrl: `${window.location.origin}/settings`,
       }));
     } else {
@@ -204,7 +228,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
           } else {
             // Payment confirmed - redirect to success page
             toast.success('Payment confirmed! Seats updated successfully.');
-            window.location.href = '/seats-update-success';
+            window.location.href = '/info?type=seats-update-success';
           }
         } else if (response.url) {
           // Redirect to Stripe payment page (Checkout flow)
@@ -212,7 +236,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
         } else if (response.success) {
           // Payment completed without additional action
           toast.success('Seats updated successfully!');
-          window.location.href = '/seats-update-success';
+          window.location.href = '/info?type=seats-update-success';
         } else {
           throw new Error('Seat update failed');
         }
@@ -226,9 +250,15 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
 
   const getStatusBadge = () => {
     const status = currentUser?.subscription?.status;
+    const cancelAtPeriodEnd = currentUser?.subscription?.cancelAtPeriodEnd;
 
     if (currentUser?.entitlements?.status === 'trial') {
       return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
+    }
+
+    // Active but scheduled for cancellation
+    if (status === 'active' && cancelAtPeriodEnd) {
+      return <Badge className="bg-amber-100 text-amber-800">Scheduled for Cancellation</Badge>;
     }
 
     switch (status) {
@@ -366,6 +396,21 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     </div>
                   )}
 
+                  {/* Subscription Scheduled for Cancellation */}
+                  {currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd && (
+                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                          Subscription Scheduled for Cancellation
+                        </span>
+                      </div>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        Your subscription will be cancelled on {currentUser.subscription.currentPeriodEnd ? formatDate(currentUser.subscription.currentPeriodEnd) : 'the end of your billing period'}. You'll continue to have access until then.
+                      </p>
+                    </div>
+                  )}
+
                   {/* Pricing Breakdown */}
                   {subscriptionSummary && (
                     <div className="space-y-2 bg-muted/50 rounded-lg p-4">
@@ -408,10 +453,12 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     </div>
                   )}
 
-                  {/* Next Billing Date */}
+                  {/* Next Billing Date / Cancellation Date */}
                   {currentUser?.subscription?.currentPeriodEnd && (
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Next billing date</span>
+                      <span className="text-muted-foreground">
+                        {currentUser?.subscription?.cancelAtPeriodEnd ? 'Subscription ends' : 'Next billing date'}
+                      </span>
                       <span className="font-medium">
                         {formatDate(currentUser.subscription.currentPeriodEnd)}
                       </span>
@@ -420,11 +467,16 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
 
                   {/* Seats Management */}
                   <div className="space-y-3 border rounded-lg p-3 bg-background/60">
-                    {hasScheduledChange && (
+                    {(hasScheduledChange || isSubscriptionScheduledForCancellation) && (
                       <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                        <div className="text-sm font-medium text-blue-900 dark:text-blue-100">Seat changes are locked</div>
+                        <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                          {isSubscriptionScheduledForCancellation ? 'Seat changes are locked' : 'Seat changes are locked'}
+                        </div>
                         <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                          You have a scheduled seat change. To modify seats, first undo the scheduled cancellation.
+                          {isSubscriptionScheduledForCancellation 
+                            ? 'Your subscription is scheduled for cancellation. To modify seats, first undo the subscription cancellation.'
+                            : 'You have a scheduled seat change. To modify seats, first undo the scheduled cancellation.'
+                          }
                         </p>
                       </div>
                     )}
@@ -435,10 +487,13 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={isConfirming || hasScheduledChange}
+                          disabled={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation}
                           onClick={() => {
                             const used = subscriptionSummary?.usedSeats || 0;
                             const desired = (Number(totalSeats) || 0) - 1;
+                            if (desired === -1) {
+                              return;
+                            }
                             if (desired < used) {
                               toast.info(`You currently have ${used} seat${used !== 1 ? 's' : ''} in use. Remove a team member first to reduce seats.`, {
                                 action: {
@@ -460,7 +515,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                           min={subscriptionSummary?.usedSeats || 0}
                           step={1}
                           value={totalSeats}
-                          readOnly={isConfirming || hasScheduledChange}
+                          readOnly={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation}
                           onChange={(e) => {
                             const sanitized = e.target.value.replace(/[^0-9]/g, '');
                             const nextVal = sanitized === '' ? 0 : Number(sanitized);
@@ -483,7 +538,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                         <Button
                           type="button"
                           variant="outline"
-                          disabled={isConfirming || hasScheduledChange}
+                          disabled={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation}
                           onClick={() => {
                             const next = (Number(totalSeats) || 0) + 1;
                             setTotalSeats(next);
@@ -560,7 +615,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                       <>
                         <Button
                           onClick={handleUpgrade}
-                          disabled={currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats}
+                          disabled={currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats || isSubscriptionScheduledForCancellation}
                           className="w-full bg-green-600 hover:bg-green-700 text-white"
                         >
                           {(currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats) ? (
@@ -628,23 +683,23 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                     )
                   }
 
-                  {/* Cancel Subscription Button */}
+                  {/* Cancel Subscription / Keep Subscription Button */}
                   {
                     currentUser?.entitlements?.status === 'active' && (
                       <>
                         <Button
-                          onClick={handleCancelSubscription}
+                          onClick={handleSubscriptionStatusChange}
                           disabled={cancelLoading}
-                          variant="destructive"
-                          className="w-full"
+                          variant={isSubscriptionScheduledForCancellation ? "default" : "destructive"}
+                          className={`w-full ${isSubscriptionScheduledForCancellation ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
                         >
                           {cancelLoading ? (
                             <>
                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Cancelling...
+                              {isSubscriptionScheduledForCancellation ? 'Keeping...' : 'Cancelling...'}
                             </>
                           ) : (
-                            'Cancel Subscription'
+                            isSubscriptionScheduledForCancellation ? 'Keep my subscription' : 'Cancel Subscription'
                           )}
                         </Button>
                       </>
