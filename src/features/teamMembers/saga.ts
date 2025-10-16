@@ -8,13 +8,8 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
   try {
     const response: InviteTeamMemberResponse = yield call(inviteTeamMemberApi, action.payload);
     yield put(inviteTeamMemberAction.success(response));
-    
-    // Refresh list if:
-    // 1. Payment is complete (paymentComplete === true)
-    // 2. Simple success response (no payment fields at all)
-    if (response.paymentComplete === true || response.paymentComplete === undefined) {
-      yield put(listTeamMembersAction.request());
-    }
+    yield put(listTeamMembersAction.request());
+ 
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || 'Failed to invite team member';
     yield put(inviteTeamMemberAction.failure({ message }));

@@ -146,12 +146,6 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
                         <div className="text-xs text-muted-foreground">Manage bookings and availability</div>
                       </div>
                     </SelectItem>
-                    <SelectItem value={UserRole.MANAGER}>
-                      <div className="text-left">
-                        <div className="font-medium">Manager</div>
-                        <div className="text-xs text-muted-foreground">Manage team and business settings</div>
-                      </div>
-                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <Button 

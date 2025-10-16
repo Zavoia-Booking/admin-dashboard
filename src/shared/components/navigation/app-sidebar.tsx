@@ -62,37 +62,37 @@ const navItems: NavItem[] = [
     title: "Dashboard",
     url: "/dashboard",
     icon: LayoutDashboard,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Calendar",
     url: "/calendar",
     icon: Calendar,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Team Members",
     url: "/team-members",
     icon: ClipboardList,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Services",
     url: "/services",
     icon: ClipboardList,
-    roles: [UserRole.ADMIN, UserRole.TEAM_MEMBER],
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Locations",
     url: "/locations",
     icon: MapPin,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.MANAGER, UserRole.TEAM_MEMBER],
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
   },
   {
     title: "Settings",
     url: "/settings",
     icon: Settings2,
-    roles: [UserRole.ADMIN, UserRole.OWNER, UserRole.TEAM_MEMBER],
+    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
     items: [
       {
         title: "General",

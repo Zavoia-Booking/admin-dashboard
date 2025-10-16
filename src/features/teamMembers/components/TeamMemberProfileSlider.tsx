@@ -195,8 +195,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
     switch (role) {
       case UserRole.OWNER:
         return <Badge className="bg-blue-100 text-blue-800">Owner</Badge>;
-      case UserRole.MANAGER:
-        return <Badge className="bg-orange-100 text-orange-800">Manager</Badge>;
       case UserRole.TEAM_MEMBER:
         return <Badge className="bg-gray-100 text-gray-800">Team Member</Badge>;
       default:

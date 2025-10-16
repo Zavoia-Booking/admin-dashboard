@@ -17,8 +17,8 @@ import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import SubscriptionSuccessPage from './features/settings/pages/subscription-success'
-import UpgradePage from './features/settings/pages/upgrade'
-import PendingPaymentPage from './features/settings/pages/pending-payment'
+import SeatsUpdateSuccessPage from './features/settings/pages/seats-update-success'
+import CancelRemovalSuccessPage from './features/settings/pages/cancel-removal-success'
 
 function App() {
   return (
@@ -36,17 +36,19 @@ function App() {
 
         {/* Main */}
         <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
-        <Route path="/subscription-success" element={<SubscriptionSuccessPage />} />
-        <Route path="/upgrade" element={<ProtectedRoute element={<UpgradePage />} />} />
-        <Route path="/pending-payment" element={<ProtectedRoute element={<PendingPaymentPage />} />} />
         <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
         <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
         <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
         <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
-        <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
         <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
         <Route path="/settings/profile" element={<ProtectedRoute element={<SettingsProfilePage />} />} />
         <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
+
+        {/* Stripe */}
+        <Route path="/subscription-success" element={<SubscriptionSuccessPage />} />
+        <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
+        <Route path="/seats-update-success" element={<ProtectedRoute element={<SeatsUpdateSuccessPage />} />} />
+        <Route path="/cancel-removal-success" element={<ProtectedRoute element={<CancelRemovalSuccessPage />} />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/calendar" replace />} />

@@ -8,17 +8,13 @@ export default function TrialBanner() {
   const navigate = useNavigate()
   const user = useSelector(selectCurrentUser)
 
-  // Only show banner if user has a trial end date
-  if (!user?.subscription?.trialEndsAt) {
-    return null
-  }
+  // Check trial status using entitlements
+  const isTrial = user?.entitlements?.status === 'trial'
+  const isExpired = user?.entitlements?.status === 'expired'
+  const daysRemaining = user?.entitlements?.daysRemaining || 0
 
-  const trialEndDate = new Date(user.subscription.trialEndsAt)
-  const now = new Date()
-  const daysRemaining = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-
-  // Don't show if trial has ended
-  if (daysRemaining <= 0) {
+  // Don't show banner if not in trial or expired
+  if (!isTrial || isExpired) {
     return null
   }
 
@@ -36,12 +32,11 @@ export default function TrialBanner() {
             </div>
             <p className="text-sm text-gray-600">
               You have <span className="font-semibold text-orange-600">{daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}</span> remaining in your trial. 
-              Upgrade now to continue using all features.
             </p>
           </div>
         </div>
         <Button 
-          onClick={() => navigate('/upgrade')}
+          onClick={() => navigate('/settings?open=billing')}
           className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
         >
           Upgrade Now
