@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckCircle, ArrowLeft, Home, LucideIcon } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 

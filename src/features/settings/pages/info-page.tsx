@@ -60,16 +60,16 @@ const InfoPageComponent: React.FC = () => {
           iconColor: 'red' as const,
           buttons: [
             {
-              label: 'Back to billing',
-              onClick: () => navigate('/settings?open=billing'),
-              variant: 'outline' as const,
-              icon: ArrowLeft,
-            },
-            {
               label: 'Go to dashboard',
               onClick: () => navigate('/dashboard'),
               icon: Home,
             },
+            {
+                label: 'Back to billing',
+                onClick: () => navigate('/settings?open=billing'),
+                variant: 'outline' as const,
+                icon: ArrowLeft,
+              },
           ],
         };
 
