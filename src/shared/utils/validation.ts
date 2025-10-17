@@ -1,4 +1,4 @@
-// Shared validation and sanitization utilities for auth forms
+// Shared validation and sanitization utilities
 
 export const sanitizeName = (value: string): string => value.replace(/[^A-Za-zÀ-ÿ'\-\s]/g, '');
 
@@ -22,5 +22,4 @@ export const validatePasswordPolicy = (password: string): true | string => {
   if (!(hasLower && hasUpper && hasNumber && hasSymbol)) return 'Please enter a valid password.';
   return true;
 }
-
 

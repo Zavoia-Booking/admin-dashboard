@@ -6,7 +6,7 @@ import type { BusinessInfo } from '../types/generalType';
 import type { InviteTeamMemberPayload } from '../types/team-member';
 import { getWizardDataSelector } from '../../features/setupWizard/selectors';
 import type { RootState } from '../../app/providers/store';
-import { isE164 } from '../../features/auth/validation';
+import { isE164 } from '../utils/validation';
 
 export interface WizardData {
   // Step 1: Business Info
@@ -24,7 +24,6 @@ export interface WizardData {
 export const useSetupWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const reducerData = useSelector(getWizardDataSelector);
-  const [data, setData] = useState<WizardData>(reducerData);
   const [isLoading, setSaving] = useState(false);
   const dispatch = useDispatch();
   const saveResolverRef = useRef<(() => void) | null>(null);
@@ -38,16 +37,16 @@ export const useSetupWizard = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    setData(reducerData);
-    // Sync step from draft only once on initial hydration
-    const draftStep = (reducerData as any)?.currentStep;
-    if (!hydratedFromDraft) {
+    // Hydrate step from draft only once, AFTER initial load completes
+    if (!hydratedFromDraft && !isLoadingState) {
+      const draftStep = (reducerData as any)?.currentStep;
       if (typeof draftStep === 'number' && draftStep >= 1 && draftStep <= totalSteps) {
         setCurrentStep(draftStep);
+        setHydratedFromDraft(true);
       }
-      setHydratedFromDraft(true);
+      // If no valid draftStep yet, wait for next reducerData update
     }
-  }, [reducerData, hydratedFromDraft]);
+  }, [reducerData, hydratedFromDraft, isLoadingState]);
 
   // Listen for save completion
   useEffect(() => {
@@ -74,7 +73,8 @@ export const useSetupWizard = () => {
   };
 
   const persistStep = (s: number) => {
-    setData(prev => ({ ...prev, currentStep: s } as any));
+    // Persist currentStep in reducer so consumers get consistent data
+    dispatch(wizardUpdateDataAction({ currentStep: s } as any));
   };
 
   const nextStep = () => {
@@ -131,21 +131,21 @@ export const useSetupWizard = () => {
   const canProceed = (step: number): boolean => {
     switch (step) {
       case 1: {
-        const hasName = data.businessInfo?.name?.trim() !== '';
-        const hasIndustry = Number.isInteger((data.businessInfo as any)?.industryId) && (data.businessInfo as any).industryId > 0;
-        const hasValidPhone = !!(data.businessInfo?.phone && isE164(data.businessInfo.phone));
+        const hasName = reducerData.businessInfo?.name?.trim() !== '';
+        const hasIndustry = Number.isInteger((reducerData.businessInfo as any)?.industryId) && (reducerData.businessInfo as any).industryId > 0;
+        const hasValidPhone = !!(reducerData.businessInfo?.phone && isE164(reducerData.businessInfo.phone));
         return hasName && hasIndustry && hasValidPhone;
       }
       case 2:
-        if (data.location.isRemote) {
-          const hasContact = (data.location.email?.trim() ?? '') !== '' || data.location.phone.trim() !== '';
-          return data.location.name.trim() !== '' && data.location.timezone.trim() !== '' && hasContact;
+        if (reducerData.location.isRemote) {
+          const hasContact = (reducerData.location.email?.trim() ?? '') !== '' || reducerData.location.phone?.trim() !== '';
+          return reducerData.location.name?.trim() !== '' && reducerData.location.timezone?.trim() !== '' && hasContact;
         }
         return (
-          data.location.name.trim() !== '' &&
-          data.location.address?.trim() !== '' &&
-          (data.location.email?.trim() ?? '') !== '' &&
-          data.location.phone.trim() !== ''
+          reducerData.location.name?.trim() !== '' &&
+          reducerData.location.address?.trim() !== '' &&
+          (reducerData.location.email?.trim() ?? '') !== '' &&
+          reducerData.location.phone?.trim() !== ''
         );
       default:
         return true; // Other steps are optional
@@ -155,8 +155,9 @@ export const useSetupWizard = () => {
   return {
     currentStep,
     totalSteps,
-    data,
+    data: reducerData,
     isLoading,
+    hydratedFromDraft,
     updateData,
     nextStep,
     prevStep,

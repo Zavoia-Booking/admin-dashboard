@@ -11,7 +11,7 @@ import { registerOwnerRequestAction, clearAuthErrorAction } from "../actions"
 import type { RootState } from "../../../app/providers/store"
 import { useForm } from "react-hook-form"
 import { PasswordStrength } from "./PasswordStrength"
-import { sanitizeName, validatePasswordPolicy } from "../validation"
+import { sanitizeName, validatePasswordPolicy } from "../../../shared/utils/validation"
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
 

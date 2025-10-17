@@ -5,6 +5,7 @@ import { useSetupWizard } from '../../../shared/hooks/useSetupWizard';
 import { useDispatch, useSelector } from 'react-redux';
 import { wizardCompleteAction } from '../actions';
 import WizardLayout from '../components/WizardLayout';
+import { Skeleton } from '../../../shared/components/ui/skeleton';
 import StepBusinessInfo from '../components/StepBusinessInfo';
 import StepTeam from '../components/StepTeam';
 import StepLaunch from '../components/StepLaunch';
@@ -47,6 +48,7 @@ const SetupWizardPage: React.FC = () => {
     totalSteps,
     data,
     isLoading,
+    hydratedFromDraft,
     updateData,
     nextStep,
     prevStep,
@@ -104,6 +106,8 @@ const SetupWizardPage: React.FC = () => {
     nextStep();
   };
 
+  const isWizardLoading = useSelector((state: any) => state.setupWizard.isLoading);
+
   return (
     user?.wizardCompleted && currentStep < totalSteps ? (
       <div className="max-w-2xl mx-auto text-center py-12 cursor-default">
@@ -137,10 +141,50 @@ const SetupWizardPage: React.FC = () => {
         showNext={!isLastStep}
         nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
       >
-        {isLastStep ? (
-          <CurrentStepComponent data={data} />
+        {isWizardLoading && !hydratedFromDraft ? (
+          <div className="space-y-6 cursor-default">
+            <div className="grid gap-6">
+              <div className="space-y-2">
+                <Skeleton className="h-[14px] w-32" />
+                <Skeleton className="h-10 w-full" />
+                <div className="h-5" />
+              </div>
+              <div className="space-y-3">
+                <Skeleton className="h-[14px] w-24" />
+                <Skeleton className="h-[12px] w-64" />
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} className="h-24 w-full rounded-lg" />
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-[14px] w-40" />
+                  <Skeleton className="h-[12px] w-12" />
+                </div>
+                <Skeleton className="h-[72px] w-full" />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Skeleton className="h-[14px] w-28" />
+                  <Skeleton className="h-10 w-full" />
+                  <div className="h-5" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-[14px] w-32" />
+                  <Skeleton className="h-10 w-full" />
+                  <div className="h-5" />
+                </div>
+              </div>
+            </div>
+          </div>
         ) : (
-          <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} />
+          isLastStep ? (
+            <CurrentStepComponent data={data} />
+          ) : (
+            <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} />
+          )
         )}
       </WizardLayout>
     )
