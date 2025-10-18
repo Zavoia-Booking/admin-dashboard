@@ -7,24 +7,19 @@ import type { SubscriptionSummary } from '../../settings/types';
 
 interface SubscriptionInfoProps {
   currentUser: AuthUser | null;
-  teamMembersSummary: {
-    active: number;
-    pending: number;
-  } | null;
   subscriptionSummary: SubscriptionSummary | null;
   onClose: () => void;
 }
 
 export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
   currentUser,
-  teamMembersSummary,
   subscriptionSummary,
   onClose,
 }) => {
   const navigate = useNavigate();
 
   const paidSeats = currentUser?.entitlements?.paidTeamSeats ?? subscriptionSummary?.currentTeamMembersCount ?? 0;
-  const usedSeats = (teamMembersSummary?.active ?? 0) + (teamMembersSummary?.pending ?? 0);
+  const usedSeats = subscriptionSummary?.usedSeats ?? 0;
   const availableSeats = paidSeats - usedSeats;
   const hasAvailableSeats = availableSeats > 0;
 

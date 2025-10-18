@@ -205,7 +205,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                   <div className="space-y-3">
                     <SubscriptionInfo
                       currentUser={currentUser}
-                      teamMembersSummary={teamMembersSummary}
                       subscriptionSummary={subscriptionSummary}
                       onClose={onClose}
                     />
