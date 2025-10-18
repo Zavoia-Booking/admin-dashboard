@@ -1,4 +1,4 @@
-import { useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useCallback, forwardRef, useImperativeHandle, useState, useRef } from 'react';
 import AddressComposer from '../../../shared/components/common/AddressComposer';
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import LocationNameField from '../../../shared/components/common/LocationNameField';
@@ -18,6 +18,10 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
     defaultValues: data,
     mode: 'onChange'
   });
+
+  const [isAddressValid, setIsAddressValid] = useState(true);
+  const [addressComposerKey, setAddressComposerKey] = useState(0);
+  const prevIsRemoteRef = useRef<boolean>(!!(watch('location') as any)?.isRemote);
 
   const isRemote = !!(watch('location') as any)?.isRemote;
   const businessEmail = (watch('businessInfo.email' as any) as string) || '';
@@ -67,10 +71,10 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
   // Notify parent when validity changes
   useEffect(() => {
     if (onValidityChange) {
-      const valid = formIsValid && Object.keys(errors).length === 0;
+      const valid = formIsValid && Object.keys(errors).length === 0 && (isRemote || isAddressValid);
       onValidityChange(valid);
     }
-  }, [formIsValid, errors, onValidityChange]);
+  }, [formIsValid, errors, isAddressValid, isRemote, onValidityChange]);
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
@@ -79,9 +83,10 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
     isValid: () => {
       // Check if there are any errors
       if (Object.keys(errors).length > 0) return false;
+      if (!isRemote && !isAddressValid) return false;
       return formIsValid;
     },
-  }), [watch, trigger, errors, formIsValid]);
+  }), [watch, trigger, errors, formIsValid, isAddressValid, isRemote]);
 
   // Sync form with external data changes (from Redux) and trigger validation
   useEffect(() => {
@@ -91,6 +96,16 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
       trigger();
     }, 0);
   }, [data, reset, trigger]);
+
+  // When toggling from remote back to physical, rehydrate from draft and remount composer
+  useEffect(() => {
+    const prev = prevIsRemoteRef.current;
+    if (prev && !isRemote) {
+      reset(data);
+      setAddressComposerKey((k) => k + 1);
+    }
+    prevIsRemoteRef.current = isRemote;
+  }, [isRemote, reset, data]);
 
   // Re-trigger validation when useBusinessContact changes (affects required fields)
   useEffect(() => {
@@ -132,7 +147,9 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
         {/* Remote Services Toggle */}
         <RemoteLocationToggle
           isRemote={isRemote}
-          onChange={(checked) => setValue('location.isRemote' as any, checked, { shouldDirty: true, shouldTouch: true })}
+          onChange={(checked) => {
+            setValue('location.isRemote' as any, checked, { shouldDirty: true, shouldTouch: true });
+          }}
         />
 
         {/* Physical Location */}
@@ -150,10 +167,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
                 Address *
               </Label>
               <AddressComposer
+                key={addressComposerKey}
                 value={watch('location.address' as any) as any}
                 onChange={(next) => setValue('location.address' as any, next, { shouldDirty: true, shouldTouch: true })}
                 addressComponents={watch('location.addressComponents' as any) as any}
                 onAddressComponentsChange={(components) => setValue('location.addressComponents' as any, components, { shouldDirty: true, shouldTouch: true })}
+                onValidityChange={(isValid) => setIsAddressValid(isValid)}
               />
             </div>
 

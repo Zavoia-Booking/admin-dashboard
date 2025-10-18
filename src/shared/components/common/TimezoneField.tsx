@@ -38,8 +38,8 @@ export const TimezoneField: React.FC<TimezoneFieldProps> = ({
           {helpText}
         </p>
       )}
-      <div className="flex items-start gap-2">
-        <div className="flex-1">
+      <div className="flex items-start gap-2 max-w-full">
+        <div className="flex-1 min-w-0">
           <TimezoneSelect
             value={value}
             onChange={onChange}
@@ -50,7 +50,7 @@ export const TimezoneField: React.FC<TimezoneFieldProps> = ({
         {showAutoDetect && (
           <DetectTimezoneButton
             onDetect={onChange}
-            className="shrink-0"
+            className="shrink-0 max-w-[40%] truncate"
           />
         )}
       </div>

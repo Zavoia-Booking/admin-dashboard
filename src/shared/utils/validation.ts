@@ -23,3 +23,25 @@ export const validatePasswordPolicy = (password: string): true | string => {
   return true;
 }
 
+// Generic helpers
+export const sanitizeDigits = (value: string): string => value.replace(/\D+/g, '');
+
+export const minLengthError = (fieldLabel: string, value: string, min = 2): string | null => {
+  const v = (value ?? '').trim();
+  if (!v) return null; // only enforce when present
+  return v.length < min ? `${fieldLabel} must be at least ${min} characters` : null;
+}
+
+// Required + min length combined helper (for mandatory fields)
+export const requiredMinError = (fieldLabel: string, value: string, min = 2): string | null => {
+  const v = (value ?? '').trim();
+  if (!v) return `${fieldLabel} is required`;
+  return v.length < min ? `${fieldLabel} must be at least ${min} characters` : null;
+}
+
+// Required-only helper (no min-length)
+export const requiredError = (fieldLabel: string, value: string): string | null => {
+  const v = (value ?? '').trim();
+  return v ? null : `${fieldLabel} is required`;
+}
+

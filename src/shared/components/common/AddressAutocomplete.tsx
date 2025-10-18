@@ -152,7 +152,7 @@ export default function AddressAutocomplete({
         />
       </div>
       {open && (suggestions.length > 0 || loading) && (
-        <div className="absolute z-20 mt-1 w-full rounded-md border bg-white shadow-lg overflow-hidden">
+        <div className="absolute z-15 mt-1 w-full rounded-md border bg-white shadow-lg overflow-hidden">
           {loading && (
             <div className="p-3 text-sm text-gray-500 animate-pulse">Searching...</div>
           )}

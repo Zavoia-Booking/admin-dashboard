@@ -223,7 +223,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
           <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', open && 'rotate-180')} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[420px] p-0 shadow-lg border border-gray-200" align="start" side="bottom" sideOffset={8} avoidCollisions={false}>
+      <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-gray-200 max-h-[70vh] overflow-hidden" align="start" side="bottom" sideOffset={8} avoidCollisions={false} collisionPadding={0}>
         <Command shouldFilter={false}>
           <div className="p-2 bg-popover">
             <CommandInput 
@@ -233,7 +233,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
               className="border-0 focus:border-0 focus:ring-0 shadow-none"
             />
           </div>
-          <CommandList className="max-h-[320px] overflow-y-auto" onScroll={handleScroll}>
+          <CommandList className="max-h-[60vh] overflow-y-auto" onScroll={handleScroll}>
             <CommandEmpty className="py-6 text-center text-sm text-muted-foreground">No timezone found.</CommandEmpty>
             <CommandGroup>
               {filteredTimezones.map((tz) => (
