@@ -164,7 +164,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
 
   return (
     <div className="space-y-6 cursor-default">
-      <div className="grid gap-6">
+      <div className="grid gap-2">
         <LocationNameField
           value={(businessNameField.value as string) || ''}
           onChange={(v) => businessNameField.onChange(v)}
@@ -175,40 +175,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
           icon={Building2}
         />
 
-        <div className="space-y-3">
-          <Label className="text-sm font-medium cursor-default">
-            Industry *
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            This helps us suggest relevant services and templates
-          </p>
-          {isLoadingIndustries ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {[...Array(6)].map((_, i) => (
-                <Skeleton key={i} className="h-24 w-full rounded-lg" />
-              ))}
-            </div>
-          ) : (
-            <IndustrySelector
-              industries={industries}
-              selectedId={selectedIndustryId}
-              onSelect={handleSelectIndustry}
-            />
-          )}
-        </div>
-
-        <LocationDescriptionField
-          value={businessDescription as string}
-          onChange={(v) => setValue('businessInfo.description' as any, v, { shouldDirty: true })}
-          label="Business Description"
-          placeholder="Briefly describe what your business does..."
-          maxLength={500}
-          rows={3}
-          id="businessInfo.description"
-          className="cursor-default"
-        />
-
-        {/* Contact & Regional */}
+        {/* Contact first under Name */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="businessInfo.email" className="text-sm font-medium cursor-default">Business Email</Label>
@@ -263,7 +230,40 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
           </div>
         </div>
 
-        <div className="space-y-2">
+        <LocationDescriptionField
+          value={businessDescription as string}
+          onChange={(v) => setValue('businessInfo.description' as any, v, { shouldDirty: true })}
+          label="Business Description"
+          placeholder="Briefly describe what your business does..."
+          maxLength={500}
+          rows={3}
+          id="businessInfo.description"
+          className="cursor-default"
+        />
+
+        <div className="space-y-3 pt-4">
+          <Label className="text-sm font-medium cursor-defaul mb-0">
+            Industry *
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            This helps us suggest relevant services and templates
+          </p>
+          {isLoadingIndustries ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {[...Array(6)].map((_, i) => (
+                <Skeleton key={i} className="h-24 w-full rounded-lg" />
+              ))}
+            </div>
+          ) : (
+            <IndustrySelector
+              industries={industries}
+              selectedId={selectedIndustryId}
+              onSelect={handleSelectIndustry}
+            />
+          )}
+        </div>
+
+        <div className="space-y-2 pt-4">
           <Label className="text-sm font-medium cursor-default">Business Logo (Optional)</Label>
           <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />

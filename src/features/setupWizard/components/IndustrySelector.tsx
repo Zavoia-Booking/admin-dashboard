@@ -32,7 +32,7 @@ const IndustryOption = memo(function IndustryOption({ id, name, selected, onSele
       aria-checked={selected}
       tabIndex={0}
       className={`
-        group relative flex items-center justify-center min-h-[52px] px-3 py-2 rounded-lg border text-sm font-normal transition-colors cursor-pointer
+        group relative flex items-center justify-center h-20 sm:h-auto sm:min-h-[52px] px-3 py-2 rounded-xl sm:rounded-lg border text-sm font-medium sm:font-normal transition-colors cursor-pointer
         ${selected
           ? 'border-primary bg-primary/5 text-primary shadow-xs'
           : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
@@ -53,7 +53,7 @@ const IndustryOption = memo(function IndustryOption({ id, name, selected, onSele
 
 const IndustrySelector = ({ industries, selectedId, onSelect }: IndustrySelectorProps) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" role="radiogroup" aria-label="Select industry">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label="Select industry">
       {industries.map((industry) => (
         <IndustryOption
           key={industry.id}

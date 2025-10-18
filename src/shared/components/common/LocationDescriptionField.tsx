@@ -49,7 +49,7 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         maxLength={maxLength}
-        className="resize-none border-gray-200 hover:border-gray-300 focus:border-blue-400 transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0"
+        className="resize-none border-gray-200 hover:border-gray-300 focus:border-blue-400 transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0 h-28 sm:h-auto"
       />
     </div>
   );
