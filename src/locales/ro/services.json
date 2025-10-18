@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "Servicii",
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "avgPrice": "Preț Mediu",
+      "bookings": "Rezervări"
+    },
+    "emptyState": {
+      "noServices": "Nu au fost găsite servicii",
+      "noServicesDescription": "Începeți prin adăugarea primului serviciu.",
+      "noResults": "Nu au fost găsite servicii care să corespundă filtrelor.",
+      "clearFilters": "Șterge filtrele"
+    },
+    "service": {
+      "status": {
+        "active": "Activ",
+        "inactive": "Inactiv"
+      },
+      "actions": {
+        "edit": "Editează",
+        "delete": "Șterge"
+      }
+    }
+  },
+  "addService": {
+    "title": "Adaugă Serviciu Nou",
+    "sections": {
+      "serviceInfo": "Informații Serviciu",
+      "pricingDuration": "Preț și Durată",
+      "settings": "Setări Serviciu"
+    },
+    "form": {
+      "name": {
+        "label": "Numele Serviciului",
+        "placeholder": "Introduceți numele serviciului..."
+      },
+      "description": {
+        "label": "Descriere",
+        "placeholder": "Descrieți ce include acest serviciu..."
+      },
+      "price": {
+        "label": "Preț ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Durată (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Status Serviciu",
+        "activeDescription": "Serviciul este disponibil pentru rezervare",
+        "inactiveDescription": "Serviciul este ascuns pentru clienți"
+      }
+    },
+    "location": {
+      "currentLocation": "Atribuire la locația curentă: {{locationName}}. Schimbați locația în antet pentru a o aplica la o altă locație.",
+      "allLocations": "Acest serviciu va fi creat în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a-l crea doar acolo."
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "create": "Creează Serviciu"
+    },
+    "confirmDialog": {
+      "title": "Creează Serviciu Nou",
+      "description": "Sunteți sigur că doriți să creați \"{{name}}\" cu un preț de ${{price}} și o durată de {{duration}} minute?",
+      "cancel": "Anulează",
+      "confirm": "Creează Serviciu"
+    }
+  },
+  "editService": {
+    "title": "Editează Serviciu",
+    "sections": {
+      "serviceInfo": "Informații Serviciu",
+      "pricingDuration": "Preț și Durată",
+      "settings": "Setări Serviciu"
+    },
+    "form": {
+      "name": {
+        "label": "Numele Serviciului",
+        "placeholder": "Introduceți numele serviciului..."
+      },
+      "description": {
+        "label": "Descriere",
+        "placeholder": "Descrieți serviciul..."
+      },
+      "price": {
+        "label": "Preț ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Durată (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Status Serviciu",
+        "activeDescription": "Serviciul este disponibil pentru rezervare",
+        "inactiveDescription": "Serviciul este ascuns pentru clienți"
+      }
+    },
+    "location": {
+      "currentLocation": "Actualizare pentru locația curentă: {{locationName}}. Schimbați locația în antet pentru a edita acest serviciu în altă locație.",
+      "allLocations": "Această actualizare se va aplica în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a ținti doar acea locație."
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "update": "Actualizează Serviciu"
+    },
+    "confirmDialog": {
+      "title": "Actualizează Serviciu",
+      "description": "Sunteți sigur că doriți să actualizați serviciul \"{{name}}\"? Aceasta va modifica serviciul în catalogul dvs.",
+      "cancel": "Anulează",
+      "confirm": "Actualizează Serviciu"
+    }
+  },
+  "deleteService": {
+    "title": "Șterge \"{{serviceName}}\"?",
+    "description": "Această acțiune este permanentă și nu poate fi anulată.",
+    "confirm": "Șterge",
+    "cancel": "Anulează"
+  },
+  "toggleService": {
+    "title": "Actualizează status",
+    "description": "Sunteți sigur că doriți să schimbați statusul serviciului \"{{serviceName}}\"?",
+    "confirm": "Comută",
+    "cancel": "Anulează"
+  }
+}
