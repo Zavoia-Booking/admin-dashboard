@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { DollarSign, FileText, Settings } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
@@ -49,6 +50,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   isOpen, 
   onClose
 }) => {
+  const text = useTranslation('services').t;
   const dispatch = useDispatch();
   const currentLocation = useSelector(getCurrentLocationSelector);
   // Keep selector in case future UI needs; currently showing info when All locations
@@ -100,7 +102,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Add New Service"
+        title={text('addService.title')}
         contentClassName="bg-muted/50 scrollbar-hide"
         footer={
           <div className="flex gap-3">
@@ -110,14 +112,14 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
               onClick={handleCancel}
               className="flex-1"
             >
-              Cancel
+              {text('addService.buttons.cancel')}
             </Button>
             <Button 
               type="submit"
               form="add-service-form"
               className="flex-1"
             >
-              Create Service
+              {text('addService.buttons.create')}
             </Button>
           </div>
         }
@@ -131,24 +133,24 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   <div className="p-2 rounded-xl bg-primary/10">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Service Information</h3>
+                  <h3 className="text-base font-semibold text-foreground">{text('addService.sections.serviceInfo')}</h3>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-foreground">Service Name</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-foreground">{text('addService.form.name.label')}</Label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Enter service name..."
+                    placeholder={text('addService.form.name.placeholder')}
                     {...register('name', { required: true })}
                     className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+                  <Label htmlFor="description" className="text-sm font-medium text-foreground">{text('addService.form.description.label')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe what this service includes..."
+                    placeholder={text('addService.form.description.placeholder')}
                     {...register('description')}
                     className="min-h-[80px] text-base border-border/50 bg-background/50 backdrop-blur-sm resize-none"
                     rows={3}
@@ -162,15 +164,15 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/20">
                     <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Pricing & Duration</h3>
+                  <h3 className="text-base font-semibold text-foreground">{text('addService.sections.pricingDuration')}</h3>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price" className="text-sm font-medium text-foreground">Price ($)</Label>
+                    <Label htmlFor="price" className="text-sm font-medium text-foreground">{text('addService.form.price.label')}</Label>
                     <Input
                       id="price"
                       type="number"
-                      placeholder="0.00"
+                      placeholder={text('addService.form.price.placeholder')}
                       {...register('price', { required: true, valueAsNumber: true, min: 0 })}
                       className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                       min="0"
@@ -179,11 +181,11 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="duration" className="text-sm font-medium text-foreground">Duration (min)</Label>
+                    <Label htmlFor="duration" className="text-sm font-medium text-foreground">{text('addService.form.duration.label')}</Label>
                     <Input
                       id="duration"
                       type="number"
-                      placeholder="30"
+                      placeholder={text('addService.form.duration.placeholder')}
                       {...register('duration', { required: true, valueAsNumber: true, min: 1 })}
                       className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                       min="1"
@@ -342,25 +344,24 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
                     <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Service Settings</h3>
+                  <h3 className="text-base font-semibold text-foreground">{text('addService.sections.settings')}</h3>
                 </div>
                 {currentLocation ? (
                   <div className="text-sm text-muted-foreground">
-                    Assigning to current location: <span className="font-medium text-foreground">{currentLocation.name}</span>.
-                    Switch location in the header to apply to another location.
+                    {text('addService.location.currentLocation', { locationName: currentLocation.name })}
                   </div>
                 ) : (
                   <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
-                    This service will be created across all business locations. Switch to a specific location in the header to create it only there.
+                    {text('addService.location.allLocations')}
                   </div>
                 )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">Service Status</Label>
+                    <Label className="text-sm font-medium text-foreground">{text('addService.form.status.label')}</Label>
                     <p className="text-xs text-muted-foreground">
                       {watch('isActive') === true 
-                        ? 'Service is available for booking' 
-                        : 'Service is hidden from clients'}
+                        ? text('addService.form.status.activeDescription')
+                        : text('addService.form.status.inactiveDescription')}
                     </p>
                   </div>
                   <Switch
@@ -378,15 +379,19 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Create New Service</AlertDialogTitle>
+            <AlertDialogTitle>{text('addService.confirmDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to create "${getValues('name')}" with a price of $${getValues('price')} and duration of ${getValues('duration')} minutes?`}
+              {text('addService.confirmDialog.description', { 
+                name: getValues('name'), 
+                price: getValues('price'), 
+                duration: getValues('duration') 
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{text('addService.confirmDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmCreate}>
-              Create Service
+              {text('addService.confirmDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

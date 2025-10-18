@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { DollarSign, FileText, Settings, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
@@ -26,6 +27,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   onClose,
   service
 }) => {
+  const text = useTranslation('services').t;
   const dispatch = useDispatch();
   const currentLocation = useSelector(getCurrentLocationSelector);
   
@@ -94,7 +96,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Edit Service"
+        title={text('editService.title')}
         contentClassName="bg-muted/50 scrollbar-hide"
         footer={
           <div className="flex gap-3">
@@ -103,14 +105,14 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
               onClick={handleCancel}
               className="flex-1"
             >
-              Cancel
+              {text('editService.buttons.cancel')}
             </Button>
             <Button
               type="submit"
               form="edit-service-form"
               className="flex-1"
             >
-              Update Service
+              {text('editService.buttons.update')}
             </Button>
           </div>
         }
@@ -124,24 +126,24 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   <div className="p-2 rounded-xl bg-primary/10">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Service Information</h3>
+                  <h3 className="text-base font-semibold text-foreground">{text('editService.sections.serviceInfo')}</h3>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-foreground">Service Name</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-foreground">{text('editService.form.name.label')}</Label>
                   <Input
                     id="name"
                     type="text"
-                    placeholder="Enter service name..."
+                    placeholder={text('editService.form.name.placeholder')}
                     {...register('name', { required: true })}
                     className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                     required
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
+                  <Label htmlFor="description" className="text-sm font-medium text-foreground">{text('editService.form.description.label')}</Label>
                   <Textarea
                     id="description"
-                    placeholder="Describe the service..."
+                    placeholder={text('editService.form.description.placeholder')}
                     {...register('description')}
                     rows={3}
                     className="min-h-[80px] text-base border-border/50 bg-background/50 backdrop-blur-sm resize-none"
@@ -155,33 +157,33 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/20">
                     <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Pricing & Duration</h3>
+                  <h3 className="text-base font-semibold text-foreground">{text('editService.sections.pricingDuration')}</h3>
                 </div>
                 <div className="mb-2 text-xs text-muted-foreground">
                   All assigned team members will use this price and duration unless a custom value is set for them below.
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price" className="text-sm font-medium text-foreground">Price ($)</Label>
+                    <Label htmlFor="price" className="text-sm font-medium text-foreground">{text('editService.form.price.label')}</Label>
                     <Input
                       id="price"
                       type="number"
                       min="0"
                       step="0.01"
-                      placeholder="0.00"
+                      placeholder={text('editService.form.price.placeholder')}
                       {...register('price', { required: true, valueAsNumber: true, min: 0 })}
                       className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="duration" className="text-sm font-medium text-foreground">Duration (min)</Label>
+                    <Label htmlFor="duration" className="text-sm font-medium text-foreground">{text('editService.form.duration.label')}</Label>
                     <Input
                       id="duration"
                       type="number"
                       min="1"
                       step="1"
-                      placeholder="30"
+                      placeholder={text('editService.form.duration.placeholder')}
                       {...register('duration', { required: true, valueAsNumber: true, min: 1 })}
                       className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
                       required
@@ -196,24 +198,24 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
                     <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Service Settings</h3>
+                  <h3 className="text-base font-semibold text-foreground">{text('editService.sections.settings')}</h3>
                 </div>
                 {currentLocation ? (
                   <div className="text-sm text-muted-foreground">
-                    Updating for current location: <span className="font-medium text-foreground">{currentLocation.name}</span>. Switch location in the header to edit this service in another location.
+                    {text('editService.location.currentLocation', { locationName: currentLocation.name })}
                   </div>
                 ) : (
                   <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
-                    This update will apply across all business locations. Switch to a specific location in the header to target only that location.
+                    {text('editService.location.allLocations')}
                   </div>
                 )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">Service Status</Label>
+                    <Label className="text-sm font-medium text-foreground">{text('editService.form.status.label')}</Label>
                     <p className="text-xs text-muted-foreground">
                       {watch('isActive') === true
-                        ? 'Service is available for booking'
-                        : 'Service is hidden from clients'}
+                        ? text('editService.form.status.activeDescription')
+                        : text('editService.form.status.inactiveDescription')}
                     </p>
                   </div>
                   <Switch
@@ -233,16 +235,16 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-primary" />
-              Update Service
+              {text('editService.confirmDialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to update the service "${getValues('name')}"? This will modify the service in your catalog.`}
+              {text('editService.confirmDialog.description', { name: getValues('name') })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{text('editService.confirmDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmUpdate}>
-              Update Service
+              {text('editService.confirmDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
