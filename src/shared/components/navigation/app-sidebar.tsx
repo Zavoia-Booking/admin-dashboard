@@ -15,6 +15,7 @@ import { useLocation } from "react-router-dom"
 import { NavMain } from "./nav-main"
 import { NavUser } from "./nav-user"
 import { LocationSwitcher } from "../team-switcher"
+import { LanguageSwitcher } from "../common/LanguageSwitcher"
 import {
   Sidebar,
   SidebarContent,
@@ -156,6 +157,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <LocationSwitcher location={data.location} />
+        <div className={"max-w-16 min-w-16"}>
+          <LanguageSwitcher />
+        </div>
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={filteredNavItems} />

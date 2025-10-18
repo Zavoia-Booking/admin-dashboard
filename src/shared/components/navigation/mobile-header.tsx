@@ -4,7 +4,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { getAllLocationsSelector, getCurrentLocationSelector } from '../../../features/locations/selectors';
 import { setCurrentLocation } from '../../../features/locations/actions';
-import type { LocationType } from '../../../shared/types/location';
+import type { LocationType } from '../../types/location.ts';
+import { LanguageSwitcher } from '../common/LanguageSwitcher';
 
 export function MobileHeader() {
   const location = useLocation();
@@ -44,8 +45,9 @@ export function MobileHeader() {
           <h1 className="text-lg font-semibold text-gray-900">{getPageTitle()}</h1>
         </div>
 
-        {/* Right side - Location switcher (hidden on Locations page) */}
+        {/* Right side - Language switcher and Location switcher (hidden on Locations page) */}
         <div className="flex items-center space-x-2">
+          <LanguageSwitcher />
           {pathname !== '/locations' && (
             allLocations && allLocations.length > 1 ? (
               <Select
@@ -53,11 +55,15 @@ export function MobileHeader() {
                 onValueChange={(value) => {
                   if (value === 'all') {
                     dispatch(setCurrentLocation({ location: null }));
-                    try { localStorage.removeItem('currentLocationId'); } catch {}
+                    try { localStorage.removeItem('currentLocationId'); } catch {
+                      return;
+                    }
                   } else {
                     const next = allLocations.find(l => String(l.id) === value) || null;
                     dispatch(setCurrentLocation({ location: next }));
-                    try { if (next?.id != null) localStorage.setItem('currentLocationId', String(next.id)); } catch {}
+                    try { if (next?.id != null) localStorage.setItem('currentLocationId', String(next.id)); } catch {
+                      return;
+                    }
                   }
                 }}
               >

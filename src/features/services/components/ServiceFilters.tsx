@@ -1,4 +1,5 @@
 import { type FC, useCallback, useState } from "react";
+import { useTranslation } from 'react-i18next';
 import { FilterPanel } from "../../../shared/components/common/FilterPanel.tsx";
 import type { ServiceFilterState } from "../types.ts";
 import { getDefaultServiceFilters } from "../utils.ts";
@@ -11,6 +12,7 @@ import { Button } from "../../../shared/components/ui/button.tsx";
 import { ALL } from "../../../shared/constants.ts";
 
 export const ServiceFilters: FC<any> = () => {
+    const text = useTranslation('services').t;
     const dispatch = useDispatch();
     const [localFilters, setLocalFilters] = useState<ServiceFilterState>(getDefaultServiceFilters());
     const [showFilters, setShowFilters] = useState(false);
@@ -54,7 +56,7 @@ export const ServiceFilters: FC<any> = () => {
             <div className="flex gap-2 items-center">
                 <div className="relative flex-1">
                     <Input
-                        placeholder="Search services..."
+                        placeholder={text('filters.searchPlaceholder')}
                         value={localFilters.searchTerm}
                         onChange={(event) => {
                             setLocalFilters((prevState) => {
@@ -97,7 +99,7 @@ export const ServiceFilters: FC<any> = () => {
                     }}
                 >
                     <Plus className="h-5 w-5"/>
-                    <span className="font-semibold">Add Service</span>
+                    <span className="font-semibold">{text('filters.addService')}</span>
                 </Button>
             </div>
             {showFilters &&
