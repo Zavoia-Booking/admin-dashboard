@@ -71,20 +71,41 @@ export default function AddressAutocomplete({
     const t = setTimeout(async () => {
       try {
         const raw = await locationIqAutocomplete({ query, limit, countryCodes });
+        console.log('LocationIQ raw response:', JSON.stringify(raw, null, 2));
         const seen = new Set<string>();
         const mapped: AddressSuggestion[] = [];
         (raw || []).forEach((r: any) => {
+          console.log('LocationIQ address fields:', r.address);
           const id = String(r.place_id ?? r.osm_id ?? r.placeId ?? `${r.lat},${r.lon}`);
           const lat = Number(r.lat);
           const lng = Number(r.lon ?? r.lng);
           const key = `${id}|${lat}|${lng}`;
           if (seen.has(key)) return;
           seen.add(key);
+          
+          // LocationIQ provides:
+          // - 'name': can be building name (if 'road' exists) OR the road itself (if no 'road')
+          //   BUT if 'name' looks like a pure number and no 'road', it's likely a house number
+          // - 'house_number': street number (e.g., "3")
+          // - 'road': street name
+          const hasRoad = !!r.address?.road;
+          const nameValue = r.address?.name || '';
+          const houseNumber = r.address?.house_number || '';
+          const isNumeric = /^\d+$/.test(nameValue.trim()); // Check if name is just digits
+          
+          // Use name as building/number if: 1) there's a road, OR 2) it's purely numeric, OR 3) no house_number provided
+          const buildingName = (hasRoad || isNumeric || !houseNumber) ? nameValue : '';
+          
+          // Combine building name + house number for the Number field (e.g., "Bl. 444, 3")
+          const fullNumber = buildingName && houseNumber && buildingName !== houseNumber
+            ? `${buildingName}, ${houseNumber}`
+            : buildingName || houseNumber;
+          
           mapped.push({
             id,
             displayName: r.display_name ?? r.description ?? r.name ?? query,
             address: r.address?.road || r.display_name,
-            streetNumber: r.address?.house_number,
+            streetNumber: fullNumber,
             lat,
             lng,
             city: r.address?.city || r.address?.town || r.address?.village,
@@ -151,12 +172,17 @@ export default function AddressAutocomplete({
           className="h-11 flex-1 border-0 !pl-2 pr-2 focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
-      {open && (suggestions.length > 0 || loading) && (
+      {open && (
         <div className="absolute z-15 mt-1 w-full rounded-md border bg-white shadow-lg overflow-hidden">
           {loading && (
             <div className="p-3 text-sm text-gray-500 animate-pulse">Searching...</div>
           )}
-          {!loading && suggestions.map((s, idx) => (
+          {!loading && suggestions.length === 0 && query.trim().length >= 3 && (
+            <div className="p-3 text-sm text-gray-500">
+              No addresses found. Try a different search or use Manual mode.
+            </div>
+          )}
+          {!loading && suggestions.length > 0 && suggestions.map((s, idx) => (
             <button
               key={`${s.id}-${idx}`}
               type="button"
@@ -169,9 +195,7 @@ export default function AddressAutocomplete({
               )}
             </button>
           ))}
-          {!loading && suggestions.length === 0 && (
-            <div className="p-3 text-sm text-gray-500">No results</div>
-          )}
+
         </div>
       )}
     </div>

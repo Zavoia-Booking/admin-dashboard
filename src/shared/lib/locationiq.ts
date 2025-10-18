@@ -10,6 +10,18 @@ function getToken(): string | undefined {
   return (import.meta as any).env?.VITE_LOCATIONIQ_TOKEN;
 }
 
+// Normalize Romanian diacritics for better search results
+function normalizeDiacritics(text: string): string {
+  const diacriticsMap: Record<string, string> = {
+    'ă': 'a', 'Ă': 'A',
+    'â': 'a', 'Â': 'A',
+    'î': 'i', 'Î': 'I',
+    'ș': 's', 'Ș': 'S',
+    'ț': 't', 'Ț': 'T',
+  };
+  return text.replace(/[ăâîșțĂÂÎȘȚ]/g, char => diacriticsMap[char] || char);
+}
+
 export async function locationIqAutocomplete(params: {
   query: string;
   limit?: number;
@@ -35,7 +47,8 @@ export async function locationIqAutocomplete(params: {
 
   const url = new URL(`${BASE_URL}/autocomplete`);
   url.searchParams.set('key', token);
-  url.searchParams.set('q', params.query);
+  // Normalize diacritics to improve search results (e.g., "Garlei" finds "Gârlei")
+  url.searchParams.set('q', normalizeDiacritics(params.query));
   url.searchParams.set('limit', String(params.limit ?? 5));
   url.searchParams.set('autocomplete', '1');
   if (params.countryCodes?.length) {
@@ -43,6 +56,11 @@ export async function locationIqAutocomplete(params: {
   }
 
   const res = await fetch(url.toString());
+  // 404 means no results found, which is valid (not an error)
+  if (res.status === 404) {
+    CACHE.set(key, { data: [], ts: now });
+    return [];
+  }
   if (!res.ok) return [];
   const json = await res.json();
   CACHE.set(key, { data: json, ts: now });

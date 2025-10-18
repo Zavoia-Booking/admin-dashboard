@@ -49,6 +49,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
     hydrateFromComponents,
   } = useAddressManualFields({
     components: addressComponents,
+    fullAddressDisplay: value, // pass the saved full address for display in locked street input
     onChange: (next) => onChange(next),
     onComponentsChange: (c) => onAddressComponentsChange?.(c),
     onValidityChange,
@@ -93,7 +94,8 @@ export default function AddressComposer({ value, onChange, className, addressCom
       setManualEdited(false);
       setAddressSelected(true);
       setManualMode(false);
-      onChange(composeFullAddress(streetName, number, s.city ?? '', s.postalCode ?? '', s.country ?? ''));
+      // Save the full display name as the address, not the composed version
+      onChange(fullAddress);
       onAddressComponentsChange?.({ street: streetName, streetNumber: number, city: s.city ?? '', postalCode: s.postalCode ?? '', country: s.country ?? '' });
       return;
     }

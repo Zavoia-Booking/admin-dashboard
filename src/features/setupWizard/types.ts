@@ -9,6 +9,7 @@ export interface StepHandle {
 export interface StepProps {
 	data: WizardData;
 	onValidityChange?: (isValid: boolean) => void;
+	updateData?: (data: Partial<WizardData>) => void;
 }
 
 export interface WizardLayoutProps {

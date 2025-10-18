@@ -114,12 +114,12 @@ const AddressManualFields: React.FC<Props> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-sm font-medium text-gray-700">Number *</Label>
+          <Label className="text-sm font-medium text-gray-700">Building / Number *</Label>
           <div className="relative">
             <Input 
               value={streetNumber} 
               onChange={(e) => onNumberChange(e.target.value)} 
-              placeholder="e.g. 79" 
+              placeholder="e.g. Bl. 556, Apt. 12" 
               className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 numberError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 

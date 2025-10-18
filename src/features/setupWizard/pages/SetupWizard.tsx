@@ -183,7 +183,7 @@ const SetupWizardPage: React.FC = () => {
           isLastStep ? (
             <CurrentStepComponent data={data} />
           ) : (
-            <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} />
+            <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} updateData={updateData} />
           )
         )}
       </WizardLayout>

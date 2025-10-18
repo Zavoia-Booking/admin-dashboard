@@ -13,7 +13,7 @@ import type { WorkingHours } from '../../../shared/types/location';
 import type { StepProps, StepHandle } from '../types';
 import { isE164 } from '../../../shared/utils/validation';
 
-const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange }, ref) => {
+const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange, updateData }, ref) => {
   const { control, register, watch, setValue, reset, trigger, formState: { errors, isValid: formIsValid } } = useForm<WizardData>({
     defaultValues: data,
     mode: 'onChange'
@@ -23,7 +23,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
   const [addressComposerKey, setAddressComposerKey] = useState(0);
   const prevIsRemoteRef = useRef<boolean>(!!(watch('location') as any)?.isRemote);
 
-  const isRemote = !!(watch('location') as any)?.isRemote;
+  const isRemote = watch('location.isRemote' as any) === true;
   const businessEmail = (watch('businessInfo.email' as any) as string) || '';
   const businessPhone = (watch('businessInfo.phone' as any) as string) || '';
   const useBusinessContact = (watch('location.useBusinessContact' as any) as boolean) ?? true;
@@ -148,7 +148,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
         <RemoteLocationToggle
           isRemote={isRemote}
           onChange={(checked) => {
-            setValue('location.isRemote' as any, checked, { shouldDirty: true, shouldTouch: true });
+            setValue('location.isRemote' as any, checked, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+            // Immediately sync to parent Redux to prevent reset from overwriting
+            if (updateData) {
+              const currentLocation = watch('location') as any;
+              updateData({ location: { ...currentLocation, isRemote: checked } } as any);
+            }
           }}
         />
 

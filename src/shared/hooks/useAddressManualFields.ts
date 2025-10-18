@@ -11,14 +11,14 @@ export type AddressComponents = {
 };
 
 type Params = {
-  // original value not needed; kept for API parity previously
   components?: AddressComponents;
+  fullAddressDisplay?: string; // full address string for display in locked mode (from location.address)
   onChange: (next: string) => void;
   onComponentsChange?: (c: Required<AddressComponents>) => void;
   onValidityChange?: (isValid: boolean) => void;
 };
 
-export const useAddressManualFields = ({ components, onChange, onComponentsChange, onValidityChange }: Params) => {
+export const useAddressManualFields = ({ components, fullAddressDisplay, onChange, onComponentsChange, onValidityChange }: Params) => {
   const [streetBase, setStreetBase] = useState('');
   const [streetNumber, setStreetNumber] = useState('');
   const [city, setCity] = useState('');
@@ -43,7 +43,18 @@ export const useAddressManualFields = ({ components, onChange, onComponentsChang
     const postalCode = (components.postalCode ?? '').trim();
     const country = (components.country ?? '').trim();
 
-    const fullStreet = streetNumber ? `${street} ${streetNumber}` : street;
+    // Use the full address display if available (from location.address), otherwise reconstruct
+    const fullStreet = fullAddressDisplay && fullAddressDisplay.trim() 
+      ? fullAddressDisplay.trim()
+      : (() => {
+          const parts = [
+            streetNumber && street ? `${street} ${streetNumber}` : street || streetNumber,
+            city,
+            country,
+          ].filter(Boolean);
+          return parts.join(', ');
+        })();
+    
     setStreetBase(fullStreet);
     setStreetNumber(streetNumber);
     setCity(city);
@@ -56,7 +67,7 @@ export const useAddressManualFields = ({ components, onChange, onComponentsChang
     setPostalError(requiredMinError('Postcode', postalCode));
     setCountryError(requiredMinError('Country', country));
     hasHydratedRef.current = true;
-  }, [components]);
+  }, [components, fullAddressDisplay]);
 
   const emitChange = useCallback((s: string, n: string, c: string, p: string, co: string) => {
     onChange(composeFullAddress(s, n, c, p, co));

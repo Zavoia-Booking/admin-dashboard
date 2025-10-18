@@ -72,16 +72,15 @@ export const useSetupWizard = () => {
     }
   };
 
-  const persistStep = (s: number) => {
-    // Persist currentStep in reducer so consumers get consistent data
-    dispatch(wizardUpdateDataAction({ currentStep: s } as any));
-  };
+  // Persist currentStep after state changes to avoid setState during render
+  useEffect(() => {
+    dispatch(wizardUpdateDataAction({ currentStep } as any));
+  }, [currentStep, dispatch]);
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(prev => {
         const next = prev + 1;
-        persistStep(next);
         return next;
       });
       scrollToWizardContent();
@@ -92,7 +91,6 @@ export const useSetupWizard = () => {
     if (currentStep > 1) {
       setCurrentStep(prev => {
         const next = prev - 1;
-        persistStep(next);
         return next;
       });
       scrollToWizardContent();
@@ -102,7 +100,6 @@ export const useSetupWizard = () => {
   const goToStep = (step: number) => {
     if (step >= 1 && step <= totalSteps) {
       setCurrentStep(step);
-      persistStep(step);
       scrollToWizardContent();
     }
   };
