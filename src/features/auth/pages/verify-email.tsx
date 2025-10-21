@@ -55,8 +55,8 @@ export default function VerifyEmailPage() {
     verifyEmail();
   }, [token]);
 
-  const handleGoToLogin = () => {
-    navigate('/login');
+  const handleGoToDashboard = () => {
+    navigate('/dashboard');
   };
 
   return (
@@ -86,7 +86,7 @@ export default function VerifyEmailPage() {
               </p>
               <div className="mt-6">
                 <Button
-                  onClick={handleGoToLogin}
+                  onClick={handleGoToDashboard}
                   className="w-full"
                 >
                   Go back to the application
@@ -106,7 +106,7 @@ export default function VerifyEmailPage() {
               </p>
               <div className="mt-6">
                 <Button
-                  onClick={handleGoToLogin}
+                  onClick={handleGoToDashboard}
                   variant="outline"
                   className="w-full"
                 >
