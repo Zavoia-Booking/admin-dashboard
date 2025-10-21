@@ -25,7 +25,9 @@ export const forgotPasswordApi = async (payload: { email: string }): Promise<voi
 }
 
 export const resetPasswordApi = async (payload: { token: string, password: string }): Promise<void> => {
-    await apiClient().post(`/auth/reset-password`, payload);
+    await apiClient().post(`/auth/reset-password`, { password: payload.password }, {
+        params: { token: payload.token }
+    });
 }
 
 export const registerMemberApi = async (payload: RegisterMemberPayload): Promise<RegisterMemberResponse> => {
