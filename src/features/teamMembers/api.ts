@@ -3,7 +3,7 @@ import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-memb
 import type { InviteTeamMemberPayload, InviteTeamMemberResponse } from "./types";
 
 export const listTeamMembersApi = async (): Promise<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }> => {
-  const { data } = await apiClient().get<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>('/team/members');
+  const { data } = await apiClient().get<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>('/team-members/list');
   return data;
 };
 
