@@ -78,6 +78,4 @@ export type RegisterMemberPayload = {
   password: string;
 };
 
-export type RegisterMemberResponse = {
-  message: string;
-};
+export type RegisterMemberResponse = AuthResponse;

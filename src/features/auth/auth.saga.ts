@@ -163,8 +163,23 @@ function* handleResetPassword(action: { type: string; payload: { token: string, 
 
 function* handleRegisterMember(action: ReturnType<typeof registerMemberAction.request>) {
   try {
-    yield call(registerMemberApi, action.payload);
-    window.location.href = "/login";
+    yield put(setAuthLoadingAction({ isLoading: true }));
+    const response: AuthResponse = yield call(registerMemberApi, action.payload);
+
+    // Store access token in Redux (memory) + optional CSRF token
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    
+    // Fetch locations post-authentication (same as login)
+    yield put(listLocationsAction.request());
+    if (response.csrfToken) {
+      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
+    }
+
+    // Store user
+    yield put(setAuthUserAction({ user: response.user }));
+    yield put(registerMemberAction.success(response));
+    
+    window.location.href = "/dashboard";
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || 'Failed to register member';
     yield put(registerMemberAction.failure({ message }));
