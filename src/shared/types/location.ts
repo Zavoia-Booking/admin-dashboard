@@ -26,4 +26,5 @@ export interface LocationType {
   createdAt: string;
   timezone: string;
   isRemote: boolean;
+  open247?: boolean;
 }

@@ -54,47 +54,45 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
           : 'bg-accent/80 border border-accent/30 rounded-lg p-4'
       } ${className}`}
     >
-      <div className="flex items-start justify-between">
-        <div>
-          <Label className="text-sm font-medium">Contact information</Label>
-          <p className="text-xs text-muted-foreground mt-1">
-            {useInheritedContact
-              ? `We'll use the email and phone number from ${inheritedLabel}`
-              : 'Enter different contact details for this location'}
-          </p>
-          {useInheritedContact && (inheritedEmail || inheritedPhone) && (
-            <p className="text-xs pt-4">
-              <span className="flex flex-col gap-1.5">
-                {inheritedEmail && (
-                  <span className="inline-flex items-center gap-1.5 text-gray-700 font-medium w-fit">
-                    <Mail className="h-3 w-3 text-gray-400" />
-                    {inheritedEmail}
-                  </span>
-                )}
-                {inheritedPhone && (
-                  <span className="inline-flex items-center gap-1.5 text-gray-700 font-medium w-fit pt-2">
-                    <Phone className="h-3 w-3 text-gray-400" />
-                    {inheritedPhone}
-                  </span>
-                )}
-              </span>
-            </p>
-          )}
-        </div>
+      <div className="flex items-center justify-between mb-3">
+        <Label htmlFor={id} className="text-base font-medium cursor-pointer">Contact information</Label>
         <Switch
           id={id}
           checked={useInheritedContact}
           onCheckedChange={onToggleChange}
-          className="self-start mt-0.5 !h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
+          className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
         />
       </div>
+      <p className="text-sm text-muted-foreground">
+        {useInheritedContact
+          ? `We'll use the email and phone number from ${inheritedLabel}`
+          : 'Enter different contact details for this location'}
+      </p>
+      {useInheritedContact && (inheritedEmail || inheritedPhone) && (
+        <div className="text-sm pt-4">
+          <div className="flex flex-col gap-1.5">
+            {inheritedEmail && (
+              <span className="inline-flex items-center gap-1.5 text-gray-700 font-medium w-fit">
+                <Mail className="h-4 w-4 text-gray-400" />
+                {inheritedEmail}
+              </span>
+            )}
+            {inheritedPhone && (
+              <span className="inline-flex items-center gap-1.5 text-gray-700 font-medium w-fit pt-2">
+                <Phone className="h-4 w-4 text-gray-400" />
+                {inheritedPhone}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {!useInheritedContact && (
         <div className="mt-4 pt-4 border-t border-gray-200">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="location-email" className="text-sm font-medium">
+              <Label htmlFor="location-email" className="text-base font-medium">
                 Location Email {required && '*'}
               </Label>
               <div className="relative">
@@ -104,7 +102,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                   placeholder="frontdesk@business.com"
                   value={localEmail}
                   onChange={(e) => onEmailChange(e.target.value)}
-                  className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                  className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                     emailError
                       ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
                       : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
@@ -126,7 +124,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
 
             {/* Phone Field */}
             <div className="space-y-2">
-              <Label htmlFor="location-phone" className="text-sm font-medium">
+              <Label htmlFor="location-phone" className="text-base font-medium">
                 Location Phone {required && '*'}
               </Label>
               <div className="relative">
@@ -136,7 +134,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                   placeholder="+1 555 123 4567"
                   value={localPhone}
                   onChange={(e) => onPhoneChange(e.target.value)}
-                  className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                  className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                     phoneError
                       ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
                       : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'

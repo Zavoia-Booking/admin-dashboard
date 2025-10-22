@@ -53,7 +53,7 @@ const AddressManualFields: React.FC<Props> = ({
     <div className="mt-2 space-y-3">
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium text-gray-700">{isLocked ? 'Selected Address' : 'Street *'}</Label>
+          <Label className="text-base font-medium text-gray-700">{isLocked ? 'Selected Address' : 'Street *'}</Label>
           {isLocked && streetBase && (
             <button
               type="button"
@@ -72,7 +72,7 @@ const AddressManualFields: React.FC<Props> = ({
                   value={streetBase}
                   onChange={(e) => onStreetChange(e.target.value)}
                   placeholder="Enter street name"
-                  className={`h-10 !pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0 focus:border-blue-400 cursor-not-allowed bg-gray-50/80 text-gray-600 border-gray-200`}
+                  className={`!pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0 focus:border-blue-400 cursor-not-allowed bg-gray-50/80 text-gray-600 border-gray-200`}
                   readOnly
                   aria-readonly
                   aria-invalid={!!streetError}
@@ -82,7 +82,14 @@ const AddressManualFields: React.FC<Props> = ({
                 <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
             </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="max-w-fit text-sm leading-relaxed">{streetBase}</TooltipContent>
+            <TooltipContent 
+              side="bottom" 
+              align="center" 
+              sideOffset={6}
+              className="text-sm text-center leading-snug max-w-[90vw] md:max-w-md !text-wrap [text-wrap:wrap]"
+            >
+              {streetBase}
+            </TooltipContent>
           </Tooltip>
         ) : (
           <div className="relative">
@@ -90,7 +97,7 @@ const AddressManualFields: React.FC<Props> = ({
               value={streetBase}
               onChange={(e) => onStreetChange(e.target.value)}
               placeholder="Enter street name"
-              className={`h-10 !pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              className={`!pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 streetError
                   ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
                   : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
@@ -114,13 +121,13 @@ const AddressManualFields: React.FC<Props> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-sm font-medium text-gray-700">Building / Number *</Label>
+          <Label className="text-base font-medium text-gray-700">Building / Number *</Label>
           <div className="relative">
             <Input 
               value={streetNumber} 
               onChange={(e) => onNumberChange(e.target.value)} 
               placeholder="e.g. Bl. 556, Apt. 12" 
-              className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 numberError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
               maxLength={50}
@@ -138,13 +145,13 @@ const AddressManualFields: React.FC<Props> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-sm font-medium text-gray-700">City *</Label>
+          <Label className="text-base font-medium text-gray-700">City *</Label>
           <div className="relative">
             <Input 
               value={city} 
               onChange={(e) => onCityChange(e.target.value)} 
               placeholder="Enter city" 
-              className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 cityError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
               maxLength={50}
@@ -165,13 +172,13 @@ const AddressManualFields: React.FC<Props> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-sm font-medium text-gray-700">Postcode *</Label>
+          <Label className="text-base font-medium text-gray-700">Postcode *</Label>
           <div className="relative">
             <Input 
               value={postalCode} 
               onChange={(e) => onPostalChange(e.target.value)} 
               placeholder="Postal code" 
-              className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 postalError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
               maxLength={50}
@@ -189,13 +196,13 @@ const AddressManualFields: React.FC<Props> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-sm font-medium text-gray-700">Country *</Label>
+          <Label className="text-base font-medium text-gray-700">Country *</Label>
           <div className="relative">
             <Input 
               value={country} 
               onChange={(e) => onCountryChange(e.target.value)} 
               placeholder="Country" 
-              className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 countryError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
               maxLength={50}

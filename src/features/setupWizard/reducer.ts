@@ -77,6 +77,7 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
             ...(payload.location || {} as any),
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
+          worksSolo: payload.worksSolo ?? state.data.worksSolo,
         },
       };
     }
@@ -103,6 +104,7 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
             ...(payload.location || {}),
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
+          worksSolo: payload.worksSolo ?? state.data.worksSolo,
         },
       };
     }

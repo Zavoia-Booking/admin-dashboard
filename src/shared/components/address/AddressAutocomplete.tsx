@@ -169,7 +169,7 @@ export default function AddressAutocomplete({
           inputMode="search"
           aria-autocomplete="list"
           autoFocus={autoFocus}
-          className="h-11 flex-1 border-0 !pl-2 pr-2 focus-visible:ring-0 focus-visible:ring-offset-0"
+          className="flex-1 border-0 !pl-2 pr-2 focus-visible:ring-0 focus-visible:ring-offset-0"
         />
       </div>
       {open && (

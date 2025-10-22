@@ -1,11 +1,12 @@
 import { useEffect, useCallback, forwardRef, useImperativeHandle, useState, useRef } from 'react';
-import AddressComposer from '../../../shared/components/common/AddressComposer';
+import AddressComposer from '../../../shared/components/address/AddressComposer';
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import LocationNameField from '../../../shared/components/common/LocationNameField';
 import LocationDescriptionField from '../../../shared/components/common/LocationDescriptionField';
 import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
 import TimezoneField from '../../../shared/components/common/TimezoneField';
 import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
+import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import { Label } from '../../../shared/components/ui/label';
 import type { WizardData } from '../../../shared/hooks/useSetupWizard';
 import { useForm, useController } from 'react-hook-form';
@@ -113,6 +114,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
   }, [useBusinessContact, trigger]);
 
   const currentWorkingHours = (watch('location') as any)?.workingHours as WorkingHours;
+  const open247 = !!(watch('location') as any)?.open247;
 
   const applyWorkingHours = (next: WorkingHours) => {
     const current = watch();
@@ -168,7 +170,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
             />
 
             <div className="space-y-2">
-              <Label htmlFor="location.address" className="text-sm font-medium">
+              <Label htmlFor="location.address" className="text-base font-medium">
                 Address *
               </Label>
               <AddressComposer
@@ -202,14 +204,28 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
               required={!useBusinessContact}
             />
 
-            <LocationDescriptionField
-              value={(watch('location.description' as any) as string) || ''}
-              onChange={(value) => setValue('location.description' as any, value, { shouldDirty: true, shouldTouch: true })}
-            />
+            <div className="pt-4">
+              <LocationDescriptionField
+                value={(watch('location.description' as any) as string) || ''}
+                onChange={(value) => setValue('location.description' as any, value, { shouldDirty: true, shouldTouch: true })}
+              />
+            </div>
 
-            <div className="space-y-4">
-              <Label className="text-sm font-medium">Working Hours</Label>
-              <WorkingHoursEditor value={currentWorkingHours} onChange={applyWorkingHours} />
+            <div className="space-y-4 pt-4">
+              <Label className="text-base font-medium">Working Hours</Label>
+              <Open247Toggle
+                open247={open247}
+                onChange={(checked) => {
+                  setValue('location.open247' as any, checked, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                  if (updateData) {
+                    const currentLocation = watch('location') as any;
+                    updateData({ location: { ...currentLocation, open247: checked } } as any);
+                  }
+                }}
+              />
+              <div className={open247 ? 'opacity-50 pointer-events-none' : ''}>
+                <WorkingHoursEditor value={currentWorkingHours} onChange={applyWorkingHours} />
+              </div>
             </div>
           </div>
         )}
@@ -254,9 +270,21 @@ const StepLocation = forwardRef<StepHandle, StepProps>(({ data, onValidityChange
               required={!useBusinessContact}
             />
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Working Hours</Label>
-              <WorkingHoursEditor value={currentWorkingHours} onChange={applyWorkingHours} />
+            <div className="space-y-2 pt-4">
+              <Label className="text-base font-medium">Working Hours</Label>
+              <Open247Toggle
+                open247={open247}
+                onChange={(checked) => {
+                  setValue('location.open247' as any, checked, { shouldDirty: true, shouldTouch: true, shouldValidate: true });
+                  if (updateData) {
+                    const currentLocation = watch('location') as any;
+                    updateData({ location: { ...currentLocation, open247: checked } } as any);
+                  }
+                }}
+              />
+              <div className={open247 ? 'opacity-50 pointer-events-none' : ''}>
+                <WorkingHoursEditor value={currentWorkingHours} onChange={applyWorkingHours} />
+              </div>
             </div>
           </div>
         )}

@@ -30,11 +30,11 @@ export const TimezoneField: React.FC<TimezoneFieldProps> = ({
 }) => {
   return (
     <div className={`space-y-2 ${className}`}>
-      <Label htmlFor={id} className="text-sm font-medium">
+      <Label htmlFor={id} className="text-base font-medium">
         {label} {required && '*'}
       </Label>
       {helpText && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {helpText}
         </p>
       )}

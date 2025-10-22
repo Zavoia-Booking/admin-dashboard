@@ -3,7 +3,7 @@ import AddressAutocomplete from './AddressAutocomplete';
 import { composeFullAddress } from '../../utils/address';
 import { useAddressManualFields } from '../../hooks/useAddressManualFields';
 import AddressManualFields from './AddressManualFields';
-import SegmentedControl from './SegmentedControl';
+import SegmentedControl from '../common/SegmentedControl';
 
 type Props = {
   value: string;
@@ -192,7 +192,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
             onChange={handleAutocompleteChange}
             autoFocus={shouldAutoFocus}
           />
-          <div className="mt-2 text-xs text-muted-foreground">Type to search. If you can't find it, switch to Manual.</div>
+          <div className="mt-2 text-sm text-muted-foreground mb-6">Type to search. If you can't find it, switch to Manual.</div>
         </>
       )}
       {(addressSelected || manualMode) && (

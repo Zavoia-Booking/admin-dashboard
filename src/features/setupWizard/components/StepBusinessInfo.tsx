@@ -178,7 +178,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
         {/* Contact first under Name */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="businessInfo.email" className="text-sm font-medium cursor-default">Business Email</Label>
+            <Label htmlFor="businessInfo.email" className="text-base font-medium cursor-default">Business Email</Label>
             <div className="relative">
               <Input 
                 id="businessInfo.email" 
@@ -202,7 +202,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="businessInfo.phone" className="text-sm font-medium cursor-default">Business Phone *</Label>
+            <Label htmlFor="businessInfo.phone" className="text-base font-medium cursor-default">Business Phone *</Label>
             <div className="relative">
               <Input 
                 id="businessInfo.phone" 
@@ -242,10 +242,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
         />
 
         <div className="space-y-3 pt-4">
-          <Label className="text-sm font-medium cursor-defaul mb-0">
+          <Label className="text-base font-medium cursor-defaul mb-0">
             Industry *
           </Label>
-          <p className="text-xs text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             This helps us suggest relevant services and templates
           </p>
           {isLoadingIndustries ? (
@@ -264,7 +264,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(({ data, onValidityCh
         </div>
 
         <div className="space-y-2 pt-4">
-          <Label className="text-sm font-medium cursor-default">Business Logo (Optional)</Label>
+          <Label className="text-base font-medium cursor-default">Business Logo (Optional)</Label>
           <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
             <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground mb-1">

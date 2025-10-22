@@ -25,6 +25,7 @@ export interface NewLocationPayload {
   workingHours: WorkingHours;
   isRemote: boolean;
   isActive: boolean;
+  open247?: boolean;
 }
 
 export interface EditLocationType {

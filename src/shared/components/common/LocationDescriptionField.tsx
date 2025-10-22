@@ -33,7 +33,7 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between">
-        <Label htmlFor={id} className="text-sm font-medium">
+        <Label htmlFor={id} className="text-base font-medium">
           {label} {required && '*'}
         </Label>
         {showCharacterCount && (

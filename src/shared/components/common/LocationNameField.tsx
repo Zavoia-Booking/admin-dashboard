@@ -34,8 +34,8 @@ export const LocationNameField: React.FC<LocationNameFieldProps> = ({
   const displayLabel = isRemote && label === 'Location Name' ? 'Online Location Name' : label;
 
   return (
-    <div className={`space-y-2 ${className}`}>
-      <Label htmlFor={id} className="text-sm font-medium">
+    <div className={`space-y-2 ${className} pt-2`}>
+      <Label htmlFor={id} className="text-base font-medium">
         {displayLabel} {required && '*'}
       </Label>
       <div className="relative">
@@ -46,7 +46,7 @@ export const LocationNameField: React.FC<LocationNameFieldProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={maxLength}
-          className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+          className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error
               ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
               : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
