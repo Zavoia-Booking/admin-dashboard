@@ -13,12 +13,12 @@ import LoginPage from './features/auth/pages/login'
 import RegisterPage from './features/auth/pages/register'
 import ResetPasswordPage from './features/auth/pages/reset-password'
 import RegisterMemberPage from './features/auth/pages/register-member'
+import VerifyEmailPage from './features/auth/pages/verify-email'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
-import SubscriptionSuccessPage from './features/settings/pages/subscription-success'
-import UpgradePage from './features/settings/pages/upgrade'
-import PendingPaymentPage from './features/settings/pages/pending-payment'
+import InfoPageComponent from './features/settings/pages/info-page'
+import AssignmentsPage from './features/assignments/pages/assignments'
 
 function App() {
   return (
@@ -32,21 +32,23 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/register/team-member" element={<RegisterMemberPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
 
         {/* Main */}
         <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
-        <Route path="/subscription-success" element={<SubscriptionSuccessPage />} />
-        <Route path="/upgrade" element={<ProtectedRoute element={<UpgradePage />} />} />
-        <Route path="/pending-payment" element={<ProtectedRoute element={<PendingPaymentPage />} />} />
         <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
         <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
         <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
+        <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
         <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
-        <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
         <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
         <Route path="/settings/profile" element={<ProtectedRoute element={<SettingsProfilePage />} />} />
         <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
+
+        {/* Info Pages */}
+        <Route path="/info" element={<InfoPageComponent />} />
+        <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
 
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/calendar" replace />} />

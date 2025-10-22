@@ -30,7 +30,8 @@ export type AuthUser = {
   };
   entitlements?: {
     entitled: boolean;
-    status: 'trial' | 'active' | 'expired' | null;
+    status: 'trial' | 'active' | 'expired' | 'no_subscription' | null;
+    reason?: string;
     daysRemaining: number;
     maxLocations: number;
     maxTeamMembers: number;
@@ -77,6 +78,4 @@ export type RegisterMemberPayload = {
   password: string;
 };
 
-export type RegisterMemberResponse = {
-  message: string;
-};
+export type RegisterMemberResponse = AuthResponse;

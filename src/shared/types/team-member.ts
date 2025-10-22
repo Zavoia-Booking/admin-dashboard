@@ -4,7 +4,6 @@ export interface TeamMemberSummary {
   total: number;
   active: number;
   pending: number;
-  pendingPayment: number;
 }
 
 export interface TeamMember {
@@ -14,7 +13,7 @@ export interface TeamMember {
   email: string;
   phone: string;
   role: UserRole;
-  status: 'pending' | 'active' | 'inactive' | 'pending_payment';
+  status: 'pending' | 'active' | 'inactive';
   isActive: boolean;
   createdAt: string;
   invitedBy?: {
@@ -34,9 +33,4 @@ export interface TeamMember {
     saturday: { open: string; close: string; isOpen: boolean };
     sunday: { open: string; close: string; isOpen: boolean };
   };
-}
-
-export type InviteTeamMemberPayload = {
-  email: string;
-  role: UserRole;
 }

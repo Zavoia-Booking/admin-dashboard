@@ -8,5 +8,6 @@ export const getSetupWizardStateSelector = createSelector(mainState, (state) => 
 export const getServicesStateSelector = createSelector(mainState, (state) => state.services);
 export const getTeamMembersStateSelector = createSelector(mainState, (state) => state.teamMembers);
 export const getCalendarViewStateSelector = createSelector(mainState, (state) => state.calendarView);
+export const getSettingsStateSelector = createSelector(mainState, (state) => state.settings);
 
 export default mainState;

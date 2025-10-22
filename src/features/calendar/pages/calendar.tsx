@@ -19,6 +19,7 @@ import { DateTabs } from "../components/DateTab.tsx";
 import { getServicesAction } from "../../services/actions.ts";
 import { listLocationsAction } from "../../locations/actions.ts";
 import { listTeamMembersAction } from "../../teamMembers/actions.ts";
+import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -30,6 +31,7 @@ const Calendar = () => {
   const selectedDate = useSelector(getFiltersSelectedDate);
 
   useEffect(() => {
+    // Fetch calendar data - AccessGuard will handle blocking if needed
     dispatch(fetchCalendarAppointments.request())
     dispatch(listTeamMembersAction.request())
     dispatch(listLocationsAction.request())
@@ -47,36 +49,38 @@ const Calendar = () => {
   return (
     <AppLayout>
       <BusinessSetupGate>
-        <Filters appointments={appointments}/>
-        <DateTabs/>
+        <AccessGuard>
+          <Filters appointments={appointments}/>
+          <DateTabs/>
 
-        {/* List View Content */}
-        {viewType === AppointmentViewType.LIST && (
-            <AppointmentList
-                viewMode={viewMode}
-                appointments={appointments}
-            />
-        )}
+          {/* List View Content */}
+          {viewType === AppointmentViewType.LIST && (
+              <AppointmentList
+                  viewMode={viewMode}
+                  appointments={appointments}
+              />
+          )}
 
-        {/*/!* Grid View - Custom Day Timeline *!/*/}
-        {viewType === AppointmentViewType.GRID && (
-            <AppointmentGrid
-                viewMode={viewMode}
-                selectedDate={selectedDate}
-                appointments={appointments}
-            />
-        )}
+          {/*/!* Grid View - Custom Day Timeline *!/*/}
+          {viewType === AppointmentViewType.GRID && (
+              <AppointmentGrid
+                  viewMode={viewMode}
+                  selectedDate={selectedDate}
+                  appointments={appointments}
+              />
+          )}
 
-        {/* Add Appointment Slider */}
-        <AddAppointmentSlider
-          isOpen={addFormOpen}
-          onClose={() => handleCloseAddForm()}
-        />
-        <EditAppointmentSlider
-          isOpen={editForm.open}
-          appointment={editForm.item}
-          onClose={handleCloseEditForm}
-        />
+          {/* Add Appointment Slider */}
+          <AddAppointmentSlider
+            isOpen={addFormOpen}
+            onClose={() => handleCloseAddForm()}
+          />
+          <EditAppointmentSlider
+            isOpen={editForm.open}
+            appointment={editForm.item}
+            onClose={handleCloseEditForm}
+          />
+        </AccessGuard>
       </BusinessSetupGate>
     </AppLayout>
   );
