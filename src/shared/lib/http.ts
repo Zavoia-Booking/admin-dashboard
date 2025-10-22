@@ -7,9 +7,10 @@ import {
   hydrateSessionAction,
 } from "../../features/auth/actions";
 import type { AuthState } from "../../features/auth/types";
+import config from "../../app/config/env";
 
 // ---- CONFIG ----
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
+const API_BASE_URL = config.API_URL;
 export const REFRESH_ENDPOINT = "/auth/refresh";
 export const LOGOUT_ENDPOINT = "/auth/logout";
 export const CSRF_COOKIE_NAME = "csrfToken";

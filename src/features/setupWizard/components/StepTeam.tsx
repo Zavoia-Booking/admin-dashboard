@@ -99,9 +99,9 @@ const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
                         <div className="font-medium">{member.email}</div>
                         <Badge
                           variant="outline"
-                          className={`text-xs mt-1 ${getRoleBadgeColor(member.role)}`}
+                          className={`text-xs mt-1 ${getRoleBadgeColor(UserRole.TEAM_MEMBER)}`}
                         >
-                          {getRoleDisplayName(member.role)}
+                          {getRoleDisplayName(UserRole.TEAM_MEMBER)}
                         </Badge>
                       </div>
                       <Button
