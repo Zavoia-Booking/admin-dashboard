@@ -3,6 +3,7 @@ import { wizardCompleteAction, wizardSaveAction, wizardLoadDraftAction } from ".
 import { completeWizardApi, saveWizardDraftApi, getWizardDraftApi } from "./api";
 import { fetchCurrentUserAction } from "../auth/actions";
 import { listLocationsAction } from "../locations/actions";
+import { prepareWizardDataForSubmission } from "./utils";
 
 function* handleWizardSave(action: { type: string; payload: any }) {
   try {
@@ -15,12 +16,19 @@ function* handleWizardSave(action: { type: string; payload: any }) {
 
 function* handleWizardComplete(action: { type: string; payload: any }) {
   try {
-    yield call(completeWizardApi, action.payload || {});
+    const payload = prepareWizardDataForSubmission(action.payload || {});
+    
+    yield call(completeWizardApi, payload);
     yield put(wizardCompleteAction.success());
     yield put(fetchCurrentUserAction.request());
     yield put(listLocationsAction.request());
   } catch (error: any) {
-    yield put(wizardCompleteAction.failure({ message: error?.message || 'Failed to complete wizard' }));
+    // Map backend messages robustly (string | array | nested)
+    const raw = error?.response?.data?.message ?? error?.message;
+    const message = Array.isArray(raw)
+      ? raw.filter(Boolean).join('\n')
+      : (raw || 'Something went wrong, please try again');
+    yield put(wizardCompleteAction.failure({ message }));
   }
 }
 
@@ -28,9 +36,11 @@ function* loadDraftData() {
   try {
     const { wizardData } = yield call(getWizardDraftApi);
     if (!wizardData || Object.keys(wizardData).length === 0) {
-      return;
+      // No draft yet: still clear loading state so the wizard renders step 1
+      yield put(wizardLoadDraftAction.success({}));
+    } else {
+      yield put(wizardLoadDraftAction.success(wizardData));
     }
-    yield put(wizardLoadDraftAction.success(wizardData));
   } catch (error: any) {
     yield put(wizardLoadDraftAction.failure({ message: error?.message || 'Failed to load draft' }));
   }

@@ -1,157 +1,209 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '../../../shared/components/ui/button';
-import { Badge } from '../../../shared/components/ui/badge';
-import { Rocket, Link, Share2, CheckCircle, Circle, ExternalLink } from 'lucide-react';
+import { Label } from '../../../shared/components/ui/label';
+import { Link, Share2, ExternalLink, Copy, CheckCircle2, MapPin, Clock, Users, Check } from 'lucide-react';
 import type { StepProps } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { getBookingUrl } from '../utils';
+import { toast } from 'sonner';
 
 const StepLaunch: React.FC<StepProps> = ({ data }) => {
   const navigate = useNavigate();
-  const bookingLink = `book.appointmentpro.com/${data.businessInfo.name.toLowerCase().replace(/\s+/g, '-')}`;
-  const businessCompleted = data.businessInfo.name.trim() !== '' && Number.isInteger((data.businessInfo as any).industryId) && (data.businessInfo as any).industryId > 0;
-  const locationCompleted = data.location.isRemote
-    ? (data.location.name?.trim() || '') !== '' && (data.location.timezone?.trim() || '') !== '' && (((data.location.email?.trim() || '') !== '') || (data.location.phone?.trim() || '') !== '')
-    : (data.location.name?.trim() || '') !== '' && (data.location.address?.trim() || '') !== '' && ((data.location.email?.trim() || '') !== '') && (data.location.phone?.trim() || '') !== '';
-  const workingHoursOpenDays = Object.values(data.location.workingHours || {}).filter(d => d.isOpen).length;
+  const bookingLink = getBookingUrl(data);
+  const safeName = (data?.businessInfo?.name || '').trim();
+  const [copied, setCopied] = useState(false);
+
+  // Calculate stats
+  const workingSolo = Boolean(data?.worksSolo);
+  const teamInvitesCount = data?.teamMembers?.length || 0;
+  const workingHours = data?.location?.workingHours || {};
+  const openDaysCount = Object.values(workingHours).filter((day: any) => day?.isOpen).length;
   
-  const checklist = [
-    {
-      label: 'Business information',
-      completed: businessCompleted,
-      required: true,
-    },
-    {
-      label: 'Location setup',
-      completed: locationCompleted,
-      required: true,
-    },
-    {
-      label: 'Working hours configured',
-      completed: workingHoursOpenDays > 0,
-      required: true,
-    },
-    {
-      label: 'Team members invited',
-      completed: data.worksSolo || data.teamMembers.length > 0,
-      required: false,
-    },
-  ];
+  // Location details
+  const isRemote = Boolean(data?.location?.isRemote);
+  const locationCity = (data?.location?.addressComponents as any)?.city || (data?.location?.addressComponents as any)?.locality || '';
+  const locationType = isRemote ? 'Remote services' : locationCity ? `Physical location in ${locationCity}` : 'Physical location';
+  
+  // Working hours summary
+  const getWorkingHoursSummary = () => {
+    if ((data?.location as any)?.open247) return 'Open 24/7';
+    if (openDaysCount === 0) return 'No working hours set';
+    
+    const daysOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayAbbrev: { [key: string]: string } = {
+      monday: 'Mon',
+      tuesday: 'Tue',
+      wednesday: 'Wed',
+      thursday: 'Thu',
+      friday: 'Fri',
+      saturday: 'Sat',
+      sunday: 'Sun'
+    };
+    
+    const openDays = daysOrder.filter(day => (workingHours as any)[day]?.isOpen);
+    
+    if (openDays.length === 0) return 'No working hours set';
+    if (openDays.length === 7) return 'Open every day';
+    
+    // Check if days are consecutive
+    const openIndices = openDays.map(day => daysOrder.indexOf(day));
+    const isConsecutive = openIndices.every((val, i, arr) => i === 0 || val === arr[i - 1] + 1);
+    
+    if (isConsecutive && openDays.length > 1) {
+      const firstDay = dayAbbrev[openDays[0]];
+      const lastDay = dayAbbrev[openDays[openDays.length - 1]];
+      const firstDayData = (workingHours as any)[openDays[0]];
+      
+      if (firstDayData?.start && firstDayData?.end) {
+        return `Open ${firstDay}-${lastDay}, ${firstDayData.start}-${firstDayData.end}`;
+      }
+      return `Open ${firstDay}-${lastDay}`;
+    }
+    
+    // Non-consecutive days, list them
+    if (openDays.length <= 3) {
+      return `Open ${openDays.map(d => dayAbbrev[d]).join(', ')}`;
+    }
+    
+    // Fallback for complex patterns
+    return `Open ${openDays.length} days per week`;
+  };
+  
+  // Team status
+  const teamStatus = workingSolo ? 'Solo' : `${teamInvitesCount} team member${teamInvitesCount === 1 ? '' : 's'} invited`;
 
-  const completedRequired = checklist.filter(item => item.required && item.completed).length;
-  const totalRequired = checklist.filter(item => item.required).length;
-  const completedOptional = checklist.filter(item => !item.required && item.completed).length;
-  const totalOptional = checklist.filter(item => !item.required).length;
-
-  const shareWhatsApp = () => {
-    const message = `🎉 My business is now online! Book appointments with ${data.businessInfo.name} at ${bookingLink}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  const handleShare = async () => {
+    const title = `${safeName || 'My business'} is now bookable`;
+    const text = `Book appointments with ${safeName || 'my business'}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, text, url: bookingLink });
+        return;
+      }
+      await navigator.clipboard.writeText(bookingLink);
+    } catch {}
   };
 
-  const shareFacebook = () => {
-    const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(bookingLink)}`;
-    window.open(url, '_blank');
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(bookingLink);
+      setCopied(true);
+      toast.info('Link copied to clipboard');
+      setTimeout(() => setCopied(false), 3000);
+    } catch {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const handlePreview = () => {
+    window.open(bookingLink, '_blank');
   };
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
-        <div className="p-4 bg-emerald-100 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-          <Rocket className="h-10 w-10 text-emerald-600" />
-        </div>
-        <h3 className="text-2xl font-bold text-foreground mb-2">
-          {`Congratulations! 🎉`}
-        </h3>
-        <p className="text-muted-foreground">
-          Your booking system is set up and ready to accept appointments
-        </p>
-      </div>
-
-      {/* Setup Progress */}
-      <div className="bg-card border rounded-lg p-6 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-          <h4 className="font-semibold text-foreground">Setup Progress</h4>
-          <div className="flex gap-2">
-            <span className="inline-flex items-center px-3 py-1 rounded-full border border-emerald-600 text-emerald-600 bg-white text-xs font-semibold">
-              {completedRequired}/{totalRequired} Required
-            </span>
-            <span className="inline-flex items-center px-3 py-1 rounded-full border border-blue-600 text-blue-600 bg-white text-xs font-semibold">
-              {completedOptional}/{totalOptional} Optional
-            </span>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          {checklist.map((item, index) => (
-            <div key={index} className="flex items-center gap-3">
-              {item.completed ? (
-                <CheckCircle className="h-5 w-5 text-emerald-600" />
-              ) : (
-                <Circle className="h-5 w-5 text-muted-foreground" />
-              )}
-              <span className={`flex-1 ${item.completed ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {item.label}
-              </span>
-              {item.required && (
-                <Badge variant="outline" className="text-xs">
-                  Required
-                </Badge>
-              )}
-            </div>
-          ))}
-        </div>
+      {/* Hero Header */}
+      <div className="text-left py-4">
+        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">You're live — start taking bookings</h2>
+        <p className="text-sm text-muted-foreground">Share your booking link and invite clients. You can fine-tune everything from your dashboard.</p>
       </div>
 
       {/* Booking Link */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex items-center gap-3 mb-3">
+      <div className="space-y-4">
+        <div className="flex items-center gap-3">
           <Link className="h-5 w-5 text-blue-600" />
-          <h4 className="font-semibold text-blue-800">Your Public Booking Link</h4>
+          <Label className="text-base font-medium text-gray-700">Public booking link</Label>
         </div>
-        <div className="bg-white border border-blue-200 rounded-md p-3 mb-3">
-          <code className="text-sm text-blue-800 break-all">{bookingLink}</code>
+        <p className="text-sm text-muted-foreground">Share this link with your clients to start receiving bookings</p>
+        <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+          <code className="text-sm text-gray-800 break-all">{bookingLink}</code>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="gap-2">
-            <ExternalLink className="h-4 w-4" />
-            Copy Link
+        <div className="grid grid-cols-3 gap-2">
+          <Button 
+            rounded="full" 
+            size="sm"
+            className="gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-sm cursor-pointer" 
+            onClick={handleCopyLink} 
+            aria-label="Copy booking link"
+          >
+            {copied ? (
+              <>
+                <Check className="h-3.5 w-3.5" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <Copy className="h-3.5 w-3.5" />
+                Copy
+              </>
+            )}
           </Button>
-          <Button size="sm" variant="outline" className="gap-2">
-            <ExternalLink className="h-4 w-4" />
+          <Button 
+            variant="outline" 
+            rounded="full" 
+            size="sm"
+            className="gap-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 cursor-pointer" 
+            onClick={handlePreview} 
+            aria-label="Preview booking page"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
             Preview
           </Button>
-        </div>
-      </div>
-
-      {/* Share Options */}
-      <div className="space-y-4">
-        <h4 className="font-semibold text-foreground flex items-center gap-2">
-          <Share2 className="h-5 w-5" />
-          Share Your Business
-        </h4>
-        <div className="grid grid-cols-2 gap-3">
-          <Button onClick={shareWhatsApp} className="gap-2 bg-green-600 hover:bg-green-700">
-            Share on WhatsApp
-          </Button>
-          <Button onClick={shareFacebook} className="gap-2 bg-blue-600 hover:bg-blue-700">
-            Share on Facebook
+          <Button 
+            variant="outline" 
+            rounded="full" 
+            size="sm"
+            className="gap-2 border-gray-300 hover:bg-gray-50 hover:border-gray-400 cursor-pointer" 
+            onClick={handleShare} 
+            aria-label="Share booking link"
+          >
+            <Share2 className="h-3.5 w-3.5" />
+            Share
           </Button>
         </div>
       </div>
 
-      {/* Next Steps */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-        <h4 className="font-semibold text-emerald-800 mb-2">🎯 Next Steps</h4>
-        <ul className="text-sm text-emerald-700 space-y-1">
-          <li>• Complete your profile and add more services</li>
-          <li>• Invite team members to manage bookings</li>
-        </ul>
+      {/* Setup Summary */}
+      <div className="bg-white border border-gray-200 rounded-lg p-5 md:p-6 mt-12">
+        <div className="flex items-start gap-3 mb-4">
+          <CheckCircle2 className="h-6 w-6 text-green-600 shrink-0" />
+          <div className="flex-1">
+            <Label className="text-base font-medium text-gray-700">{safeName || 'Your business'} is now accepting bookings online</Label>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="text-xs font-medium text-gray-600">Location</span>
+            </div>
+            <div className="border-t border-gray-200 pt-2">
+              <p className="text-sm text-gray-900 font-medium break-words">{locationType}</p>
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="text-xs font-medium text-gray-600">Hours</span>
+            </div>
+            <div className="border-t border-gray-200 pt-2">
+              <p className="text-sm text-gray-900 font-medium break-words">{getWorkingHoursSummary()}</p>
+            </div>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-4 w-4 text-gray-400 shrink-0" />
+              <span className="text-xs font-medium text-gray-600">Team</span>
+            </div>
+            <div className="border-t border-gray-200 pt-2">
+              <p className="text-sm text-gray-900 font-medium break-words">{teamStatus}</p>
+            </div>
+          </div>
+        </div>
       </div>
-      {/* Launch Button */}
-      <div className="pt-6 border-t">
-        <Button 
-          onClick={() => navigate('/dashboard')}
-          className="w-full h-12 text-lg gap-3 bg-gradient-to-r from-emerald-600 to-blue-600 hover:from-emerald-700 hover:to-blue-700"
-        >
+
+      {/* Primary CTA */}
+      <div className="pt-2 flex justify-end">
+        <Button rounded="full" onClick={() => navigate('/dashboard')} className="w-full md:w-auto md:px-8 h-11 cursor-pointer">
           Go to Dashboard
         </Button>
       </div>

@@ -2,6 +2,7 @@ import { getType } from "typesafe-actions";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 import { defaultWorkingHours } from "../locations/constants";
 import { wizardSaveAction, wizardCompleteAction, wizardLoadDraftAction, wizardUpdateDataAction } from "./actions";
+import { loginAction, logoutRequestAction, registerOwnerRequestAction } from "../auth/actions";
 
 type WizardState = {
   currentStep: number;
@@ -48,6 +49,14 @@ const initialState: WizardState = {
 
 export default function setupWizardReducer(state: WizardState = initialState, action: any) {
   switch (action.type) {
+    // Reset wizard state on auth boundary changes
+    case getType(logoutRequestAction.success): {
+      return { ...initialState };
+    }
+    case getType(loginAction.success):
+    case getType(registerOwnerRequestAction.success): {
+      return { ...state, isLoading: true, error: null, data: { ...initialState.data } };
+    }
     case getType(wizardSaveAction.request):
     case getType(wizardCompleteAction.request): {
       return { ...state, isLoading: true, error: null };
@@ -61,7 +70,17 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
     }
     case getType(wizardLoadDraftAction.success): {
       const payload = action.payload as Partial<WizardData>;
-      
+
+      // If no draft exists for this user, fully reset to initial defaults
+      const isEmpty = !payload || Object.keys(payload).length === 0;
+      if (isEmpty) {
+        return {
+          ...state,
+          isLoading: false,
+          data: { ...initialState.data },
+        };
+      }
+
       return {
         ...state,
         isLoading: false,

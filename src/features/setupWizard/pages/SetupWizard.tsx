@@ -31,8 +31,8 @@ const stepConfig = [
   },
   {
     component: StepLaunch,
-    title: '🎉 You\'re Live!',
-    subtitle: 'Your booking page and website are up and running. Start accepting appointments today.'
+    title: "You're live — start taking bookings",
+    subtitle: 'Share your booking link and invite clients. You can fine-tune everything from your dashboard.'
   }
 ];
 
@@ -42,6 +42,7 @@ const SetupWizardPage: React.FC = () => {
   const user = useSelector(selectCurrentUser);
   const stepRef = useRef<StepHandle>(null);
   const [canProceedToNext, setCanProceedToNext] = useState(false);
+  const [completeRequested, setCompleteRequested] = useState(false);
   
   const {
     currentStep,
@@ -57,10 +58,12 @@ const SetupWizardPage: React.FC = () => {
     getProgress
   } = useSetupWizard();
 
-  const getCurrentStepConfig = () => stepConfig[currentStep - 1];
-  const { component: CurrentStepComponent, title, subtitle } = getCurrentStepConfig();
-  const isLastStep = currentStep === totalSteps;
   const stepLabels = ['Business Info', 'Location', 'Team', 'Launch'];
+
+  const isLastStep = currentStep === totalSteps;
+
+  const { component: CurrentStepComponent, title: effectiveTitle, subtitle: effectiveSubtitle } = stepConfig[currentStep - 1];
+  const effectiveIsLastStep = isLastStep;
 
   const handleSave = async () => {
     // Get current form data from the step and pass directly to save
@@ -87,6 +90,26 @@ const SetupWizardPage: React.FC = () => {
     }
   }, [isLastStep]);
 
+  // Wizard async state
+  const isWizardLoading = useSelector((state: any) => state.setupWizard.isLoading);
+  const wizardError = useSelector((state: any) => state.setupWizard.error);
+
+  // After requesting completion, advance only when request finishes successfully
+  useEffect(() => {
+    if (!completeRequested) return;
+    if (isWizardLoading) return;
+    if (wizardError) {
+      toast.error("We couldn't finish your setup", {
+        description: String(wizardError),
+        icon: undefined,
+      });
+      setCompleteRequested(false);
+      return;
+    }
+    setCompleteRequested(false);
+    nextStep();
+  }, [completeRequested, isWizardLoading, wizardError, nextStep]);
+
   const handleNext = async () => {
     // Validate form before proceeding
     if (stepRef.current) {
@@ -101,12 +124,12 @@ const SetupWizardPage: React.FC = () => {
     }
     
     if (currentStep === totalSteps - 1) {
+      setCompleteRequested(true);
       dispatch(wizardCompleteAction.request(data));
+      return; // do not advance yet; wait for saga result
     }
     nextStep();
   };
-
-  const isWizardLoading = useSelector((state: any) => state.setupWizard.isLoading);
 
   return (
     user?.wizardCompleted && currentStep < totalSteps ? (
@@ -128,17 +151,17 @@ const SetupWizardPage: React.FC = () => {
         currentStep={currentStep}
         totalSteps={totalSteps}
         progress={getProgress()}
-        title={title}
-        subtitle={subtitle}
+        title={effectiveTitle}
+        subtitle={effectiveSubtitle}
         stepLabels={stepLabels}
         onGoToStep={goToStep}
         onClose={() => navigate('/dashboard')}
         onPrevious={prevStep}
         onNext={handleNext}
-        onSave={!isLastStep ? handleSave : undefined}
-        canProceed={canProceedToNext}
+        onSave={!effectiveIsLastStep ? handleSave : undefined}
+        canProceed={canProceedToNext && !(completeRequested && isWizardLoading)}
         isLoading={isLoading}
-        showNext={!isLastStep}
+        showNext={!effectiveIsLastStep}
         nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
       >
         {isWizardLoading && !hydratedFromDraft ? (
@@ -180,7 +203,7 @@ const SetupWizardPage: React.FC = () => {
             </div>
           </div>
         ) : (
-          isLastStep ? (
+          effectiveIsLastStep ? (
             <CurrentStepComponent data={data} />
           ) : (
             <CurrentStepComponent ref={stepRef} data={data} onValidityChange={handleValidityChange} updateData={updateData} />
