@@ -10,9 +10,9 @@ import { PWAUpdatePrompt } from './shared/components/common/PWAUpdatePrompt.tsx'
 import { PWAInstallPrompt } from './shared/components/common/PWAInstallPrompt.tsx'
 
 // Mobile debug console (dev/preview only)
-if (import.meta.env.DEV || import.meta.env.MODE === 'preview') {
-  import('eruda').then((eruda) => eruda.default.init())
-}
+// if (import.meta.env.DEV || import.meta.env.MODE === 'preview') {
+//   import('eruda').then((eruda) => eruda.default.init())
+// }
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
 

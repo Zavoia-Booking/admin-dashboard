@@ -82,13 +82,12 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
     // Confirmation before creating a new subscription
     const base = subscriptionSummary?.basePlanPrice || 0;
     const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
-    const currency = subscriptionSummary?.currency || '';
     const estimated = base + perSeat * (Number(totalSeats) || 0);
     const confirmed = await confirm({
       title: 'Start new subscription',
-      content: totalSeats > 0 ? 
-      `Proceed to subscribe with ${totalSeats} total seat${totalSeats !== 1 ? 's' : ''}? You will be charged ${estimated.toFixed(2)} ${currency} now.` : 
-      `Proceed to subscribe? You will be charged ${estimated.toFixed(2)} ${currency} now.`,
+      content: totalSeats > 0 ?
+        `Proceed to subscribe with ${totalSeats} total seat${totalSeats !== 1 ? 's' : ''}? You will be charged ${estimated.toFixed(2)}€ now.` :
+        `Proceed to subscribe? You will be charged ${estimated.toFixed(2)}€ now.`,
       confirmationText: 'Continue',
       cancellationText: 'Cancel',
     });
@@ -108,10 +107,10 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
 
   const handleSubscriptionStatusChange = async () => {
     const isScheduledForCancellation = currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd;
-    
+
     const confirmed = await confirm({
       title: isScheduledForCancellation ? 'Keep Subscription' : 'Cancel Subscription',
-      content: isScheduledForCancellation 
+      content: isScheduledForCancellation
         ? 'Are you sure you want to keep your subscription? This will undo the scheduled cancellation and your subscription will continue normally.'
         : 'Are you sure you want to cancel your subscription? You will retain access until the end of your current billing period.',
       confirmationText: isScheduledForCancellation ? 'Keep Subscription' : 'Cancel Subscription',
@@ -144,14 +143,13 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
       // Ask for confirmation before starting subscription from trial/expired trial
       const base = subscriptionSummary?.basePlanPrice || 0;
       const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
-      const currency = subscriptionSummary?.currency || '';
       const estimated = base + perSeat * (Number(totalSeats) || 0);
 
       const confirmed = await confirm({
         title: 'Start new subscription',
-        content: totalSeats > 0 
-          ? `Proceed to subscribe with ${totalSeats} total seat${totalSeats !== 1 ? 's' : ''}? You will be charged ${estimated.toFixed(2)} ${currency} now.`
-          : `Proceed to subscribe? You will be charged ${estimated.toFixed(2)} ${currency} now.`,
+        content: totalSeats > 0
+          ? `Proceed to subscribe with ${totalSeats} total seat${totalSeats !== 1 ? 's' : ''}? You will be charged ${estimated.toFixed(2)}€ now.`
+          : `Proceed to subscribe? You will be charged ${estimated.toFixed(2)}€ now.`,
         confirmationText: 'Continue',
         cancellationText: 'Cancel',
       });
@@ -193,7 +191,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
       const confirmed = await confirm({
         title: isAdding ? 'Confirm seat increase' : 'Confirm seat reduction',
         content: isAdding
-          ? `You are adding ${delta} seat${delta !== 1 ? 's' : ''}. You will be charged $${additionalCost.toFixed(2)} now.`
+          ? `You are adding ${delta} seat${delta !== 1 ? 's' : ''}. You will be charged ${additionalCost.toFixed(2)}€ now.`
           : `You are removing ${Math.abs(delta)} seat${Math.abs(delta) !== 1 ? 's' : ''}. Removed seats remain active until the end of the billing period.`,
         confirmationText: isAdding ? 'Add seats' : 'Remove seats',
         cancellationText: 'Cancel',
@@ -302,11 +300,11 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
   const getTeamSeatsText = () => {
     if (currentUser?.entitlements?.status === 'trial') {
       const seats = subscriptionSummary?.currentTeamMembersCount || 0;
-      return `${seats} × $${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}`;
+      return `${seats} × ${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}€`;
     }
     // For active subscriptions, show paid seats in breakdown
     const seats = subscriptionSummary?.paidSeats || 0;
-    return `${seats} × $${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}`;
+    return `${seats} × ${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}€`;
   };
 
   const getTeamSeatsCost = () => {
@@ -414,22 +412,10 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                   {/* Pricing Breakdown */}
                   {subscriptionSummary && (
                     <div className="space-y-2 bg-muted/50 rounded-lg p-4">
-                      {/* Scheduled changes notice */}
-                      {/* {subscriptionSummary.scheduled && subscriptionSummary.scheduled.scheduledSeats != null && subscriptionSummary.scheduled.scheduledSeats > 0 && (
-                        <div className="mb-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900 dark:bg-amber-950/30 dark:text-amber-100 dark:border-amber-800">
-                          <div className="text-sm font-medium">Scheduled change</div>
-                          <div className="text-xs mt-1">
-                            Seats scheduled for cancellation: {subscriptionSummary.paidSeats - subscriptionSummary.scheduled.scheduledSeats}
-                            <br />
-                            Next bill amount: <span className="font-semibold"> ${Number(subscriptionSummary.scheduled.nextPeriodTotalMonthlyCost || 0).toFixed(2)}</span>
-                          </div>
-                        </div>
-                      )} */}
-
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Base Plan</span>
                         <span className="font-medium">
-                          ${subscriptionSummary.basePlanPrice.toFixed(2)}/month
+                          {subscriptionSummary.basePlanPrice.toFixed(2)}€/month
                         </span>
                       </div>
 
@@ -438,7 +424,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                           Team Seats ({getTeamSeatsText()})
                         </span>
                         <span className="font-medium">
-                          ${getTeamSeatsCost().toFixed(2)}/month
+                          {getTeamSeatsCost().toFixed(2)}€/month
                         </span>
                       </div>
 
@@ -447,7 +433,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                       <div className="flex justify-between">
                         <span className="font-semibold">Total</span>
                         <span className="text-xl font-bold text-primary">
-                          ${getTotalCost().toFixed(2)}/month
+                          {getTotalCost().toFixed(2)}€/month
                         </span>
                       </div>
                     </div>
@@ -473,7 +459,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                           {isSubscriptionScheduledForCancellation ? 'Seat changes are locked' : 'Seat changes are locked'}
                         </div>
                         <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                          {isSubscriptionScheduledForCancellation 
+                          {isSubscriptionScheduledForCancellation
                             ? 'Your subscription is scheduled for cancellation. To modify seats, first undo the subscription cancellation.'
                             : 'You have a scheduled seat change. To modify seats, first undo the scheduled cancellation.'
                           }
@@ -600,7 +586,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                               </span>
                             </div>
                             <p className="text-xs text-blue-700 dark:text-blue-300">
-                              You'll be charged <span className="font-semibold">${additionalCost.toFixed(2)}</span> now for the additional seat{delta !== 1 ? 's' : ''}.
+                              You'll be charged <span className="font-semibold">{additionalCost.toFixed(2)}€</span> now for the additional seat{delta !== 1 ? 's' : ''}.
                             </p>
                           </div>
                         );
@@ -746,7 +732,7 @@ const BillingSlider: React.FC<BillingSliderProps> = ({ isOpen, onClose }) => {
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-muted-foreground">Price per seat</span>
                         <span className="text-sm font-semibold">
-                          ${subscriptionSummary.pricePerTeamMember.toFixed(2)}/month
+                          {subscriptionSummary.pricePerTeamMember.toFixed(2)}€/month
                         </span>
                       </div>
                     </div>
