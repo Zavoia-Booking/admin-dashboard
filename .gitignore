@@ -23,3 +23,7 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Windows Zone.Identifier files
+*:Zone.Identifier
+*Zone.Identifier
