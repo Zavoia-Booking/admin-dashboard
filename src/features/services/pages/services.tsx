@@ -136,7 +136,7 @@ export default function ServicesPage() {
         <AccessGuard>
           <div className="space-y-4 max-w-2xl mx-auto">
             <ServiceFilters />
-            Stats Cards
+            {/* Stats Cards */}
             <div className="grid grid-cols-4 gap-4">
               <div className="rounded-lg border bg-white p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">{services.length}</div>
