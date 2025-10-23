@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { Edit, Trash2, Clock } from "lucide-react";
+import { useTranslation } from 'react-i18next';
 import AddServiceSlider from '../components/AddServiceSlider';
 import EditServiceSlider from '../components/EditServiceSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
@@ -24,6 +25,7 @@ import { ALL } from "../../../shared/constants.ts";
 import { AccessGuard } from '../../../shared/components/guards/AccessGuard.tsx';
 
 export default function ServicesPage() {
+  const text = useTranslation('services').t;
   const services: Service[] = useSelector(getServicesListSelector);
   const currentLocation = useSelector(getCurrentLocationSelector);
   const { ConfirmDialog, confirm } = useConfirmRadix();
@@ -77,23 +79,23 @@ export default function ServicesPage() {
 
   const handleDeleteService = useCallback((service: Service) => {
     void confirm({
-      title: `Delete “${service.name}”?`,
-      content: 'This action is permanent and cannot be undone.',
-      confirmationText: 'Delete',
+      title: text('deleteService.title', { serviceName: service.name }),
+      content: text('deleteService.description'),
+      confirmationText: text('deleteService.confirm'),
       destructive: true,
       dismissible: false,
       onConfirm: () => {
         dispatch(deleteServicesAction.request({ serviceId: service.id }));
       },
     });
-  }, [dispatch, confirm]);
+  }, [dispatch, confirm, text]);
 
   const handleToggleServiceStatus = async (service: Service) => {
     void await confirm({
-      title: `Update status`,
-      content: `Are you sure you want to change status to the service "${service.name}.`,
-      confirmationText: 'Toggle',
-      cancellationText: 'Cancel',
+      title: text('toggleService.title'),
+      content: text('toggleService.description', { serviceName: service.name }),
+      confirmationText: text('toggleService.confirm'),
+      cancellationText: text('toggleService.cancel'),
       destructive: false,
       dismissible: true,
       onConfirm: () => {
@@ -126,19 +128,19 @@ export default function ServicesPage() {
             <div className="grid grid-cols-4 gap-4">
               <div className="rounded-lg border bg-white p-4 text-center">
                 <div className="text-2xl font-bold text-blue-600">{services.length}</div>
-                <div className="text-xs text-gray-500 mt-1">Total</div>
+                <div className="text-xs text-gray-500 mt-1">{text('page.stats.total')}</div>
               </div>
               <div className="rounded-lg border bg-white p-4 text-center">
                 <div className="text-2xl font-bold text-green-600">{services.filter(s => s.isActive).length}</div>
-                <div className="text-xs text-gray-500 mt-1">Active</div>
+                <div className="text-xs text-gray-500 mt-1">{text('page.stats.active')}</div>
               </div>
               <div className="rounded-lg border bg-white p-4 text-center">
                 <div className="text-2xl font-bold text-purple-600">${Math.round(services.reduce((sum, s) => sum + s.price, 0) / (services.length || 1))}</div>
-                <div className="text-xs text-gray-500 mt-1">Avg Price</div>
+                <div className="text-xs text-gray-500 mt-1">{text('page.stats.avgPrice')}</div>
               </div>
               <div className="rounded-lg border bg-white p-4 text-center">
                 <div className="text-2xl font-bold text-orange-600">145</div>
-                <div className="text-xs text-gray-500 mt-1">Bookings</div>
+                <div className="text-xs text-gray-500 mt-1">{text('page.stats.bookings')}</div>
               </div>
             </div>
 
@@ -156,7 +158,7 @@ export default function ServicesPage() {
                     {/* Service Name and Status Row */}
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-lg truncate">{service.name}</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${isInactive ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-800'}`}>{isInactive ? 'Inactive' : 'Active'}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${isInactive ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-800'}`}>{isInactive ? text('page.service.status.inactive') : text('page.service.status.active')}</span>
                     </div>
                     {/* Description */}
                     <div className="text-sm text-gray-600 mb-2">{service.description}</div>
@@ -191,7 +193,7 @@ export default function ServicesPage() {
                         {/* Edit */}
                         <button
                           className="flex items-center justify-center h-9 w-9 rounded hover:bg-muted"
-                          title="Edit"
+                          title={text('page.service.actions.edit')}
                           onClick={() => openEditSlider(service)}
                         >
                           <Edit className="h-5 w-5" />
@@ -199,7 +201,7 @@ export default function ServicesPage() {
                         {/* Delete */}
                         <button
                           className="flex items-center justify-center h-9 w-9 rounded hover:bg-muted text-red-600"
-                          title="Delete"
+                          title={text('page.service.actions.delete')}
                           onClick={() => handleDeleteService(service)}
                         >
                           <Trash2 className="h-5 w-5" />
@@ -216,14 +218,14 @@ export default function ServicesPage() {
             {filteredServices.length === 0 && (
               (searchTerm || statusFilter !== ALL || priceRange.min || priceRange.max || durationRange.min || durationRange.max) ? (
                 <div className="rounded-lg border bg-white p-8 text-center">
-                  <div className="mb-4 text-gray-500">No services found matching your filters.</div>
+                  <div className="mb-4 text-gray-500">{text('page.emptyState.noResults')}</div>
                   <Button variant="outline" onClick={() => {
                     setSearchTerm('');
                     setStatusFilter(ALL);
                     setPriceRange({ min: '', max: '' });
                     setDurationRange({ min: '', max: '' });
                   }}>
-                    Clear filters
+                    {text('page.emptyState.clearFilters')}
                   </Button>
                 </div>
               ) : (
@@ -231,8 +233,8 @@ export default function ServicesPage() {
                   <div className="mx-auto h-12 w-12 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <span className="text-2xl">💇‍♀️</span>
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No services found</h3>
-                  <p className="text-gray-500 mb-4">Get started by adding your first service.</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{text('page.emptyState.noServices')}</h3>
+                  <p className="text-gray-500 mb-4">{text('page.emptyState.noServicesDescription')}</p>
                 </div>
               )
             )}

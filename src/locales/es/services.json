@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "Servicios",
+    "stats": {
+      "total": "Total",
+      "active": "Activos",
+      "avgPrice": "Precio Promedio",
+      "bookings": "Reservas"
+    },
+    "emptyState": {
+      "noServices": "No se encontraron servicios",
+      "noServicesDescription": "Comienza agregando tu primer servicio.",
+      "noResults": "No se encontraron servicios que coincidan con tus filtros.",
+      "clearFilters": "Limpiar filtros"
+    },
+    "service": {
+      "status": {
+        "active": "Activo",
+        "inactive": "Inactivo"
+      },
+      "actions": {
+        "edit": "Editar",
+        "delete": "Eliminar"
+      }
+    }
+  },
+  "addService": {
+    "title": "Agregar Nuevo Servicio",
+    "sections": {
+      "serviceInfo": "Información del Servicio",
+      "pricingDuration": "Precios y Duración",
+      "settings": "Configuración del Servicio"
+    },
+    "form": {
+      "name": {
+        "label": "Nombre del Servicio",
+        "placeholder": "Ingresa el nombre del servicio..."
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Describe qué incluye este servicio..."
+      },
+      "price": {
+        "label": "Precio ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Duración (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Estado del Servicio",
+        "activeDescription": "El servicio está disponible para reservas",
+        "inactiveDescription": "El servicio está oculto para los clientes"
+      }
+    },
+    "location": {
+      "currentLocation": "Asignando a la ubicación actual: {{locationName}}. Cambia la ubicación en el encabezado para aplicar a otra ubicación.",
+      "allLocations": "Este servicio se creará en todas las ubicaciones del negocio. Cambia a una ubicación específica en el encabezado para crearlo solo allí."
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "create": "Crear Servicio"
+    },
+    "confirmDialog": {
+      "title": "Crear Nuevo Servicio",
+      "description": "¿Estás seguro de que quieres crear \"{{name}}\" con un precio de ${{price}} y duración de {{duration}} minutos?",
+      "cancel": "Cancelar",
+      "confirm": "Crear Servicio"
+    }
+  },
+  "editService": {
+    "title": "Editar Servicio",
+    "sections": {
+      "serviceInfo": "Información del Servicio",
+      "pricingDuration": "Precios y Duración",
+      "settings": "Configuración del Servicio"
+    },
+    "form": {
+      "name": {
+        "label": "Nombre del Servicio",
+        "placeholder": "Ingresa el nombre del servicio..."
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Describe el servicio..."
+      },
+      "price": {
+        "label": "Precio ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Duración (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Estado del Servicio",
+        "activeDescription": "El servicio está disponible para reservas",
+        "inactiveDescription": "El servicio está oculto para los clientes"
+      }
+    },
+    "location": {
+      "currentLocation": "Actualizando para la ubicación actual: {{locationName}}. Cambia la ubicación en el encabezado para editar este servicio en otra ubicación.",
+      "allLocations": "Esta actualización se aplicará a todas las ubicaciones del negocio. Cambia a una ubicación específica en el encabezado para dirigir solo esa ubicación."
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "update": "Actualizar Servicio"
+    },
+    "confirmDialog": {
+      "title": "Actualizar Servicio",
+      "description": "¿Estás seguro de que quieres actualizar el servicio \"{{name}}\"? Esto modificará el servicio en tu catálogo.",
+      "cancel": "Cancelar",
+      "confirm": "Actualizar Servicio"
+    }
+  },
+  "deleteService": {
+    "title": "¿Eliminar \"{{serviceName}}\"?",
+    "description": "Esta acción es permanente y no se puede deshacer.",
+    "confirm": "Eliminar",
+    "cancel": "Cancelar"
+  },
+  "toggleService": {
+    "title": "Actualizar estado",
+    "description": "¿Estás seguro de que quieres cambiar el estado del servicio \"{{serviceName}}\"?",
+    "confirm": "Cambiar",
+    "cancel": "Cancelar"
+  }
+}

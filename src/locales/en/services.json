@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "Services",
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "avgPrice": "Avg Price",
+      "bookings": "Bookings"
+    },
+    "emptyState": {
+      "noServices": "No services found",
+      "noServicesDescription": "Get started by adding your first service.",
+      "noResults": "No services found matching your filters.",
+      "clearFilters": "Clear filters"
+    },
+    "service": {
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      }
+    }
+  },
+  "addService": {
+    "title": "Add New Service",
+    "sections": {
+      "serviceInfo": "Service Information",
+      "pricingDuration": "Pricing & Duration",
+      "settings": "Service Settings"
+    },
+    "form": {
+      "name": {
+        "label": "Service Name",
+        "placeholder": "Enter service name..."
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe what this service includes..."
+      },
+      "price": {
+        "label": "Price ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Duration (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Service Status",
+        "activeDescription": "Service is available for booking",
+        "inactiveDescription": "Service is hidden from clients"
+      }
+    },
+    "location": {
+      "currentLocation": "Assigning to current location: {{locationName}}. Switch location in the header to apply to another location.",
+      "allLocations": "This service will be created across all business locations. Switch to a specific location in the header to create it only there."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Service"
+    },
+    "confirmDialog": {
+      "title": "Create New Service",
+      "description": "Are you sure you want to create \"{{name}}\" with a price of ${{price}} and duration of {{duration}} minutes?",
+      "cancel": "Cancel",
+      "confirm": "Create Service"
+    }
+  },
+  "editService": {
+    "title": "Edit Service",
+    "sections": {
+      "serviceInfo": "Service Information",
+      "pricingDuration": "Pricing & Duration",
+      "settings": "Service Settings"
+    },
+    "form": {
+      "name": {
+        "label": "Service Name",
+        "placeholder": "Enter service name..."
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe the service..."
+      },
+      "price": {
+        "label": "Price ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Duration (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Service Status",
+        "activeDescription": "Service is available for booking",
+        "inactiveDescription": "Service is hidden from clients"
+      }
+    },
+    "location": {
+      "currentLocation": "Updating for current location: {{locationName}}. Switch location in the header to edit this service in another location.",
+      "allLocations": "This update will apply across all business locations. Switch to a specific location in the header to target only that location."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "update": "Update Service"
+    },
+    "confirmDialog": {
+      "title": "Update Service",
+      "description": "Are you sure you want to update the service \"{{name}}\"? This will modify the service in your catalog.",
+      "cancel": "Cancel",
+      "confirm": "Update Service"
+    }
+  },
+  "deleteService": {
+    "title": "Delete \"{{serviceName}}\"?",
+    "description": "This action is permanent and cannot be undone.",
+    "confirm": "Delete",
+    "cancel": "Cancel"
+  },
+  "toggleService": {
+    "title": "Update status",
+    "description": "Are you sure you want to change status to the service \"{{serviceName}}\".",
+    "confirm": "Toggle",
+    "cancel": "Cancel"
+  }
+}

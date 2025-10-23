@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Button } from '../../../shared/components/ui/button';

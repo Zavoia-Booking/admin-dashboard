@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { wizardLoadDraftAction, wizardSaveAction, wizardUpdateDataAction } from '../../features/setupWizard/actions';
 import type { NewLocationPayload } from '../../features/locations/types';
 import type { BusinessInfo } from '../types/generalType';
-import type { InviteTeamMemberPayload } from '../types/team-member';
+import type { InviteTeamMemberPayload } from '../../features/teamMembers/types';
 import { getWizardDataSelector } from '../../features/setupWizard/selectors';
 import type { RootState } from '../../app/providers/store';
 import { isE164 } from '../utils/validation';
