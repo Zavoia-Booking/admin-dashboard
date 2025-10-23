@@ -107,11 +107,13 @@ function CredentialsFormBase({
           />
           <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
         </div>
-        {emailError && (
-          <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-            <span>{emailError}</span>
-          </p>
-        )}
+        <div className="h-5">
+          {emailError && (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+              <span>{emailError}</span>
+            </p>
+          )}
+        </div>
       </div>
       {showPasswordField && (
         <div className="mt-3 grid gap-3">
@@ -138,11 +140,13 @@ function CredentialsFormBase({
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          {passwordError && (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
-              <span>{passwordError}</span>
-            </p>
-          )}
+          <div className="h-5">
+            {passwordError && (
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                <span>{passwordError}</span>
+              </p>
+            )}
+          </div>
         </div>
       )}
       <Button type="submit" className="w-full mt-8" disabled={!!isLoading}>

@@ -4,7 +4,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme="light"
+      richColors
       className="toaster group"
+      toastOptions={{
+        className: "cursor-default",
+      }}
       style={
         {
           "--normal-bg": "var(--popover)",

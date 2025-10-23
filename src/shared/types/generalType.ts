@@ -1,6 +1,6 @@
 export type BusinessInfo = {
   name: string;
-  industry: string;
+  industryId: number;
   description: string;
   logo?: File;
   email: string;

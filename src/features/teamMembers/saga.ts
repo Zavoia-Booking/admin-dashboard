@@ -11,7 +11,11 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
     yield put(listTeamMembersAction.request());
  
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to invite team member';
+    const resp = error?.response?.data;
+    const backendMessage = Array.isArray(resp?.message)
+      ? resp?.message?.join(' ')
+      : resp?.message;
+    const message = backendMessage || resp?.error || error?.message || 'Failed to invite team member';
     yield put(inviteTeamMemberAction.failure({ message }));
   }
 }

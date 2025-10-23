@@ -1,296 +1,421 @@
-import React, { useEffect } from 'react';
-import { Label } from '../../../shared/components/ui/label';
-import { Input } from '../../../shared/components/ui/input';
-import { Switch } from '../../../shared/components/ui/switch';
-import { MapPin, Wifi } from 'lucide-react';
-import type { WizardData } from '../../../shared/hooks/useSetupWizard';
-import { useForm } from 'react-hook-form';
-import type { WorkingHours } from '../../../shared/types/location';
-import type { StepProps } from '../types';
+import {
+  useEffect,
+  useCallback,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useRef,
+} from "react";
+import AddressComposer from "../../../shared/components/address/AddressComposer";
+import WorkingHoursEditor from "../../../shared/components/common/WorkingHoursEditor";
+import LocationNameField from "../../../shared/components/common/LocationNameField";
+import LocationDescriptionField from "../../../shared/components/common/LocationDescriptionField";
+import RemoteLocationToggle from "../../../shared/components/common/RemoteLocationToggle";
+import TimezoneField from "../../../shared/components/common/TimezoneField";
+import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
+import Open247Toggle from "../../../shared/components/common/Open247Toggle";
+import { Label } from "../../../shared/components/ui/label";
+import type { WizardData } from "../../../shared/hooks/useSetupWizard";
+import { useForm, useController } from "react-hook-form";
+import type { WorkingHours } from "../../../shared/types/location";
+import type { StepProps, StepHandle } from "../types";
+import { isE164 } from "../../../shared/utils/validation";
+import { makeWizardToggleHandler } from "../utils";
 
-const StepLocation: React.FC<StepProps> = ({ data, onUpdate }) => {
-  const { register, watch, setValue, reset } = useForm<WizardData>({ defaultValues: data });
-
-  useEffect(() => {
-    reset(data);
-  }, [data, reset]);
-
-  useEffect(() => {
-    const sub = watch((values) => onUpdate(values as Partial<WizardData>));
-    return () => sub?.unsubscribe?.();
-  }, [watch, onUpdate]);
-
-  const currentWorkingHours = (watch('location') as any)?.workingHours as WorkingHours;
-
-  const updateWorkingHours = (day: keyof WorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
-    const updated: WorkingHours = {
-      ...currentWorkingHours,
-      [day]: {
-        ...currentWorkingHours[day],
-        [field]: value as any,
-      },
-    } as WorkingHours;
-    const current = watch();
-    reset({
-      ...current,
+const StepLocation = forwardRef<StepHandle, StepProps>(
+  ({ data, onValidityChange, updateData }, ref) => {
+    // Ensure a default of useBusinessContact=true without post-mount effects
+    const initialDefaults: WizardData = {
+      ...(data as any),
       location: {
-        ...(current as any).location,
-        workingHours: updated,
+        ...((data as any).location || {}),
+        useBusinessContact:
+          (((data as any).location || ({} as any)).useBusinessContact ?? true) as any,
       },
-    } as any);
-  };
+    } as any;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <MapPin className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-foreground">Where do you serve customers?</h3>
-          <p className="text-sm text-muted-foreground">Help customers find and visit your business</p>
-        </div>
-      </div>
+    const {
+      control,
+      register,
+      watch,
+      setValue,
+      reset,
+      trigger,
+      formState: { errors, isValid: formIsValid },
+    } = useForm<WizardData>({
+      defaultValues: initialDefaults,
+      mode: "onChange",
+    });
 
+    const [isAddressValid, setIsAddressValid] = useState(true);
+    const [addressComposerKey, setAddressComposerKey] = useState(0);
+    const prevIsRemoteRef = useRef<boolean>(
+      !!(watch("location") as any)?.isRemote
+    );
+
+    const isRemote = watch("location.isRemote" as any) === true;
+    const businessEmail = (watch("businessInfo.email" as any) as string) || "";
+    const businessPhone = (watch("businessInfo.phone" as any) as string) || "";
+    const useBusinessContact =
+      (watch("location.useBusinessContact" as any) as boolean) ?? true;
+
+    // Register static fields for validation
+    useEffect(() => {
+      register("location.timezone" as any, {
+        required: "Timezone is required",
+      });
+    }, [register]);
+
+    // Controlled name with validation
+    const { field: nameField, fieldState: nameState } = useController<any>({
+      name: "location.name" as any,
+      control,
+      rules: {
+        required: "Location name is required",
+        minLength: {
+          value: 2,
+          message: "Location name must be at least 2 characters",
+        },
+      },
+    });
+
+    // Controlled email & phone with dynamic validation based on toggle
+    const { field: emailField, fieldState: emailState } = useController<any>({
+      name: "location.email" as any,
+      control,
+      rules: {
+        validate: {
+          required: (value: string) =>
+            useBusinessContact ||
+            (!!value && value.trim().length > 0) ||
+            "Email is required",
+          pattern: (value: string) =>
+            useBusinessContact ||
+            !value ||
+            /[^@\s]+@[^@\s]+\.[^@\s]+/.test(value) ||
+            "Enter a valid email",
+        },
+      },
+    });
+
+    const { field: phoneField, fieldState: phoneState } = useController<any>({
+      name: "location.phone" as any,
+      control,
+      rules: {
+        validate: {
+          required: (value: string) =>
+            useBusinessContact ||
+            (!!value && value.trim().length > 0) ||
+            "Phone number is required",
+          format: (value: string) =>
+            useBusinessContact ||
+            !value ||
+            isE164(value) ||
+            "Enter a valid phone number",
+        },
+      },
+    });
+
+    // Notify parent when validity changes
+    useEffect(() => {
+      if (onValidityChange) {
+        const valid =
+          formIsValid &&
+          Object.keys(errors).length === 0 &&
+          (isRemote || isAddressValid);
+        onValidityChange(valid);
+      }
+    }, [formIsValid, errors, isAddressValid, isRemote, onValidityChange]);
+
+    // Expose methods to parent via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        getFormData: () => {
+          const formData = watch();
+          // Ensure location contact fields are always present in the payload
+          const location = (formData as any).location || {};
+          return {
+            ...formData,
+            location: {
+              ...location,
+              useBusinessContact: useBusinessContact,
+              email: (emailField.value as string) || '',
+              phone: (phoneField.value as string) || '',
+            },
+          };
+        },
+        triggerValidation: async () => trigger(),
+        isValid: () => {
+          // Check if there are any errors
+          if (Object.keys(errors).length > 0) return false;
+          if (!isRemote && !isAddressValid) return false;
+          return formIsValid;
+        },
+      }),
+      [watch, trigger, errors, formIsValid, isAddressValid, isRemote, useBusinessContact, emailField, phoneField]
+    );
+
+    // Sync form with external data changes (from Redux) without forcing inline errors before interaction
+    useEffect(() => {
+      reset(data);
+    }, [data, reset]);
+
+    // When toggling from remote back to physical, rehydrate from draft and remount composer
+    useEffect(() => {
+      const prev = prevIsRemoteRef.current;
+      if (prev && !isRemote) {
+        reset(data);
+        setAddressComposerKey((k) => k + 1);
+      }
+      prevIsRemoteRef.current = isRemote;
+    }, [isRemote, reset, data]);
+
+    // Re-trigger validation when useBusinessContact changes (affects required fields)
+    useEffect(() => {
+      trigger(["location.email", "location.phone"]);
+    }, [useBusinessContact, trigger]);
+
+    const currentWorkingHours = (watch("location") as any)
+      ?.workingHours as WorkingHours;
+    const open247 = !!(watch("location") as any)?.open247;
+
+    const applyWorkingHours = (next: WorkingHours) => {
+      const current = watch();
+      reset({
+        ...current,
+        location: {
+          ...(current as any).location,
+          workingHours: next,
+        },
+      } as any);
+    };
+
+    const handleContactToggleChange = useCallback(
+      (checked: boolean) => {
+        setValue("location.useBusinessContact" as any, checked, {
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+        if (checked) {
+          // Inherit from business info
+          if (businessEmail)
+            setValue("location.email" as any, businessEmail, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+          if (businessPhone)
+            setValue("location.phone" as any, businessPhone, {
+              shouldValidate: true,
+              shouldDirty: true,
+            });
+        } else {
+          // Prefill overrides from business info only if empty
+          const currEmail = (watch("location.email" as any) as string) || "";
+          const currPhone = (watch("location.phone" as any) as string) || "";
+          if (!currEmail && businessEmail)
+            setValue("location.email" as any, businessEmail, {
+              shouldDirty: true,
+            });
+          if (!currPhone && businessPhone)
+            setValue("location.phone" as any, businessPhone, {
+              shouldDirty: true,
+            });
+        }
+        if (updateData) {
+          const currentLocation = watch("location") as any;
+          updateData({ location: { ...currentLocation, useBusinessContact: checked } } as any);
+        }
+      },
+      [setValue, businessEmail, businessPhone, watch, updateData]
+    );
+
+    return (
       <div className="space-y-6">
-        {/* Remote Services Toggle */}
-        <div className="bg-accent/20 border border-accent/30 rounded-lg p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Wifi className="h-5 w-5 text-primary" />
-              <div>
-                <Label htmlFor="isRemote" className="text-sm font-medium">
-                  I offer remote/online services
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Video calls, consultations, virtual training, etc.
-                </p>
-              </div>
-            </div>
-            <Switch
-              id="isRemote"
-              checked={!!(watch('location') as any)?.isRemote}
-              onCheckedChange={(checked) => setValue('location.isRemote' as any, checked, { shouldDirty: true, shouldTouch: true })}
-              className={`!h-5 !w-9 !min-h-0 !min-w-0 ${((watch('location') as any)?.isRemote) ? 'bg-green-500' : 'bg-red-500'}`}
-            />
-          </div>
-        </div>
+        <div className="space-y-6">
+          {/* Remote Services Toggle */}
+          <RemoteLocationToggle
+            isRemote={isRemote}
+            onChange={makeWizardToggleHandler({
+              setValue,
+              watch,
+              updateData,
+              section: 'location',
+              field: 'isRemote',
+            })}
+          />
 
-        {/* Physical Location */}
-        {!((watch('location') as any)?.isRemote) && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="location.name" className="text-sm font-medium">
-                Location Name *
-              </Label>
-              <Input id="location.name" placeholder="Main Location" className="h-11" {...register('location.name' as any)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="location.address" className="text-sm font-medium">
-                Address *
-              </Label>
-              <Input id="location.address" placeholder="123 Main Street" className="h-11" {...register('location.address' as any)} />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="location.email" className="text-sm font-medium">Location Email *</Label>
-                <Input id="location.email" type="email" placeholder="frontdesk@business.com" className="h-11" {...register('location.email' as any)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location.phone" className="text-sm font-medium">Location Phone *</Label>
-                <Input id="location.phone" type="tel" placeholder="+1 555 123 4567" className="h-11" {...register('location.phone' as any)} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="location.description" className="text-sm font-medium">Description</Label>
-              <Input id="location.description" placeholder="Describe this location (optional)" className="h-11" {...register('location.description' as any)} />
-            </div>
-
+          {/* Physical Location */}
+          {!isRemote && (
             <div className="space-y-4">
-              <Label className="text-sm font-medium">Working Hours</Label>
-              <div className="space-y-3">
-                {(Object.entries(currentWorkingHours) as [keyof WorkingHours, WorkingHours['monday']][]).map(([day, hours]) => (
-                  <div key={day} className="p-3 bg-muted/30 rounded-lg space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="w-20 text-sm font-medium shrink-0 capitalize">{String(day).slice(0, 3)}</div>
-                      {hours.isOpen ? (
-                        <button
-                          type="button"
-                          className="px-2 py-0 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-medium"
-                          onClick={() => updateWorkingHours(day, 'isOpen', false)}
-                        >
-                          Mark as Closed
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="px-2 py-0 rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium"
-                          onClick={() => updateWorkingHours(day, 'isOpen', true)}
-                        >
-                          Mark as Open
-                        </button>
-                      )}
-                    </div>
-                    {hours.isOpen ? (
-                      <>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Opening Time</Label>
-                          <Input
-                            type="time"
-                            value={hours.open}
-                            onChange={(e) => updateWorkingHours(day, 'open', e.target.value)}
-                            onClick={(e) => {
-                              (e.currentTarget as any).showPicker?.();
-                            }}
-                            className="h-9 text-center cursor-pointer"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Closing Time</Label>
-                          <Input
-                            type="time"
-                            value={hours.close}
-                            onChange={(e) => updateWorkingHours(day, 'close', e.target.value)}
-                            onClick={(e) => {
-                              (e.currentTarget as any).showPicker?.();
-                            }}
-                            className="h-9 text-center cursor-pointer"
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex justify-center">
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 rounded-full text-red-700 text-sm font-medium">
-                          Closed
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+              <LocationNameField
+                value={(nameField.value as string) || ""}
+                onChange={(value) => nameField.onChange(value)}
+                error={nameState.error?.message as unknown as string}
+                required
+              />
 
-            <div className="bg-muted/50 border border-muted rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <MapPin className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-1">
-                    Google Maps Integration
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {`We'll automatically create a map pin for your business location to help customers find you easily.`}
-                  </p>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="location.address"
+                  className="text-base font-medium"
+                >
+                  Address *
+                </Label>
+                <AddressComposer
+                  key={addressComposerKey}
+                  value={watch("location.address" as any) as any}
+                  onChange={(next) =>
+                    setValue("location.address" as any, next, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    })
+                  }
+                  addressComponents={
+                    watch("location.addressComponents" as any) as any
+                  }
+                  onAddressComponentsChange={(components) =>
+                    setValue("location.addressComponents" as any, components, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    })
+                  }
+                  onValidityChange={(isValid) => setIsAddressValid(isValid)}
+                />
+              </div>
+
+              {/* Contact Information Toggle */}
+              <ContactInformationToggle
+                useInheritedContact={useBusinessContact}
+                onToggleChange={handleContactToggleChange}
+                inheritedEmail={businessEmail}
+                inheritedPhone={businessPhone}
+                inheritedLabel="the previous step"
+                localEmail={(emailField.value as string) || ""}
+                localPhone={(phoneField.value as string) || ""}
+                onEmailChange={(email) => {
+                  emailField.onChange(email);
+                }}
+                onPhoneChange={(phone) => {
+                  const sanitized = (phone || "").replace(/\s+/g, " ").trim();
+                  phoneField.onChange(sanitized);
+                }}
+                emailError={emailState.error?.message as unknown as string}
+                phoneError={phoneState.error?.message as unknown as string}
+                required={!useBusinessContact}
+              />
+
+              <div className="pt-4">
+                <LocationDescriptionField
+                  value={(watch("location.description" as any) as string) || ""}
+                  onChange={(value) =>
+                    setValue("location.description" as any, value, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="space-y-4 pt-4">
+                <Label className="text-base font-medium">Working Hours</Label>
+                <Open247Toggle
+                  open247={open247}
+                  onChange={makeWizardToggleHandler({
+                    setValue,
+                    watch,
+                    updateData,
+                    section: 'location',
+                    field: 'open247',
+                  })}
+                />
+                <div
+                  className={open247 ? "opacity-50 pointer-events-none" : ""}
+                >
+                  <WorkingHoursEditor
+                    value={currentWorkingHours}
+                    onChange={applyWorkingHours}
+                  />
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {((watch('location') as any)?.isRemote) && (
-          <div className="space-y-4">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Wifi className="h-5 w-5 text-emerald-600 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-emerald-800 mb-1">
-                    Perfect for remote services!
-                  </p>
-                  <p className="text-xs text-emerald-700">
-                    Your customers will be able to book online sessions and video consultations directly through your booking page.
-                  </p>
+          {/* Remote Location */}
+          {isRemote && (
+            <div className="space-y-4">
+              <LocationNameField
+                value={(nameField.value as string) || ""}
+                onChange={(value) => nameField.onChange(value)}
+                error={nameState.error?.message as unknown as string}
+                isRemote
+                required
+                placeholder="Online"
+              />
+
+              <TimezoneField
+                value={(watch("location.timezone" as any) as string) || ""}
+                onChange={(tz) =>
+                  setValue("location.timezone" as any, tz, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                    shouldTouch: true,
+                  })
+                }
+                error={(errors.location as any)?.timezone?.message}
+                required
+              />
+
+              {/* Contact Information Toggle */}
+              <ContactInformationToggle
+                useInheritedContact={useBusinessContact}
+                onToggleChange={handleContactToggleChange}
+                inheritedEmail={businessEmail}
+                inheritedPhone={businessPhone}
+                inheritedLabel="the previous step"
+                localEmail={(emailField.value as string) || ""}
+                localPhone={(phoneField.value as string) || ""}
+                onEmailChange={(email) => {
+                  emailField.onChange(email);
+                }}
+                onPhoneChange={(phone) => {
+                  const sanitized = (phone || "").replace(/\s+/g, " ").trim();
+                  phoneField.onChange(sanitized);
+                }}
+                emailError={emailState.error?.message as unknown as string}
+                phoneError={phoneState.error?.message as unknown as string}
+                required={!useBusinessContact}
+              />
+
+              <div className="space-y-2 pt-4">
+                <Label className="text-base font-medium">Working Hours</Label>
+                <Open247Toggle
+                  open247={open247}
+                  onChange={makeWizardToggleHandler({
+                    setValue,
+                    watch,
+                    updateData,
+                    section: 'location',
+                    field: 'open247',
+                  })}
+                />
+                <div
+                  className={open247 ? "opacity-50 pointer-events-none" : ""}
+                >
+                  <WorkingHoursEditor
+                    value={currentWorkingHours}
+                    onChange={applyWorkingHours}
+                  />
                 </div>
               </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="location.name" className="text-sm font-medium">Online Location Name *</Label>
-                <Input id="location.name" placeholder="Online" className="h-11" {...register('location.name' as any)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location.timezone" className="text-sm font-medium">Timezone *</Label>
-                <Input id="location.timezone" placeholder="America/New_York" className="h-11" {...register('location.timezone' as any)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location.email" className="text-sm font-medium">Contact Email</Label>
-                <Input id="location.email" type="email" placeholder="support@business.com" className="h-11" {...register('location.email' as any)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="location.phone" className="text-sm font-medium">Contact Phone</Label>
-                <Input id="location.phone" type="tel" placeholder="+1 555 123 4567" className="h-11" {...register('location.phone' as any)} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Working Hours</Label>
-              <div className="space-y-3">
-                {(Object.entries(currentWorkingHours) as [keyof WorkingHours, WorkingHours['monday']][]).map(([day, hours]) => (
-                  <div key={day} className="p-3 bg-muted/30 rounded-lg space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="w-20 text-sm font-medium shrink-0 capitalize">{String(day).slice(0, 3)}</div>
-                      {hours.isOpen ? (
-                        <button
-                          type="button"
-                          className="px-2 py-0 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-medium"
-                          onClick={() => updateWorkingHours(day, 'isOpen', false)}
-                        >
-                          Mark as Closed
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          className="px-2 py-0 rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium"
-                          onClick={() => updateWorkingHours(day, 'isOpen', true)}
-                        >
-                          Mark as Open
-                        </button>
-                      )}
-                    </div>
-                    {hours.isOpen ? (
-                      <>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Opening Time</Label>
-                          <Input
-                            type="time"
-                            value={hours.open}
-                            onChange={(e) => updateWorkingHours(day, 'open', e.target.value)}
-                            onClick={(e) => {
-                              (e.currentTarget as any).showPicker?.();
-                            }}
-                            className="h-9 text-center cursor-pointer"
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground mb-1 block">Closing Time</Label>
-                          <Input
-                            type="time"
-                            value={hours.close}
-                            onChange={(e) => updateWorkingHours(day, 'close', e.target.value)}
-                            onClick={(e) => {
-                              (e.currentTarget as any).showPicker?.();
-                            }}
-                            className="h-9 text-center cursor-pointer"
-                          />
-                        </div>
-                      </>
-                    ) : (
-                      <div className="flex justify-center">
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 border border-red-100 rounded-full text-red-700 text-sm font-medium">
-                          Closed
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
 
-export default StepLocation; 
+StepLocation.displayName = "StepLocation";
+
+export default StepLocation;

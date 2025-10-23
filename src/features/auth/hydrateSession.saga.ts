@@ -70,7 +70,10 @@ export function* watchTokenHandler(): Generator<any, void, any> {
     // Also listen for hydrate success and fetch locations to restore current location
     (function* () {
       yield takeLatest(hydrateSessionAction.success, function* () {
-        yield put(listLocationsAction.request());
+        const hasBusiness: boolean = yield select((s: RootState) => Boolean((s as any).auth.user?.businessId || (s as any).auth.user?.business?.id));
+        if (hasBusiness) {
+          yield put(listLocationsAction.request());
+        }
       });
     })(),
   ]);

@@ -18,6 +18,7 @@ import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgot
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction } from "./actions";
 import { listLocationsAction } from "../locations/actions";
+import { wizardLoadDraftAction } from "../setupWizard/actions";
 import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
 import { refreshSession } from "../../shared/lib/http";
@@ -36,6 +37,8 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
     yield put(registerOwnerRequestAction.success({ user: response.user }));
+    // Proactively load wizard draft for this account
+    yield put(wizardLoadDraftAction.request());
   } catch (error: any) {
     let message = "Registration failed";
     
@@ -89,6 +92,9 @@ function* handleLogin(action: { type: string; payload: { email: string, password
       csrfToken: response.csrfToken ?? null, 
       user: response.user 
     }));
+
+    // Proactively load wizard draft for this account
+    yield put(wizardLoadDraftAction.request());
 
     // Toast success (lazy import to avoid bundle weight on cold paths)
     try {
@@ -194,8 +200,11 @@ function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) 
     // Store access token in Redux (memory) + optional CSRF token
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
     
-    // Fetch locations post-authentication (same as login)
-    yield put(listLocationsAction.request());
+    // Fetch locations post-authentication only if user has a business
+    const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
+    if (hasBusinessGoogle) {
+      yield put(listLocationsAction.request());
+    }
     if (response.csrfToken) {
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }

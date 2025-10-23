@@ -1,199 +1,379 @@
-import React from 'react';
-import { Label } from '../../../shared/components/ui/label';
-import { Input } from '../../../shared/components/ui/input';
-import { Button } from '../../../shared/components/ui/button';
-import { Switch } from '../../../shared/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
-import { Badge } from '../../../shared/components/ui/badge';
-import { Users, Plus, X, User } from 'lucide-react';
-import type { StepProps } from '../types';
-import { UserRole } from '../../../shared/types/auth';
-import { useForm } from 'react-hook-form';
-import { getRoleBadgeColor, getRoleDisplayName } from '../utils';
+import {
+  forwardRef,
+  useImperativeHandle,
+  useEffect,
+  useCallback,
+  useState,
+} from "react";
+import { Label } from "../../../shared/components/ui/label";
+import { Input } from "../../../shared/components/ui/input";
+import { Button } from "../../../shared/components/ui/button";
+import { Switch } from "../../../shared/components/ui/switch";
+import {
+  Plus,
+  User,
+  Mail,
+  AlertCircle,
+  HelpCircle,
+  Trash2,
+} from "lucide-react";
+import type { StepProps, StepHandle } from "../types";
+import { UserRole } from "../../../shared/types/auth";
+import { useForm } from "react-hook-form";
+import { Badge } from "../../../shared/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../shared/components/ui/popover";
+import { useSelector } from "react-redux";
+import { selectCurrentUser } from "../../auth/selectors";
+import { selectSubscriptionSummary } from "../../settings/selectors";
+import { toast } from "sonner";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const StepTeam: React.FC<StepProps> = ({ data, onUpdate }) => {
-  const { register, handleSubmit, reset, setValue, watch, formState: { errors, isValid } } = useForm<{ email: string; role: UserRole }>({
-    defaultValues: { email: '', role: UserRole.TEAM_MEMBER },
-    mode: 'onChange',
-  });
+function getAvatarBgColor(email: string | undefined): string {
+  const str = (email || '').toLowerCase();
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash << 5) - hash + str.charCodeAt(i);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue} 60% 92%)`;
+}
 
-  const addTeamMember = handleSubmit(({ email, role }) => {
-    const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail) return;
-    const duplicate = data.teamMembers.some(m => m.email.toLowerCase() === trimmedEmail);
-    if (duplicate) return;
-    const invitation = { id: Date.now().toString(), email: trimmedEmail, role, status: 'pending' as const };
-    onUpdate({ 
-      teamMembers: [...data.teamMembers, invitation],
-      worksSolo: false 
+const StepTeam = forwardRef<StepHandle, StepProps>(
+  ({ data, onValidityChange, updateData }, ref) => {
+    const currentUser = useSelector(selectCurrentUser);
+    const subscriptionSummary = useSelector(selectSubscriptionSummary);
+    // Local state for team data
+    const [localTeamMembers, setLocalTeamMembers] = useState(
+      data.teamMembers || []
+    );
+    const [localWorksSolo, setLocalWorksSolo] = useState(
+      data.worksSolo || false
+    );
+
+    const {
+      register,
+      handleSubmit,
+      reset,
+      watch,
+      setError,
+      clearErrors,
+      formState: { errors, isValid },
+    } = useForm<{ email: string }>({
+      defaultValues: { email: "" },
+      mode: "onChange",
     });
-    reset({ email: '', role });
-  });
 
-  const removeMember = (index: number) => {
-    const newMembers = data.teamMembers.filter((_, i) => i !== index);
-    onUpdate({ 
-      teamMembers: newMembers,
-      worksSolo: newMembers.length === 0 
+    const emailValue = watch("email");
+
+    // Notify parent that team step is always valid
+    useEffect(() => {
+      if (onValidityChange) {
+        onValidityChange(true);
+      }
+    }, [onValidityChange]);
+
+    // Expose methods to parent via ref
+    useImperativeHandle(ref, () => ({
+      getFormData: () => ({
+        teamMembers: (localTeamMembers || []).map((m: any) => ({
+          email: m.email,
+          role: (m.role as any) || (UserRole.TEAM_MEMBER as any),
+        })),
+        worksSolo: localWorksSolo,
+      }),
+      triggerValidation: async () => true, // No validation needed for this step
+      isValid: () => true, // Team step is always valid (optional)
+    }));
+
+    // Sync local state when data changes from Redux
+    useEffect(() => {
+      const members = (data.teamMembers || []).map((m: any) => ({
+        email: m.email,
+        role: (m.role as any) || (UserRole.TEAM_MEMBER as any),
+        id: `${m.email}`,
+        status: "pending" as const,
+      }));
+      setLocalTeamMembers(members);
+      setLocalWorksSolo(data.worksSolo || false);
+      // Reset form to clear any stale email input
+      reset({ email: "" });
+    }, [data, reset]);
+
+    const addTeamMember = handleSubmit(({ email }) => {
+      const trimmedEmail = email.trim().toLowerCase();
+      if (!trimmedEmail) return;
+      // Disallow inviting your own email
+      if (currentUser?.email && trimmedEmail === currentUser.email.trim().toLowerCase()) {
+        setError("email", { type: "manual", message: "You cannot invite your own email" });
+        return;
+      }
+      const duplicate = localTeamMembers.some(
+        (m) => m.email.toLowerCase() === trimmedEmail
+      );
+      if (duplicate) return;
+      const invitation = {
+        id: Date.now().toString(),
+        email: trimmedEmail,
+        role: UserRole.TEAM_MEMBER as const,
+        status: "pending" as const,
+      };
+      setLocalTeamMembers((prev) => [...prev, invitation]);
+      setLocalWorksSolo(false);
+      reset({ email: "" });
+      clearErrors("email");
     });
-  };
 
-  const handleWorksSoloChange = (worksSolo: boolean) => {
-    onUpdate({ 
-      worksSolo,
-      teamMembers: worksSolo ? [] : data.teamMembers 
-    });
-  };
+    const removeMember = useCallback((index: number) => {
+      setLocalTeamMembers((prev) => {
+        const removed = prev[index];
+        const next = prev.filter((_, i) => i !== index);
+        if (removed) {
+          toast.custom((t) => (
+            <div className="flex items-center justify-between gap-6 rounded-md border border-gray-200 bg-white px-6 py-3 shadow-sm">
+              <div className="min-w-12">
+                <p className="text-sm font-medium text-gray-900 truncate mb-2">Invite removed</p>
+                <p className="text-xs text-gray-600 truncate">{removed.email}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                rounded="full"
+                className="h-7 px-6 cursor-pointer"
+                onClick={() => {
+                  setLocalTeamMembers((curr) => {
+                    const arr = [...curr];
+                    arr.splice(Math.min(index, arr.length), 0, removed);
+                    return arr;
+                  });
+                  toast.dismiss(t);
+                }}
+              >
+                Undo
+              </Button>
+            </div>
+          ), { duration: 5000 });
+        }
+        return next;
+      });
+    }, []);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 bg-primary/10 rounded-lg">
-          <Users className="h-6 w-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-foreground">{`Who's on your team?`}</h3>
-          <p className="text-sm text-muted-foreground">Invite team members to manage bookings and services</p>
-        </div>
-      </div>
+    const handleWorksSoloChange = useCallback((worksSolo: boolean) => {
+      setLocalWorksSolo(worksSolo);
+      if (updateData) {
+        updateData({ worksSolo });
+      }
+    }, [updateData]);
 
+    return (
       <div className="space-y-6">
         {/* Solo Work Toggle */}
-        <div className="bg-accent/20 border border-accent/30 rounded-lg p-4">
-          <div className="flex items-center justify-between">
+        <div
+          className={`${
+            localWorksSolo
+              ? "rounded-lg border border-blue-200 bg-blue-50 p-4"
+              : "bg-accent/80 border border-accent/30 rounded-lg p-4"
+          }`}
+        >
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <User className="h-5 w-5 text-primary" />
-              <div>
-                <Label htmlFor="worksSolo" className="text-sm font-medium">
-                  I work solo
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Skip team setup - you can always add team members later
-                </p>
-              </div>
+              <User
+                className={`h-6 w-6 shrink-0 ${
+                  localWorksSolo ? "text-blue-600" : "text-primary"
+                }`}
+              />
+              <Label
+                htmlFor="worksSolo"
+                className="text-base font-medium cursor-pointer"
+              >
+                I work solo
+              </Label>
             </div>
             <Switch
               id="worksSolo"
-              checked={data.worksSolo}
+              checked={localWorksSolo}
               onCheckedChange={handleWorksSoloChange}
-              className={`!h-5 !w-9 !min-h-0 !min-w-0 ${data.worksSolo ? 'bg-green-500' : 'bg-red-500'}`}
+              className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
             />
           </div>
+          <p className="text-sm text-muted-foreground">
+            {localWorksSolo
+              ? "Perfect! You're all set to manage your business independently"
+              : "Enable this to skip team setup for now. You can always invite team members later from your dashboard to help manage bookings and collaborate"}
+          </p>
+          {localWorksSolo && (
+            <p className="text-sm text-muted-foreground mt-3 pt-3 border-t border-blue-200">
+              You can invite team members anytime from your dashboard settings
+              to collaborate and manage bookings together.
+            </p>
+          )}
         </div>
 
-        {!data.worksSolo && (
+        {!localWorksSolo && (
           <>
-            {/* Current Team Members */}
-            {data.teamMembers.length > 0 && (
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Team Members</Label>
-                <div className="space-y-2">
-                  {data.teamMembers.map((member, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 bg-card border rounded-lg"
+            {/* Add Team Member */}
+            <div className="space-y-2 border-t border-gray-200 pt-6 mb-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium text-gray-700">
+                  Invite Team Member
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="What does inviting do?"
+                      className="inline-flex items-center justify-center text-gray-500 hover:text-gray-800 p-0 focus-visible:outline-none cursor-pointer"
                     >
-                      <div className="flex-1">
-                        <div className="font-medium">{member.email}</div>
-                        <Badge
-                          variant="outline"
-                          className={`text-xs mt-1 ${getRoleBadgeColor(UserRole.TEAM_MEMBER)}`}
+                      <HelpCircle className="h-5 w-5" />
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="end"
+                    sideOffset={6}
+                    className="text-sm leading-relaxed max-w-xs"
+                  >
+                    Team members will receive an email invitation to join your
+                    business account. They can set their own availability and
+                    manage their bookings.
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-1">
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:gap-3">
+                  <div className="flex-1 relative">
+                    <Input
+                      type="email"
+                      placeholder="team.member@example.com"
+                      className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                        errors.email
+                          ? "border-destructive bg-red-50 focus-visible:ring-red-400"
+                          : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
+                      }`}
+                      {...register("email", {
+                        pattern: {
+                          value: emailRegex,
+                          message: "Enter a valid email address",
+                        },
+                      })}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          addTeamMember();
+                        }
+                      }}
+                    />
+                    <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  </div>
+                  <Button
+                    onClick={addTeamMember}
+                    disabled={
+                      !emailValue ||
+                      emailValue.trim() === "" ||
+                      !isValid ||
+                      localTeamMembers.some(
+                        (m) =>
+                          m.email.toLowerCase() ===
+                          emailValue.trim().toLowerCase()
+                      )
+                    }
+                    rounded="full"
+                    className="gap-2 h-11 cursor-pointer w-full md:w-auto"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Team Member
+                  </Button>
+                </div>
+                <div className="h-5">
+                  {errors.email && (
+                    <p
+                      className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
+                      role="alert"
+                      aria-live="polite"
+                    >
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{String(errors.email.message || 'Enter a valid email address')}</span>
+                    </p>
+                  )}
+                </div>
+                {typeof subscriptionSummary?.availableSeats === 'number' && (
+                  <p className="text-xs text-muted-foreground">
+                    You can invite up to {subscriptionSummary.availableSeats} more team member{subscriptionSummary.availableSeats === 1 ? '' : 's'}.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Divider between add form and invitations list */}
+            <div className="border-t border-gray-200" />
+
+            {/* Current Team Members - moved below */}
+            {localTeamMembers.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-base font-medium text-gray-700">
+                    Invitations
+                  </Label>
+                  <Badge variant="secondary" className="text-md mr-2">
+                    {localTeamMembers.length}
+                  </Badge>
+                </div>
+
+                <div>
+                  {localTeamMembers.map((member, index) => (
+                    <div key={index} className="bg-white rounded-lg py-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div
+                            className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+                            style={{ backgroundColor: getAvatarBgColor(member.email) }}
+                          >
+                            <span className="text-base font-bold text-gray-800 leading-none">
+                              {member.email?.charAt(0)?.toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-medium text-gray-900 truncate text-sm">
+                              {member.email}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeMember(index)}
+                          className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                          aria-label="Remove invitation"
+                          title="Remove"
                         >
-                          {getRoleDisplayName(UserRole.TEAM_MEMBER)}
-                        </Badge>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeMember(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                      {index < localTeamMembers.length - 1 && (
+                        <div className="ml-12 mr-2 mt-2 h-px bg-gray-200" />
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Add Team Member */}
-            <div className="space-y-4 border-t pt-6">
-              <Label className="text-sm font-medium">Invite Team Member</Label>
-              <div className="space-y-3">
-                <Input
-                  type="email"
-                  placeholder="team.member@example.com"
-                  className="h-11"
-                  {...register('email', { required: true, pattern: emailRegex })}
-                />
-                {errors.email && (
-                  <div className="text-xs text-red-600">Enter a valid email address</div>
-                )}
-                <Select
-                  value={watch('role')}
-                  onValueChange={(value: UserRole) => 
-                    setValue('role', value, { shouldDirty: true, shouldTouch: true })
-                  }
-                >
-                  <SelectTrigger className="h-11 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={UserRole.TEAM_MEMBER}>
-                      <div className="text-left">
-                        <div className="font-medium">Team Member</div>
-                        <div className="text-xs text-muted-foreground">Manage bookings and availability</div>
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <Button 
-                  onClick={addTeamMember} 
-                  disabled={!isValid} 
-                  className="w-full gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Team Member
-                </Button>
-              </div>
-            </div>
-
-            {/* Info Box */}
-            <div className="bg-muted/50 border border-muted rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Users className="h-8 w-8 text-muted-foreground mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-1">
-                    Team invitations
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Team members will receive an email invitation to join your business account. They can set their own availability and manage their bookings.
-                  </p>
-                </div>
-              </div>
-            </div>
+            {localTeamMembers.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Add your teammates’ emails above. We’ll send the invitations once you finish setup.
+              </p>
+            )}
           </>
         )}
-
-        {data.worksSolo && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <User className="h-5 w-5 text-emerald-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-emerald-800 mb-1">
-                  {`Perfect! You're all set to work solo`}
-                </p>
-                <p className="text-xs text-emerald-700">
-                  You can always invite team members later from your dashboard settings.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
 
-export default StepTeam; 
+StepTeam.displayName = "StepTeam";
+
+export default StepTeam;

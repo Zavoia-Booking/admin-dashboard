@@ -107,7 +107,7 @@ export const PasswordStrength = ({ password, className, variant = "inline" }: Pa
           <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium", labelTint)}>{score === 100 ? "Excellent" : label}</span>
         </div>
         <div className="mb-2 h-px w-full bg-border" />
-        <ul className="space-y-1 text-[11px] text-foreground">
+        <ul className="space-y-1 text-xs text-foreground">
           <PanelItem met={checks.hasMinLength} text="Minimum 8 characters" />
           <PanelItem met={checks.hasLower} text="At least one Lowercase (a–z)" />
           <PanelItem met={checks.hasUpper} text="At least one Uppercase (A–Z)" />
