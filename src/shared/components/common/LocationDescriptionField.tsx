@@ -1,6 +1,7 @@
 import React from 'react';
 import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
+import { AlertCircle } from 'lucide-react';
 
 export interface LocationDescriptionFieldProps {
   value: string;
@@ -13,6 +14,7 @@ export interface LocationDescriptionFieldProps {
   id?: string;
   className?: string;
   showCharacterCount?: boolean;
+  error?: string;
 }
 
 export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> = ({
@@ -26,6 +28,7 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
   id = 'location-description',
   className = '',
   showCharacterCount = true,
+  error,
 }) => {
   const currentLength = value?.length || 0;
   const isOverLimit = currentLength > maxLength;
@@ -49,8 +52,21 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         maxLength={maxLength}
-        className="resize-none border-gray-200 hover:border-gray-300 focus:border-blue-400 transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0 h-28 sm:h-auto"
+        className={`resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 h-28 sm:h-auto ${
+          error
+            ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
+            : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+        }`}
+        aria-invalid={!!error}
       />
+      <div className="h-5">
+        {error && (
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+            <AlertCircle className="h-3.5 w-3.5" />
+            <span>{error}</span>
+          </p>
+        )}
+      </div>
     </div>
   );
 };

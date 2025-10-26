@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { wizardLoadDraftAction, wizardSaveAction, wizardUpdateDataAction } from '../../features/setupWizard/actions';
 import type { NewLocationPayload } from '../../features/locations/types';
@@ -7,6 +7,7 @@ import type { InviteTeamMemberPayload } from '../../features/teamMembers/types';
 import { getWizardDataSelector } from '../../features/setupWizard/selectors';
 import type { RootState } from '../../app/providers/store';
 import { isE164 } from '../utils/validation';
+import { useWizardStepHydration } from './useWizardStepHydration';
 
 export interface WizardData {
   // Step 1: Business Info
@@ -15,6 +16,7 @@ export interface WizardData {
 
   // Step 2: Location
   location: NewLocationPayload;
+  useBusinessContact?: boolean; // Toggle state for using business contact as location contact
 
   // Step 3: Team
   teamMembers: InviteTeamMemberPayload[];
@@ -31,23 +33,27 @@ export const useSetupWizard = () => {
   const isLoadingState = useSelector((state: RootState) => state.setupWizard.isLoading);
 
   const totalSteps = 4;
-  const [hydratedFromDraft, setHydratedFromDraft] = useState(false);
+  const hasRequestedDraft = useRef(false);
 
-  useEffect(() => {
-    dispatch(wizardLoadDraftAction.request());
+  // Request draft load on mount using useLayoutEffect to ensure it runs before paint
+  useLayoutEffect(() => {
+    if (!hasRequestedDraft.current) {
+      hasRequestedDraft.current = true;
+      // Dispatch sets isLoading: true in reducer before hydration effect runs
+      dispatch(wizardLoadDraftAction.request());
+    }
   }, [dispatch]);
 
-  useEffect(() => {
-    // Hydrate step from draft only once, AFTER initial load completes
-    if (!hydratedFromDraft && !isLoadingState) {
-      const draftStep = (reducerData as any)?.currentStep;
-      if (typeof draftStep === 'number' && draftStep >= 1 && draftStep <= totalSteps) {
-        setCurrentStep(draftStep);
-        setHydratedFromDraft(true);
-      }
-      // If no valid draftStep yet, wait for next reducerData update
-    }
-  }, [reducerData, hydratedFromDraft, isLoadingState]);
+  // Use dedicated hydration hook to manage step restoration
+  const hydratedFromDraft = useWizardStepHydration({
+    draftData: reducerData,
+    isLoading: isLoadingState,
+    totalSteps,
+    onStepHydrated: useCallback((step: number) => {
+      setCurrentStep(step);
+    }, []),
+    hasRequestedDraft: hasRequestedDraft.current,
+  });
 
   // Listen for save completion
   useEffect(() => {
@@ -68,11 +74,6 @@ export const useSetupWizard = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 0);
   };
-
-  // Persist currentStep after state changes to avoid setState during render
-  useEffect(() => {
-    dispatch(wizardUpdateDataAction({ currentStep } as any));
-  }, [currentStep, dispatch]);
 
   const nextStep = () => {
     if (currentStep < totalSteps) {

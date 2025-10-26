@@ -40,6 +40,7 @@ const initialState: WizardState = {
       workingHours: defaultWorkingHours,
       isActive: true,
     },
+    useBusinessContact: true, // Default: use business contact as location contact
     teamMembers: [],
     worksSolo: true,
     currentStep: 1,
@@ -99,6 +100,8 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
           useAccountEmail: payload.useAccountEmail ?? state.data.useAccountEmail,
+          useBusinessContact: payload.useBusinessContact ?? state.data.useBusinessContact,
+          currentStep: payload.currentStep ?? state.data.currentStep,
         },
       };
     }
@@ -127,6 +130,8 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
           useAccountEmail: payload.useAccountEmail ?? state.data.useAccountEmail,
+          useBusinessContact: payload.useBusinessContact ?? state.data.useBusinessContact,
+          currentStep: payload.currentStep ?? state.data.currentStep,
         },
       };
     }

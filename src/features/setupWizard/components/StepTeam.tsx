@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import type { StepProps, StepHandle } from "../types";
 import { UserRole } from "../../../shared/types/auth";
+import type { InviteTeamMemberPayload } from "../../teamMembers/types";
 import { useForm } from "react-hook-form";
 import { Badge } from "../../../shared/components/ui/badge";
 import {
@@ -30,8 +31,14 @@ import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../auth/selectors";
 import { selectSubscriptionSummary } from "../../settings/selectors";
 import { toast } from "sonner";
+import { emailError } from "../../../shared/utils/validation";
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Local UI state for team members (includes UI-only fields like status and id)
+interface LocalTeamMember extends InviteTeamMemberPayload {
+  role: UserRole;
+  id: string;
+  status: "pending";
+}
 
 function getAvatarBgColor(email: string | undefined): string {
   const str = (email || '').toLowerCase();
@@ -48,10 +55,8 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
     const currentUser = useSelector(selectCurrentUser);
     const subscriptionSummary = useSelector(selectSubscriptionSummary);
-    // Local state for team data
-    const [localTeamMembers, setLocalTeamMembers] = useState(
-      data.teamMembers || []
-    );
+    // Local state for team data - will be populated by useEffect
+    const [localTeamMembers, setLocalTeamMembers] = useState<LocalTeamMember[]>([]);
     const [localWorksSolo, setLocalWorksSolo] = useState(
       data.worksSolo || false
     );
@@ -81,9 +86,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
       getFormData: () => ({
-        teamMembers: (localTeamMembers || []).map((m: any) => ({
+        teamMembers: (localTeamMembers || []).map((m): InviteTeamMemberPayload & { role: UserRole } => ({
           email: m.email,
-          role: (m.role as any) || (UserRole.TEAM_MEMBER as any),
+          role: m.role || UserRole.TEAM_MEMBER,
         })),
         worksSolo: localWorksSolo,
       }),
@@ -93,12 +98,16 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
 
     // Sync local state when data changes from Redux
     useEffect(() => {
-      const members = (data.teamMembers || []).map((m: any) => ({
-        email: m.email,
-        role: (m.role as any) || (UserRole.TEAM_MEMBER as any),
-        id: `${m.email}`,
-        status: "pending" as const,
-      }));
+      const members: LocalTeamMember[] = (data.teamMembers || []).map((m) => {
+        // role might exist in saved draft (not in base InviteTeamMemberPayload type)
+        const memberWithRole = m as InviteTeamMemberPayload & { role?: UserRole };
+        return {
+          email: m.email,
+          role: memberWithRole.role || UserRole.TEAM_MEMBER,
+          id: `${m.email}`,
+          status: "pending" as const,
+        };
+      });
       setLocalTeamMembers(members);
       setLocalWorksSolo(data.worksSolo || false);
       // Reset form to clear any stale email input
@@ -110,7 +119,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       if (!trimmedEmail) return;
       // Disallow inviting your own email
       if (currentUser?.email && trimmedEmail === currentUser.email.trim().toLowerCase()) {
-        setError("email", { type: "manual", message: "You cannot invite your own email" });
+        setError("email", { type: "manual", message: "You can't invite your own email address" });
         return;
       }
       const duplicate = localTeamMembers.some(
@@ -249,16 +258,17 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                   <div className="flex-1 relative">
                     <Input
                       type="email"
-                      placeholder="team.member@example.com"
+                      placeholder="e.g. colleague@company.com"
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                         errors.email
                           ? "border-destructive bg-red-50 focus-visible:ring-red-400"
                           : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
                       }`}
                       {...register("email", {
-                        pattern: {
-                          value: emailRegex,
-                          message: "Enter a valid email address",
+                        validate: (value: string) => {
+                          if (!value || !value.trim()) return true;
+                          const error = emailError("Team member email", value);
+                          return error === null ? true : error;
                         },
                       })}
                       onKeyDown={(e) => {
@@ -297,7 +307,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       aria-live="polite"
                     >
                       <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{String(errors.email.message || 'Enter a valid email address')}</span>
+                      <span>{String(errors.email.message || 'Please enter a valid email address')}</span>
                     </p>
                   )}
                 </div>

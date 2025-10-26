@@ -14,8 +14,8 @@
     "pwa:test": "echo 'Building and testing PWA...' && yarn build && vite preview --host",
     "pwa:preview": "vite preview --host",
     "pwa:lighthouse": "yarn build && vite preview",
-    "tunnel:start": "cloudflared tunnel --config .cloudflared/config.yml run bookaroo-admin-dev",
-    "tunnel:create": "cloudflared tunnel create bookaroo-admin-dev",
+    "tunnel:start": "cloudflared tunnel --config .cloudflared/config.yml run book-admin-dev",
+    "tunnel:create": "cloudflared tunnel create book-admin-dev",
     "tunnel:login": "cloudflared tunnel login",
     "icons:generate": "echo 'Open generate-pwa-icons.html in your browser to download icons'"
   },
@@ -42,6 +42,7 @@
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
+    "dompurify": "^3.3.0",
     "i18next": "^25.6.0",
     "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.542.0",
@@ -74,6 +75,7 @@
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
     "vite-plugin-pwa": "^1.1.0",
+    "workbox-build": "^7.3.0",
     "workbox-window": "^7.3.0"
   }
 }

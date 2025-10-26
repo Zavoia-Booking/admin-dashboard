@@ -18,21 +18,21 @@ import { Label } from "../../../shared/components/ui/label";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import type { WorkingHours } from "../../../shared/types/location";
-import type { StepProps, StepHandle } from "../types";
-import { isE164, requiredEmailError } from "../../../shared/utils/validation";
+import type { StepProps, StepHandle, WizardFieldPath } from "../types";
+import { isE164, requiredEmailError, validateLocationName, validateDescription } from "../../../shared/utils/validation";
 import { makeWizardToggleHandler } from "../utils";
+import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
+import type { RootState } from "../../../app/providers/store";
+import { useSelector } from "react-redux";
 
 const StepLocation = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
-    // Ensure a default of useBusinessContact=true without post-mount effects
-    const initialDefaults: WizardData = {
-      ...(data as any),
-      location: {
-        ...((data as any).location || {}),
-        useBusinessContact:
-          (((data as any).location || ({} as any)).useBusinessContact ?? true) as any,
-      },
-    } as any;
+    // Initialize toggle state from draft data to avoid flash on load
+    const [useBusinessContact, setUseBusinessContact] = useState<boolean>(() => {
+      const draftToggleState = data.useBusinessContact;
+      // If draft has explicit state, use it; otherwise default to true
+      return typeof draftToggleState === 'boolean' ? draftToggleState : true;
+    });
 
     const {
       control,
@@ -40,51 +40,49 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       watch,
       setValue,
       reset,
+      resetField,
       trigger,
       formState: { errors, isValid: formIsValid },
     } = useForm<WizardData>({
-      defaultValues: initialDefaults,
+      defaultValues: data,
       mode: "onChange",
     });
 
     const [isAddressValid, setIsAddressValid] = useState(true);
     const [addressComposerKey, setAddressComposerKey] = useState(0);
     const prevIsRemoteRef = useRef<boolean>(
-      !!(watch("location") as any)?.isRemote
+      !!watch("location" satisfies WizardFieldPath)?.isRemote
     );
 
-    const isRemote = watch("location.isRemote" as any) === true;
-    const businessEmail = (watch("businessInfo.email" as any) as string) || "";
-    const businessPhone = (watch("businessInfo.phone" as any) as string) || "";
-    const useBusinessContact =
-      (watch("location.useBusinessContact" as any) as boolean) ?? true;
+    const isRemote = watch("location.isRemote" satisfies WizardFieldPath) === true;
+    const businessEmail = (watch("businessInfo.email" satisfies WizardFieldPath) as string) || "";
+    const businessPhone = (watch("businessInfo.phone" satisfies WizardFieldPath) as string) || "";
 
     // Register static fields for validation
     useEffect(() => {
-      register("location.timezone" as any, {
+      register("location.timezone" satisfies WizardFieldPath, {
         required: "Timezone is required",
       });
     }, [register]);
 
     // Controlled name with validation
-    const { field: nameField, fieldState: nameState } = useController<any>({
-      name: "location.name" as any,
+    const { field: nameField, fieldState: nameState } = useController<WizardData, "location.name">({
+      name: "location.name",
       control,
       rules: {
-        required: "Location name is required",
-        minLength: {
-          value: 2,
-          message: "Location name must be at least 2 characters",
+        validate: (value) => {
+          const error = validateLocationName(value);
+          return error === null ? true : error;
         },
       },
     });
 
     // Controlled email & phone with dynamic validation based on toggle
-    const { field: emailField, fieldState: emailState } = useController<any>({
-      name: "location.email" as any,
+    const { field: emailField, fieldState: emailState } = useController<WizardData, "location.email">({
+      name: "location.email",
       control,
       rules: {
-        validate: (value: string) => {
+        validate: (value) => {
           if (useBusinessContact) return true; // Skip validation when using business contact
           const error = requiredEmailError("Email", value);
           return error === null ? true : error;
@@ -92,22 +90,43 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       },
     });
 
-    const { field: phoneField, fieldState: phoneState } = useController<any>({
-      name: "location.phone" as any,
+    const { field: phoneField, fieldState: phoneState } = useController<WizardData, "location.phone">({
+      name: "location.phone",
       control,
       rules: {
         validate: {
-          required: (value: string) =>
+          required: (value) =>
             useBusinessContact ||
             (!!value && value.trim().length > 0) ||
             "Phone number is required",
-          format: (value: string) =>
+          format: (value) =>
             useBusinessContact ||
             !value ||
             isE164(value) ||
             "Enter a valid phone number",
         },
       },
+    });
+
+    // Controlled location description with validation (optional field)
+    const { field: descriptionField, fieldState: descriptionState } =
+      useController<WizardData, "location.description">({
+        name: "location.description",
+        control,
+        rules: {
+          validate: (value) => {
+            if (!value || !value.trim()) return true; // Optional field
+            const error = validateDescription(value, 500);
+            return error === null ? true : error;
+          },
+        },
+      });
+
+    // Trigger validation on draft load to show errors for invalid saved data
+    const showDraftErrors = useDraftValidation({
+      trigger,
+      data,
+      section: 'location',
     });
 
     // Notify parent when validity changes
@@ -128,16 +147,17 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         getFormData: () => {
           const formData = watch();
           // Ensure location contact fields are always present in the payload
-          const location = (formData as any).location || {};
-          return {
+          const location = formData.location || {};
+          const result: Partial<WizardData> = {
             ...formData,
             location: {
               ...location,
-              useBusinessContact: useBusinessContact,
               email: (emailField.value as string) || '',
               phone: (phoneField.value as string) || '',
             },
+            useBusinessContact, // Include toggle state at top level
           };
+          return result;
         },
         triggerValidation: async () => trigger(),
         isValid: () => {
@@ -150,78 +170,69 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       [watch, trigger, errors, formIsValid, isAddressValid, isRemote, useBusinessContact, emailField, phoneField]
     );
 
-    // Sync form with external data changes (from Redux) without forcing inline errors before interaction
+    // Reset form ONLY once when wizard finishes loading (same pattern as business step)
+    const isWizardLoading = useSelector((state: RootState) => state.setupWizard.isLoading);
+    const hasInitialized = useRef(false);
     useEffect(() => {
+      if (isWizardLoading || hasInitialized.current) return;
       reset(data);
-    }, [data, reset]);
+      hasInitialized.current = true;
+    }, [isWizardLoading, data, reset]);
 
-    // When toggling from remote back to physical, rehydrate from draft and remount composer
+    // Remount address composer when toggling to physical location
     useEffect(() => {
       const prev = prevIsRemoteRef.current;
       if (prev && !isRemote) {
-        reset(data);
         setAddressComposerKey((k) => k + 1);
       }
       prevIsRemoteRef.current = isRemote;
-    }, [isRemote, reset, data]);
+    }, [isRemote]);
 
-    // Re-trigger validation when useBusinessContact changes (affects required fields)
-    useEffect(() => {
-      trigger(["location.email", "location.phone"]);
-    }, [useBusinessContact, trigger]);
-
-    const currentWorkingHours = (watch("location") as any)
+    const currentWorkingHours = watch("location" satisfies WizardFieldPath)
       ?.workingHours as WorkingHours;
-    const open247 = !!(watch("location") as any)?.open247;
+    const open247 = !!watch("location" satisfies WizardFieldPath)?.open247;
 
     const applyWorkingHours = (next: WorkingHours) => {
       const current = watch();
-      reset({
+      const updatedData: Partial<WizardData> = {
         ...current,
         location: {
-          ...(current as any).location,
+          ...current.location,
           workingHours: next,
         },
-      } as any);
+      };
+      reset(updatedData);
     };
 
     const handleContactToggleChange = useCallback(
       (checked: boolean) => {
-        setValue("location.useBusinessContact" as any, checked, {
-          shouldDirty: true,
-          shouldTouch: true,
-        });
+        setUseBusinessContact(checked);
         if (checked) {
           // Inherit from business info
           if (businessEmail)
-            setValue("location.email" as any, businessEmail, {
+            setValue("location.email" satisfies WizardFieldPath, businessEmail, {
               shouldValidate: true,
-              shouldDirty: true,
+              shouldDirty: false,
             });
           if (businessPhone)
-            setValue("location.phone" as any, businessPhone, {
+            setValue("location.phone" satisfies WizardFieldPath, businessPhone, {
               shouldValidate: true,
-              shouldDirty: true,
+              shouldDirty: false,
             });
         } else {
-          // Prefill overrides from business info only if empty
-          const currEmail = (watch("location.email" as any) as string) || "";
-          const currPhone = (watch("location.phone" as any) as string) || "";
-          if (!currEmail && businessEmail)
-            setValue("location.email" as any, businessEmail, {
-              shouldDirty: true,
-            });
-          if (!currPhone && businessPhone)
-            setValue("location.phone" as any, businessPhone, {
-              shouldDirty: true,
-            });
+          // Clear fields when toggling OFF
+          setValue("location.email" satisfies WizardFieldPath, "", {
+            shouldDirty: false,
+            shouldValidate: true,
+          });
+          setValue("location.phone" satisfies WizardFieldPath, "", {
+            shouldDirty: false,
+            shouldValidate: true,
+          });
         }
-        if (updateData) {
-          const currentLocation = watch("location") as any;
-          updateData({ location: { ...currentLocation, useBusinessContact: checked } } as any);
-        }
+        // Toggle state will be saved via getFormData
       },
-      [setValue, businessEmail, businessPhone, watch, updateData]
+      [setValue, businessEmail, businessPhone]
     );
 
     return (
@@ -236,6 +247,14 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               updateData,
               section: 'location',
               field: 'isRemote',
+              onToggleExtra: () => {
+                // Clear location name, description, and address when toggling between remote/physical
+                // Use resetField to clear both value and field state (touched, dirty, error)
+                resetField("location.name" satisfies WizardFieldPath, { defaultValue: "" });
+                resetField("location.description" satisfies WizardFieldPath, { defaultValue: "" });
+                resetField("location.address" satisfies WizardFieldPath, { defaultValue: "" });
+                resetField("location.addressComponents" satisfies WizardFieldPath, { defaultValue: undefined });
+              },
             })}
           />
 
@@ -245,7 +264,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               <LocationNameField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
-                error={nameState.error?.message as unknown as string}
+                error={(nameState.isTouched || nameState.isDirty || showDraftErrors) ? (nameState.error?.message as unknown as string) : undefined}
+                placeholder="e.g. Downtown Office"
                 required
               />
 
@@ -258,18 +278,18 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 </Label>
                 <AddressComposer
                   key={addressComposerKey}
-                  value={watch("location.address" as any) as any}
+                  value={watch("location.address" satisfies WizardFieldPath) as any}
                   onChange={(next) =>
-                    setValue("location.address" as any, next, {
+                    setValue("location.address" satisfies WizardFieldPath, next, {
                       shouldDirty: true,
                       shouldTouch: true,
                     })
                   }
                   addressComponents={
-                    watch("location.addressComponents" as any) as any
+                    watch("location.addressComponents" satisfies WizardFieldPath) as any
                   }
                   onAddressComponentsChange={(components) =>
-                    setValue("location.addressComponents" as any, components, {
+                    setValue("location.addressComponents" satisfies WizardFieldPath, components, {
                       shouldDirty: true,
                       shouldTouch: true,
                     })
@@ -294,8 +314,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   const sanitized = (phone || "").replace(/\s+/g, " ").trim();
                   phoneField.onChange(sanitized);
                 }}
-                emailError={emailState.error?.message as unknown as string}
-                phoneError={phoneState.error?.message as unknown as string}
+                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || showDraftErrors) ? (emailState.error?.message as unknown as string) : undefined}
+                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || showDraftErrors) ? (phoneState.error?.message as unknown as string) : undefined}
                 title="Contact information"
                 emailLabel="Location Email *"
                 phoneLabel="Location Phone *"
@@ -305,13 +325,10 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
 
               <div className="pt-4">
                 <LocationDescriptionField
-                  value={(watch("location.description" as any) as string) || ""}
-                  onChange={(value) =>
-                    setValue("location.description" as any, value, {
-                      shouldDirty: true,
-                      shouldTouch: true,
-                    })
-                  }
+                  value={(descriptionField.value as string) || ""}
+                  onChange={(value) => descriptionField.onChange(value)}
+                  error={(descriptionState.isTouched || descriptionState.isDirty || showDraftErrors) ? (descriptionState.error?.message as string) : undefined}
+                  placeholder="Describe this location (e.g. Main office with parking)"
                 />
               </div>
 
@@ -345,22 +362,22 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               <LocationNameField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
-                error={nameState.error?.message as unknown as string}
+                error={(nameState.isTouched || nameState.isDirty || showDraftErrors) ? (nameState.error?.message as unknown as string) : undefined}
                 isRemote
                 required
                 placeholder="Online"
               />
 
               <TimezoneField
-                value={(watch("location.timezone" as any) as string) || ""}
+                value={(watch("location.timezone" satisfies WizardFieldPath) as string) || ""}
                 onChange={(tz) =>
-                  setValue("location.timezone" as any, tz, {
+                  setValue("location.timezone" satisfies WizardFieldPath, tz, {
                     shouldValidate: true,
                     shouldDirty: true,
                     shouldTouch: true,
                   })
                 }
-                error={(errors.location as any)?.timezone?.message}
+                error={errors.location?.timezone?.message}
                 required
               />
 
@@ -380,8 +397,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   const sanitized = (phone || "").replace(/\s+/g, " ").trim();
                   phoneField.onChange(sanitized);
                 }}
-                emailError={emailState.error?.message as unknown as string}
-                phoneError={phoneState.error?.message as unknown as string}
+                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || showDraftErrors) ? (emailState.error?.message as unknown as string) : undefined}
+                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || showDraftErrors) ? (phoneState.error?.message as unknown as string) : undefined}
                 title="Contact information"
                 emailLabel="Location Email *"
                 phoneLabel="Location Phone *"

@@ -4,6 +4,7 @@ import React, {
   useState,
   forwardRef,
   useImperativeHandle,
+  useRef,
 } from "react";
 import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
@@ -15,20 +16,23 @@ import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../../app/providers/store";
-import type { StepProps, StepHandle } from "../types";
+import type { StepProps, StepHandle, WizardFieldPath } from "../types";
 import {
   isE164,
   sanitizePhoneToE164Draft,
   requiredEmailError,
+  validateBusinessName,
+  validateDescription,
 } from "../../../shared/utils/validation";
 import { industryApi } from "../../../shared/api/industry.api";
 import IndustrySelector from "./IndustrySelector";
 import type { Industry } from "../../../shared/types/industry";
 import { selectCurrentUser } from "../../auth/selectors";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
+import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
 
 const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
-  ({ data, onValidityChange, updateData }, ref) => {
+  ({ data, onValidityChange }, ref) => {
     const [industries, setIndustries] = useState<Industry[]>([]);
     const [isLoadingIndustries, setIsLoadingIndustries] = useState(true);
     const isWizardLoading = useSelector(
@@ -39,7 +43,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     
     // Initialize toggle state from draft data to avoid flash on load
     const [useAccountEmail, setUseAccountEmail] = useState<boolean>(() => {
-      const draftToggleState = (data as any)?.useAccountEmail;
+      const draftToggleState = data.useAccountEmail;
       // If draft has explicit state, use it; otherwise default to true
       return typeof draftToggleState === 'boolean' ? draftToggleState : true;
     });
@@ -51,7 +55,6 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       setValue,
       reset,
       trigger,
-      setError,
       formState: { errors, isValid: formIsValid },
     } = useForm<WizardData>({
       defaultValues: data,
@@ -59,35 +62,33 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     });
 
     const selectedIndustryId =
-      watch("businessInfo.industryId" as any) ||
-      (data as any)?.businessInfo?.industryId;
-    const businessDescription = watch("businessInfo.description" as any) || "";
+      watch("businessInfo.industryId" satisfies WizardFieldPath) ||
+      data.businessInfo?.industryId;
 
     // Controlled business name with validation (only validate after wizard loads)
     const { field: businessNameField, fieldState: businessNameState } =
-      useController<any>({
-        name: "businessInfo.name" as any,
+      useController<WizardData, "businessInfo.name">({
+        name: "businessInfo.name",
         control,
         rules: isWizardLoading
           ? {}
           : {
-              required: "Business name is required",
-              minLength: {
-                value: 2,
-                message: "Business name must be at least 2 characters",
+              validate: (value) => {
+                const error = validateBusinessName(value);
+                return error === null ? true : error;
               },
             },
       });
 
     // Controlled email with conditional validation based on toggle
     const { field: businessEmailField, fieldState: businessEmailState } =
-      useController<any>({
-        name: "businessInfo.email" as any,
+      useController<WizardData, "businessInfo.email">({
+        name: "businessInfo.email",
         control,
         rules: isWizardLoading
           ? {}
           : {
-              validate: (value: string) => {
+              validate: (value) => {
                 if (useAccountEmail) return true; // When toggle is ON, validation is skipped
                 const error = requiredEmailError("Business email", value);
                 return error === null ? true : error;
@@ -95,9 +96,30 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             },
       });
 
+    // Controlled business description with validation (optional field)
+    const { field: businessDescriptionField, fieldState: businessDescriptionState } =
+      useController<WizardData, "businessInfo.description">({
+        name: "businessInfo.description",
+        control,
+        rules: {
+          validate: (value) => {
+            if (!value || !value.trim()) return true; // Optional field
+            const error = validateDescription(value, 500);
+            return error === null ? true : error;
+          },
+        },
+      });
+
+    // Trigger validation on draft load to show errors for invalid saved data
+    const showDraftErrors = useDraftValidation({
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+
     const handleSelectIndustry = useCallback(
       (industryId: number) => {
-        setValue("businessInfo.industryId" as any, industryId, {
+        setValue("businessInfo.industryId" satisfies WizardFieldPath, industryId, {
           shouldDirty: true,
           shouldTouch: true,
           shouldValidate: true,
@@ -106,79 +128,44 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       [setValue]
     );
 
-    // Initialize the email toggle based on existing draft vs account email
+    // Sync toggle state when account email is available and toggle is ON
     useEffect(() => {
-      // Skip initialization while wizard is loading
-      if (isWizardLoading) return;
-
-      const draftEmail = ((data as any)?.businessInfo?.email || "").trim();
-      const draftToggleState = (data as any)?.useAccountEmail;
+      if (isWizardLoading || !useAccountEmail || !accountEmail) return;
       
-      // If draft has explicit toggle state, use it
-      if (typeof draftToggleState === 'boolean') {
-        setUseAccountEmail(draftToggleState);
-        if (draftToggleState && accountEmail) {
-          // Toggle ON: use account email
-          setValue("businessInfo.email" as any, accountEmail, {
-            shouldDirty: false,
-            shouldValidate: true,
-          });
-        } else if (draftEmail) {
-          // Toggle OFF: use custom draft email
-          setValue("businessInfo.email" as any, draftEmail, {
-            shouldDirty: false,
-            shouldValidate: true,
-          });
-        }
-      } else if (!draftEmail && accountEmail) {
-        // No draft at all → default to using account email
-        setUseAccountEmail(true);
-        setValue("businessInfo.email" as any, accountEmail, {
+      // If toggle is ON, sync form email with account email
+      const currentEmail = watch("businessInfo.email" satisfies WizardFieldPath);
+      if (currentEmail !== accountEmail) {
+        setValue("businessInfo.email" satisfies WizardFieldPath, accountEmail, {
           shouldDirty: false,
-          shouldValidate: true,
-        });
-      } else if (draftEmail && accountEmail) {
-        // Legacy draft (no toggle state saved) → infer from email match
-        const same = draftEmail.toLowerCase() === accountEmail.toLowerCase();
-        setUseAccountEmail(same);
-        setValue("businessInfo.email" as any, same ? accountEmail : draftEmail, {
-          shouldDirty: false,
-          shouldValidate: true,
-        });
-      } else if (draftEmail && !accountEmail) {
-        // Has draft email but no account email (edge case)
-        setUseAccountEmail(false);
-        setValue("businessInfo.email" as any, draftEmail, {
-          shouldDirty: false,
-          shouldValidate: true,
+          shouldValidate: false, // Don't trigger validation here
         });
       }
-    }, [accountEmail, data, isWizardLoading, setValue]);
+    }, [useAccountEmail, accountEmail, isWizardLoading, watch, setValue]);
 
-    // Handle toggle changes: when ON, mirror the account email into the form
+    // Handle toggle changes: when ON, mirror the account email into the form; when OFF, clear it
     const handleUseAccountEmailChange = useCallback((checked: boolean) => {
       setUseAccountEmail(checked);
       if (checked) {
-        setValue("businessInfo.email" as any, accountEmail, {
-          shouldDirty: true,
+        setValue("businessInfo.email" satisfies WizardFieldPath, accountEmail, {
+          shouldDirty: false,  // Don't mark as dirty - this prevents isDirty reset
           shouldValidate: true,
         });
       } else {
-        // When toggling OFF, re-trigger validation to show required error if empty
-        trigger("businessInfo.email" as any);
+        // Clear the email field when toggling OFF
+        setValue("businessInfo.email" satisfies WizardFieldPath, "", {
+          shouldDirty: false,
+          shouldValidate: true,
+        });
       }
-      // Persist toggle state to Redux immediately
-      if (updateData) {
-        updateData({ useAccountEmail: checked } as any);
-      }
-    }, [accountEmail, setValue, trigger, updateData]);
+      // Save toggle state (will be included in getFormData)
+    }, [accountEmail, setValue]);
 
     // Notify parent when validity changes
     useEffect(() => {
       if (onValidityChange) {
         const valid =
           formIsValid &&
-          selectedIndustryId &&
+          !!selectedIndustryId &&
           Number.isInteger(selectedIndustryId) &&
           selectedIndustryId > 0 &&
           Object.keys(errors).length === 0;
@@ -190,7 +177,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         const sanitized = sanitizePhoneToE164Draft(raw);
-        setValue("businessInfo.phone" as any, sanitized, {
+        setValue("businessInfo.phone" satisfies WizardFieldPath, sanitized, {
           shouldValidate: true,
           shouldDirty: true,
         });
@@ -206,22 +193,23 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           const current = watch();
           const effectiveEmail = useAccountEmail && accountEmail
             ? accountEmail
-            : (((current as any)?.businessInfo?.email as string) || "");
-          return {
+            : (current.businessInfo?.email || "");
+          const result: Partial<WizardData> = {
             ...current,
             businessInfo: {
-              ...(current as any).businessInfo,
+              ...current.businessInfo,
               email: effectiveEmail,
             },
             useAccountEmail, // Include toggle state in saved data
-          } as any;
+          };
+          return result;
         },
         triggerValidation: async () => {
           const isValid = await trigger();
 
           // Additional validation for industry (not in form)
           const currentData = watch();
-          const industryId = (currentData as any)?.businessInfo?.industryId;
+          const industryId = currentData.businessInfo?.industryId;
           if (!industryId || !Number.isInteger(industryId) || industryId <= 0) {
             return false;
           }
@@ -234,7 +222,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           // Check industry selection
           const currentData = watch();
-          const industryId = (currentData as any)?.businessInfo?.industryId;
+          const industryId = currentData.businessInfo?.industryId;
           if (!industryId || !Number.isInteger(industryId) || industryId <= 0) {
             return false;
           }
@@ -245,7 +233,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           return true;
         },
       }),
-      [watch, trigger, errors, formIsValid]
+      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail]
     );
 
     useEffect(() => {
@@ -268,44 +256,13 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       fetchIndustries();
     }, []);
 
-    // Sync form with external data changes (from Redux) and surface only invalid non-empty saved values
+    // Reset form ONLY once when wizard finishes loading
+    const hasInitialized = useRef(false);
     useEffect(() => {
-      if (isWizardLoading) return;
+      if (isWizardLoading || hasInitialized.current) return;
       reset(data);
-      // After reset, flag only non-empty invalids from saved draft (avoid showing required-empty errors on first load)
-      setTimeout(() => {
-        const name = (data as any)?.businessInfo?.name?.trim?.() || "";
-        if (name !== "" && name.length < 2) {
-          setError("businessInfo.name" as any, {
-            type: "manual",
-            message: "Business name must be at least 2 characters",
-          });
-        }
-
-        const phone = (data as any)?.businessInfo?.phone || "";
-        if (phone && !isE164(phone)) {
-          setError("businessInfo.phone" as any, {
-            type: "manual",
-            message: "Enter a valid phone number",
-          });
-        }
-
-        const email = (data as any)?.businessInfo?.email || "";
-        // If using account email, skip manual error injection here
-        // Also trigger validation to ensure controller picks up any issues
-        if (!useAccountEmail && email) {
-          const emailErr = requiredEmailError("Business email", email);
-          if (emailErr) {
-            setError("businessInfo.email" as any, {
-              type: "manual",
-              message: emailErr,
-            });
-          }
-        }
-        // Re-trigger validation for email after draft load
-        trigger("businessInfo.email" as any);
-      }, 0);
-    }, [data, reset, isWizardLoading, setError, useAccountEmail, trigger]);
+      hasInitialized.current = true;
+    }, [isWizardLoading, data, reset]);
 
     // Step-level skeleton removed; wizard shell handles initial hydration skeleton
 
@@ -315,9 +272,9 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           <LocationNameField
             value={(businessNameField.value as string) || ""}
             onChange={(v) => businessNameField.onChange(v)}
-            error={businessNameState.error?.message as unknown as string}
+            error={(businessNameState.isTouched || businessNameState.isDirty || showDraftErrors) ? (businessNameState.error?.message as unknown as string) : undefined}
             label="Business Name"
-            placeholder="e.g. Sarah's Hair Studio"
+            placeholder="e.g. Sarah's Salon & Spa"
             required
             icon={Building2}
           />
@@ -333,7 +290,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               localPhone={""}
               onEmailChange={(email) => businessEmailField.onChange(email)}
               onPhoneChange={() => {}}
-              emailError={!useAccountEmail ? (businessEmailState.error?.message as string) : undefined}
+              emailError={!useAccountEmail && (businessEmailState.isTouched || businessEmailState.isDirty || showDraftErrors) ? (businessEmailState.error?.message as string) : undefined}
               className=""
               id="business-email-toggle"
               showEmail={true}
@@ -363,7 +320,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                   autoComplete="tel"
                   inputMode="tel"
                   {...register(
-                    "businessInfo.phone" as any,
+                    "businessInfo.phone" satisfies WizardFieldPath,
                     isWizardLoading
                       ? {}
                       : {
@@ -392,18 +349,15 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           </div>
 
           <LocationDescriptionField
-            value={businessDescription as string}
-            onChange={(v) =>
-              setValue("businessInfo.description" as any, v, {
-                shouldDirty: true,
-              })
-            }
+            value={(businessDescriptionField.value as string) || ""}
+            onChange={(v) => businessDescriptionField.onChange(v)}
             label="Business Description"
-            placeholder="Briefly describe what your business does..."
+            placeholder="Tell customers what makes your business special..."
             maxLength={500}
             rows={3}
             id="businessInfo.description"
             className="cursor-default"
+            error={(businessDescriptionState.isTouched || businessDescriptionState.isDirty || showDraftErrors) ? (businessDescriptionState.error?.message as string) : undefined}
           />
 
           <div className="space-y-3 pt-4">

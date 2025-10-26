@@ -164,7 +164,7 @@ const SetupWizardPage: React.FC = () => {
         showNext={!effectiveIsLastStep}
         nextLabel={currentStep === totalSteps - 1 ? 'Launch My Business' : 'Continue'}
       >
-        {isWizardLoading && !hydratedFromDraft ? (
+        {!hydratedFromDraft ? (
           <div className="space-y-6 cursor-default">
             <div className="grid gap-6">
               <div className="space-y-2">

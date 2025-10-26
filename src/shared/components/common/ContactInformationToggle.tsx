@@ -124,7 +124,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                   <Input
                     id="location-email"
                     type="email"
-                    placeholder="frontdesk@business.com"
+                    placeholder="e.g. contact@yourbusiness.com"
                     value={localEmail}
                     onChange={(e) => onEmailChange(e.target.value)}
                     className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
