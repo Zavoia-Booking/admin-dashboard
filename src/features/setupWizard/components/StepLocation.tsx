@@ -19,7 +19,7 @@ import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import type { WorkingHours } from "../../../shared/types/location";
 import type { StepProps, StepHandle } from "../types";
-import { isE164 } from "../../../shared/utils/validation";
+import { isE164, requiredEmailError } from "../../../shared/utils/validation";
 import { makeWizardToggleHandler } from "../utils";
 
 const StepLocation = forwardRef<StepHandle, StepProps>(
@@ -84,16 +84,10 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       name: "location.email" as any,
       control,
       rules: {
-        validate: {
-          required: (value: string) =>
-            useBusinessContact ||
-            (!!value && value.trim().length > 0) ||
-            "Email is required",
-          pattern: (value: string) =>
-            useBusinessContact ||
-            !value ||
-            /[^@\s]+@[^@\s]+\.[^@\s]+/.test(value) ||
-            "Enter a valid email",
+        validate: (value: string) => {
+          if (useBusinessContact) return true; // Skip validation when using business contact
+          const error = requiredEmailError("Email", value);
+          return error === null ? true : error;
         },
       },
     });
@@ -302,7 +296,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 }}
                 emailError={emailState.error?.message as unknown as string}
                 phoneError={phoneState.error?.message as unknown as string}
-                required={!useBusinessContact}
+                title="Contact information"
+                emailLabel="Location Email *"
+                phoneLabel="Location Phone *"
+                helperTextOn="Your business contact info will be used for this location."
+                helperTextOff="Provide different contact details for this location."
               />
 
               <div className="pt-4">
@@ -384,7 +382,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 }}
                 emailError={emailState.error?.message as unknown as string}
                 phoneError={phoneState.error?.message as unknown as string}
-                required={!useBusinessContact}
+                title="Contact information"
+                emailLabel="Location Email *"
+                phoneLabel="Location Phone *"
+                helperTextOn="Business contact info will be used for this location."
+                helperTextOff="Provide different contact details for this location."
               />
 
               <div className="space-y-2 pt-4">

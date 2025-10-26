@@ -111,7 +111,7 @@ button,
   min-width: 44px;
 }
 
-/* Smooth scrolling for mobile */
+/* Smooth scrolling */
 html {
   scroll-behavior: smooth;
 }
@@ -275,4 +275,16 @@ textarea {
 
 .scrollbar-hide::-webkit-scrollbar {
   display: none;  /* Chrome, Safari, and Opera */
+}
+
+/* Mobile: hide scrollbar but keep scrolling working */
+@media (max-width: 767px) {
+  ::-webkit-scrollbar {
+    width: 0px;
+    height: 0px;
+  }
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
 }

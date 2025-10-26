@@ -11,6 +11,7 @@ import { isE164 } from '../utils/validation';
 export interface WizardData {
   // Step 1: Business Info
   businessInfo: BusinessInfo;
+  useAccountEmail?: boolean; // Toggle state for using account email as business email
 
   // Step 2: Location
   location: NewLocationPayload;
@@ -62,14 +63,10 @@ export const useSetupWizard = () => {
   }, [dispatch]);
 
   const scrollToWizardContent = () => {
-    // Scroll to the wizard content area instead of the window top
-    const wizardContent = document.querySelector('[data-wizard-content]');
-    if (wizardContent) {
-      wizardContent.scrollIntoView({ block: 'start' });
-    } else {
-      // Fallback: scroll to a reasonable position below sticky elements
-      window.scrollTo({ top: 200 });
-    }
+    // Wait for React to render new step, then scroll to top
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 0);
   };
 
   // Persist currentStep after state changes to avoid setState during render

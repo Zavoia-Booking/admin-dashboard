@@ -23,6 +23,24 @@ export const validatePasswordPolicy = (password: string): true | string => {
   return true;
 }
 
+// Email validation
+export const EMAIL_PATTERN = /[^@\s]+@[^@\s]+\.[^@\s]+/;
+
+export const isValidEmail = (value: string): boolean => EMAIL_PATTERN.test(value);
+
+export const emailError = (fieldLabel: string, value: string): string | null => {
+  const v = (value ?? '').trim();
+  if (!v) return null; // only enforce when present
+  return isValidEmail(v) ? null : `Enter a valid ${fieldLabel.toLowerCase()}`;
+}
+
+// Required email validation (for mandatory email fields)
+export const requiredEmailError = (fieldLabel: string, value: string): string | null => {
+  const v = (value ?? '').trim();
+  if (!v) return `${fieldLabel} is required`;
+  return isValidEmail(v) ? null : `Enter a valid ${fieldLabel.toLowerCase()}`;
+}
+
 // Generic helpers
 export const sanitizeDigits = (value: string): string => value.replace(/\D+/g, '');
 

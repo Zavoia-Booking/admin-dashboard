@@ -28,6 +28,7 @@ const initialState: WizardState = {
       instagramUrl: undefined as unknown as string,
       facebookUrl: undefined as unknown as string,
     },
+    useAccountEmail: true, // Default: use account email as business email
     location: {
       isRemote: false,
       name: undefined as unknown as string,
@@ -97,6 +98,7 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
+          useAccountEmail: payload.useAccountEmail ?? state.data.useAccountEmail,
         },
       };
     }
@@ -124,6 +126,7 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
+          useAccountEmail: payload.useAccountEmail ?? state.data.useAccountEmail,
         },
       };
     }
