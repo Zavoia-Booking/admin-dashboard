@@ -36,6 +36,7 @@ const initialState: WizardState = {
       phone: undefined as unknown as string,
       email: undefined as unknown as string,
       address: undefined as unknown as string,
+      addressManualMode: undefined as unknown as boolean,
       timezone: undefined as unknown as string,
       workingHours: defaultWorkingHours,
       isActive: true,

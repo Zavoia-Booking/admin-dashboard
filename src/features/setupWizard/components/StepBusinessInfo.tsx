@@ -50,7 +50,6 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
     const {
       control,
-      register,
       watch,
       setValue,
       reset,
@@ -93,6 +92,20 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 const error = requiredEmailError("Business email", value);
                 return error === null ? true : error;
               },
+            },
+      });
+
+    // Controlled business phone with validation
+    const { field: businessPhoneField, fieldState: businessPhoneState } =
+      useController<WizardData, "businessInfo.phone">({
+        name: "businessInfo.phone",
+        control,
+        rules: isWizardLoading
+          ? {}
+          : {
+              required: "Phone number is required",
+              validate: (value: string) =>
+                isE164(value) || "Enter a valid phone number",
             },
       });
 
@@ -177,12 +190,9 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         const raw = e.target.value;
         const sanitized = sanitizePhoneToE164Draft(raw);
-        setValue("businessInfo.phone" satisfies WizardFieldPath, sanitized, {
-          shouldValidate: true,
-          shouldDirty: true,
-        });
+        businessPhoneField.onChange(sanitized);
       },
-      [setValue]
+      [businessPhoneField]
     );
 
     // Expose methods to parent via ref
@@ -313,35 +323,29 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                   type="tel"
                   placeholder="+1 555 123 4567"
                   className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                    errors.businessInfo?.phone
+                    (businessPhoneState.isTouched || businessPhoneState.isDirty || showDraftErrors) && businessPhoneState.error
                       ? "border-destructive bg-red-50 focus-visible:ring-red-400"
                       : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
                   }`}
                   autoComplete="tel"
                   inputMode="tel"
-                  {...register(
-                    "businessInfo.phone" satisfies WizardFieldPath,
-                    isWizardLoading
-                      ? {}
-                      : {
-                          required: "Phone number is required",
-                          validate: (value: string) =>
-                            isE164(value) || "Enter a valid phone number",
-                        }
-                  )}
+                  value={(businessPhoneField.value as string) || ""}
                   onChange={handleBusinessPhoneChange}
+                  onBlur={businessPhoneField.onBlur}
+                  name={businessPhoneField.name}
+                  ref={businessPhoneField.ref}
                 />
                 <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
               <div className="h-5">
-                {errors.businessInfo?.phone && (
+                {(businessPhoneState.isTouched || businessPhoneState.isDirty || showDraftErrors) && businessPhoneState.error && (
                   <p
                     className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
                     role="alert"
                     aria-live="polite"
                   >
                     <AlertCircle className="h-3.5 w-3.5" />
-                    <span>{String(errors.businessInfo.phone.message)}</span>
+                    <span>{String(businessPhoneState.error.message)}</span>
                   </p>
                 )}
               </div>

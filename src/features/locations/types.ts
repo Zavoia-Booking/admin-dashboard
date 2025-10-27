@@ -21,6 +21,7 @@ export interface NewLocationPayload {
     postalCode?: string;
     country?: string;
   };
+  addressManualMode?: boolean; // Track if user was in manual or search mode
   timezone: string;
   workingHours: WorkingHours;
   isRemote: boolean;

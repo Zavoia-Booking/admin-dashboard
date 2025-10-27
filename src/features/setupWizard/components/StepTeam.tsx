@@ -41,7 +41,7 @@ interface LocalTeamMember extends InviteTeamMemberPayload {
 }
 
 function getAvatarBgColor(email: string | undefined): string {
-  const str = (email || '').toLowerCase();
+  const str = (email || "").toLowerCase();
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
@@ -56,7 +56,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     const currentUser = useSelector(selectCurrentUser);
     const subscriptionSummary = useSelector(selectSubscriptionSummary);
     // Local state for team data - will be populated by useEffect
-    const [localTeamMembers, setLocalTeamMembers] = useState<LocalTeamMember[]>([]);
+    const [localTeamMembers, setLocalTeamMembers] = useState<LocalTeamMember[]>(
+      []
+    );
     const [localWorksSolo, setLocalWorksSolo] = useState(
       data.worksSolo || false
     );
@@ -86,10 +88,12 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
       getFormData: () => ({
-        teamMembers: (localTeamMembers || []).map((m): InviteTeamMemberPayload & { role: UserRole } => ({
-          email: m.email,
-          role: m.role || UserRole.TEAM_MEMBER,
-        })),
+        teamMembers: (localTeamMembers || []).map(
+          (m): InviteTeamMemberPayload & { role: UserRole } => ({
+            email: m.email,
+            role: m.role || UserRole.TEAM_MEMBER,
+          })
+        ),
         worksSolo: localWorksSolo,
       }),
       triggerValidation: async () => true, // No validation needed for this step
@@ -100,7 +104,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     useEffect(() => {
       const members: LocalTeamMember[] = (data.teamMembers || []).map((m) => {
         // role might exist in saved draft (not in base InviteTeamMemberPayload type)
-        const memberWithRole = m as InviteTeamMemberPayload & { role?: UserRole };
+        const memberWithRole = m as InviteTeamMemberPayload & {
+          role?: UserRole;
+        };
         return {
           email: m.email,
           role: memberWithRole.role || UserRole.TEAM_MEMBER,
@@ -118,8 +124,14 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       const trimmedEmail = email.trim().toLowerCase();
       if (!trimmedEmail) return;
       // Disallow inviting your own email
-      if (currentUser?.email && trimmedEmail === currentUser.email.trim().toLowerCase()) {
-        setError("email", { type: "manual", message: "You can't invite your own email address" });
+      if (
+        currentUser?.email &&
+        trimmedEmail === currentUser.email.trim().toLowerCase()
+      ) {
+        setError("email", {
+          type: "manual",
+          message: "You can't invite your own email address",
+        });
         return;
       }
       const duplicate = localTeamMembers.some(
@@ -143,41 +155,51 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
         const removed = prev[index];
         const next = prev.filter((_, i) => i !== index);
         if (removed) {
-          toast.custom((t) => (
-            <div className="flex items-center justify-between gap-6 rounded-md border border-gray-200 bg-white px-6 py-3 shadow-sm">
-              <div className="min-w-12">
-                <p className="text-sm font-medium text-gray-900 truncate mb-2">Invite removed</p>
-                <p className="text-xs text-gray-600 truncate">{removed.email}</p>
+          toast.custom(
+            (t) => (
+              <div className="flex items-center justify-between gap-6 rounded-md border border-gray-200 bg-white px-6 py-3 shadow-sm">
+                <div className="min-w-12">
+                  <p className="text-sm font-medium text-gray-900 truncate mb-2">
+                    Invite removed
+                  </p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {removed.email}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  rounded="full"
+                  className="h-7 px-6 cursor-pointer"
+                  onClick={() => {
+                    setLocalTeamMembers((curr) => {
+                      const arr = [...curr];
+                      arr.splice(Math.min(index, arr.length), 0, removed);
+                      return arr;
+                    });
+                    toast.dismiss(t);
+                  }}
+                >
+                  Undo
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                rounded="full"
-                className="h-7 px-6 cursor-pointer"
-                onClick={() => {
-                  setLocalTeamMembers((curr) => {
-                    const arr = [...curr];
-                    arr.splice(Math.min(index, arr.length), 0, removed);
-                    return arr;
-                  });
-                  toast.dismiss(t);
-                }}
-              >
-                Undo
-              </Button>
-            </div>
-          ), { duration: 5000 });
+            ),
+            { duration: 5000 }
+          );
         }
         return next;
       });
     }, []);
 
-    const handleWorksSoloChange = useCallback((worksSolo: boolean) => {
-      setLocalWorksSolo(worksSolo);
-      if (updateData) {
-        updateData({ worksSolo });
-      }
-    }, [updateData]);
+    const handleWorksSoloChange = useCallback(
+      (worksSolo: boolean) => {
+        setLocalWorksSolo(worksSolo);
+        if (updateData) {
+          updateData({ worksSolo });
+        }
+      },
+      [updateData]
+    );
 
     return (
       <div className="space-y-6">
@@ -272,7 +294,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                         },
                       })}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                           addTeamMember();
                         }
@@ -307,13 +329,20 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       aria-live="polite"
                     >
                       <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{String(errors.email.message || 'Please enter a valid email address')}</span>
+                      <span>
+                        {String(
+                          errors.email.message ||
+                            "Please enter a valid email address"
+                        )}
+                      </span>
                     </p>
                   )}
                 </div>
-                {typeof subscriptionSummary?.availableSeats === 'number' && (
+                {typeof subscriptionSummary?.availableSeats === "number" && (
                   <p className="text-xs text-muted-foreground">
-                    You can invite up to {subscriptionSummary.availableSeats} more team member{subscriptionSummary.availableSeats === 1 ? '' : 's'}.
+                    You can invite up to {subscriptionSummary.availableSeats}{" "}
+                    more team member
+                    {subscriptionSummary.availableSeats === 1 ? "" : "s"}.
                   </p>
                 )}
               </div>
@@ -341,7 +370,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                         <div className="flex items-center gap-2 min-w-0">
                           <div
                             className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
-                            style={{ backgroundColor: getAvatarBgColor(member.email) }}
+                            style={{
+                              backgroundColor: getAvatarBgColor(member.email),
+                            }}
                           >
                             <span className="text-base font-bold text-gray-800 leading-none">
                               {member.email?.charAt(0)?.toUpperCase()}
@@ -373,8 +404,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
               </div>
             )}
             {localTeamMembers.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Add your teammates’ emails above. We’ll send the invitations once you finish setup.
+              <p className="text-sm text-muted-foreground pb-6">
+                Add teammate emails above and we'll send them invitations when
+                you complete setup.{" "}
               </p>
             )}
           </>

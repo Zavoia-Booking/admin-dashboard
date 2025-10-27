@@ -19,7 +19,7 @@ import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import type { WorkingHours } from "../../../shared/types/location";
 import type { StepProps, StepHandle, WizardFieldPath } from "../types";
-import { isE164, requiredEmailError, validateLocationName, validateDescription } from "../../../shared/utils/validation";
+import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from "../../../shared/utils/validation";
 import { makeWizardToggleHandler } from "../utils";
 import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
 import type { RootState } from "../../../app/providers/store";
@@ -294,6 +294,13 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                       shouldTouch: true,
                     })
                   }
+                  manualMode={watch("location.addressManualMode" satisfies WizardFieldPath) as any}
+                  onManualModeChange={(isManual) =>
+                    setValue("location.addressManualMode" satisfies WizardFieldPath, isManual, {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    })
+                  }
                   onValidityChange={(isValid) => setIsAddressValid(isValid)}
                 />
               </div>
@@ -311,7 +318,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   emailField.onChange(email);
                 }}
                 onPhoneChange={(phone) => {
-                  const sanitized = (phone || "").replace(/\s+/g, " ").trim();
+                  const sanitized = sanitizePhoneToE164Draft(phone || "");
                   phoneField.onChange(sanitized);
                 }}
                 emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || showDraftErrors) ? (emailState.error?.message as unknown as string) : undefined}
@@ -394,7 +401,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   emailField.onChange(email);
                 }}
                 onPhoneChange={(phone) => {
-                  const sanitized = (phone || "").replace(/\s+/g, " ").trim();
+                  const sanitized = sanitizePhoneToE164Draft(phone || "");
                   phoneField.onChange(sanitized);
                 }}
                 emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || showDraftErrors) ? (emailState.error?.message as unknown as string) : undefined}

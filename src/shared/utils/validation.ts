@@ -76,14 +76,14 @@ export const minLengthError = (fieldLabel: string, value: string, min = 2): stri
 // Required + min length combined helper (for mandatory fields)
 export const requiredMinError = (fieldLabel: string, value: string, min = 2): string | null => {
   const v = (value ?? '').trim();
-  if (!v) return `${fieldLabel} is required`;
-  return v.length < min ? `${fieldLabel} must be at least ${min} characters` : null;
+  if (!v) return `Please enter ${fieldLabel.toLowerCase()}`;
+  return v.length < min ? `Enter at least ${min} characters` : null;
 }
 
 // Required-only helper (no min-length)
 export const requiredError = (fieldLabel: string, value: string): string | null => {
   const v = (value ?? '').trim();
-  return v ? null : `${fieldLabel} is required`;
+  return v ? null : `Please enter ${fieldLabel.toLowerCase()}`;
 }
 
 // ============================================================
@@ -144,6 +144,119 @@ export const validateLocationName = (value: string): string | null => {
     return 'Please remove special characters (only - \' & . ( ) allowed)';
   }
   return null;
+};
+
+// ============================================================
+// ADDRESS FIELD VALIDATION
+// ============================================================
+
+/**
+ * Generic address field validator with configurable constraints
+ */
+type AddressFieldConfig = {
+  fieldName: string;
+  minLength?: number;
+  maxLength: number;
+  pattern?: RegExp;
+  allowedChars?: string;
+};
+
+const validateAddressField = (
+  value: string,
+  config: AddressFieldConfig
+): string | null => {
+  const v = (value ?? '').trim();
+  
+  // Required check
+  if (!v) return `Please enter ${config.fieldName.toLowerCase()}`;
+  
+  // Min length check (if specified)
+  if (config.minLength && v.length < config.minLength) {
+    return 'Enter at least 2 characters';
+  }
+  
+  // Max length check
+  if (v.length > config.maxLength) {
+    return `Maximum ${config.maxLength} characters allowed`;
+  }
+  
+  // Pattern check (if specified)
+  if (config.pattern && !config.pattern.test(v)) {
+    return `Please remove special characters`;
+  }
+  
+  return null;
+};
+
+/**
+ * Validates street address for length and allowed characters.
+ * Permissive validation - blocks only XSS-dangerous characters.
+ * Allows international characters, punctuation, and real-world address formats.
+ */
+export const validateStreetAddress = (value: string): string | null => {
+  return validateAddressField(value, {
+    fieldName: 'Street address',
+    minLength: 2,
+    maxLength: 200,
+    pattern: /^[^<>{}[\]]+$/,
+    allowedChars: 'special characters < > { } [ ]',
+  });
+};
+
+/**
+ * Validates building/apartment number for length and allowed characters.
+ * Permissive validation - allows all formats except XSS-dangerous characters.
+ */
+export const validateBuildingNumber = (value: string): string | null => {
+  return validateAddressField(value, {
+    fieldName: 'Building or apartment number',
+    minLength: 1,
+    maxLength: 50,
+    pattern: /^[^<>{}[\]]+$/,
+    allowedChars: 'special characters < > { } [ ]',
+  });
+};
+
+/**
+ * Validates city name for length and allowed characters.
+ * Permissive validation - allows international city names.
+ */
+export const validateCity = (value: string): string | null => {
+  return validateAddressField(value, {
+    fieldName: 'City',
+    minLength: 2,
+    maxLength: 100,
+    pattern: /^[^<>{}[\]]+$/,
+    allowedChars: 'special characters < > { } [ ]',
+  });
+};
+
+/**
+ * Validates postcode for length and format.
+ * Allows alphanumeric, spaces, and hyphens (covers most international formats).
+ */
+export const validatePostcode = (value: string): string | null => {
+  return validateAddressField(value, {
+    fieldName: 'Postcode',
+    minLength: 2,
+    maxLength: 20,
+    pattern: /^[a-zA-Z0-9\s-]+$/,
+    allowedChars: 'letters, numbers, spaces, and hyphens',
+  });
+};
+
+/**
+ * Validates country name for length and allowed characters.
+ * Permissive validation - allows international country names.
+ */
+export const validateCountry = (value: string): string | null => {
+  return validateAddressField(value, {
+    fieldName: 'Country',
+    minLength: 2,
+    maxLength: 100,
+    pattern: /^[^<>{}[\]]+$/,
+    allowedChars: 'special characters < > { } [ ]',
+  });
 };
 
 // ============================================================

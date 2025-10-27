@@ -5,7 +5,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MapPin, Hash, Building2, Flag, Locate, AlertCircle } from 'lucide-react';
 
 type Props = {
-  streetBase: string;
+  streetBase: string; // Full address display for locked mode
+  actualStreet: string; // Just the street name for manual mode
   streetNumber: string;
   city: string;
   postalCode: string;
@@ -29,6 +30,7 @@ type Props = {
 
 const AddressManualFields: React.FC<Props> = ({
   streetBase,
+  actualStreet,
   streetNumber,
   city,
   postalCode,
@@ -94,17 +96,16 @@ const AddressManualFields: React.FC<Props> = ({
         ) : (
           <div className="relative">
             <Input
-              value={streetBase}
+              value={actualStreet}
               onChange={(e) => onStreetChange(e.target.value)}
-              placeholder="Enter street name"
-              className={`!pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              placeholder="e.g. Main Street"
+              className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 streetError
                   ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
                   : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`}
+              maxLength={200}
               aria-invalid={!!streetError}
-              onFocus={onStreetFocus}
-              onBlur={onStreetBlur}
             />
             <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
           </div>
@@ -154,7 +155,7 @@ const AddressManualFields: React.FC<Props> = ({
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 cityError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
-              maxLength={50}
+              maxLength={100}
               aria-invalid={!!cityError}
             />
             <Building2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -181,7 +182,7 @@ const AddressManualFields: React.FC<Props> = ({
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 postalError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
-              maxLength={50}
+              maxLength={20}
               aria-invalid={!!postalError}
             />
             <Locate className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -205,7 +206,7 @@ const AddressManualFields: React.FC<Props> = ({
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 countryError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
               }`} 
-              maxLength={50}
+              maxLength={100}
               aria-invalid={!!countryError}
             />
             <Flag className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
