@@ -2,7 +2,8 @@ import React from 'react';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { MapPin, Hash, Building2, Flag, Locate, AlertCircle } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { MapPin, Hash, Building2, Flag, Locate, AlertCircle, HelpCircle } from 'lucide-react';
 
 type Props = {
   streetBase: string; // Full address display for locked mode
@@ -122,7 +123,40 @@ const AddressManualFields: React.FC<Props> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-base font-medium text-gray-700">Building / Number *</Label>
+          <div className="relative">
+            <Label className="text-base font-medium text-gray-700">Building / Number *</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  aria-label="Building number format help"
+                  className="absolute -top-2 -right-1 inline-flex items-center justify-center text-gray-500 hover:text-gray-800 p-0 focus-visible:outline-none cursor-pointer"
+                >
+                  <HelpCircle className="h-5 w-5" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                sideOffset={6}
+                side="top"
+                align="start"
+                avoidCollisions={true}
+                className="whitespace-normal text-sm leading-relaxed w-[calc(100vw-2rem)] max-w-[360px] [transform:translateX(calc(-50vw+50%))!important] md:[transform:none!important]"
+              >
+                <p>
+                  You can include <span className="font-medium">building number</span>, <span className="font-medium">apartment</span>, <span className="font-medium">floor</span>, or <span className="font-medium">suite</span> details here.
+                </p>
+                <div className="my-3 border-t border-gray-200" />
+                <div className="space-y-1.5">
+                  <div className="text-xs font-medium text-foreground">Common formats:</div>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div>• "556, Apt 12"</div>
+                    <div>• "Building 3, Floor 2"</div>
+                    <div>• "Suite 205"</div>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
           <div className="relative">
             <Input 
               value={streetNumber} 
