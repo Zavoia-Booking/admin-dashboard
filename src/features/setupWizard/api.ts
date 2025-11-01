@@ -1,8 +1,14 @@
 import { apiClient } from "../../shared/lib/http";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 
-export const completeWizardApi = async (payload: WizardData): Promise<WizardData> => {
-  const { data } = await apiClient().post<WizardData>(`/wizard/complete`, { wizardData: payload });
+export type CompleteWizardResponse = {
+  accessToken: string;
+  refreshToken?: string;
+  csrfToken?: string | null;
+};
+
+export const completeWizardApi = async (payload: WizardData): Promise<CompleteWizardResponse> => {
+  const { data } = await apiClient().post<CompleteWizardResponse>(`/wizard/complete`, { wizardData: payload });
   return data;
 }
 

@@ -54,6 +54,27 @@ export enum AuthStatusEnum {
   ERROR = "error",
 }
 
+export type BusinessOption = {
+  id: number;
+  name: string;
+  role: string;
+};
+
+export type BusinessSelectionRequired = {
+  selectionToken: string;
+  businesses: BusinessOption[];
+};
+
+export type AccountLinkingDetails = {
+  email: string;
+  firstName: string;
+  lastName: string;
+  existingRoles: {
+    customer: boolean;
+    teamMember: boolean;
+  };
+};
+
 export interface AuthState {
   accessToken: string | null;
   csrfToken: string | null;
@@ -68,6 +89,9 @@ export interface AuthState {
   pendingLinkTxId?: string;
   linkingLoading?: boolean;
   linkingError?: string | null;
+  businessSelectionRequired?: BusinessSelectionRequired | null;
+  accountLinkingRequired?: AccountLinkingDetails | null;
+  isRegistration?: boolean;
 }
 
 export type RegisterMemberPayload = {

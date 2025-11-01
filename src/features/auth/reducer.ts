@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleAuthAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal } from "./actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -21,6 +21,9 @@ const initialState: AuthState = {
   pendingLinkTxId: undefined,
   linkingLoading: false,
   linkingError: null,
+  businessSelectionRequired: null,
+  accountLinkingRequired: null,
+  isRegistration: false,
 };
 
 export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialState, action: Actions) => {
@@ -33,6 +36,10 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       return { ...state, isLoading: true };
     }
 
+    case getType(actions.resetRegistrationFlag): {
+      return { ...state, isRegistration: false };
+    }
+
     case getType(registerOwnerRequestAction.success): {
       return {
         ...state,
@@ -40,10 +47,21 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         user: action.payload.user,
         error: null,
         status: AuthStatusEnum.AUTHENTICATED,
+        isRegistration: true,
       };
     }
 
     case getType(registerOwnerRequestAction.failure): {
+      // Check if this is account linking required error
+      if (action.payload.message === 'account_exists_needs_business_owner_account') {
+        return {
+          ...state,
+          isLoading: false,
+          accountLinkingRequired: (action.payload as any).accountLinkingDetails,
+          error: null, // Don't show error toast
+        };
+      }
+      
       return {
         ...state,
         isAuthenticated: false,
@@ -65,10 +83,35 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         error: null,
         isLoading: false,
         status: AuthStatusEnum.AUTHENTICATED,
+        isRegistration: false, // Login, not registration
       };
     }
 
     case getType(loginAction.failure): {
+      // Check if it's a business selection required error
+      if (action.payload.message === 'business_selection_required') {
+        return {
+          ...state,
+          isAuthenticated: false,
+          isLoading: false,
+          error: null,
+          businessSelectionRequired: {
+            selectionToken: (action.payload as any).selectionToken,
+            businesses: (action.payload as any).businesses,
+          },
+        };
+      }
+      
+      // Check if this is account linking required error
+      if (action.payload.message === 'account_exists_needs_business_owner_account') {
+        return {
+          ...state,
+          isLoading: false,
+          accountLinkingRequired: (action.payload as any).accountLinkingDetails,
+          error: null, // Don't show error toast
+        };
+      }
+      
       return {
         ...state,
         isAuthenticated: false,
@@ -100,17 +143,6 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       };
     }
 
-    // case getType(setCsrfTokenAction): {
-    //   return { ...state, csrfToken: action.payload };
-    // }
-
-    // case SET_BUSINESS_ID: {
-    //   return { ...state, businessId: action.payload };
-    // }
-
-    // case SET_STATUS: {
-    //   return { ...state, status: action.payload };
-    // }
 
     case getType(hydrateSessionAction.success): {
       const { accessToken, csrfToken, businessId, user } = action.payload;
@@ -186,11 +218,12 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       return { ...state, linkingLoading: false, linkingError: (action as any).payload.message } as any;
     }
 
-    case getType(googleAuthAction.request): {
+    case getType(googleLoginAction.request):
+    case getType(googleRegisterAction.request): {
       return { ...state, isLoading: true, error: null };
     }
 
-    case getType(googleAuthAction.success): {
+    case getType(googleLoginAction.success): {
       const { accessToken, csrfToken, user } = action.payload;
       return {
         ...state,
@@ -202,15 +235,124 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         status: AuthStatusEnum.AUTHENTICATED,
         error: null,
         businessId: user?.businessId?.toString() || null,
+        isRegistration: false, // Login, not registration
       };
     }
 
-    case getType(googleAuthAction.failure): {
+    case getType(googleRegisterAction.success): {
+      const { accessToken, csrfToken, user } = action.payload;
+      return {
+        ...state,
+        accessToken,
+        csrfToken,
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        status: AuthStatusEnum.AUTHENTICATED,
+        error: null,
+        businessId: user?.businessId?.toString() || null,
+        isRegistration: true, // Registration
+      };
+    }
+
+    case getType(googleLoginAction.failure):
+    case getType(googleRegisterAction.failure): {
+      // Check if it's a business selection required error
+      if (action.payload.message === 'business_selection_required') {
+        return {
+          ...state,
+          isAuthenticated: false,
+          isLoading: false,
+          status: AuthStatusEnum.UNAUTHENTICATED,
+          error: null,
+          businessSelectionRequired: {
+            selectionToken: (action.payload as any).selectionToken,
+            businesses: (action.payload as any).businesses,
+          },
+        };
+      }
+      
+      // Check if this is account linking required error
+      if (action.payload.message === 'account_exists_needs_business_owner_account') {
+        return {
+          ...state,
+          isLoading: false,
+          accountLinkingRequired: (action.payload as any).accountLinkingDetails,
+          error: null, // Don't show error toast
+        };
+      }
+      
       return { 
         ...state, 
         isLoading: false, 
         error: action.payload.message,
         status: AuthStatusEnum.ERROR 
+      };
+    }
+
+    case getType(selectBusinessAction.request): {
+      return { ...state, isLoading: true, error: null };
+    }
+
+    case getType(selectBusinessAction.success): {
+      const { accessToken, csrfToken, user } = action.payload;
+      return {
+        ...state,
+        accessToken,
+        csrfToken,
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+        status: AuthStatusEnum.AUTHENTICATED,
+        error: null,
+        businessId: user?.businessId?.toString() || null,
+        businessSelectionRequired: null, // Clear the selection state
+        isRegistration: false, // Business selection is part of login flow
+      };
+    }
+
+    case getType(selectBusinessAction.failure): {
+      return { 
+        ...state, 
+        isLoading: false, 
+        error: action.payload.message,
+        status: AuthStatusEnum.ERROR 
+      };
+    }
+
+    case getType(sendBusinessLinkEmailAction.request): {
+      return { ...state, isLoading: true, error: null };
+    }
+
+    case getType(sendBusinessLinkEmailAction.success): {
+      return { 
+        ...state, 
+        isLoading: false, 
+        accountLinkingRequired: null, // Clear modal after success
+      };
+    }
+
+    case getType(sendBusinessLinkEmailAction.failure): {
+      return { 
+        ...state, 
+        isLoading: false, 
+        error: action.payload.message,
+      };
+    }
+
+    case getType(closeAccountLinkingRequiredModal): {
+      return { 
+        ...state, 
+        accountLinkingRequired: null,
+        error: null,
+      };
+    }
+
+    case getType(dismissBusinessSelectorModal): {
+      return { 
+        ...state, 
+        businessSelectionRequired: null,
+        error: null,
       };
     }
 

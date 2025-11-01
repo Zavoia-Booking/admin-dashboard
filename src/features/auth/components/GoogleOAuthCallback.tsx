@@ -1,27 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
-import { googleAuthAction, linkGoogleByCodeAction } from "../actions";
+import { googleLoginAction, googleRegisterAction, linkGoogleByCodeAction } from "../actions";
 import { refreshSession } from "../../../shared/lib/http";
 import type { RootState } from "../../../app/providers/store";
 import { Spinner } from "../../../shared/components/ui/spinner";
-
-function useQuery(): URLSearchParams {
-  return new URLSearchParams(window.location.search);
-}
 
 export default function GoogleOAuthCallback() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const query = useQuery();
   const isAuthenticated = useSelector((s: RootState) => s.auth.isAuthenticated);
+  const authError = useSelector((s: RootState) => s.auth.error);
+  const isLoading = useSelector((s: RootState) => s.auth.isLoading);
+  const businessSelection = useSelector((s: RootState) => s.auth.businessSelectionRequired);
+  const isAccountLinkingModalOpen = useSelector((s: RootState) => (s as any).auth.isAccountLinkingModalOpen);
+  
+  // Use sessionStorage to track if we've processed the OAuth code (persists across remounts)
+  const hasProcessedCodeRef = useRef(false);
 
   useEffect(() => {
-    const processedRef = (GoogleOAuthCallback as any)._processedRef || { current: false };
-    (GoogleOAuthCallback as any)._processedRef = processedRef;
-    if (processedRef.current) return;
+    // Check both ref and sessionStorage to prevent reprocessing across remounts
+    const hasProcessedInSession = sessionStorage.getItem('oauthCodeProcessed') === 'true';
+    if (hasProcessedCodeRef.current || hasProcessedInSession) return;
 
+    // Parse query params inside effect to avoid dependency issues
+    const query = new URLSearchParams(location.search);
     const code = query.get("code");
     const error = query.get("error");
     const context = sessionStorage.getItem('oauthContext');
@@ -35,6 +39,10 @@ export default function GoogleOAuthCallback() {
     if (code) {
       const redirectUri = import.meta.env.VITE_GOOGLE_REDIRECT_URI || `${window.location.origin}/auth/callback`;
       const mode = sessionStorage.getItem('oauthMode');
+
+      // Mark as processed immediately to prevent double processing
+      hasProcessedCodeRef.current = true;
+      sessionStorage.setItem('oauthCodeProcessed', 'true');
 
       if (mode === 'link') {
         // Dedup: process each Google code only once
@@ -52,39 +60,82 @@ export default function GoogleOAuthCallback() {
             window.history.replaceState({}, '', '/auth/callback');
           }
         })();
-        processedRef.current = true;
       } else {
-        dispatch(googleAuthAction.request({ code, redirectUri }));
+        // Determine context from sessionStorage or default to 'login'
+        const oauthContext = context as 'login' | 'register' || 'login';
+
+        if (oauthContext === 'register') {
+          dispatch(googleRegisterAction.request({ code, redirectUri }));
+        } else {
+          dispatch(googleLoginAction.request({ code, redirectUri }));
+        }
+  
         // Clean the URL (remove query params) without triggering a reroute loop
         if (location.search) {
           window.history.replaceState({}, '', '/auth/callback');
         }
-        processedRef.current = true;
       }
-    } else {
-      // No code present; send back to the initiating context
+    } else if (!hasProcessedCodeRef.current && !hasProcessedInSession) {
+      // Only redirect if we haven't processed a code yet (handles direct navigation to /auth/callback)
+      // Check both ref AND sessionStorage to prevent redirects after code processing
       navigate(fallback, { replace: true });
     }
-  }, [dispatch, navigate, location.search, query]);
+  }, [dispatch, navigate, location.search]);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Don't redirect if business selection or account linking is required (wait for modal)
+    if (businessSelection || isAccountLinkingModalOpen) return;
+    
+    // Only redirect once when authentication completes successfully
+    if (isAuthenticated && !isLoading) {
       const mode = sessionStorage.getItem('oauthMode');
       const context = sessionStorage.getItem('oauthContext');
+
       // Linking flow handles redirect in saga
       if (mode === 'link') return;
-      try { sessionStorage.removeItem('oauthContext'); } catch {}
 
+      // Prevent multiple redirects by marking as redirected
+      const hasRedirected = sessionStorage.getItem('oauthRedirected');
+      if (hasRedirected === 'true') return;
+      
+      sessionStorage.setItem('oauthRedirected', 'true');
+
+      // Clear context and flags after reading them
+      try { 
+        sessionStorage.removeItem('oauthContext');
+        sessionStorage.removeItem('oauthCodeProcessed'); // Clear for next OAuth flow
+      } catch {}
+
+      // Use React Router navigate for smooth SPA navigation (no page reload)
       if (context === 'register') {
-        navigate("/welcome", { replace: true });
+        navigate('/welcome', { replace: true });
         return;
       }
-      // default/login context: redirect back or dashboard
-      const redirectPath = localStorage.getItem('authRedirect') || '/dashboard';
-      try { localStorage.removeItem('authRedirect'); } catch {}
-      navigate(redirectPath, { replace: true });
+
+      // login context: always redirect to dashboard
+      navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, isLoading, navigate, businessSelection, isAccountLinkingModalOpen]);
+
+  // Handle authentication errors - redirect back to appropriate page
+  useEffect(() => {
+    if (authError && !isLoading) {
+      const mode = sessionStorage.getItem('oauthMode');
+      const context = sessionStorage.getItem('oauthContext');
+
+      // Don't redirect if in linking mode (modal handles it)
+      if (mode === 'link') return;
+
+      // Don't redirect if modals are open (they will handle the flow)
+      if (authError === 'business_selection_required') return;
+      if (isAccountLinkingModalOpen) return;
+
+      const fallback = context === 'register' ? '/register' : '/login';
+      try { sessionStorage.removeItem('oauthContext'); } catch {}
+
+      navigate(fallback, { replace: true });
+    }
+  }, [authError, isLoading, navigate, isAccountLinkingModalOpen]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

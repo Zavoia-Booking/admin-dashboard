@@ -77,10 +77,16 @@ export const registerMemberAction = createAsyncAction(
   'teamMembers/REGISTER_MEMBER_FAILURE',
 )<RegisterMemberPayload, RegisterMemberResponse, { message: string }>();
 
-export const googleAuthAction = createAsyncAction(
-  'auth/GOOGLE_AUTH_REQUEST',
-  'auth/GOOGLE_AUTH_SUCCESS',
-  'auth/GOOGLE_AUTH_FAILURE',
+export const googleLoginAction = createAsyncAction(
+  'auth/GOOGLE_LOGIN_REQUEST',
+  'auth/GOOGLE_LOGIN_SUCCESS',
+  'auth/GOOGLE_LOGIN_FAILURE',
+)<{ code: string, redirectUri: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
+
+export const googleRegisterAction = createAsyncAction(
+  'auth/GOOGLE_REGISTER_REQUEST',
+  'auth/GOOGLE_REGISTER_SUCCESS',
+  'auth/GOOGLE_REGISTER_FAILURE',
 )<{ code: string, redirectUri: string }, { accessToken: string, csrfToken: string | null, user: AuthUser | null }, { message: string }>();
 
 // In-flow Google collision modal controls
@@ -117,3 +123,27 @@ export const linkGoogleByCodeAction = createAsyncAction(
   'auth/LINK_GOOGLE_BY_CODE_SUCCESS',
   'auth/LINK_GOOGLE_BY_CODE_FAILURE',
 )<{ code: string; redirectUri: string }, { message: string; user: AuthUser; accessToken?: string; csrfToken?: string | null }, { message: string }>();
+
+export const selectBusinessAction = createAsyncAction(
+  'auth/SELECT_BUSINESS_REQUEST',
+  'auth/SELECT_BUSINESS_SUCCESS',
+  'auth/SELECT_BUSINESS_FAILURE',
+)<{ selectionToken: string; businessId: number }, { accessToken: string; csrfToken: string | null; user: AuthUser | null }, { message: string }>();
+
+export const sendBusinessLinkEmailAction = createAsyncAction(
+  'auth/SEND_BUSINESS_LINK_EMAIL_REQUEST',
+  'auth/SEND_BUSINESS_LINK_EMAIL_SUCCESS',
+  'auth/SEND_BUSINESS_LINK_EMAIL_FAILURE',
+)<{ email: string }, { message: string }, { message: string }>();
+
+export const closeAccountLinkingRequiredModal = createAction(
+  'auth/CLOSE_ACCOUNT_LINKING_REQUIRED_MODAL',
+)<void>();
+
+export const dismissBusinessSelectorModal = createAction(
+  'auth/DISMISS_BUSINESS_SELECTOR_MODAL',
+)<void>();
+
+export const resetRegistrationFlag = createAction(
+  'auth/RESET_REGISTRATION_FLAG',
+)<void>();

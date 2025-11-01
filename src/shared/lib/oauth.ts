@@ -3,7 +3,12 @@ export function getGoogleRedirectUri(): string {
 }
 
 export function setOauthContext(context: 'login' | 'register' | 'link') {
-  try { sessionStorage.setItem('oauthContext', context); } catch {}
+  try { 
+    sessionStorage.setItem('oauthContext', context);
+    // Clear flags from any previous OAuth flow
+    sessionStorage.removeItem('oauthRedirected');
+    sessionStorage.removeItem('oauthCodeProcessed');
+  } catch {}
 }
 
 

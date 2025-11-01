@@ -10,6 +10,7 @@ import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButt
 import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/components/auth/CredentialsForm"
 import { useRef } from "react";
 import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline";
+import { Banner } from "../../../shared/components/ui/banner";
 
 export function LoginForm({
   className,
@@ -17,6 +18,7 @@ export function LoginForm({
 }: React.ComponentProps<"div">) {
   const [isForgotMode, setIsForgotMode] = useState(false)
   const [forgotSubmitted, setForgotSubmitted] = useState(false)
+  const [showNoAccountBanner, setShowNoAccountBanner] = useState(false)
   const dispatch = useDispatch();
   const { isLoading, error: authError } = useSelector((s: RootState) => s.auth)
   const credRef = useRef<CredentialsFormHandle | null>(null);
@@ -25,10 +27,26 @@ export function LoginForm({
     dispatch(loginAction.request({ email, password }));
   }
 
+  // Check for Google login error on mount
+  useEffect(() => {
+    const noAccountFlag = sessionStorage.getItem('googleLoginNoAccount');
+    if (noAccountFlag === 'true') {
+      setShowNoAccountBanner(true);
+      sessionStorage.removeItem('googleLoginNoAccount');
+    }
+  }, []);
+
   // inline forgot password handled by ForgotPasswordInline component
 
   useEffect(() => {
     if (authError) {
+      // Check if it's the special account_not_found error
+      if (authError === 'account_not_found') {
+        setShowNoAccountBanner(true);
+        dispatch(clearAuthErrorAction());
+        return;
+      }
+      
       // Show error toast, then reset form and clear error
       toast.error(authError, {
         duration: 8000,
@@ -61,6 +79,14 @@ export function LoginForm({
                   <CardTitle className="text-xl md:text-2xl text-center">Welcome back</CardTitle>
                   <CardDescription className="text-center text-sm">Login to your account</CardDescription>
                 </CardHeader>
+                {showNoAccountBanner && (
+                  <Banner variant="info" onDismiss={() => setShowNoAccountBanner(false)}>
+                    No account found with this email. Please{' '}
+                    <Link to="/register" className="font-medium underline underline-offset-2">
+                      register first
+                    </Link>.
+                  </Banner>
+                )}
                 <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel="Login" isLoading={isLoading} />
                 <div className="flex justify-center mt-1">
                   <button

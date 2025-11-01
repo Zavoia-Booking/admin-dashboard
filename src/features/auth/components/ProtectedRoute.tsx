@@ -12,16 +12,9 @@ export default function ProtectedRoute({ element }: Props) {
 
   return (
     <AuthGate>
-      {isAuthed ? element : (() => {
-        try {
-          const currentPath = location.pathname + (location.search || "");
-          const isAuthRoute = currentPath.startsWith('/login') || currentPath.startsWith('/register') || currentPath.startsWith('/auth/callback');
-          if (!isAuthRoute) {
-            localStorage.setItem('authRedirect', currentPath);
-          }
-        } catch {}
-        return <Navigate to="/login" replace state={{ from: location }} />;
-      })()}
+      {isAuthed ? element : 
+        <Navigate to="/login" replace state={{ from: location }} />
+      }
     </AuthGate>
   );
 }

@@ -28,7 +28,7 @@ export function RegisterForm() {
   const [pwInteracted, setPwInteracted] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const dispatch = useDispatch();
-  const { isLoading, isAuthenticated, error: authError } = useSelector((state: RootState) => state.auth);
+  const { isLoading, error: authError } = useSelector((state: RootState) => state.auth);
 
   const { register, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue, reset } = useForm<FormValues>({
     mode: 'onChange',
@@ -65,14 +65,6 @@ export function RegisterForm() {
       password: values.password,
     }))
   }
-
-  // Google OAuth button is now reusable; handled by shared component
-  
-  useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/welcome');
-    }
-  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     if (authError) {
