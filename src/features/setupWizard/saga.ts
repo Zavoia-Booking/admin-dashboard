@@ -1,7 +1,7 @@
 import { takeLatest, call, put } from "redux-saga/effects";
 import { wizardCompleteAction, wizardSaveAction, wizardLoadDraftAction } from "./actions";
-import { completeWizardApi, saveWizardDraftApi, getWizardDraftApi } from "./api";
-import { fetchCurrentUserAction } from "../auth/actions";
+import { completeWizardApi, saveWizardDraftApi, getWizardDraftApi, type CompleteWizardResponse } from "./api";
+import { fetchCurrentUserAction, setTokensAction, setCsrfToken } from "../auth/actions";
 import { listLocationsAction } from "../locations/actions";
 import { fetchCurrentBusinessAction } from "../business/actions";
 import { prepareWizardDataForSubmission } from "./utils";
@@ -19,9 +19,24 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
   try {
     const payload = prepareWizardDataForSubmission(action.payload || {});
     
-    yield call(completeWizardApi, payload);
+    const response: CompleteWizardResponse = yield call(completeWizardApi, payload);
+    
+    // Update tokens with the new JWT that includes businessId
+    yield put(setTokensAction({ 
+      accessToken: response.accessToken, 
+      csrfToken: response.csrfToken ?? null 
+    }));
+    
+    if (response.csrfToken) {
+      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
+    }
+    
     yield put(wizardCompleteAction.success());
+    
+    // Fetch updated user data (should now have wizardCompleted: true and businessId)
     yield put(fetchCurrentUserAction.request());
+    
+    // Fetch locations for the newly created business
     yield put(listLocationsAction.request());
     yield put(fetchCurrentBusinessAction.request());
   } catch (error: any) {

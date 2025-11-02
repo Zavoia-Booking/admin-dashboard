@@ -15,7 +15,7 @@ import LocationDescriptionField from "../../../shared/components/common/Location
 import CurrencySelect from "../../../shared/components/common/CurrencySelect";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../../app/providers/store";
 import type { StepProps, StepHandle, WizardFieldPath } from "../types";
 import {
@@ -31,9 +31,11 @@ import type { Industry } from "../../../shared/types/industry";
 import { selectCurrentUser } from "../../auth/selectors";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
 import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
+import { resetRegistrationFlag } from "../../auth/actions";
 
 const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange }, ref) => {
+    const dispatch = useDispatch();
     const [industries, setIndustries] = useState<Industry[]>([]);
     const [isLoadingIndustries, setIsLoadingIndustries] = useState(true);
     const isWizardLoading = useSelector(
@@ -204,6 +206,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         onValidityChange(valid);
       }
     }, [formIsValid, selectedIndustryId, businessCurrencyField.value, errors, onValidityChange]);
+
+    useEffect(() => {
+      dispatch(resetRegistrationFlag());
+    }, [dispatch]);
 
     const handleBusinessPhoneChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {

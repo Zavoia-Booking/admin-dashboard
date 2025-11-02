@@ -11,10 +11,13 @@ import {
   forgotPasswordAction,
   resetPasswordAction,
   registerMemberAction,
-  googleAuthAction,
-  openAccountLinkingModal
+  googleLoginAction,
+  googleRegisterAction,
+  openAccountLinkingModal,
+  selectBusinessAction,
+  sendBusinessLinkEmailAction
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, registerMemberApi, googleAuthApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi } from "./api";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, registerMemberApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction } from "./actions";
 import { listLocationsAction } from "../locations/actions";
@@ -36,8 +39,21 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
     yield put(registerOwnerRequestAction.success({ user: response.user }));
-    // Wizard draft will be loaded by useSetupWizard hook when wizard mounts
   } catch (error: any) {
+    const statusCode = error?.response?.status;
+    const code = error?.response?.data?.code;
+    
+    // Handle account needs business owner account (409 status)
+    if (statusCode === 409 && code === 'account_exists_needs_business_owner_account') {
+      const details = error.response.data.details;
+      yield put(registerOwnerRequestAction.failure({ 
+        message: 'account_exists_needs_business_owner_account',
+        accountLinkingDetails: details
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+    
     let message = "Registration failed";
     
     if (error?.response?.data?.message) {
@@ -59,7 +75,6 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
 function* handleLogout(): Generator<any, void, any> {
   try {
     yield call(logoutApi);
-
     yield put(logoutRequestAction.success());
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Logout failed";
@@ -90,16 +105,33 @@ function* handleLogin(action: { type: string; payload: { email: string, password
       csrfToken: response.csrfToken ?? null, 
       user: response.user 
     }));
-
-    // Wizard draft will be loaded by useSetupWizard hook when wizard mounts
-
-    // Toast success (lazy import to avoid bundle weight on cold paths)
-    try {
-      const { toast } = yield import('sonner');
-      toast.success('Welcome back!');
-    } catch {}
-
   } catch (error: any) {
+    const statusCode = error?.response?.status;
+    const code = error?.response?.data?.code;
+    
+    // Handle business selection required (300 status)
+    if (statusCode === 300 && code === 'business_selection_required') {
+      const details = error.response.data.details;
+      yield put(loginAction.failure({ 
+        message: 'business_selection_required',
+        selectionToken: details.selectionToken,
+        businesses: details.businesses
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+    
+    // Handle account needs business owner account (409 status)
+    if (statusCode === 409 && code === 'account_exists_needs_business_owner_account') {
+      const details = error.response.data.details;
+      yield put(loginAction.failure({ 
+        message: 'account_exists_needs_business_owner_account',
+        accountLinkingDetails: details
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+    
     let message = "Login failed";
     
     if (error?.response?.data?.message) {
@@ -127,17 +159,20 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(forgotPasswordAction.request, handleForgotPassword),
     takeLatest(resetPasswordAction.request, handleResetPassword),
     takeLatest(registerMemberAction.request, handleRegisterMember),
-    takeLatest(googleAuthAction.request, handleGoogleAuth),
+    takeLatest(googleLoginAction.request, handleGoogleLogin),
+    takeLatest(googleRegisterAction.request, handleGoogleRegister),
     takeLatest(reauthForLinkAction.request, handleReauthForLink),
     takeLatest(linkGoogleAction.request, handleLinkGoogle),
     takeLatest(linkGoogleByCodeAction.request, handleLinkGoogleByCode),
     takeLatest(unlinkGoogleAction.request, handleUnlinkGoogle),
+    takeLatest(selectBusinessAction.request, handleSelectBusiness),
+    takeLatest(sendBusinessLinkEmailAction.request, handleSendBusinessLinkEmail),
   ]);
 }
 
 function* handleFetchCurrentUser(): Generator<any, void, any> {
   try {
-    const user : AuthUser = (yield call(getCurrentUserApi)) as any;
+    const user: AuthUser = (yield call(getCurrentUserApi)) as any;
     yield put(setAuthUserAction({ user }));
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Fetch current user failed";
@@ -181,18 +216,16 @@ function* handleRegisterMember(action: ReturnType<typeof registerMemberAction.re
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
     yield put(registerMemberAction.success(response));
-    
-    window.location.href = "/dashboard";
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || 'Failed to register member';
     yield put(registerMemberAction.failure({ message }));
   }
 }
 
-function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) {
+function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>) {
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
-    const response: AuthResponse = yield call(googleAuthApi, action.payload);
+    const response: AuthResponse = yield call(googleLoginApi, action.payload);
 
     // Store access token in Redux (memory) + optional CSRF token
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
@@ -208,7 +241,8 @@ function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) 
 
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
-    yield put(googleAuthAction.success({ 
+    
+    yield put(googleLoginAction.success({ 
       accessToken: response.accessToken, 
       csrfToken: response.csrfToken ?? null, 
       user: response.user 
@@ -216,11 +250,9 @@ function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) 
 
     // Ensure latest user data (including Google linkage fields) after login
     yield put(fetchCurrentUserAction.request());
-
-    // Let the useEffect in register form handle the redirect when isAuthenticated becomes true
-
   } catch (error: any) {
-    let message = "Google authentication failed";
+    let message = "Google login failed";
+    const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
     const details = error?.response?.data?.details;
     
@@ -234,13 +266,112 @@ function* handleGoogleAuth(action: ReturnType<typeof googleAuthAction.request>) 
       message = error.message;
     }
     
+    // Handle account not found during login - set flag for banner display
+    if (code === 'account_not_found') {
+      try { 
+        sessionStorage.setItem('googleLoginNoAccount', 'true');
+      } catch { /* empty */ }
+      yield put(googleLoginAction.failure({ message: 'account_not_found' }));
+      return;
+    }
+    
+    // Handle business selection required (300 status)
+    if (statusCode === 300 && code === 'business_selection_required') {
+      const details = error.response.data.details;
+      yield put(googleLoginAction.failure({ 
+        message: 'business_selection_required',
+        selectionToken: details.selectionToken,
+        businesses: details.businesses
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+    
+    // Handle account needs business owner account (409 status)
+    if (statusCode === 409 && code === 'account_exists_needs_business_owner_account') {
+      yield put(googleLoginAction.failure({ 
+        message: 'account_exists_needs_business_owner_account',
+        accountLinkingDetails: details
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+    
+    // Handle existing account with unlinked Google
     if (code === 'account_exists_unlinked_google') {
       try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
       yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
       return;
     }
 
-    yield put(googleAuthAction.failure({ message }));
+    yield put(googleLoginAction.failure({ message }));
+  } finally {
+    yield put(setAuthLoadingAction({ isLoading: false }));
+  }
+}
+
+function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.request>) {
+  try {
+    yield put(setAuthLoadingAction({ isLoading: true }));
+    const response: AuthResponse = yield call(googleRegisterApi, action.payload);
+
+    // Store access token in Redux (memory) + optional CSRF token
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    
+    // Fetch locations post-authentication only if user has a business
+    const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
+    if (hasBusinessGoogle) {
+      yield put(listLocationsAction.request());
+    }
+    if (response.csrfToken) {
+      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
+    }
+
+    // Store user
+    yield put(setAuthUserAction({ user: response.user }));
+    
+    yield put(googleRegisterAction.success({ 
+      accessToken: response.accessToken, 
+      csrfToken: response.csrfToken ?? null, 
+      user: response.user 
+    }));
+
+    // Ensure latest user data (including Google linkage fields) after registration
+    yield put(fetchCurrentUserAction.request());
+  } catch (error: any) {
+    let message = "Google registration failed";
+    const statusCode = error?.response?.status;
+    const code = error?.response?.data?.code;
+    const details = error?.response?.data?.details;
+    
+    if (error?.response?.data?.message) {
+      // Handle array of messages or single message
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    // Handle account needs business owner account (409 status)
+    if (statusCode === 409 && code === 'account_exists_needs_business_owner_account') {
+      yield put(googleRegisterAction.failure({ 
+        message: 'account_exists_needs_business_owner_account',
+        accountLinkingDetails: details
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
+    
+    // Handle existing account with unlinked Google
+    if (code === 'account_exists_unlinked_google') {
+      try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
+      yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
+      return;
+    }
+
+    yield put(googleRegisterAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
   }
@@ -383,5 +514,74 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
       sessionStorage.removeItem('oauthReturnTo');
       window.location.replace(returnTo);
     } catch { /* empty */ }
+  }
+}
+
+function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.request>): Generator<any, void, any> {
+  try {
+    yield put(setAuthLoadingAction({ isLoading: true }));
+    const response: AuthResponse = yield call(selectBusinessApi, action.payload);
+
+    // Store access token in Redux (memory) + optional CSRF token
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+
+    // Fetch locations post-login
+    yield put(listLocationsAction.request());
+    if (response.csrfToken) {
+      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
+    }
+
+    // Store user
+    yield put(setAuthUserAction({ user: response.user }));
+    
+    yield put(selectBusinessAction.success({
+      accessToken: response.accessToken, 
+      csrfToken: response.csrfToken ?? null, 
+      user: response.user 
+    }));
+
+    // Ensure latest user data
+    yield put(fetchCurrentUserAction.request());
+  } catch (error: any) {
+    let message = "Business selection failed";
+    
+    if (error?.response?.data?.message) {
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    yield put(selectBusinessAction.failure({ message }));
+  } finally {
+    yield put(setAuthLoadingAction({ isLoading: false }));
+  }
+}
+
+function* handleSendBusinessLinkEmail(action: ReturnType<typeof sendBusinessLinkEmailAction.request>): Generator<any, void, any> {
+  try {
+    const response: { message: string } = yield call(sendBusinessLinkEmailApi, action.payload);
+    
+    yield put(sendBusinessLinkEmailAction.success({ message: response.message }));
+
+    // Show success toast
+    try {
+      const { toast } = yield import('sonner');
+      toast.success('Email sent! Please check your inbox to complete the account linking.');
+    } catch {}
+  } catch (error: any) {
+    let message = "Failed to send linking email";
+    
+    if (error?.response?.data?.message) {
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    yield put(sendBusinessLinkEmailAction.failure({ message }));
   }
 }

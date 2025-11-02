@@ -1,6 +1,6 @@
 import { Button } from "../ui/button";
 import { useDispatch } from "react-redux";
-import { googleAuthAction } from "../../../features/auth/actions";
+import { googleLoginAction, googleRegisterAction } from "../../../features/auth/actions";
 import { useGoogleLogin } from "@react-oauth/google";
 import { getGoogleRedirectUri, setOauthContext } from "../../lib/oauth.ts";
 
@@ -17,7 +17,11 @@ export function GoogleSignInButton({ context, disabled, className }: GoogleSignI
   const googleLogin = useGoogleLogin({
     onSuccess: (codeResponse) => {
       try { setOauthContext(context); } catch {}
-      dispatch(googleAuthAction.request({ code: codeResponse.code, redirectUri }))
+      if (context === 'register') {
+        dispatch(googleRegisterAction.request({ code: codeResponse.code, redirectUri }))
+      } else {
+        dispatch(googleLoginAction.request({ code: codeResponse.code, redirectUri }))
+      }
     },
     onError: (error) => {
       console.error('Google OAuth Error:', error)
@@ -31,7 +35,12 @@ export function GoogleSignInButton({ context, disabled, className }: GoogleSignI
     <Button
       variant="outline"
       type="button"
-      onClick={() => { try { setOauthContext(context); } catch {}; googleLogin(); }}
+      onClick={() => { 
+        try { 
+          setOauthContext(context); 
+        } catch {}
+        googleLogin(); 
+      }}
       disabled={disabled}
       className={"w-full bg-white text-gray-700 border-gray-300 hover:bg-gray-50 flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" + (className ? ` ${className}` : '')}
     >

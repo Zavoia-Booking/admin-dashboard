@@ -35,8 +35,13 @@ export const registerMemberApi = async (payload: RegisterMemberPayload): Promise
     return data;
 };
 
-export const googleAuthApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
-    const { data } = await apiClient().post<AuthResponse>(`/auth/google/code`, payload);
+export const googleLoginApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/google/code/login', payload);
+    return data;
+};
+
+export const googleRegisterApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>('/auth/google/code/register', payload);
     return data;
 };
 
@@ -57,5 +62,15 @@ export const unlinkGoogleApi = async (payload: { password: string }): Promise<{ 
 
 export const linkGoogleByCodeApi = async (payload: { code: string; redirectUri: string }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>(`/auth/link/google/by-code`, payload);
+    return data;
+};
+
+export const selectBusinessApi = async (payload: { selectionToken: string; businessId: number }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/select-business`, payload);
+    return data;
+};
+
+export const sendBusinessLinkEmailApi = async (payload: { email: string }): Promise<{ message: string }> => {
+    const { data} = await apiClient().post<{ message: string }>(`/auth/send-business-link-email`, payload);
     return data;
 };
