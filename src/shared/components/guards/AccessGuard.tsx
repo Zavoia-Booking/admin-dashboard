@@ -2,8 +2,8 @@ import React from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/selectors';
-import { SubscriptionExpiredBanner } from '../common/SubscriptionExpiredBanner';
-import SubscriptionBanner from '../common/SubscriptionBanner';
+import { SubscriptionExpiredBanner } from '../common/subscription/SubscriptionExpiredBanner';
+import SubscriptionBanner from '../common/subscription/SubscriptionBanner';
 
 interface AccessGuardProps {
   children: React.ReactNode;

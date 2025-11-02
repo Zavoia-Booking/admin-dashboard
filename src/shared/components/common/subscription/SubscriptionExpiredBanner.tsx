@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, Lock } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Card, CardContent } from '../ui/card';
+import { Button } from '../../ui/button';
+import { Card, CardContent } from '../../ui/card';
 
 export const SubscriptionExpiredBanner: React.FC = () => {
   const navigate = useNavigate();

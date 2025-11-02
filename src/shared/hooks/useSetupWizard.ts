@@ -1,13 +1,23 @@
-import { useEffect, useLayoutEffect, useState, useRef, useCallback } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { wizardLoadDraftAction, wizardSaveAction, wizardUpdateDataAction } from '../../features/setupWizard/actions';
-import type { NewLocationPayload } from '../../features/locations/types';
-import type { BusinessInfo } from '../types/generalType';
-import type { InviteTeamMemberPayload } from '../../features/teamMembers/types';
-import { getWizardDataSelector } from '../../features/setupWizard/selectors';
-import type { RootState } from '../../app/providers/store';
-import { isE164 } from '../utils/validation';
-import { useWizardStepHydration } from './useWizardStepHydration';
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  wizardLoadDraftAction,
+  wizardSaveAction,
+  wizardUpdateDataAction,
+} from "../../features/setupWizard/actions";
+import type { NewLocationPayload } from "../../features/locations/types";
+import type { BusinessInfo } from "../types/generalType";
+import type { InviteTeamMemberPayload } from "../../features/teamMembers/types";
+import { getWizardDataSelector } from "../../features/setupWizard/selectors";
+import type { RootState } from "../../app/providers/store";
+import { isE164 } from "../utils/validation";
+import { useWizardStepHydration } from "./useWizardStepHydration";
 
 export interface WizardData {
   // Step 1: Business Info
@@ -30,9 +40,11 @@ export const useSetupWizard = () => {
   const [isLoading, setSaving] = useState(false);
   const dispatch = useDispatch();
   const saveResolverRef = useRef<(() => void) | null>(null);
-  const isLoadingState = useSelector((state: RootState) => state.setupWizard.isLoading);
+  const isLoadingState = useSelector(
+    (state: RootState) => state.setupWizard.isLoading
+  );
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const hasRequestedDraft = useRef(false);
 
   // Request draft load on mount using useLayoutEffect to ensure it runs before paint
@@ -63,21 +75,24 @@ export const useSetupWizard = () => {
     }
   }, [isLoadingState]);
 
-  const updateData = useCallback((newData: Partial<WizardData>) => {
-    // Update both local state and Redux to keep them in sync
-    dispatch(wizardUpdateDataAction(newData));
-  }, [dispatch]);
+  const updateData = useCallback(
+    (newData: Partial<WizardData>) => {
+      // Update both local state and Redux to keep them in sync
+      dispatch(wizardUpdateDataAction(newData));
+    },
+    [dispatch]
+  );
 
   const scrollToWizardContent = () => {
     // Wait for React to render new step, then scroll to top
     setTimeout(() => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }, 0);
   };
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(prev => {
+      setCurrentStep((prev) => {
         const next = prev + 1;
         return next;
       });
@@ -87,7 +102,7 @@ export const useSetupWizard = () => {
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => {
+      setCurrentStep((prev) => {
         const next = prev - 1;
         return next;
       });
@@ -109,8 +124,8 @@ export const useSetupWizard = () => {
       await new Promise<void>((resolve) => {
         saveResolverRef.current = resolve;
         // Merge current form data with Redux data
-        const dataToSave = additionalData 
-          ? { ...reducerData, ...additionalData, currentStep } 
+        const dataToSave = additionalData
+          ? { ...reducerData, ...additionalData, currentStep }
           : { ...(reducerData as any), currentStep };
         dispatch(wizardSaveAction.request(dataToSave as any));
       });
@@ -126,21 +141,32 @@ export const useSetupWizard = () => {
   const canProceed = (step: number): boolean => {
     switch (step) {
       case 1: {
-        const hasName = reducerData.businessInfo?.name?.trim() !== '';
-        const hasIndustry = Number.isInteger((reducerData.businessInfo as any)?.industryId) && (reducerData.businessInfo as any).industryId > 0;
-        const hasValidPhone = !!(reducerData.businessInfo?.phone && isE164(reducerData.businessInfo.phone));
+        const hasName = reducerData.businessInfo?.name?.trim() !== "";
+        const hasIndustry =
+          Number.isInteger((reducerData.businessInfo as any)?.industryId) &&
+          (reducerData.businessInfo as any).industryId > 0;
+        const hasValidPhone = !!(
+          reducerData.businessInfo?.phone &&
+          isE164(reducerData.businessInfo.phone)
+        );
         return hasName && hasIndustry && hasValidPhone;
       }
       case 2:
         if (reducerData.location.isRemote) {
-          const hasContact = (reducerData.location.email?.trim() ?? '') !== '' || reducerData.location.phone?.trim() !== '';
-          return reducerData.location.name?.trim() !== '' && reducerData.location.timezone?.trim() !== '' && hasContact;
+          const hasContact =
+            (reducerData.location.email?.trim() ?? "") !== "" ||
+            reducerData.location.phone?.trim() !== "";
+          return (
+            reducerData.location.name?.trim() !== "" &&
+            reducerData.location.timezone?.trim() !== "" &&
+            hasContact
+          );
         }
         return (
-          reducerData.location.name?.trim() !== '' &&
-          reducerData.location.address?.trim() !== '' &&
-          (reducerData.location.email?.trim() ?? '') !== '' &&
-          reducerData.location.phone?.trim() !== ''
+          reducerData.location.name?.trim() !== "" &&
+          reducerData.location.address?.trim() !== "" &&
+          (reducerData.location.email?.trim() ?? "") !== "" &&
+          reducerData.location.phone?.trim() !== ""
         );
       default:
         return true; // Other steps are optional
@@ -161,4 +187,4 @@ export const useSetupWizard = () => {
     getProgress,
     canProceed,
   };
-}; 
+};

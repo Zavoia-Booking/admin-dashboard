@@ -113,7 +113,7 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
     emitChange(actualStreet, streetNumber, city, postalCode, next);
   }, [emitChange, actualStreet, streetNumber, city, postalCode]);
 
-  const isValid = useMemo(() => !Boolean(streetError || numberError || cityError || postalError || countryError), [streetError, numberError, cityError, postalError, countryError]);
+  const isValid = useMemo(() => !(streetError || numberError || cityError || postalError || countryError), [streetError, numberError, cityError, postalError, countryError]);
 
   useEffect(() => {
     onValidityChange?.(isValid);

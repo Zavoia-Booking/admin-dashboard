@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Edit, Trash2, Clock } from "lucide-react";
 import { useTranslation } from 'react-i18next';
 import AddServiceSlider from '../components/AddServiceSlider';
@@ -31,6 +32,7 @@ export default function ServicesPage() {
   const { ConfirmDialog, confirm } = useConfirmRadix();
 
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -43,6 +45,16 @@ export default function ServicesPage() {
   // const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+
+  // Check for URL parameters to auto-open sliders
+  useEffect(() => {
+    const openParam = searchParams.get('open');
+    if (openParam === 'add') {
+      dispatch(toggleAddFormAction(true));
+      // Remove the parameter from URL after opening (replace history entry to prevent back button issues)
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, dispatch]);
 
   // When opening the filter card, sync local state with main state
   useEffect(() => {

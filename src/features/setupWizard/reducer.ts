@@ -1,8 +1,17 @@
 import { getType } from "typesafe-actions";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 import { defaultWorkingHours } from "../locations/constants";
-import { wizardSaveAction, wizardCompleteAction, wizardLoadDraftAction, wizardUpdateDataAction } from "./actions";
-import { loginAction, logoutRequestAction, registerOwnerRequestAction } from "../auth/actions";
+import {
+  wizardSaveAction,
+  wizardCompleteAction,
+  wizardLoadDraftAction,
+  wizardUpdateDataAction,
+} from "./actions";
+import {
+  loginAction,
+  logoutRequestAction,
+  registerOwnerRequestAction,
+} from "../auth/actions";
 
 type WizardState = {
   currentStep: number;
@@ -14,7 +23,7 @@ type WizardState = {
 
 const initialState: WizardState = {
   currentStep: 1,
-  totalSteps: 4,
+  totalSteps: 3,
   data: {
     businessInfo: {
       name: undefined as unknown as string,
@@ -50,7 +59,10 @@ const initialState: WizardState = {
   error: null,
 };
 
-export default function setupWizardReducer(state: WizardState = initialState, action: any) {
+export default function setupWizardReducer(
+  state: WizardState = initialState,
+  action: any
+) {
   switch (action.type) {
     // Reset wizard state on auth boundary changes
     case getType(logoutRequestAction.success): {
@@ -58,7 +70,12 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
     }
     case getType(loginAction.success):
     case getType(registerOwnerRequestAction.success): {
-      return { ...state, isLoading: true, error: null, data: { ...initialState.data } };
+      return {
+        ...state,
+        isLoading: true,
+        error: null,
+        data: { ...initialState.data },
+      };
     }
     case getType(wizardSaveAction.request):
     case getType(wizardCompleteAction.request): {
@@ -92,16 +109,18 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
           ...payload,
           businessInfo: {
             ...state.data.businessInfo,
-            ...(payload.businessInfo || {} as any),
+            ...(payload.businessInfo || ({} as any)),
           },
           location: {
             ...state.data.location,
-            ...(payload.location || {} as any),
+            ...(payload.location || ({} as any)),
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
-          useAccountEmail: payload.useAccountEmail ?? state.data.useAccountEmail,
-          useBusinessContact: payload.useBusinessContact ?? state.data.useBusinessContact,
+          useAccountEmail:
+            payload.useAccountEmail ?? state.data.useAccountEmail,
+          useBusinessContact:
+            payload.useBusinessContact ?? state.data.useBusinessContact,
           currentStep: payload.currentStep ?? state.data.currentStep,
         },
       };
@@ -130,8 +149,10 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
-          useAccountEmail: payload.useAccountEmail ?? state.data.useAccountEmail,
-          useBusinessContact: payload.useBusinessContact ?? state.data.useBusinessContact,
+          useAccountEmail:
+            payload.useAccountEmail ?? state.data.useAccountEmail,
+          useBusinessContact:
+            payload.useBusinessContact ?? state.data.useBusinessContact,
           currentStep: payload.currentStep ?? state.data.currentStep,
         },
       };
@@ -140,5 +161,3 @@ export default function setupWizardReducer(state: WizardState = initialState, ac
       return state;
   }
 }
-
-
