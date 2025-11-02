@@ -12,7 +12,8 @@ export interface Business {
   phone: string;
   timezone: string;
   country: string | null;
-  currency: string;
+  stripeCurrency?: string;
+  businessCurrency: string;
   instagramUrl: string | null;
   facebookUrl: string | null;
   isActive: boolean;

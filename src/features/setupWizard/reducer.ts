@@ -33,7 +33,8 @@ const initialState: WizardState = {
       phone: undefined as unknown as string,
       timezone: undefined as unknown as string,
       country: undefined as unknown as string,
-      currency: undefined as unknown as string,
+      stripeCurrency: 'eur' as string, // Default to EUR (backend hardcoded)
+      businessCurrency: 'eur' as string, // Default to EUR
       instagramUrl: undefined as unknown as string,
       facebookUrl: undefined as unknown as string,
     },
@@ -101,28 +102,32 @@ export default function setupWizardReducer(
         };
       }
 
+      const mergedData = {
+        ...state.data,
+        ...payload,
+        businessInfo: {
+          ...state.data.businessInfo,
+          ...(payload.businessInfo || ({} as any)),
+          stripeCurrency: payload.businessInfo?.stripeCurrency || state.data.businessInfo.stripeCurrency || 'eur', // Ensure default
+          businessCurrency: payload.businessInfo?.businessCurrency || state.data.businessInfo.businessCurrency || 'eur', // Ensure default
+        },
+        location: {
+          ...state.data.location,
+          ...(payload.location || ({} as any)),
+        },
+        teamMembers: payload.teamMembers ?? state.data.teamMembers,
+        worksSolo: payload.worksSolo ?? state.data.worksSolo,
+        useAccountEmail:
+          payload.useAccountEmail ?? state.data.useAccountEmail,
+        useBusinessContact:
+          payload.useBusinessContact ?? state.data.useBusinessContact,
+        currentStep: payload.currentStep ?? state.data.currentStep,
+      };
+
       return {
         ...state,
         isLoading: false,
-        data: {
-          ...state.data,
-          ...payload,
-          businessInfo: {
-            ...state.data.businessInfo,
-            ...(payload.businessInfo || ({} as any)),
-          },
-          location: {
-            ...state.data.location,
-            ...(payload.location || ({} as any)),
-          },
-          teamMembers: payload.teamMembers ?? state.data.teamMembers,
-          worksSolo: payload.worksSolo ?? state.data.worksSolo,
-          useAccountEmail:
-            payload.useAccountEmail ?? state.data.useAccountEmail,
-          useBusinessContact:
-            payload.useBusinessContact ?? state.data.useBusinessContact,
-          currentStep: payload.currentStep ?? state.data.currentStep,
-        },
+        data: mergedData,
       };
     }
     case getType(wizardSaveAction.failure):

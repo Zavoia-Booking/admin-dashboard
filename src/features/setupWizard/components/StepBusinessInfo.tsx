@@ -12,6 +12,7 @@ import { Upload, Phone, AlertCircle, Building2 } from "lucide-react";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import LocationNameField from "../../../shared/components/common/LocationNameField";
 import LocationDescriptionField from "../../../shared/components/common/LocationDescriptionField";
+import CurrencySelect from "../../../shared/components/common/CurrencySelect";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import { useSelector } from "react-redux";
@@ -109,6 +110,23 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             },
       });
 
+    // Controlled business currency with validation (required field)
+    const { field: businessCurrencyField, fieldState: businessCurrencyState } =
+      useController<WizardData, "businessInfo.businessCurrency">({
+        name: "businessInfo.businessCurrency",
+        control,
+        rules: isWizardLoading
+          ? {}
+          : {
+              required: "Currency is required for pricing display",
+              validate: (value) => {
+                const validCodes = ['eur', 'usd', 'ron', 'gbp', 'chf', 'sek', 'nok', 'dkk', 'pln', 'czk', 'huf', 'bgn', 'hrk', 'try'];
+                return validCodes.includes(value?.toLowerCase()) || "Please select a valid currency";
+              },
+            },
+        defaultValue: data.businessInfo?.businessCurrency || 'eur',
+      });
+
     // Controlled business description with validation (optional field)
     const { field: businessDescriptionField, fieldState: businessDescriptionState } =
       useController<WizardData, "businessInfo.description">({
@@ -181,10 +199,11 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           !!selectedIndustryId &&
           Number.isInteger(selectedIndustryId) &&
           selectedIndustryId > 0 &&
+          !!businessCurrencyField.value &&
           Object.keys(errors).length === 0;
         onValidityChange(valid);
       }
-    }, [formIsValid, selectedIndustryId, errors, onValidityChange]);
+    }, [formIsValid, selectedIndustryId, businessCurrencyField.value, errors, onValidityChange]);
 
     const handleBusinessPhoneChange = useCallback(
       (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,6 +228,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             businessInfo: {
               ...current.businessInfo,
               email: effectiveEmail,
+              businessCurrency: current.businessInfo?.businessCurrency || 'eur', // Ensure default
             },
             useAccountEmail, // Include toggle state in saved data
           };
@@ -221,6 +241,12 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           const currentData = watch();
           const industryId = currentData.businessInfo?.industryId;
           if (!industryId || !Number.isInteger(industryId) || industryId <= 0) {
+            return false;
+          }
+
+          // Additional validation for currency
+          const businessCurrency = currentData.businessInfo?.businessCurrency;
+          if (!businessCurrency) {
             return false;
           }
 
@@ -237,13 +263,19 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             return false;
           }
 
+          // Check currency selection
+          const businessCurrency = currentData.businessInfo?.businessCurrency;
+          if (!businessCurrency) {
+            return false;
+          }
+
           // Check if there are any errors
           if (Object.keys(errors).length > 0) return false;
 
           return true;
         },
       }),
-      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail]
+      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail, businessCurrencyField.value]
     );
 
     useEffect(() => {
@@ -384,6 +416,20 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 onSelect={handleSelectIndustry}
               />
             )}
+          </div>
+
+          <div className="space-y-2 pt-4">
+            <Label htmlFor="businessInfo.businessCurrency" className="text-base font-medium cursor-default">
+              Currency *
+            </Label>
+            <p className="text-sm text-muted-foreground">
+            Choose your default pricing currency. You can always change it for individual services or adjust it later in settings.            </p>
+            <CurrencySelect
+              id="businessInfo.businessCurrency"
+              value={(businessCurrencyField.value as string) || 'eur'}
+              onChange={(value) => businessCurrencyField.onChange(value)}
+              error={(businessCurrencyState.isTouched || businessCurrencyState.isDirty || showDraftErrors) ? (businessCurrencyState.error?.message as string) : undefined}
+            />
           </div>
 
           <div className="space-y-2 pt-4">

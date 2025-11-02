@@ -4,6 +4,7 @@ import {
   useEffect,
   useCallback,
   useState,
+  useRef,
 } from "react";
 import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
@@ -16,6 +17,7 @@ import {
   AlertCircle,
   HelpCircle,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import type { StepProps, StepHandle } from "../types";
 import { UserRole } from "../../../shared/types/auth";
@@ -29,7 +31,6 @@ import {
 } from "../../../shared/components/ui/popover";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../auth/selectors";
-import { selectSubscriptionSummary } from "../../settings/selectors";
 import { toast } from "sonner";
 import { emailError } from "../../../shared/utils/validation";
 
@@ -54,7 +55,6 @@ function getAvatarBgColor(email: string | undefined): string {
 const StepTeam = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
     const currentUser = useSelector(selectCurrentUser);
-    const subscriptionSummary = useSelector(selectSubscriptionSummary);
     // Local state for team data - will be populated by useEffect
     const [localTeamMembers, setLocalTeamMembers] = useState<LocalTeamMember[]>(
       []
@@ -62,6 +62,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     const [localWorksSolo, setLocalWorksSolo] = useState(
       data.worksSolo || false
     );
+    const [showAllMembers, setShowAllMembers] = useState(false);
+    const restRef = useRef<HTMLDivElement>(null);
+    const [restHeight, setRestHeight] = useState(0);
 
     const {
       register,
@@ -120,9 +123,35 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       reset({ email: "" });
     }, [data, reset]);
 
+    // Measure collapsible content height for animation
+    useEffect(() => {
+      const el = restRef.current;
+      if (!el) return;
+      // Measure full height for animation variable
+      const fullHeight = Array.from(el.children).reduce(
+        (acc, child) => acc + (child as HTMLElement).offsetHeight,
+        0
+      );
+      setRestHeight(fullHeight);
+      el.style.setProperty(
+        "--radix-collapsible-content-height",
+        `${fullHeight}px`
+      );
+    }, [localTeamMembers, showAllMembers]);
+
     const addTeamMember = handleSubmit(({ email }) => {
       const trimmedEmail = email.trim().toLowerCase();
       if (!trimmedEmail) return;
+      
+      // Check maximum limit of 20 team members in wizard
+      if (localTeamMembers.length >= 20) {
+        setError("email", {
+          type: "manual",
+          message: "You can invite up to 20 team members during setup",
+        });
+        return;
+      }
+      
       // Disallow inviting your own email
       if (
         currentUser?.email &&
@@ -308,6 +337,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       !emailValue ||
                       emailValue.trim() === "" ||
                       !isValid ||
+                      localTeamMembers.length >= 20 ||
                       localTeamMembers.some(
                         (m) =>
                           m.email.toLowerCase() ===
@@ -338,13 +368,16 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     </p>
                   )}
                 </div>
-                {typeof subscriptionSummary?.availableSeats === "number" && (
-                  <p className="text-xs text-muted-foreground">
-                    You can invite up to {subscriptionSummary.availableSeats}{" "}
-                    more team member
-                    {subscriptionSummary.availableSeats === 1 ? "" : "s"}.
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground mt-2 pb-2 md:pb-0">
+                  {localTeamMembers.length >= 20 ? (
+                    "You have reached the maximum number of team member invitations during setup."
+                  ) : (
+                    <>
+                      You can invite up to {20 - localTeamMembers.length} more team member
+                      {20 - localTeamMembers.length === 1 ? "" : "s"} during setup.
+                    </>
+                  )}
+                </p>
               </div>
             </div>
 
@@ -363,43 +396,128 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                   </Badge>
                 </div>
 
-                <div>
-                  {localTeamMembers.map((member, index) => (
-                    <div key={index} className="bg-white rounded-lg py-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
-                            style={{
-                              backgroundColor: getAvatarBgColor(member.email),
-                            }}
-                          >
-                            <span className="text-base font-bold text-gray-800 leading-none">
-                              {member.email?.charAt(0)?.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-gray-900 truncate text-sm">
-                              {member.email}
+                <div className="relative rounded-lg border border-gray-200 bg-white overflow-visible p-2 pb-0">
+                  <div>
+                    {/* First 4 members always visible */}
+                    {localTeamMembers.slice(0, 4).map((member, index) => (
+                      <div
+                        key={index}
+                        className={`${
+                          index < 3 || (index === 3 && localTeamMembers.length > 4)
+                            ? "border-b border-gray-100"
+                            : ""
+                        }`}
+                      >
+                        <div className="bg-white rounded-lg py-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+                                style={{
+                                  backgroundColor: getAvatarBgColor(member.email),
+                                }}
+                              >
+                                <span className="text-base font-bold text-gray-800 leading-none">
+                                  {member.email?.charAt(0)?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-gray-900 truncate text-sm">
+                                  {member.email}
+                                </div>
+                              </div>
                             </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeMember(index)}
+                              className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                              aria-label="Remove invitation"
+                              title="Remove"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeMember(index)}
-                          className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
-                          aria-label="Remove invitation"
-                          title="Remove"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
-                      {index < localTeamMembers.length - 1 && (
-                        <div className="ml-12 mr-2 mt-2 h-px bg-gray-200" />
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                    {/* Remaining members inside collapsible container */}
+                    {localTeamMembers.length > 4 && (
+                      <>
+                        <div
+                          ref={restRef}
+                          data-slot="collapsible-content"
+                          data-state={showAllMembers ? "open" : "closed"}
+                          className={`${
+                            showAllMembers ? "h-auto" : "h-0"
+                          } overflow-hidden divide-y divide-gray-100`}
+                          style={{
+                            ["--radix-collapsible-content-height" as any]: `${restHeight}px`,
+                          } as any}
+                        >
+                          {localTeamMembers.slice(4).map((member, index) => {
+                            const actualIndex = index + 4;
+                            return (
+                              <div key={actualIndex}>
+                                <div className="bg-white rounded-lg py-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div
+                                        className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+                                        style={{
+                                          backgroundColor: getAvatarBgColor(
+                                            member.email
+                                          ),
+                                        }}
+                                      >
+                                        <span className="text-base font-bold text-gray-800 leading-none">
+                                          {member.email?.charAt(0)?.toUpperCase()}
+                                        </span>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="font-medium text-gray-900 truncate text-sm">
+                                          {member.email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeMember(actualIndex)}
+                                      className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                                      aria-label="Remove invitation"
+                                      title="Remove"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {/* Expand/collapse toggle button */}
+                        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-10">
+                          <button
+                            type="button"
+                            aria-label={
+                              showAllMembers
+                                ? "Collapse invitations"
+                                : "Expand invitations"
+                            }
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm active:bg-gray-50 cursor-pointer"
+                            onClick={() => setShowAllMembers((v) => !v)}
+                          >
+                            <ChevronDown
+                              className={`h-6 w-6 transition-transform ${
+                                showAllMembers ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

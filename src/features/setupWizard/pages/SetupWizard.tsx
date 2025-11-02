@@ -129,7 +129,7 @@ const WizardRunner: React.FC = () => {
       onClose={() => navigate("/dashboard")}
       onPrevious={prevStep}
       onNext={handleNext}
-      onSave={currentStep !== totalSteps ? handleSave : undefined}
+      onSave={handleSave}
       canProceed={canProceedToNext && !(completeRequested && isWizardLoading)}
       isLoading={isLoading}
       showNext={true}

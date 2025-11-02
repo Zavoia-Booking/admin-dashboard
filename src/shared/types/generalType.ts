@@ -7,7 +7,8 @@ export type BusinessInfo = {
   phone: string;
   timezone: string;
   country: string;
-  currency: string;
+  stripeCurrency?: string; // Optional - backend defaults to 'eur'
+  businessCurrency: string; // Required - for service pricing
   instagramUrl: string;
   facebookUrl: string;
 }
