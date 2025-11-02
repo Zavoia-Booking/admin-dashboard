@@ -4,6 +4,7 @@ import {
   useEffect,
   useCallback,
   useState,
+  useRef,
 } from "react";
 import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
@@ -16,9 +17,11 @@ import {
   AlertCircle,
   HelpCircle,
   Trash2,
+  ChevronDown,
 } from "lucide-react";
 import type { StepProps, StepHandle } from "../types";
 import { UserRole } from "../../../shared/types/auth";
+import type { InviteTeamMemberPayload } from "../../teamMembers/types";
 import { useForm } from "react-hook-form";
 import { Badge } from "../../../shared/components/ui/badge";
 import {
@@ -28,13 +31,18 @@ import {
 } from "../../../shared/components/ui/popover";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../auth/selectors";
-import { selectSubscriptionSummary } from "../../settings/selectors";
 import { toast } from "sonner";
+import { emailError } from "../../../shared/utils/validation";
 
-const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Local UI state for team members (includes UI-only fields like status and id)
+interface LocalTeamMember extends InviteTeamMemberPayload {
+  role: UserRole;
+  id: string;
+  status: "pending";
+}
 
 function getAvatarBgColor(email: string | undefined): string {
-  const str = (email || '').toLowerCase();
+  const str = (email || "").toLowerCase();
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     hash = (hash << 5) - hash + str.charCodeAt(i);
@@ -47,14 +55,16 @@ function getAvatarBgColor(email: string | undefined): string {
 const StepTeam = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
     const currentUser = useSelector(selectCurrentUser);
-    const subscriptionSummary = useSelector(selectSubscriptionSummary);
-    // Local state for team data
-    const [localTeamMembers, setLocalTeamMembers] = useState(
-      data.teamMembers || []
+    // Local state for team data - will be populated by useEffect
+    const [localTeamMembers, setLocalTeamMembers] = useState<LocalTeamMember[]>(
+      []
     );
     const [localWorksSolo, setLocalWorksSolo] = useState(
       data.worksSolo || false
     );
+    const [showAllMembers, setShowAllMembers] = useState(false);
+    const restRef = useRef<HTMLDivElement>(null);
+    const [restHeight, setRestHeight] = useState(0);
 
     const {
       register,
@@ -81,10 +91,12 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
       getFormData: () => ({
-        teamMembers: (localTeamMembers || []).map((m: any) => ({
-          email: m.email,
-          role: (m.role as any) || (UserRole.TEAM_MEMBER as any),
-        })),
+        teamMembers: (localTeamMembers || []).map(
+          (m): InviteTeamMemberPayload & { role: UserRole } => ({
+            email: m.email,
+            role: m.role || UserRole.TEAM_MEMBER,
+          })
+        ),
         worksSolo: localWorksSolo,
       }),
       triggerValidation: async () => true, // No validation needed for this step
@@ -93,24 +105,62 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
 
     // Sync local state when data changes from Redux
     useEffect(() => {
-      const members = (data.teamMembers || []).map((m: any) => ({
-        email: m.email,
-        role: (m.role as any) || (UserRole.TEAM_MEMBER as any),
-        id: `${m.email}`,
-        status: "pending" as const,
-      }));
+      const members: LocalTeamMember[] = (data.teamMembers || []).map((m) => {
+        // role might exist in saved draft (not in base InviteTeamMemberPayload type)
+        const memberWithRole = m as InviteTeamMemberPayload & {
+          role?: UserRole;
+        };
+        return {
+          email: m.email,
+          role: memberWithRole.role || UserRole.TEAM_MEMBER,
+          id: `${m.email}`,
+          status: "pending" as const,
+        };
+      });
       setLocalTeamMembers(members);
       setLocalWorksSolo(data.worksSolo || false);
       // Reset form to clear any stale email input
       reset({ email: "" });
     }, [data, reset]);
 
+    // Measure collapsible content height for animation
+    useEffect(() => {
+      const el = restRef.current;
+      if (!el) return;
+      // Measure full height for animation variable
+      const fullHeight = Array.from(el.children).reduce(
+        (acc, child) => acc + (child as HTMLElement).offsetHeight,
+        0
+      );
+      setRestHeight(fullHeight);
+      el.style.setProperty(
+        "--radix-collapsible-content-height",
+        `${fullHeight}px`
+      );
+    }, [localTeamMembers, showAllMembers]);
+
     const addTeamMember = handleSubmit(({ email }) => {
       const trimmedEmail = email.trim().toLowerCase();
       if (!trimmedEmail) return;
+      
+      // Check maximum limit of 20 team members in wizard
+      if (localTeamMembers.length >= 20) {
+        setError("email", {
+          type: "manual",
+          message: "You can invite up to 20 team members during setup",
+        });
+        return;
+      }
+      
       // Disallow inviting your own email
-      if (currentUser?.email && trimmedEmail === currentUser.email.trim().toLowerCase()) {
-        setError("email", { type: "manual", message: "You cannot invite your own email" });
+      if (
+        currentUser?.email &&
+        trimmedEmail === currentUser.email.trim().toLowerCase()
+      ) {
+        setError("email", {
+          type: "manual",
+          message: "You can't invite your own email address",
+        });
         return;
       }
       const duplicate = localTeamMembers.some(
@@ -134,41 +184,51 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
         const removed = prev[index];
         const next = prev.filter((_, i) => i !== index);
         if (removed) {
-          toast.custom((t) => (
-            <div className="flex items-center justify-between gap-6 rounded-md border border-gray-200 bg-white px-6 py-3 shadow-sm">
-              <div className="min-w-12">
-                <p className="text-sm font-medium text-gray-900 truncate mb-2">Invite removed</p>
-                <p className="text-xs text-gray-600 truncate">{removed.email}</p>
+          toast.custom(
+            (t) => (
+              <div className="flex items-center justify-between gap-6 rounded-md border border-gray-200 bg-white px-6 py-3 shadow-sm">
+                <div className="min-w-12">
+                  <p className="text-sm font-medium text-gray-900 truncate mb-2">
+                    Invite removed
+                  </p>
+                  <p className="text-xs text-gray-600 truncate">
+                    {removed.email}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  rounded="full"
+                  className="h-7 px-6 cursor-pointer"
+                  onClick={() => {
+                    setLocalTeamMembers((curr) => {
+                      const arr = [...curr];
+                      arr.splice(Math.min(index, arr.length), 0, removed);
+                      return arr;
+                    });
+                    toast.dismiss(t);
+                  }}
+                >
+                  Undo
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                rounded="full"
-                className="h-7 px-6 cursor-pointer"
-                onClick={() => {
-                  setLocalTeamMembers((curr) => {
-                    const arr = [...curr];
-                    arr.splice(Math.min(index, arr.length), 0, removed);
-                    return arr;
-                  });
-                  toast.dismiss(t);
-                }}
-              >
-                Undo
-              </Button>
-            </div>
-          ), { duration: 5000 });
+            ),
+            { duration: 5000 }
+          );
         }
         return next;
       });
     }, []);
 
-    const handleWorksSoloChange = useCallback((worksSolo: boolean) => {
-      setLocalWorksSolo(worksSolo);
-      if (updateData) {
-        updateData({ worksSolo });
-      }
-    }, [updateData]);
+    const handleWorksSoloChange = useCallback(
+      (worksSolo: boolean) => {
+        setLocalWorksSolo(worksSolo);
+        if (updateData) {
+          updateData({ worksSolo });
+        }
+      },
+      [updateData]
+    );
 
     return (
       <div className="space-y-6">
@@ -249,20 +309,21 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                   <div className="flex-1 relative">
                     <Input
                       type="email"
-                      placeholder="team.member@example.com"
+                      placeholder="e.g. colleague@company.com"
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                         errors.email
                           ? "border-destructive bg-red-50 focus-visible:ring-red-400"
                           : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
                       }`}
                       {...register("email", {
-                        pattern: {
-                          value: emailRegex,
-                          message: "Enter a valid email address",
+                        validate: (value: string) => {
+                          if (!value || !value.trim()) return true;
+                          const error = emailError("Team member email", value);
+                          return error === null ? true : error;
                         },
                       })}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                           addTeamMember();
                         }
@@ -276,6 +337,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       !emailValue ||
                       emailValue.trim() === "" ||
                       !isValid ||
+                      localTeamMembers.length >= 20 ||
                       localTeamMembers.some(
                         (m) =>
                           m.email.toLowerCase() ===
@@ -297,15 +359,25 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       aria-live="polite"
                     >
                       <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{String(errors.email.message || 'Enter a valid email address')}</span>
+                      <span>
+                        {String(
+                          errors.email.message ||
+                            "Please enter a valid email address"
+                        )}
+                      </span>
                     </p>
                   )}
                 </div>
-                {typeof subscriptionSummary?.availableSeats === 'number' && (
-                  <p className="text-xs text-muted-foreground">
-                    You can invite up to {subscriptionSummary.availableSeats} more team member{subscriptionSummary.availableSeats === 1 ? '' : 's'}.
-                  </p>
-                )}
+                <p className="text-sm text-muted-foreground mt-2 pb-2 md:pb-0">
+                  {localTeamMembers.length >= 20 ? (
+                    "You have reached the maximum number of team member invitations during setup."
+                  ) : (
+                    <>
+                      You can invite up to {20 - localTeamMembers.length} more team member
+                      {20 - localTeamMembers.length === 1 ? "" : "s"} during setup.
+                    </>
+                  )}
+                </p>
               </div>
             </div>
 
@@ -324,47 +396,135 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                   </Badge>
                 </div>
 
-                <div>
-                  {localTeamMembers.map((member, index) => (
-                    <div key={index} className="bg-white rounded-lg py-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div
-                            className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
-                            style={{ backgroundColor: getAvatarBgColor(member.email) }}
-                          >
-                            <span className="text-base font-bold text-gray-800 leading-none">
-                              {member.email?.charAt(0)?.toUpperCase()}
-                            </span>
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-medium text-gray-900 truncate text-sm">
-                              {member.email}
+                <div className="relative rounded-lg border border-gray-200 bg-white overflow-visible p-2 pb-0">
+                  <div>
+                    {/* First 4 members always visible */}
+                    {localTeamMembers.slice(0, 4).map((member, index) => (
+                      <div
+                        key={index}
+                        className={`${
+                          index < 3 || (index === 3 && localTeamMembers.length > 4)
+                            ? "border-b border-gray-100"
+                            : ""
+                        }`}
+                      >
+                        <div className="bg-white rounded-lg py-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+                                style={{
+                                  backgroundColor: getAvatarBgColor(member.email),
+                                }}
+                              >
+                                <span className="text-base font-bold text-gray-800 leading-none">
+                                  {member.email?.charAt(0)?.toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-gray-900 truncate text-sm">
+                                  {member.email}
+                                </div>
+                              </div>
                             </div>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => removeMember(index)}
+                              className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                              aria-label="Remove invitation"
+                              title="Remove"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
                           </div>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeMember(index)}
-                          className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
-                          aria-label="Remove invitation"
-                          title="Remove"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
                       </div>
-                      {index < localTeamMembers.length - 1 && (
-                        <div className="ml-12 mr-2 mt-2 h-px bg-gray-200" />
-                      )}
-                    </div>
-                  ))}
+                    ))}
+                    {/* Remaining members inside collapsible container */}
+                    {localTeamMembers.length > 4 && (
+                      <>
+                        <div
+                          ref={restRef}
+                          data-slot="collapsible-content"
+                          data-state={showAllMembers ? "open" : "closed"}
+                          className={`${
+                            showAllMembers ? "h-auto" : "h-0"
+                          } overflow-hidden divide-y divide-gray-100`}
+                          style={{
+                            ["--radix-collapsible-content-height" as any]: `${restHeight}px`,
+                          } as any}
+                        >
+                          {localTeamMembers.slice(4).map((member, index) => {
+                            const actualIndex = index + 4;
+                            return (
+                              <div key={actualIndex}>
+                                <div className="bg-white rounded-lg py-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      <div
+                                        className="flex h-10 w-10 items-center justify-center rounded-full shrink-0"
+                                        style={{
+                                          backgroundColor: getAvatarBgColor(
+                                            member.email
+                                          ),
+                                        }}
+                                      >
+                                        <span className="text-base font-bold text-gray-800 leading-none">
+                                          {member.email?.charAt(0)?.toUpperCase()}
+                                        </span>
+                                      </div>
+                                      <div className="min-w-0">
+                                        <div className="font-medium text-gray-900 truncate text-sm">
+                                          {member.email}
+                                        </div>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => removeMember(actualIndex)}
+                                      className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                                      aria-label="Remove invitation"
+                                      title="Remove"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {/* Expand/collapse toggle button */}
+                        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2 z-10">
+                          <button
+                            type="button"
+                            aria-label={
+                              showAllMembers
+                                ? "Collapse invitations"
+                                : "Expand invitations"
+                            }
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm active:bg-gray-50 cursor-pointer"
+                            onClick={() => setShowAllMembers((v) => !v)}
+                          >
+                            <ChevronDown
+                              className={`h-6 w-6 transition-transform ${
+                                showAllMembers ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
             {localTeamMembers.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                Add your teammates’ emails above. We’ll send the invitations once you finish setup.
+              <p className="text-sm text-muted-foreground pb-6">
+                Add teammate emails above and we'll send them invitations when
+                you complete setup.{" "}
               </p>
             )}
           </>

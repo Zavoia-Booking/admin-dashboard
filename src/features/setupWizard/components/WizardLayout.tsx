@@ -27,16 +27,16 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
     <div className="min-h-[100svh] bg-background cursor-default">
       <div className="container mx-auto pt-0 md:pt-8 pb-0 md:pb-8 min-h-[100svh] flex flex-col">
         <div className="mx-auto max-w-[960px] w-full rounded-none md:rounded-2xl md:border bg-card shadow-md flex-1 flex flex-col">
-          <div className="grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-12 flex-1 min-h-0 px-4 md:px-0">
             {/* Left rail */}
             <aside className="hidden md:block md:col-span-4 bg-gray-100">
-              <div className="md:sticky md:top-0 md:max-h-screen md:overflow-auto px-4 ">
-                <div className="-mx-4 px-4 min-h-20 bg-white border-b flex items-center">
-                  <h1 className="text-xl font-semibold text-foreground">
+              <div className="md:sticky md:top-0 md:max-h-screen md:overflow-auto pb-4 md:rounded-tl-2xl">
+                <div className="px-4 min-h-20 bg-white border-b flex items-center">
+                  <h1 className="text-xl font-semibold text-foreground ">
                     Business Setup Wizard
                   </h1>
                 </div>
-                <div className="mb-4 mt-4">
+                <div className="mb-4 mt-4 px-4">
                   <Progress
                     value={progress}
                     className="h-1.5 [&>div]:bg-emerald-600 bg-white mb-2"
@@ -45,7 +45,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     {Math.round(progress)}% completed
                   </div>
                 </div>
-                <ol className="space-y-2">
+                <ol className="space-y-2 px-2">
                   {(
                     stepLabels ||
                     Array.from({ length: totalSteps }).map(
@@ -55,15 +55,14 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     const stepNum = idx + 1;
                     const isActive = stepNum === currentStep;
                     const isDone = stepNum < currentStep;
-                    const isFinal = currentStep === totalSteps;
                     return (
                       <li
                         key={idx}
                         className={`flex items-center gap-2 rounded-md px-2 py-2 ${isActive ? "bg-white border" : ""} ${
-                          isDone && onGoToStep && !isFinal ? "cursor-pointer hover:bg-white/70" : "cursor-default"
+                          isDone && onGoToStep ? "cursor-pointer hover:bg-white/70" : "cursor-default"
                         }`}
                         onClick={() => {
-                          if (isDone && onGoToStep && !isFinal) onGoToStep(stepNum);
+                          if (isDone && onGoToStep) onGoToStep(stepNum);
                         }}
                       >
                         {isDone ? (
@@ -96,9 +95,9 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
             </aside>
 
             {/* Right content */}
-            <section className={`md:col-span-8 px-4 md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 ${currentStep === totalSteps ? 'pb-0' : 'pb-8'}`}>
+            <section className="md:col-span-8 md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 pb-8">
               {/* Right column sticky header (actions only) */}
-              <div className="sticky top-0 z-60 -mx-4 px-4 md:-mx-6 md:px-6 py-4 border-b bg-white h-auto min-h-20 max-[399px]:static max-[399px]:top-auto">
+              <div className="sticky top-0 z-100 -mx-4 md:-mx-6 px-4 md:px-6 py-4 border-b bg-white h-auto min-h-20 max-[399px]:static max-[399px]:top-auto md:rounded-tr-2xl">
                 {/* Mobile: first row (title + actions) */}
                 <div className="md:hidden flex items-center justify-between">
                   <div className="text-[18px] font-semibold text-foreground">
@@ -197,41 +196,31 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   />
                 </div>
               </div>
-              {/* Header (hidden on final step to let Step 4 own its header) */}
-              {currentStep !== totalSteps && (
-                <div className="mb-4 pt-0 md:pt-4">
-                  <h2 className="text-lg md:text-xl font-semibold text-foreground pt-6 md:pt-0">
-                    {title}
-                  </h2>
-                  {subtitle && (
-                    <p className="text-sm text-muted-foreground">{subtitle}</p>
-                  )}
-                </div>
-              )}
-              <div
-                className={`rounded-lg md:border bg-white p-0 md:p-4 pt-4 flex-1 md:min-h-[500px] md:pb-4 ${
-                  currentStep === 3 ? "pb-0" : "pb-4" 
-                } ${currentStep === totalSteps ? "mt-0 md:mt-8" : ""}`}
-              >
+              {/* Header */}
+              <div className="mb-4 pt-0 md:pt-4">
+                <h2 className="text-lg md:text-xl font-semibold text-foreground pt-6 md:pt-0">
+                  {title}
+                </h2>
+                {subtitle && (
+                  <p className="text-sm text-muted-foreground">{subtitle}</p>
+                )}
+              </div>
+              <div className="rounded-lg md:border bg-white p-0 md:p-4 pt-4 flex-1 md:min-h-[500px] !pb-8">
                 {children}
               </div>
 
               {/* Footer buttons */}
               <div className="mt-4 hidden md:flex items-center justify-between">
-                {currentStep !== totalSteps ? (
-                  <Button
-                    variant="outline"
-                    rounded="full"
-                    onClick={onPrevious}
-                    disabled={currentStep === 1}
-                    className="gap-2 h-11 w-40 cursor-pointer"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                    Back
-                  </Button>
-                ) : (
-                  <div />
-                )}
+                <Button
+                  variant="outline"
+                  rounded="full"
+                  onClick={onPrevious}
+                  disabled={currentStep === 1}
+                  className="gap-2 h-11 w-40 cursor-pointer"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Back
+                </Button>
                 {showNext !== false && (
                   <Button
                     rounded="full"
@@ -254,20 +243,16 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                 }`}
               >
                 <div className="flex gap-2">
-                  {currentStep !== totalSteps ? (
-                    <Button
-                      variant="outline"
-                      rounded="full"
-                      onClick={onPrevious}
-                      disabled={currentStep === 1}
-                      className="h-11 cursor-pointer flex-1"
-                    >
-                      <ArrowLeft className="h-4 w-4" />
-                      Back
-                    </Button>
-                  ) : (
-                    <div className="flex-1" />
-                  )}
+                  <Button
+                    variant="outline"
+                    rounded="full"
+                    onClick={onPrevious}
+                    disabled={currentStep === 1}
+                    className="h-11 cursor-pointer flex-1"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Back
+                  </Button>
                   {showNext !== false && (
                     <Button
                       rounded="full"

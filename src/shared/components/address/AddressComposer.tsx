@@ -24,14 +24,17 @@ type Props = {
     country: string;
   }) => void;
   onValidityChange?: (isValid: boolean) => void;
+  manualMode?: boolean; // External control of manual vs search mode
+  onManualModeChange?: (isManual: boolean) => void; // Callback to persist mode changes
 };
 
-export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange }: Props) {
+export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange }: Props) {
   const [addressSelected, setAddressSelected] = useState(false);
   const lastSelectedRef = useRef<{ s: string; n: string; c: string; p: string; co: string; display: string } | null>(null);
   const [manualEdited, setManualEdited] = useState(false);
   const {
     streetBase,
+    actualStreet,
     streetNumber,
     city,
     postalCode,
@@ -54,7 +57,9 @@ export default function AddressComposer({ value, onChange, className, addressCom
     onComponentsChange: (c) => onAddressComponentsChange?.(c),
     onValidityChange,
   });
-  const [manualMode, setManualMode] = useState(false);
+  // Use external manualMode if provided, otherwise maintain internal state
+  const [internalManualMode, setInternalManualMode] = useState(false);
+  const manualMode = externalManualMode ?? internalManualMode;
   const [searchKey, setSearchKey] = useState(0);
   const [shouldAutoFocus, setShouldAutoFocus] = useState(false);
   const [hasLoadedFromDraft, setHasLoadedFromDraft] = useState(false);
@@ -89,7 +94,8 @@ export default function AddressComposer({ value, onChange, className, addressCom
       // Use the full displayName which already contains the complete address
       const fullAddress = s.displayName ?? c.address;
       // Hydrate exact components; display value is handled in UI, but keep street free in manual mode
-      hydrateFromComponents(streetName, number, s.city ?? '', s.postalCode ?? '', s.country ?? '', fullAddress);
+      // Reset errors since data from LocationIQ is trusted
+      hydrateFromComponents(streetName, number, s.city ?? '', s.postalCode ?? '', s.country ?? '', fullAddress, true);
       lastSelectedRef.current = { s: streetName, n: number, c: s.city ?? '', p: s.postalCode ?? '', co: s.country ?? '', display: fullAddress };
       setManualEdited(false);
       setAddressSelected(true);
@@ -124,6 +130,15 @@ export default function AddressComposer({ value, onChange, className, addressCom
     onCountryChange(next);
   }, [onCountryChange]);
 
+  // Helper to update mode state
+  const setManualMode = useCallback((isManual: boolean) => {
+    if (onManualModeChange) {
+      onManualModeChange(isManual);
+    } else {
+      setInternalManualMode(isManual);
+    }
+  }, [onManualModeChange]);
+
   // Segmented control handlers
   const handleSelectSearchMode = useCallback(() => {
     // If user didn't edit in manual mode and we have a last selected address, restore it
@@ -143,7 +158,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
     onChange('');
     setShouldAutoFocus(true);
     setSearchKey(prev => prev + 1);
-  }, [manualEdited, onChange, hydrateFromComponents]);
+  }, [manualEdited, onChange, hydrateFromComponents, setManualMode]);
 
   const handleSelectManualMode = useCallback(() => {
     setManualMode(true);
@@ -152,7 +167,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
     hydrateFromComponents('', '', '', '', '', undefined, true);
     setManualEdited(false);
     if (value) onChange(value);
-  }, [onChange, value]);
+  }, [onChange, value, setManualMode, hydrateFromComponents]);
 
   const handleChangeAddressClick = useCallback(() => {
     setManualMode(false);
@@ -198,6 +213,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
       {(addressSelected || manualMode) && (
         <AddressManualFields
           streetBase={streetBase}
+          actualStreet={actualStreet}
           streetNumber={streetNumber}
           city={city}
           postalCode={postalCode}

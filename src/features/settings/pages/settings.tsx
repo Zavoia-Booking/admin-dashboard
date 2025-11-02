@@ -45,8 +45,12 @@ const SettingsPage = () => {
     const openParam = searchParams.get('open');
     if (openParam === 'billing') {
       setShowBillingSlider(true);
-      // Remove the parameter from URL after opening
-      setSearchParams({});
+      // Remove the parameter from URL after opening (replace history entry to prevent back button issues)
+      setSearchParams({}, { replace: true });
+    } else if (openParam === 'business') {
+      setShowBusinessSlider(true);
+      // Remove the parameter from URL after opening (replace history entry to prevent back button issues)
+      setSearchParams({}, { replace: true });
     }
   }, [searchParams, setSearchParams]);
 

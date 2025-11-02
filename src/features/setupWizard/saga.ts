@@ -3,6 +3,7 @@ import { wizardCompleteAction, wizardSaveAction, wizardLoadDraftAction } from ".
 import { completeWizardApi, saveWizardDraftApi, getWizardDraftApi, type CompleteWizardResponse } from "./api";
 import { fetchCurrentUserAction, setTokensAction, setCsrfToken } from "../auth/actions";
 import { listLocationsAction } from "../locations/actions";
+import { fetchCurrentBusinessAction } from "../business/actions";
 import { prepareWizardDataForSubmission } from "./utils";
 
 function* handleWizardSave(action: { type: string; payload: any }) {
@@ -37,6 +38,7 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
     
     // Fetch locations for the newly created business
     yield put(listLocationsAction.request());
+    yield put(fetchCurrentBusinessAction.request());
   } catch (error: any) {
     // Map backend messages robustly (string | array | nested)
     const raw = error?.response?.data?.message ?? error?.message;

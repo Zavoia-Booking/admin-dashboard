@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectAuthStatus, selectCurrentUser } from "../selectors";
 import { AuthStatusEnum } from "../types";
 import { fetchCurrentUserAction } from "../actions";
+import { Spinner } from "../../../shared/components/ui/spinner";
 
 export default function AuthGate({ children }: PropsWithChildren) {
   const dispatch = useDispatch();
@@ -22,8 +23,11 @@ export default function AuthGate({ children }: PropsWithChildren) {
   }, [status, user, dispatch]);
 
   if (status === AuthStatusEnum.IDLE || status === AuthStatusEnum.LOADING) {
-    // Customized loader here to be added
-    return null;
+    return (
+      <div className="min-h-[100svh] bg-background flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
   }
 
   return <>{children}</>;

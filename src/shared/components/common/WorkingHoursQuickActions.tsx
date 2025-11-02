@@ -190,14 +190,14 @@ export default function WorkingHoursQuickActions({
       </div>
 
       {/* Mobile: buttons in one row */}
-      <div className="mt-2 md:hidden flex items-center justify-between">
+      <div className="mt-2 md:hidden grid grid-cols-[1fr_auto_1fr] items-center gap-3 w-full">
         <button
           type="button"
           aria-label="Copy to Tue–Fri"
           title={
             mondayInvalidRange ? "Set valid Monday hours first" : undefined
           }
-          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer w-[128px] ${
+          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-end ${
             mondayInvalidRange
               ? "opacity-60 cursor-not-allowed hover:bg-white"
               : ""
@@ -208,13 +208,14 @@ export default function WorkingHoursQuickActions({
           <CalendarCheck className="h-4 w-4" />
           Mon–Fri
         </button>
+        <span aria-hidden="true" className="min-w-4"></span>
         <button
           type="button"
           aria-label="Copy to all days"
           title={
             mondayInvalidRange ? "Set valid Monday hours first" : undefined
           }
-          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer w-[128px] ${
+          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-start ${
             mondayInvalidRange
               ? "opacity-60 cursor-not-allowed hover:bg-white"
               : ""

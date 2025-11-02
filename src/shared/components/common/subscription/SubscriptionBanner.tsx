@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CreditCard,Loader2 } from 'lucide-react';
-import { Alert, AlertDescription } from '../ui/alert';
-import { Button } from '../ui/button';
-import { getCustomerPortalUrl } from '../../../features/settings/api';
+import { Alert, AlertDescription } from '../../ui/alert';
+import { Button } from '../../ui/button';
+import { getCustomerPortalUrl } from '../../../../features/settings/api';
 import { toast } from 'sonner';
-import type { AuthUser } from '../../../features/auth/types';
+import type { AuthUser } from '../../../../features/auth/types';
 
 interface SubscriptionBannerProps {
   user: AuthUser;

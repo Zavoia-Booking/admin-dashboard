@@ -31,7 +31,6 @@ export async function locationIqAutocomplete(params: {
   if (!token) {
     if (!warnedNoToken && typeof window !== 'undefined') {
       warnedNoToken = true;
-      // eslint-disable-next-line no-console
       console.warn('[LocationIQ] Missing VITE_LOCATIONIQ_TOKEN. Autocomplete will be disabled.');
     }
     return [];
