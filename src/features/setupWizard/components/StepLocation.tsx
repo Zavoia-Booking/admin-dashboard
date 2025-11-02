@@ -36,7 +36,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
 
     const {
       control,
-      register,
       watch,
       setValue,
       reset,
@@ -57,13 +56,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
     const isRemote = watch("location.isRemote" satisfies WizardFieldPath) === true;
     const businessEmail = (watch("businessInfo.email" satisfies WizardFieldPath) as string) || "";
     const businessPhone = (watch("businessInfo.phone" satisfies WizardFieldPath) as string) || "";
-
-    // Register static fields for validation
-    useEffect(() => {
-      register("location.timezone" satisfies WizardFieldPath, {
-        required: "Timezone is required",
-      });
-    }, [register]);
 
     // Controlled name with validation
     const { field: nameField, fieldState: nameState } = useController<WizardData, "location.name">({
@@ -122,6 +114,16 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         },
       });
 
+    // Controlled timezone with validation (required when remote)
+    const { field: timezoneField, fieldState: timezoneState } =
+      useController<WizardData, "location.timezone">({
+        name: "location.timezone",
+        control,
+        rules: {
+          required: "Timezone is required",
+        },
+      });
+
     // Trigger validation on draft load to show errors for invalid saved data
     const showDraftErrors = useDraftValidation({
       trigger,
@@ -167,7 +169,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           return formIsValid;
         },
       }),
-      [watch, trigger, errors, formIsValid, isAddressValid, isRemote, useBusinessContact, emailField, phoneField]
+      [watch, trigger, errors, formIsValid, isAddressValid, isRemote, useBusinessContact, emailField, phoneField, timezoneField]
     );
 
     // Reset form ONLY once when wizard finishes loading (same pattern as business step)
@@ -376,15 +378,13 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               />
 
               <TimezoneField
-                value={(watch("location.timezone" satisfies WizardFieldPath) as string) || ""}
-                onChange={(tz) =>
-                  setValue("location.timezone" satisfies WizardFieldPath, tz, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                    shouldTouch: true,
-                  })
+                value={(timezoneField.value as string) || ""}
+                onChange={(tz) => timezoneField.onChange(tz)}
+                error={
+                  (timezoneState.isTouched || timezoneState.isDirty || showDraftErrors)
+                    ? (timezoneState.error?.message as string)
+                    : undefined
                 }
-                error={errors.location?.timezone?.message}
                 required
               />
 
