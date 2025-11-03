@@ -9,6 +9,8 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { toast } from 'sonner';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import LogoUpload from '../../../shared/components/common/LogoUpload';
+import { uploadBusinessLogo } from '../api';
 
 interface BusinessInfoSliderProps {
   isOpen: boolean;
@@ -22,6 +24,8 @@ interface BusinessFormData {
   businessPhone: string;
   timeZone: string;
   bookingSlug: string;
+  logo?: string | null;
+  logoKey?: string | null;
 }
 
 const initialFormData: BusinessFormData = {
@@ -30,16 +34,49 @@ const initialFormData: BusinessFormData = {
   businessEmail: 'business@example.com',
   businessPhone: '+1 (555) 123-4567',
   timeZone: 'America/New_York',
-  bookingSlug: 'your-business'
+  bookingSlug: 'your-business',
+  logo: null,
+  logoKey: null,
 };
 
 const BusinessInfoSlider: React.FC<BusinessInfoSliderProps> = ({ isOpen, onClose }) => {
   const [formData, setFormData] = useState<BusinessFormData>(initialFormData);
   const [industryOpen, setIndustryOpen] = useState(false);
   const [timeZoneOpen, setTimeZoneOpen] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file) {
+      // Logo removed
+      setFormData(prev => ({ ...prev, logo: null, logoKey: null }));
+      return;
+    }
+
+    try {
+      setIsUploadingLogo(true);
+      const response = await uploadBusinessLogo(file);
+      
+      setFormData(prev => ({
+        ...prev,
+        logo: response.logo,
+        logoKey: response.logoKey,
+      }));
+      
+      toast.success('Logo uploaded successfully!');
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      toast.error(error?.message || 'Failed to upload logo');
+    } finally {
+      setIsUploadingLogo(false);
+    }
+  };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    
+    // Here you would normally save the business info including logo and logoKey
+    console.log('Saving business info:', formData);
+    
     toast.success('✅ Business information saved successfully');
     onClose();
   };
@@ -103,6 +140,18 @@ const BusinessInfoSlider: React.FC<BusinessInfoSliderProps> = ({ isOpen, onClose
                 <h3 className="text-base font-semibold text-foreground">Basic Information</h3>
               </div>
               <div className="space-y-4">
+                {/* Logo Upload Section */}
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Business Logo</Label>
+                  <p className="text-xs text-muted-foreground">Upload your business logo to personalize your booking page.</p>
+                  <LogoUpload
+                    value={formData.logo}
+                    onChange={handleLogoUpload}
+                    uploading={isUploadingLogo}
+                    maxSizeMB={2}
+                    allowedTypes={['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']}
+                  />
+                </div>
                 <div className="space-y-2">
                   <Label htmlFor="businessName" className="text-sm font-medium text-foreground">Business Name</Label>
                   <p className="text-xs text-muted-foreground">How your name appears on your booking page.</p>

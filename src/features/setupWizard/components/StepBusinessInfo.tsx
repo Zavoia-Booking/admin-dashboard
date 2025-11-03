@@ -12,6 +12,7 @@ import { Upload, Phone, AlertCircle, Building2 } from "lucide-react";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import LocationNameField from "../../../shared/components/common/LocationNameField";
 import LocationDescriptionField from "../../../shared/components/common/LocationDescriptionField";
+import LogoUpload from "../../../shared/components/common/LogoUpload";
 import CurrencySelect from "../../../shared/components/common/CurrencySelect";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
@@ -32,6 +33,7 @@ import { selectCurrentUser } from "../../auth/selectors";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
 import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
 import { resetRegistrationFlag } from "../../auth/actions";
+import { setLogoBufferAction, clearLogoBufferAction } from "../actions";
 
 const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange }, ref) => {
@@ -41,9 +43,12 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     const isWizardLoading = useSelector(
       (state: RootState) => state.setupWizard.isLoading
     );
+    const logoFileBuffer = useSelector(
+      (state: RootState) => state.setupWizard.logoFileBuffer
+    );
     const currentUser = useSelector(selectCurrentUser);
     const accountEmail = (currentUser?.email || "").trim();
-    
+
     // Initialize toggle state from draft data to avoid flash on load
     const [useAccountEmail, setUseAccountEmail] = useState<boolean>(() => {
       const draftToggleState = data.useAccountEmail;
@@ -66,6 +71,13 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     const selectedIndustryId =
       watch("businessInfo.industryId" satisfies WizardFieldPath) ||
       data.businessInfo?.industryId;
+
+    // Get logo from form state - distinguish between "not set" (undefined) and "cleared" (null)
+    // Prioritize: form state > Redux buffer > saved logo URL
+    const watchedLogo = watch("businessInfo.logo" as any);
+    const businessLogo = watchedLogo !== undefined
+      ? watchedLogo
+      : logoFileBuffer || ((data as any)?.businessInfo?.logo || null);
 
     // Controlled business name with validation (only validate after wizard loads)
     const { field: businessNameField, fieldState: businessNameState } =
@@ -164,7 +176,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     // Sync toggle state when account email is available and toggle is ON
     useEffect(() => {
       if (isWizardLoading || !useAccountEmail || !accountEmail) return;
-      
+
       // If toggle is ON, sync form email with account email
       const currentEmail = watch("businessInfo.email" satisfies WizardFieldPath);
       if (currentEmail !== accountEmail) {
@@ -192,6 +204,35 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
       }
       // Save toggle state (will be included in getFormData)
     }, [accountEmail, setValue]);
+
+    const handleLogoUpload = useCallback(
+      (file: File | null) => {
+        if (file === null) {
+          // User clicked X - mark for deletion
+          // Set to null to indicate "no logo wanted"
+          setValue("businessInfo.logo" as any, null, {
+            shouldDirty: true,
+            shouldTouch: true,
+          });
+          setValue("businessInfo.logoKey" as any, null, {
+            shouldDirty: true,
+            shouldTouch: true,
+          });
+          // Clear logo buffer in Redux
+          dispatch(clearLogoBufferAction());
+        } else {
+          // New file selected - store for preview and later upload
+          setValue("businessInfo.logo" as any, file, {
+            shouldDirty: true,
+            shouldTouch: true,
+          });
+          // Store file buffer in Redux so it persists across navigation
+          dispatch(setLogoBufferAction(file));
+          // Don't clear logoKey yet - will be set after upload
+        }
+      },
+      [setValue, dispatch]
+    );
 
     // Notify parent when validity changes
     useEffect(() => {
@@ -306,6 +347,18 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
     // Reset form ONLY once when wizard finishes loading
     const hasInitialized = useRef(false);
+    // Sync logo buffer with form state when component mounts
+    useEffect(() => {
+      if (logoFileBuffer && !watch("businessInfo.logo" as any)) {
+        // Restore logo from buffer into form state
+        setValue("businessInfo.logo" as any, logoFileBuffer, {
+          shouldDirty: false,
+          shouldTouch: false,
+        });
+      }
+    }, [logoFileBuffer, setValue, watch]);
+
+    // Sync form with external data changes (from Redux) and surface only invalid non-empty saved values
     useEffect(() => {
       if (isWizardLoading || hasInitialized.current) return;
       reset(data);
@@ -442,15 +495,12 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             <Label className="text-base font-medium cursor-default">
               Business Logo (Optional)
             </Label>
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-              <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground mb-1">
-                Click to upload or drag and drop
-              </p>
-              <p className="text-xs text-muted-foreground">
-                PNG, JPG up to 2MB
-              </p>
-            </div>
+            <LogoUpload
+              value={businessLogo}
+              onChange={handleLogoUpload}
+              maxSizeMB={2}
+              allowedTypes={['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']}
+            />
           </div>
         </div>
       </div>

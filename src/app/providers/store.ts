@@ -32,6 +32,10 @@ export const store = configureStore({
       thunk: false, // using sagas instead of thunk
       // If your sagas/actions carry non-serializable payloads (e.g., Errors), disable or tune this:
       serializableCheck: false,
+      // Ignore immutability check for logoFileBuffer (File objects are intentionally stored here temporarily)
+      immutableCheck: {
+        ignoredPaths: ['setupWizard.logoFileBuffer'],
+      },
     }).concat(sagaMiddleware),
   devTools: import.meta.env.DEV,
 });
