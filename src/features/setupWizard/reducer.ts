@@ -6,6 +6,8 @@ import {
   wizardCompleteAction,
   wizardLoadDraftAction,
   wizardUpdateDataAction,
+  setLogoBufferAction,
+  clearLogoBufferAction,
 } from "./actions";
 import {
   loginAction,
@@ -19,7 +21,26 @@ type WizardState = {
   data: WizardData;
   isLoading: boolean;
   error: string | null;
+  logoFileBuffer: File | null; // Stores File object for logo (not serializable, but kept in memory)
 };
+
+// Helper to strip File objects from data before storing in Redux (Files are not serializable)
+function stripFileObjects(data: any): any {
+  if (!data) return data;
+
+  const cleaned = { ...data };
+
+  // Check businessInfo.logo
+  if (cleaned.businessInfo?.logo instanceof File) {
+    // Don't store File in Redux - keep only URL strings or null
+    cleaned.businessInfo = {
+      ...cleaned.businessInfo,
+      logo: undefined, // Remove File, keep backend URL in Redux if it exists
+    };
+  }
+
+  return cleaned;
+}
 
 const initialState: WizardState = {
   currentStep: 1,
@@ -58,6 +79,7 @@ const initialState: WizardState = {
   },
   isLoading: true,
   error: null,
+  logoFileBuffer: null,
 };
 
 export default function setupWizardReducer(
@@ -139,18 +161,20 @@ export default function setupWizardReducer(
     }
     case getType(wizardUpdateDataAction): {
       const payload = action.payload as Partial<WizardData>;
+      const cleanedPayload = stripFileObjects(payload);
+
       return {
         ...state,
         data: {
           ...state.data,
-          ...payload,
+          ...cleanedPayload,
           businessInfo: {
             ...state.data.businessInfo,
-            ...(payload.businessInfo || {}),
+            ...(cleanedPayload.businessInfo || {}),
           },
           location: {
             ...state.data.location,
-            ...(payload.location || {}),
+            ...(cleanedPayload.location || {}),
           },
           teamMembers: payload.teamMembers ?? state.data.teamMembers,
           worksSolo: payload.worksSolo ?? state.data.worksSolo,
@@ -160,6 +184,18 @@ export default function setupWizardReducer(
             payload.useBusinessContact ?? state.data.useBusinessContact,
           currentStep: payload.currentStep ?? state.data.currentStep,
         },
+      };
+    }
+    case getType(setLogoBufferAction): {
+      return {
+        ...state,
+        logoFileBuffer: action.payload,
+      };
+    }
+    case getType(clearLogoBufferAction): {
+      return {
+        ...state,
+        logoFileBuffer: null,
       };
     }
     default:

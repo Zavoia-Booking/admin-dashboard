@@ -21,4 +21,7 @@ export const wizardLoadDraftAction = createAsyncAction(
 
 export const wizardUpdateDataAction = createAction('wizard/UPDATE_DATA')<Partial<WizardData>>();
 
+// Logo buffer actions - stores File object for logo upload
+export const setLogoBufferAction = createAction('wizard/SET_LOGO_BUFFER')<File | null>();
+export const clearLogoBufferAction = createAction('wizard/CLEAR_LOGO_BUFFER')();
 

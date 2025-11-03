@@ -100,20 +100,24 @@ const WizardRunner: React.FC = () => {
     let formData = {};
     if (stepRef.current) {
       const isValid = await stepRef.current.triggerValidation();
-      if (!isValid) return;
-      formData = stepRef.current.getFormData();
-      updateData(formData); // Still update Redux for consistency
+      if (!isValid) {
+        return; // Don't proceed if validation fails
+      }
+      
+      // Sync form data to Redux after validation passes
+      const formData = stepRef.current.getFormData();
+      updateData(formData);
+
+      // If completing wizard, use fresh form data (includes File objects for upload)
+      if (currentStep === totalSteps) {
+        setCompleteRequested(true);
+        // Pass form data directly, not Redux data (which strips Files)
+        const completeData = { ...data, ...formData, currentStep };
+        dispatch(wizardCompleteAction.request(completeData));
+        return; // do not advance yet; wait for saga result
+      }
     }
-    
-    if (currentStep === totalSteps) {
-      setCompleteRequested(true);
-      // Merge formData with current Redux state before dispatching
-      // This ensures the latest step data (including teamMembers) is included
-      // Also include currentStep from local state
-      const completePayload = { ...data, ...formData, currentStep };
-      dispatch(wizardCompleteAction.request(completePayload));
-      return;
-    }
+
     nextStep();
   };
 
@@ -236,8 +240,8 @@ const SetupWizardPage: React.FC = () => {
           <div className="mx-auto max-w-[960px] w-full rounded-none md:rounded-2xl md:border bg-card shadow-md flex-1 flex flex-col">
             <div className="md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 pb-0">
               <div className="rounded-lg bg-white p-0 pt-4 flex-1 md:min-h-[500px] md:pb-4">
-                <StepLaunch 
-                  business={business} 
+                <StepLaunch
+                  business={business}
                   location={locations[0] || null}
                   teamMembers={pendingTeamMembers}
                 />
