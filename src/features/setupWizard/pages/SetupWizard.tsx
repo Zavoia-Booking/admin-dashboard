@@ -97,7 +97,6 @@ const WizardRunner: React.FC = () => {
   }, [completeRequested, isWizardLoading, wizardError, nextStep]);
 
   const handleNext = async () => {
-    let formData = {};
     if (stepRef.current) {
       const isValid = await stepRef.current.triggerValidation();
       if (!isValid) {

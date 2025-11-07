@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
-import { Upload, Phone, AlertCircle, Building2 } from "lucide-react";
+import { Phone, AlertCircle, Building2 } from "lucide-react";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import LocationNameField from "../../../shared/components/common/LocationNameField";
 import LocationDescriptionField from "../../../shared/components/common/LocationDescriptionField";

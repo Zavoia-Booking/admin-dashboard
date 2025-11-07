@@ -20,7 +20,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 import type { StepProps, StepHandle } from "../types";
-import { UserRole } from "../../../shared/types/auth";
 import type { InviteTeamMemberPayload } from "../../teamMembers/types";
 import { useForm } from "react-hook-form";
 import { Badge } from "../../../shared/components/ui/badge";
@@ -36,7 +35,6 @@ import { emailError } from "../../../shared/utils/validation";
 
 // Local UI state for team members (includes UI-only fields like status and id)
 interface LocalTeamMember extends InviteTeamMemberPayload {
-  role: UserRole;
   id: string;
   status: "pending";
 }
@@ -92,9 +90,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     useImperativeHandle(ref, () => ({
       getFormData: () => ({
         teamMembers: (localTeamMembers || []).map(
-          (m): InviteTeamMemberPayload & { role: UserRole } => ({
+          (m): InviteTeamMemberPayload => ({
             email: m.email,
-            role: m.role || UserRole.TEAM_MEMBER,
+            locationIds: m.locationIds || [], // TODO: Add locationIds to the payload
           })
         ),
         worksSolo: localWorksSolo,
@@ -107,12 +105,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
     useEffect(() => {
       const members: LocalTeamMember[] = (data.teamMembers || []).map((m) => {
         // role might exist in saved draft (not in base InviteTeamMemberPayload type)
-        const memberWithRole = m as InviteTeamMemberPayload & {
-          role?: UserRole;
-        };
         return {
           email: m.email,
-          role: memberWithRole.role || UserRole.TEAM_MEMBER,
+          locationIds: m.locationIds || [], // TODO: Add locationIds to the payload
           id: `${m.email}`,
           status: "pending" as const,
         };
@@ -170,7 +165,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       const invitation = {
         id: Date.now().toString(),
         email: trimmedEmail,
-        role: UserRole.TEAM_MEMBER as const,
+        locationIds: [], // TODO: Add locationIds to the payload
         status: "pending" as const,
       };
       setLocalTeamMembers((prev) => [...prev, invitation]);

@@ -32,7 +32,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   onClose,
   teamMember,
   onUpdate,
-  onDelete, // Kept for backward compatibility but using Redux instead
 }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();

@@ -72,15 +72,6 @@ export function MobileBottomNav() {
     setIsExpanded(false);
   }, [pathname]);
 
-  // Calculate position for each item in the vertical stack
-  const getItemPosition = (index: number) => {
-    const spacing = 80; // Vertical spacing between items
-    
-    return {
-      y: -(index + 1) * spacing, // Stack upward
-    };
-  };
-
   return (
     <>
       {/* Backdrop overlay */}
