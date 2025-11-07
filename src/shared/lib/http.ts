@@ -47,14 +47,6 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
   client.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const state = store.getState();
     const accessToken = state.auth.accessToken;
-    let currentLocationId: number | null = state?.locations?.current?.id;
-    // Fallback to persisted id on hard refresh before locations state hydrates
-    if (!currentLocationId) {
-      try {
-        const storedId = localStorage.getItem('currentLocationId');
-        if (storedId) currentLocationId = parseInt(storedId);
-      } catch {}
-    }
     const url = config.url ?? "";
     const isRefreshCall = url.startsWith(REFRESH_ENDPOINT);
     const isLogoutCall = url.startsWith(LOGOUT_ENDPOINT);
@@ -70,9 +62,6 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
       if (csrf) {
         config.headers["x-csrf-token"] = csrf;
       }
-    }
-    if (currentLocationId && config.headers) {
-      (config.headers as any)["x-location-id"] = currentLocationId;
     }
     return config;
   });

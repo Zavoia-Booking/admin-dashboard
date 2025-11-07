@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal, setMemberRegistrationLoadingAction, checkTeamInvitationAction, completeTeamInvitationAction } from "./actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -24,6 +24,11 @@ const initialState: AuthState = {
   businessSelectionRequired: null,
   accountLinkingRequired: null,
   isRegistration: false,
+  isMemberRegistrationLoading: false,
+  memberRegistrationError: null,
+  teamInvitationStatus: null,
+  teamInvitationData: null,
+  teamInvitationError: null,
 };
 
 export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialState, action: Actions) => {
@@ -38,6 +43,10 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(actions.resetRegistrationFlag): {
       return { ...state, isRegistration: false };
+    }
+
+    case getType(setMemberRegistrationLoadingAction): {
+      return { ...state, isMemberRegistrationLoading: action.payload.isLoading };
     }
 
     case getType(registerOwnerRequestAction.success): {
@@ -160,12 +169,14 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
     }
 
     case getType(hydrateSessionAction.failure): {
+      // Don't show error for intentionally skipped hydration (e.g., public pages)
+      const isSkippedHydration = action.payload.message?.includes("Skipped hydration");
       return {
         ...state,
         accessToken: null,
         isAuthenticated: false,
         status: AuthStatusEnum.UNAUTHENTICATED,
-        error: action.payload.message,
+        error: isSkippedHydration ? null : action.payload.message,
         lastRefreshAt: null,
       };
     }
@@ -353,6 +364,75 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         ...state, 
         businessSelectionRequired: null,
         error: null,
+      };
+    }
+
+    // Team Invitation handlers
+    case getType(checkTeamInvitationAction.request): {
+      return {
+        ...state,
+        teamInvitationStatus: 'checking',
+        teamInvitationError: null,
+      };
+    }
+
+    case getType(checkTeamInvitationAction.success): {
+      const response = action.payload;
+      if (response.status === 'needs_registration') {
+        return {
+          ...state,
+          teamInvitationStatus: 'needs_registration',
+          teamInvitationData: {
+            token: response.token,
+            business: response.business,
+            email: response.email,
+          },
+          teamInvitationError: null,
+        };
+      } else {
+        // status === 'accepted' - user already existed and was added to business
+        // Don't auto-authenticate - user will be redirected to login page
+        return {
+          ...state,
+          teamInvitationStatus: 'accepted',
+          teamInvitationData: null,
+          teamInvitationError: null,
+        };
+      }
+    }
+
+    case getType(checkTeamInvitationAction.failure): {
+      return {
+        ...state,
+        teamInvitationStatus: 'error',
+        teamInvitationError: action.payload.message,
+      };
+    }
+
+    case getType(completeTeamInvitationAction.request): {
+      return {
+        ...state,
+        isMemberRegistrationLoading: true,
+        memberRegistrationError: null,
+      };
+    }
+
+    case getType(completeTeamInvitationAction.success): {
+      return {
+        ...state,
+        isMemberRegistrationLoading: false,
+        teamInvitationStatus: 'completed',
+        teamInvitationData: null,
+        memberRegistrationError: null,
+        // Don't auto-authenticate - user will be redirected to login
+      };
+    }
+
+    case getType(completeTeamInvitationAction.failure): {
+      return {
+        ...state,
+        isMemberRegistrationLoading: false,
+        memberRegistrationError: action.payload.message,
       };
     }
 

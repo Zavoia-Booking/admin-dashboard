@@ -1,7 +1,6 @@
 import { call, put, takeLatest, select, delay, all } from "redux-saga/effects";
 import { refreshSession } from "../../shared/lib/http";
 import { hydrateSessionAction, setTokensAction } from "./actions";
-import { listLocationsAction } from "../locations/actions";
 import type { RootState } from "../../app/providers/store";
 // no-op
 
@@ -12,6 +11,15 @@ function* hydrateSessionWorker(): Generator<any, void, any> {
     const urlHasCode = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("code");
     const hasAccessToken: string | null = yield select((s: RootState) => s.auth.accessToken);
     if (urlHasCode && !hasAccessToken) {
+      return;
+    }
+
+    // Skip hydrate on team invitation page (public route with token-based auth)
+    const isTeamInvitation = typeof window !== "undefined" && window.location.pathname === "/team-invitation";
+    if (isTeamInvitation) {
+      // Set status to UNAUTHENTICATED so UI doesn't stay in loading state
+      // Team invitation page handles its own authentication flow
+      yield put(hydrateSessionAction.failure({ message: "Skipped hydration on public invitation page" }));
       return;
     }
 
@@ -67,15 +75,6 @@ export function* watchTokenHandler(): Generator<any, void, any> {
   yield all([
     watchHydrateSession(),
     watchProactiveRefresh(),
-    // Also listen for hydrate success and fetch locations to restore current location
-    (function* () {
-      yield takeLatest(hydrateSessionAction.success, function* () {
-        const hasBusiness: boolean = yield select((s: RootState) => Boolean((s as any).auth.user?.businessId || (s as any).auth.user?.business?.id));
-        if (hasBusiness) {
-          yield put(listLocationsAction.request());
-        }
-      });
-    })(),
   ]);
 }
 

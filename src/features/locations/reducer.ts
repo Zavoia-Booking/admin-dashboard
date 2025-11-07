@@ -6,7 +6,6 @@ import type { Reducer } from "redux";
 type Actions = ActionType<typeof actions>;
 
 const initialState: LocationState = {
-  current: null,
   isLoading: false,
   error: null,
   allLocations: [],
@@ -40,9 +39,6 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
 
     case getType(actions.updateLocationAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };
-
-    case getType(actions.setCurrentLocation):
-      return { ...state, current: action.payload.location };
 
     default:
       return state;

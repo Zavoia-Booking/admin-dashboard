@@ -3,7 +3,8 @@ import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-memb
 import type { InviteTeamMemberPayload, InviteTeamMemberResponse } from "./types";
 
 export const listTeamMembersApi = async (): Promise<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }> => {
-  const { data } = await apiClient().get<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>('/team-members/list');
+  // TODO: Add filters
+  const { data } = await apiClient().post<{ summary: TeamMemberSummary; teamMembers: TeamMember[] }>('/team-members/list', { filters: [] });
   return data;
 };
 
@@ -13,5 +14,13 @@ export const inviteTeamMemberApi = async (payload: InviteTeamMemberPayload): Pro
 };
 
 export const cancelInvitationApi = async (id: number): Promise<void> => {
-  await apiClient().post(`/auth/cancel-invitation/${id}`);
+  await apiClient().post(`/team-members/cancel-invitation/${id}`);
+};
+
+export const resendInvitationApi = async (id: number): Promise<void> => {
+  await apiClient().post(`/team-members/resend-invitation/${id}`);
+};
+
+export const deleteTeamMemberApi = async (id: number): Promise<void> => {
+  await apiClient().delete(`/team-members/${id}`);
 };

@@ -92,14 +92,42 @@ export interface AuthState {
   businessSelectionRequired?: BusinessSelectionRequired | null;
   accountLinkingRequired?: AccountLinkingDetails | null;
   isRegistration?: boolean;
+  isMemberRegistrationLoading?: boolean;
+  memberRegistrationError?: string | null;
+  teamInvitationStatus?: 'checking' | 'needs_registration' | 'accepted' | 'completed' | 'error' | null;
+  teamInvitationData?: {
+    token: string;
+    business: {
+      id: number;
+      name: string;
+    };
+    email: string;
+  } | null;
+  teamInvitationError?: string | null;
 }
 
-export type RegisterMemberPayload = {
+export type CheckTeamInvitationResponse = {
+  status: 'needs_registration';
+  message: string;
+  token: string;
+  business: {
+    id: number;
+    name: string;
+  };
+  email: string;
+} | {
+  status: 'accepted';
+  message: string;
+};
+
+export type CompleteTeamInvitationPayload = {
   token: string;
   firstName: string;
   lastName: string;
-  phone: string;
   password: string;
+  phone: string;
 };
 
-export type RegisterMemberResponse = AuthResponse;
+export type CompleteTeamInvitationResponse = {
+  message: string;
+};

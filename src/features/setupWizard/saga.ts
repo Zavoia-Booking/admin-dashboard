@@ -2,7 +2,6 @@ import { takeLatest, call, put, select } from "redux-saga/effects";
 import { wizardCompleteAction, wizardSaveAction, wizardLoadDraftAction, clearLogoBufferAction } from "./actions";
 import { completeWizardApi, saveWizardDraftApi, getWizardDraftApi, type CompleteWizardResponse } from "./api";
 import { fetchCurrentUserAction, setTokensAction, setCsrfToken } from "../auth/actions";
-import { listLocationsAction } from "../locations/actions";
 import { fetchCurrentBusinessAction } from "../business/actions";
 import { prepareWizardDataForSubmission } from "./utils";
 import { apiClient } from "../../shared/lib/http";
@@ -163,7 +162,6 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
     yield put(fetchCurrentUserAction.request());
     
     // Fetch locations for the newly created business
-    yield put(listLocationsAction.request());
     yield put(fetchCurrentBusinessAction.request());
   } catch (error: any) {
     // Map backend messages robustly (string | array | nested)

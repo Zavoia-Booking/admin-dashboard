@@ -23,20 +23,23 @@ export default function AccountLinkingRequiredModal() {
   const isLoading = useSelector(selectAuthIsLoading);
   const isOpen = !!accountLinking;
   const wasLoadingRef = useRef(false);
+  const wasOpenRef = useRef(false);
 
-  // Track when we're sending the email
+  // Track when modal was open and we started loading
   useEffect(() => {
-    if (isLoading) {
+    if (isOpen && isLoading) {
       wasLoadingRef.current = true;
+      wasOpenRef.current = true;
     }
-  }, [isLoading]);
+  }, [isOpen, isLoading]);
 
   // Redirect to login when email sent successfully
   useEffect(() => {
-    if (!accountLinking && !isLoading && wasLoadingRef.current) {
+    if (!accountLinking && !isLoading && wasLoadingRef.current && wasOpenRef.current) {
       // Email was sent successfully (accountLinkingRequired cleared)
       navigate('/login', { replace: true });
       wasLoadingRef.current = false;
+      wasOpenRef.current = false;
     }
   }, [accountLinking, isLoading, navigate]);
 

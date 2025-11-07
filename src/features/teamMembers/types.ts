@@ -4,4 +4,5 @@ export type InviteTeamMemberResponse = {
 
 export type InviteTeamMemberPayload = {
     email: string;
+    locationIds: number[];
 };

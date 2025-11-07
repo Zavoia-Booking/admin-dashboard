@@ -6,10 +6,6 @@ export const getAllLocationsSelector = createSelector(getLocationStateSelector, 
     return state.allLocations
 });
 
-export const getCurrentLocationSelector = createSelector(getLocationStateSelector, (state) => {
-    return state.current
-});
-
 export const getLocationLoadingSelector = createSelector(getLocationStateSelector, (state) => {
     return state.isLoading
 });

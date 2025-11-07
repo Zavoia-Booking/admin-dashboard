@@ -1,4 +1,4 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, RegisterMemberResponse, RegisterMemberPayload } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
@@ -29,11 +29,6 @@ export const resetPasswordApi = async (payload: { token: string, password: strin
         params: { token: payload.token }
     });
 }
-
-export const registerMemberApi = async (payload: RegisterMemberPayload): Promise<RegisterMemberResponse> => {
-    const { data } = await apiClient().post<RegisterMemberResponse>(`/auth/register/member`, payload);
-    return data;
-};
 
 export const googleLoginApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>('/auth/google/code/login', payload);
@@ -72,5 +67,17 @@ export const selectBusinessApi = async (payload: { selectionToken: string; busin
 
 export const sendBusinessLinkEmailApi = async (payload: { email: string }): Promise<{ message: string }> => {
     const { data} = await apiClient().post<{ message: string }>(`/auth/send-business-link-email`, payload);
+    return data;
+};
+
+export const checkTeamInvitationApi = async (token: string): Promise<CheckTeamInvitationResponse> => {
+    const { data } = await apiClient().get<CheckTeamInvitationResponse>(`/auth/check-team-invitation`, {
+        params: { token }
+    });
+    return data;
+};
+
+export const completeTeamInvitationApi = async (payload: CompleteTeamInvitationPayload): Promise<CompleteTeamInvitationResponse> => {
+    const { data } = await apiClient().post<CompleteTeamInvitationResponse>(`/auth/complete-team-invitation`, payload);
     return data;
 };

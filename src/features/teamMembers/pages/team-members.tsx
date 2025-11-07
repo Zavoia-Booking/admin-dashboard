@@ -14,17 +14,15 @@ import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import { useDispatch, useSelector } from 'react-redux';
-import { cancelInvitationAction, listTeamMembersAction } from '../actions.ts';
+import { cancelInvitationAction, listTeamMembersAction, resendInvitationAction } from '../actions.ts';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { selectTeamMembers } from '../selectors';
-import { getCurrentLocationSelector } from '../../locations/selectors.ts';
 
 export default function TeamMembersPage() {
   const isMobile = useIsMobile();
   const dispatch = useDispatch();
   const teamMembers = useSelector(selectTeamMembers);
-  const currentLocation = useSelector(getCurrentLocationSelector);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
   const [isProfileSliderOpen, setIsProfileSliderOpen] = useState(false);
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
@@ -50,7 +48,7 @@ export default function TeamMembersPage() {
 
   useEffect(() => {
     dispatch(listTeamMembersAction.request());
-  }, [dispatch, currentLocation?.id]);
+  }, []);
 
   // When opening the filter card, sync local state with main state
   useEffect(() => {
@@ -60,82 +58,11 @@ export default function TeamMembersPage() {
     }
   }, [showFilters, statusFilter, locationFilter]);
 
-  // const handleUpdateTeamMember = async (updateData: Partial<TeamMember>) => {
-  //   if (!selectedTeamMember) return;
-
-  //   try {
-  //     // TODO: Replace with actual API call
-  //     // Mock update - update the team member in the list
-
-  //     // Update local state
-  //     setTeamMembers(prev => prev.map(member =>
-  //       member.id === selectedTeamMember.id ? { ...member, ...updateData } : member
-  //     ));
-
-  //     // Update selected team member
-  //     setSelectedTeamMember(prev => prev ? { ...prev, ...updateData } : null);
-
-  //     toast.success('Team member updated successfully');
-  //   } catch (error) {
-  //     toast.error('Failed to update team member');
-  //   }
-  // };
-
-  // const confirmToggleStatus = async () => {
-  //   if (!pendingAction || pendingAction.type !== 'toggleStatus' || !pendingAction.toggleStatusData) return;
-
-  //   try {
-  //     // TODO: Replace with actual API call
-  //     // Mock status update
-  //     setTeamMembers(prev => prev.map(member =>
-  //       member.id === pendingAction.toggleStatusData!.id
-  //         ? { ...member, status: pendingAction.toggleStatusData!.newStatus as 'active' | 'inactive' }
-  //         : member
-  //     ));
-
-  //     toast.success(`Status updated to ${pendingAction.toggleStatusData.newStatus}`);
-  //   } catch (error) {
-  //     toast.error('Failed to update status');
-  //   } finally {
-  //     setIsConfirmDialogOpen(false);
-  //     setPendingAction(null);
-  //   }
-  // };
-
-  // const handleDeleteTeamMember = async (id: string) => {
-  //   try {
-  //     // TODO: Replace with actual API call
-  //     // Mock delete - remove from team members list
-  //     setTeamMembers(prev => prev.filter(member => member.id !== id));
-
-  //     toast.success('Team member removed successfully');
-  //   } catch (error) {
-  //     toast.error('Failed to remove team member');
-  //   }
-  // };
-
-  // const handleResendInvitation = async (id: string) => {
-  //   setPendingAction({
-  //     type: 'resend',
-  //     teamMemberId: id,
-  //     teamMemberName: teamMembers.find(tm => tm.id === id)?.firstName + ' ' + teamMembers.find(tm => tm.id === id)?.lastName
-  //   });
-  //   setIsConfirmDialogOpen(true);
-  // };
-
   const confirmResend = async () => {
     if (!pendingAction || pendingAction.type !== 'resend' || !pendingAction.teamMemberId) return;
-
-    try {
-      // TODO: Replace with actual API call
-      // Mock resend invitation
-      toast.success('Invitation resent successfully');
-    } catch {
-      toast.error('Failed to resend invitation');
-    } finally {
-      setIsConfirmDialogOpen(false);
-      setPendingAction(null);
-    }
+    dispatch(resendInvitationAction.request({ id: pendingAction.teamMemberId }));
+    setIsConfirmDialogOpen(false);
+    setPendingAction(null);
   };
 
   const confirmCancelInvite = async () => {
@@ -190,16 +117,14 @@ export default function TeamMembersPage() {
     }
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
+  const getStatusBadge = (roleStatus: string) => {
+    switch (roleStatus) {
       case 'active':
         return <Badge className="bg-green-100 text-green-800 w-fit">Active</Badge>;
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800 w-fit">Inactive</Badge>;
-      case 'pending':
-        return <Badge className="bg-orange-100 text-orange-800 w-fit">Pending</Badge>;
+      case 'pending_acceptance':
+        return <Badge className="bg-orange-100 text-orange-800 w-fit">Pending Acceptance</Badge>;
       default:
-        return <Badge className="w-fit">{status.toUpperCase()}</Badge>;
+        return <Badge className="w-fit">{roleStatus.toUpperCase().replace('_', ' ')}</Badge>;
     }
   };
 
@@ -208,7 +133,8 @@ export default function TeamMembersPage() {
     const matchesSearch = (member.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (member.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (member.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+    const memberRoleStatus = (member as any).roleStatus || member.status;
+    const matchesStatus = statusFilter === 'all' || memberRoleStatus === statusFilter;
     const matchesRole = roleFilter === 'all' || (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
     const matchesLocation = locationFilter === 'all' || (`${member?.location}` === locationFilter);
     return matchesSearch && matchesStatus && matchesRole && matchesLocation;
@@ -289,8 +215,7 @@ export default function TeamMembersPage() {
                   options: [
                     { value: 'all', label: 'All statuses' },
                     { value: 'active', label: 'Active' },
-                    { value: 'inactive', label: 'Inactive' },
-                    { value: 'pending', label: 'Pending' },
+                    { value: 'pending_acceptance', label: 'Pending Acceptance' },
                   ],
                   searchable: true,
                 },
@@ -391,7 +316,7 @@ export default function TeamMembersPage() {
               <div className="text-xs text-gray-500 mt-1">{filteredCount === totalMembers ? 'Total Members' : 'Filtered Members'}</div>
             </div>
             <div className="rounded-lg border bg-white p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{filteredTeamMembers.filter((m: TeamMember) => m.status === 'active').length}</div>
+              <div className="text-2xl font-bold text-green-600">{filteredTeamMembers.filter((m: TeamMember) => ((m as any).roleStatus || m.status) === 'active').length}</div>
               <div className="text-xs text-gray-500 mt-1">Active</div>
             </div>
             <div className="rounded-lg border bg-white p-4 text-center">
@@ -408,7 +333,8 @@ export default function TeamMembersPage() {
                 </div>
               ) : (
                 filteredTeamMembers.map((member: TeamMember) => {
-                  const canEdit = member.status !== 'pending';
+                  const memberRoleStatus = (member as any).roleStatus || member.status;
+                  const canEdit = memberRoleStatus !== 'pending_acceptance';
                   const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
                   const safeInitials = `${(member.firstName?.[0] || member.email?.[0] || '?')}${(member.lastName?.[0] || '')}`;
                   const displayPhone = member.phone || 'Phone not set yet';
@@ -431,17 +357,18 @@ export default function TeamMembersPage() {
                         <div className="flex flex-col justify-start min-w-0">
                           <span className="font-semibold text-base truncate">{displayName || member.email}</span>
                           <span className="text-sm text-gray-500 truncate">{member.role}</span>
-                          {getStatusBadge(member.status)}
+                          {getStatusBadge(memberRoleStatus)}
                         </div>
                         <div className="flex-1 flex justify-end items-start gap-1">
-                          {member.status === 'pending' && (
+                          {memberRoleStatus === 'pending_acceptance' && (
                             <div className="flex items-center gap-1">
                               <button
                                 className="p-2 rounded hover:bg-muted text-blue-600"
                                 title="Resend Invitation"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  // handleResendInvitation(member.id);
+                                  setPendingAction({ type: 'resend', teamMemberId: member.id, teamMemberName: displayName || member.email });
+                                  setIsConfirmDialogOpen(true);
                                 }}
                               >
                                 <Mail className="h-5 w-5" />
@@ -514,23 +441,25 @@ export default function TeamMembersPage() {
                   </thead>
                   <tbody>
                     {filteredTeamMembers.map((member: TeamMember) => {
-                      const canEdit = member.status !== 'pending';
+                      const memberRoleStatus = (member as any).roleStatus || member.status;
+                      const canEdit = memberRoleStatus !== 'pending_acceptance';
                       const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
                       return (
                         <tr key={member.id} className="border-t">
                           <td className="px-4 py-3 font-medium">{displayName || member.email}</td>
                           <td className="px-4 py-3">{member.email}</td>
                           <td className="px-4 py-3">{member.role}</td>
-                          <td className="px-4 py-3">{getStatusBadge(member.status)}</td>
+                          <td className="px-4 py-3">{getStatusBadge(memberRoleStatus)}</td>
                           <td className="px-4 py-3">{mockLocations.find(loc => loc.id === member.location)?.name}</td>
                           <td className="px-4 py-3">
                             <div className="flex justify-end gap-2">
-                              {member.status === 'pending' && (
+                              {memberRoleStatus === 'pending_acceptance' && (
                                 <>
                                   <button
                                     className="px-2 py-1 text-blue-600 hover:underline"
                                     onClick={() => {
-                                      // handleResendInvitation(member.id);
+                                      setPendingAction({ type: 'resend', teamMemberId: member.id, teamMemberName: displayName || member.email });
+                                      setIsConfirmDialogOpen(true);
                                     }}
                                   >
                                     Resend
@@ -538,7 +467,7 @@ export default function TeamMembersPage() {
                                   <button
                                     className="px-2 py-1 text-red-600 hover:underline"
                                     onClick={() => {
-                                      setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, teamMemberName: displayName || member.email });
+                                      setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, email: member.email });
                                       setIsConfirmDialogOpen(true);
                                     }}
                                   >
