@@ -1,18 +1,10 @@
 import { useLocation } from 'react-router-dom';
 import { SidebarTrigger } from '../ui/sidebar';
-import { useDispatch, useSelector } from 'react-redux';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { getAllLocationsSelector, getCurrentLocationSelector } from '../../../features/locations/selectors';
-import { setCurrentLocation } from '../../../features/locations/actions';
-import type { LocationType } from '../../types/location.ts';
 import { LanguageSwitcher } from '../common/LanguageSwitcher';
 
 export function MobileHeader() {
   const location = useLocation();
   const pathname = location.pathname;
-  const dispatch = useDispatch();
-  const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
-  const current = useSelector(getCurrentLocationSelector);
 
   // Get page title based on current path
   const getPageTitle = () => {
@@ -48,41 +40,6 @@ export function MobileHeader() {
         {/* Right side - Language switcher and Location switcher (hidden on Locations page) */}
         <div className="flex items-center space-x-2">
           <LanguageSwitcher />
-          {pathname !== '/locations' && (
-            allLocations && allLocations.length > 1 ? (
-              <Select
-                value={current?.id ? String(current.id) : 'all'}
-                onValueChange={(value) => {
-                  if (value === 'all') {
-                    dispatch(setCurrentLocation({ location: null }));
-                    try { localStorage.removeItem('currentLocationId'); } catch {
-                      return;
-                    }
-                  } else {
-                    const next = allLocations.find(l => String(l.id) === value) || null;
-                    dispatch(setCurrentLocation({ location: next }));
-                    try { if (next?.id != null) localStorage.setItem('currentLocationId', String(next.id)); } catch {
-                      return;
-                    }
-                  }
-                }}
-              >
-                <SelectTrigger className="min-w-[180px] h-10">
-                  <SelectValue placeholder={current?.name || 'All locations'} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All locations</SelectItem>
-                  {allLocations.map(l => (
-                    <SelectItem key={l.id} value={String(l.id)}>
-                      {l.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <span className="text-sm text-gray-600">{current?.name || 'No location'}</span>
-            )
-          )}
         </div>
       </div>
     </header>

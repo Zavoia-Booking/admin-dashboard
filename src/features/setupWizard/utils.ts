@@ -1,21 +1,4 @@
-import { UserRole } from "../../shared/types/auth";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
-
-export const getRoleBadgeColor = (role: UserRole) => {
-    switch (role) {
-        case UserRole.TEAM_MEMBER: return 'bg-blue-100 text-blue-800 border-blue-200';
-        case UserRole.OWNER: return 'bg-purple-100 text-purple-800 border-purple-200';
-        default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-};
-
-export const getRoleDisplayName = (role: UserRole) => {
-    switch (role) {
-        case UserRole.TEAM_MEMBER: return 'Team Member';
-        case UserRole.OWNER: return 'Owner';
-        default: return 'Unknown';
-    }
-};
 
 /**
  * Ensures businessInfo.timezone is set before wizard completion
@@ -76,30 +59,6 @@ export const prepareWizardDataForSubmission = (wizardData: WizardData): WizardDa
   applyBusinessContactToLocation(payload);
   return payload;
 }; 
-
-/**
- * Slugify a string for URLs
- */
-export const toSlug = (value: string): string => {
-  return (value || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-};
-
-/**
- * Build the public booking URL
- * Later this can read from settings (custom domain or stored slug)
- */
-export const getBookingUrl = (data: WizardData): string => {
-  const name = (data?.businessInfo?.name || '').trim();
-  const slug = toSlug(name) || 'your-business';
-  const host = 'bookaroo.com';
-  return `https://${host}/${slug}`;
-};
 
 /**
  * Reusable toggle handler factory for wizard steps.

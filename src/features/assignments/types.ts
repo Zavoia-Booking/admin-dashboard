@@ -37,7 +37,86 @@ export type AssignmentFilterState = {
   serviceId: number | string;
 };
 
+// New types for 3-tab perspective views
+export type AssignmentPerspective = 'team_members' | 'services' | 'locations';
+
+export type TeamMemberAssignment = {
+  id: number;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  assignedServices: Array<{
+    serviceId: number;
+    serviceName: string;
+    customPrice: number | null;
+    customDuration: number | null;
+  }>;
+  assignedLocations: Array<{
+    locationId: number;
+    locationName: string;
+    address: string;
+  }>;
+};
+
+export type ServiceAssignment = {
+  serviceId: number;
+  serviceName: string;
+  price: number;
+  duration: number;
+  assignedTeamMembers: Array<{
+    userId: number;
+    name: string;
+    email: string;
+    customPrice: number | null;
+    customDuration: number | null;
+  }>;
+  availableLocations: Array<{
+    locationId: number;
+    locationName: string;
+  }>;
+};
+
+export type LocationAssignment = {
+  locationId: number;
+  locationName: string;
+  address: string;
+  assignedTeamMembers: Array<{
+    userId: number;
+    name: string;
+    email: string;
+    role: string;
+  }>;
+  offeredServices: Array<{
+    serviceId: number;
+    serviceName: string;
+  }>;
+};
+
+export type BulkAssignmentPayload = {
+  type: 'service_to_locations' | 'team_member_to_services' | 'team_member_to_locations' | 'service_to_team_members';
+  sourceId: number;
+  targetIds: number[];
+};
+
 export type AssignmentsState = {
+  // Current tab perspective
+  activePerspective: AssignmentPerspective;
+  
+  // Selected item in left panel
+  selectedTeamMemberId: number | null;
+  selectedServiceId: number | null;
+  selectedLocationId: number | null;
+  
+  // Data for each perspective
+  teamMemberAssignments: TeamMemberAssignment[];
+  serviceAssignments: ServiceAssignment[];
+  locationAssignments: LocationAssignment[];
+  
+  // Search/filter
+  searchQuery: string;
+  
+  // Legacy state (keep for backwards compatibility)
   assignments: AssignmentGroup[];
   summary: AssignmentSummary | null;
   filters: AssignmentFilterState;
@@ -52,6 +131,10 @@ export type AssignmentsState = {
     open: boolean,
     item: Array<AssignmentItem>
   }
+  
+  // Loading states
+  isLoading: boolean;
+  isSaving: boolean;
 };
 
 export function mapAssignmentFiltersToGeneric(filters: AssignmentFilterState): Array<FilterItem> {

@@ -1,24 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, Phone, MapPin, Clock, Calendar, Settings, Plus, X, Check, Power, AlertTriangle } from 'lucide-react';
+import { Mail, Phone, MapPin, Clock, Calendar, Settings, Plus, X, Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import AddAppointmentSlider from '../../../features/calendar/components/AddAppointmentSlider';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { Badge } from '../../../shared/components/ui/badge';
-import { Switch } from '../../../shared/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/components/ui/select';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import { cn } from '../../../shared/lib/utils';
 import { toast } from 'sonner';
-import { UserRole } from '../../../shared/types/auth';
-import { getRoleDisplayName } from '../../setupWizard/utils';
 import type { TeamMember } from '../../../shared/types/team-member';
+import { deleteTeamMemberAction } from '../actions';
+import { selectIsDeleting } from '../selectors';
 
 interface TeamMemberProfileSliderProps {
   isOpen: boolean;
@@ -34,19 +32,20 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   onClose,
   teamMember,
   onUpdate,
-  onDelete,
+  onDelete, // Kept for backward compatibility but using Redux instead
 }) => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const isDeleting = useSelector(selectIsDeleting) as boolean;
+  
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
-  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false);
-  const [roleOpen, setRoleOpen] = useState(false);
   const [localTeamMember, setLocalTeamMember] = useState<TeamMember | null>(null);
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const [useLocationHours, setUseLocationHours] = useState(true);
   const [locationWorkingHours, setLocationWorkingHours] = useState<typeof defaultWorkingHours | null>(null);
   const [isAddAppointmentSliderOpen, setIsAddAppointmentSliderOpen] = useState(false);
-  const navigate = useNavigate();
 
   // Default working hours structure
   const defaultWorkingHours = {
@@ -189,17 +188,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
         {status === 'active' ? 'Active' : 'Inactive'}
       </Badge>
     );
-  };
-
-  const getRoleBadge = (role: UserRole) => {
-    switch (role) {
-      case UserRole.OWNER:
-        return <Badge className="bg-blue-100 text-blue-800">Owner</Badge>;
-      case UserRole.TEAM_MEMBER:
-        return <Badge className="bg-gray-100 text-gray-800">Team Member</Badge>;
-      default:
-        return <Badge variant="secondary">{getRoleDisplayName(role)}</Badge>;
-    }
   };
 
   const handleStatusToggle = () => {
@@ -379,41 +367,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                     </Button>
                   </>
                 )}
-                
-                {/* Status Change Button */}
-                <div className="mt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowStatusDialog(true)}
-                    className="w-full bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-blue-700 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 transition-all duration-200 shadow-sm hover:shadow-md"
-                  >
-                    <Power className="h-4 w-4 mr-2" />
-                    Change to {teamMember.status === 'active' ? 'Inactive' : 'Active'}
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Metrics Row */}
-              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {teamMember.services?.length || 0}
-                  </div>
-                  <div className="text-xs text-gray-500">Services</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">
-                    {teamMember.status === 'active' ? 'Active' : 'Inactive'}
-                  </div>
-                  <div className="text-xs text-gray-500">Status</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-purple-600">
-                    {new Date(teamMember.createdAt).getFullYear()}
-                  </div>
-                  <div className="text-xs text-gray-500">Joined</div>
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -709,108 +662,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
             </CardContent>
           </Card>
 
-          {/* Section 5: Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Preferences & Access
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <div className="flex items-center gap-2">
-                    {getRoleBadge(teamMember.role as UserRole)}
-                    <Popover open={roleOpen} onOpenChange={setRoleOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm">Change Role</Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandInput placeholder="Search roles..." />
-                          <CommandList>
-                            <CommandEmpty>No roles found.</CommandEmpty>
-                            <CommandGroup>
-                              {Object.values(UserRole).map((role) => (
-                                <CommandItem
-                                  key={role}
-                                  onSelect={() => {
-                                    onUpdate({ role });
-                                    setRoleOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      teamMember.role === role ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {role}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Access Level</Label>
-                  <Select 
-                    value={teamMember.role || 'staff'} 
-                    onValueChange={(value) => onUpdate({ role: value as any })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="staff">Staff</SelectItem>
-                      <SelectItem value="readonly">Read-only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <Label>Can receive notifications?</Label>
-                  <Switch 
-                    checked={true}
-                    // onCheckedChange={(checked) => onUpdate({ canReceiveNotifications: checked })}
-                    onCheckedChange={(checked) => console.log(checked)}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <Label>Can manage own calendar?</Label>
-                  <Switch 
-                    checked={true}
-                    // onCheckedChange={(checked) => onUpdate({ canManageOwnCalendar: checked })}
-                    onCheckedChange={(checked) => console.log(checked)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Google Calendar Sync</Label>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-muted-foreground">
-                    {/* {teamMember.googleCalendarSync ? 'Connected' : 'Not Connected'} */}
-                    {'Connected'}
-                  </span>
-                  <Button variant="outline" size="sm">
-                    {/* {teamMember.googleCalendarSync ? 'Disconnect' : 'Connect'} */}
-                    {'Disconnect'}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Danger Zone */}
           <Card className="border-red-200 bg-red-50">
             <CardHeader>
@@ -821,7 +672,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-red-700">
-                These actions cannot be undone. Please be certain.
+                This action will remove the team member from your organisation and they will no longer be able to access your business.
               </p>
               
               <div className="flex flex-col gap-3">
@@ -829,15 +680,16 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   variant="destructive"
                   onClick={() => setShowDeleteDialog(true)}
                   className="w-full"
+                  disabled={isDeleting as boolean}
                 >
-                  Delete Account Permanently
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="text-red-600 hover:text-red-700 w-full"
-                  onClick={() => setShowDeactivateDialog(true)}
-                >
-                  Deactivate Instead
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Removing...
+                    </>
+                  ) : (
+                    'Remove from organisation'
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -872,46 +724,30 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Account Permanently</AlertDialogTitle>
+            <AlertDialogTitle>Remove Account</AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to permanently delete {teamMember.firstName} {teamMember.lastName}'s account? This action will remove the account and everything associated with it from the system. This action cannot be undone.`}
+              {`Are you sure you want to remove {teamMember.firstName} {teamMember.lastName}'s account? This action will remove the account and everything associated with it from the system. This action cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel disabled={isDeleting as boolean}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
               onClick={() => {
-                onDelete(teamMember.id);
+                dispatch(deleteTeamMemberAction.request({ id: teamMember.id }));
                 setShowDeleteDialog(false);
                 onClose();
               }}
+              disabled={isDeleting as boolean}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete Permanently
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Deactivate Confirmation Dialog */}
-      <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Deactivate Team Member</AlertDialogTitle>
-            <AlertDialogDescription>
-              {`Are you sure you want to deactivate {teamMember.firstName} {teamMember.lastName}'s account? The team member will not be visible to customers and will not be able to log into their account while deactivated. The account can be reactivated at any time.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                handleStatusToggle();
-                setShowDeactivateDialog(false);
-              }}
-              className="bg-orange-600 hover:bg-orange-700"
-            >
-              Deactivate Account
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Removing...
+                </>
+              ) : (
+                'Remove Account'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

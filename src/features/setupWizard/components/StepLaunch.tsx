@@ -135,7 +135,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
             <div className="flex flex-col gap-1 pl-4">
               <div className="text-xs md:text-sm text-blue-100 flex items-center gap-2">
                 <Clock className="w-6 h-6" />
-                <span>It just takes 2 minutes</span>
+                <span>It takes only 2 minutes</span>
               </div>
             </div>
             <Button

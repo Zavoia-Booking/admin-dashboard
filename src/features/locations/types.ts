@@ -1,7 +1,6 @@
 import type { LocationType, WorkingHours } from "../../shared/types/location";
 
 export interface LocationState {
-  current: LocationType | null;
   isLoading: boolean;
   error: string | null;
   allLocations: LocationType[];

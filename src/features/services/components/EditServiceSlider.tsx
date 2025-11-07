@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { DollarSign, FileText, Settings, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
@@ -14,7 +14,6 @@ import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { Service } from '../../../shared/types/service';
 import type { EditServicePayload } from '../types.ts';
 import { editServicesAction } from '../actions.ts';
-import { getCurrentLocationSelector } from '../../locations/selectors.ts';
 
 interface EditServiceSliderProps {
   isOpen: boolean;
@@ -29,7 +28,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
 }) => {
   const text = useTranslation('services').t;
   const dispatch = useDispatch();
-  const currentLocation = useSelector(getCurrentLocationSelector);
   
   const { register, handleSubmit, reset, setValue, getValues, watch } = useForm<EditServicePayload>({
     defaultValues: {
@@ -55,7 +53,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         isActive: service.isActive,
       });
     }
-  }, [service, isOpen, reset, currentLocation]);
+  }, [service, isOpen, reset]);
 
   // Reset form when slider closes (with delay to allow closing animation)
   useEffect(() => {
@@ -200,15 +198,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   </div>
                   <h3 className="text-base font-semibold text-foreground">{text('editService.sections.settings')}</h3>
                 </div>
-                {currentLocation ? (
-                  <div className="text-sm text-muted-foreground">
-                    {text('editService.location.currentLocation', { locationName: currentLocation.name })}
-                  </div>
-                ) : (
-                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
-                    {text('editService.location.allLocations')}
-                  </div>
-                )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-foreground">{text('editService.form.status.label')}</Label>

@@ -1,5 +1,11 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
-import type { RegisterOwnerPayload, AuthUser, RegisterMemberResponse, RegisterMemberPayload } from "./types";
+import type { 
+  RegisterOwnerPayload, 
+  AuthUser, 
+  CheckTeamInvitationResponse,
+  CompleteTeamInvitationPayload,
+  CompleteTeamInvitationResponse,
+} from "./types";
 
 export const setTokensAction = createAction(
   'auth/SET_TOKENS',
@@ -7,6 +13,10 @@ export const setTokensAction = createAction(
 
 export const setAuthLoadingAction = createAction(
   'auth/SET_AUTH_LOADING',
+)<{ isLoading: boolean }>();
+
+export const setMemberRegistrationLoadingAction = createAction(
+  'auth/SET_MEMBER_REGISTRATION_LOADING',
 )<{ isLoading: boolean }>();
 
 export const setAuthUserAction = createAction(
@@ -70,12 +80,6 @@ export const resetPasswordAction = createAsyncAction(
 export const clearAuthErrorAction = createAction(
   'auth/CLEAR_AUTH_ERROR',
 )<void>();
-
-export const registerMemberAction = createAsyncAction(
-  'teamMembers/REGISTER_MEMBER_REQUEST',
-  'teamMembers/REGISTER_MEMBER_SUCCESS',
-  'teamMembers/REGISTER_MEMBER_FAILURE',
-)<RegisterMemberPayload, RegisterMemberResponse, { message: string }>();
 
 export const googleLoginAction = createAsyncAction(
   'auth/GOOGLE_LOGIN_REQUEST',
@@ -147,3 +151,16 @@ export const dismissBusinessSelectorModal = createAction(
 export const resetRegistrationFlag = createAction(
   'auth/RESET_REGISTRATION_FLAG',
 )<void>();
+
+// Team Invitation Actions
+export const checkTeamInvitationAction = createAsyncAction(
+  'auth/CHECK_TEAM_INVITATION_REQUEST',
+  'auth/CHECK_TEAM_INVITATION_SUCCESS',
+  'auth/CHECK_TEAM_INVITATION_FAILURE',
+)<{ token: string }, CheckTeamInvitationResponse, { message: string }>();
+
+export const completeTeamInvitationAction = createAsyncAction(
+  'auth/COMPLETE_TEAM_INVITATION_REQUEST',
+  'auth/COMPLETE_TEAM_INVITATION_SUCCESS',
+  'auth/COMPLETE_TEAM_INVITATION_FAILURE',
+)<CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, { message: string }>();

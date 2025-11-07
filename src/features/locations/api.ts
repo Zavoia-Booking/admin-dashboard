@@ -20,7 +20,7 @@ export const updateLocationApi = async (location: EditLocationType | EditLocatio
 }
 
 export const listLocationsApi = async (): Promise<LocationType[]> => {
-  const { data } = await apiClient().get<LocationType[]>(`/locations/list`);
+  const { data } = await apiClient().post<LocationType[]>(`/locations/list`, { filters: [] });
   return data;
 }
 

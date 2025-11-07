@@ -10,14 +10,16 @@ import {
   fetchCurrentUserAction,
   forgotPasswordAction,
   resetPasswordAction,
-  registerMemberAction,
   googleLoginAction,
   googleRegisterAction,
   openAccountLinkingModal,
   selectBusinessAction,
-  sendBusinessLinkEmailAction
+  sendBusinessLinkEmailAction,
+  setMemberRegistrationLoadingAction,
+  checkTeamInvitationAction,
+  completeTeamInvitationAction
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, registerMemberApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi } from "./api";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction } from "./actions";
 import { listLocationsAction } from "../locations/actions";
@@ -158,7 +160,6 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(fetchCurrentUserAction.request, handleFetchCurrentUser),
     takeLatest(forgotPasswordAction.request, handleForgotPassword),
     takeLatest(resetPasswordAction.request, handleResetPassword),
-    takeLatest(registerMemberAction.request, handleRegisterMember),
     takeLatest(googleLoginAction.request, handleGoogleLogin),
     takeLatest(googleRegisterAction.request, handleGoogleRegister),
     takeLatest(reauthForLinkAction.request, handleReauthForLink),
@@ -167,6 +168,8 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(unlinkGoogleAction.request, handleUnlinkGoogle),
     takeLatest(selectBusinessAction.request, handleSelectBusiness),
     takeLatest(sendBusinessLinkEmailAction.request, handleSendBusinessLinkEmail),
+    takeLatest(checkTeamInvitationAction.request, handleCheckTeamInvitation),
+    takeLatest(completeTeamInvitationAction.request, handleCompleteTeamInvitation),
   ]);
 }
 
@@ -196,29 +199,6 @@ function* handleResetPassword(action: { type: string; payload: { token: string, 
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Reset password failed";
     yield put(resetPasswordAction.failure(message));
-  }
-}
-
-function* handleRegisterMember(action: ReturnType<typeof registerMemberAction.request>) {
-  try {
-    yield put(setAuthLoadingAction({ isLoading: true }));
-    const response: AuthResponse = yield call(registerMemberApi, action.payload);
-
-    // Store access token in Redux (memory) + optional CSRF token
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
-    
-    // Fetch locations post-authentication (same as login)
-    yield put(listLocationsAction.request());
-    if (response.csrfToken) {
-      yield put(setCsrfToken({ csrfToken: response.csrfToken }));
-    }
-
-    // Store user
-    yield put(setAuthUserAction({ user: response.user }));
-    yield put(registerMemberAction.success(response));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to register member';
-    yield put(registerMemberAction.failure({ message }));
   }
 }
 
@@ -583,5 +563,58 @@ function* handleSendBusinessLinkEmail(action: ReturnType<typeof sendBusinessLink
     }
     
     yield put(sendBusinessLinkEmailAction.failure({ message }));
+  }
+}
+
+function* handleCheckTeamInvitation(action: ReturnType<typeof checkTeamInvitationAction.request>): Generator<any, void, any> {
+  try {
+    yield put(setAuthLoadingAction({ isLoading: true }));
+    const response: any = yield call(checkTeamInvitationApi, action.payload.token);
+    
+    yield put(checkTeamInvitationAction.success(response));
+    
+    // Don't auto-login for 'accepted' status - user will be redirected to login page
+    // If status is 'needs_registration', the UI will show the registration form
+  } catch (error: any) {
+    let message = "Invalid or expired invitation";
+    
+    if (error?.response?.data?.message) {
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    yield put(checkTeamInvitationAction.failure({ message }));
+  } finally {
+    yield put(setAuthLoadingAction({ isLoading: false }));
+  }
+}
+
+function* handleCompleteTeamInvitation(action: ReturnType<typeof completeTeamInvitationAction.request>): Generator<any, void, any> {
+  try {
+    yield put(setMemberRegistrationLoadingAction({ isLoading: true }));
+    const response: any = yield call(completeTeamInvitationApi, action.payload);
+
+    // Don't auto-login - just mark as completed
+    // User will be redirected to login page with success message
+    yield put(completeTeamInvitationAction.success(response));
+  } catch (error: any) {
+    let message = "Failed to complete registration";
+    
+    if (error?.response?.data?.message) {
+      const backendMessage = error.response.data.message;
+      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
+    } else if (error?.response?.data?.error) {
+      message = error.response.data.error;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    
+    yield put(completeTeamInvitationAction.failure({ message }));
+  } finally {
+    yield put(setMemberRegistrationLoadingAction({ isLoading: false }));
   }
 }

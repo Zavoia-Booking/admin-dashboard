@@ -12,7 +12,6 @@ import ProfilePage from './features/profile'
 import LoginPage from './features/auth/pages/login'
 import RegisterPage from './features/auth/pages/register'
 import ResetPasswordPage from './features/auth/pages/reset-password'
-import RegisterMemberPage from './features/auth/pages/register-member'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import PublicRoute from './features/auth/components/PublicRoute'
 import GoogleOAuthCallback from './features/auth/components/GoogleOAuthCallback'
@@ -21,9 +20,9 @@ import AccountLinkingRequiredModal from './features/auth/components/AccountLinki
 import InfoPageComponent from './features/settings/pages/info-page'
 import AssignmentsPage from './features/assignments/pages/assignments'
 import VerifyEmailPage from './features/auth/pages/verify-email'
-import AcceptTeamInvitationPage from './features/auth/pages/accept-team-invitation'
 import LinkBusinessAccountPage from './features/auth/pages/link-business-account'
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
+import TeamInvitationPage from './features/auth/pages/team-invitation'
 
 function App() {
   return (
@@ -35,10 +34,9 @@ function App() {
         {/* Auth */}
         <Route path="/login" element={<PublicRoute element={<LoginPage />} />} />
         <Route path="/register" element={<PublicRoute element={<RegisterPage />} />} />
-        <Route path="/register/team-member" element={<RegisterMemberPage />} />
+        <Route path="/team-invitation" element={<TeamInvitationPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/accept-team-invitation" element={<AcceptTeamInvitationPage />} />
         <Route path="/link-business-account" element={<LinkBusinessAccountPage />} />
         <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
 

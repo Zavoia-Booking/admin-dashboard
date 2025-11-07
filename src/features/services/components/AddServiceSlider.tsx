@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { DollarSign, FileText, Settings } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
@@ -13,7 +13,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 // import { mockTeamMembers } from '../../../mocks/team-members.mock';
 import { createServicesAction } from '../actions.ts';
-import { getCurrentLocationSelector } from '../../locations/selectors.ts';
 import type { CreateServicePayload } from '../types.ts';
  
 
@@ -52,9 +51,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
 }) => {
   const text = useTranslation('services').t;
   const dispatch = useDispatch();
-  const currentLocation = useSelector(getCurrentLocationSelector);
-  // Keep selector in case future UI needs; currently showing info when All locations
-  // const allLocations = useSelector(getAllLocationsSelector);
   const { register, handleSubmit, watch, setValue, reset, getValues } = useForm<ServiceFormData>({
     defaultValues: initialFormData,
   });
@@ -346,15 +342,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   </div>
                   <h3 className="text-base font-semibold text-foreground">{text('addService.sections.settings')}</h3>
                 </div>
-                {currentLocation ? (
-                  <div className="text-sm text-muted-foreground">
-                    {text('addService.location.currentLocation', { locationName: currentLocation.name })}
-                  </div>
-                ) : (
-                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 p-3 rounded-md">
-                    {text('addService.location.allLocations')}
-                  </div>
-                )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-foreground">{text('addService.form.status.label')}</Label>

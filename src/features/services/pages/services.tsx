@@ -18,7 +18,6 @@ import {
   toggleAddFormAction,
   toggleStatusServiceAction
 } from "../actions.ts";
-import { getCurrentLocationSelector } from "../../locations/selectors.ts";
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate.tsx';
 import { useConfirmRadix } from "../../../shared/hooks/useConfirm.tsx";
 import { ServiceFilters } from "../components/ServiceFilters.tsx";
@@ -28,7 +27,6 @@ import { AccessGuard } from '../../../shared/components/guards/AccessGuard.tsx';
 export default function ServicesPage() {
   const text = useTranslation('services').t;
   const services: Service[] = useSelector(getServicesListSelector);
-  const currentLocation = useSelector(getCurrentLocationSelector);
   const { ConfirmDialog, confirm } = useConfirmRadix();
 
   const dispatch = useDispatch();
@@ -87,7 +85,7 @@ export default function ServicesPage() {
 
   useEffect(() => {
     dispatch(getServicesAction.request());
-  }, [dispatch, currentLocation?.id]);
+  }, []);
 
   const handleDeleteService = useCallback((service: Service) => {
     void confirm({
