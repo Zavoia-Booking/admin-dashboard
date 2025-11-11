@@ -48,6 +48,7 @@ const WizardRunner: React.FC = () => {
   const stepRef = useRef<StepHandle>(null);
   const [canProceedToNext, setCanProceedToNext] = useState(false);
   const [completeRequested, setCompleteRequested] = useState(false);
+  const hasInitializedRef = useRef(false);
 
   const {
     currentStep,
@@ -67,6 +68,13 @@ const WizardRunner: React.FC = () => {
   const isLastStep = currentStep === totalSteps;
   const { component: CurrentStepComponent, title: effectiveTitle, subtitle: effectiveSubtitle } = stepConfig[currentStep - 1];
 
+  // Mark as initialized once hydration completes
+  useEffect(() => {
+    if (hydratedFromDraft) {
+      hasInitializedRef.current = true;
+    }
+  }, [hydratedFromDraft]);
+
   const handleSave = async () => {
     let formData = {};
     if (stepRef.current) {
@@ -84,6 +92,10 @@ const WizardRunner: React.FC = () => {
 
   const isWizardLoading = useSelector((state: any) => state.setupWizard.isLoading);
   const wizardError = useSelector((state: any) => state.setupWizard.error);
+  
+  // Show skeleton while loading OR before initial hydration completes
+  // Use ref to track if we've ever completed hydration (prevents flicker on re-renders)
+  const showSkeleton = isWizardLoading || (!hasInitializedRef.current && !hydratedFromDraft);
 
   useEffect(() => {
     if (!completeRequested) return;
@@ -137,8 +149,9 @@ const WizardRunner: React.FC = () => {
       isLoading={isLoading}
       showNext={true}
       nextLabel={currentStep === totalSteps ? "Finish Setup" : "Continue"}
+      isLoadingDraft={showSkeleton}
     >
-      {!hydratedFromDraft ? (
+      {showSkeleton ? (
         <div className="space-y-6 cursor-default">
           <div className="grid gap-6">
             <div className="space-y-2">

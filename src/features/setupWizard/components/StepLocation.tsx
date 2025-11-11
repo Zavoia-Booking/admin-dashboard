@@ -21,7 +21,7 @@ import type { WorkingHours } from "../../../shared/types/location";
 import type { StepProps, StepHandle, WizardFieldPath } from "../types";
 import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from "../../../shared/utils/validation";
 import { makeWizardToggleHandler } from "../utils";
-import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
+import { useFieldDraftValidation } from "../../../shared/hooks/useDraftValidation";
 import type { RootState } from "../../../app/providers/store";
 import { useSelector } from "react-redux";
 
@@ -37,6 +37,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
     const {
       control,
       watch,
+      getValues,
       setValue,
       reset,
       resetField,
@@ -114,18 +115,52 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         },
       });
 
-    // Controlled timezone with validation (required when remote)
+    // Controlled timezone with validation (required only when remote)
     const { field: timezoneField, fieldState: timezoneState } =
       useController<WizardData, "location.timezone">({
         name: "location.timezone",
         control,
         rules: {
-          required: "Timezone is required",
+          validate: (value) => {
+            // Get current isRemote value from form (not closure) to handle toggle changes
+            const currentIsRemote = getValues("location.isRemote" satisfies WizardFieldPath) === true;
+            // Only require timezone when location is remote
+            if (!currentIsRemote) return true; // Skip validation for physical locations
+            if (!value || value.trim().length === 0) {
+              return "Timezone is required";
+            }
+            return true;
+          },
         },
       });
 
-    // Trigger validation on draft load to show errors for invalid saved data
-    const showDraftErrors = useDraftValidation({
+    // Per-field draft validation - only show errors for fields that actually have draft data
+    const nameHasDraft = useFieldDraftValidation({
+      fieldName: 'name',
+      trigger,
+      data,
+      section: 'location',
+    });
+    const emailHasDraft = useFieldDraftValidation({
+      fieldName: 'email',
+      trigger,
+      data,
+      section: 'location',
+    });
+    const phoneHasDraft = useFieldDraftValidation({
+      fieldName: 'phone',
+      trigger,
+      data,
+      section: 'location',
+    });
+    const descriptionHasDraft = useFieldDraftValidation({
+      fieldName: 'description',
+      trigger,
+      data,
+      section: 'location',
+    });
+    const timezoneHasDraft = useFieldDraftValidation({
+      fieldName: 'timezone',
       trigger,
       data,
       section: 'location',
@@ -180,6 +215,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       reset(data);
       hasInitialized.current = true;
     }, [isWizardLoading, data, reset]);
+
+    // Re-validate timezone when isRemote changes (to clear errors when switching to physical)
+    useEffect(() => {
+      if (isWizardLoading) return;
+      trigger("location.timezone" satisfies WizardFieldPath);
+    }, [isRemote, isWizardLoading, trigger]);
 
     // Remount address composer when toggling to physical location
     useEffect(() => {
@@ -250,9 +291,9 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               section: 'location',
               field: 'isRemote',
               onToggleExtra: () => {
-                // Clear location name, description, and address when toggling between remote/physical
+                // Clear description and address when toggling between remote/physical
+                // Keep name field - it works for both modes and better UX to preserve user input
                 // Use resetField to clear both value and field state (touched, dirty, error)
-                resetField("location.name" satisfies WizardFieldPath, { defaultValue: "" });
                 resetField("location.description" satisfies WizardFieldPath, { defaultValue: "" });
                 resetField("location.address" satisfies WizardFieldPath, { defaultValue: "" });
                 resetField("location.addressComponents" satisfies WizardFieldPath, { defaultValue: undefined });
@@ -266,7 +307,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               <LocationNameField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
-                error={(nameState.isTouched || nameState.isDirty || showDraftErrors) ? (nameState.error?.message as unknown as string) : undefined}
+                error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}
                 placeholder="e.g. Downtown Office"
                 required
               />
@@ -323,8 +364,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   const sanitized = sanitizePhoneToE164Draft(phone || "");
                   phoneField.onChange(sanitized);
                 }}
-                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || showDraftErrors) ? (emailState.error?.message as unknown as string) : undefined}
-                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || showDraftErrors) ? (phoneState.error?.message as unknown as string) : undefined}
+                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || emailHasDraft) ? (emailState.error?.message as unknown as string) : undefined}
+                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || phoneHasDraft) ? (phoneState.error?.message as unknown as string) : undefined}
                 title="Contact information"
                 emailLabel="Location Email *"
                 phoneLabel="Location Phone *"
@@ -336,7 +377,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 <LocationDescriptionField
                   value={(descriptionField.value as string) || ""}
                   onChange={(value) => descriptionField.onChange(value)}
-                  error={(descriptionState.isTouched || descriptionState.isDirty || showDraftErrors) ? (descriptionState.error?.message as string) : undefined}
+                  error={(descriptionState.isTouched || descriptionState.isDirty || descriptionHasDraft) ? (descriptionState.error?.message as string) : undefined}
                   placeholder="Describe this location (e.g. Main office with parking)"
                 />
               </div>
@@ -371,7 +412,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               <LocationNameField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
-                error={(nameState.isTouched || nameState.isDirty || showDraftErrors) ? (nameState.error?.message as unknown as string) : undefined}
+                error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}
                 isRemote
                 required
                 placeholder="Online"
@@ -381,7 +422,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 value={(timezoneField.value as string) || ""}
                 onChange={(tz) => timezoneField.onChange(tz)}
                 error={
-                  (timezoneState.isTouched || timezoneState.isDirty || showDraftErrors)
+                  (timezoneState.isTouched || timezoneState.isDirty || timezoneHasDraft)
                     ? (timezoneState.error?.message as string)
                     : undefined
                 }
@@ -404,8 +445,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   const sanitized = sanitizePhoneToE164Draft(phone || "");
                   phoneField.onChange(sanitized);
                 }}
-                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || showDraftErrors) ? (emailState.error?.message as unknown as string) : undefined}
-                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || showDraftErrors) ? (phoneState.error?.message as unknown as string) : undefined}
+                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || emailHasDraft) ? (emailState.error?.message as unknown as string) : undefined}
+                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || phoneHasDraft) ? (phoneState.error?.message as unknown as string) : undefined}
                 title="Contact information"
                 emailLabel="Location Email *"
                 phoneLabel="Location Phone *"

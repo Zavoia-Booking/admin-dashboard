@@ -17,7 +17,8 @@ import {
   sendBusinessLinkEmailAction,
   setMemberRegistrationLoadingAction,
   checkTeamInvitationAction,
-  completeTeamInvitationAction
+  completeTeamInvitationAction,
+  clearAuthErrorAction
 } from "./actions";
 import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
@@ -235,7 +236,7 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
     const details = error?.response?.data?.details;
-    
+        
     if (error?.response?.data?.message) {
       // Handle array of messages or single message
       const backendMessage = error.response.data.message;
@@ -280,7 +281,9 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     // Handle existing account with unlinked Google
     if (code === 'account_exists_unlinked_google') {
       try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
+      yield put(clearAuthErrorAction()); // Clear error so error handler doesn't redirect
       yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
+      yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
 
@@ -347,7 +350,9 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     // Handle existing account with unlinked Google
     if (code === 'account_exists_unlinked_google') {
       try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
+      yield put(clearAuthErrorAction()); // Clear error so error handler doesn't redirect
       yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
+      yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
 

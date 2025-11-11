@@ -31,7 +31,7 @@ import IndustrySelector from "./IndustrySelector";
 import type { Industry } from "../../../shared/types/industry";
 import { selectCurrentUser } from "../../auth/selectors";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
-import { useDraftValidation } from "../../../shared/hooks/useDraftValidation";
+import { useFieldDraftValidation } from "../../../shared/hooks/useDraftValidation";
 import { resetRegistrationFlag } from "../../auth/actions";
 import { setLogoBufferAction, clearLogoBufferAction } from "../actions";
 
@@ -155,8 +155,33 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         },
       });
 
-    // Trigger validation on draft load to show errors for invalid saved data
-    const showDraftErrors = useDraftValidation({
+    // Per-field draft validation - only show errors for fields that actually have draft data
+    const nameHasDraft = useFieldDraftValidation({
+      fieldName: 'name',
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+    const emailHasDraft = useFieldDraftValidation({
+      fieldName: 'email',
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+    const phoneHasDraft = useFieldDraftValidation({
+      fieldName: 'phone',
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+    const descriptionHasDraft = useFieldDraftValidation({
+      fieldName: 'description',
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+    const currencyHasDraft = useFieldDraftValidation({
+      fieldName: 'businessCurrency',
       trigger,
       data,
       section: 'businessInfo',
@@ -373,7 +398,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           <LocationNameField
             value={(businessNameField.value as string) || ""}
             onChange={(v) => businessNameField.onChange(v)}
-            error={(businessNameState.isTouched || businessNameState.isDirty || showDraftErrors) ? (businessNameState.error?.message as unknown as string) : undefined}
+            error={(businessNameState.isTouched || businessNameState.isDirty || nameHasDraft) ? (businessNameState.error?.message as unknown as string) : undefined}
             label="Business Name"
             placeholder="e.g. Sarah's Salon & Spa"
             required
@@ -391,7 +416,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               localPhone={""}
               onEmailChange={(email) => businessEmailField.onChange(email)}
               onPhoneChange={() => {}}
-              emailError={!useAccountEmail && (businessEmailState.isTouched || businessEmailState.isDirty || showDraftErrors) ? (businessEmailState.error?.message as string) : undefined}
+              emailError={!useAccountEmail && (businessEmailState.isTouched || businessEmailState.isDirty || emailHasDraft) ? (businessEmailState.error?.message as string) : undefined}
               className=""
               id="business-email-toggle"
               showEmail={true}
@@ -414,7 +439,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                   type="tel"
                   placeholder="+1 555 123 4567"
                   className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                    (businessPhoneState.isTouched || businessPhoneState.isDirty || showDraftErrors) && businessPhoneState.error
+                    (businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && businessPhoneState.error
                       ? "border-destructive bg-red-50 focus-visible:ring-red-400"
                       : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
                   }`}
@@ -429,7 +454,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               </div>
               <div className="h-5">
-                {(businessPhoneState.isTouched || businessPhoneState.isDirty || showDraftErrors) && businessPhoneState.error && (
+                {(businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && businessPhoneState.error && (
                   <p
                     className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
                     role="alert"
@@ -452,7 +477,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             rows={3}
             id="businessInfo.description"
             className="cursor-default"
-            error={(businessDescriptionState.isTouched || businessDescriptionState.isDirty || showDraftErrors) ? (businessDescriptionState.error?.message as string) : undefined}
+            error={(businessDescriptionState.isTouched || businessDescriptionState.isDirty || descriptionHasDraft) ? (businessDescriptionState.error?.message as string) : undefined}
           />
 
           <div className="space-y-3 pt-4">
@@ -487,7 +512,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               id="businessInfo.businessCurrency"
               value={(businessCurrencyField.value as string) || 'eur'}
               onChange={(value) => businessCurrencyField.onChange(value)}
-              error={(businessCurrencyState.isTouched || businessCurrencyState.isDirty || showDraftErrors) ? (businessCurrencyState.error?.message as string) : undefined}
+              error={(businessCurrencyState.isTouched || businessCurrencyState.isDirty || currencyHasDraft) ? (businessCurrencyState.error?.message as string) : undefined}
             />
           </div>
 
@@ -498,8 +523,19 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             <LogoUpload
               value={businessLogo}
               onChange={handleLogoUpload}
-              maxSizeMB={2}
-              allowedTypes={['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']}
+              maxSizeMB={10}
+              recommendedSizeMB={2}
+              recommendedDimensions={{ width: 1024, height: 1024 }}
+              allowedTypes={[
+                'image/jpeg',
+                'image/jpg',
+                'image/png',
+                'image/webp',
+                'image/svg+xml',
+                'image/heic',
+                'image/heif',
+                'image/avif',
+              ]}
             />
           </div>
         </div>

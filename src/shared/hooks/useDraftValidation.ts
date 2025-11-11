@@ -3,81 +3,101 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../app/providers/store';
 import type { WizardData } from './useSetupWizard';
 
-interface UseDraftValidationOptions {
-  trigger: () => Promise<boolean>;
-  data: Partial<WizardData>;
-  section: 'businessInfo' | 'location' | 'team';
-}
 
 /**
- * Always-checked fields that require manual user input
+ * Check if a specific field has user-entered data in draft.
+ * This is used for per-field error display to only show errors
+ * for fields that actually have saved draft data.
  */
-const userInputFields: Record<string, string[]> = {
-  businessInfo: ['name', 'phone', 'description', 'industryId', 'instagramUrl', 'facebookUrl'],
-  location: ['name', 'address', 'description'],
-  team: [],
-};
-
-/**
- * Check if a section has actual user-entered values
- */
-function hasUserInput(sectionData: any, section: string, data: Partial<WizardData>): boolean {
+export function hasFieldDraftData(
+  fieldName: string,
+  sectionData: any,
+  section: 'businessInfo' | 'location',
+  data: Partial<WizardData>
+): boolean {
   if (!sectionData) return false;
   
-  // Check always-required fields
-  const fields = userInputFields[section] || [];
-  const hasManualFields = fields.some(field => {
-    const value = sectionData[field];
+  const value = sectionData[fieldName];
+
+  // Handle empty/null/undefined values
     if (value === undefined || value === null || value === '') return false;
     if (typeof value === 'string' && value.trim().length === 0) return false;
+  
+  // Numbers are always considered valid draft data
     if (typeof value === 'number') return true;
-    return true;
-  });
 
-  if (hasManualFields) return true;
-
-  // Check toggle-dependent fields
-  if (section === 'businessInfo' && data.useAccountEmail === false) {
-    // User toggled OFF useAccountEmail, so they manually entered email
-    const email = sectionData.email;
-    if (email && typeof email === 'string' && email.trim().length > 0) {
-      return true;
-    }
+  // Handle toggle-dependent fields
+  if (section === 'businessInfo' && fieldName === 'email') {
+    // Email only counts as draft data if toggle is OFF (user manually entered it)
+    return data.useAccountEmail === false;
   }
 
-  if (section === 'location' && data.useBusinessContact === false) {
-    // User toggled OFF useBusinessContact, so they manually entered contact info
-    const phone = sectionData.phone;
-    const email = sectionData.email;
-    if ((phone && phone.trim().length > 0) || (email && email.trim().length > 0)) {
-      return true;
-    }
+  if (section === 'location' && (fieldName === 'email' || fieldName === 'phone')) {
+    // Contact fields only count as draft data if toggle is OFF (user manually entered them)
+    return data.useBusinessContact === false;
   }
 
-  return false;
+  // For all other fields, if value exists, it's draft data
+      return true;
+    }
+
+interface UseFieldDraftValidationOptions {
+  fieldName: string;
+  trigger: () => Promise<boolean>;
+  data: Partial<WizardData>;
+  section: 'businessInfo' | 'location';
 }
 
+// Module-level tracking to ensure validation is triggered only once per section
+// This is shared across all field instances in the same section
+const sectionValidationTriggered = new Set<string>();
+
 /**
- * Returns true if we loaded from draft with actual user input, false otherwise.
- * This allows errors to show immediately on draft load, then switches to normal touched/dirty validation.
+ * @example
+ * const nameHasDraft = useFieldDraftValidation({ fieldName: 'name', trigger, data, section: 'businessInfo' });
+ * const phoneHasDraft = useFieldDraftValidation({ fieldName: 'phone', trigger, data, section: 'businessInfo' });
+ * 
+ * // In error display:
+ * error={(isTouched || isDirty || phoneHasDraft) ? error : undefined}
  */
-export function useDraftValidation({ trigger, data, section }: Omit<UseDraftValidationOptions, 'isDirty'>): boolean {
+export function useFieldDraftValidation({
+  fieldName,
+  trigger,
+  data,
+  section,
+}: UseFieldDraftValidationOptions): boolean {
   const isWizardLoading = useSelector((state: RootState) => state.setupWizard.isLoading);
-  const hasValidated = useRef(false);
   const [showDraftErrors, setShowDraftErrors] = useState(false);
 
   useEffect(() => {
-    if (hasValidated.current || isWizardLoading) return;
+    if (isWizardLoading) return;
 
     const sectionData = (data as any)?.[section];
-    const hasDraftData = hasUserInput(sectionData, section, data);
+    const fieldHasDraft = hasFieldDraftData(fieldName, sectionData, section, data);
 
-    if (hasDraftData) {
-      hasValidated.current = true;
-      trigger();
+    if (fieldHasDraft) {
+      // Trigger validation once per section (shared across all field instances)
+      if (!sectionValidationTriggered.has(section)) {
+        trigger(); // Validate all fields once
+        sectionValidationTriggered.add(section);
+      }
       setShowDraftErrors(true);
+    } else {
+      setShowDraftErrors(false);
     }
-  }, [isWizardLoading, data, section, trigger]);
+  }, [isWizardLoading, data, section, fieldName, trigger]);
+
+  // Reset trigger tracking when section data changes significantly (e.g., new draft load)
+  // Use a ref to track the previous section data to detect significant changes
+  const prevSectionDataRef = useRef<any>(null);
+  useEffect(() => {
+    const sectionData = (data as any)?.[section];
+    // If section data changed significantly (new draft load), reset tracking
+    if (prevSectionDataRef.current !== sectionData) {
+      sectionValidationTriggered.delete(section);
+      prevSectionDataRef.current = sectionData;
+    }
+  }, [data?.[section], section]);
 
   return showDraftErrors;
 }
