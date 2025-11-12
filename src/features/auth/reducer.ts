@@ -182,7 +182,13 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
     }
 
     case getType(logoutRequestAction.success): {
-      return { ...initialState };
+      // Preserve account linking modal state during logout (user might be in linking flow)
+      const preserveModalState = state.isAccountLinkingModalOpen;
+      const preservedState = preserveModalState ? {
+        isAccountLinkingModalOpen: state.isAccountLinkingModalOpen,
+        pendingLinkTxId: state.pendingLinkTxId,
+      } : {};
+      return { ...initialState, ...preservedState };
     }
 
     case getType(logoutRequestAction.failure): {
@@ -366,9 +372,9 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         error: null,
       };
     }
-
-    // Team Invitation handlers
-    case getType(checkTeamInvitationAction.request): {
+    
+     // Team Invitation handlers
+     case getType(checkTeamInvitationAction.request): {
       return {
         ...state,
         teamInvitationStatus: 'checking',

@@ -84,7 +84,9 @@ export default function GoogleOAuthCallback() {
 
   useEffect(() => {
     // Don't redirect if business selection or account linking is required (wait for modal)
-    if (businessSelection || isAccountLinkingModalOpen) return;
+    if (businessSelection || isAccountLinkingModalOpen) {
+      return;
+    }
     
     // Only redirect once when authentication completes successfully
     if (isAuthenticated && !isLoading) {
@@ -124,11 +126,17 @@ export default function GoogleOAuthCallback() {
       const context = sessionStorage.getItem('oauthContext');
 
       // Don't redirect if in linking mode (modal handles it)
-      if (mode === 'link') return;
+      if (mode === 'link') {
+        return;
+      }
 
       // Don't redirect if modals are open (they will handle the flow)
-      if (authError === 'business_selection_required') return;
-      if (isAccountLinkingModalOpen) return;
+      if (authError === 'business_selection_required') {
+        return;
+      }
+      if (isAccountLinkingModalOpen) {
+        return;
+      }
 
       const fallback = context === 'register' ? '/register' : '/login';
       try { sessionStorage.removeItem('oauthContext'); } catch {}

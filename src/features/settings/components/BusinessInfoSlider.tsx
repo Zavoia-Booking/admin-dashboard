@@ -148,8 +148,17 @@ const BusinessInfoSlider: React.FC<BusinessInfoSliderProps> = ({ isOpen, onClose
                     value={formData.logo}
                     onChange={handleLogoUpload}
                     uploading={isUploadingLogo}
-                    maxSizeMB={2}
-                    allowedTypes={['image/png', 'image/svg+xml', 'image/jpeg', 'image/jpg']}
+                    maxSizeMB={10}
+                    recommendedSizeMB={2}
+                    recommendedDimensions={{ width: 1024, height: 1024 }}
+                    allowedTypes={[
+                      'image/jpeg',
+                      'image/jpg',
+                      'image/png',
+                      'image/webp',
+                      'image/svg+xml',
+                      'image/avif',
+                    ]}
                   />
                 </div>
                 <div className="space-y-2">

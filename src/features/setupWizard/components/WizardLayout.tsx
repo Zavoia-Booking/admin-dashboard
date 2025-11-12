@@ -3,6 +3,7 @@ import { Progress } from "../../../shared/components/ui/progress";
 import { Button } from "../../../shared/components/ui/button";
 import { Save, ArrowLeft, ArrowRight, X, Check } from "lucide-react";
 import { Spinner } from "../../../shared/components/ui/spinner";
+import { Skeleton } from "../../../shared/components/ui/skeleton";
 import type { WizardLayoutProps } from "../types";
 
 const WizardLayout: React.FC<WizardLayoutProps> = ({
@@ -22,6 +23,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
   stepLabels,
   onGoToStep,
   showNext,
+  isLoadingDraft = false,
 }) => {
   return (
     <div className="min-h-[100svh] bg-background cursor-default">
@@ -37,6 +39,13 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   </h1>
                 </div>
                 <div className="mb-4 mt-4 px-4">
+                  {isLoadingDraft ? (
+                    <>
+                      <Skeleton className="h-1.5 w-full mb-2 bg-gray-300" />
+                      <Skeleton className="h-[14px] w-24 bg-gray-300" />
+                    </>
+                  ) : (
+                    <>
                   <Progress
                     value={progress}
                     className="h-1.5 [&>div]:bg-emerald-600 bg-white mb-2"
@@ -44,9 +53,21 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   <div className="text-[14px] text-muted-foreground">
                     {Math.round(progress)}% completed
                   </div>
+                    </>
+                  )}
                 </div>
                 <ol className="space-y-2 px-2">
-                  {(
+                  {isLoadingDraft ? (
+                    // Show skeleton steps while loading
+                    Array.from({ length: totalSteps }).map((_, idx) => (
+                      <li key={idx} className="flex items-center gap-2 rounded-md px-2 py-2">
+                        <Skeleton className="h-6 w-6 rounded-full bg-gray-300" />
+                        <Skeleton className="h-4 w-24 bg-gray-300" />
+                      </li>
+                    ))
+                  ) : (
+                    // Show actual steps after hydration
+                    (
                     stepLabels ||
                     Array.from({ length: totalSteps }).map(
                       (_, i) => `Step ${i + 1}`
@@ -89,7 +110,8 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                         </span>
                       </li>
                     );
-                  })}
+                    })
+                  )}
                 </ol>
               </div>
             </aside>
@@ -185,6 +207,15 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
 
                 {/* Mobile: second row (progress + text) */}
                 <div className="md:hidden pb-2">
+                  {isLoadingDraft ? (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <Skeleton className="h-[14px] w-24 bg-gray-300" />
+                      </div>
+                      <Skeleton className="h-1.5 w-full bg-gray-300" />
+                    </>
+                  ) : (
+                    <>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[14px] text-muted-foreground">
                       {Math.round(progress)}% completed
@@ -194,6 +225,8 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     value={progress}
                     className="h-1.5 [&>div]:bg-emerald-600"
                   />
+                    </>
+                  )}
                 </div>
               </div>
               {/* Header */}
