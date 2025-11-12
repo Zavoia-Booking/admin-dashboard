@@ -532,8 +532,6 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                 'image/png',
                 'image/webp',
                 'image/svg+xml',
-                'image/heic',
-                'image/heif',
                 'image/avif',
               ]}
             />

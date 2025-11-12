@@ -157,8 +157,6 @@ const BusinessInfoSlider: React.FC<BusinessInfoSliderProps> = ({ isOpen, onClose
                       'image/png',
                       'image/webp',
                       'image/svg+xml',
-                      'image/heic',
-                      'image/heif',
                       'image/avif',
                     ]}
                   />

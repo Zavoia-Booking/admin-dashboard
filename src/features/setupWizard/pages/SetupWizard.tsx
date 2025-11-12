@@ -92,21 +92,36 @@ const WizardRunner: React.FC = () => {
 
   const isWizardLoading = useSelector((state: any) => state.setupWizard.isLoading);
   const wizardError = useSelector((state: any) => state.setupWizard.error);
+  const user = useSelector(selectCurrentUser);
   
   // Show skeleton while loading OR before initial hydration completes
-  // Use ref to track if we've ever completed hydration (prevents flicker on re-renders)
-  const showSkeleton = isWizardLoading || (!hasInitializedRef.current && !hydratedFromDraft);
+  // Also show skeleton during completion transition (when completeRequested is true
+  // but user.wizardCompleted is still false, meaning we're waiting for user state update)
+  const showSkeleton = isWizardLoading || 
+    (!hasInitializedRef.current && !hydratedFromDraft) ||
+    (completeRequested && !user?.wizardCompleted);
 
+  // Handle completion flow: reset completeRequested when user state updates
   useEffect(() => {
     if (!completeRequested) return;
-    if (isWizardLoading) return;
+    
+    // If user is now completed, the parent component will handle the redirect
+    // Just reset the flag to clean up state
+    if (user?.wizardCompleted) {
+      setCompleteRequested(false);
+      return;
+    }
+    
+    // If there's an error, show it and reset
     if (wizardError) {
       toast.error("We couldn't finish your setup", { description: String(wizardError), icon: undefined });
       setCompleteRequested(false);
       return;
     }
-    setCompleteRequested(false);
-  }, [completeRequested, isWizardLoading, wizardError, nextStep]);
+    
+    // If wizard loading finished but user is not yet completed, keep waiting
+    // (This handles the gap between API completion and user state update)
+  }, [completeRequested, isWizardLoading, wizardError, user?.wizardCompleted]);
 
   const handleNext = async () => {
     if (stepRef.current) {

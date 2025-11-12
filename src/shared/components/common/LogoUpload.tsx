@@ -1,9 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Upload, X, Image as ImageIcon } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Spinner } from '../ui/spinner';
-import { toast } from 'sonner';
-import { cn } from '../../lib/utils';
+import React, { useRef, useState, useEffect } from "react";
+import { Upload, X, Image as ImageIcon } from "lucide-react";
+import { Button } from "../ui/button";
+import { Spinner } from "../ui/spinner";
+import { toast } from "sonner";
+import { cn } from "../../lib/utils";
 
 interface LogoUploadProps {
   value?: string | File | null; // URL of saved logo OR File object for preview
@@ -29,16 +29,14 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   recommendedSizeMB = 2, // Soft recommendation for logos
   recommendedDimensions = { width: 1024, height: 1024 }, // Soft recommendation for logos
   allowedTypes = [
-    'image/jpeg',
-    'image/jpg',
-    'image/png',
-    'image/webp',
-    'image/svg+xml',
-    'image/heic',
-    'image/heif',
-    'image/avif',
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+    "image/svg+xml",
+    "image/avif",
   ],
-  className
+  className,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -50,13 +48,13 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   // Sync previewUrl with value prop when it changes
   useEffect(() => {
     let objectUrl: string | null = null;
-    
+
     if (value instanceof File) {
       // It's a File object - create a blob URL for preview
       objectUrl = URL.createObjectURL(value);
       setPreviewUrl(objectUrl);
       setIsImageLoading(true);
-    } else if (typeof value === 'string') {
+    } else if (typeof value === "string") {
       // It's a URL string - use it directly
       setPreviewUrl(value);
       setIsImageLoading(true);
@@ -65,7 +63,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
       setPreviewUrl(null);
       setIsImageLoading(false);
     }
-    
+
     // Cleanup blob URL on unmount or when value changes
     return () => {
       if (objectUrl) {
@@ -77,7 +75,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   // Check if image is already loaded (from cache) when previewUrl changes
   useEffect(() => {
     if (!previewUrl) return;
-    
+
     // Use setTimeout to ensure img element is rendered
     const timeoutId = setTimeout(() => {
       if (imgRef.current) {
@@ -88,45 +86,69 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
         }
       }
     }, 0);
-    
+
     return () => clearTimeout(timeoutId);
   }, [previewUrl]);
 
   const validateFile = async (file: File): Promise<boolean> => {
     // Helper: Map file extension to MIME type
     const extensionToMimeType: Record<string, string> = {
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'webp': 'image/webp',
-      'svg': 'image/svg+xml',
-      'heic': 'image/heic',
-      'heif': 'image/heif',
-      'avif': 'image/avif',
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      webp: "image/webp",
+      svg: "image/svg+xml",
+      avif: "image/avif",
     };
-    
+
     // Get file extension
-    const extension = file.name.split('.').pop()?.toLowerCase();
-    
+    const extension = file.name.split(".").pop()?.toLowerCase();
+
     // Determine actual MIME type: use browser's MIME type if valid, otherwise infer from extension
-    // This is important for HEIC/HEIF/AVIF files which browsers may not recognize
+    // This is important for AVIF files which browsers may not recognize
     let actualMimeType = file.type;
-    if (!actualMimeType || actualMimeType === 'application/octet-stream') {
+    if (!actualMimeType || actualMimeType === "application/octet-stream") {
       if (extension && extensionToMimeType[extension]) {
         actualMimeType = extensionToMimeType[extension];
       }
     }
-    
+
+    // Helper function to format allowed formats for display
+    const formatAllowedTypes = (): string => {
+      const formats = allowedTypes.map((t) => {
+        const format = t.split("/")[1].toUpperCase();
+        return format === "SVG+XML" ? "SVG" : format;
+      });
+      // Format as "JPEG, PNG, WebP, SVG, or AVIF" (with "or" before last item)
+      if (formats.length === 1) return formats[0];
+      if (formats.length === 2) return `${formats[0]} or ${formats[1]}`;
+      return `${formats.slice(0, -1).join(", ")}, or ${
+        formats[formats.length - 1]
+      }`;
+    };
+
     // Hard validation: File type (security - must block)
-    const isValidType = allowedTypes.includes(actualMimeType);
-    
+    // Check if extension is in our allowed list
+    if (extension && !extensionToMimeType[extension]) {
+      const detectedType = extension.toUpperCase();
+      toast.error(
+        `Unsupported file format (${detectedType}). Please use ${formatAllowedTypes()} instead.`,
+        { duration: 5000 }
+      );
+      return false;
+    }
+
+    // Check if MIME type is in allowed list
+    const isValidType = actualMimeType && allowedTypes.includes(actualMimeType);
+
     if (!isValidType) {
-      const allowedFormats = allowedTypes.map(t => {
-        const format = t.split('/')[1].toUpperCase();
-        // Clean up format names for display
-        return format === 'SVG+XML' ? 'SVG' : format;
-      }).join(', ');
-      toast.error(`Invalid file type. Allowed: ${allowedFormats}`);
+      const detectedType = extension
+        ? extension.toUpperCase()
+        : "unknown format";
+      toast.error(
+        `Unsupported file format (${detectedType}). Please use ${formatAllowedTypes()} instead.`,
+        { duration: 5000 }
+      );
       return false;
     }
 
@@ -145,36 +167,39 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
       needsOptimization = true;
     }
 
-    // Check image dimensions (skip for SVG as they're vector-based, and HEIC/HEIF/AVIF as browsers can't read them)
-    const isVectorOrUnsupported = actualMimeType === 'image/svg+xml' || 
-                                   actualMimeType === 'image/heic' || 
-                                   actualMimeType === 'image/heif' || 
-                                   actualMimeType === 'image/avif';
-    
+    // Check image dimensions (skip for SVG as they're vector-based, and AVIF as browsers may not read them)
+    const isVectorOrUnsupported =
+      actualMimeType === "image/svg+xml" || actualMimeType === "image/avif";
+
     if (!isVectorOrUnsupported && maxDimensions && recommendedDimensions) {
       try {
         const dimensions = await getImageDimensions(file);
-        const exceedsRecommended = 
-          dimensions.width > recommendedDimensions.width || 
+        const exceedsRecommended =
+          dimensions.width > recommendedDimensions.width ||
           dimensions.height > recommendedDimensions.height;
 
         if (exceedsRecommended) {
           needsOptimization = true;
         }
       } catch (error) {
-        console.error('Failed to validate image dimensions:', error);
+        console.error("Failed to validate image dimensions:", error);
         // Don't show error to user - backend will validate
       }
     }
     // Show simple warning if file needs optimization
     if (needsOptimization) {
-      toast.warning('Your file exceeds our recommended limits. We\'ll optimize it automatically.', { duration: 5000 });
+      toast.warning(
+        "Your file exceeds our recommended limits. We'll optimize it automatically.",
+        { duration: 5000 }
+      );
     }
     // Always return true (allow upload) - backend will do final validation
     return true;
   };
 
-  const getImageDimensions = (file: File): Promise<{ width: number; height: number }> => {
+  const getImageDimensions = (
+    file: File
+  ): Promise<{ width: number; height: number }> => {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
@@ -186,7 +211,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
 
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
-        reject(new Error('Failed to load image'));
+        reject(new Error("Failed to load image"));
       };
 
       img.src = objectUrl;
@@ -194,16 +219,18 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   };
 
   const handleFile = async (file: File) => {
-    // Call onChange immediately to show preview (non-blocking)
-    onChange(file);
-    
-    // Validate in background (non-blocking for preview)
+    // Validate FIRST before showing preview
     const isValid = await validateFile(file);
     if (!isValid) {
-      // If validation fails, clear the file
-      onChange(null);
+      // If validation fails, clear the file input and don't show preview
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
       return;
     }
+
+    // Only show preview if validation passes
+    onChange(file);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -216,13 +243,13 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (e.type === 'dragenter') {
+
+    if (e.type === "dragenter") {
       dragCounterRef.current++;
       if (dragCounterRef.current === 1) {
         setDragActive(true);
       }
-    } else if (e.type === 'dragleave') {
+    } else if (e.type === "dragleave") {
       dragCounterRef.current--;
       if (dragCounterRef.current === 0) {
         setDragActive(false);
@@ -249,7 +276,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
       onLogoUrlChange(null, null);
     }
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
@@ -264,12 +291,12 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept={allowedTypes.join(',')}
+        accept={allowedTypes.join(",")}
         onChange={handleFileSelect}
         className="hidden"
         disabled={uploading}
       />
-      
+
       <div
         onClick={!uploading ? handleClick : undefined}
         onDragEnter={handleDrag}
@@ -285,12 +312,10 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
           "p-4"
         )}
       >
-        {(previewUrl || isImageLoading) ? (
+        {previewUrl || isImageLoading ? (
           <div className="w-full flex flex-col items-center justify-center space-y-3">
             <div className="relative w-full h-[208px] flex items-center justify-center">
-              {isImageLoading && (
-                <Spinner size="lg" color="info" />
-              )}
+              {isImageLoading && <Spinner size="lg" color="info" />}
               {previewUrl && (
                 <img
                   ref={imgRef}
@@ -308,7 +333,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
                   }}
                 />
               )}
-              
+
               {/* Remove button - top right corner */}
               {!isImageLoading && previewUrl && !uploading && (
                 <Button
@@ -325,7 +350,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
                   <X className="h-4 w-4 text-destructive" />
                 </Button>
               )}
-              
+
               {/* Upload overlay */}
               {uploading && (
                 <div className="absolute inset-0 bg-background/90 backdrop-blur-sm flex items-center justify-center rounded-lg">
@@ -351,15 +376,21 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
                 </div>
                 <div className="space-y-2">
                   <p className="text-base font-semibold text-foreground">
-                    {dragActive ? 'Drop your logo here' : 'Upload your logo'}
+                    {dragActive ? "Drop your logo here" : "Upload your logo"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {dragActive ? 'Release to upload' : 'Click to browse or drag and drop'}
+                    {dragActive
+                      ? "Release to upload"
+                      : "Click to browse or drag and drop"}
                   </p>
                 </div>
                 <div className="pt-4 border-t border-border space-y-1">
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    <span className="font-medium text-foreground">Max size recommended:</span> {recommendedDimensions.width}×{recommendedDimensions.height}px, up to {recommendedSizeMB}MB
+                    <span className="font-medium text-foreground">
+                      Max size recommended:
+                    </span>{" "}
+                    {recommendedDimensions.width}×{recommendedDimensions.height}
+                    px, up to {recommendedSizeMB}MB
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     Larger images will be automatically optimized for you.
@@ -375,4 +406,3 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
 };
 
 export default LogoUpload;
-
