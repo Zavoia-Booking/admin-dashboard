@@ -15,12 +15,10 @@ import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
 import { useDispatch, useSelector } from 'react-redux';
 import { cancelInvitationAction, listTeamMembersAction, resendInvitationAction } from '../actions.ts';
-import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { selectTeamMembers } from '../selectors';
 
 export default function TeamMembersPage() {
-  const isMobile = useIsMobile();
   const dispatch = useDispatch();
   const teamMembers = useSelector(selectTeamMembers);
   const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
@@ -39,11 +37,9 @@ export default function TeamMembersPage() {
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  // Locations provided via mocks
 
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-
   const [localLocationFilter, setLocalLocationFilter] = useState(locationFilter);
 
   useEffect(() => {
@@ -161,7 +157,7 @@ export default function TeamMembersPage() {
   return (
     <AppLayout>
       <BusinessSetupGate>
-        <div className={`space-y-4 ${isMobile ? 'max-w-2xl mx-auto' : ''}`}>
+        <div className="space-y-4 max-w-2xl mx-auto">
           {/* Trial Banner */}
           <TrialBanner />
 
@@ -219,17 +215,6 @@ export default function TeamMembersPage() {
                   ],
                   searchable: true,
                 },
-                // {
-                //   type: 'select',
-                //   key: 'role',
-                //   label: 'Role',
-                //   value: localRoleFilter,
-                //   options: [
-                //     { value: 'all', label: 'All roles' },
-                //     ...uniqueRoles.map((role: UserRole) => ({ value: role, label: role as string }))
-                //   ],
-                //   searchable: true,
-                // },
                 {
                   type: 'select',
                   key: 'location',
@@ -324,179 +309,104 @@ export default function TeamMembersPage() {
               <div className="text-xs text-gray-500 mt-1">Roles</div>
             </div>
           </div>
-          {isMobile ? (
-            <div className="space-y-3">
-              {filteredTeamMembers.length === 0 ? (
-                <div className="rounded-lg border bg-white p-8 text-center">
-                  <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
-                  <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
-                </div>
-              ) : (
-                filteredTeamMembers.map((member: TeamMember) => {
-                  const memberRoleStatus = (member as any).roleStatus || member.status;
-                  const canEdit = memberRoleStatus !== 'pending_acceptance';
-                  const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
-                  const safeInitials = `${(member.firstName?.[0] || member.email?.[0] || '?')}${(member.lastName?.[0] || '')}`;
-                  const displayPhone = member.phone || 'Phone not set yet';
-                  return (
-                    <div
-                      key={member.id}
-                      className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
-                      onClick={() => {
-                        if (!canEdit) {
-                          toast.info('Cannot edit a pending invite until they complete registration.');
-                          return;
-                        }
-                        openProfileSlider(member);
-                      }}
-                    >
-                      <div className="flex flex-row items-start gap-4">
-                        <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
-                          {safeInitials}
-                        </div>
-                        <div className="flex flex-col justify-start min-w-0">
-                          <span className="font-semibold text-base truncate">{displayName || member.email}</span>
-                          <span className="text-sm text-gray-500 truncate">{member.role}</span>
-                          {getStatusBadge(memberRoleStatus)}
-                        </div>
-                        <div className="flex-1 flex justify-end items-start gap-1">
-                          {memberRoleStatus === 'pending_acceptance' && (
-                            <div className="flex items-center gap-1">
-                              <button
-                                className="p-2 rounded hover:bg-muted text-blue-600"
-                                title="Resend Invitation"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPendingAction({ type: 'resend', teamMemberId: member.id, teamMemberName: displayName || member.email });
-                                  setIsConfirmDialogOpen(true);
-                                }}
-                              >
-                                <Mail className="h-5 w-5" />
-                              </button>
-                              <button
-                                className="p-2 rounded hover:bg-red-50 text-red-600"
-                                title="Cancel Invitation"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, email: member.email });
-                                  setIsConfirmDialogOpen(true);
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          )}
-                          {canEdit && (
+          <div className="space-y-3">
+            {filteredTeamMembers.length === 0 ? (
+              <div className="rounded-lg border bg-white p-8 text-center">
+                <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
+                <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
+              </div>
+            ) : (
+              filteredTeamMembers.map((member: TeamMember) => {
+                const memberRoleStatus = (member as any).roleStatus || member.status;
+                const canEdit = memberRoleStatus !== 'pending_acceptance';
+                const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
+                const safeInitials = `${(member.firstName?.[0] || member.email?.[0] || '?')}${(member.lastName?.[0] || '')}`;
+                const displayPhone = member.phone || 'Phone not set yet';
+                return (
+                  <div
+                    key={member.id}
+                    className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
+                    onClick={() => {
+                      if (!canEdit) {
+                        toast.info('Cannot edit a pending invite until they complete registration.');
+                        return;
+                      }
+                      openProfileSlider(member);
+                    }}
+                  >
+                    <div className="flex flex-row items-start gap-4">
+                      <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
+                        {safeInitials}
+                      </div>
+                      <div className="flex flex-col justify-start min-w-0">
+                        <span className="font-semibold text-base truncate">{displayName || member.email}</span>
+                        <span className="text-sm text-gray-500 truncate">{member.role}</span>
+                        {getStatusBadge(memberRoleStatus)}
+                      </div>
+                      <div className="flex-1 flex justify-end items-start gap-1">
+                        {memberRoleStatus === 'pending_acceptance' && (
+                          <div className="flex items-center gap-1">
                             <button
-                              className="p-2 rounded hover:bg-muted"
-                              title="Edit"
+                              className="p-2 rounded hover:bg-muted text-blue-600"
+                              title="Resend Invitation"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                openEditSlider(member);
+                                setPendingAction({ type: 'resend', teamMemberId: member.id, teamMemberName: displayName || member.email });
+                                setIsConfirmDialogOpen(true);
                               }}
                             >
-                              <Edit className="h-5 w-5" />
+                              <Mail className="h-5 w-5" />
                             </button>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex flex-row gap-4 mt-1">
-                        <div className="flex-1 flex flex-col gap-1">
-                          <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <Mail className="h-4 w-4" />
-                            <span>{member.email}</span>
+                            <button
+                              className="p-2 rounded hover:bg-red-50 text-red-600"
+                              title="Cancel Invitation"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, email: member.email });
+                                setIsConfirmDialogOpen(true);
+                              }}
+                            >
+                              Cancel
+                            </button>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <Phone className="h-4 w-4" />
-                            <span>{displayPhone}</span>
-                          </div>
-                          {member.location && (
-                            <div className="flex items-center gap-2 text-sm text-gray-700">
-                              <MapPin className="h-4 w-4" />
-                              <span>{mockLocations.find(loc => String(loc.id) === `${member.location}`)?.name}</span>
-                            </div>
-                          )}
-                        </div>
+                        )}
+                        {canEdit && (
+                          <button
+                            className="p-2 rounded hover:bg-muted"
+                            title="Edit"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditSlider(member);
+                            }}
+                          >
+                            <Edit className="h-5 w-5" />
+                          </button>
+                        )}
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          ) : (
-            <div className="rounded-lg border bg-white">
-              {filteredTeamMembers.length === 0 ? (
-                <div className="p-8 text-center text-muted-foreground">No team members found.</div>
-              ) : (
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr className="text-left">
-                      <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Email</th>
-                      <th className="px-4 py-3">Role</th>
-                      <th className="px-4 py-3">Status</th>
-                      <th className="px-4 py-3">Location</th>
-                      <th className="px-4 py-3 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTeamMembers.map((member: TeamMember) => {
-                      const memberRoleStatus = (member as any).roleStatus || member.status;
-                      const canEdit = memberRoleStatus !== 'pending_acceptance';
-                      const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
-                      return (
-                        <tr key={member.id} className="border-t">
-                          <td className="px-4 py-3 font-medium">{displayName || member.email}</td>
-                          <td className="px-4 py-3">{member.email}</td>
-                          <td className="px-4 py-3">{member.role}</td>
-                          <td className="px-4 py-3">{getStatusBadge(memberRoleStatus)}</td>
-                          <td className="px-4 py-3">{mockLocations.find(loc => loc.id === member.location)?.name}</td>
-                          <td className="px-4 py-3">
-                            <div className="flex justify-end gap-2">
-                              {memberRoleStatus === 'pending_acceptance' && (
-                                <>
-                                  <button
-                                    className="px-2 py-1 text-blue-600 hover:underline"
-                                    onClick={() => {
-                                      setPendingAction({ type: 'resend', teamMemberId: member.id, teamMemberName: displayName || member.email });
-                                      setIsConfirmDialogOpen(true);
-                                    }}
-                                  >
-                                    Resend
-                                  </button>
-                                  <button
-                                    className="px-2 py-1 text-red-600 hover:underline"
-                                    onClick={() => {
-                                      setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, email: member.email });
-                                      setIsConfirmDialogOpen(true);
-                                    }}
-                                  >
-                                    Cancel invitation
-                                  </button>
-                                </>
-                              )}
-                              {canEdit ? (
-                                <button
-                                  className="px-2 py-1 hover:underline"
-                                  onClick={() => openEditSlider(member)}
-                                >
-                                  Edit
-                                </button>
-                              ) : (
-                                <button className="px-2 py-1 text-gray-400 cursor-not-allowed" disabled>
-                                  Edit
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          )}
+                    <div className="flex flex-row gap-4 mt-1">
+                      <div className="flex-1 flex flex-col gap-1">
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Mail className="h-4 w-4" />
+                          <span>{member.email}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-700">
+                          <Phone className="h-4 w-4" />
+                          <span>{displayPhone}</span>
+                        </div>
+                        {member.location && (
+                          <div className="flex items-center gap-2 text-sm text-gray-700">
+                            <MapPin className="h-4 w-4" />
+                            <span>{mockLocations.find(loc => String(loc.id) === `${member.location}`)?.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
 
         {/* Confirmation Dialog */}

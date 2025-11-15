@@ -20,9 +20,6 @@ const isDevelopment = resolvedEnv === 'development';
 const getApiUrl = (): string => {
     // 1. Explicit environment variable override
     if (env.VITE_API_URL) {
-        if (isDevelopment) {
-            console.info('🔧 Using VITE_API_URL:', env.VITE_API_URL);
-        }
         return env.VITE_API_URL;
     }
     
@@ -37,26 +34,17 @@ const getApiUrl = (): string => {
         
         // Localhost: use Vite proxy
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            if (isDevelopment) {
-                console.info('🔧 Localhost detected: using /api proxy → http://localhost:3000');
-            }
             return '/api';
         }
         
         // IP address (mobile testing via IP): direct connection
         if (/^\d+\.\d+\.\d+\.\d+$/.test(hostname)) {
             const apiUrl = `http://${hostname}:3000`;
-            if (isDevelopment) {
-                console.info('🔧 IP address detected:', apiUrl);
-            }
             return apiUrl;
         }
         
         // Cloudflare tunnel or custom domain: use proxy
         // Since tunnel serves the preview build which includes Vite proxy
-        if (isDevelopment) {
-            console.info('🔧 Custom domain detected:', hostname, '→ using /api proxy');
-        }
         return '/api';
     }
     
@@ -77,18 +65,5 @@ const config: AppConfig = {
     BUILD_TIME: new Date().toISOString(),
     VERSION: env.VITE_APP_VERSION || '1.0.0',
 } as const;
-
-// Development-only logging
-if (isDevelopment) {
-    console.group('🔧 App Configuration');
-    console.table({
-        'API URL': config.API_URL,
-        'Environment': config.APP_ENV,
-        'Version': config.VERSION,
-        'Build Time': new Date(config.BUILD_TIME).toLocaleString(),
-        'Hostname': typeof window !== 'undefined' ? window.location.hostname : 'server-side',
-    });
-    console.groupEnd();
-}
 
 export default config;
