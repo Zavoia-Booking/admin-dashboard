@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
@@ -43,6 +44,8 @@ import type { LocationType } from '../../../shared/types/location';
 
 export default function AssignmentsPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // State selectors
   const activePerspective = useSelector(getActivePerspectiveSelector);
@@ -76,6 +79,16 @@ export default function AssignmentsPage() {
     dispatch(fetchTeamMemberAssignmentsAction.request());
   }, [dispatch]);
 
+  // Set active tab from URL query parameter
+  useEffect(() => {
+    const tab = searchParams.get('tab') as AssignmentPerspective | null;
+    if (tab && (tab === 'team_members' || tab === 'services' || tab === 'locations')) {
+      if (tab !== activePerspective) {
+        dispatch(setPerspectiveAction(tab));
+      }
+    }
+  }, [searchParams, dispatch, activePerspective]);
+
   // Sync local state when selected team member changes
   useEffect(() => {
     if (selectedTeamMember) {
@@ -103,6 +116,7 @@ export default function AssignmentsPage() {
   // When perspective changes
   const handlePerspectiveChange = (perspective: AssignmentPerspective) => {
     dispatch(setPerspectiveAction(perspective));
+    navigate(`/assignments?tab=${perspective}`);
   };
 
   // Search

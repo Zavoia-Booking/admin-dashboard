@@ -1,0 +1,32 @@
+{
+  "sidebar": {
+    "dashboard": "Panou de control",
+    "calendar": "Calendar",
+    "assignments": "Atribuiri",
+    "teamMembers": "Membri echipă",
+    "services": "Servicii",
+    "locations": "Locații",
+    "customers": "Clienți",
+    "marketplace": "Piață",
+    "support": "Suport",
+    "settings": "Setări",
+    "logOut": "Deconectare",
+    "subItems": {
+      "assignments": {
+        "teamMembers": "Membri echipă",
+        "services": "Servicii",
+        "locations": "Locații"
+      },
+      "settings": {
+        "profile": "Profil",
+        "billing": "Facturare și abonament",
+        "advanced": "Setări avansate"
+      }
+    }
+  },
+  "theme": {
+    "dark": "Întunecat",
+    "light": "Luminos"
+  }
+}
+

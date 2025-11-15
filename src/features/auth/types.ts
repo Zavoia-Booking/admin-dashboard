@@ -20,6 +20,11 @@ export type AuthUser = {
   registeredVia?: string;
   providerData?: string | null;
   lastGoogleLoginAt?: Date | null;
+  business?: {
+    id: number;
+    name: string;
+    logo?: string | null;
+  };
   subscription?: {
     status: string | null;
     planTier: string | null;

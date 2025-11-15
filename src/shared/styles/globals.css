@@ -105,8 +105,8 @@ body {
 }
 
 /* Touch-friendly button sizes */
-button, 
-[role="button"] {
+button:not([data-slot="sidebar-menu-button"]), 
+[role="button"]:not([data-slot="sidebar-menu-button"]) {
   min-height: 44px;
   min-width: 44px;
 }
@@ -288,3 +288,88 @@ textarea {
     -ms-overflow-style: none;
   }
 }
+
+/* Modern Sidebar Styling */
+[data-sidebar="sidebar"] {
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.04);
+}
+
+/* Enhanced menu item styles */
+[data-slot="sidebar-menu-button"] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Override min-size for sidebar menu buttons to match other links (32px) */
+/* button[data-slot="sidebar-menu-button"],
+[data-slot="sidebar-menu-button"][role="button"],
+[data-slot="sidebar-menu-button"] {
+  min-height: 32px !important;
+  min-width: 32px !important;
+} */
+
+/* Force height to 32px for compact sidebar menu buttons (assignments, settings) */
+.sidebar-menu-button-compact,
+.sidebar-menu-button-compact[data-slot="sidebar-menu-button"],
+button.sidebar-menu-button-compact {
+  height: 36px !important;
+  min-height: 36px !important;
+  min-width: 36px !important;
+}
+
+/* Active state with accent bar */
+[data-slot="sidebar-menu-button"][data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: var(--sidebar-primary);
+  border-radius: 0 2px 2px 0;
+}
+
+
+/* Hide active border when sidebar is collapsed */
+[data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"]::before,
+[data-slot="sidebar"][data-collapsible="icon"] [data-slot="sidebar-menu-button"][data-active="true"]::before {
+  display: none !important;
+}
+
+/* Smooth hover effect */
+[data-slot="sidebar-menu-button"]:hover {
+  background: var(--sidebar-accent);
+}
+
+/* Icon styling */
+[data-slot="sidebar-menu-button"] svg {
+  transition: all 0.2s ease;
+}
+
+[data-slot="sidebar-menu-button"]:hover svg {
+  transform: scale(1.05);
+}
+
+/* Active state styling */
+[data-slot="sidebar-menu-button"][data-active="true"] {
+  background: var(--sidebar-accent);
+  font-weight: 600;
+  color: var(--sidebar-primary);
+}
+
+/* Footer border styling */
+[data-slot="sidebar-footer"] {
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.02));
+}
+
+/* Header styling */
+[data-slot="sidebar-header"] {
+  background: linear-gradient(to top, transparent, rgba(0, 0, 0, 0.02));
+}
+
+/* Collapsible icon transition */
+.group-data-[collapsible=icon]:not([data-state="collapsed"]) [data-slot="sidebar-menu-button"] {
+  justify-content: center;
+}
+

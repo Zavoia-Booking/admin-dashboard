@@ -1,0 +1,32 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "assignments": "Assignments",
+    "teamMembers": "Team Members",
+    "services": "Services",
+    "locations": "Locations",
+    "customers": "Customers",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "settings": "Settings",
+    "logOut": "Log Out",
+    "subItems": {
+      "assignments": {
+        "teamMembers": "Team Members",
+        "services": "Services",
+        "locations": "Locations"
+      },
+      "settings": {
+        "profile": "Profile",
+        "billing": "Billing & Subscription",
+        "advanced": "Advanced Settings"
+      }
+    }
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light"
+  }
+}
+

@@ -7,8 +7,6 @@ import ServicesPage from './features/services/pages/services'
 import TeamMembersPage from './features/teamMembers/pages/team-members'
 import InvitationSuccessPage from './features/teamMembers/pages/invitation-success'
 import SettingsPage from './features/settings/pages/settings'
-import SettingsProfilePage from './features/settings/pages/profile'
-import ProfilePage from './features/profile'
 import LoginPage from './features/auth/pages/login'
 import RegisterPage from './features/auth/pages/register'
 import ResetPasswordPage from './features/auth/pages/reset-password'
@@ -23,6 +21,9 @@ import VerifyEmailPage from './features/auth/pages/verify-email'
 import LinkBusinessAccountPage from './features/auth/pages/link-business-account'
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
 import TeamInvitationPage from './features/auth/pages/team-invitation'
+import SupportPage from './features/support/pages/support'
+import CustomersPage from './features/customers/pages/customers'
+import MarketplacePage from './features/marketplace/pages/marketplace'
 
 function App() {
   return (
@@ -47,9 +48,10 @@ function App() {
         <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
         <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
         <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
+        <Route path="/customers" element={<ProtectedRoute element={<CustomersPage />} />} />
+        <Route path="/marketplace" element={<ProtectedRoute element={<MarketplacePage />} />} />
+        <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
         <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
-        <Route path="/settings/profile" element={<ProtectedRoute element={<SettingsProfilePage />} />} />
-        <Route path="/profile" element={<ProtectedRoute element={<ProfilePage />} />} />
 
         {/* Info Pages */}
         <Route path="/info" element={<InfoPageComponent />} />

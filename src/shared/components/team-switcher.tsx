@@ -14,8 +14,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "./ui/sidebar"
+import { useIsMobile } from "../hooks/use-mobile"
 
 export function LocationSwitcher({
   location,
@@ -26,7 +26,7 @@ export function LocationSwitcher({
     plan: string
   }[]
 }) {
-  const { isMobile } = useSidebar()
+  const isMobile = useIsMobile()
   const [activeLocation, setActiveLocation] = React.useState(location[0])
 
   if (!activeLocation) {

@@ -5,13 +5,17 @@ import LanguageDetector from 'i18next-browser-languagedetector';
 // Import translation files
 import enServices from '../../locales/en/services.json';
 import roServices from '../../locales/ro/services.json';
+import enNavigation from '../../locales/en/navigation.json';
+import roNavigation from '../../locales/ro/navigation.json';
 
 const resources = {
   en: {
     services: enServices,
+    navigation: enNavigation,
   },
   ro: {
     services: roServices,
+    navigation: roNavigation,
   },
 };
 

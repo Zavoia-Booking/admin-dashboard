@@ -27,8 +27,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "../ui/sidebar"
+import { useIsMobile } from "../../../hooks/use-mobile"
 
 export function NavUser({
   user,
@@ -39,7 +39,7 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const { isMobile } = useSidebar()
+  const isMobile = useIsMobile()
   const dispatch = useDispatch()
 
   const handleLogout = () => {
