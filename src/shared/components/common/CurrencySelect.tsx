@@ -69,8 +69,8 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
             className={cn(
               "w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
               hasError
-                ? "border-destructive bg-red-50 hover:bg-red-50 hover:border-destructive focus-visible:ring-red-400"
-                : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
+                ? "border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error"
+                : "border-border bg-info-100 hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus"
             )}
           >
             <span className="flex items-center gap-2 min-w-0">
@@ -78,14 +78,14 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
             </span>
             <ChevronDown
               className={cn(
-                "h-4 w-4 text-gray-400 transition-transform shrink-0",
+                "h-4 w-4 text-foreground-3 transition-transform shrink-0",
                 open && "rotate-180"
               )}
             />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[calc(100vw-2rem)] md:w-[400px] py-4 px-1 shadow-lg border border-gray-200"
+          className="w-[calc(100vw-2rem)] md:w-[400px] py-4 px-1 shadow-lg border border-border"
           align="start"
         >
           <Command>
@@ -107,12 +107,12 @@ export const CurrencySelect: React.FC<CurrencySelectProps> = ({
                     >
                       <div className="flex items-center gap-3 w-full py-1.5">
                         {isSelected ? (
-                          <Check className="h-4 w-4 text-green-600 shrink-0" />
+                          <Check className="h-4 w-4 text-green-400 shrink-0" />
                         ) : (
                           <span className="h-4 w-4 shrink-0" />
                         )}
                         <span className="text-sm">
-                          <span className="text-muted-foreground inline-block">
+                          <span className="text-foreground-3 dark:text-foreground-2 inline-block">
                             {currency.code.toUpperCase()} /
                           </span>
                           <span className="pl-1">{currency.name}</span>

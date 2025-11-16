@@ -26,14 +26,14 @@ export const RemoteLocationToggle: React.FC<RemoteLocationToggleProps> = ({
     <div
       className={`${
         isRemote
-          ? 'rounded-lg border border-blue-200 bg-blue-50 p-4'
-          : 'bg-accent/80 border border-accent/30 rounded-lg p-4'
+          ? 'rounded-lg border border-info-300 bg-info-100 p-4'
+          : 'bg-surface-active dark:bg-neutral-900 border border-border rounded-lg p-4'
       } ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <Wifi className={`h-6 w-6 shrink-0 ${isRemote ? 'text-blue-600' : 'text-primary'}`} />
-          <Label htmlFor={id} className="text-base font-medium cursor-pointer">
+          <Wifi className={`h-6 w-6 shrink-0 ${isRemote ? 'text-info' : 'text-primary'}`} />
+          <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${isRemote ? 'text-neutral-900' : ''}`}>
             {label}
           </Label>
         </div>
@@ -44,7 +44,7 @@ export const RemoteLocationToggle: React.FC<RemoteLocationToggleProps> = ({
           className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
         />
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className={`text-sm ${isRemote ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
         {isRemote ? descriptionOn : descriptionOff}
       </p>
     </div>

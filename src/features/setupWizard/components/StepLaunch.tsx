@@ -61,17 +61,17 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
         <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
           <span>Welcome Aboard</span>
         </h2>
-        <p className="text-lg text-muted-foreground">
+        <p className="text-lg text-foreground-3 dark:text-foreground-2">
           The calm behind your calendar
         </p>
       </div>
 
       {/* Here's what you can do next */}
       <div className="flex items-end gap-2 mb-6">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-foreground-3 dark:text-foreground-1">
           Here's what you can do next
         </p>
-        <div className="flex-1 h-px bg-gray-200"></div>
+        <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
       </div>
 
       {/* Critical Action Card */}
@@ -140,7 +140,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
             </div>
             <Button
               onClick={handleCreateService}
-              className="group inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-white text-black py-5 md:py-6 !px-5 md:!px-6 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
+              className="group inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-white text-black hover:text-black py-5 md:py-6 !px-5 md:!px-6 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
             >
               <span>Create a Service</span>
               <ArrowRight
@@ -155,13 +155,13 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Setup Summary */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
-          <h3 className="text-sm text-muted-foreground">Quick overview</h3>
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Quick overview</h3>
+          <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Business Card */}
           {isLoading ? (
-            <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+            <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
               <div className="mb-3">
                 <Skeleton className="h-7 w-24 rounded-full" />
               </div>
@@ -171,13 +171,13 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
             </div>
           ) : (
-            <div className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-100/30 transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-full">
-                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                  <span className="text-sm font-semibold text-foreground-1">
                     Business
                   </span>
                 </div>
@@ -185,17 +185,17 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               <div className="space-y-2.5">
                 {business?.name ? (
                   <>
-                    <div className="text-lg font-bold text-gray-900 leading-tight tracking-tight">
+                    <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
                       {business.name}
                     </div>
                     {business.industry?.name && (
-                      <div className="text-sm text-gray-600 leading-relaxed">
+                      <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                         {business.industry.name}
                       </div>
                     )}
                   </>
                 ) : (
-                  <div className="text-lg font-bold text-gray-900 leading-tight">
+                  <div className="text-lg font-bold text-foreground-1 leading-tight">
                     All set
                   </div>
                 )}
@@ -206,7 +206,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
 
           {/* Location Card */}
           {isLoading ? (
-            <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+            <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
               <div className="mb-3">
                 <Skeleton className="h-7 w-24 rounded-full" />
               </div>
@@ -217,13 +217,13 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
             </div>
           ) : (
-            <div className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 hover:border-blue-200 hover:shadow-xl hover:shadow-blue-100/30 transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-blue-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-info/5 dark:bg-info/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-full">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-info-100 dark:bg-info/10 rounded-full">
+                  <div className="w-1.5 h-1.5 rounded-full bg-info"></div>
+                  <span className="text-sm font-semibold text-neutral-900 dark:text-foreground-1">
                     Location
                   </span>
                 </div>
@@ -232,40 +232,40 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 {location?.isRemote ? (
                   <>
                     {location?.name && (
-                      <div className="text-lg font-bold text-gray-900 leading-tight tracking-tight">
+                      <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
                         {location.name}
                       </div>
                     )}
                     <div
                       className={
                         location?.name
-                          ? "text-sm text-gray-600 leading-relaxed"
-                          : "text-lg font-bold text-gray-900 leading-tight tracking-tight"
+                          ? "text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed"
+                          : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
                       }
                     >
                       Remote
                     </div>
-                    <div className="text-xs text-gray-600 leading-relaxed">
+                    <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       {location?.timezone || business?.timezone || "—"}
                     </div>
                   </>
                 ) : (
                   <>
                     {location?.name && (
-                      <div className="text-lg font-bold text-gray-900 leading-tight tracking-tight">
+                      <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
                         {location.name}
                       </div>
                     )}
                     <div
                       className={
                         location?.name
-                          ? "text-sm text-gray-600 leading-relaxed"
-                          : "text-lg font-bold text-gray-900 leading-tight tracking-tight"
+                          ? "text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed"
+                          : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
                       }
                     >
                       On-site
                     </div>
-                    <div className="text-xs text-gray-600 leading-relaxed">
+                    <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       {location?.timezone || business?.timezone || "—"}
                     </div>
                   </>
@@ -277,7 +277,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
 
           {/* Team Card */}
           {isLoading ? (
-            <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+            <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
               <div className="mb-3">
                 <Skeleton className="h-7 w-20 rounded-full" />
               </div>
@@ -287,13 +287,13 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
             </div>
           ) : (
-            <div className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 hover:border-purple-200 hover:shadow-xl hover:shadow-purple-100/30 transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-purple-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+            <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)] dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative">
               <div className="mb-3">
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-purple-50 rounded-full">
-                  <div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>
-                  <span className="text-sm font-semibold text-gray-900">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                  <span className="text-sm font-semibold text-foreground-1">
                     Team
                   </span>
                 </div>
@@ -301,7 +301,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               <div className="space-y-2.5">
                 {Array.isArray(teamMembers) && teamMembers.length > 0 ? (
                   <>
-                    <div className="text-sm text-gray-600 leading-relaxed">
+                    <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       <span className="font-semibold">
                         {teamMembers.length}
                       </span>{" "}
@@ -309,16 +309,16 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                         ? "team member invited"
                         : "team members invited"}
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-foreground-3 dark:text-foreground-2">
                       Awaiting acceptance
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="text-lg font-bold text-gray-900 leading-tight tracking-tight">
+                    <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
                       Just you for now
                     </div>
-                    <div className="text-sm text-gray-600 leading-relaxed">
+                    <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       You can add team members later
                     </div>
                   </>
@@ -336,35 +336,35 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Next steps section */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-2">
-          <h3 className="text-sm text-muted-foreground">More you can do now</h3>
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">More you can do now</h3>
+          <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Assignments */}
-          <div className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-100/30 transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-indigo-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-xl dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative space-y-2.5">
-              <div className="text-base font-semibold text-gray-900 leading-tight tracking-tight">Assign services</div>
-              <div className="text-sm text-gray-600 leading-relaxed mb-6 mt-4">Match services with the right team members—so bookings are routed to the right people.</div>
+              <div className="text-base font-semibold text-foreground-1 leading-tight tracking-tight">Assign services</div>
+              <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-6 mt-4">Match services with the right team members—so bookings are routed to the right people.</div>
               <div>
                 <Button onClick={handleGoAssignments} variant="outline" rounded="full" className="cursor-pointer inline-flex items-center gap-1.5 !px-8">
                   <span>Assignments</span>
-                  <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                  <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 </Button>
               </div>
             </div>
           </div>
 
           {/* Locations */}
-          <div className="group relative bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 hover:border-teal-200 hover:shadow-xl hover:shadow-teal-100/30 transition-all duration-300 overflow-hidden">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-teal-500/5 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-xl dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
+            <div className="absolute top-0 right-0 w-20 h-20 bg-info/5 dark:bg-info/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative space-y-2.5">
-              <div className="text-base font-semibold text-gray-900 leading-tight tracking-tight">Manage locations</div>
-              <div className="text-sm text-gray-600 leading-relaxed mb-6 mt-4">Refine your location setup or add more locations as your business grows.</div>
+              <div className="text-base font-semibold text-foreground-1 leading-tight tracking-tight">Manage locations</div>
+              <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-6 mt-4">Refine your location setup or add more locations as your business grows.</div>
               <div>
                 <Button onClick={handleGoLocations} variant="outline" rounded="full" className="cursor-pointer inline-flex items-center gap-1.5 !px-8">
                   <span>Locations</span>
-                  <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                  <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -375,22 +375,22 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Calendar Section */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
-          <h3 className="text-sm text-muted-foreground">Calendar & Appointments</h3>
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Calendar & Appointments</h3>
+          <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
-        <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
               <div className="flex-1 min-w-0">
                 <div className="flex items-start gap-3">
-                  <div className="bg-gradient-to-br from-sky-500 to-blue-500 rounded-xl p-3 shrink-0 shadow-md">
+                  <div className="bg-gradient-to-br from-info to-info rounded-xl p-3 shrink-0 shadow-md">
                     <Calendar className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900">
+                    <h3 className="text-lg md:text-xl font-bold text-foreground-1">
                       Manage your schedule
                     </h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       View your calendar, create appointments, and keep everything organized in one place.
                     </p>
                   </div>
@@ -398,11 +398,12 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
               <Button
                 onClick={handleGoCalendar}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 py-5 md:py-6 !px-6 md:!px-8 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
+                variant="outline"
+                className="group inline-flex items-center gap-1.5 rounded-full py-5 md:py-6 !px-6 md:!px-8 font-semibold cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
               >
                 <span>Calendar</span>
                 <ArrowUpRight
-                  className="h-4 w-4"
+                  className="h-4 w-4 text-primary"
                   aria-hidden="true"
                 />
               </Button>
@@ -414,10 +415,10 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Settings Section */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
-          <h3 className="text-sm text-muted-foreground">Customization & Branding</h3>
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Customization & Branding</h3>
+          <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
-        <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
               <div className="flex-1 min-w-0">
@@ -426,10 +427,10 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                     <Settings className="h-6 w-6 text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-lg md:text-xl font-bold text-gray-900">
+                    <h3 className="text-lg md:text-xl font-bold text-foreground-1">
                       Customize your profile
                     </h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       Polish your profile with branding, contact info, and details that make a great first impression.
                     </p>
                   </div>
@@ -437,11 +438,12 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
               </div>
               <Button
                 onClick={handleGoBusinessInfo}
-                className="group inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 py-5 md:py-6 !px-6 md:!px-8 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
+                variant="outline"
+                className="group inline-flex items-center gap-1.5 rounded-full py-5 md:py-6 !px-6 md:!px-8 font-semibold cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
               >
                 <span>Settings</span>
                 <ArrowUpRight
-                  className="h-4 w-4"
+                  className="h-4 w-4 text-primary"
                   aria-hidden="true"
                 />
               </Button>
@@ -456,7 +458,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-4 pb-8 md:pb-0">
         <Button
           onClick={() => navigate("/dashboard")}
-          className="group inline-flex items-center gap-1.5 rounded-full bg-gray-900 hover:bg-gray-800 text-white py-5 md:py-6 !px-6 md:!px-8 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
+          className="group inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary-hover text-white dark:text-white py-5 md:py-6 !px-6 md:!px-8 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
         >
           <span>Go to Dashboard</span>
           <ArrowRight

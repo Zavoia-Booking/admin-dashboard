@@ -107,12 +107,12 @@ export const DetectTimezoneButton: React.FC<DetectTimezoneButtonProps> = ({
       type="button"
       onClick={handleDetect}
       className={cn(
-        'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap',
+        'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-surface text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap',
         className
       )}
       title="Auto-detect timezone from your browser"
     >
-      <MapPin className="h-3.5 w-3.5 text-gray-400" />
+      <MapPin className="h-3.5 w-3.5 text-foreground-3 dark:text-foreground-2" />
       Auto-detect
     </button>
   );
@@ -211,19 +211,19 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
           className={cn(
             'w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer',
             error
-              ? 'border-destructive bg-red-50 hover:bg-red-50 hover:border-destructive focus-visible:ring-red-400'
-              : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400',
+              ? 'border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error'
+              : 'border-border bg-info-100 dark:bg-info-100 hover:bg-info-100 dark:hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus',
             !value && 'text-muted-foreground'
           )}
         >
           <span className="flex items-center gap-2 min-w-0">
-            <Globe className="h-4 w-4 text-gray-400 shrink-0" />
+            <Globe className="h-4 w-4 text-primary shrink-0" />
             <span className="truncate text-left">{displayLabel}</span>
           </span>
-          <ChevronDown className={cn('h-4 w-4 text-gray-400 transition-transform', open && 'rotate-180')} />
+          <ChevronDown className={cn('h-4 w-4 text-foreground-3 dark:text-foreground-2 transition-transform', open && 'rotate-180')} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-gray-200 max-h-[70vh] overflow-hidden" align="start" side="bottom" sideOffset={8} avoidCollisions={false} collisionPadding={0}>
+      <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[70vh] overflow-hidden" align="start" side="bottom" sideOffset={8} avoidCollisions={false} collisionPadding={0}>
         <Command shouldFilter={false}>
           <div className="p-2 bg-popover">
             <CommandInput 

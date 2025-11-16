@@ -440,18 +440,18 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                   placeholder="+1 555 123 4567"
                   className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                     (businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && businessPhoneState.error
-                      ? "border-destructive bg-red-50 focus-visible:ring-red-400"
-                      : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
+                      ? "border-destructive bg-error-bg focus-visible:ring-0"
+                      : "border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                   }`}
                   autoComplete="tel"
                   inputMode="tel"
                   value={(businessPhoneField.value as string) || ""}
                   onChange={handleBusinessPhoneChange}
-                  onBlur={businessPhoneField.onBlur}
                   name={businessPhoneField.name}
                   ref={businessPhoneField.ref}
+                  aria-invalid={(businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && !!businessPhoneState.error}
                 />
-                <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               </div>
               <div className="h-5">
                 {(businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && businessPhoneState.error && (
@@ -484,7 +484,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             <Label className="text-base font-medium cursor-defaul mb-0">
               Industry *
             </Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-3 dark:text-foreground-2">
               This helps us suggest relevant services and templates
             </p>
             {isLoadingIndustries ? (
@@ -506,7 +506,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             <Label htmlFor="businessInfo.businessCurrency" className="text-base font-medium cursor-default">
               Currency *
             </Label>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-foreground-3 dark:text-foreground-2">
             Choose your default pricing currency. You can always change it for individual services or adjust it later in settings.            </p>
             <CurrencySelect
               id="businessInfo.businessCurrency"

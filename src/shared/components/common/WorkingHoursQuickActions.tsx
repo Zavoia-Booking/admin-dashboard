@@ -25,7 +25,7 @@ const showWarningToast = (message: string): void => {
     (toast as any).warning ??
     ((m: string) =>
       toast.info(m, {
-        className: "bg-amber-50 text-amber-900 border border-amber-200",
+        className: "bg-warning-bg text-warning border border-warning",
       } as any));
   warnFn(message);
 };
@@ -151,13 +151,13 @@ export default function WorkingHoursQuickActions({
     <div className="px-4 md:px-3 pb-4 md:pb-3">
       {/* Mobile: header row with label and tooltip */}
       <div className="flex items-center justify-between md:hidden">
-        <div className="text-gray-500 text-sm">Apply to:</div>
+        <div className="text-foreground-3 dark:text-foreground-2 text-sm">Apply to:</div>
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
               aria-label="What do these shortcuts do?"
-              className="inline-flex items-center justify-center text-gray-500 hover:text-gray-800 p-0 focus-visible:outline-none cursor-pointer"
+              className="inline-flex items-center justify-center text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
             >
               <HelpCircle className="h-5 w-5" />
             </button>
@@ -181,7 +181,7 @@ export default function WorkingHoursQuickActions({
                 <span className="font-medium">All week</span>: Copies Monday's
                 open/close and status to every day (Tue–Sun).
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-foreground-3 dark:text-foreground-2">
                 Tip: Set valid Monday hours first.
               </div>
             </div>
@@ -197,15 +197,15 @@ export default function WorkingHoursQuickActions({
           title={
             mondayInvalidRange ? "Set valid Monday hours first" : undefined
           }
-          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-end ${
+          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-end ${
             mondayInvalidRange
-              ? "opacity-60 cursor-not-allowed hover:bg-white"
+              ? "opacity-60 cursor-not-allowed hover:bg-surface"
               : ""
           }`}
           disabled={mondayInvalidRange}
           onClick={applyWeekdaysFromMonday}
         >
-          <CalendarCheck className="h-4 w-4" />
+          <CalendarCheck className="h-4 w-4 text-primary" />
           Mon–Fri
         </button>
         <span aria-hidden="true" className="min-w-4"></span>
@@ -215,9 +215,9 @@ export default function WorkingHoursQuickActions({
           title={
             mondayInvalidRange ? "Set valid Monday hours first" : undefined
           }
-          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-start ${
+          className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-start ${
             mondayInvalidRange
-              ? "opacity-60 cursor-not-allowed hover:bg-white"
+              ? "opacity-60 cursor-not-allowed hover:bg-surface"
               : ""
           }`}
           disabled={mondayInvalidRange}
@@ -235,21 +235,21 @@ export default function WorkingHoursQuickActions({
             )
           }
         >
-          <CalendarDays className="h-4 w-4" />
+          <CalendarDays className="h-4 w-4 text-primary" />
           All week
         </button>
       </div>
 
       {/* Desktop: single row with label left and controls right */}
       <div className="hidden md:flex items-center justify-between gap-2 pt-2 mt-2">
-        <div className="text-gray-500 text-sm">Apply to:</div>
-        <div className="flex items-center gap-2">
+        <div className="text-foreground-3 dark:text-foreground-2 text-sm">Apply to:</div>
+        <div className="flex items-center gap-1">
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 aria-label="What do these shortcuts do?"
-                className="inline-flex items-center justify-center text-gray-500 hover:text-gray-800 p-0 focus-visible:outline-none cursor-pointer"
+                className="inline-flex items-center justify-center text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
               >
                 <HelpCircle className="h-5 w-5" />
               </button>
@@ -273,7 +273,7 @@ export default function WorkingHoursQuickActions({
                   <span className="font-medium">All week</span>: Copies Monday's
                   open/close and status to every day (Tue–Sun).
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-foreground-3 dark:text-foreground-2">
                   Tip: Set valid Monday hours first.
                 </div>
               </div>
@@ -285,15 +285,15 @@ export default function WorkingHoursQuickActions({
             title={
               mondayInvalidRange ? "Set valid Monday hours first" : undefined
             }
-            className={`inline-flex items-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 mr-0 md:mr-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap ${
+            className={`inline-flex items-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active mr-0 md:mr-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap ${
               mondayInvalidRange
-                ? "opacity-60 cursor-not-allowed hover:bg-white"
+                ? "opacity-60 cursor-not-allowed hover:bg-surface"
                 : ""
             }`}
             disabled={mondayInvalidRange}
             onClick={applyWeekdaysFromMonday}
           >
-            <CalendarCheck className="h-4 w-4" />
+            <CalendarCheck className="h-4 w-4 text-primary" />
             Mon–Fri
           </button>
           <button
@@ -302,9 +302,9 @@ export default function WorkingHoursQuickActions({
             title={
               mondayInvalidRange ? "Set valid Monday hours first" : undefined
             }
-            className={`inline-flex items-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-gray-200 bg-white text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 active:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap md:ml-8 ${
+            className={`inline-flex items-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap md:ml-8 ${
               mondayInvalidRange
-                ? "opacity-60 cursor-not-allowed hover:bg-white"
+                ? "opacity-60 cursor-not-allowed hover:bg-surface"
                 : ""
             }`}
             disabled={mondayInvalidRange}
@@ -322,7 +322,7 @@ export default function WorkingHoursQuickActions({
               )
             }
           >
-            <CalendarDays className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4 text-primary" />
             All week
           </button>
         </div>

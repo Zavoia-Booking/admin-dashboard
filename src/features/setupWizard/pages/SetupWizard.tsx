@@ -98,8 +98,8 @@ const WizardRunner: React.FC = () => {
   // Also show skeleton during completion transition (when completeRequested is true
   // but user.wizardCompleted is still false, meaning we're waiting for user state update)
   const showSkeleton = isWizardLoading || 
-    (!hasInitializedRef.current && !hydratedFromDraft) ||
-    (completeRequested && !user?.wizardCompleted);
+  (!hasInitializedRef.current && !hydratedFromDraft) ||
+  (completeRequested && !user?.wizardCompleted);
 
   // Handle completion flow: reset completeRequested when user state updates
   useEffect(() => {
@@ -164,43 +164,67 @@ const WizardRunner: React.FC = () => {
       isLoading={isLoading}
       showNext={true}
       nextLabel={currentStep === totalSteps ? "Finish Setup" : "Continue"}
-      isLoadingDraft={showSkeleton}
+      isLoadingDraft={showSkeleton }
     >
       {showSkeleton ? (
         <div className="space-y-6 cursor-default">
-          <div className="grid gap-6">
+          <div className="grid gap-2">
+            {/* Business Name */}
             <div className="space-y-2">
-              <Skeleton className="h-[14px] w-32" />
+              <Skeleton className="h-3.5 w-32" />
               <Skeleton className="h-10 w-full" />
               <div className="h-5" />
             </div>
-            <div className="space-y-3">
-              <Skeleton className="h-[14px] w-24" />
-              <Skeleton className="h-[12px] w-64" />
+            
+            {/* Contact Information Toggle + Business Phone */}
+            <div className="grid grid-cols-1 gap-4">
+              {/* Contact Information Toggle */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-3.5 w-40" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <Skeleton className="h-20 w-full rounded-lg" />
+              </div>
+              
+              {/* Business Phone */}
+              <div className="space-y-2">
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-10 w-full" />
+                <div className="h-5" />
+              </div>
+            </div>
+            
+            {/* Business Description */}
+            <div className="space-y-2">
+              <Skeleton className="h-3.5 w-40" />
+              <Skeleton className="h-24 w-full" />
+              <div className="h-5" />
+            </div>
+            
+            {/* Industry Selector */}
+            <div className="space-y-3 pt-4">
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-3 w-64" />
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {[...Array(6)].map((_, i) => (
                   <Skeleton key={i} className="h-24 w-full rounded-lg" />
                 ))}
               </div>
             </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Skeleton className="h-[14px] w-40" />
-                <Skeleton className="h-[12px] w-12" />
-              </div>
-              <Skeleton className="h-[72px] w-full" />
+            
+            {/* Currency Select */}
+            <div className="space-y-2 pt-4">
+              <Skeleton className="h-3.5 w-28" />
+              <Skeleton className="h-3 w-96" />
+              <Skeleton className="h-10 w-full" />
+              <div className="h-5" />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Skeleton className="h-[14px] w-28" />
-                <Skeleton className="h-10 w-full" />
-                <div className="h-5" />
-              </div>
-              <div className="space-y-2">
-                <Skeleton className="h-[14px] w-32" />
-                <Skeleton className="h-10 w-full" />
-                <div className="h-5" />
-              </div>
+            
+            {/* Logo Upload */}
+            <div className="space-y-2 pt-4">
+              <Skeleton className="h-3.5 w-48" />
+              <Skeleton className="h-32 w-full rounded-lg" />
             </div>
           </div>
         </div>
@@ -250,7 +274,7 @@ const SetupWizardPage: React.FC = () => {
         <div className="container mx-auto pt-0 md:pt-8 pb-0 md:pb-8 min-h-[100svh] flex flex-col">
           <div className="mx-auto max-w-[960px] w-full rounded-none md:rounded-2xl md:border bg-card shadow-md flex-1 flex flex-col">
             <div className="md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 pb-0">
-              <div className="rounded-lg bg-white p-0 pt-4 flex-1 md:min-h-[500px] md:pb-4">
+              <div className="rounded-lg bg-surface dark:bg-neutral-900 p-0 pt-4 flex-1 md:min-h-[500px] md:pb-4">
                 <LaunchPageSkeleton />
               </div>
             </div>
@@ -262,11 +286,11 @@ const SetupWizardPage: React.FC = () => {
 
   if (user?.wizardCompleted) {
     return (
-      <div className="min-h-[100svh] bg-background cursor-default">
+      <div className="min-h-[100svh] cursor-default">
         <div className="container mx-auto pt-0 md:pt-8 pb-0 md:pb-8 min-h-[100svh] flex flex-col">
-          <div className="mx-auto max-w-[960px] w-full rounded-none md:rounded-2xl md:border bg-card shadow-md flex-1 flex flex-col">
+          <div className="mx-auto max-w-[960px] w-full rounded-none md:rounded-2xl md:border bg-surface shadow-md flex-1 flex flex-col">
             <div className="md:px-6 pt-0 md:pb-4 flex flex-col min-h-0 pb-0">
-              <div className="rounded-lg bg-white p-0 pt-4 flex-1 md:min-h-[500px] md:pb-4">
+              <div className="rounded-lg p-0 md:p-4 pt-4 flex-1 md:min-h-[500px] !pb-8">
                 <StepLaunch
                   business={business}
                   location={locations[0] || null}

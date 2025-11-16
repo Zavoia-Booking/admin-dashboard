@@ -32,17 +32,17 @@ const IndustryOption = memo(function IndustryOption({ id, name, selected, onSele
       aria-checked={selected}
       tabIndex={0}
       className={`
-        group relative flex items-center justify-center h-20 sm:h-auto sm:min-h-[52px] px-3 py-2 rounded-xl sm:rounded-lg border text-sm font-medium sm:font-normal transition-colors cursor-pointer
+        group relative flex items-center justify-center min-h-14 px-3 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer
         ${selected
-          ? 'border-primary bg-primary/5 text-primary shadow-xs'
-          : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50'
-        } focus:outline-none focus-visible:ring-1 focus-visible:ring-ring/30
+          ? 'border-neutral-500 bg-info-100 text-neutral-900 dark:text-neutral-900 shadow-xs'
+          : 'border-border bg-surface hover:border-border-strong hover:bg-surface-hover'
+        } focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0
       `}
     >
       <span className="text-center leading-tight select-none">{name}</span>
       {selected && (
-        <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 shadow-sm flex items-center justify-center">
-          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+        <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-400 dark:bg-success shadow-sm flex items-center justify-center">
+          <svg className="h-3 w-3 text-foreground-inverse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
           </svg>
         </div>

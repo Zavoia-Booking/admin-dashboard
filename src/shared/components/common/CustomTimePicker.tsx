@@ -150,15 +150,15 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
   }, [label]);
 
   const timePickerContent = (
-    <div className="flex flex-col gap-3 py-2">
-      <div className="text-base font-medium text-gray-700 text-center pb-3 border-b border-gray-200">{headerText}</div>
+    <div className="flex flex-col gap-3 py-2 dark:bg-neutral-900">
+      <div className="text-base font-medium text-foreground-1 text-center pb-3 border-b border-border">{headerText}</div>
       <div className="flex items-start justify-center gap-2">
         {/* Hour selector */}
         <div className="flex flex-col items-center w-28" role="listbox" aria-label="Select hour">
-          <div className="text-xs text-gray-500 mb-1 font-medium pb-2">Hour</div>
+          <div className="text-xs text-foreground-3 dark:text-foreground-2 mb-1 font-medium pb-2">Hour</div>
           <div
             ref={hourScrollRef}
-            className="relative h-44 w-full overflow-y-auto scroll-smooth border border-gray-200 rounded-md bg-white tabular-nums px-1 py-1"
+            className="relative h-44 w-full overflow-y-auto scroll-smooth border border-border rounded-md bg-surface dark:bg-neutral-900 tabular-nums px-1 py-1"
             style={{ scrollbarWidth: 'thin' }}
           >
             {hours.map((h) => (
@@ -170,9 +170,9 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
                 onClick={() => handleHourClick(h)}
                 onKeyDown={(e) => handleHourKeyDown(e, h)}
                 className={`h-10 !min-h-0 w-full my-0.5 text-sm leading-none flex items-center justify-center transition-colors cursor-pointer select-none rounded-full tabular-nums ${localHour === h
-                    ? 'bg-black text-white font-semibold ring-1 ring-black'
-                    : 'hover:bg-gray-100 text-gray-700'
-                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400`}
+                    ? 'bg-primary text-primary-foreground font-semibold ring-1 ring-primary'
+                    : 'hover:bg-surface-hover text-foreground-1'
+                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
               >
                 {String(h).padStart(2, '0')}
               </div>
@@ -180,14 +180,14 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
           </div>
         </div>
 
-        <div className="self-stretch w-px bg-gray-200 rounded-full mx-2" />
+        <div className="self-stretch w-px bg-border rounded-full mx-2" />
 
         {/* Minute selector */}
         <div className="flex flex-col items-center w-28" role="listbox" aria-label="Select minute">
-          <div className="text-xs text-gray-500 mb-1 font-medium pb-2">Minute</div>
+          <div className="text-xs text-foreground-3 dark:text-foreground-2 mb-1 font-medium pb-2">Minute</div>
           <div
             ref={minuteScrollRef}
-            className="relative h-44 w-full overflow-y-auto scroll-smooth border border-gray-200 rounded-md bg-white tabular-nums px-1 py-1"
+            className="relative h-44 w-full overflow-y-auto scroll-smooth border border-border rounded-md bg-surface dark:bg-neutral-900 tabular-nums px-1 py-1"
             style={{ scrollbarWidth: 'thin' }}
           >
             {minutes.map((m) => (
@@ -199,9 +199,9 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
                 onClick={() => handleMinuteClick(m)}
                 onKeyDown={(e) => handleMinuteKeyDown(e, m)}
                 className={`h-10 !min-h-0 w-full my-0.5 text-sm leading-none flex items-center justify-center transition-colors cursor-pointer select-none rounded-full tabular-nums ${localMinute === m
-                    ? 'bg-black text-white font-semibold ring-1 ring-black'
-                    : 'hover:bg-gray-100 text-gray-700'
-                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400`}
+                    ? 'bg-primary text-primary-foreground font-semibold ring-1 ring-primary'
+                    : 'hover:bg-surface-hover text-foreground-1'
+                  } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
               >
                 {String(m).padStart(2, '0')}
               </div>
@@ -209,11 +209,11 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
           </div>
         </div>
 
-        <div className="self-stretch w-px bg-gray-200 rounded-full mx-2" />
+        <div className="self-stretch w-px bg-border rounded-full mx-2" />
 
         {/* AM/PM selector */}
         <div className="flex flex-col items-center w-20" role="listbox" aria-label="Select period">
-          <div className="text-xs text-gray-500 mb-1 font-medium">Period</div>
+          <div className="text-xs text-foreground-3 dark:text-foreground-2 mb-1 font-medium">Period</div>
           <div className="flex flex-col gap-2 w-full h-44 justify-center">
             <div
               role="option"
@@ -222,9 +222,9 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
               onClick={() => handlePeriodClick('AM')}
               onKeyDown={(e) => handlePeriodKeyDown(e, 'AM')}
               className={`h-10 !min-h-0 inline-flex items-center justify-center px-4 rounded-full text-sm font-medium transition-colors cursor-pointer select-none tabular-nums ${localPeriod === 'AM'
-                  ? 'bg-black text-white ring-1 ring-black'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400`}
+                  ? 'bg-primary text-primary-foreground ring-1 ring-primary'
+                  : 'bg-surface-hover text-foreground-2 dark:text-foreground-1 hover:bg-surface-active'
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
             >
               AM
             </div>
@@ -235,9 +235,9 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
               onClick={() => handlePeriodClick('PM')}
               onKeyDown={(e) => handlePeriodKeyDown(e, 'PM')}
               className={`h-10 !min-h-0 inline-flex items-center justify-center px-4 rounded-full text-sm font-medium transition-colors cursor-pointer select-none tabular-nums ${localPeriod === 'PM'
-                  ? 'bg-black text-white ring-1 ring-black'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400`}
+                  ? 'bg-primary text-primary-foreground ring-1 ring-primary'
+                  : 'bg-surface-hover text-foreground-2 dark:text-foreground-1 hover:bg-surface-active'
+                } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
             >
               PM
             </div>
@@ -257,7 +257,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
         // Blur the trigger immediately so it doesn't retain focus when aria-hidden is applied
         (e.currentTarget as HTMLElement).blur();
       }}
-      className="inline-flex !h-10 !min-h-0 px-4 rounded-full bg-gray-100 items-center justify-center hover:bg-gray-200 w-[128px] md:w-[104px] text-sm md:text-sm leading-none cursor-pointer transition-colors select-none"
+      className="inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface items-center justify-center hover:bg-surface-hover hover:border-border-strong w-[128px] md:w-[104px] text-sm md:text-sm leading-none cursor-pointer transition-colors select-none"
     >
       {displayValue}
     </span>
@@ -267,7 +267,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
     <div className="flex items-center gap-2 shrink-0">
       <span
         id={`${id}-label`}
-        className={`${(label?.toLowerCase?.() === 'from' || label?.toLowerCase?.() === 'to') ? 'hidden md:inline' : ''} text-xs text-gray-400 whitespace-nowrap`}
+        className={`${(label?.toLowerCase?.() === 'from' || label?.toLowerCase?.() === 'to') ? 'hidden md:inline' : ''} text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap`}
       >
         {label}
       </span>
@@ -298,7 +298,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
                   <button
                     type="button"
                     onClick={handleDone}
-                    className="h-10 inline-flex items-center justify-center px-4 bg-black text-white rounded-full hover:bg-gray-800 transition-colors font-medium text-sm cursor-pointer w-full"
+                    className="h-10 inline-flex items-center justify-center px-4 bg-primary text-primary-foreground rounded-full hover:bg-primary-hover hover:text-white transition-colors font-medium text-sm cursor-pointer w-full"
                   >
                     Done
                   </button>
@@ -313,7 +313,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
             {trigger}
           </PopoverTrigger>
           <PopoverContent
-            className="w-[340px] p-3 rounded-lg border border-gray-200 bg-white shadow-md"
+            className="w-[340px] p-3 rounded-lg border border-border bg-surface dark:bg-neutral-900 shadow-md"
             align="start"
             side="bottom"
             sideOffset={8}
@@ -324,7 +324,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
               <button
                 type="button"
                 onClick={handleDone}
-                className="h-10 inline-flex items-center justify-center px-4 bg-black text-white rounded-full hover:bg-gray-800 transition-colors font-medium text-sm cursor-pointer w-full"
+                className="h-10 inline-flex items-center justify-center px-4 bg-primary text-primary-foreground rounded-full hover:bg-primary-hover transition-colors font-medium text-sm cursor-pointer w-full"
               >
                 Done
               </button>

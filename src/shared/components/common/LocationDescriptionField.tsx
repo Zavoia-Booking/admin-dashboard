@@ -40,7 +40,7 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
           {label} {required && '*'}
         </Label>
         {showCharacterCount && (
-          <span className={`text-xs ${isOverLimit ? 'text-red-500' : 'text-gray-500'}`}>
+          <span className={`text-xs ${isOverLimit ? 'text-error' : 'text-foreground-3 dark:text-foreground-2'}`}>
             {currentLength}/{maxLength}
           </span>
         )}
@@ -54,8 +54,8 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
         maxLength={maxLength}
         className={`resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 h-28 sm:h-auto ${
           error
-            ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
-            : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+            ? 'border-destructive bg-error-bg focus-visible:ring-error'
+            : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
         }`}
         aria-invalid={!!error}
       />

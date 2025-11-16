@@ -3,7 +3,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { MapPin, Hash, Building2, Flag, Locate, AlertCircle, HelpCircle } from 'lucide-react';
+import { MapPin, Hash, Building2, Flag, Locate, AlertCircle, HelpCircle, Navigation } from 'lucide-react';
 
 type Props = {
   streetBase: string; // Full address display for locked mode
@@ -56,11 +56,11 @@ const AddressManualFields: React.FC<Props> = ({
     <div className="mt-2 space-y-3">
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <Label className="text-base font-medium text-gray-700">{isLocked ? 'Selected Address' : 'Street *'}</Label>
+          <Label className="text-base font-medium text-foreground-1">{isLocked ? 'Selected Address' : 'Street *'}</Label>
           {isLocked && streetBase && (
             <button
               type="button"
-              className="text-xs font-medium text-gray-600 hover:text-gray-900 transition-colors cursor-pointer"
+              className="text-xs font-medium text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 transition-colors cursor-pointer"
               onClick={onChangeAddressClick}
             >
               Change address
@@ -75,14 +75,14 @@ const AddressManualFields: React.FC<Props> = ({
                   value={streetBase}
                   onChange={(e) => onStreetChange(e.target.value)}
                   placeholder="Enter street name"
-                  className={`!pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:ring-offset-0 focus:border-blue-400 cursor-not-allowed bg-gray-50/80 text-gray-600 border-gray-200`}
+                  className={`!pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-focus focus-visible:ring-offset-0 focus:border-focus cursor-not-allowed bg-surface-hover text-foreground-2 border-border`}
                   readOnly
                   aria-readonly
                   aria-invalid={!!streetError}
                   onFocus={onStreetFocus}
                   onBlur={onStreetBlur}
                 />
-                <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               </div>
             </TooltipTrigger>
             <TooltipContent 
@@ -102,13 +102,13 @@ const AddressManualFields: React.FC<Props> = ({
               placeholder="e.g. Main Street"
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 streetError
-                  ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
-                  : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                  ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                  : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`}
               maxLength={200}
               aria-invalid={!!streetError}
             />
-            <MapPin className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Navigation className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
         )}
         <div className="h-5">
@@ -124,13 +124,13 @@ const AddressManualFields: React.FC<Props> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
           <div className="relative">
-            <Label className="text-base font-medium text-gray-700">Building / Number *</Label>
+            <Label className="text-base font-medium text-foreground-1">Building / Number *</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
                   aria-label="Building number format help"
-                  className="absolute -top-2 -right-1 inline-flex items-center justify-center text-gray-500 hover:text-gray-800 p-0 focus-visible:outline-none cursor-pointer"
+                  className="absolute -top-2 -right-1 inline-flex items-center justify-center text-foreground-3 dark:text-foreground-1 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
                 >
                   <HelpCircle className="h-5 w-5" />
                 </button>
@@ -145,10 +145,10 @@ const AddressManualFields: React.FC<Props> = ({
                 <p>
                   You can include <span className="font-medium">building number</span>, <span className="font-medium">apartment</span>, <span className="font-medium">floor</span>, or <span className="font-medium">suite</span> details here.
                 </p>
-                <div className="my-3 border-t border-gray-200" />
+                <div className="my-3 border-t border-border" />
                 <div className="space-y-1.5">
                   <div className="text-xs font-medium text-foreground">Common formats:</div>
-                  <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="text-xs text-muted-foreground dark:text-foreground-2 space-y-1">
                     <div>• "556, Apt 12"</div>
                     <div>• "Building 3, Floor 2"</div>
                     <div>• "Suite 205"</div>
@@ -163,12 +163,12 @@ const AddressManualFields: React.FC<Props> = ({
               onChange={(e) => onNumberChange(e.target.value)} 
               placeholder="e.g. Bl. 556, Apt. 12" 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                numberError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                numberError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
               maxLength={50}
               aria-invalid={!!numberError}
             />
-            <Hash className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Hash className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
           <div className="h-5">
             {numberError && (
@@ -180,19 +180,19 @@ const AddressManualFields: React.FC<Props> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-base font-medium text-gray-700">City *</Label>
+          <Label className="text-base font-medium text-foreground-1">City *</Label>
           <div className="relative">
             <Input 
               value={city} 
               onChange={(e) => onCityChange(e.target.value)} 
               placeholder="Enter city" 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                cityError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                cityError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
               maxLength={100}
               aria-invalid={!!cityError}
             />
-            <Building2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Building2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
           <div className="h-5">
             {cityError && (
@@ -207,19 +207,19 @@ const AddressManualFields: React.FC<Props> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-base font-medium text-gray-700">Postcode *</Label>
+          <Label className="text-base font-medium text-foreground-1">Postcode *</Label>
           <div className="relative">
             <Input 
               value={postalCode} 
               onChange={(e) => onPostalChange(e.target.value)} 
               placeholder="Postal code" 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                postalError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                postalError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
               maxLength={20}
               aria-invalid={!!postalError}
             />
-            <Locate className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Locate className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
           <div className="h-5">
             {postalError && (
@@ -231,19 +231,19 @@ const AddressManualFields: React.FC<Props> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-base font-medium text-gray-700">Country *</Label>
+          <Label className="text-base font-medium text-foreground-1">Country *</Label>
           <div className="relative">
             <Input 
               value={country} 
               onChange={(e) => onCountryChange(e.target.value)} 
               placeholder="Country" 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
-                countryError ? 'border-destructive bg-red-50 focus-visible:ring-red-400' : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                countryError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
               maxLength={100}
               aria-invalid={!!countryError}
             />
-            <Flag className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Flag className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
           </div>
           <div className="h-5">
             {countryError && (

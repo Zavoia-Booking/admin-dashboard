@@ -13,11 +13,11 @@ const LaunchPageSkeleton: React.FC = () => {
       {/* Divider Skeleton */}
       <div className="flex items-end gap-2 mb-6">
         <Skeleton className="h-4 w-40" />
-        <div className="flex-1 h-px bg-gray-200"></div>
+        <div className="flex-1 h-px bg-border"></div>
       </div>
 
       {/* Critical Action Card Skeleton */}
-      <div className="relative bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl py-6 md:py-6 p-4 md:p-6 overflow-hidden">
+      <div className="relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl py-6 md:py-6 p-4 md:p-6 overflow-hidden">
         <div className="space-y-4">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-4 md:gap-4">
             <div className="hidden md:block">
@@ -43,11 +43,11 @@ const LaunchPageSkeleton: React.FC = () => {
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
           <Skeleton className="h-4 w-32" />
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Business Card Skeleton */}
-          <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+          <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
             <div className="mb-3">
               <Skeleton className="h-7 w-24 rounded-full" />
             </div>
@@ -57,7 +57,7 @@ const LaunchPageSkeleton: React.FC = () => {
             </div>
           </div>
           {/* Location Card Skeleton */}
-          <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+          <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
             <div className="mb-3">
               <Skeleton className="h-7 w-24 rounded-full" />
             </div>
@@ -68,7 +68,7 @@ const LaunchPageSkeleton: React.FC = () => {
             </div>
           </div>
           {/* Team Card Skeleton */}
-          <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+          <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
             <div className="mb-3">
               <Skeleton className="h-7 w-20 rounded-full" />
             </div>
@@ -84,9 +84,9 @@ const LaunchPageSkeleton: React.FC = () => {
       <div>
         <div className="flex items-end gap-2 mb-6">
           <Skeleton className="h-4 w-40" />
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border"></div>
         </div>
-        <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
               <div className="flex-1 min-w-0">
@@ -109,11 +109,11 @@ const LaunchPageSkeleton: React.FC = () => {
       <div>
         <div className="flex items-end gap-2 mb-6 pt-2">
           <Skeleton className="h-4 w-36" />
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Assignments Card Skeleton */}
-          <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+          <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
             <div className="space-y-2.5">
               <Skeleton className="h-5 w-32" />
               <Skeleton className="h-4 w-full" />
@@ -124,7 +124,7 @@ const LaunchPageSkeleton: React.FC = () => {
             </div>
           </div>
           {/* Locations Card Skeleton */}
-          <div className="bg-gradient-to-br from-white to-gray-50/50 rounded-2xl p-4 md:p-5 border border-gray-200/70 overflow-hidden">
+          <div className="bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border overflow-hidden">
             <div className="space-y-2.5">
               <Skeleton className="h-5 w-36" />
               <Skeleton className="h-4 w-full" />
@@ -141,9 +141,9 @@ const LaunchPageSkeleton: React.FC = () => {
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
           <Skeleton className="h-4 w-48" />
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border"></div>
         </div>
-        <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
               <div className="flex-1 min-w-0">
@@ -166,9 +166,9 @@ const LaunchPageSkeleton: React.FC = () => {
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
           <Skeleton className="h-4 w-52" />
-          <div className="flex-1 h-px bg-gray-200"></div>
+          <div className="flex-1 h-px bg-border"></div>
         </div>
-        <div className="relative bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
           <div className="p-4 md:p-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
               <div className="flex-1 min-w-0">
