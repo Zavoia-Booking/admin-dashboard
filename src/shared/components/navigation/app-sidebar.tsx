@@ -14,9 +14,10 @@ import {
   Store,
 } from "lucide-react"
 import { useLocation } from "react-router-dom"
-import { useSelector } from "react-redux"
+import { useSelector, useDispatch } from "react-redux"
 import { useTranslation } from "react-i18next"
 import type { RootState } from "../../../app/providers/store"
+import { logoutRequestAction } from "../../../features/auth/actions"
 
 import { NavMain } from "./nav-main"
 import { CompanyLogo } from "./CompanyLogo"
@@ -147,6 +148,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const search = location.search
   const { t } = useTranslation('navigation')
   const { state } = useSidebar()
+  const dispatch = useDispatch()
   
   // Get user data from Redux store
   const user = useSelector((state: RootState) => state.auth.user)
@@ -202,10 +204,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     }))
 
   const handleLogout = () => {
-    // Add your logout logic here
-    console.log("Logging out...")
-    // Example: authStore.logout()
-    // Example: navigate("/login")
+    dispatch(logoutRequestAction.request())
   }
 
   // Memoize logo props to prevent unnecessary re-renders

@@ -1,23 +1,34 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessProfile from '../components/BusinessProfile';
 import {
   User,
   CreditCard,
-  Settings
+  Settings,
 } from 'lucide-react';
 import BillingAndSubscription from '../components/BillingAndSubscription';
 import AdvancedSettings from '../components/AdvancedSettings';
+import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
 
 type SettingsTab = 'profile' | 'billing' | 'advanced';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<SettingsTab>('profile');
+  
+  // Get initial tab from URL or default to 'profile'
+  const getInitialTab = (): SettingsTab => {
+    const tab = searchParams.get('tab') as SettingsTab | null;
+    if (tab && (tab === 'profile' || tab === 'billing' || tab === 'advanced')) {
+      return tab;
+    }
+    return 'profile';
+  };
 
-  // Set active tab from URL query parameter
+  const [activeTab, setActiveTab] = React.useState<SettingsTab>(getInitialTab());
+
+  // Sync with URL changes
   useEffect(() => {
     const tab = searchParams.get('tab') as SettingsTab | null;
     if (tab && (tab === 'profile' || tab === 'billing' || tab === 'advanced')) {
@@ -25,10 +36,32 @@ const SettingsPage = () => {
     }
   }, [searchParams]);
 
-  const handleTabChange = (tab: SettingsTab) => {
+  const handleTabChange = (tabId: string) => {
+    const tab = tabId as SettingsTab;
     setActiveTab(tab);
     navigate(`/settings?tab=${tab}`);
   };
+
+  const tabItems: ResponsiveTabItem[] = [
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: User,
+      content: <BusinessProfile />,
+    },
+    {
+      id: 'billing',
+      label: 'Billing & Subscription',
+      icon: CreditCard,
+      content: <BillingAndSubscription />,
+    },
+    {
+      id: 'advanced',
+      label: 'Advanced Settings',
+      icon: Settings,
+      content: <AdvancedSettings />,
+    },
+  ];
 
   return (
     <AppLayout>
@@ -38,49 +71,12 @@ const SettingsPage = () => {
           <h1 className="text-2xl font-semibold">Settings</h1>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-2 border-b">
-          <button
-            onClick={() => handleTabChange('profile')}
-            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
-              activeTab === 'profile'
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <User className="h-4 w-4" />
-            Profile
-          </button>
-          <button
-            onClick={() => handleTabChange('billing')}
-            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
-              activeTab === 'billing'
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <CreditCard className="h-4 w-4" />
-            Billing & Subscription
-          </button>
-          <button
-            onClick={() => handleTabChange('advanced')}
-            className={`flex items-center gap-2 px-4 py-2 border-b-2 transition-colors ${
-              activeTab === 'advanced'
-                ? 'border-primary text-primary font-medium'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Settings className="h-4 w-4" />
-            Advanced Settings
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        {activeTab === 'profile' && <BusinessProfile />}
-        
-        {activeTab === 'billing' && <BillingAndSubscription />}
-
-        {activeTab === 'advanced' && <AdvancedSettings />}
+        {/* Responsive Tabs */}
+        <ResponsiveTabs
+          items={tabItems}
+          value={activeTab}
+          onValueChange={handleTabChange}
+        />
       </div>
     </AppLayout>
   );

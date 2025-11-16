@@ -37,15 +37,20 @@ export type AssignmentFilterState = {
   serviceId: number | string;
 };
 
-// New types for 3-tab perspective views
-export type AssignmentPerspective = 'team_members' | 'services' | 'locations';
-
 export type TeamMemberAssignment = {
   id: number;
   email: string;
   firstName: string;
   lastName: string;
   role: string;
+  allServices?: Array<{
+    serviceId: number;
+    serviceName: string;
+  }>;
+  allLocations?: Array<{
+    locationId: number;
+    locationName: string;
+  }>;
   assignedServices: Array<{
     serviceId: number;
     serviceName: string;
@@ -100,37 +105,12 @@ export type BulkAssignmentPayload = {
 };
 
 export type AssignmentsState = {
-  // Current tab perspective
-  activePerspective: AssignmentPerspective;
-  
   // Selected item in left panel
   selectedTeamMemberId: number | null;
-  selectedServiceId: number | null;
-  selectedLocationId: number | null;
   
-  // Data for each perspective
+  // Data for team members
   teamMemberAssignments: TeamMemberAssignment[];
-  serviceAssignments: ServiceAssignment[];
-  locationAssignments: LocationAssignment[];
-  
-  // Search/filter
-  searchQuery: string;
-  
-  // Legacy state (keep for backwards compatibility)
-  assignments: AssignmentGroup[];
-  summary: AssignmentSummary | null;
-  filters: AssignmentFilterState;
-  addForm: {
-    open: boolean
-  },
-  editForm: {
-    open: boolean,
-    item: AssignmentItem | null,
-  },
-  viewDetailsPopup: {
-    open: boolean,
-    item: Array<AssignmentItem>
-  }
+  selectedTeamMemberAssignment: TeamMemberAssignment | null;
   
   // Loading states
   isLoading: boolean;
