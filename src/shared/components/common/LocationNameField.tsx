@@ -48,12 +48,12 @@ export const LocationNameField: React.FC<LocationNameFieldProps> = ({
           maxLength={maxLength}
           className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error
-              ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
-              : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+              ? 'border-destructive bg-error-bg focus-visible:ring-error'
+              : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
           }`}
           aria-invalid={!!error}
         />
-        <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+        <Icon className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
       </div>
       <div className="h-5">
         {error && (

@@ -16,7 +16,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-gray-50">
+      <div className="flex h-screen">
         {/* Sidebar: on desktop it's a persistent rail; on mobile it's a sheet controlled via trigger */}
         <AppSidebar />
 

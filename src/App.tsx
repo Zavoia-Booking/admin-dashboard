@@ -24,10 +24,12 @@ import TeamInvitationPage from './features/auth/pages/team-invitation'
 import SupportPage from './features/support/pages/support'
 import CustomersPage from './features/customers/pages/customers'
 import MarketplacePage from './features/marketplace/pages/marketplace'
+import { ThemeToggle } from './shared/components/common/ThemeToggle'
 
 function App() {
   return (
     <BrowserRouter>
+      <ThemeToggle />
       <Routes>
         <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
         <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />

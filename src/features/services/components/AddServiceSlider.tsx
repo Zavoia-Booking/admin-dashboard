@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { DollarSign, FileText, Settings } from 'lucide-react';
+import { DollarSign, FileText, Settings, Clock, Info, Sparkles } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
@@ -101,93 +101,140 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
         title={text('addService.title')}
         contentClassName="bg-muted/50 scrollbar-hide"
         footer={
-          <div className="flex gap-3">
+          <div className="flex gap-3 p-4 bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
             <Button 
               type="button"
               variant="outline" 
               onClick={handleCancel}
-              className="flex-1"
+              className="flex-1 h-11 font-medium transition-all duration-200 hover:bg-muted/50"
             >
               {text('addService.buttons.cancel')}
             </Button>
             <Button 
               type="submit"
               form="add-service-form"
-              className="flex-1"
+              className="flex-1 h-11 font-semibold shadow-md hover:shadow-lg transition-all duration-200"
             >
               {text('addService.buttons.create')}
             </Button>
           </div>
         }
       >
-        <form id="add-service-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-            <CardContent className="space-y-8">
+        <form 
+          id="add-service-form" 
+          onSubmit={handleSubmit(onSubmit)} 
+          className="h-full flex flex-col max-w-md mx-auto md:max-w-none md:m-0 md:h-full"
+        >
+          <div className="flex-1 overflow-y-auto p-6 md:p-8 bg-white">
+            <Card className="border-0 py-0 bg-card/70 backdrop-blur-sm transition-all duration-300 md:bg-transparent md:border-0">
+              <CardContent className="space-y-10 md:p-0">
               {/* Service Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 pb-1">
+                  <div className="p-2.5 rounded-xl bg-primary/10 shadow-sm">
                     <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">{text('addService.sections.serviceInfo')}</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{text('addService.sections.serviceInfo')}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Basic details about your service</p>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-foreground">{text('addService.form.name.label')}</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder={text('addService.form.name.placeholder')}
-                    {...register('name', { required: true })}
-                    className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-foreground">{text('addService.form.description.label')}</Label>
-                  <Textarea
-                    id="description"
-                    placeholder={text('addService.form.description.placeholder')}
-                    {...register('description')}
-                    className="min-h-[80px] text-base border-border/50 bg-background/50 backdrop-blur-sm resize-none"
-                    rows={3}
-                  />
+                
+                <div className="space-y-3 pl-1">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      {text('addService.form.name.label')}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        id="name"
+                        type="text"
+                        placeholder={text('addService.form.name.placeholder')}
+                        {...register('name', { required: true })}
+                        className="h-12 text-base border-border/60 bg-background/80 hover:bg-background focus:bg-background transition-all duration-200 pl-4 pr-4"
+                        required
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      {text('addService.form.description.label')}
+                      <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Label>
+                    <Textarea
+                      id="description"
+                      placeholder={text('addService.form.description.placeholder')}
+                      {...register('description')}
+                      className="min-h-[100px] text-base border-border/60 bg-background/80 hover:bg-background focus:bg-background resize-none transition-all duration-200 px-4 py-3"
+                      rows={4}
+                    />
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <Info className="h-3 w-3" />
+                      Optional: Add details that help customers understand this service
+                    </p>
+                  </div>
                 </div>
               </div>
 
               {/* Pricing & Duration Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/20">
-                    <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 pb-1">
+                  <div className="p-2.5 rounded-xl bg-emerald-100 dark:bg-emerald-900/20 shadow-sm">
+                    <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">{text('addService.sections.pricingDuration')}</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{text('addService.sections.pricingDuration')}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Set pricing and time requirements</p>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                
+                <div className="grid grid-cols-2 gap-4 pl-1">
                   <div className="space-y-2">
-                    <Label htmlFor="price" className="text-sm font-medium text-foreground">{text('addService.form.price.label')}</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      placeholder={text('addService.form.price.placeholder')}
-                      {...register('price', { required: true, valueAsNumber: true, min: 0 })}
-                      className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                      min="0"
-                      step="0.01"
-                      required
-                    />
+                    <Label htmlFor="price" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      {text('addService.form.price.label')}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <Input
+                        id="price"
+                        type="number"
+                        placeholder="0.00"
+                        {...register('price', { required: true, valueAsNumber: true, min: 0 })}
+                        className="h-12 text-base border-border/60 bg-background/80 hover:bg-background focus:bg-background transition-all duration-200 pl-10 pr-4"
+                        min="0"
+                        step="0.01"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Base price in USD</p>
                   </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="duration" className="text-sm font-medium text-foreground">{text('addService.form.duration.label')}</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      placeholder={text('addService.form.duration.placeholder')}
-                      {...register('duration', { required: true, valueAsNumber: true, min: 1 })}
-                      className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                      min="1"
-                      step="1"
-                      required
-                    />
+                    <Label htmlFor="duration" className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                      {text('addService.form.duration.label')}
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <Input
+                        id="duration"
+                        type="number"
+                        placeholder="30"
+                        {...register('duration', { required: true, valueAsNumber: true, min: 1 })}
+                        className="h-12 text-base border-border/60 bg-background/80 hover:bg-background focus:bg-background transition-all duration-200 pl-10 pr-4"
+                        min="1"
+                        step="1"
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Duration in minutes</p>
                   </div>
                 </div>
               </div>
@@ -335,30 +382,66 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
               */}
 
               {/* Service Settings Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
-                    <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="space-y-5">
+                <div className="flex items-center gap-3 pb-1">
+                  <div className="p-2.5 rounded-xl bg-violet-100 dark:bg-violet-900/20 shadow-sm">
+                    <Settings className="h-5 w-5 text-violet-600 dark:text-violet-400" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">{text('addService.sections.settings')}</h3>
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{text('addService.sections.settings')}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Control service availability</p>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">{text('addService.form.status.label')}</Label>
-                    <p className="text-xs text-muted-foreground">
-                      {watch('isActive') === true 
-                        ? text('addService.form.status.activeDescription')
-                        : text('addService.form.status.inactiveDescription')}
-                    </p>
+                
+                <div className="pl-1">
+                  <div className="flex items-center justify-between p-5 rounded-xl bg-gradient-to-br from-background/80 to-muted/30 backdrop-blur-sm border border-border/60 hover:border-border transition-all duration-200 shadow-sm hover:shadow-md">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2">
+                        <Label className="text-sm font-semibold text-foreground cursor-pointer">
+                          {text('addService.form.status.label')}
+                        </Label>
+                        {watch('isActive') && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                            <Sparkles className="h-3 w-3" />
+                            Active
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {watch('isActive') === true 
+                          ? text('addService.form.status.activeDescription')
+                          : text('addService.form.status.inactiveDescription')}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={watch('isActive') === true}
+                      onCheckedChange={(checked) => setValue('isActive', checked ? true : false)}
+                      className="ml-4"
+                    />
                   </div>
-                  <Switch
-                    checked={watch('isActive') === true}
-                    onCheckedChange={(checked) => setValue('isActive', checked ? true : false)}
-                  />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Action Buttons - Desktop: inside form, Mobile: in footer */}
+          <div className="hidden md:flex gap-3 p-6 border-t border-border/60 bg-gradient-to-b from-background to-muted/20 backdrop-blur-sm">
+            <Button 
+              type="button"
+              variant="outline" 
+              onClick={handleCancel}
+              className="flex-1 h-11 font-medium transition-all duration-200 hover:bg-muted/50"
+            >
+              {text('addService.buttons.cancel')}
+            </Button>
+            <Button 
+              type="submit"
+              className="flex-1 h-11 font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              {text('addService.buttons.create')}
+            </Button>
+          </div>
         </form>
       </BaseSlider>
 

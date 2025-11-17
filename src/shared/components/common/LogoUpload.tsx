@@ -367,7 +367,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
               </div>
             ) : (
               <>
-                <div className="mx-auto w-14 h-14 rounded-full bg-blue-100 flex items-center justify-center mb-4">
+                <div className="mx-auto w-14 h-14 rounded-full bg-info-100 flex items-center justify-center mb-4">
                   {dragActive ? (
                     <ImageIcon className="h-6 w-6 text-primary" />
                   ) : (

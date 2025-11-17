@@ -72,12 +72,12 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
     <div
       className={`${
         useInheritedContact
-          ? 'rounded-lg border border-blue-200 bg-blue-50 p-4'
-          : 'bg-accent/80 border border-accent/30 rounded-lg p-4'
+          ? 'rounded-lg border border-info-300 bg-info-100 p-4'
+          : 'bg-surface-active dark:bg-neutral-900 border border-border rounded-lg p-4'
       } ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
-        <Label htmlFor={id} className="text-base font-medium cursor-pointer">{title}</Label>
+        <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${useInheritedContact ? 'text-neutral-900' : ''}`}>{title}</Label>
         <Switch
           id={id}
           checked={useInheritedContact}
@@ -85,7 +85,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
           className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
         />
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className={`text-sm ${useInheritedContact ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
         {useInheritedContact
           ? (helperTextOn ?? `We'll use the ${inheritedWhat} from ${inheritedLabel}`)
           : (helperTextOff ?? `Enter different ${inheritedWhat} for this location`)}
@@ -94,14 +94,14 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
         <div className="text-sm pt-4">
           <div className="flex flex-col gap-1.5">
             {showEmail && inheritedEmail && (
-              <span className="inline-flex items-center gap-1.5 text-gray-700 font-medium w-fit">
-                <Mail className="h-4 w-4 text-gray-400" />
+              <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit">
+                <Mail className="h-4 w-4 text-neutral-900" />
                 {inheritedEmail}
               </span>
             )}
             {showPhone && inheritedPhone && (
-              <span className="inline-flex items-center gap-1.5 text-gray-700 font-medium w-fit pt-2">
-                <Phone className="h-4 w-4 text-gray-400" />
+              <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit pt-2">
+                <Phone className="h-4 w-4 text-neutral-900" />
                 {inheritedPhone}
               </span>
             )}
@@ -110,7 +110,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
       )}
 
       {!useInheritedContact && (
-        <div className="mt-4 pt-4 border-t border-gray-200">
+        <div className="mt-4 pt-4 border-t border-border">
           <div className={`grid grid-cols-1 ${showEmail && showPhone ? 'md:grid-cols-2' : ''} gap-4`}>
             {/* Email Field */}
             {showEmail && (
@@ -129,13 +129,13 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                     onChange={(e) => onEmailChange(e.target.value)}
                     className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                       emailError
-                        ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
-                        : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                        ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                        : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
                     }`}
                     autoComplete="email"
                     aria-invalid={!!emailError}
                   />
-                  <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
                 </div>
                 <div className="h-5">
                   {emailError && (
@@ -165,14 +165,14 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                     onChange={(e) => onPhoneChange(e.target.value)}
                     className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                       phoneError
-                        ? 'border-destructive bg-red-50 focus-visible:ring-red-400'
-                        : 'border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400'
+                        ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                        : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
                     }`}
                     autoComplete="tel"
                     inputMode="tel"
                     aria-invalid={!!phoneError}
                   />
-                  <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                  <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
                 </div>
                 <div className="h-5">
                   {phoneError && (

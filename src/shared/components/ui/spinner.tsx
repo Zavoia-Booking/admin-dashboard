@@ -47,9 +47,9 @@ const dotVariants = cva(
         white: "bg-white",
         muted: "bg-muted-foreground",
         destructive: "bg-destructive",
-        success: "bg-green-500",
-        warning: "bg-yellow-500",
-        info: "bg-blue-500",
+        success: "bg-success",
+        warning: "bg-warning",
+        info: "bg-info",
       },
     },
     defaultVariants: {

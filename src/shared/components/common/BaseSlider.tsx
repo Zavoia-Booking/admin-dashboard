@@ -137,10 +137,11 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - Overlay on both mobile and desktop */}
       <div 
         className={cn(
-          "fixed inset-0 bg-black/20 backdrop-blur-sm z-60 transition-opacity duration-300",
+          "fixed inset-0 z-60 transition-opacity duration-300 mb-0",
+          "bg-black/30",
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none',
           backdropClassName
         )}
@@ -150,7 +151,11 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       {/* Sliding Panel */}
       <div 
         className={cn(
-          "fixed top-0 left-0 h-full w-full bg-background shadow-2xl z-70",
+          "fixed top-0 h-full bg-background z-70",
+          // Mobile: full width, slides from right
+          "left-0 w-full",
+          // Desktop: half width, positioned on right side
+          "md:left-auto md:right-0 md:w-1/2",
           !isDragging ? 'transition-transform duration-300 ease-out' : '',
           isOpen && shouldAnimate ? 'translate-x-0' : 'translate-x-full',
           panelClassName,
@@ -169,13 +174,14 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
         onMouseUp={handleMouseUp}
       >
         <div className="flex flex-col h-full">
-          {/* Header */}
+          {/* Header - Hidden on desktop */}
           <div className={cn(
             "flex items-center p-2 border-b bg-card/50 relative",
+            "md:hidden", // Hide on desktop
             headerClassName
           )}>
             {showBackButton && (
-              <div className="bg-muted rounded-full p-1.5 shadow-sm">
+              <div className="bg-muted rounded-full p-1.5">
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -198,19 +204,23 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
             </div>
           </div>
           
-          {/* Content */}
+          {/* Content - Full width/height on desktop, normal on mobile */}
           <div className={cn(
-            "flex-1 overflow-y-auto",
-            footer ? "p-4" : "p-4",
+            "overflow-y-auto",
+            // Mobile: flex-1 with padding
+            "flex-1 p-4",
+            // Desktop: full width and height, no padding (content handles its own spacing)
+            "md:w-full md:h-full md:p-0",
             contentClassName
           )}>
             {children}
           </div>
 
-          {/* Footer (if provided) */}
+          {/* Footer - Hidden on desktop */}
           {footer && (
             <div className={cn(
               "border-t bg-card/50 p-4",
+              "md:hidden", // Hide on desktop
               footerClassName
             )}>
               {footer}

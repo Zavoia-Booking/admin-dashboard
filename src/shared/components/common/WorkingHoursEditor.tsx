@@ -12,7 +12,7 @@ const showWarningToast = (message: string): void => {
     (toast as any).warning ??
     ((m: string) =>
       toast.info(m, {
-        className: "bg-amber-50 text-amber-900 border border-amber-200",
+        className: "bg-warning-bg text-warning border border-warning",
       } as any));
   warnFn(message);
 };
@@ -77,18 +77,16 @@ const DayRow: React.FC<DayRowProps> = memo(
           <Switch
             checked={!!hours.isOpen}
             onCheckedChange={handleToggle}
-            className={`!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer ${
-              hours.isOpen ? "bg-black" : "bg-gray-300"
-            }`}
+            className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
           />
-          <div className="text-base md:text-sm text-gray-700 capitalize">
+          <div className="text-base md:text-sm text-foreground-1 capitalize">
             {String(day)}
           </div>
         </div>
         <div className="hidden md:flex flex-1 items-center justify-center min-w-[100px]">
           {!hours.isOpen && (
-            <div className="flex items-center gap-2 text-gray-400">
-              <Moon className="h-4 w-4" />
+            <div className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
+              <Moon className="h-4 w-4 text-primary" />
               <span className="text-sm">Closed</span>
             </div>
           )}
@@ -104,7 +102,7 @@ const DayRow: React.FC<DayRowProps> = memo(
                   onChange={handleOpenChange}
                 />
               </div>
-              <span className="md:hidden text-sm text-gray-400 text-center">
+              <span className="md:hidden text-sm text-foreground-3 dark:text-foreground-2 text-center">
                 To
               </span>
               <div className="justify-self-start md:contents">
@@ -119,13 +117,13 @@ const DayRow: React.FC<DayRowProps> = memo(
           ) : (
             <>
               {/* Mobile layout: left chip, centered 'To', right chip */}
-              <span className="md:hidden inline-flex !h-10 !min-h-0 px-4 rounded-full bg-gray-100 items-center justify-center w-[128px] text-sm leading-none text-gray-600 justify-self-end">
+              <span className="md:hidden inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[128px] text-sm leading-none text-foreground-2 dark:text-foreground-1 justify-self-end">
                 Closed
               </span>
-              <span className="md:hidden text-sm text-gray-400 text-center">
+              <span className="md:hidden text-sm text-foreground-3 dark:text-foreground-2 text-center">
                 To
               </span>
-              <span className="md:hidden inline-flex !h-10 !min-h-0 px-4 rounded-full bg-gray-100 items-center justify-center w-[128px] text-sm leading-none text-gray-600 justify-self-start">
+              <span className="md:hidden inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[128px] text-sm leading-none text-foreground-2 dark:text-foreground-1 justify-self-start">
                 Closed
               </span>
 
@@ -133,22 +131,22 @@ const DayRow: React.FC<DayRowProps> = memo(
               <div className="hidden md:flex items-center gap-2 shrink-0">
                 <span
                   id={`wh-${day}-open-label`}
-                  className="text-xs text-gray-400 whitespace-nowrap"
+                  className="text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap"
                 >
                   From
                 </span>
-                <span className="inline-flex !h-10 !min-h-0 px-4 rounded-full bg-gray-100 items-center justify-center w-[104px] text-sm leading-none text-gray-500">
+                <span className="inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[104px] text-sm leading-none text-foreground-2 dark:text-foreground-1">
                   Closed
                 </span>
               </div>
               <div className="hidden md:flex items-center gap-2 shrink-0">
                 <span
                   id={`wh-${day}-close-label`}
-                  className="text-xs text-gray-400 whitespace-nowrap"
+                  className="text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap"
                 >
                   To
                 </span>
-                <span className="inline-flex !h-10 !min-h-0 px-4 rounded-full bg-gray-100 items-center justify-center w-[104px] text-sm leading-none text-gray-500">
+                <span className="inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[104px] text-sm leading-none text-foreground-2 dark:text-foreground-1">
                   Closed
                 </span>
               </div>
@@ -251,21 +249,21 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
 
   return (
     <div className={className}>
-      <div className="relative rounded-lg border border-gray-200 bg-white overflow-visible md:overflow-hidden pb-4 md:pb-0">
+      <div className="relative rounded-lg border border-border bg-surface dark:bg-neutral-900 overflow-visible md:overflow-hidden pb-4 md:pb-0">
         <div>
           {/* First two days always visible */}
           {orderedDays.slice(0, 2).map((day, index) => (
             <div
               key={day}
-              className={`${index === 0 ? "border-b border-gray-100" : ""} ${
+              className={`${index === 0 ? "border-b border-border-subtle" : ""} ${
                 index === 1
                   ? `${
-                      showAllMobile ? "border-b border-gray-100" : ""
-                    } md:border-b md:border-gray-100`
+                      showAllMobile ? "border-b border-border-subtle" : ""
+                    } md:border-b md:border-border-subtle`
                   : ""
               } ${
                 flashDays.has(day)
-                  ? "bg-amber-50 transition-colors duration-1700"
+                  ? "bg-warning-bg transition-colors duration-1700"
                   : ""
               }`}
             >
@@ -296,7 +294,7 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
               : {})}
             className={`max-md:block md:block ${
               showAllMobile ? "max-md:h-auto" : "max-md:h-0"
-            } max-md:overflow-hidden divide-y divide-gray-100`}
+            } max-md:overflow-hidden divide-y divide-border-subtle`}
             style={
               isMobile
                 ? ({
@@ -310,7 +308,7 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
                 key={day}
                 className={`${
                   flashDays.has(day)
-                    ? "bg-amber-50 transition-colors duration-1700"
+                    ? "bg-warning-bg transition-colors duration-1700"
                     : ""
                 }`}
               >
@@ -332,11 +330,11 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
             aria-label={
               showAllMobile ? "Collapse working hours" : "Expand working hours"
             }
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm active:bg-gray-50 cursor-pointer"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface shadow-sm active:bg-surface-hover cursor-pointer"
             onClick={() => setShowAllMobile((v) => !v)}
           >
             <ChevronDown
-              className={`h-6 w-6 transition-transform ${
+              className={`h-6 w-6 text-primary transition-transform ${
                 showAllMobile ? "rotate-180" : ""
               }`}
             />

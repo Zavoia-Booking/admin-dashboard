@@ -181,12 +181,12 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
         if (removed) {
           toast.custom(
             (t) => (
-              <div className="flex items-center justify-between gap-6 rounded-md border border-gray-200 bg-white px-6 py-3 shadow-sm">
+              <div className="flex items-center justify-between gap-6 rounded-md border border-border bg-surface px-6 py-3 shadow-sm">
                 <div className="min-w-12">
-                  <p className="text-sm font-medium text-gray-900 truncate mb-2">
+                  <p className="text-sm font-medium text-foreground-1 truncate mb-2">
                     Invite removed
                   </p>
-                  <p className="text-xs text-gray-600 truncate">
+                  <p className="text-xs text-foreground-3 dark:text-foreground-2 truncate">
                     {removed.email}
                   </p>
                 </div>
@@ -231,20 +231,18 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
         <div
           className={`${
             localWorksSolo
-              ? "rounded-lg border border-blue-200 bg-blue-50 p-4"
-              : "bg-accent/80 border border-accent/30 rounded-lg p-4"
+              ? "rounded-lg border border-info-300 bg-info-100 p-4"
+              : "bg-surface-active dark:bg-neutral-900 border border-border rounded-lg p-4"
           }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <User
-                className={`h-6 w-6 shrink-0 ${
-                  localWorksSolo ? "text-blue-600" : "text-primary"
-                }`}
-              />
+              <User className="h-6 w-6 shrink-0 text-primary" />
               <Label
                 htmlFor="worksSolo"
-                className="text-base font-medium cursor-pointer"
+                className={`text-base font-medium cursor-pointer ${
+                  localWorksSolo ? "text-neutral-900" : ""
+                }`}
               >
                 I work solo
               </Label>
@@ -256,13 +254,17 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
               className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
             />
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className={`text-sm ${
+            localWorksSolo
+              ? "text-neutral-900"
+              : "text-foreground-3 dark:text-foreground-2"
+          }`}>
             {localWorksSolo
               ? "Perfect! You're all set to manage your business independently"
               : "Enable this to skip team setup for now. You can always invite team members later from your dashboard to help manage bookings and collaborate"}
           </p>
           {localWorksSolo && (
-            <p className="text-sm text-muted-foreground mt-3 pt-3 border-t border-blue-200">
+            <p className="text-sm text-neutral-900 mt-3 pt-3 border-t border-info-300">
               You can invite team members anytime from your dashboard settings
               to collaborate and manage bookings together.
             </p>
@@ -272,9 +274,9 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
         {!localWorksSolo && (
           <>
             {/* Add Team Member */}
-            <div className="space-y-2 border-t border-gray-200 pt-6 mb-2">
+            <div className="space-y-2 border-t border-border pt-6 mb-2">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-medium text-gray-700">
+                <Label className="text-base font-medium text-foreground-1">
                   Invite Team Member
                 </Label>
                 <Popover>
@@ -282,7 +284,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     <button
                       type="button"
                       aria-label="What does inviting do?"
-                      className="inline-flex items-center justify-center text-gray-500 hover:text-gray-800 p-0 focus-visible:outline-none cursor-pointer"
+                      className="inline-flex items-center justify-center text-foreground-3 dark:text-foreground-1 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
                     >
                       <HelpCircle className="h-5 w-5" />
                     </button>
@@ -307,9 +309,10 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       placeholder="e.g. colleague@company.com"
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                         errors.email
-                          ? "border-destructive bg-red-50 focus-visible:ring-red-400"
-                          : "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
+                          ? "border-destructive bg-error-bg focus-visible:ring-0"
+                          : "border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                       }`}
+                      aria-invalid={!!errors.email}
                       {...register("email", {
                         validate: (value: string) => {
                           if (!value || !value.trim()) return true;
@@ -324,7 +327,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                         }
                       }}
                     />
-                    <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                    <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
                   </div>
                   <Button
                     onClick={addTeamMember}
@@ -363,7 +366,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     </p>
                   )}
                 </div>
-                <p className="text-sm text-muted-foreground mt-2 pb-2 md:pb-0">
+                <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-2 pb-2 md:pb-0">
                   {localTeamMembers.length >= 20 ? (
                     "You have reached the maximum number of team member invitations during setup."
                   ) : (
@@ -377,21 +380,21 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
             </div>
 
             {/* Divider between add form and invitations list */}
-            <div className="border-t border-gray-200" />
+            <div className="border-t border-border" />
 
             {/* Current Team Members - moved below */}
             {localTeamMembers.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium text-gray-700">
+                  <Label className="text-base font-medium text-foreground-1">
                     Invitations
                   </Label>
-                  <Badge variant="secondary" className="text-md mr-2">
+                  <Badge variant="secondary" className="mr-2 dark:bg-sidebar text-sm">
                     {localTeamMembers.length}
                   </Badge>
                 </div>
 
-                <div className="relative rounded-lg border border-gray-200 bg-white overflow-visible p-2 pb-0">
+                <div className="relative rounded-lg border border-border bg-surface dark:bg-neutral-900 overflow-visible p-2 pb-0">
                   <div>
                     {/* First 4 members always visible */}
                     {localTeamMembers.slice(0, 4).map((member, index) => (
@@ -399,11 +402,11 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                         key={index}
                         className={`${
                           index < 3 || (index === 3 && localTeamMembers.length > 4)
-                            ? "border-b border-gray-100"
+                            ? "border-b border-border-subtle"
                             : ""
                         }`}
                       >
-                        <div className="bg-white rounded-lg py-2">
+                        <div className="bg-surface dark:bg-neutral-900 rounded-lg py-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2 min-w-0">
                               <div
@@ -412,12 +415,12 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                                   backgroundColor: getAvatarBgColor(member.email),
                                 }}
                               >
-                                <span className="text-base font-bold text-gray-800 leading-none">
+                                <span className="text-base font-bold text-neutral-900 leading-none">
                                   {member.email?.charAt(0)?.toUpperCase()}
                                 </span>
                               </div>
                               <div className="min-w-0">
-                                <div className="font-medium text-gray-900 truncate text-sm">
+                                <div className="font-medium text-foreground-1 truncate text-sm">
                                   {member.email}
                                 </div>
                               </div>
@@ -426,7 +429,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                               size="sm"
                               variant="ghost"
                               onClick={() => removeMember(index)}
-                              className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                              className="h-7 w-7 p-0 hover:bg-error-bg text-destructive cursor-pointer"
                               aria-label="Remove invitation"
                               title="Remove"
                             >
@@ -445,7 +448,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                           data-state={showAllMembers ? "open" : "closed"}
                           className={`${
                             showAllMembers ? "h-auto" : "h-0"
-                          } overflow-hidden divide-y divide-gray-100`}
+                          } overflow-hidden divide-y divide-border-subtle`}
                           style={{
                             ["--radix-collapsible-content-height" as any]: `${restHeight}px`,
                           } as any}
@@ -454,7 +457,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                             const actualIndex = index + 4;
                             return (
                               <div key={actualIndex}>
-                                <div className="bg-white rounded-lg py-2">
+                                <div className="bg-surface dark:bg-neutral-900 rounded-lg py-2">
                                   <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2 min-w-0">
                                       <div
@@ -465,12 +468,12 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                                           ),
                                         }}
                                       >
-                                        <span className="text-base font-bold text-gray-800 leading-none">
+                                        <span className="text-base font-bold text-neutral-900 leading-none">
                                           {member.email?.charAt(0)?.toUpperCase()}
                                         </span>
                                       </div>
                                       <div className="min-w-0">
-                                        <div className="font-medium text-gray-900 truncate text-sm">
+                                        <div className="font-medium text-foreground-1 truncate text-sm">
                                           {member.email}
                                         </div>
                                       </div>
@@ -479,7 +482,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                                       size="sm"
                                       variant="ghost"
                                       onClick={() => removeMember(actualIndex)}
-                                      className="h-7 w-7 p-0 hover:bg-red-50 text-red-600 cursor-pointer"
+                                      className="h-7 w-7 p-0 hover:bg-error-bg text-destructive cursor-pointer"
                                       aria-label="Remove invitation"
                                       title="Remove"
                                     >
@@ -500,11 +503,11 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                                 ? "Collapse invitations"
                                 : "Expand invitations"
                             }
-                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 bg-white shadow-sm active:bg-gray-50 cursor-pointer"
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface dark:bg-neutral-900 shadow-sm active:bg-surface-active cursor-pointer"
                             onClick={() => setShowAllMembers((v) => !v)}
                           >
                             <ChevronDown
-                              className={`h-6 w-6 transition-transform ${
+                              className={`h-6 w-6 text-foreground-1 transition-transform ${
                                 showAllMembers ? "rotate-180" : ""
                               }`}
                             />
@@ -517,7 +520,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
               </div>
             )}
             {localTeamMembers.length === 0 && (
-              <p className="text-sm text-muted-foreground pb-6">
+              <p className="text-sm text-foreground-3 dark:text-foreground-2 pb-6">
                 Add teammate emails above and we'll send them invitations when
                 you complete setup.{" "}
               </p>

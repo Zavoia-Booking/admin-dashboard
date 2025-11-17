@@ -140,7 +140,7 @@ export default function AddressAutocomplete({
     <div ref={containerRef} className={`relative ${className ?? ''}`}>
       {/* hidden trap input to discourage browser autofill */}
       <input type="text" style={{ display: 'none' }} name="__trap_address" autoComplete="new-password" />
-      <div className="flex items-center gap-0 rounded-md border bg-white pr-1">
+      <div className="flex items-center gap-0 rounded-md border bg-surface dark:bg-neutral-900 pr-1">
         <div className="pl-2 text-muted-foreground" aria-hidden>
           <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <circle cx="11" cy="11" r="8"></circle>
@@ -173,12 +173,12 @@ export default function AddressAutocomplete({
         />
       </div>
       {open && (
-        <div className="absolute z-15 mt-1 w-full rounded-md border bg-white shadow-lg overflow-hidden">
+        <div className="absolute z-15 mt-1 w-full rounded-md border bg-surface shadow-lg overflow-hidden">
           {loading && (
-            <div className="p-3 text-sm text-gray-500 animate-pulse">Searching...</div>
+            <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2 animate-pulse">Searching...</div>
           )}
           {!loading && suggestions.length === 0 && query.trim().length >= 3 && (
-            <div className="p-3 text-sm text-gray-500">
+            <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2">
               No addresses found. Try a different search or use Manual mode.
             </div>
           )}
@@ -186,12 +186,12 @@ export default function AddressAutocomplete({
             <button
               key={`${s.id}-${idx}`}
               type="button"
-              className="w-full text-left px-3 py-2 hover:bg-gray-50 focus:bg-gray-50 focus:outline-none cursor-pointer"
+              className="w-full text-left px-3 py-2 hover:bg-surface-hover focus:bg-surface-hover focus:outline-none cursor-pointer"
               onClick={() => handleSelect(s)}
             >
-              <div className="text-sm text-gray-900 leading-snug">{s.displayName}</div>
+              <div className="text-sm text-foreground-1 leading-snug">{s.displayName}</div>
               {s.city && (
-                <div className="text-xs text-gray-500">{s.city}{s.postalCode ? `, ${s.postalCode}` : ''}</div>
+                <div className="text-xs text-foreground-3 dark:text-foreground-2">{s.city}{s.postalCode ? `, ${s.postalCode}` : ''}</div>
               )}
             </button>
           ))}
