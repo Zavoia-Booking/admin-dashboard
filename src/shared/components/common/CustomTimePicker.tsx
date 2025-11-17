@@ -170,7 +170,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
                 onClick={() => handleHourClick(h)}
                 onKeyDown={(e) => handleHourKeyDown(e, h)}
                 className={`h-10 !min-h-0 w-full my-0.5 text-sm leading-none flex items-center justify-center transition-colors cursor-pointer select-none rounded-full tabular-nums ${localHour === h
-                    ? 'bg-primary text-primary-foreground font-semibold ring-1 ring-primary'
+                    ? 'bg-primary text-white dark:text-white font-semibold ring-1 ring-primary'
                     : 'hover:bg-surface-hover text-foreground-1'
                   } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
               >
@@ -199,7 +199,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
                 onClick={() => handleMinuteClick(m)}
                 onKeyDown={(e) => handleMinuteKeyDown(e, m)}
                 className={`h-10 !min-h-0 w-full my-0.5 text-sm leading-none flex items-center justify-center transition-colors cursor-pointer select-none rounded-full tabular-nums ${localMinute === m
-                    ? 'bg-primary text-primary-foreground font-semibold ring-1 ring-primary'
+                    ? 'bg-primary text-white dark:text-white font-semibold ring-1 ring-primary'
                     : 'hover:bg-surface-hover text-foreground-1'
                   } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
               >
@@ -222,7 +222,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
               onClick={() => handlePeriodClick('AM')}
               onKeyDown={(e) => handlePeriodKeyDown(e, 'AM')}
               className={`h-10 !min-h-0 inline-flex items-center justify-center px-4 rounded-full text-sm font-medium transition-colors cursor-pointer select-none tabular-nums ${localPeriod === 'AM'
-                  ? 'bg-primary text-primary-foreground ring-1 ring-primary'
+                  ? 'bg-primary text-white dark:text-white ring-1 ring-primary'
                   : 'bg-surface-hover text-foreground-2 dark:text-foreground-1 hover:bg-surface-active'
                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
             >
@@ -235,7 +235,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
               onClick={() => handlePeriodClick('PM')}
               onKeyDown={(e) => handlePeriodKeyDown(e, 'PM')}
               className={`h-10 !min-h-0 inline-flex items-center justify-center px-4 rounded-full text-sm font-medium transition-colors cursor-pointer select-none tabular-nums ${localPeriod === 'PM'
-                  ? 'bg-primary text-primary-foreground ring-1 ring-primary'
+                  ? 'bg-primary text-white dark:text-white ring-1 ring-primary'
                   : 'bg-surface-hover text-foreground-2 dark:text-foreground-1 hover:bg-surface-active'
                 } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus`}
             >
@@ -298,7 +298,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
                   <button
                     type="button"
                     onClick={handleDone}
-                    className="h-10 inline-flex items-center justify-center px-4 bg-primary text-primary-foreground rounded-full hover:bg-primary-hover hover:text-white transition-colors font-medium text-sm cursor-pointer w-full"
+                    className="h-10 inline-flex items-center justify-center px-4 bg-primary text-white dark:text-white rounded-full hover:bg-primary-hover hover:text-white dark:hover:text-white transition-colors font-medium text-sm cursor-pointer w-full"
                   >
                     Done
                   </button>
@@ -324,7 +324,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
               <button
                 type="button"
                 onClick={handleDone}
-                className="h-10 inline-flex items-center justify-center px-4 bg-primary text-primary-foreground rounded-full hover:bg-primary-hover transition-colors font-medium text-sm cursor-pointer w-full"
+                className="h-10 inline-flex items-center justify-center px-4 bg-primary text-white dark:text-white rounded-full hover:bg-primary-hover hover:text-white dark:hover:text-white transition-colors font-medium text-sm cursor-pointer w-full"
               >
                 Done
               </button>
