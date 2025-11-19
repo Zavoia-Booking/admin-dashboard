@@ -5,23 +5,26 @@ import { Spinner } from '../../../../shared/components/ui/spinner';
 import { LocationsList } from './LocationsList';
 import { ServicesList } from './ServicesList';
 import { TeamMembersList } from './TeamMembersList';
-import { AssignedTeamMembers } from './AssignedTeamMembers';
-import { AvailableTeamMembers } from './AvailableTeamMembers';
 
 export interface AssignmentSection {
   title: string;
-  assignedItems: Array<{
+  type?: 'services' | 'team_members' | 'locations';
+  assignedItems?: Array<{
     id: number | string;
     name: string;
     subtitle?: string;
   }>;
-  availableItems: Array<{
+  availableItems?: Array<{
     id: number | string;
     name: string;
     address?: string;
+    email?: string;
   }>;
+  allItems?: Array<any>;
+  assignedItemIds?: number[];
   selectedIds: number[];
-  onToggleSelection: (id: number) => void;
+  onToggleSelection?: (id: number) => void;
+  onToggle?: (id: number) => void;
 }
 
 interface AssignmentDetailsPanelProps {
@@ -29,6 +32,8 @@ interface AssignmentDetailsPanelProps {
   onSave: () => void;
   isSaving?: boolean;
   saveLabel?: string;
+  emptyStateMessage?: string;
+  hasChanges?: boolean;
 }
 
 const getSectionIcon = (title: string): LucideIcon | null => {
@@ -50,6 +55,8 @@ export function AssignmentDetailsPanel({
   onSave,
   isSaving = false,
   saveLabel = 'Save Changes',
+  emptyStateMessage = 'Choose an item from the list to view and manage assignments',
+  hasChanges = true,
 }: AssignmentDetailsPanelProps) {
   if (!sections || sections.length === 0) {
     return (
@@ -65,7 +72,7 @@ export function AssignmentDetailsPanel({
                   Select an item to get started
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  Choose a team member from the list to view and manage their assignments
+                  {emptyStateMessage}
                 </p>
               </div>
             </div>
@@ -79,117 +86,77 @@ export function AssignmentDetailsPanel({
     <Card className="col-span-8 md:col-span-8">
       <CardContent>
         <div className="space-y-6">
-          {sections.map((section, sectionIndex) => (
-            <div key={sectionIndex}>
-              <h3 className="font-medium mb-3 flex items-center gap-2">
-                {(() => {
-                  const Icon = getSectionIcon(section.title);
-                  return Icon ? <Icon className="h-4 w-4" /> : null;
-                })()}
-                {section.title}
-              </h3>
-              
-              {section.title === 'Locations' ? (
-                <LocationsList
-                  allLocations={section.availableItems
-                    .filter(item => item.address !== undefined)
-                    .map(item => ({
+          {sections.map((section, sectionIndex) => {
+            const toggleHandler = section.onToggle || section.onToggleSelection;
+            
+            return (
+              <div key={sectionIndex}>
+                <h3 className="font-medium mb-3 flex items-center gap-2">
+                  {(() => {
+                    const Icon = getSectionIcon(section.title);
+                    return Icon ? <Icon className="h-4 w-4" /> : null;
+                  })()}
+                  {section.title}
+                </h3>
+                
+                {/* Handle new type-based rendering for Locations tab */}
+                {section.type === 'services' ? (
+                  <ServicesList
+                    allServices={section.allItems || []}
+                    assignedServiceIds={section.selectedIds}
+                    onToggle={toggleHandler!}
+                    showEmptyState={(section.allItems || []).length === 0}
+                  />
+                ) : section.type === 'team_members' ? (
+                  <TeamMembersList
+                    allTeamMembers={section.allItems || []}
+                    assignedTeamMemberIds={section.selectedIds}
+                    onToggle={toggleHandler!}
+                  />
+                ) : section.type === 'locations' ? (
+                  <LocationsList
+                    allLocations={section.allItems || []}
+                    assignedLocationIds={section.selectedIds}
+                    onToggle={toggleHandler!}
+                  />
+                ) : section.title === 'Locations' ? (
+                  <LocationsList
+                    allLocations={(section.availableItems || [])
+                      .filter(item => item.address !== undefined)
+                      .map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        address: item.address!,
+                      }))}
+                    assignedLocationIds={section.selectedIds}
+                    onToggle={toggleHandler!}
+                  />
+                ) : section.title === 'Services' ? (
+                  <ServicesList
+                    allServices={section.availableItems || []}
+                    assignedServiceIds={section.selectedIds}
+                    onToggle={toggleHandler!}
+                    showEmptyState={(section.availableItems || []).length === 0}
+                  />
+                ) : section.title === 'Team Members Assigned' ? (
+                  <TeamMembersList
+                    allTeamMembers={(section.availableItems || []).map(item => ({
                       id: item.id,
                       name: item.name,
-                      address: item.address!,
+                      email: item.email,
                     }))}
-                  assignedLocationIds={section.selectedIds}
-                  onToggle={section.onToggleSelection}
-                />
-              ) : section.title === 'Services' ? (
-                <ServicesList
-                  allServices={section.availableItems}
-                  assignedServiceIds={section.selectedIds}
-                  onToggle={section.onToggleSelection}
-                  showEmptyState={section.availableItems.length === 0}
-                />
-              ) : section.title === 'Team Members Assigned' ? (
-                <TeamMembersList
-                  allTeamMembers={section.availableItems.map(item => ({
-                    id: item.id,
-                    name: item.name,
-                    email: item.subtitle,
-                  }))}
-                  assignedTeamMemberIds={section.selectedIds}
-                  onToggle={section.onToggleSelection}
-                />
-              ) : (
-                <>
-                  {/* Assigned Items */}
-                  {section.title === 'Team Members' ? (
-                    <AssignedTeamMembers
-                      teamMembers={section.assignedItems}
-                      onRemove={section.onToggleSelection}
-                    />
-                  ) : (
-                    <div className="space-y-2">
-                      {section.assignedItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between p-2 border rounded"
-                        >
-                          <div>
-                            <div>{item.name}</div>
-                            {item.subtitle && (
-                              <div className="text-sm text-muted-foreground">
-                                {item.subtitle}
-                              </div>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => section.onToggleSelection(Number(item.id))}
-                            className="text-destructive hover:underline text-sm"
-                          >
-                            Remove
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Available Items */}
-                  <div className="mt-3">
-                    {section.title === 'Team Members' ? (
-                  <AvailableTeamMembers
-                    teamMembers={section.availableItems.filter(
-                      item => !section.selectedIds.includes(Number(item.id))
-                    )}
-                    onAdd={section.onToggleSelection}
+                    assignedTeamMemberIds={section.selectedIds}
+                    onToggle={toggleHandler!}
                   />
-                ) : (
-                  <select
-                    onChange={(e) => {
-                      const value = Number(e.target.value);
-                      if (value) {
-                        section.onToggleSelection(value);
-                      }
-                    }}
-                    className="w-full border rounded px-3 py-2"
-                    value=""
-                  >
-                    <option value="">+ Add {section.title}</option>
-                    {section.availableItems.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                    )}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
+                ) : null}
+              </div>
+            );
+          })}
 
           <div className="flex justify-end pt-4">
             <Button
               onClick={onSave}
-              disabled={isSaving}
+              disabled={isSaving || !hasChanges}
               className="w-auto min-w-[200px]"
             >
               {isSaving ? <Spinner size="sm" /> : saveLabel}

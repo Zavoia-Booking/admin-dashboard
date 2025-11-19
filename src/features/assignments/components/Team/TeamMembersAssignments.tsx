@@ -9,8 +9,7 @@ import { getAvatarBgColor } from '../../../setupWizard/components/StepTeam';
 import {
   selectTeamMemberAction,
   fetchTeamMemberAssignmentByIdAction,
-  assignServicesToTeamMemberAction,
-  assignLocationsToTeamMemberAction,
+  updateTeamMemberAssignmentsAction,
 } from '../../actions';
 import {
   getIsLoadingSelector,
@@ -38,6 +37,10 @@ export function TeamMembersAssignments() {
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedLocationIds, setSelectedLocationIds] = useState<number[]>([]);
   
+  // Track initial state to detect changes
+  const [initialServiceIds, setInitialServiceIds] = useState<number[]>([]);
+  const [initialLocationIds, setInitialLocationIds] = useState<number[]>([]);
+  
   // Handlers
   const handleSelectTeamMember = (userId: number) => {
     dispatch(selectTeamMemberAction(userId));
@@ -51,13 +54,37 @@ export function TeamMembersAssignments() {
   // Sync local state when selected team member changes
   useEffect(() => {
     if (selectedTeamMember) {
-      setSelectedServiceIds(selectedTeamMember.assignedServices.map(s => s.serviceId));
-      setSelectedLocationIds(selectedTeamMember.assignedLocations.map(l => l.locationId));
+      const serviceIds = selectedTeamMember.assignedServices.map(s => s.serviceId);
+      const locationIds = selectedTeamMember.assignedLocations.map(l => l.locationId);
+      
+      setSelectedServiceIds(serviceIds);
+      setSelectedLocationIds(locationIds);
+      
+      // Store initial state for change detection
+      setInitialServiceIds(serviceIds);
+      setInitialLocationIds(locationIds);
     } else {
       setSelectedServiceIds([]);
       setSelectedLocationIds([]);
+      setInitialServiceIds([]);
+      setInitialLocationIds([]);
     }
   }, [selectedTeamMember]);
+  
+  // Detect if there are changes
+  const hasChanges = useMemo(() => {
+    const serviceIdsChanged = 
+      selectedServiceIds.length !== initialServiceIds.length ||
+      selectedServiceIds.some(id => !initialServiceIds.includes(id)) ||
+      initialServiceIds.some(id => !selectedServiceIds.includes(id));
+    
+    const locationIdsChanged = 
+      selectedLocationIds.length !== initialLocationIds.length ||
+      selectedLocationIds.some(id => !initialLocationIds.includes(id)) ||
+      initialLocationIds.some(id => !selectedLocationIds.includes(id));
+    
+    return serviceIdsChanged || locationIdsChanged;
+  }, [selectedServiceIds, selectedLocationIds, initialServiceIds, initialLocationIds]);
 
   // Transform team members into list items
   const listItems: ListItem[] = useMemo(() => {
@@ -126,13 +153,9 @@ export function TeamMembersAssignments() {
   const handleSave = () => {
     if (!selectedTeamMember) return;
     
-    dispatch(assignServicesToTeamMemberAction.request({
+    dispatch(updateTeamMemberAssignmentsAction.request({
       userId: selectedTeamMember.id,
-      serviceIds: selectedServiceIds
-    }));
-    
-    dispatch(assignLocationsToTeamMemberAction.request({
-      userId: selectedTeamMember.id,
+      serviceIds: selectedServiceIds,
       locationIds: selectedLocationIds
     }));
   };
@@ -217,6 +240,8 @@ export function TeamMembersAssignments() {
         sections={detailsSections}
         onSave={handleSave}
         isSaving={isSaving}
+        hasChanges={hasChanges}
+        emptyStateMessage="Choose a team member from the list to view and manage their assignments"
       />
     </div>
   );

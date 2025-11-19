@@ -18,14 +18,10 @@ export function LocationsList({ allLocations, assignedLocationIds, onToggle }: L
     return null;
   }
 
-  // Can remove if there's more than 1 assigned location (team member must always have at least one location)
-  const canRemove = assignedLocationIds.length > 1;
-
   return (
     <div className="flex flex-wrap gap-2 sm:gap-3">
       {allLocations.map((location) => {
         const isAssigned = assignedLocationIds.includes(Number(location.id));
-        const isClickable = isAssigned ? canRemove : true;
 
         return (
           <Pill
@@ -34,7 +30,7 @@ export function LocationsList({ allLocations, assignedLocationIds, onToggle }: L
             icon={MapPin}
             className="w-auto justify-start items-start transition-none active:scale-100"
             showCheckmark={true}
-            onClick={isClickable ? () => onToggle(Number(location.id)) : undefined}
+            onClick={() => onToggle(Number(location.id))}
           >
             <div className="flex flex-col text-left">
               <div className="flex items-center">

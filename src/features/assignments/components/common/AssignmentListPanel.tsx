@@ -18,6 +18,7 @@ interface AssignmentListPanelProps {
   onSelect: (id: number | string) => void;
   isLoading?: boolean;
   emptyMessage?: string;
+  emptyStateComponent?: React.ReactNode;
   renderItem?: (item: ListItem, isSelected: boolean) => React.ReactNode;
 }
 
@@ -28,6 +29,7 @@ export function AssignmentListPanel({
   onSelect,
   isLoading = false,
   emptyMessage = 'No items found',
+  emptyStateComponent,
   renderItem,
 }: AssignmentListPanelProps) {
   const defaultRenderItem = (item: ListItem, isSelected: boolean) => (
@@ -69,9 +71,11 @@ export function AssignmentListPanel({
         ) : (
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
             {items.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {emptyMessage}
-              </div>
+              emptyStateComponent || (
+                <div className="text-center py-8 text-muted-foreground">
+                  {emptyMessage}
+                </div>
+              )
             ) : (
               items.map((item) => {
                 const isSelected = selectedId === item.id;

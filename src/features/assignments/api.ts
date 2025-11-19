@@ -2,6 +2,7 @@ import { apiClient } from "../../shared/lib/http";
 import type { 
   TeamMemberAssignment,
   ServiceAssignment,
+  LocationAssignment,
 } from "./types";
 
 // Team Members perspective
@@ -35,6 +36,11 @@ export const removeLocationFromTeamMemberRequest = async (userId: number, locati
   return data;
 };
 
+export const updateTeamMemberAssignmentsRequest = async (userId: number, serviceIds: number[], locationIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/team-members/update/${userId}`, { serviceIds, locationIds });
+  return data;
+};
+
 // Services perspective
 export const fetchServiceAssignmentByIdRequest = async (id: number): Promise<ServiceAssignment> => {
   const { data } = await apiClient().get<ServiceAssignment>(`/assignments/services/${id}`);
@@ -48,6 +54,32 @@ export const assignTeamMembersToServiceRequest = async (serviceId: number, userI
 
 export const assignLocationsToServiceRequest = async (serviceId: number, locationIds: number[]) => {
   const { data } = await apiClient().post(`/assignments/services/${serviceId}/locations`, { locationIds });
+  return data;
+};
+
+export const updateServiceAssignmentsRequest = async (serviceId: number, teamMemberIds: number[], locationIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/services/update/${serviceId}`, { teamMemberIds, locationIds });
+  return data;
+};
+
+// Locations perspective
+export const fetchLocationAssignmentByIdRequest = async (id: number): Promise<LocationAssignment> => {
+  const { data } = await apiClient().get<LocationAssignment>(`/assignments/locations/${id}`);
+  return data;
+};
+
+export const assignTeamMembersToLocationRequest = async (locationId: number, userIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/locations/${locationId}/team-members`, { userIds });
+  return data;
+};
+
+export const assignServicesToLocationRequest = async (locationId: number, serviceIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/locations/${locationId}/services`, { serviceIds });
+  return data;
+};
+
+export const updateLocationAssignmentsRequest = async (locationId: number, teamMemberIds: number[], serviceIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/locations/update/${locationId}`, { teamMemberIds, serviceIds });
   return data;
 };
 

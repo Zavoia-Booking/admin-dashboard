@@ -67,18 +67,32 @@ export type TeamMemberAssignment = {
 };
 
 export type ServiceAssignment = {
-  serviceId: number;
-  serviceName: string;
-  price: number;
+  id: number;
+  name: string;
+  description: string;
+  price_amount_minor: number;
   duration: number;
+  isActive: boolean;
   assignedTeamMembers: Array<{
     userId: number;
-    name: string;
     email: string;
-    customPrice: number | null;
-    customDuration: number | null;
+    firstName: string;
+    lastName: string;
+    role: string;
   }>;
-  availableLocations: Array<{
+  assignedLocations: Array<{
+    locationId: number;
+    locationName: string;
+    address: string;
+  }>;
+  allTeamMembers: Array<{
+    userId: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }>;
+  allLocations: Array<{
     locationId: number;
     locationName: string;
     address: string;
@@ -86,16 +100,28 @@ export type ServiceAssignment = {
 };
 
 export type LocationAssignment = {
-  locationId: number;
-  locationName: string;
+  id: number;
+  name: string;
   address: string;
   assignedTeamMembers: Array<{
     userId: number;
-    name: string;
     email: string;
+    firstName: string;
+    lastName: string;
     role: string;
   }>;
-  offeredServices: Array<{
+  assignedServices: Array<{
+    serviceId: number;
+    serviceName: string;
+  }>;
+  allTeamMembers: Array<{
+    userId: number;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  }>;
+  allServices: Array<{
     serviceId: number;
     serviceName: string;
   }>;
@@ -111,6 +137,7 @@ export type AssignmentsState = {
   // Selected item in left panel
   selectedTeamMemberId: number | null;
   selectedServiceId: number | null;
+  selectedLocationId: number | null;
   
   // Data for team members
   teamMemberAssignments: TeamMemberAssignment[];
@@ -118,6 +145,9 @@ export type AssignmentsState = {
   
   // Data for services (selected service assignment details)
   selectedServiceAssignment: ServiceAssignment | null;
+  
+  // Data for locations (selected location assignment details)
+  selectedLocationAssignment: LocationAssignment | null;
   
   // Loading states
   isLoading: boolean;

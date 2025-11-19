@@ -10,5 +10,8 @@ export const getSelectedTeamMemberIdSelector = (state: RootState) => state.assig
 export const getSelectedTeamMemberSelector = (state: RootState) => state.assignments.selectedTeamMemberAssignment;
 
 // Services selectors
-export const getSelectedServiceIdSelector = (state: RootState) => state.assignments.selectedServiceId;
 export const getSelectedServiceSelector = (state: RootState) => state.assignments.selectedServiceAssignment;
+
+// Locations selectors
+export const getSelectedLocationIdSelector = (state: RootState) => state.assignments.selectedLocationId;
+export const getSelectedLocationSelector = (state: RootState) => state.assignments.selectedLocationAssignment;
