@@ -1,6 +1,7 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
 import type { 
   TeamMemberAssignment,
+  ServiceAssignment,
 } from "./types";
 
 // Team Members perspective
@@ -29,3 +30,24 @@ export const assignLocationsToTeamMemberAction = createAsyncAction(
   'ASSIGNMENTS/ASSIGN_LOCATIONS_TO_TEAM_MEMBER_SUCCESS',
   'ASSIGNMENTS/ASSIGN_LOCATIONS_TO_TEAM_MEMBER_FAILURE',
 )<{ userId: number; locationIds: number[] }, void, { message: string }>();
+
+// Services perspective
+export const selectServiceAction = createAction('ASSIGNMENTS/SELECT_SERVICE')<number | null>();
+
+export const fetchServiceAssignmentByIdAction = createAsyncAction(
+  'ASSIGNMENTS/FETCH_SERVICE_BY_ID_REQUEST',
+  'ASSIGNMENTS/FETCH_SERVICE_BY_ID_SUCCESS',
+  'ASSIGNMENTS/FETCH_SERVICE_BY_ID_FAILURE',
+)<number, ServiceAssignment, { message: string }>();
+
+export const assignTeamMembersToServiceAction = createAsyncAction(
+  'ASSIGNMENTS/ASSIGN_TEAM_MEMBERS_TO_SERVICE_REQUEST',
+  'ASSIGNMENTS/ASSIGN_TEAM_MEMBERS_TO_SERVICE_SUCCESS',
+  'ASSIGNMENTS/ASSIGN_TEAM_MEMBERS_TO_SERVICE_FAILURE',
+)<{ serviceId: number; userIds: number[] }, void, { message: string }>();
+
+export const assignLocationsToServiceAction = createAsyncAction(
+  'ASSIGNMENTS/ASSIGN_LOCATIONS_TO_SERVICE_REQUEST',
+  'ASSIGNMENTS/ASSIGN_LOCATIONS_TO_SERVICE_SUCCESS',
+  'ASSIGNMENTS/ASSIGN_LOCATIONS_TO_SERVICE_FAILURE',
+)<{ serviceId: number; locationIds: number[] }, void, { message: string }>();

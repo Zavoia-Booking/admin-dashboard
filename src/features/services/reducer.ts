@@ -11,26 +11,12 @@ type Actions = ActionType<typeof actions>
 const initialState: ServicesState = {
     services: [],
     filters: getDefaultServiceFilters(),
-    pagination: {
-        offset: 0,
-        limit: 20,
-        total: 0,
-        hasMore: false,
-    },
     addFormOpen: false,
     editForm: {
         open: false,
         item: null,
     },
 };
-
-const handleGetServiceSuccess = (state: ServicesState, payload: { services: Service[]; pagination: { offset: number; limit: number; total: number; hasMore: boolean } }, reset: boolean): ServicesState => {
-    return {
-        ...state,
-        services: reset ? payload.services : [...state.services, ...payload.services],
-        pagination: payload.pagination
-    }
-}
 
 const handleGetServiceByIdSuccess = (state: ServicesState, payload: Service): ServicesState => {
     // Update the service in the list if it exists, otherwise add it
@@ -63,27 +49,27 @@ export const handleToggleAddForm = (state: ServicesState, payload: boolean):Serv
     }
 }
 
-export const ServicesReducer: Reducer<ServicesState, any> = (state: ServicesState = initialState, action: Actions) => {
+export const ServicesReducer: Reducer<ServicesState, Actions> = (state: ServicesState = initialState, action: Actions): ServicesState => {
     switch (action.type) {
         case getType(actions.getServicesAction.success):
-            // Check if this is a reset (first page) by comparing offset
-            const reset = action.payload.pagination.offset === 0;
-            return handleGetServiceSuccess(state, action.payload, reset);
+            return {
+                ...state,
+                services: action.payload
+            }
 
         case getType(actions.getServiceByIdAction.success):
-            return handleGetServiceByIdSuccess(state, action.payload);
+            return handleGetServiceByIdSuccess(state, action.payload as Service);
 
         case getType(actions.editServicesAction.success):
             return state;
         case getType(actions.setServiceFilterAction.success):
             return {
-                ...handleSetServiceFilters(state, action.payload),
-                services: [], // Reset services when filters change
-                pagination: initialState.pagination
+                ...handleSetServiceFilters(state, action.payload as ServiceFilterState),
+                services: [] // Reset services when filters change
             };
             
         case getType(toggleAddFormAction):
-            return handleToggleAddForm(state, action.payload);
+            return handleToggleAddForm(state, action.payload as boolean);
         default:
             return state;
     }

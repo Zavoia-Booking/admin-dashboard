@@ -16,6 +16,7 @@ export interface TeamMember {
   status: 'pending' | 'active' | 'inactive';
   isActive: boolean;
   createdAt: string;
+  profileImage?: string | null;
   invitedBy?: {
     id: number;
     firstName: string;

@@ -7,8 +7,10 @@ type Actions = ActionType<typeof actions>;
 
 const initialState: AssignmentsState = {
   selectedTeamMemberId: null,
+  selectedServiceId: null,
   teamMemberAssignments: [],
   selectedTeamMemberAssignment: null,
+  selectedServiceAssignment: null,
   isLoading: false,
   isSaving: false,
 };
@@ -48,6 +50,30 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (state: Assign
     case getType(actions.assignServicesToTeamMemberAction.failure):
     case getType(actions.assignLocationsToTeamMemberAction.success):
     case getType(actions.assignLocationsToTeamMemberAction.failure):
+      return { ...state, isSaving: false };
+    
+    // Services
+    case getType(actions.fetchServiceAssignmentByIdAction.request):
+      return { ...state, isLoading: true };
+    case getType(actions.fetchServiceAssignmentByIdAction.success):
+      return { 
+        ...state, 
+        selectedServiceAssignment: action.payload,
+        isLoading: false 
+      };
+    case getType(actions.fetchServiceAssignmentByIdAction.failure):
+      return { ...state, isLoading: false };
+      
+    case getType(actions.selectServiceAction):
+      return { ...state, selectedServiceId: action.payload };
+      
+    case getType(actions.assignTeamMembersToServiceAction.request):
+    case getType(actions.assignLocationsToServiceAction.request):
+      return { ...state, isSaving: true };
+    case getType(actions.assignTeamMembersToServiceAction.success):
+    case getType(actions.assignTeamMembersToServiceAction.failure):
+    case getType(actions.assignLocationsToServiceAction.success):
+    case getType(actions.assignLocationsToServiceAction.failure):
       return { ...state, isSaving: false };
       
     default:

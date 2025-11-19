@@ -46,35 +46,37 @@ export function ResponsiveTabs({
   return (
     <div className={cn("space-y-6", className)}>
       {/* Tabs */}
-      <div
-        className={cn(
-          "flex flex-col md:flex-row gap-2 md:gap-2 md:border-b",
-          tabsClassName
-        )}
-      >
-        {items.map((item) => {
-          const Icon = item.icon
-          const isActive = value === item.id
+      <div className="inline-flex flex-col md:flex-row gap-2 md:gap-2 md:border-b md:border-border-strong">
+        <div
+          className={cn(
+            "flex flex-col md:flex-row gap-2 md:gap-2",
+            tabsClassName
+          )}
+        >
+          {items.map((item) => {
+            const Icon = item.icon
+            const isActive = value === item.id
 
-          return (
-            <button
-              key={item.id}
-              onClick={() => setValue(item.id)}
-              className={cn(
-                "flex items-center justify-between gap-3 px-4 py-3 md:px-4 md:py-2 rounded-lg md:rounded-none border md:border-0 md:border-b-2 transition-colors cursor-pointer",
-                isActive
-                  ? "bg-primary/10 md:bg-transparent border-primary md:border-primary text-primary"
-                  : "bg-card md:bg-transparent border-border md:border-b-transparent hover:bg-muted/50 md:hover:bg-transparent text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <div className="flex items-center gap-2">
-                {Icon && <Icon className="h-4 w-4" />}
-                <span className="font-medium">{item.label}</span>
-              </div>
-              <ChevronRight className="h-4 w-4 md:hidden text-muted-foreground" />
-            </button>
-          )
-        })}
+            return (
+              <button
+                key={item.id}
+                onClick={() => setValue(item.id)}
+                className={cn(
+                  "flex items-center justify-between gap-3 px-4 py-3 md:px-4 md:py-2 rounded-lg md:rounded-none border md:border-0 md:border-b-2 transition-colors cursor-pointer",
+                  isActive
+                    ? "bg-primary/10 md:bg-transparent border-primary md:border-primary text-primary"
+                    : "bg-card md:bg-transparent border-border md:border-b-transparent hover:bg-muted/50 md:hover:bg-transparent text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  {Icon && <Icon className="h-4 w-4" />}
+                  <span className="font-medium">{item.label}</span>
+                </div>
+                <ChevronRight className="h-4 w-4 md:hidden text-muted-foreground" />
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/* Tab Content */}

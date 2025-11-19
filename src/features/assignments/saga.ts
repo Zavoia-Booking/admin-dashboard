@@ -4,15 +4,22 @@ import {
   fetchTeamMemberAssignmentByIdAction,
   assignServicesToTeamMemberAction,
   assignLocationsToTeamMemberAction,
+  fetchServiceAssignmentByIdAction,
+  assignTeamMembersToServiceAction,
+  assignLocationsToServiceAction,
 } from "./actions";
 import {
   fetchTeamMemberAssignmentsRequest,
   fetchTeamMemberAssignmentByIdRequest,
   assignServicesToTeamMemberRequest,
   assignLocationsToTeamMemberRequest,
+  fetchServiceAssignmentByIdRequest,
+  assignTeamMembersToServiceRequest,
+  assignLocationsToServiceRequest,
 } from "./api";
-import { type TeamMemberAssignment } from "./types";
+import { type TeamMemberAssignment, type ServiceAssignment } from "./types";
 import { toast } from "sonner";
+import { getServicesAction } from "../services/actions";
 
 // Team Members perspective
 function* handleFetchTeamMemberAssignments() {
@@ -61,6 +68,43 @@ function* handleAssignLocationsToTeamMember(action: ReturnType<typeof assignLoca
   }
 }
 
+// Services perspective
+function* handleFetchServiceAssignmentById(action: ReturnType<typeof fetchServiceAssignmentByIdAction.request>) {
+  try {
+    const data: ServiceAssignment = yield call(fetchServiceAssignmentByIdRequest, action.payload);
+    yield put(fetchServiceAssignmentByIdAction.success(data));
+  } catch (error: any) {
+    yield put(fetchServiceAssignmentByIdAction.failure({ message: error?.message || 'Failed to fetch service assignment' }));
+    toast.error('Failed to load service assignment');
+  }
+}
+
+function* handleAssignTeamMembersToService(action: ReturnType<typeof assignTeamMembersToServiceAction.request>) {
+  try {
+    const { serviceId, userIds } = action.payload;
+    yield call(assignTeamMembersToServiceRequest, serviceId, userIds);
+    yield put(assignTeamMembersToServiceAction.success());
+    yield put(getServicesAction.request({ reset: true }));
+    toast.success('Team members assigned successfully');
+  } catch (error: any) {
+    yield put(assignTeamMembersToServiceAction.failure({ message: error?.message || 'Failed to assign team members' }));
+    toast.error('Failed to assign team members');
+  }
+}
+
+function* handleAssignLocationsToService(action: ReturnType<typeof assignLocationsToServiceAction.request>) {
+  try {
+    const { serviceId, locationIds } = action.payload;
+    yield call(assignLocationsToServiceRequest, serviceId, locationIds);
+    yield put(assignLocationsToServiceAction.success());
+    yield put(getServicesAction.request({ reset: true }));
+    toast.success('Locations assigned successfully');
+  } catch (error: any) {
+    yield put(assignLocationsToServiceAction.failure({ message: error?.message || 'Failed to assign locations' }));
+    toast.error('Failed to assign locations');
+  }
+}
+
 export function* assignmentsSaga() {
   yield all([
     // Team Members
@@ -68,5 +112,9 @@ export function* assignmentsSaga() {
     takeLatest(fetchTeamMemberAssignmentByIdAction.request, handleFetchTeamMemberAssignmentById),
     takeLatest(assignServicesToTeamMemberAction.request, handleAssignServicesToTeamMember),
     takeLatest(assignLocationsToTeamMemberAction.request, handleAssignLocationsToTeamMember),
+    // Services
+    takeLatest(fetchServiceAssignmentByIdAction.request, handleFetchServiceAssignmentById),
+    takeLatest(assignTeamMembersToServiceAction.request, handleAssignTeamMembersToService),
+    takeLatest(assignLocationsToServiceAction.request, handleAssignLocationsToService),
   ]);
 }

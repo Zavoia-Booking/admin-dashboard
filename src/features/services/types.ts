@@ -3,12 +3,6 @@ import type { Service } from "../../shared/types/service.ts";
 export type ServicesState = {
   services: Service[];
   filters: ServiceFilterState;
-  pagination: {
-    offset: number;
-    limit: number;
-    total: number;
-    hasMore: boolean;
-  };
   addFormOpen: boolean,
   editForm: {
     open: boolean,

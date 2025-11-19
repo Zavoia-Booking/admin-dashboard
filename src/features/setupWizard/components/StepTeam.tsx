@@ -39,7 +39,7 @@ interface LocalTeamMember extends InviteTeamMemberPayload {
   status: "pending";
 }
 
-function getAvatarBgColor(email: string | undefined): string {
+export function getAvatarBgColor(email: string | undefined): string {
   const str = (email || "").toLowerCase();
   let hash = 0;
   for (let i = 0; i < str.length; i++) {

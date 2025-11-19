@@ -214,7 +214,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   return (
     <Sidebar collapsible="icon" {...props}>
-      <SidebarHeader className="p-0 border-b border-sidebar-border h-[72px]">
+      <SidebarHeader className="p-0 border-b border-border-strong h-[72px]">
         {isCollapsed ? (
           <div className="flex items-center justify-center w-full h-full">
             <SidebarTrigger className="h-8 w-8" />
@@ -237,16 +237,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
       
       {/* Language and Dark Mode Controls */}
-      <div className="grid grid-cols-2 gap-0 border-t border-sidebar-border group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:gap-0">
-        <div className="flex items-center justify-center w-full border-b-0 group-data-[collapsible=icon]:border-b border-sidebar-border">
+      <div className="grid grid-cols-2 gap-0 border-t border-border-strong group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:gap-0">
+        <div className="flex items-center justify-center w-full border-b-0 group-data-[collapsible=icon]:border-b border-border-strong">
           <DarkModeToggle />
         </div>
-        <div className="flex items-center justify-center w-full border-l border-sidebar-border group-data-[collapsible=icon]:border-l-0">
+        <div className="flex items-center justify-center w-full border-l border-border-strong group-data-[collapsible=icon]:border-l-0">
           <LanguageSwitcher />
         </div>
       </div>
       
-      <SidebarFooter className="border-t border-sidebar-border bg-muted/50 p-0">
+      <SidebarFooter className="border-t border-border-strong bg-muted/50 p-0">
         {/* Logout Button */}
         <SidebarMenu>
           <SidebarMenuItem>

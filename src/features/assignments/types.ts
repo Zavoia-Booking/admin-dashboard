@@ -39,6 +39,7 @@ export type AssignmentFilterState = {
 
 export type TeamMemberAssignment = {
   id: number;
+  profileImage: string | null;
   email: string;
   firstName: string;
   lastName: string;
@@ -50,6 +51,7 @@ export type TeamMemberAssignment = {
   allLocations?: Array<{
     locationId: number;
     locationName: string;
+    address: string;
   }>;
   assignedServices: Array<{
     serviceId: number;
@@ -79,6 +81,7 @@ export type ServiceAssignment = {
   availableLocations: Array<{
     locationId: number;
     locationName: string;
+    address: string;
   }>;
 };
 
@@ -107,10 +110,14 @@ export type BulkAssignmentPayload = {
 export type AssignmentsState = {
   // Selected item in left panel
   selectedTeamMemberId: number | null;
+  selectedServiceId: number | null;
   
   // Data for team members
   teamMemberAssignments: TeamMemberAssignment[];
   selectedTeamMemberAssignment: TeamMemberAssignment | null;
+  
+  // Data for services (selected service assignment details)
+  selectedServiceAssignment: ServiceAssignment | null;
   
   // Loading states
   isLoading: boolean;

@@ -137,7 +137,7 @@ export function MobileBottomNav() {
       <div
         ref={drawerRef}
         className={cn(
-          'fixed left-0 right-0 z-40 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg overflow-hidden',
+          'mobile-nav-drawer fixed left-0 right-0 z-40 bg-surface border-t border-border shadow-lg overflow-hidden',
           !isDragging && 'transition-transform duration-300 ease-out',
           isOpen ? 'translate-y-0' : 'translate-y-full',
           'bottom-[72px] max-h-[calc(100vh-72px)]'
@@ -159,7 +159,7 @@ export function MobileBottomNav() {
         >
           {/* Visual drag handle */}
           <div className="flex flex-col items-center pt-3 pb-2">
-            <div className="w-12 h-1.5 rounded-full bg-gray-300 dark:bg-gray-600" />
+            <div className="w-12 h-1.5 rounded-full bg-border-strong" />
           </div>
         </div>
         <div className="overflow-y-auto max-h-[calc(100vh-144px)]">
@@ -168,23 +168,25 @@ export function MobileBottomNav() {
               const isActive = pathname === item.url;
               const isLast = index === moreNavItems.length - 1;
               return (
-                <Link
-                  key={item.title}
-                  to={item.url}
-                  onClick={() => setIsOpen(false)}
-                  className={cn(
-                    'flex items-center justify-between gap-3 px-4 py-3 rounded-lg border transition-colors cursor-pointer',
-                    isActive
-                      ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800'
-                      : 'bg-card border-border hover:bg-muted/50 text-muted-foreground hover:text-foreground',
-                    isLast && 'mb-[5px]'
-                  )}
-                >
+              <Link
+                key={item.title}
+                to={item.url}
+                onClick={() => setIsOpen(false)}
+                data-slot="sidebar-menu-button"
+                data-active={isActive}
+                className={cn(
+                  'flex items-center justify-between gap-3 px-4 py-3 rounded-lg border transition-all duration-200 cursor-pointer',
+                  isActive
+                    ? 'bg-surface-active font-medium border-border'
+                    : 'bg-surface border-border hover:bg-surface-hover text-sidebar-foreground',
+                  isLast && 'mb-[5px]'
+                )}
+              >
                   <div className="flex items-center gap-2">
-                    <item.icon className={cn('h-4 w-4', isActive ? 'text-blue-600 dark:text-blue-400' : '')} />
+                    <item.icon className="h-4 w-4" />
                     <span className="font-medium">{item.title}</span>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className="h-4 w-4 text-foreground-3" />
                 </Link>
               );
             })}
@@ -202,7 +204,7 @@ export function MobileBottomNav() {
       />
 
       {/* Bottom navigation bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-800 shadow-lg">
+      <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border shadow-lg">
         <div className="flex items-center justify-around px-2 py-2">
           {/* Main navigation items */}
           {mainNavItems.map((item) => {
@@ -211,15 +213,17 @@ export function MobileBottomNav() {
               <Link
                 key={item.title}
                 to={item.url}
+                data-slot="sidebar-menu-button"
+                data-active={isActive}
                 className={cn(
-                  'flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-colors duration-200 flex-1',
+                  'flex flex-col items-center justify-center py-1.5 px-2.5 rounded-lg transition-all duration-200 flex-1 relative m-0.5',
                   isActive
-                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    ? 'bg-surface-active font-medium'
+                    : 'hover:bg-surface-hover'
                 )}
               >
-                <item.icon className={cn('h-6 w-6 mb-1', isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400')} />
-                <span className={cn('text-xs font-medium', isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400')}>
+                <item.icon className="h-6 w-6 mb-1" />
+                <span className="text-xs font-medium">
                   {item.title}
                 </span>
               </Link>
@@ -229,28 +233,30 @@ export function MobileBottomNav() {
           {/* More button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
+            data-slot="sidebar-menu-button"
+            data-active={isOpen}
             className={cn(
-              'flex flex-col items-center justify-center py-2 px-3 rounded-lg transition-all duration-300 flex-1 relative',
+              'flex flex-col items-center justify-center py-1.5 px-2.5 rounded-lg transition-all duration-200 flex-1 relative m-0.5',
               isOpen
-                ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950'
-                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                ? 'bg-surface-active font-medium'
+                : 'hover:bg-surface-hover'
             )}
           >
             <div className="relative h-6 w-6 mb-1">
               <X 
                 className={cn(
-                  'absolute inset-0 h-6 w-6 text-blue-600 dark:text-blue-400 transition-all duration-300',
+                  'absolute inset-0 h-6 w-6 transition-all duration-300',
                   isOpen ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-75 rotate-90'
                 )} 
               />
               <MoreHorizontal 
                 className={cn(
-                  'absolute inset-0 h-6 w-6 text-gray-500 dark:text-gray-400 transition-all duration-300',
+                  'absolute inset-0 h-6 w-6 transition-all duration-300',
                   isOpen ? 'opacity-0 scale-75 -rotate-90' : 'opacity-100 scale-100 rotate-0'
                 )} 
               />
             </div>
-            <span className={cn('text-xs font-medium', isOpen ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400')}>
+            <span className="text-xs font-medium">
               More
             </span>
           </button>

@@ -10,11 +10,9 @@ import EditServiceSlider from "../components/EditServiceSlider";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { Switch } from "../../../shared/components/ui/switch";
 import type { Service } from "../../../shared/types/service";
-import { Button } from "../../../shared/components/ui/button";
 import {
   getAddFormSelector,
   getServicesListSelector,
-  getServicesPaginationSelector,
 } from "../selectors.ts";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -32,7 +30,6 @@ import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 export default function ServicesPage() {
   const text = useTranslation("services").t;
   const services: Service[] = useSelector(getServicesListSelector);
-  const pagination = useSelector(getServicesPaginationSelector);
   const { ConfirmDialog, confirm } = useConfirmRadix();
 
   const dispatch = useDispatch();
@@ -56,10 +53,6 @@ export default function ServicesPage() {
   // Load services on mount
   useEffect(() => {
     dispatch(getServicesAction.request({ reset: true }));
-  }, [dispatch]);
-
-  const handleLoadMore = useCallback(() => {
-    dispatch(getServicesAction.request({ reset: false }));
   }, [dispatch]);
 
   const handleDeleteService = useCallback(
@@ -281,19 +274,6 @@ export default function ServicesPage() {
                 );
               })}
             </div>
-
-            {/* Pagination - Load More */}
-            {pagination.hasMore && (
-              <div className="flex justify-center pt-4">
-                <Button
-                  variant="outline"
-                  onClick={handleLoadMore}
-                  className="min-w-[120px]"
-                >
-                  Load More ({pagination.total - services.length} remaining)
-                </Button>
-              </div>
-            )}
 
             {/* Empty State */}
             {services.length === 0 && (

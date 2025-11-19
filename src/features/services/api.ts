@@ -3,10 +3,9 @@ import { apiClient } from "../../shared/lib/http";
 import type { Service } from "../../shared/types/service.ts";
 import type { FilterItem } from "../../shared/types/common.ts";
 
-export const getServicesRequest = (payload: Array<FilterItem>, pagination?: { offset?: number; limit?: number }) => {
-  return apiClient().post<{ services: Service[]; pagination: { offset: number; limit: number; total: number; hasMore: boolean } }>(`/services/list`, { 
-    filters: payload,
-    pagination: pagination || { offset: 0, limit: 20 }
+export const getServicesRequest = (payload: Array<FilterItem>) => {
+  return apiClient().post<Service[]>(`/services/list`, { 
+    filters: payload
   });
 }
 

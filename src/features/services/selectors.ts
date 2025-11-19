@@ -3,7 +3,7 @@ import { getServicesStateSelector } from "../../app/providers/selectors.ts";
 import type { ServiceFilterState } from "./types.ts";
 
 export const getServicesListSelector = createSelector(getServicesStateSelector, (state) => {
-    return state.services
+    return Array.isArray(state.services) ? state.services : []
 });
 
 export const getServicesFilterSelector = createSelector(getServicesStateSelector, (state): ServiceFilterState => {
@@ -15,8 +15,4 @@ export const getAddFormSelector = createSelector(getServicesStateSelector, (stat
 })
 export const getEditFormSelector = createSelector(getServicesStateSelector, (state) => {
     return state.editForm;
-})
-
-export const getServicesPaginationSelector = createSelector(getServicesStateSelector, (state) => {
-    return state.pagination;
 })

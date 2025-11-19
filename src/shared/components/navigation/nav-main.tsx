@@ -1,5 +1,6 @@
 import * as React from "react"
 import { ChevronRight, type LucideIcon } from "lucide-react"
+import { useLocation } from "react-router-dom"
 
 import {
   Collapsible,
@@ -41,7 +42,34 @@ export function NavMain({
 }) {
   const { state } = useSidebar()
   const isCollapsed = state === 'collapsed'
+  const location = useLocation()
+  const pathname = location.pathname
+  const search = location.search
   const [openPopovers, setOpenPopovers] = React.useState<Record<string, boolean>>({})
+  
+  // Helper function to check if a URL matches the current location
+  const isUrlActive = (url: string): boolean => {
+    const [urlPath, urlSearch] = url.split('?')
+    if (pathname !== urlPath) return false
+    
+    if (!urlSearch) {
+      // If no query params in URL, check if current location also has no query params
+      return !search || search === ''
+    }
+    
+    // Parse query parameters
+    const urlParams = new URLSearchParams(urlSearch)
+    const currentParams = new URLSearchParams(search)
+    
+    // Check if all URL params match current params
+    for (const [key, value] of urlParams.entries()) {
+      if (currentParams.get(key) !== value) {
+        return false
+      }
+    }
+    
+    return true
+  }
 
   const handlePopoverChange = (itemTitle: string, open: boolean) => {
     setOpenPopovers(prev => ({ ...prev, [itemTitle]: open }))
@@ -74,23 +102,27 @@ export function NavMain({
                       <PopoverContent 
                         side="bottom" 
                         align="start"
-                        className="!w-50 md:!w-50 p-0 bg-sidebar border-sidebar-border"
+                        className="!w-50 md:!w-50 p-0 bg-white dark:bg-surface border-border-strong"
                         sideOffset={4}
                       >
                         <div className="py-2">
                           <div className="mx-3.5 flex min-w-0 translate-x-px flex-col gap-1 px-2.5 relative">
                             {/* Vertical line that doesn't extend to edges */}
-                            <div className="absolute left-0 top-1 bottom-1 w-px bg-sidebar-border" />
-                            {item.items.map((subItem) => (
-                              <Link
-                                key={subItem.title}
-                                to={subItem.url}
-                                onClick={() => handlePopoverChange(item.title, false)}
-                                className="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sm relative z-10"
-                              >
-                                <span>{subItem.title}</span>
-                              </Link>
-                            ))}
+                            <div className="absolute left-0 top-1 bottom-1 w-px bg-border-strong" />
+                            {item.items.map((subItem) => {
+                              const subItemIsActive = isUrlActive(subItem.url)
+                              return (
+                                <Link
+                                  key={subItem.title}
+                                  to={subItem.url}
+                                  onClick={() => handlePopoverChange(item.title, false)}
+                                  data-active={subItemIsActive}
+                                  className="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sm relative z-10"
+                                >
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              )
+                            })}
                           </div>
                         </div>
                       </PopoverContent>
@@ -117,15 +149,18 @@ export function NavMain({
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {item.items.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton asChild>
-                              <Link to={subItem.url}>
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
+                        {item.items.map((subItem) => {
+                          const subItemIsActive = isUrlActive(subItem.url)
+                          return (
+                            <SidebarMenuSubItem key={subItem.title}>
+                              <SidebarMenuSubButton asChild isActive={subItemIsActive}>
+                                <Link to={subItem.url}>
+                                  <span>{subItem.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          )
+                        })}
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>

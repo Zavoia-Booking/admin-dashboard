@@ -13,22 +13,17 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { Service } from "../../shared/types/service.ts";
 import type { EditServicePayload, ServiceFilterState } from "./types.ts";
-import { getServicesFilterSelector, getServicesPaginationSelector } from "./selectors.ts";
+import { getServicesFilterSelector } from "./selectors.ts";
 import { mapToGenericFilter } from "./utils.ts";
 import { selectCurrentUser } from "../auth/selectors";
 import { priceToStorage } from "../../shared/utils/currency";
 
-function* handleGetServices(action: ActionType<typeof getServicesAction.request>): Generator<any, void, any> {
+function* handleGetServices(): Generator<any, void, any> {
     const filters: ServiceFilterState = yield select(getServicesFilterSelector);
-    const pagination: { offset: number; limit: number; total: number; hasMore: boolean } = yield select(getServicesPaginationSelector);
-    const reset = action.payload?.reset ?? true;
-
     const mappedFilters = mapToGenericFilter(filters);
-    const offset = reset ? 0 : pagination.offset + pagination.limit;
-    const limit = pagination.limit;
 
     try {
-        const response: { data: { services: Service[]; pagination: { offset: number; limit: number; total: number; hasMore: boolean } } } = yield call(getServicesRequest, mappedFilters, { offset, limit });
+        const response: { data: Service[] } = yield call(getServicesRequest, mappedFilters);
         if (response.data) {
             yield put(getServicesAction.success(response.data))
         }

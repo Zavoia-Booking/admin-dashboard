@@ -22,7 +22,7 @@ export function AppLayout({ children }: AppLayoutProps) {
 
         <SidebarInset>
           <main className={`flex-1 overflow-y-auto ${isMobile ? 'pb-20' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
-            <div className="sticky top-0 z-10 bg-gray-50 px-4 pt-4 pb-2">
+            <div className="sticky top-0 z-10 px-4 pt-4 pb-2">
               <Breadcrumbs items={breadcrumbs} />
             </div>
             <div className="px-4 py-4">

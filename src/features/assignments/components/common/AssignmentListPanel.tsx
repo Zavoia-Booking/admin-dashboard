@@ -4,7 +4,8 @@ import { Spinner } from '../../../../shared/components/ui/spinner';
 import { Badge } from '../../../../shared/components/ui/badge';
 
 export interface ListItem {
-  id: number | string;
+  id: number;
+  profileImage?: string | null;
   title: string;
   subtitle?: string;
   badges?: Array<{ label: string; value: number }>;

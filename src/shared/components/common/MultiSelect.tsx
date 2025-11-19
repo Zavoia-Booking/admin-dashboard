@@ -75,7 +75,7 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             )}
           >
             <span className="flex items-center gap-2 min-w-0">
-              <span className="truncate text-left">{displayLabel}</span>
+              <span className="truncate text-left capitalize">{displayLabel}</span>
               {selectedOptions.length > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
                   ({selectedOptions.length})
@@ -112,12 +112,12 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => handleToggle(option.id)}
-                          className="shrink-0"
+                          className="shrink-0 h-3.5 w-3.5 !min-h-0 !min-w-0 !rounded-[2px] [&_svg]:h-2.5 [&_svg]:w-2.5"
                         />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium">{option.name}</div>
+                          <div className="text-sm font-medium capitalize">{option.name}</div>
                           {option.subtitle && (
-                            <div className="text-xs text-muted-foreground truncate">
+                            <div className="text-xs text-muted-foreground truncate capitalize">
                               {option.subtitle}
                             </div>
                           )}

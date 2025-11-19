@@ -3,7 +3,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AssignmentListPanel, type ListItem } from '../common/AssignmentListPanel';
 import { AssignmentDetailsPanel, type AssignmentSection } from '../common/AssignmentDetailsPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../../shared/components/ui/avatar';
+import { Pill } from '../../../../shared/components/ui/pill';
 import type { TeamMember } from '../../../../shared/types/team-member';
+import { getAvatarBgColor } from '../../../setupWizard/components/StepTeam';
 import {
   selectTeamMemberAction,
   fetchTeamMemberAssignmentByIdAction,
@@ -19,6 +21,7 @@ import { listTeamMembersAction } from '../../../teamMembers/actions';
 import { selectTeamMembers } from '../../../teamMembers/selectors';
 import { getServicesListSelector } from '../../../services/selectors';
 import { getAllLocationsSelector } from '../../../locations/selectors';
+import { MapPin, Wrench } from 'lucide-react';
 
 export function TeamMembersAssignments() {
   const dispatch = useDispatch();
@@ -73,32 +76,32 @@ export function TeamMembersAssignments() {
     const initials = `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
 
     return (
-      <button
+      <Pill
         key={item.id}
+        selected={isSelected}
         onClick={() => handleSelectTeamMember(Number(item.id))}
-        className={`w-full text-left p-3 rounded-lg border transition-colors cursor-pointer ${
-          isSelected
-            ? 'border-primary bg-primary/5'
-            : 'border-border hover:border-primary/50'
-        }`}
-      >
-        <div className="flex items-center gap-3">
+        className="w-full justify-start items-center text-left"
+        logo={
           <Avatar className="h-10 w-10 shrink-0">
-            <AvatarImage src="" alt={`${member.firstName} ${member.lastName}`} />
-            <AvatarFallback className="text-sm font-medium">
+            <AvatarImage src={member.profileImage || undefined} alt={`${member.firstName} ${member.lastName}`} />
+            <AvatarFallback 
+              className="text-sm font-medium"
+              style={{ backgroundColor: getAvatarBgColor(member.email) }}
+            >
               {initials}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="font-medium truncate">{item.title}</div>
-            {item.subtitle && (
-              <div className="text-sm text-muted-foreground truncate">
-                {item.subtitle}
-              </div>
-            )}
-          </div>
+        }
+      >
+        <div className="flex-1 min-w-0">
+          <div className="font-medium truncate">{item.title}</div>
+          {item.subtitle && (
+            <div className="text-sm text-muted-foreground truncate">
+              {item.subtitle}
+            </div>
+          )}
         </div>
-      </button>
+      </Pill>
     );
   };
 
@@ -147,8 +150,8 @@ export function TeamMembersAssignments() {
     // Use allLocations from API response if available, otherwise fallback to Redux store
     const locationsFromApi = selectedTeamMember.allLocations || [];
     const allLocationsList = locationsFromApi.length > 0
-      ? locationsFromApi.map(l => ({ id: l.locationId, name: l.locationName }))
-      : allLocations.map(l => ({ id: l.id, name: l.name }));
+      ? locationsFromApi.map(l => ({ id: l.locationId, name: l.locationName, address: l.address }))
+      : allLocations.map(l => ({ id: l.id, name: l.name, address: l.address }));
     
     // Assigned services: items whose IDs are in selectedServiceIds
     const assignedServices = selectedServiceIds.map(id => {
@@ -173,7 +176,7 @@ export function TeamMembersAssignments() {
     return [
       {
         title: 'Services',
-        icon: '📌',
+        icon: Wrench,
         assignedItems: assignedServices,
         availableItems: allServicesList, // Show ALL services in dropdown
         selectedIds: selectedServiceIds,
@@ -181,7 +184,7 @@ export function TeamMembersAssignments() {
       },
       {
         title: 'Locations',
-        icon: '📍',
+        icon: MapPin,
         assignedItems: assignedLocations,
         availableItems: allLocationsList, // Show ALL locations in dropdown
         selectedIds: selectedLocationIds,
@@ -198,10 +201,6 @@ export function TeamMembersAssignments() {
     toggleLocationSelection,
   ]);
 
-  const detailsTitle = selectedTeamMember
-    ? `Managing: ${selectedTeamMember.firstName} ${selectedTeamMember.lastName}`
-    : 'Select an item to manage assignments';
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
       <AssignmentListPanel
@@ -215,11 +214,9 @@ export function TeamMembersAssignments() {
       />
 
       <AssignmentDetailsPanel
-        title={detailsTitle}
         sections={detailsSections}
         onSave={handleSave}
         isSaving={isSaving}
-        emptyMessage="Select an item from the list to manage its assignments"
       />
     </div>
   );

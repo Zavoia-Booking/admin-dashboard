@@ -885,8 +885,19 @@ button.sidebar-menu-button-compact {
   display: none !important;
 }
 
+/* Hide active accent bar for mobile navigation */
+.mobile-nav-drawer [data-slot="sidebar-menu-button"][data-active="true"]::before,
+.mobile-bottom-nav [data-slot="sidebar-menu-button"][data-active="true"]::before {
+  display: none !important;
+}
+
 /* Smooth hover effect */
 [data-slot="sidebar-menu-button"]:hover {
+  background: var(--sidebar-accent);
+}
+
+/* Smooth hover effect for sub-items */
+[data-slot="sidebar-menu-sub-button"]:hover {
   background: var(--sidebar-accent);
 }
 
@@ -901,7 +912,14 @@ button.sidebar-menu-button-compact {
 
 /* Active state styling */
 [data-slot="sidebar-menu-button"][data-active="true"] {
-  background: var(--sidebar-accent);
+  background: var(--surface-active);
+  font-weight: 600;
+  color: var(--sidebar-primary);
+}
+
+/* Active state styling for sub-items - match main items */
+[data-slot="sidebar-menu-sub-button"][data-active="true"] {
+  background: var(--surface-active);
   font-weight: 600;
   color: var(--sidebar-primary);
 }

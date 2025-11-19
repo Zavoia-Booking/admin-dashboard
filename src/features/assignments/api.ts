@@ -1,6 +1,7 @@
 import { apiClient } from "../../shared/lib/http";
 import type { 
   TeamMemberAssignment,
+  ServiceAssignment,
 } from "./types";
 
 // Team Members perspective
@@ -31,6 +32,22 @@ export const removeServiceFromTeamMemberRequest = async (userId: number, service
 
 export const removeLocationFromTeamMemberRequest = async (userId: number, locationId: number) => {
   const { data } = await apiClient().delete(`/assignments/team-members/${userId}/locations/${locationId}`);
+  return data;
+};
+
+// Services perspective
+export const fetchServiceAssignmentByIdRequest = async (id: number): Promise<ServiceAssignment> => {
+  const { data } = await apiClient().get<ServiceAssignment>(`/assignments/services/${id}`);
+  return data;
+};
+
+export const assignTeamMembersToServiceRequest = async (serviceId: number, userIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/services/${serviceId}/team-members`, { userIds });
+  return data;
+};
+
+export const assignLocationsToServiceRequest = async (serviceId: number, locationIds: number[]) => {
+  const { data } = await apiClient().post(`/assignments/services/${serviceId}/locations`, { locationIds });
   return data;
 };
 

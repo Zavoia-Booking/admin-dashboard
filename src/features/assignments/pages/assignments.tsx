@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
-import { Users } from 'lucide-react';
+import { Briefcase, MapPin, Users } from 'lucide-react';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
 import { TeamMembersAssignments } from '../components/Team/TeamMembersAssignments';
+import { ServicesAssignments } from '../components/Services/ServicesAssignments';
+import { LocationsAssignments } from '../components/Locations/LocationsAssignments';
 // import { LocationsAssignments } from '../components/Locations/LocationsAssignments';
 // import { ServicesAssignments } from '../components/Services/ServicesAssignments';
 
@@ -46,18 +48,18 @@ export default function AssignmentsPage() {
       icon: Users,
       content: <TeamMembersAssignments />,
     },
-    // {
-    //   id: 'services',
-    //   label: 'Services',
-    //   icon: Wrench,
-    //   content: <ServicesAssignments />,
-    // },
-    // {
-    //   id: 'locations',
-    //   label: 'Locations',
-    //   icon: MapPin,
-    //   content: <LocationsAssignments />,
-    // },
+    {
+      id: 'services',
+      label: 'Services',
+      icon: Briefcase,
+      content: <ServicesAssignments />,
+    },
+    {
+      id: 'locations',
+      label: 'Locations',
+      icon: MapPin,
+      content: <LocationsAssignments />,
+    },
   ];
 
   return (
