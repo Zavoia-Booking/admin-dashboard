@@ -87,8 +87,10 @@ function CredentialsFormBase({
 
   return (
     <form onSubmit={handleSubmit} noValidate className={className}>
-      <div className="grid gap-3">
-        <Label htmlFor="cred-email">Email</Label>
+      <div className="space-y-2">
+        <Label htmlFor="cred-email" className="text-base font-medium text-foreground-1">
+          Email {!showPasswordField && '*'}
+        </Label>
         <div className="relative">
           <Input
             id="cred-email"
@@ -102,10 +104,14 @@ function CredentialsFormBase({
             }}
             required
             disabled={!!isLoading}
-            className={`h-10 md:h-12 bg-gray-50 border ${emailError ? 'border-destructive' : 'border-gray-200'} pr-10 focus:border-blue-500 focus:outline-none transition-colors`}
+            className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+              emailError
+                ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+            }`}
             aria-invalid={!!emailError}
           />
-          <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
         </div>
         <div className="h-5">
           {emailError && (
@@ -116,8 +122,8 @@ function CredentialsFormBase({
         </div>
       </div>
       {showPasswordField && (
-        <div className="mt-3 grid gap-3">
-          <Label htmlFor="cred-password">Password</Label>
+        <div className="mt-4 space-y-2">
+          <Label htmlFor="cred-password" className="text-base font-medium text-foreground-1">Password *</Label>
           <div className="relative">
             <Input
               id="cred-password"
@@ -127,12 +133,16 @@ function CredentialsFormBase({
               onChange={(e) => setPassword(e.target.value)}
               required
               disabled={!!isLoading}
-              className={`h-10 md:h-12 bg-gray-50 border ${passwordError ? 'border-destructive' : 'border-gray-200'} pr-10 focus:border-blue-500 focus:outline-none transition-colors`}
+              className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                passwordError
+                  ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                  : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+              }`}
               aria-invalid={!!passwordError}
             />
             <button
               type="button"
-              className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}

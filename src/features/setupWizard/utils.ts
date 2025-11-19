@@ -53,7 +53,7 @@ export const ensureBusinessCurrency = (wizardData: WizardData): void => {
  * Ensures all required fields are populated with proper defaults
  */
 export const prepareWizardDataForSubmission = (wizardData: WizardData): WizardData => {
-  const payload = { ...wizardData };
+  const payload = { ...wizardData, businessInfo: { ...wizardData.businessInfo, country: wizardData.location.addressComponents?.country || '' } };
   ensureBusinessTimezone(payload);
   ensureBusinessCurrency(payload);
   applyBusinessContactToLocation(payload);

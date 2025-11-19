@@ -36,7 +36,7 @@ export default function ForgotPasswordInline({ isSubmitted, onSubmit, onBack, is
                 type="button"
                 variant="outline"
                 onClick={onBack}
-                className="h-9 px-4 bg-white text-gray-700 border-gray-300 hover:bg-gray-50 w-full"
+                className="h-9 px-4 w-full"
               >
                 Back to login
               </Button>
@@ -52,7 +52,7 @@ export default function ForgotPasswordInline({ isSubmitted, onSubmit, onBack, is
       </CardContent>
       {isSubmitted && (
         <CardFooter className="flex flex-col gap-3 pt-0 md:pt-2 px-6 md:px-8 pb-4 md:pb-6">
-          <Button type="button" variant="outline" className="w-full bg-white text-gray-700 border-gray-300 hover:bg-gray-50" onClick={onBack}>Back to login</Button>
+          <Button type="button" variant="outline" className="w-full" onClick={onBack}>Back to login</Button>
         </CardFooter>
       )}
     </div>

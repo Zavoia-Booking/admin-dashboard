@@ -243,23 +243,23 @@ const BillingAndSubscription = () => {
     const cancelAtPeriodEnd = currentUser?.subscription?.cancelAtPeriodEnd;
 
     if (currentUser?.entitlements?.status === 'trial') {
-      return <Badge className="bg-blue-100 text-blue-800">Trial</Badge>;
+      return <Badge className="bg-info-bg text-info border-info-border">Trial</Badge>;
     }
 
     // Active but scheduled for cancellation
     if (status === 'active' && cancelAtPeriodEnd) {
-      return <Badge className="bg-amber-100 text-amber-800">Scheduled for Cancellation</Badge>;
+      return <Badge className="bg-warning-bg text-warning border-warning-border">Scheduled for Cancellation</Badge>;
     }
 
     switch (status) {
       case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
+        return <Badge className="bg-success-bg text-success border-success-border">Active</Badge>;
       case 'canceled':
-        return <Badge className="bg-red-100 text-red-800">Canceled</Badge>;
+        return <Badge className="bg-error-bg text-error border-error-border">Canceled</Badge>;
       case 'past_due':
-        return <Badge className="bg-amber-100 text-amber-800">Past Due</Badge>;
+        return <Badge className="bg-warning-bg text-warning border-warning-border">Past Due</Badge>;
       default:
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
+        return <Badge className="bg-muted text-muted-foreground border-border">Inactive</Badge>;
     }
   };
 
@@ -326,13 +326,13 @@ const BillingAndSubscription = () => {
       ) : (
         <>
           {/* Current Subscription Card */}
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <Card className="border border-border bg-card shadow-sm">
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
-                  <Crown className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div className="flex items-center gap-3 pb-2 border-b border-border">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Crown className="h-5 w-5 text-primary" />
                 </div>
-                <h3 className="text-base font-semibold text-foreground">Current Subscription</h3>
+                <h3 className="text-base font-semibold text-foreground-1">Current Subscription</h3>
               </div>
 
               <div className="space-y-4">
@@ -351,18 +351,18 @@ const BillingAndSubscription = () => {
 
                 {/* Trial Info */}
                 {currentUser?.entitlements?.status === 'trial' && (
-                  <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                  <div className="bg-info-bg border border-info-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                      <Calendar className="h-4 w-4 text-info" />
+                      <span className="text-sm font-medium text-foreground-1">
                         Trial Active
                       </span>
                     </div>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <p className="text-xs text-foreground-2">
                       {currentUser.entitlements.daysRemaining} days remaining
                     </p>
                     {currentUser.subscription?.trialEndsAt && (
-                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      <p className="text-xs text-foreground-3 mt-1">
                         Ends {formatDate(currentUser.subscription.trialEndsAt)}
                       </p>
                     )}
@@ -371,14 +371,14 @@ const BillingAndSubscription = () => {
 
                 {/* Subscription Scheduled for Cancellation */}
                 {currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd && (
-                  <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                  <div className="bg-warning-bg border border-warning-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Calendar className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                      <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                      <Calendar className="h-4 w-4 text-warning" />
+                      <span className="text-sm font-medium text-foreground-1">
                         Subscription Scheduled for Cancellation
                       </span>
                     </div>
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                    <p className="text-xs text-foreground-2">
                       Your subscription will be cancelled on {currentUser.subscription.currentPeriodEnd ? formatDate(currentUser.subscription.currentPeriodEnd) : 'the end of your billing period'}. You'll continue to have access until then.
                     </p>
                   </div>
@@ -427,13 +427,13 @@ const BillingAndSubscription = () => {
                 )}
 
                 {/* Seats Management */}
-                <div className="space-y-3 border rounded-lg p-3 bg-background/60">
+                <div className="space-y-3 border border-border rounded-lg p-3 bg-surface/60">
                   {(hasScheduledChange || isSubscriptionScheduledForCancellation) && (
-                    <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-                      <div className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    <div className="bg-info-bg border border-info-border rounded-lg p-3">
+                      <div className="text-sm font-medium text-foreground-1">
                         {isSubscriptionScheduledForCancellation ? 'Seat changes are locked' : 'Seat changes are locked'}
                       </div>
-                      <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      <p className="text-xs text-foreground-2 mt-1">
                         {isSubscriptionScheduledForCancellation
                           ? 'Your subscription is scheduled for cancellation. To modify seats, first undo the subscription cancellation.'
                           : 'You have a scheduled seat change. To modify seats, first undo the scheduled cancellation.'
@@ -512,13 +512,13 @@ const BillingAndSubscription = () => {
 
                   {/* Show scheduled removal */}
                   {subscriptionSummary?.scheduled?.scheduledSeats != null && (
-                    <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                    <div className="bg-warning-bg border border-warning-border rounded-lg p-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                          <div className="text-sm font-medium text-foreground-1">
                             Scheduled for removal: {subscriptionSummary.paidSeats - subscriptionSummary.scheduled.scheduledSeats} seat{(subscriptionSummary.paidSeats - subscriptionSummary.scheduled.scheduledSeats) !== 1 ? 's' : ''}
                           </div>
-                          <div className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                          <div className="text-xs text-foreground-2 mt-1">
                             Available next month: {subscriptionSummary.scheduled.scheduledSeats} seat{subscriptionSummary.scheduled.scheduledSeats !== 1 ? 's' : ''}
                           </div>
                         </div>
@@ -527,7 +527,7 @@ const BillingAndSubscription = () => {
                           size="sm"
                           onClick={handleCancelRemoval}
                           disabled={cancelRemovalLoading}
-                          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                          className="text-info hover:text-info"
                         >
                           {cancelRemovalLoading ? (
                             <Loader2 className="h-4 w-4 animate-spin" />
@@ -553,14 +553,14 @@ const BillingAndSubscription = () => {
                     if (delta > 0) {
                       const additionalCost = delta * pricePerSeat;
                       return (
-                        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                        <div className="bg-info-bg border border-info-border rounded-lg p-3">
                           <div className="flex items-center gap-2 mb-1">
-                            <TrendingUp className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                            <TrendingUp className="h-4 w-4 text-info" />
+                            <span className="text-sm font-medium text-foreground-1">
                               Adding {delta} seat{delta !== 1 ? 's' : ''}
                             </span>
                           </div>
-                          <p className="text-xs text-blue-700 dark:text-blue-300">
+                          <p className="text-xs text-foreground-2">
                             You'll be charged <span className="font-semibold">{additionalCost.toFixed(2)}€</span> now for the additional seat{delta !== 1 ? 's' : ''}.
                           </p>
                         </div>
@@ -577,7 +577,7 @@ const BillingAndSubscription = () => {
                       <Button
                         onClick={handleUpgrade}
                         disabled={currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats || isSubscriptionScheduledForCancellation}
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
+                        className="w-full bg-success hover:bg-success-border text-white"
                       >
                         {(currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats) ? (
                           <>
@@ -626,7 +626,7 @@ const BillingAndSubscription = () => {
                       <Button
                         onClick={handleRenewSubscription}
                         disabled={checkoutLoading}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        className="w-full bg-info hover:bg-info-border text-white"
                       >
                         {checkoutLoading ? (
                           <>
@@ -652,7 +652,7 @@ const BillingAndSubscription = () => {
                         onClick={handleSubscriptionStatusChange}
                         disabled={cancelLoading}
                         variant={isSubscriptionScheduledForCancellation ? "default" : "destructive"}
-                        className={`w-full ${isSubscriptionScheduledForCancellation ? 'bg-green-600 hover:bg-green-700 text-white' : ''}`}
+                        className={`w-full ${isSubscriptionScheduledForCancellation ? 'bg-success hover:bg-success-border text-white' : ''}`}
                       >
                         {cancelLoading ? (
                           <>
@@ -671,13 +671,13 @@ const BillingAndSubscription = () => {
           </Card>
 
           {/* Team Seats Usage */}
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+          <Card className="border border-border bg-card shadow-sm">
             <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/20">
-                  <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              <div className="flex items-center gap-3 pb-2 border-b border-border">
+                <div className="p-2 rounded-xl bg-info/10">
+                  <Users className="h-5 w-5 text-info" />
                 </div>
-                <h3 className="text-base font-semibold text-foreground">Team Member Seats</h3>
+                <h3 className="text-base font-semibold text-foreground-1">Team Member Seats</h3>
               </div>
 
               <div className="space-y-4">
@@ -719,13 +719,13 @@ const BillingAndSubscription = () => {
 
           {/* Plan Features */}
           {currentUser?.entitlements && (
-            <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
+            <Card className="border border-border bg-card shadow-sm">
               <CardContent className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/20">
-                    <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                <div className="flex items-center gap-3 pb-2 border-b border-border">
+                  <div className="p-2 rounded-xl bg-success/10">
+                    <CheckCircle className="h-5 w-5 text-success" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Your Plan Includes</h3>
+                  <h3 className="text-base font-semibold text-foreground-1">Your Plan Includes</h3>
                 </div>
 
                 <div className="space-y-3">

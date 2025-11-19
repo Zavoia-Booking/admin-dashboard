@@ -507,7 +507,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               Currency *
             </Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-            Choose your default pricing currency. You can always change it for individual services or adjust it later in settings.            </p>
+            Choose your default pricing currency. You can always change it later in settings.            </p>
             <CurrencySelect
               id="businessInfo.businessCurrency"
               value={(businessCurrencyField.value as string) || 'eur'}

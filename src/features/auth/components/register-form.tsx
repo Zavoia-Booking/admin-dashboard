@@ -71,16 +71,6 @@ export function RegisterForm() {
       toast.error(authError, {
         duration: 8000,
         position: 'top-center',
-        style: {
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-          fontSize: '14px',
-          fontWeight: '300',
-          padding: '16px',
-        } as React.CSSProperties
       });
       
       // Reset form to initial state
@@ -109,9 +99,9 @@ export function RegisterForm() {
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
         <CardContent className="flex flex-col gap-3 px-6 md:px-8">
           <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-            <div className="flex-1 grid gap-1.5">
-              <label htmlFor="firstName" className="text-sm font-medium text-gray-700">
-                First Name
+            <div className="flex-1 space-y-2">
+              <label htmlFor="firstName" className="text-base font-medium text-foreground-1">
+                First Name *
               </label>
               <div className="relative">
                 <Input
@@ -120,7 +110,11 @@ export function RegisterForm() {
                   type="text"
                   disabled={isLoading}
                   aria-invalid={!!errors.firstName}
-                  className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.firstName ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                  className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                    errors.firstName
+                      ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                      : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+                  }`}
                   autoComplete="given-name"
                   {...firstNameField}
                   onChange={(e) => {
@@ -128,7 +122,7 @@ export function RegisterForm() {
                     setValue('firstName', value, { shouldValidate: true, shouldDirty: true });
                   }}
                 />
-                <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               </div>
               <div className="h-5">
                 {errors.firstName && (
@@ -139,9 +133,9 @@ export function RegisterForm() {
                 )}
               </div>
             </div>
-            <div className="flex-1 grid gap-1.5">
-              <label htmlFor="lastName" className="text-sm font-medium text-gray-700">
-                Last Name
+            <div className="flex-1 space-y-2">
+              <label htmlFor="lastName" className="text-base font-medium text-foreground-1">
+                Last Name *
               </label>
               <div className="relative">
                 <Input
@@ -150,7 +144,11 @@ export function RegisterForm() {
                   type="text"
                   disabled={isLoading}
                   aria-invalid={!!errors.lastName}
-                  className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.lastName ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                  className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                    errors.lastName
+                      ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                      : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+                  }`}
                   autoComplete="family-name"
                   {...lastNameField}
                   onChange={(e) => {
@@ -158,7 +156,7 @@ export function RegisterForm() {
                     setValue('lastName', value, { shouldValidate: true, shouldDirty: true });
                   }}
                 />
-                <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               </div>
               <div className="h-5">
                 {errors.lastName && (
@@ -170,9 +168,9 @@ export function RegisterForm() {
               </div>
             </div>
           </div>
-          <div className="grid gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">
-              Email Address
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-base font-medium text-foreground-1">
+              Email Address *
             </label>
             <div className="relative">
               <Input
@@ -181,14 +179,18 @@ export function RegisterForm() {
                 type="email"
                 disabled={isLoading}
                 aria-invalid={!!errors.email}
-                className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.email ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                  errors.email
+                    ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                    : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+                }`}
                 autoComplete="email"
                 {...register('email', {
                   required: 'Email is required',
                   pattern: { value: /[^@\s]+@[^@\s]+\.[^@\s]+/, message: 'Enter a valid email' },
                 })}
               />
-              <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
             </div>
             <div className="h-5">
               {errors.email && (
@@ -199,9 +201,9 @@ export function RegisterForm() {
               )}
             </div>
           </div>
-          <div className="grid gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-gray-700">
-              Password
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-base font-medium text-foreground-1">
+              Password *
             </label>
             <Popover open={pwFocused} modal={false}>
               <PopoverTrigger asChild>
@@ -212,14 +214,18 @@ export function RegisterForm() {
                     type={showPassword ? "text" : "password"}
                     disabled={isLoading}
                     aria-invalid={!!errors.password}
-                    className={`h-10 md:h-12 bg-gray-50 border border-gray-200 pr-10 focus:border-blue-500 focus:outline-none transition-colors ${errors.password ? 'border-destructive bg-[#FFFAFA]' : ''}`}
+                    className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                      errors.password
+                        ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                        : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+                    }`}
                     {...passwordField}
                     onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
                     onBlur={(e) => { passwordField.onBlur(e); setPwFocused(false); }}
                   />
                   <button
                     type="button"
-                    className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                   >
@@ -247,7 +253,7 @@ export function RegisterForm() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pt-4 md:pt-6 px-6 md:px-8 pb-4 md:pb-6">
             <Button
-                className="w-full h-10 md:h-12 bg-white text-black hover:bg-gray-100 border border-gray-300 font-medium rounded-lg disabled:bg-gray-200 disabled:text-gray-500 disabled:border-gray-200 disabled:cursor-not-allowed disabled:hover:bg-gray-200 transition-colors cursor-pointer"
+                className="w-full h-10 md:h-12"
                 type="submit"
                 disabled={isLoading || !isValid || isSubmitting}
             >
@@ -260,9 +266,9 @@ export function RegisterForm() {
               )}
             </Button>
           <div className="relative flex items-center my-4 md:my-6 w-full">
-            <div className="flex-1 h-px bg-gray-300 min-w-0"></div>
-            <span className="px-4 text-sm text-gray-400 bg-white whitespace-nowrap">Or</span>
-            <div className="flex-1 h-px bg-gray-300 min-w-0"></div>
+            <div className="flex-1 h-px bg-border min-w-0"></div>
+            <span className="px-4 text-sm text-muted-foreground bg-card whitespace-nowrap">Or</span>
+            <div className="flex-1 h-px bg-border min-w-0"></div>
           </div>
           <div className="grid grid-cols-1 gap-4 w-full">
             {/* Reusable Google sign-in button */}

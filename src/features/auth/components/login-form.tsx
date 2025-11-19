@@ -51,16 +51,6 @@ export function LoginForm({
       toast.error(authError, {
         duration: 8000,
         position: 'top-center',
-        style: {
-          background: '#fef2f2',
-          color: '#991b1b',
-          border: '1px solid #fecaca',
-          borderRadius: '8px',
-          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
-          fontSize: '14px',
-          fontWeight: '300',
-          padding: '16px',
-        } as React.CSSProperties,
       })
       // Reset credentials form state (clear fields, hide password)
       try { credRef.current?.reset(); credRef.current?.hidePassword(); } catch {}
@@ -92,7 +82,7 @@ export function LoginForm({
                   <button
                     type="button"
                     onClick={() => { setIsForgotMode(true); setForgotSubmitted(false); }}
-                    className="text-sm text-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
+                    className="text-sm text-foreground-2 hover:text-primary underline-offset-4 hover:underline transition-colors"
                     aria-label="Forgot your password?"
                   >
                     Forgot your password?
@@ -124,8 +114,8 @@ export function LoginForm({
           )}
           <div className="bg-muted relative hidden md:block">
             <img
-              src="/placeholder.svg"
-              alt="Image"
+              src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
+              alt="Modern office workspace"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>

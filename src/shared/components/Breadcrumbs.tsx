@@ -21,7 +21,7 @@ interface BreadcrumbsProps {
 
 export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
   return (
-    <div className="bg-white rounded-lg px-6 py-3 mb-6 shadow-sm">
+    <div className="bg-surface border border-border rounded-lg px-6 py-3 mb-6 shadow-sm">
       <Breadcrumb>
         <BreadcrumbList>
           {items.map((item, index) => {
@@ -30,16 +30,16 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
             return (
               <React.Fragment key={index}>
                 <BreadcrumbItem className="flex items-center gap-1.5">
-                  {item.icon && <span className="flex items-center">{item.icon}</span>}
+                  {item.icon && <span className="flex items-center text-foreground-2">{item.icon}</span>}
                   {isLast || !item.path ? (
-                    <BreadcrumbPage className="font-semibold text-sm">
+                    <BreadcrumbPage className="font-semibold text-sm text-foreground-1">
                       {item.label}
                     </BreadcrumbPage>
                   ) : (
                     <BreadcrumbLink asChild>
                       <Link
                         to={item.path}
-                        className="text-sm text-gray-500 hover:text-blue-600 transition-colors"
+                        className="text-sm text-foreground-3 hover:text-primary transition-colors"
                       >
                         {item.label}
                       </Link>

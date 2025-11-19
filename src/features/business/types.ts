@@ -10,6 +10,7 @@ export interface Business {
   description: string | null;
   email: string;
   phone: string;
+  logo: string | null;
   timezone: string;
   country: string | null;
   stripeCurrency?: string;
@@ -18,10 +19,10 @@ export interface Business {
   facebookUrl: string | null;
   isActive: boolean;
   industry: Industry | null;
-  trialEndsAt: string | null;
-  daysRemaining: number | null;
+  trialEndsAt?: string | null;
+  daysRemaining?: number | null;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface BusinessState {
