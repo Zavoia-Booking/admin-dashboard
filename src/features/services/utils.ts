@@ -18,7 +18,7 @@ export const mapToGenericFilter = (filters: ServiceFilterState): Array<FilterIte
 
     const { searchTerm, priceMax, priceMin, durationMax, durationMin, status } = filters;
 
-    if (serverFilters.length) {
+    if (searchTerm) {
         serverFilters.push({
             field: 'service.name',
             operator: FilterOperator.CONTAINS,
@@ -60,9 +60,9 @@ export const mapToGenericFilter = (filters: ServiceFilterState): Array<FilterIte
 
     if (status && status != ALL) {
         serverFilters.push({
-            field: 'service.duration',
+            field: 'service.isActive',
             operator: FilterOperator.EQUALS,
-            value: status
+            value: status === 'enabled'
         })
     }
     

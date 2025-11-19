@@ -1,12 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X as XIcon } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { Button } from '../ui/button';
+import { DashedDivider } from './DashedDivider';
 import { cn } from '../../lib/utils';
 
 interface BaseSliderProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
+  subtitle?: string;
+  icon?: LucideIcon;
+  iconColor?: string;
   children: React.ReactNode;
   className?: string;
   headerClassName?: string;
@@ -25,6 +30,9 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   isOpen,
   onClose,
   title,
+  subtitle,
+  icon: Icon,
+  iconColor = 'text-foreground-1',
   children,
   className,
   headerClassName,
@@ -151,11 +159,11 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       {/* Sliding Panel */}
       <div 
         className={cn(
-          "fixed top-0 h-full bg-background z-70",
+          "fixed bg-surface z-70 overflow-hidden",
           // Mobile: full width, slides from right
-          "left-0 w-full",
-          // Desktop: half width, positioned on right side
-          "md:left-auto md:right-0 md:w-1/2",
+          "top-0 left-0 h-full w-full",
+          // Desktop: positioned on right side with spacing and rounded corners
+          "md:top-4 md:bottom-4 md:right-4 md:left-auto md:h-[calc(100vh-2rem)] md:w-1/2 md:max-w-2xl md:rounded-xl md:shadow-lg md:border md:border-border",
           !isDragging ? 'transition-transform duration-300 ease-out' : '',
           isOpen && shouldAnimate ? 'translate-x-0' : 'translate-x-full',
           panelClassName,
@@ -173,35 +181,69 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        <div className="flex flex-col h-full">
-          {/* Header - Hidden on desktop */}
+        <div className="flex flex-col h-full md:h-full overflow-hidden">
+          {/* Header - Mobile: back button, Desktop: close button */}
           <div className={cn(
-            "flex items-center p-2 border-b bg-card/50 relative",
-            "md:hidden", // Hide on desktop
+            "flex flex-col bg-surface relative",
+            "p-4 md:p-6",
             headerClassName
           )}>
-            {showBackButton && (
-              <div className="bg-muted rounded-full p-1.5">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={onClose}
-                  className="rounded-full hover:bg-muted-foreground/10"
-                  style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
-                >
-                  <ArrowLeft className="h-3 w-3" />
-                </Button>
+            <div className="flex items-center gap-3">
+              {showBackButton && (
+                <>
+                  {/* Mobile: back button */}
+                  <div className="bg-surface-hover rounded-full p-1.5 md:hidden">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      onClick={onClose}
+                      className="rounded-full hover:bg-surface-active"
+                      style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
+                    >
+                      <ArrowLeft className="h-3 w-3" />
+                    </Button>
+                  </div>
+                  {/* Desktop: close button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="hidden md:flex absolute right-4 top-4 h-8 w-8 rounded-md hover:bg-surface-hover active:bg-surface-active"
+                  >
+                    <XIcon className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                  </Button>
+                </>
+              )}
+              
+              {/* Icon */}
+              {Icon && (
+                <div className="hidden md:flex flex-shrink-0 items-stretch self-stretch">
+                  <div className="flex items-center justify-center rounded-full border border-border-strong bg-surface aspect-square h-full min-w-[2.5rem]">
+                    <Icon className={cn("h-6 w-6", iconColor)} />
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
+                <h2 className="text-lg font-semibold text-foreground-1 cursor-default">
+                  {title}
+                </h2>
+                {subtitle && (
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mt-1.5 cursor-default">
+                    {subtitle}
+                  </p>
+                )}
               </div>
-            )}
-            
-            <h2 className="text-lg font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">
-              {title}
-            </h2>
-            
-            {/* Header Actions */}
-            <div className="ml-auto">
-              {headerActions}
+              
+              {/* Header Actions */}
+              <div className="ml-auto">
+                {headerActions}
+              </div>
             </div>
+            
+            {/* Dotted Divider */}
+            <DashedDivider marginTop="mt-3" paddingTop="pt-3" dashPattern="1 1" />
           </div>
           
           {/* Content - Full width/height on desktop, normal on mobile */}
@@ -216,11 +258,11 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
             {children}
           </div>
 
-          {/* Footer - Hidden on desktop */}
+          {/* Footer - Show on both mobile and desktop */}
           {footer && (
             <div className={cn(
-              "border-t bg-card/50 p-4",
-              "md:hidden", // Hide on desktop
+              "border-t border-border bg-surface",
+              "p-4 md:p-6",
               footerClassName
             )}>
               {footer}

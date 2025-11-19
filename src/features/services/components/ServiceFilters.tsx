@@ -66,26 +66,26 @@ export const ServiceFilters: FC<any> = () => {
                                 }
                             })
                         }}
-                        className="h-11 text-base pr-12 pl-4 rounded-lg border border-input bg-white"
+                        className="h-11 text-base pr-12 pl-4 rounded-lg border border-input bg-surface dark:bg-neutral-900"
                     />
                     <Search
-                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none"/>
+                        className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-foreground-3 dark:text-foreground-2 pointer-events-none"/>
                 </div>
                 <button
                     className={`
                       relative flex items-center justify-center h-9 w-9 rounded-md border border-input transition-all duration-200 ease-out
                       ${showFilters
-                        ? 'bg-primary text-primary-foreground shadow-sm'
-                        : 'bg-white text-muted-foreground hover:text-foreground hover:bg-muted/50'}
+                        ? 'bg-primary text-white dark:text-white shadow-sm'
+                        : 'bg-surface dark:bg-neutral-900 text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 hover:bg-surface-hover'}
                     `}
                     onClick={() => setShowFilters(v => !v)}
                     aria-label="Show filters"
                 >
-                    <Filter className={`h-5 w-5 ${showFilters ? 'text-primary-foreground' : ''}`}/>
+                    <Filter className={`h-5 w-5 ${showFilters ? 'text-white dark:text-white' : ''}`}/>
                     {
                         getActiveFilterCount() > 0 && (
                             <span
-                                className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full
+                                className="absolute -top-1 -right-1 bg-primary text-white dark:text-white text-xs font-bold rounded-full
                                  px-1.5 py-0.5 min-w-[20px] flex items-center justify-center shadow">
                                 {getActiveFilterCount()}
                              </span>
@@ -93,7 +93,7 @@ export const ServiceFilters: FC<any> = () => {
                     }
                 </button>
                 <Button
-                    className="h-11 px-4 rounded-lg bg-black hover:bg-gray-800 flex items-center gap-2"
+                    className="h-11 px-4 rounded-lg bg-primary hover:bg-primary-hover text-white dark:text-white flex items-center gap-2"
                     onClick={() => {
                         dispatch(toggleAddFormAction(true))
                     }}

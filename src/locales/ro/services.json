@@ -26,9 +26,12 @@
   },
   "addService": {
     "title": "Adaugă Serviciu Nou",
+    "subtitle": "Creați un serviciu nou pentru afacerea dvs. Completați detaliile de mai jos pentru a începe.",
     "sections": {
       "serviceInfo": "Informații Serviciu",
+      "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs.",
       "pricingDuration": "Preț și Durată",
+      "pricingDurationDescription": "Definiți costul și durata pentru acest serviciu",
       "settings": "Setări Serviciu"
     },
     "form": {
@@ -41,17 +44,43 @@
         "placeholder": "Descrieți ce include acest serviciu..."
       },
       "price": {
-        "label": "Preț ($)",
-        "placeholder": "0.00"
+        "label": "Preț",
+        "placeholder": "0.00",
+        "helpText": "Preț de bază în {{currency}}"
       },
       "duration": {
         "label": "Durată (min)",
         "placeholder": "30"
       },
+      "currency": {
+        "label": "Monedă",
+        "info": "Moneda este setată la nivelul afacerii. Pentru a o schimba, accesați Setări."
+      },
+      "pricingNote": "Acesta este prețul și durata de bază pentru acest serviciu. Puteți seta prețuri și durate personalizate pentru membrii individuali ai echipei în secțiunea Atribuiri după crearea acestui serviciu.",
       "status": {
         "label": "Status Serviciu",
         "activeDescription": "Serviciul este disponibil pentru rezervare",
         "inactiveDescription": "Serviciul este ascuns pentru clienți"
+      },
+      "validation": {
+        "name": {
+          "required": "Vă rugăm să introduceți un nume de serviciu",
+          "minLength": "Introduceți cel puțin 2 caractere",
+          "maxLength": "Sunt permise maximum 70 de caractere",
+          "invalidChars": "Vă rugăm să eliminați caracterele speciale (sunt permise doar - ' & . ( ))"
+        },
+        "description": {
+          "maxLength": "Sunt permise maximum {{max}} caractere",
+          "invalidChars": "Caracterele speciale < > nu sunt permise"
+        },
+        "price": {
+          "required": "Prețul este obligatoriu",
+          "min": "Prețul trebuie să fie 0 sau mai mare"
+        },
+        "duration": {
+          "required": "Durata este obligatorie",
+          "min": "Durata trebuie să fie de cel puțin 1 minut"
+        }
       }
     },
     "location": {

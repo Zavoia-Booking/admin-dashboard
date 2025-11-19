@@ -24,6 +24,7 @@ export type AuthUser = {
     id: number;
     name: string;
     logo?: string | null;
+    businessCurrency?: string; // Comes from /auth/me endpoint
   };
   subscription?: {
     status: string | null;

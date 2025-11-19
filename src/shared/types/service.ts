@@ -13,4 +13,7 @@ export interface Service {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  locations?: Array<{ id: number; name: string }>;
+  teamMembers?: Array<{ id: number; firstName: string; lastName: string }>;
+  category?: { id: number; name: string; color?: string } | null;
 }

@@ -16,3 +16,7 @@ export const getAddFormSelector = createSelector(getServicesStateSelector, (stat
 export const getEditFormSelector = createSelector(getServicesStateSelector, (state) => {
     return state.editForm;
 })
+
+export const getServicesPaginationSelector = createSelector(getServicesStateSelector, (state) => {
+    return state.pagination;
+})
