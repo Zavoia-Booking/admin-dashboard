@@ -6,7 +6,13 @@ export const getServicesAction = createAsyncAction(
     "GET/SERVICES/REQUEST",
     "GET/SERVICES/SUCCESS",
     "GET/SERVICES/FAILURE"
-)<void, Service[], unknown>();
+)<{ reset?: boolean }, { services: Service[]; pagination: { offset: number; limit: number; total: number; hasMore: boolean } }, unknown>();
+
+export const getServiceByIdAction = createAsyncAction(
+    "GET/SERVICE_BY_ID/REQUEST",
+    "GET/SERVICE_BY_ID/SUCCESS",
+    "GET/SERVICE_BY_ID/FAILURE"
+)<number, Service, unknown>();
 
 export const createServicesAction = createAsyncAction(
     "CREATE/SERVICES/REQUEST",

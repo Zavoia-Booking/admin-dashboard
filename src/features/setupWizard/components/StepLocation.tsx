@@ -8,8 +8,8 @@ import {
 } from "react";
 import AddressComposer from "../../../shared/components/address/AddressComposer";
 import WorkingHoursEditor from "../../../shared/components/common/WorkingHoursEditor";
-import LocationNameField from "../../../shared/components/common/LocationNameField";
-import LocationDescriptionField from "../../../shared/components/common/LocationDescriptionField";
+import TextField from "../../../shared/components/forms/fields/TextField";
+import TextareaField from "../../../shared/components/forms/fields/TextareaField";
 import RemoteLocationToggle from "../../../shared/components/common/RemoteLocationToggle";
 import TimezoneField from "../../../shared/components/common/TimezoneField";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
@@ -304,7 +304,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           {/* Physical Location */}
           {!isRemote && (
             <div className="space-y-4">
-              <LocationNameField
+              <TextField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
                 error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}
@@ -374,7 +374,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               />
 
               <div className="pt-4">
-                <LocationDescriptionField
+                <TextareaField
                   value={(descriptionField.value as string) || ""}
                   onChange={(value) => descriptionField.onChange(value)}
                   error={(descriptionState.isTouched || descriptionState.isDirty || descriptionHasDraft) ? (descriptionState.error?.message as string) : undefined}
@@ -409,7 +409,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           {/* Remote Location */}
           {isRemote && (
             <div className="space-y-4">
-              <LocationNameField
+              <TextField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
                 error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}

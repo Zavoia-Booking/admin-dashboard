@@ -10,8 +10,8 @@ import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
 import { Phone, AlertCircle, Building2 } from "lucide-react";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
-import LocationNameField from "../../../shared/components/common/LocationNameField";
-import LocationDescriptionField from "../../../shared/components/common/LocationDescriptionField";
+import TextField from "../../../shared/components/forms/fields/TextField";
+import TextareaField from "../../../shared/components/forms/fields/TextareaField";
 import LogoUpload from "../../../shared/components/common/LogoUpload";
 import CurrencySelect from "../../../shared/components/common/CurrencySelect";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
@@ -395,7 +395,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     return (
       <div className="space-y-6 cursor-default">
         <div className="grid gap-2">
-          <LocationNameField
+          <TextField
             value={(businessNameField.value as string) || ""}
             onChange={(v) => businessNameField.onChange(v)}
             error={(businessNameState.isTouched || businessNameState.isDirty || nameHasDraft) ? (businessNameState.error?.message as unknown as string) : undefined}
@@ -468,7 +468,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             </div>
           </div>
 
-          <LocationDescriptionField
+          <TextareaField
             value={(businessDescriptionField.value as string) || ""}
             onChange={(v) => businessDescriptionField.onChange(v)}
             label="Business Description"

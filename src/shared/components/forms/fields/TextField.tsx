@@ -1,9 +1,9 @@
 import React from 'react';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
+import { Label } from '../../ui/label';
+import { Input } from '../../ui/input';
 import { AlertCircle, MapPin, Monitor } from 'lucide-react';
 
-export interface LocationNameFieldProps {
+export interface TextFieldProps {
   value: string;
   onChange: (value: string) => void;
   error?: string;
@@ -17,7 +17,7 @@ export interface LocationNameFieldProps {
   icon?: React.ComponentType<{ className?: string }>; // optional override icon
 }
 
-export const LocationNameField: React.FC<LocationNameFieldProps> = ({
+export const TextField: React.FC<TextFieldProps> = ({
   value,
   onChange,
   error,
@@ -67,5 +67,4 @@ export const LocationNameField: React.FC<LocationNameFieldProps> = ({
   );
 };
 
-export default LocationNameField;
-
+export default TextField;

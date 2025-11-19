@@ -1,9 +1,9 @@
 import React from 'react';
-import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
+import { Label } from '../../ui/label';
+import { Textarea } from '../../ui/textarea';
 import { AlertCircle } from 'lucide-react';
 
-export interface LocationDescriptionFieldProps {
+export interface TextareaFieldProps {
   value: string;
   onChange: (value: string) => void;
   label?: string;
@@ -17,7 +17,7 @@ export interface LocationDescriptionFieldProps {
   error?: string;
 }
 
-export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> = ({
+export const TextareaField: React.FC<TextareaFieldProps> = ({
   value,
   onChange,
   label = 'Description',
@@ -71,5 +71,4 @@ export const LocationDescriptionField: React.FC<LocationDescriptionFieldProps> =
   );
 };
 
-export default LocationDescriptionField;
-
+export default TextareaField;

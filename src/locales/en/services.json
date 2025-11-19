@@ -26,9 +26,12 @@
   },
   "addService": {
     "title": "Add New Service",
+    "subtitle": "Create a new service for your business. Fill in the details below to get started.",
     "sections": {
       "serviceInfo": "Service Information",
+      "serviceInfoDescription": "Provide the essential information that identifies and describes your service",
       "pricingDuration": "Pricing & Duration",
+      "pricingDurationDescription": "Define the cost and duration for this service",
       "settings": "Service Settings"
     },
     "form": {
@@ -41,17 +44,43 @@
         "placeholder": "Describe what this service includes..."
       },
       "price": {
-        "label": "Price ($)",
-        "placeholder": "0.00"
+        "label": "Price",
+        "placeholder": "0.00",
+        "helpText": "Base price in {{currency}}"
       },
       "duration": {
         "label": "Duration (min)",
         "placeholder": "30"
       },
+      "currency": {
+        "label": "Currency",
+        "info": "Currency is set at the business level. To change it, go to Settings."
+      },
+      "pricingNote": "This is the base price and duration for this service. You can set custom prices and durations for individual team members in the Assignments section after creating this service.",
       "status": {
         "label": "Service Status",
         "activeDescription": "Service is available for booking",
         "inactiveDescription": "Service is hidden from clients"
+      },
+      "validation": {
+        "name": {
+          "required": "Please enter a service name",
+          "minLength": "Enter at least 2 characters",
+          "maxLength": "Maximum 70 characters allowed",
+          "invalidChars": "Please remove special characters (only - ' & . ( ) allowed)"
+        },
+        "description": {
+          "maxLength": "Maximum {{max}} characters allowed",
+          "invalidChars": "Special characters < > aren't allowed"
+        },
+        "price": {
+          "required": "Price is required",
+          "min": "Price must be 0 or greater"
+        },
+        "duration": {
+          "required": "Duration is required",
+          "min": "Duration must be at least 1 minute"
+        }
       }
     },
     "location": {
