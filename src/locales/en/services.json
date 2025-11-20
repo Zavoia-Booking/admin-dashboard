@@ -31,7 +31,7 @@
       "serviceInfo": "Service Information",
       "serviceInfoDescription": "Provide the essential information that identifies and describes your service",
       "pricingDuration": "Pricing & Duration",
-      "pricingDurationDescription": "Define the cost and duration for this service",
+      "pricingDurationDescription": "Set the default price and duration",
       "settings": "Service Settings"
     },
     "form": {
@@ -49,14 +49,28 @@
         "helpText": "Base price in {{currency}}"
       },
       "duration": {
-        "label": "Duration (min)",
-        "placeholder": "30"
+        "label": "Duration",
+        "placeholder": "60",
+        "helperText": "minutes"
       },
       "currency": {
         "label": "Currency",
-        "info": "Currency is set at the business level. To change it, go to Settings."
+        "info": "Account currency:",
+        "infoLink": "Settings",
+        "editText": "edit in"
       },
-      "pricingNote": "This is the base price and duration for this service. You can set custom prices and durations for individual team members in the Assignments section after creating this service.",
+      "pricingNote": {
+        "text": "Default for all staff. You can set custom prices and durations per team member in",
+        "link": "Assignments"
+      },
+      "durationChips": {
+        "15": "15m",
+        "30": "30m",
+        "45": "45m",
+        "60": "60m",
+        "120": "120m"
+      },
+      "preview": "This service will show as:",
       "status": {
         "label": "Service Status",
         "activeDescription": "Service is available for booking",

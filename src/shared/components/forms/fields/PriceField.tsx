@@ -93,35 +93,12 @@ export const PriceField: React.FC<PriceFieldProps> = ({
     : (displayValueNum === 0 ? '' : formatPrice(displayValueNum, decimalPlaces));
 
   /**
-   * Normalizes input to handle both comma and dot as decimal separators
-   * Converts European format (2,99) to standard format (2.99) for parsing
+   * Normalizes input to standard format (dot as decimal separator)
+   * Best Practice: Force dot (.) as decimal separator only
+   * This ensures unambiguous parsing and matches industry standards for admin interfaces.
    */
   const normalizeDecimalInput = (input: string): string => {
     const cleaned = input.replace(/\s/g, '');
-    
-    // If both comma and dot exist, comma is thousand separator
-    if (cleaned.includes(',') && cleaned.includes('.')) {
-      return cleaned.replace(/,/g, ''); // Remove commas (thousand separators)
-    }
-    
-    // If only comma exists, determine if it's decimal or thousand separator
-    if (cleaned.includes(',') && !cleaned.includes('.')) {
-      // Find the comma position
-      const commaIndex = cleaned.indexOf(',');
-      const afterComma = cleaned.substring(commaIndex + 1);
-      
-      // If comma is followed by 1-2 digits (typical for cents), it's a decimal separator
-      // If comma is followed by 3+ digits, it's likely a thousand separator
-      if (/^\d{1,2}$/.test(afterComma)) {
-        // Decimal separator: replace comma with dot
-        return cleaned.replace(',', '.');
-      } else {
-        // Thousand separator: remove commas
-        return cleaned.replace(/,/g, '');
-      }
-    }
-    
-    // If only dot exists or no separators, remove commas (they're thousand separators)
     return cleaned.replace(/,/g, '');
   };
 
@@ -129,14 +106,12 @@ export const PriceField: React.FC<PriceFieldProps> = ({
     const inputValue = e.target.value;
     
     // Allow free typing while focused - just store the raw input
-    // Validate that it's a valid number format (allows partial input like "1." or "1,9" or "1,99")
-    // Accept both dot and comma as decimal separators
-    const normalized = normalizeDecimalInput(inputValue);
-    const isValidInput = normalized === '' || 
-                         normalized === '-' || 
-                         normalized === '.' || 
-                         normalized === ',' ||
-                         /^-?\d*[.,]?\d*$/.test(inputValue);
+    // Only allow dot (.) as decimal separator - block commas
+    // Prevent negative numbers for prices (min >= 0)
+    // Valid patterns: "123", "123.45"
+    const isValidInput = inputValue === '' || 
+                         inputValue === '.' ||
+                         /^\d*\.?\d*$/.test(inputValue); // Only digits and one dot
     
     if (isValidInput) {
       setLocalInputValue(inputValue);
@@ -159,16 +134,19 @@ export const PriceField: React.FC<PriceFieldProps> = ({
     const normalized = normalizeDecimalInput(localInputValue);
     const parsed = parseFloat(normalized);
     
-    if (!isNaN(parsed) && normalized !== '' && normalized !== '-') {
+    if (!isNaN(parsed) && normalized !== '') {
+      // Ensure non-negative (prices can't be negative)
+      const safeValue = Math.max(0, parsed);
+      
       // Convert to storage format
       if (storageFormat === 'cents') {
-        const storageValue = priceToStorage(parsed, currency);
+        const storageValue = priceToStorage(safeValue, currency);
         onChange(storageValue);
       } else {
-        onChange(parsed);
+        onChange(safeValue);
       }
-    } else if (normalized === '' || normalized === '-') {
-      // Empty or just minus sign - set to 0 or empty
+    } else if (normalized === '') {
+      // Empty - set to 0
       onChange(storageFormat === 'cents' ? 0 : 0);
     }
     

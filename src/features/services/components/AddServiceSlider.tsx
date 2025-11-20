@@ -2,22 +2,25 @@ import React, { useEffect, useState } from "react";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import {
   Clock,
   Sparkles,
   MapPin,
   Users,
   ClipboardPlus,
-  Info,
+  Layers2,
+  ArrowUpRight,
+  AlertCircle,
 } from "lucide-react";
 import { Label } from "../../../shared/components/ui/label";
+import { Input } from "../../../shared/components/ui/input";
 import { Switch } from "../../../shared/components/ui/switch";
 import { BaseSlider } from "../../../shared/components/common/BaseSlider";
 import { CollapsibleFormSection } from "../../../shared/components/forms/CollapsibleFormSection";
 import { FormFooter } from "../../../shared/components/forms/FormFooter";
 import { TextField } from "../../../shared/components/forms/fields/TextField";
 import { TextareaField } from "../../../shared/components/forms/fields/TextareaField";
-import { NumberField } from "../../../shared/components/forms/fields/NumberField";
 import { PriceField } from "../../../shared/components/forms/fields/PriceField";
 import { EntitySelector } from "../../../shared/components/forms/fields/EntitySelector";
 import type { EntityOption } from "../../../shared/components/forms/fields/EntitySelector";
@@ -60,7 +63,7 @@ interface ServiceFormData {
 const initialFormData: ServiceFormData = {
   name: "",
   price: 0,
-  duration: 0,
+  duration: 60,
   description: "",
   isActive: true,
   locationIds: [],
@@ -74,11 +77,12 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const allLocations = useSelector(getAllLocationsSelector);
   const allTeamMembers = useSelector(selectTeamMembers);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || 'eur';
-  const { control, handleSubmit, watch, setValue, reset, getValues } =
+  const { control, handleSubmit, watch, setValue, reset, getValues, trigger } =
     useForm<ServiceFormData>({
       defaultValues: initialFormData,
       mode: "onChange",
@@ -128,7 +132,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     }
   });
 
-  const { field: priceField, fieldState: priceState } = useController<ServiceFormData, "price">({
+  const { field: priceField } = useController<ServiceFormData, "price">({
     name: "price",
     control,
     rules: {
@@ -271,6 +275,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                       required
                       id="name"
                       maxLength={70}
+                      icon={Layers2}
                     />
 
                     <TextareaField
@@ -291,8 +296,8 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                 </div>
 
                 {/* Pricing & Duration Section */}
-                <div className="space-y-5">
-                  <div className="space-y-1">
+                <div className="space-y-4">
+                  <div className="space-y-1 mb-4">
                     <h3 className="text-lg font-semibold text-foreground-1">
                       {text("addService.sections.pricingDuration")}
                     </h3>
@@ -301,12 +306,26 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                     </p>
                   </div>
 
-                  <div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-4">
+                  {/* Currency helper text - inline, no box */}
+                  <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                    {text("addService.form.currency.info")}{" "}
+                    <span className="font-medium">{getCurrencyDisplay(businessCurrency).symbol}</span>
+                    {" "}(<span
+                      onClick={() => navigate("/settings")}
+                      className="inline-flex items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+                    >
+                      {text("addService.form.currency.editText")}{" "}{text("addService.form.currency.infoLink")}
+                      <ArrowUpRight className="h-3 w-3 text-primary" aria-hidden="true" />
+                    </span>).
+                  </p>
+
+                  {/* Price & Duration on same row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Price Input */}
+                    <div className="space-y-2">
                       <PriceField
                         value={priceField.value || 0}
                         onChange={priceField.onChange}
-                        error={priceState.error?.message}
                         label={text("addService.form.price.label")}
                         placeholder="0.00"
                         required
@@ -316,41 +335,91 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                         icon={getCurrencyDisplay(businessCurrency).icon}
                         symbol={getCurrencyDisplay(businessCurrency).symbol}
                         iconPosition="left"
-                        helpText={text("addService.form.price.helpText", { currency: businessCurrency.toUpperCase() })}
                         decimalPlaces={2}
                         currency={businessCurrency}
                         storageFormat="cents"
                       />
-
-                      <NumberField
-                        value={durationField.value || 0}
-                        onChange={durationField.onChange}
-                        error={durationState.error?.message}
-                        label={text("addService.form.duration.label")}
-                        placeholder="30"
-                        required
-                        id="duration"
-                        min={1}
-                        step={1}
-                        icon={Clock}
-                        iconPosition="left"
-                        helpText="Duration in minutes"
-                      />
                     </div>
-                    <div className="rounded-md bg-info-100 border border-border-subtle p-3">
-                      <div className="flex items-start gap-2">
-                        <Info className="h-4 w-4 text-foreground-2 dark:text-foreground-2 flex-shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                          <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                            {text("addService.form.currency.info")}
-                          </p>
-                          <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                            {text("addService.form.pricingNote")}
-                          </p>
+
+                    {/* Duration Input */}
+                    <div className="space-y-2">
+                      <div className="space-y-2 mb-1">
+                        <Label htmlFor="duration" className="text-base font-medium">
+                          {text("addService.form.duration.label")} *
+                        </Label>
+                        <div className="relative">
+                          {/* Clock icon on left */}
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+                          </div>
+                          <Input
+                            id="duration"
+                            type="text"
+                            inputMode="numeric"
+                            placeholder={text("addService.form.duration.placeholder")}
+                            value={durationField.value || ""}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                              const inputValue = e.target.value;
+                              // Only allow digits
+                              if (inputValue === "" || /^\d+$/.test(inputValue)) {
+                                const numValue = inputValue === "" ? "" : parseInt(inputValue, 10);
+                                durationField.onChange(numValue);
+                              }
+                            }}
+                            className="!pl-10 !pr-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                            aria-invalid={!!durationState.error?.message}
+                          />
+                          {/* "minutes" suffix */}
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <span className="text-sm text-foreground-3 dark:text-foreground-2">
+                              {text("addService.form.duration.helperText")}
+                            </span>
+                          </div>
                         </div>
+                        <div className="h-5">
+                          {durationState.error?.message && (
+                            <p className="flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              <span>{durationState.error.message}</span>
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {/* Duration chips - directly under Duration field */}
+                      <div className="flex items-center gap-2 pl-0">
+                        {[15, 30, 45, 60, 120].map((minutes) => (
+                          <button
+                            key={minutes}
+                            type="button"
+                            onClick={async () => {
+                              setValue("duration", minutes, { shouldValidate: true });
+                              await trigger("duration");
+                            }}
+                            className={`flex-1 cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-200 text-center ${
+                              durationField.value === minutes
+                                ? "bg-primary text-white"
+                                : "bg-surface-hover dark:bg-surface-hover/50 text-foreground-2 hover:bg-surface-active dark:hover:bg-surface-active border border-border"
+                            }`}
+                          >
+                            {text(`addService.form.durationChips.${minutes}`)}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   </div>
+
+                  {/* Helper text - inline, no box */}
+                  <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                    {text("addService.form.pricingNote.text")}{" "}
+                    <span
+                      onClick={() => navigate("/assignments")}
+                      className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+                    >
+                      {text("addService.form.pricingNote.link")}
+                      <ArrowUpRight className="h-3 w-3 text-primary" aria-hidden="true" />
+                    </span>
+                    .
+                  </p>
                 </div>
               </div>
 

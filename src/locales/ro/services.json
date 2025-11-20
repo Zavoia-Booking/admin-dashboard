@@ -31,7 +31,7 @@
       "serviceInfo": "Informații Serviciu",
       "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs.",
       "pricingDuration": "Preț și Durată",
-      "pricingDurationDescription": "Definiți costul și durata pentru acest serviciu",
+      "pricingDurationDescription": "Setează prețul și durata implicită",
       "settings": "Setări Serviciu"
     },
     "form": {
@@ -49,14 +49,28 @@
         "helpText": "Preț de bază în {{currency}}"
       },
       "duration": {
-        "label": "Durată (min)",
-        "placeholder": "30"
+        "label": "Durată",
+        "placeholder": "60",
+        "helperText": "minute"
       },
       "currency": {
         "label": "Monedă",
-        "info": "Moneda este setată la nivelul afacerii. Pentru a o schimba, accesați Setări."
+        "info": "Moneda contului:",
+        "infoLink": "Setări",
+        "editText": "editează în"
       },
-      "pricingNote": "Acesta este prețul și durata de bază pentru acest serviciu. Puteți seta prețuri și durate personalizate pentru membrii individuali ai echipei în secțiunea Atribuiri după crearea acestui serviciu.",
+      "pricingNote": {
+        "text": "Implicit pentru toți angajații. Poți seta prețuri și durate personalizate per membru al echipei în",
+        "link": "Atribuiri"
+      },
+      "durationChips": {
+        "15": "15m",
+        "30": "30m",
+        "45": "45m",
+        "60": "60m",
+        "120": "120m"
+      },
+      "preview": "Acest serviciu va apărea ca:",
       "status": {
         "label": "Status Serviciu",
         "activeDescription": "Serviciul este disponibil pentru rezervare",
