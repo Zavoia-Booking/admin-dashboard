@@ -4,6 +4,7 @@ import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-memb
 import { cancelInvitationApi, deleteTeamMemberApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi } from "./api";
 import type { InviteTeamMemberResponse } from "./types";
 import { toast } from "sonner";
+import type { DeleteResponse } from "../../shared/types/delete-response";
 
 function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberAction.request>) {
   try {
@@ -65,10 +66,18 @@ function* handleResendInvitation(action: ReturnType<typeof resendInvitationActio
 
 function* handleDeleteTeamMember(action: ReturnType<typeof deleteTeamMemberAction.request>) {
   try {
-    yield call(deleteTeamMemberApi, action.payload.id);
-    yield put(deleteTeamMemberAction.success());
-    toast.success('Team member removed successfully');
-    yield put(listTeamMembersAction.request());
+    const response: DeleteResponse = yield call(deleteTeamMemberApi, action.payload.id);
+    
+    // Check if backend returned validation info (can't delete due to dependencies)
+    if (response && response.canDelete === false) {
+      // Cannot delete - return blocking info
+      yield put(deleteTeamMemberAction.success({ deleteResponse: response }));
+    } else {
+      // Successfully deleted
+      yield put(deleteTeamMemberAction.success({ deleteResponse: { canDelete: true } }));
+      toast.success('Team member removed successfully');
+      yield put(listTeamMembersAction.request());
+    }
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || 'Failed to remove team member';
     toast.error(message);

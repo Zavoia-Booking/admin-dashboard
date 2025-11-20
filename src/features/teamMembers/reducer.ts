@@ -13,6 +13,7 @@ type TeamMembersState = {
   resendError: string | null;
   isDeleting: boolean;
   deleteError: string | null;
+  deleteResponse?: any | null;
 };
 
 const initialState: TeamMembersState = {
@@ -25,6 +26,7 @@ const initialState: TeamMembersState = {
   resendError: null,
   isDeleting: false,
   deleteError: null,
+  deleteResponse: null,
 };
 
 export default function teamMembersReducer(state: TeamMembersState = initialState, action: any) {
@@ -69,7 +71,7 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
       return { ...state, isDeleting: true, deleteError: null };
 
     case getType(deleteTeamMemberAction.success):
-      return { ...state, isDeleting: false, deleteError: null };
+      return { ...state, isDeleting: false, deleteError: null, deleteResponse: action.payload.deleteResponse };
 
     case getType(deleteTeamMemberAction.failure):
       return { ...state, isDeleting: false, deleteError: action.payload.message };

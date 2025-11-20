@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { listLocationsAction } from '../actions';
+import { deleteLocationAction, listLocationsAction } from '../actions';
 import { selectCurrentUser } from '../../auth/selectors';
 import { Plus, Trash2, MapPin, Clock, Phone, Mail, Search, Filter, X, Edit } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
-import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { Badge } from "../../../shared/components/ui/badge";
@@ -12,12 +12,14 @@ import AddLocationSlider from '../components/AddLocationSlider';
 import EditLocationSlider from '../components/EditLocationSlider';
 import EditWorkingHoursSlider from '../components/EditWorkingHoursSlider';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
+import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import type { DeleteResponse } from '../../../shared/types/delete-response';
 import type { LocationType, WorkingHours, WorkingHoursDay } from '../../../shared/types/location';
 import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { capitalize, shortDay } from '../utils';
-import { getAllLocationsSelector } from '../selectors';
+import { getAllLocationsSelector, getDeleteResponseSelector, getLocationLoadingSelector } from '../selectors';
 import { updateLocationAction } from '../actions';
 import { defaultWorkingHours } from '../constants';
 import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
@@ -25,9 +27,12 @@ import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
 
 export default function LocationsPage() {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
   const user = useSelector(selectCurrentUser);
+  const deleteResponseFromState = useSelector(getDeleteResponseSelector);
+  const isLoadingFromState = useSelector(getLocationLoadingSelector);
 
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
@@ -41,8 +46,11 @@ export default function LocationsPage() {
 
   const [isWorkingHoursSliderOpen, setIsWorkingHoursSliderOpen] = useState(false);
   const [editingWorkingHoursLocation, setEditingWorkingHoursLocation] = useState<LocationType | null>(null);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
   const [locationToDelete, setLocationToDelete] = useState<LocationType | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
   const [isDayEditModalOpen, setIsDayEditModalOpen] = useState(false);
   const [editingDayData, setEditingDayData] = useState<{
     location: LocationType;
@@ -64,29 +72,86 @@ export default function LocationsPage() {
     }
   }, [showFilters, statusFilter]);
 
+  // Handle delete response from Redux state
+  useEffect(() => {
+    if (deleteResponseFromState && hasAttemptedDelete) {
+      setIsDeleting(false);
+      
+      if (deleteResponseFromState.canDelete === false) {
+        // Cannot delete - update dialog to show blocking info
+        setDeleteResponse(deleteResponseFromState as DeleteResponse);
+      } else {
+        // Successfully deleted - close dialog
+        setShowDeleteDialog(false);
+        setLocationToDelete(null);
+        setDeleteResponse(null);
+        setHasAttemptedDelete(false);
+      }
+    }
+  }, [deleteResponseFromState, hasAttemptedDelete]);
+
+  // Handle delete errors (reset loading state)
+  useEffect(() => {
+    if (hasAttemptedDelete && !isLoadingFromState && !deleteResponseFromState) {
+      // Error occurred (loading stopped but no response)
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
+      setLocationToDelete(null);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+    }
+  }, [hasAttemptedDelete, isLoadingFromState, deleteResponseFromState]);
+
   // Calculate number of active filters
   const activeFiltersCount = [
     !!searchTerm,
     statusFilter !== 'all'
   ].filter(Boolean).length;
 
+  const handleDeleteClick = (location: LocationType) => {
+    // Show confirmation dialog first
+    setLocationToDelete(location);
+    setDeleteResponse({
+      canDelete: true,
+      message: '',
+    });
+    setShowDeleteDialog(true);
+    setHasAttemptedDelete(false);
+  };
 
+  const handleConfirmDelete = () => {
+    if (!locationToDelete) return;
+    
+    // User confirmed - now make the backend call
+    setIsDeleting(true);
+    setHasAttemptedDelete(true);
+    dispatch(deleteLocationAction.request({ id: locationToDelete.id }));
+  };
 
-  // edit handled via EditLocationSlider dispatch
-
-  const handleDeleteLocation = async (id: number) => {
-    try {
-      const response = await fetch(`/api/locations/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete location');
-
-      toast.success('Location deleted successfully');
-      // dispatch(fetchLocationByIdAction.request({ locationId: (user as any)?.businessId }))
-    } catch {
-      toast.error('Failed to delete location');
+  const handleCloseDialog = (open: boolean) => {
+    if (!open) {
+      // Dialog wants to close (user clicked backdrop, pressed Escape, or clicked Cancel)
+      setShowDeleteDialog(false);
+      setLocationToDelete(null);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
     }
+  };
+
+  const handleGoToAssignments = () => {
+    setShowDeleteDialog(false);
+    setLocationToDelete(null);
+    setDeleteResponse(null);
+    setHasAttemptedDelete(false);
+    navigate('/assignments');
+  };
+
+  const handleGoToMarketplace = () => {
+    setShowDeleteDialog(false);
+    setLocationToDelete(null);
+    setDeleteResponse(null);
+    setHasAttemptedDelete(false);
+    navigate('/marketplace');
   };
 
   const openEditSlider = (location: LocationType) => {
@@ -342,7 +407,7 @@ export default function LocationsPage() {
                       className="flex items-center justify-center h-8 w-8 rounded hover:bg-red-50 active:bg-red-100 text-red-600 transition-colors cursor-pointer"
                       title="Delete Location"
                       aria-label="Delete Location"
-                      onClick={() => { setLocationToDelete(location); setIsDeleteDialogOpen(true); }}
+                      onClick={() => handleDeleteClick(location)}
                     >
                       <Trash2 className="h-5 w-5" />
                     </div>
@@ -478,35 +543,21 @@ export default function LocationsPage() {
             </Dialog>
 
             {/* Delete Confirmation Dialog */}
-            <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Delete Location</DialogTitle>
-                  <DialogDescription>
-                    Are you sure you want to delete <span className="font-semibold">{locationToDelete?.name}</span>? This action cannot be undone.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={async () => {
-                      if (locationToDelete) await handleDeleteLocation(locationToDelete.id);
-                      setIsDeleteDialogOpen(false);
-                      setLocationToDelete(null);
-                    }}
-                    className="flex-1"
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => { setIsDeleteDialogOpen(false); setLocationToDelete(null); }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+            <DeleteConfirmDialog
+              open={showDeleteDialog}
+              onOpenChange={handleCloseDialog}
+              resourceType="location"
+              resourceName={locationToDelete?.name || ''}
+              deleteResponse={deleteResponse}
+              onConfirm={handleConfirmDelete}
+              isLoading={isDeleting}
+              secondaryActions={[
+                ...(deleteResponse?.isVisibleInMarketplace
+                  ? [{ label: 'Go to Marketplace', onClick: handleGoToMarketplace }]
+                  : []),
+                { label: 'Go to Assignments', onClick: handleGoToAssignments },
+              ]}
+            />
 
             {/* Add Location Slider */}
             <AddLocationSlider

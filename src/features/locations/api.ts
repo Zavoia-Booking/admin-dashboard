@@ -24,3 +24,7 @@ export const listLocationsApi = async (): Promise<LocationType[]> => {
   return data;
 }
 
+export const deleteLocationApi = async (id: number): Promise<any> => {
+  const { data } = await apiClient().delete(`/locations/${id}`);
+  return data;
+}

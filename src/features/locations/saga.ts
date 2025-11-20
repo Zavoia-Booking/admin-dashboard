@@ -1,8 +1,10 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
-import { createLocationAction, fetchLocationByIdAction, listLocationsAction, updateLocationAction } from "./actions";
-import { createLocationApi, getLocationByIdApi, listLocationsApi, updateLocationApi } from "./api";
+import { createLocationAction, deleteLocationAction, fetchLocationByIdAction, listLocationsAction, updateLocationAction } from "./actions";
+import { createLocationApi, deleteLocationApi, getLocationByIdApi, listLocationsApi, updateLocationApi } from "./api";
 import type { LocationType } from "../../shared/types/location";
 import type { ActionType } from "typesafe-actions";
+import { toast } from "sonner";
+import type { DeleteResponse } from "../../shared/types/delete-response";
 
 function* handleFetchLocationById(action: ActionType<typeof fetchLocationByIdAction.request>) {
   try {
@@ -20,6 +22,7 @@ export function* locationsSaga(): Generator<any, void, any> {
     takeLatest(createLocationAction.request, handleCreateLocation),
     takeLatest(updateLocationAction.request, handleUpdateLocation),
     takeLatest(listLocationsAction.request, handleListLocations),
+    takeLatest(deleteLocationAction.request, handleDeleteLocation),
   ]);
 }
 
@@ -52,4 +55,24 @@ function* handleListLocations(): Generator<any, void, any> {
   }
 }
 
+function* handleDeleteLocation(action: ActionType<typeof deleteLocationAction.request>) {
+  try {
+    const response: DeleteResponse = yield call(deleteLocationApi, action.payload.id);
+    
+    // Check if backend returned validation info (can't delete due to dependencies)
+    if (response && response.canDelete === false) {
+      // Cannot delete - return blocking info
+      yield put(deleteLocationAction.success({ deleteResponse: response }));
+    } else {
+      // Successfully deleted
+      yield put(deleteLocationAction.success({ deleteResponse: { canDelete: true } }));
+      toast.success('Location deleted successfully');
+      yield put(listLocationsAction.request());
+    }
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || 'Failed to delete location';
+    toast.error(message);
+    yield put(deleteLocationAction.failure({ message }));
+  }
+}
 

@@ -198,8 +198,17 @@ function* handleResetPassword(action: { type: string; payload: { token: string, 
     yield call(resetPasswordApi, action.payload);
     yield put(resetPasswordAction.success());
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Reset password failed";
-    yield put(resetPasswordAction.failure(message));
+    // Extract error message from API response
+    let message = "Reset password failed";
+    if (error?.response?.data?.message) {
+      // If message is an array (like ["SYSTEM.E07"]), join them
+      message = Array.isArray(error.response.data.message) 
+        ? error.response.data.message.join(", ")
+        : error.response.data.message;
+    } else if (error?.message) {
+      message = error.message;
+    }
+    yield put(resetPasswordAction.failure({ message }));
   }
 }
 

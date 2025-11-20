@@ -26,3 +26,9 @@ export const listLocationsAction = createAsyncAction(
   'locations/LIST_LOCATIONS_SUCCESS',
   'locations/LIST_LOCATIONS_FAILURE',
 )<void, { locations: LocationType[] }, { message: string }>();
+
+export const deleteLocationAction = createAsyncAction(
+  'locations/DELETE_LOCATION_REQUEST',
+  'locations/DELETE_LOCATION_SUCCESS',
+  'locations/DELETE_LOCATION_FAILURE',
+)<{ id: number }, { deleteResponse: any }, { message: string }>();

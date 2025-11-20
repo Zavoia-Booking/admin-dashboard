@@ -442,6 +442,19 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
       };
     }
 
+    // Reset password handlers
+    case getType(actions.resetPasswordAction.request): {
+      return { ...state, isLoading: true, error: null };
+    }
+
+    case getType(actions.resetPasswordAction.success): {
+      return { ...state, isLoading: false, error: null };
+    }
+
+    case getType(actions.resetPasswordAction.failure): {
+      return { ...state, isLoading: false, error: action.payload.message };
+    }
+
     default:
       return state;
   }

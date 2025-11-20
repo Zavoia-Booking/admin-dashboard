@@ -17,4 +17,8 @@ export const selectDeleteError = createSelector(
   (state: any): string | null => state.deleteError ?? null
 );
 
+export const selectDeleteResponse = createSelector(
+  getTeamMembersStateSelector,
+  (state: any) => state.deleteResponse
+);
 

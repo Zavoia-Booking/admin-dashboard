@@ -21,6 +21,7 @@ export const resendInvitationApi = async (id: number): Promise<void> => {
   await apiClient().post(`/team-members/resend-invitation/${id}`);
 };
 
-export const deleteTeamMemberApi = async (id: number): Promise<void> => {
-  await apiClient().delete(`/team-members/${id}`);
+export const deleteTeamMemberApi = async (id: number): Promise<any> => {
+  const { data } = await apiClient().delete(`/team-members/${id}`);
+  return data;
 };

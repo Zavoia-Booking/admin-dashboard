@@ -16,7 +16,9 @@ import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { toast } from 'sonner';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { deleteTeamMemberAction } from '../actions';
-import { selectIsDeleting } from '../selectors';
+import { selectIsDeleting, selectDeleteResponse } from '../selectors';
+import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import type { DeleteResponse } from '../../../shared/types/delete-response';
 
 interface TeamMemberProfileSliderProps {
   isOpen: boolean;
@@ -36,8 +38,11 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isDeleting = useSelector(selectIsDeleting) as boolean;
+  const deleteResponseFromState = useSelector(selectDeleteResponse);
   
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
+  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
   const [showStatusDialog, setShowStatusDialog] = useState(false);
   const [localTeamMember, setLocalTeamMember] = useState<TeamMember | null>(null);
   const [isEditingContact, setIsEditingContact] = useState(false);
@@ -45,6 +50,22 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const [useLocationHours, setUseLocationHours] = useState(true);
   const [locationWorkingHours, setLocationWorkingHours] = useState<typeof defaultWorkingHours | null>(null);
   const [isAddAppointmentSliderOpen, setIsAddAppointmentSliderOpen] = useState(false);
+
+  // Handle delete response from Redux state
+  useEffect(() => {
+    if (deleteResponseFromState && hasAttemptedDelete) {
+      if (deleteResponseFromState.canDelete === false) {
+        // Cannot delete - update dialog to show blocking info
+        setDeleteResponse(deleteResponseFromState as DeleteResponse);
+      } else {
+        // Successfully deleted - close dialog
+        setShowDeleteDialog(false);
+        setDeleteResponse(null);
+        setHasAttemptedDelete(false);
+        onClose();
+      }
+    }
+  }, [deleteResponseFromState, hasAttemptedDelete, onClose]);
 
   // Default working hours structure
   const defaultWorkingHours = {
@@ -677,7 +698,14 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
               <div className="flex flex-col gap-3">
                 <Button 
                   variant="destructive"
-                  onClick={() => setShowDeleteDialog(true)}
+                  onClick={() => {
+                    setDeleteResponse({
+                      canDelete: true,
+                      message: '',
+                    });
+                    setShowDeleteDialog(true);
+                    setHasAttemptedDelete(false);
+                  }}
                   className="w-full"
                   disabled={isDeleting as boolean}
                 >
@@ -720,37 +748,31 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
       </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remove Account</AlertDialogTitle>
-            <AlertDialogDescription>
-              {`Are you sure you want to remove {teamMember.firstName} {teamMember.lastName}'s account? This action will remove the account and everything associated with it from the system. This action cannot be undone.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting as boolean}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                dispatch(deleteTeamMemberAction.request({ id: teamMember.id }));
-                setShowDeleteDialog(false);
-                onClose();
-              }}
-              disabled={isDeleting as boolean}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {isDeleting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Removing...
-                </>
-              ) : (
-                'Remove Account'
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <DeleteConfirmDialog
+        open={showDeleteDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowDeleteDialog(false);
+            setDeleteResponse(null);
+            setHasAttemptedDelete(false);
+          }
+        }}
+        resourceType="team_member"
+        resourceName={`${teamMember.firstName} ${teamMember.lastName}`}
+        deleteResponse={deleteResponse}
+        onConfirm={() => {
+          if (!deleteResponse?.canDelete) return;
+          setHasAttemptedDelete(true);
+          dispatch(deleteTeamMemberAction.request({ id: teamMember.id }));
+        }}
+        isLoading={isDeleting}
+        secondaryActions={[
+          ...(deleteResponse?.isVisibleInMarketplace
+            ? [{ label: 'Go to Marketplace', onClick: () => { setShowDeleteDialog(false); setDeleteResponse(null); setHasAttemptedDelete(false); navigate('/marketplace'); } }]
+            : []),
+          { label: 'Go to Assignments', onClick: () => { setShowDeleteDialog(false); setDeleteResponse(null); setHasAttemptedDelete(false); navigate('/assignments'); } },
+        ]}
+      />
 
       {/* Add Appointment Slider */}
       <AddAppointmentSlider 

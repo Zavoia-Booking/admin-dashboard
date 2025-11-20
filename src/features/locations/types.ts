@@ -4,6 +4,7 @@ export interface LocationState {
   isLoading: boolean;
   error: string | null;
   allLocations: LocationType[];
+  deleteResponse?: any | null;
 }
 
 export interface NewLocationPayload {

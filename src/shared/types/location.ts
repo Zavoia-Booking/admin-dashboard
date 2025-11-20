@@ -27,4 +27,5 @@ export interface LocationType {
   timezone: string;
   isRemote: boolean;
   open247?: boolean;
+  isVisibleInMarketplace?: boolean;
 }

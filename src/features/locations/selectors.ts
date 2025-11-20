@@ -13,3 +13,7 @@ export const getLocationLoadingSelector = createSelector(getLocationStateSelecto
 export const getLocationErrorSelector = createSelector(getLocationStateSelector, (state) => {
     return state.error
 });
+
+export const getDeleteResponseSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.deleteResponse
+});
