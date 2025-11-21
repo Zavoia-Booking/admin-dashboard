@@ -6,9 +6,12 @@ import { Input } from '../../../shared/components/ui/input';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Label } from '../../../shared/components/ui/label';
 import { Pill } from '../../../shared/components/ui/pill';
-import { Users, MapPin, Briefcase, FolderTree, Save, Eye, EyeOff, Store, Building2 } from 'lucide-react';
+import { MultiSelect } from '../../../shared/components/common/MultiSelect';
+import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
+import { Checkbox } from '../../../shared/components/ui/checkbox';
+import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2 } from 'lucide-react';
 import type { Location, Service, TeamMember, Category, Business } from '../types';
-import { MarketplaceImagesSection } from './MarketplaceImagesSection';
+import { MarketplaceImagesSection, type PortfolioImage } from './MarketplaceImagesSection';
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -45,8 +48,8 @@ interface ListingConfigurationViewProps {
     useBusinessEmail: boolean;
     useBusinessDescription: boolean;
     allowOnlineBooking: boolean;
-    featuredImage?: string | null;
-    portfolioImages?: string[];
+    featuredImageId?: string | null;
+    portfolioImages?: PortfolioImage[];
   }) => void;
   onToggleVisibility: (isVisible: boolean) => void;
 }
@@ -81,6 +84,9 @@ export function ListingConfigurationView({
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>(listedServices);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(listedCategories);
   const [selectedTeamMemberIds, setSelectedTeamMemberIds] = useState<number[]>(listedTeamMembers);
+  const [expandedCategoryIds, setExpandedCategoryIds] = useState<number[]>([]);
+  const [categorySearchTerms, setCategorySearchTerms] = useState<Record<number, string>>({});
+  const [categoryValidationErrors, setCategoryValidationErrors] = useState<number[]>([]);
   
   // Toggle states (default to true if undefined)
   const [useBusinessName, setUseBusinessName] = useState<boolean>(initialUseBusinessName ?? true);
@@ -93,8 +99,27 @@ export function ListingConfigurationView({
   const [description, setDescription] = useState<string>(marketplaceDescription || business?.description || '');
   
   const [onlineBooking, setOnlineBooking] = useState<boolean>(allowOnlineBooking);
-  const [featured, setFeatured] = useState<string | null>(featuredImage || null);
-  const [portfolio, setPortfolio] = useState<string[]>(portfolioImages || []);
+  const [featuredImageId, setFeaturedImageId] = useState<string | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioImage[]>([]);
+
+  // Initialize portfolio from existing images (convert URLs to PortfolioImage format)
+  useState(() => {
+    if (portfolioImages && portfolioImages.length > 0) {
+      const existingImages: PortfolioImage[] = portfolioImages.map((url, index) => ({
+        tempId: `existing-${index}`,
+        url,
+      }));
+      setPortfolio(existingImages);
+      
+      // Set featured if it exists
+      if (featuredImage) {
+        const featuredIndex = portfolioImages.indexOf(featuredImage);
+        if (featuredIndex !== -1) {
+          setFeaturedImageId(`existing-${featuredIndex}`);
+        }
+      }
+    }
+  });
 
   const toggleLocation = (id: number) => {
     setSelectedLocationIds(prev =>
@@ -103,9 +128,29 @@ export function ListingConfigurationView({
   };
 
   const toggleService = (id: number) => {
-    setSelectedServiceIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
+    setSelectedServiceIds(prev => {
+      const isSelected = prev.includes(id);
+      const next = isSelected ? prev.filter(x => x !== id) : [...prev, id];
+
+      // When selecting a service, clear validation error for its category if it becomes valid
+      const service = services.find(s => s.id === id);
+      const categoryId = service?.categoryId ?? service?.category?.id;
+
+      if (categoryId && !isSelected) {
+        const categoryServices = services.filter(
+          (svc) => svc.categoryId === categoryId || svc.category?.id === categoryId
+        );
+        const hasSelected = categoryServices.some((svc) => next.includes(svc.id));
+
+        if (hasSelected) {
+          setCategoryValidationErrors((prevErrors) =>
+            prevErrors.filter((cid) => cid !== categoryId)
+          );
+        }
+      }
+
+      return next;
+    });
   };
 
   const toggleCategory = (id: number) => {
@@ -121,6 +166,29 @@ export function ListingConfigurationView({
   };
 
   const handleSave = () => {
+    // Validate that each selected category has at least one selected service
+    const invalidCategoryIds = selectedCategoryIds.filter((categoryId) => {
+      const categoryServices = services.filter(
+        (service) =>
+          service.categoryId === categoryId || service.category?.id === categoryId
+      );
+      if (categoryServices.length === 0) return true;
+      return !categoryServices.some((service) => selectedServiceIds.includes(service.id));
+    });
+
+    if (invalidCategoryIds.length > 0) {
+      setCategoryValidationErrors(invalidCategoryIds);
+      // Expand invalid categories so the user sees the message
+      setExpandedCategoryIds((prev) =>
+        Array.from(new Set([...prev, ...invalidCategoryIds]))
+      );
+      return;
+    }
+
+    // Clear previous errors on successful validation
+    if (categoryValidationErrors.length > 0) {
+      setCategoryValidationErrors([]);
+    }
     onSave({
       locationIds: selectedLocationIds,
       serviceIds: selectedServiceIds,
@@ -133,7 +201,7 @@ export function ListingConfigurationView({
       useBusinessEmail,
       useBusinessDescription,
       allowOnlineBooking: onlineBooking,
-      featuredImage: featured,
+      featuredImageId,
       portfolioImages: portfolio,
     });
   };
@@ -317,9 +385,9 @@ export function ListingConfigurationView({
 
       {/* Marketplace Images Section */}
       <MarketplaceImagesSection
-        featuredImage={featured}
+        featuredImageId={featuredImageId}
         portfolioImages={portfolio}
-        onFeaturedImageChange={setFeatured}
+        onFeaturedImageChange={setFeaturedImageId}
         onPortfolioImagesChange={setPortfolio}
       />
 
@@ -418,68 +486,227 @@ export function ListingConfigurationView({
           {categories.length === 0 ? (
             <p className="text-sm text-muted-foreground">No categories available</p>
           ) : (
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {categories.map((category) => (
-                <Pill
-                  key={category.id}
-                  selected={selectedCategoryIds.includes(category.id)}
-                  icon={FolderTree}
-                  className="w-auto justify-start items-start transition-none active:scale-100"
-                  showCheckmark={true}
-                  onClick={() => toggleCategory(category.id)}
-                >
-                  <div className="flex flex-col text-left">
-                    <div className="flex items-center">
-                      {category.name}
-                    </div>
-                    {category.description && (
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {category.description}
-                      </div>
-                    )}
-                  </div>
-                </Pill>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="space-y-4">
+              <div className="max-w-md">
+                <MultiSelect
+                  value={selectedCategoryIds.map(String)}
+                  onChange={(newSelectedIds) => {
+                    const currentIds = new Set(selectedCategoryIds.map(String));
+                    
+                    // Toggle newly selected categories
+                    newSelectedIds.forEach((id) => {
+                      if (!currentIds.has(String(id))) {
+                        toggleCategory(Number(id));
+                      }
+                    });
 
-      {/* Services Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Briefcase className="h-5 w-5" />
-            Services
-          </CardTitle>
-          <CardDescription>
-            Select services to showcase on your marketplace profile
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {services.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No services available</p>
-          ) : (
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {services.map((service) => (
-                <Pill
-                  key={service.id}
-                  selected={selectedServiceIds.includes(service.id)}
-                  icon={Briefcase}
-                  className="w-auto justify-start items-start transition-none active:scale-100"
-                  showCheckmark={true}
-                  onClick={() => toggleService(service.id)}
-                >
-                  <div className="flex flex-col text-left">
-                    <div className="flex items-center">
-                      {service.name}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      ${(service.price_amount_minor / 100).toFixed(2)} • {service.duration} min
-                    </div>
-                  </div>
-                </Pill>
-              ))}
+                    // Toggle deselected categories
+                    selectedCategoryIds.forEach((id) => {
+                      if (!newSelectedIds.includes(String(id))) {
+                        toggleCategory(Number(id));
+                      }
+                    });
+                  }}
+                  options={categories.map((category) => ({
+                    id: String(category.id),
+                    name: category.name,
+                    subtitle: category.description || undefined,
+                  }))}
+                  placeholder="+ Add Categories"
+                  searchPlaceholder="Search categories..."
+                />
+              </div>
+
+              {selectedCategoryIds.length > 0 && (
+                <div className="mt-2 space-y-3">
+                  {categories
+                    .filter((category) => selectedCategoryIds.includes(category.id))
+                    .map((category) => {
+                      const allCategoryServices = services.filter(
+                        (service) =>
+                          service.categoryId === category.id ||
+                          service.category?.id === category.id
+                      );
+                      const selectedCount = allCategoryServices.filter((service) =>
+                        selectedServiceIds.includes(service.id)
+                      ).length;
+                      const totalCount = allCategoryServices.length;
+                      const searchTerm = categorySearchTerms[category.id] || '';
+
+                      const filteredServices = allCategoryServices.filter((service) =>
+                        service.name.toLowerCase().includes(searchTerm.toLowerCase())
+                      );
+
+                      return (
+                        <CollapsibleFormSection
+                          key={category.id}
+                          icon={FolderTree}
+                          title={category.name}
+                          description={
+                            totalCount > 0
+                              ? `${selectedCount} of ${totalCount} services selected`
+                              : 'No services in this category'
+                          }
+                          open={expandedCategoryIds.includes(category.id)}
+                          onOpenChange={(open) => {
+                            setExpandedCategoryIds((prev) =>
+                              open
+                                ? [...prev, category.id]
+                                : prev.filter((id) => id !== category.id)
+                            );
+                          }}
+                          className="bg-muted/40 px-3 py-2 rounded-lg"
+                        >
+                          {totalCount === 0 ? (
+                            <div className="py-3 space-y-1 text-xs">
+                              <div className="text-muted-foreground">
+                                No services belong to this category yet.
+                              </div>
+                              {categoryValidationErrors.includes(category.id) && (
+                                <div className="text-destructive">
+                                  You cannot publish this category until it has at least one service.
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="max-h-64 overflow-y-auto pr-1">
+                              <div className="sticky top-0 z-10 bg-muted/60 pt-1 pb-2 space-y-2">
+                                {categoryValidationErrors.includes(category.id) && (
+                                  <div className="text-xs text-destructive">
+                                    Remove this category, or select at least one service to publish.
+                                  </div>
+                                )}
+                                <Input
+                                  value={searchTerm}
+                                  onChange={(e) =>
+                                    setCategorySearchTerms((prev) => ({
+                                      ...prev,
+                                      [category.id]: e.target.value,
+                                    }))
+                                  }
+                                  placeholder="Search services in this category..."
+                                  className="h-8 text-xs"
+                                />
+
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={() => {
+                                    const allSelected =
+                                      totalCount > 0 &&
+                                      allCategoryServices.every((service) =>
+                                        selectedServiceIds.includes(service.id)
+                                      );
+
+                                    setSelectedServiceIds((prev) => {
+                                      const categoryServiceIds = allCategoryServices.map(
+                                        (service) => service.id
+                                      );
+
+                                      if (allSelected) {
+                                        // Unselect all services in this category
+                                        return prev.filter(
+                                          (id) => !categoryServiceIds.includes(id)
+                                        );
+                                      }
+
+                                      // Select all services in this category
+                                      const merged = new Set([...prev, ...categoryServiceIds]);
+                                      return Array.from(merged);
+                                    });
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                      e.preventDefault();
+                                      const allSelected =
+                                        totalCount > 0 &&
+                                        allCategoryServices.every((service) =>
+                                          selectedServiceIds.includes(service.id)
+                                        );
+
+                                      setSelectedServiceIds((prev) => {
+                                        const categoryServiceIds = allCategoryServices.map(
+                                          (service) => service.id
+                                        );
+
+                                        if (allSelected) {
+                                          return prev.filter(
+                                            (id) => !categoryServiceIds.includes(id)
+                                          );
+                                        }
+
+                                        const merged = new Set([...prev, ...categoryServiceIds]);
+                                        return Array.from(merged);
+                                      });
+                                    }
+                                  }}
+                                  className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none cursor-pointer"
+                                >
+                                  <Checkbox
+                                    checked={
+                                      totalCount > 0 &&
+                                      allCategoryServices.every((service) =>
+                                        selectedServiceIds.includes(service.id)
+                                      )
+                                    }
+                                    className="h-3.5 w-3.5 !min-h-0 !min-w-0"
+                                  />
+                                  <span className="text-xs font-medium">
+                                    All services in this category
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-2 space-y-1 pb-2">
+                                {filteredServices.length === 0 ? (
+                                  <div className="py-2 text-xs text-muted-foreground">
+                                    No services match your search.
+                                  </div>
+                                ) : (
+                                  filteredServices.map((service) => {
+                                    const checked = selectedServiceIds.includes(service.id);
+                                    const handleToggle = () => toggleService(service.id);
+
+                                    return (
+                                      <div
+                                        key={service.id}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={handleToggle}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            handleToggle();
+                                          }
+                                        }}
+                                        className="w-full flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none cursor-pointer"
+                                      >
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          <Checkbox
+                                            checked={checked}
+                                            onCheckedChange={handleToggle}
+                                            className="h-3.5 w-3.5 !min-h-0 !min-w-0"
+                                          />
+                                          <span className="text-sm font-medium truncate">
+                                            {service.name}
+                                          </span>
+                                        </div>
+                                        <span className="text-[11px] text-muted-foreground shrink-0">
+                                          {(service.price_amount_minor / 100).toFixed(2)} •{' '}
+                                          {service.duration} min
+                                        </span>
+                                      </div>
+                                    );
+                                  })
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </CollapsibleFormSection>
+                      );
+                    })}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

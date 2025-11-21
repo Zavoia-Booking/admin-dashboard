@@ -39,18 +39,18 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         categories: action.payload.categories,
         teamMembers: action.payload.teamMembers,
         industries: action.payload.industries,
-        // Extract IDs from objects if they're objects, otherwise use as is
-        listedLocations: Array.isArray(action.payload.listedLocations) 
-          ? action.payload.listedLocations.map((item: any) => typeof item === 'object' ? item.locationId : item)
+        // Normalize listed entities (API returns objects with `id`)
+        listedLocations: Array.isArray(action.payload.listedLocations)
+          ? action.payload.listedLocations.map((item: any) => item.id)
           : [],
         listedServices: Array.isArray(action.payload.listedServices)
-          ? action.payload.listedServices.map((item: any) => typeof item === 'object' ? item.serviceId : item)
+          ? action.payload.listedServices.map((item: any) => item.id)
           : [],
         listedCategories: Array.isArray(action.payload.listedCategories)
-          ? action.payload.listedCategories.map((item: any) => typeof item === 'object' ? item.categoryId : item)
+          ? action.payload.listedCategories.map((item: any) => item.id)
           : [],
         listedTeamMembers: Array.isArray(action.payload.listedTeamMembers)
-          ? action.payload.listedTeamMembers.map((item: any) => typeof item === 'object' ? item.userId : item)
+          ? action.payload.listedTeamMembers.map((item: any) => item.id)
           : [],
         error: null,
       };

@@ -100,6 +100,10 @@ export interface MarketplaceListingResponse {
 }
 
 // Payload for publishing marketplace listing
+export interface NewImageMeta {
+  tempId: string;
+}
+
 export interface PublishMarketplaceListingPayload {
   marketplaceName?: string;
   marketplaceEmail?: string;
@@ -117,6 +121,15 @@ export interface PublishMarketplaceListingPayload {
   serviceIds?: number[];
   categoryIds?: number[];
   teamMemberIds?: number[];
+  // Images diff payload for backend
+  existingImageIds?: number[];
+  newImagesMeta?: NewImageMeta[];
+  featuredImageKey?: number | string;
+}
+
+export interface PublishMarketplaceListingRequest {
+  payload: PublishMarketplaceListingPayload;
+  newImageFiles?: Record<string, File>;
 }
 
 // Redux state for marketplace feature

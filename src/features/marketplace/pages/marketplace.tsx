@@ -3,6 +3,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Spinner } from '../../../shared/components/ui/spinner';
 import { fetchMarketplaceListingAction, publishMarketplaceListingAction, updateMarketplaceVisibilityAction } from '../actions';
+import type { PortfolioImage } from '../components/MarketplaceImagesSection';
+import type { PublishMarketplaceListingRequest } from '../types';
 import { 
   selectMarketplaceBusiness,
   selectMarketplaceListing, 
@@ -66,27 +68,55 @@ export default function MarketplacePage() {
     useBusinessEmail: boolean;
     useBusinessDescription: boolean;
     allowOnlineBooking: boolean;
-    featuredImage?: string | null;
-    portfolioImages?: string[];
+    featuredImageId?: string | null;
+    portfolioImages?: PortfolioImage[];
   }) => {
-    dispatch(publishMarketplaceListingAction.request({
-      locationIds: data.locationIds,
-      serviceIds: data.serviceIds,
-      categoryIds: data.categoryIds,
-      teamMemberIds: data.teamMemberIds,
-      marketplaceName: data.marketplaceName,
-      marketplaceEmail: data.marketplaceEmail,
-      marketplaceDescription: data.marketplaceDescription,
-      useBusinessName: data.useBusinessName,
-      useBusinessEmail: data.useBusinessEmail,
-      useBusinessDescription: data.useBusinessDescription,
-      showTeamMembers: true,
-      showServices: true,
-      showLocations: true,
-      allowOnlineBooking: data.allowOnlineBooking,
-      featuredImage: data.featuredImage,
-      portfolioImages: data.portfolioImages,
+    const portfolioImages = data.portfolioImages || [];
+
+    // Separate existing images (no file) from new uploads (have file)
+    const newImages = portfolioImages.filter(img => img.file);
+
+    // For now, treat existing as empty (will be wired properly when backend returns IDs)
+    const existingImageIds: number[] = [];
+    
+    const newImagesMeta = newImages.map(img => ({
+      tempId: img.tempId,
     }));
+
+    // Build file map for new images
+    const newImageFiles: Record<string, File> = {};
+    newImages.forEach(img => {
+      if (img.file) {
+        newImageFiles[img.tempId] = img.file;
+      }
+    });
+
+    const featuredImageKey = data.featuredImageId || undefined;
+
+    const request: PublishMarketplaceListingRequest = {
+      payload: {
+        locationIds: data.locationIds,
+        serviceIds: data.serviceIds,
+        categoryIds: data.categoryIds,
+        teamMemberIds: data.teamMemberIds,
+        marketplaceName: data.marketplaceName,
+        marketplaceEmail: data.marketplaceEmail,
+        marketplaceDescription: data.marketplaceDescription,
+        useBusinessName: data.useBusinessName,
+        useBusinessEmail: data.useBusinessEmail,
+        useBusinessDescription: data.useBusinessDescription,
+        showTeamMembers: true,
+        showServices: true,
+        showLocations: true,
+        allowOnlineBooking: data.allowOnlineBooking,
+        existingImageIds,
+        newImagesMeta: newImagesMeta.length > 0 ? newImagesMeta : undefined,
+        featuredImageKey,
+      },
+      newImageFiles: Object.keys(newImageFiles).length > 0 ? newImageFiles : undefined,
+    };
+
+    dispatch(publishMarketplaceListingAction.request(request as any));
   };
 
   const handleToggleVisibility = (isVisible: boolean) => {

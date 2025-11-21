@@ -1,47 +1,79 @@
-import { useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card';
 import { Button } from '../../../shared/components/ui/button';
-import { Image, Upload, X } from 'lucide-react';
+import { Badge } from '../../../shared/components/ui/badge';
+import { Image, X, Star } from 'lucide-react';
+
+export interface PortfolioImage {
+  tempId: string;
+  url: string;
+  file?: File;
+}
 
 interface MarketplaceImagesSectionProps {
-  featuredImage?: string | null;
-  portfolioImages?: string[] | null;
-  onFeaturedImageChange: (imageUrl: string | null) => void;
-  onPortfolioImagesChange: (images: string[]) => void;
+  featuredImageId?: string | null;
+  portfolioImages?: PortfolioImage[];
+  onFeaturedImageChange: (tempId: string | null) => void;
+  onPortfolioImagesChange: (images: PortfolioImage[]) => void;
 }
 
 export function MarketplaceImagesSection({
-  featuredImage,
+  featuredImageId,
   portfolioImages,
   onFeaturedImageChange,
   onPortfolioImagesChange,
 }: MarketplaceImagesSectionProps) {
-  const [featuredImageUrl, setFeaturedImageUrl] = useState<string>(featuredImage || '');
-  const [newPortfolioImageUrl, setNewPortfolioImageUrl] = useState<string>('');
   const images = portfolioImages || [];
+  const featured = featuredImageId || null;
 
-  const handleAddFeaturedImage = () => {
-    if (featuredImageUrl.trim()) {
-      onFeaturedImageChange(featuredImageUrl.trim());
+  const portfolioInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Ensure a single portfolio image becomes featured by default
+  useEffect(() => {
+    if (!featured && images.length === 1) {
+      onFeaturedImageChange(images[0].tempId);
     }
-  };
+  }, [featured, images, onFeaturedImageChange]);
 
-  const handleRemoveFeaturedImage = () => {
-    setFeaturedImageUrl('');
-    onFeaturedImageChange(null);
-  };
+  const handlePortfolioFiles = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
 
-  const handleAddPortfolioImage = () => {
-    if (newPortfolioImageUrl.trim()) {
-      const updatedImages = [...images, newPortfolioImageUrl.trim()];
-      onPortfolioImagesChange(updatedImages);
-      setNewPortfolioImageUrl('');
-    }
-  };
-
-  const handleRemovePortfolioImage = (index: number) => {
-    const updatedImages = images.filter((_, i) => i !== index);
+    const newImages: PortfolioImage[] = Array.from(files).map((file) => ({
+      tempId: crypto.randomUUID(),
+      url: URL.createObjectURL(file),
+      file,
+    }));
+    const updatedImages = [...images, ...newImages];
     onPortfolioImagesChange(updatedImages);
+
+    // If no featured image is set yet, default to the first uploaded image
+    if (!featured && updatedImages.length > 0) {
+      onFeaturedImageChange(updatedImages[0].tempId);
+    }
+  };
+
+  const handlePortfolioFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    handlePortfolioFiles(event.target.files);
+    event.target.value = '';
+  };
+
+  const handlePortfolioDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    handlePortfolioFiles(event.dataTransfer.files);
+  };
+
+  const handlePortfolioDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+  };
+
+  const handleRemovePortfolioImage = (tempId: string) => {
+    const updatedImages = images.filter((img) => img.tempId !== tempId);
+    onPortfolioImagesChange(updatedImages);
+    
+    // If removed image was featured, clear or set to first remaining
+    if (featured === tempId) {
+      onFeaturedImageChange(updatedImages.length > 0 ? updatedImages[0].tempId : null);
+    }
   };
 
   return (
@@ -52,121 +84,145 @@ export function MarketplaceImagesSection({
           Marketplace Images
         </CardTitle>
         <CardDescription>
-          Add a featured image and portfolio images to showcase your business
+          Manage the images that will appear on your marketplace listing
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Featured Image Section */}
+      <CardContent className="space-y-6 max-w-3xl mx-auto">
+        {/* Featured Image Preview */}
         <div className="space-y-3">
           <div>
-            <h4 className="text-sm font-medium mb-1">Featured Image</h4>
+            <h4 className="text-sm font-medium mb-1">Featured image</h4>
             <p className="text-xs text-muted-foreground">
-              Main image displayed on your marketplace listing
+              Upload portfolio images below, then choose one to highlight your business.
             </p>
           </div>
 
-          {featuredImage ? (
-            <div className="relative border rounded-lg p-4 bg-muted/20">
-              <div className="flex items-start gap-3">
-                <div className="w-24 h-24 bg-muted rounded-md overflow-hidden flex-shrink-0">
+          <div className="flex flex-col gap-4 items-stretch">
+            <div className="flex-1 min-w-0">
+              <div className="relative overflow-hidden rounded-xl border bg-muted/40 aspect-video flex items-center justify-center">
+                {featured ? (
                   <img
-                    src={featuredImage}
+                    src={images.find(img => img.tempId === featured)?.url || ''}
                     alt="Featured"
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3EImage%3C/text%3E%3C/svg%3E';
+                      e.currentTarget.src =
+                        'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3EImage%3C/text%3E%3C/svg%3E';
                     }}
                   />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{featuredImage}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Featured image</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleRemoveFeaturedImage}
-                  className="flex-shrink-0"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center px-4 py-8 text-muted-foreground gap-2">
+                    <Star className="h-8 w-8" />
+                    <p className="text-xs max-w-xs">
+                      No featured image yet. Upload portfolio images below, then choose one to
+                      highlight your business.
+                    </p>
+                  </div>
+                )}
+
+                {featured && (
+                  <div className="absolute top-2 left-2 flex items-center gap-2">
+                    <Badge className="bg-primary text-primary-foreground flex items-center gap-1 px-2 py-0.5 text-[11px]">
+                      <Star className="h-3 w-3" />
+                      Featured
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            <div className="flex gap-2">
-              <input
-                type="url"
-                placeholder="https://example.com/image.jpg"
-                value={featuredImageUrl}
-                onChange={(e) => setFeaturedImageUrl(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              />
-              <Button
-                onClick={handleAddFeaturedImage}
-                disabled={!featuredImageUrl.trim()}
-                className="flex-shrink-0"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Portfolio Images Section */}
         <div className="space-y-3 pt-4 border-t">
           <div>
-            <h4 className="text-sm font-medium mb-1">Portfolio Images</h4>
+            <h4 className="text-sm font-medium mb-1">Portfolio images</h4>
             <p className="text-xs text-muted-foreground">
-              Showcase your work with multiple images
+              Showcase your work with multiple images. These are stored in memory until you
+              publish your listing.
             </p>
           </div>
 
-          {/* Add New Portfolio Image */}
-          <div className="flex gap-2">
+          {/* Add New Portfolio Images (upload / drag & drop) */}
+          <div
+            className="relative flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/40 bg-muted/30 px-4 py-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+            onClick={() => portfolioInputRef.current?.click()}
+            onDrop={handlePortfolioDrop}
+            onDragOver={handlePortfolioDragOver}
+          >
             <input
-              type="url"
-              placeholder="https://example.com/portfolio-image.jpg"
-              value={newPortfolioImageUrl}
-              onChange={(e) => setNewPortfolioImageUrl(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              ref={portfolioInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handlePortfolioFileChange}
             />
-            <Button
-              onClick={handleAddPortfolioImage}
-              disabled={!newPortfolioImageUrl.trim()}
-              variant="outline"
-              className="flex-shrink-0"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Add
-            </Button>
+            <Image className="h-8 w-8 text-muted-foreground mb-1" />
+            <p className="text-xs font-medium">
+              Click to upload or drag &amp; drop images
+            </p>
+            <p className="text-[11px] text-muted-foreground max-w-xs">
+              Add multiple images to build a rich portfolio. You can choose any of them as your
+              featured image.
+            </p>
           </div>
 
           {/* Display Portfolio Images */}
           {images.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {images.map((imageUrl, index) => (
-                <div key={index} className="relative border rounded-lg p-3 bg-muted/20">
-                  <div className="flex items-start gap-3">
-                    <div className="w-16 h-16 bg-muted rounded-md overflow-hidden flex-shrink-0">
-                      <img
-                        src={imageUrl}
-                        alt={`Portfolio ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3EImage%3C/text%3E%3C/svg%3E';
-                        }}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {images.map((image) => (
+                <div
+                  key={image.tempId}
+                  className="group relative overflow-hidden rounded-xl border bg-muted/30 shadow-sm flex flex-col"
+                >
+                  <div className="relative aspect-video w-full overflow-hidden bg-muted">
+                    <img
+                      src={image.url}
+                      alt={`Portfolio ${image.tempId}`}
+                      className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+                      onError={(e) => {
+                        e.currentTarget.src =
+                          'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3EImage%3C/text%3E%3C/svg%3E';
+                      }}
+                    />
+                    {featured === image.tempId && (
+                      <div className="absolute top-2 left-2">
+                        <Badge className="bg-primary text-primary-foreground flex items-center gap-1 px-2 py-0.5 text-[11px]">
+                          <Star className="h-3 w-3" />
+                          Featured
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between px-2.5 py-2 gap-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      aria-pressed={featured === image.tempId}
+                      className="h-7 px-2 text-[11px] flex items-center gap-1 transition-colors"
+                      onClick={() => onFeaturedImageChange(image.tempId)}
+                    >
+                      <Star
+                        className={
+                          'h-3 w-3 ' +
+                          (featured === image.tempId ? 'text-primary' : 'text-muted-foreground')
+                        }
                       />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs truncate">{imageUrl}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Image {index + 1}</p>
-                    </div>
+                      <span
+                        className={
+                          featured === image.tempId ? 'text-primary font-medium' : 'text-foreground'
+                        }
+                      >
+                        {featured === image.tempId ? 'Featured' : 'Set as featured'}
+                      </span>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => handleRemovePortfolioImage(index)}
-                      className="flex-shrink-0 h-8 w-8"
+                      onClick={() => handleRemovePortfolioImage(image.tempId)}
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
                     >
                       <X className="h-3 w-3" />
                     </Button>
@@ -186,4 +242,3 @@ export function MarketplaceImagesSection({
     </Card>
   );
 }
-
