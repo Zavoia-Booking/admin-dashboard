@@ -1,9 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, X as XIcon } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { Button } from '../ui/button';
-import { DashedDivider } from './DashedDivider';
-import { cn } from '../../lib/utils';
+import React, { useState, useRef } from "react";
+import { ChevronLeft, X as XIcon } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { Button } from "../ui/button";
+import { DashedDivider } from "./DashedDivider";
+import { cn } from "../../lib/utils";
 
 interface BaseSliderProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   title,
   subtitle,
   icon: Icon,
-  iconColor = 'text-foreground-1',
+  iconColor = "text-foreground-1",
   children,
   className,
   headerClassName,
@@ -44,7 +44,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   backdropClassName,
   panelClassName,
   headerActions,
-  footer
+  footer,
 }) => {
   const [shouldAnimate, setShouldAnimate] = useState(false);
 
@@ -69,14 +69,22 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
   const handleStart = (clientX: number, target: HTMLElement) => {
     // Don't start drag on form elements
-    if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || 
-        target.closest('button') || target.closest('input') || target.closest('textarea') || 
-        target.closest('[role="button"]') || target.closest('[role="switch"]') ||
-        target.closest('[role="combobox"]') || target.closest('[role="listbox"]') ||
-        target.closest('[role="option"]')) {
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "BUTTON" ||
+      target.tagName === "TEXTAREA" ||
+      target.closest("button") ||
+      target.closest("input") ||
+      target.closest("textarea") ||
+      target.closest('[role="button"]') ||
+      target.closest('[role="switch"]') ||
+      target.closest('[role="combobox"]') ||
+      target.closest('[role="listbox"]') ||
+      target.closest('[role="option"]')
+    ) {
       return;
     }
-    
+
     touchStartX.current = clientX;
     touchCurrentX.current = clientX;
     setIsDragging(true);
@@ -85,10 +93,10 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
   const handleMove = (clientX: number) => {
     if (!isDragging && !isMouseDown.current) return;
-    
+
     touchCurrentX.current = clientX;
     const diff = touchCurrentX.current - touchStartX.current;
-    
+
     // Only allow rightward swipes (positive diff)
     if (diff > 0) {
       setDragOffset(Math.min(diff, maxDragDistance));
@@ -97,14 +105,14 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
   const handleEnd = () => {
     if (!isDragging && !isMouseDown.current) return;
-    
+
     const diff = touchCurrentX.current - touchStartX.current;
-    
+
     // If swiped more than threshold, close the slider
     if (diff > dragThreshold) {
       onClose();
     }
-    
+
     // Reset drag state
     setIsDragging(false);
     setDragOffset(0);
@@ -146,33 +154,34 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   return (
     <>
       {/* Backdrop - Overlay on both mobile and desktop */}
-      <div 
+      <div
         className={cn(
           "fixed inset-0 z-60 transition-opacity duration-300 mb-0",
           "bg-black/30",
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none',
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           backdropClassName
         )}
         onClick={onClose}
       />
-      
+
       {/* Sliding Panel */}
-      <div 
+      <div
         className={cn(
           "fixed bg-surface z-70 overflow-hidden",
           // Mobile: full width, slides from right
           "top-0 left-0 h-full w-full",
           // Desktop: positioned on right side with spacing and rounded corners
           "md:top-4 md:bottom-4 md:right-4 md:left-auto md:h-[calc(100vh-2rem)] md:w-1/2 md:max-w-2xl md:rounded-xl md:shadow-lg md:border md:border-border",
-          !isDragging ? 'transition-transform duration-300 ease-out' : '',
-          isOpen && shouldAnimate ? 'translate-x-0' : 'translate-x-full',
+          !isDragging ? "transition-transform duration-300 ease-out" : "",
+          // On desktop, translate by 100% + 1rem (16px) to account for right-4 spacing
+          isOpen && shouldAnimate
+            ? "translate-x-0"
+            : "translate-x-full md:translate-x-[calc(100%+1rem)]",
           panelClassName,
           className
         )}
         style={{
-          transform: isDragging 
-            ? `translateX(${dragOffset}px)` 
-            : undefined
+          transform: isDragging ? `translateX(${dragOffset}px)` : undefined,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -183,24 +192,26 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       >
         <div className="flex flex-col h-full md:h-full overflow-hidden">
           {/* Header - Mobile: back button, Desktop: close button */}
-          <div className={cn(
-            "flex flex-col bg-surface relative",
-            "p-4 md:p-6",
-            headerClassName
-          )}>
+          <div
+            className={cn(
+              "flex flex-col bg-surface relative",
+              "p-4 md:p-6",
+              headerClassName
+            )}
+          >
             <div className="flex items-center gap-3">
               {showBackButton && (
                 <>
                   {/* Mobile: back button */}
-                  <div className="bg-surface-hover rounded-full p-1.5 md:hidden">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                  <div className="md:hidden">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      rounded="full"
                       onClick={onClose}
-                      className="rounded-full hover:bg-surface-active"
-                      style={{ height: '2rem', width: '2rem', minHeight: '2rem', minWidth: '2rem' }}
+                      className="h-8 !w-8"
                     >
-                      <ArrowLeft className="h-3 w-3" />
+                      <ChevronLeft />
                     </Button>
                   </div>
                   {/* Desktop: close button */}
@@ -215,7 +226,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
                   </Button>
                 </>
               )}
-              
+
               {/* Icon */}
               {Icon && (
                 <div className="hidden md:flex flex-shrink-0 items-stretch self-stretch">
@@ -224,52 +235,64 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
                   </div>
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
                 <h2 className="text-lg font-semibold text-foreground-1 cursor-default">
                   {title}
                 </h2>
                 {subtitle && (
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mt-1.5 cursor-default">
+                  <p className="text-sm hidden md:block text-foreground-3 dark:text-foreground-2 leading-relaxed mt-1.5 cursor-default">
                     {subtitle}
                   </p>
                 )}
               </div>
-              
+
               {/* Header Actions */}
-              <div className="ml-auto">
-                {headerActions}
-              </div>
+              <div className="ml-auto">{headerActions}</div>
             </div>
-            
+
             {/* Dotted Divider */}
-            <DashedDivider marginTop="mt-3" paddingTop="pt-3" dashPattern="1 1" />
-          </div>
-          
-          {/* Content - Full width/height on desktop, normal on mobile */}
-          <div className={cn(
-            "overflow-y-auto",
-            // Mobile: flex-1 with padding
-            "flex-1 p-4",
-            // Desktop: full width and height, no padding (content handles its own spacing)
-            "md:w-full md:h-full md:p-0",
-            contentClassName
-          )}>
-            {children}
+            <DashedDivider
+              marginTop="mt-3"
+              className="pt-0 md:pt-3"
+              dashPattern="1 1"
+            />
           </div>
 
-          {/* Footer - Show on both mobile and desktop */}
-          {footer && (
-            <div className={cn(
-              "border-t border-border bg-surface",
-              "p-4 md:p-6",
-              footerClassName
-            )}>
-              {footer}
-            </div>
-          )}
+          {/* Content - Full width/height on desktop, normal on mobile */}
+          <div
+            className={cn(
+              "overflow-y-auto flex flex-col",
+              // Mobile: flex-1 with padding
+              "flex-1 p-3",
+              // Desktop: full width and height, no padding (content handles its own spacing)
+              "md:w-full md:h-full md:p-0",
+              contentClassName
+            )}
+          >
+            <div className="flex-1">{children}</div>
+
+            {/* Footer - Show on both mobile and desktop, scrolls with content */}
+            {footer && (
+              <div
+                className={cn("bg-surface", "px-0 md:px-6", footerClassName)}
+              >
+                {/* Dotted Divider */}
+                <DashedDivider
+                  marginTop="mt-0"
+                  className="mb-0 md:mb-6"
+                  paddingTop="pt-0"
+                  dashPattern="1 1"
+                />
+                {footer}
+              </div>
+            )}
+          </div>
+
+          {/* Bottom padding - Always visible, sticky at bottom */}
+          <div className="hidden md:block h-6 bg-surface shrink-0" />
         </div>
       </div>
     </>
   );
-}; 
+};

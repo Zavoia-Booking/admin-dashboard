@@ -70,7 +70,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className={cn(
               "absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md",
               "text-foreground-2 hover:text-foreground-1",
-              "hover:bg-surface-hover active:bg-surface-active",
+              "active:bg-surface-active",
               "transition-colors duration-200",
               "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
               "disabled:pointer-events-none",

@@ -26,12 +26,18 @@
   },
   "addService": {
     "title": "Adaugă Serviciu Nou",
-    "subtitle": "Creați un serviciu nou pentru afacerea dvs. Completați detaliile de mai jos pentru a începe.",
+    "subtitle": "Creați un serviciu nou pentru afacerea dvs. Completați detaliile de mai jos pentru a începe",
     "sections": {
       "serviceInfo": "Informații Serviciu",
-      "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs.",
+      "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs",
       "pricingDuration": "Preț și Durată",
-      "pricingDurationDescription": "Definiți costul și durata pentru acest serviciu",
+      "pricingDurationDescription": "Setează prețul și durata implicită",
+      "category": "Categorie",
+      "categoryDescription": "Atribuie acest serviciu unei categorii pentru a-l organiza și filtra ulterior",
+      "locations": "Locații",
+      "locationsDescription": "Implicit, serviciul este disponibil în toate locațiile. Selectați locații specifice pentru a-l face disponibil doar acolo.",
+      "teamMembers": "Membri Echipă",
+      "teamMembersDescription": "Implicit, serviciul este disponibil pentru toți membrii echipei. Selectați membri specifici pentru a-l face disponibil doar pentru ei.",
       "settings": "Setări Serviciu"
     },
     "form": {
@@ -49,14 +55,72 @@
         "helpText": "Preț de bază în {{currency}}"
       },
       "duration": {
-        "label": "Durată (min)",
-        "placeholder": "30"
+        "label": "Durată",
+        "placeholder": "60",
+        "helperText": "minute"
       },
       "currency": {
         "label": "Monedă",
-        "info": "Moneda este setată la nivelul afacerii. Pentru a o schimba, accesați Setări."
+        "info": "Moneda contului:",
+        "infoLink": "Setări",
+        "editText": "editează în"
       },
-      "pricingNote": "Acesta este prețul și durata de bază pentru acest serviciu. Puteți seta prețuri și durate personalizate pentru membrii individuali ai echipei în secțiunea Atribuiri după crearea acestui serviciu.",
+      "pricingNote": {
+        "text": "Implicit pentru toți angajații. Poți seta prețuri și durate personalizate per membru al echipei în",
+        "link": "Atribuiri"
+      },
+      "locations": {
+        "emptyMessage": "Nu s-au găsit locații.",
+        "helperTextNone": "Disponibil în toate locațiile",
+        "helperTextOne": "Disponibil în 1 locație selectată",
+        "helperTextSome": "Disponibil în {{count}} locații selectate"
+      },
+      "teamMembers": {
+        "emptyMessage": "Nu s-au găsit membri ai echipei.",
+        "helperTextNone": "Disponibil pentru toți membrii echipei",
+        "helperTextOne": "Disponibil pentru 1 membru selectat",
+        "helperTextSome": "Disponibil pentru {{count}} membri selectați"
+      },
+      "category": {
+        "label": "Numele Categoriei",
+        "placeholder": "Numele categoriei",
+        "helperText": "Lăsați gol pentru a crea serviciul fără categorie",
+        "selectLabel": "Selectează una",
+        "selectHelperText": "Fiecare serviciu poate fi atribuit unei singure categorii",
+        "manageCategoriesText": "Le poți gestiona din",
+        "manageCategoriesLink": "Categorii",
+        "createNew": "Creează categorie nouă",
+        "backToSelect": "Înapoi la categorii",
+        "newCategoryLabel": "Categorie nouă",
+        "newCategoryFieldLabel": "Numele categoriei",
+        "cancel": "Anulează",
+        "save": "Salvează",
+        "shuffleColor": "Schimbă culoarea",
+        "showMore": "Afișează încă {{count}}",
+        "showLess": "Afișează mai puține",
+        "remove": "Elimină categoria",
+        "limitHelperText": {
+          "text": "Limită de categorii atinsă ({{max}})."
+        },
+        "validation": {
+          "sectionError": "Selectează o categorie sau creează una nouă",
+          "nameRequired": "Introdu un nume pentru categorie",
+          "nameExists": "Există deja o categorie cu acest nume",
+          "limitReached": "Ați atins limita de 25 categorii. Eliminați una pentru a crea o categorie nouă."
+        }
+      },
+      "categoryColor": {
+        "label": "Culoarea Categoriei",
+        "helperText": "Culoarea este generată automat pe baza numelui categoriei"
+      },
+      "durationChips": {
+        "15": "15m",
+        "30": "30m",
+        "45": "45m",
+        "60": "60m",
+        "120": "120m"
+      },
+      "preview": "Acest serviciu va apărea ca:",
       "status": {
         "label": "Status Serviciu",
         "activeDescription": "Serviciul este disponibil pentru rezervare",
@@ -100,6 +164,7 @@
   },
   "editService": {
     "title": "Editează Serviciu",
+    "subtitle": "Actualizați informațiile, prețurile și disponibilitatea serviciului",
     "sections": {
       "serviceInfo": "Informații Serviciu",
       "pricingDuration": "Preț și Durată",

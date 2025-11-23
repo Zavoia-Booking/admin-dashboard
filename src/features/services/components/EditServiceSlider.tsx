@@ -1,32 +1,50 @@
-import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { useDispatch, useSelector } from 'react-redux';
-import { useTranslation } from 'react-i18next';
-import { DollarSign, FileText, Settings, MapPin, Users, X, Plus } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
-import { Input } from '../../../shared/components/ui/input';
-import { Label } from '../../../shared/components/ui/label';
-import { Textarea } from '../../../shared/components/ui/textarea';
-import { Switch } from '../../../shared/components/ui/switch';
-import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
-import { Badge } from '../../../shared/components/ui/badge';
-import { getAllLocationsSelector } from '../../locations/selectors';
-import { selectTeamMembers } from '../../teamMembers/selectors';
-import { listLocationsAction } from '../../locations/actions';
-import { listTeamMembersAction } from '../../teamMembers/actions';
-import type { Service } from '../../../shared/types/service';
-import type { EditServicePayload } from '../types.ts';
-import { editServicesAction } from '../actions.ts';
-import { getEditFormSelector } from '../selectors.ts';
-import { CategorySection } from './CategorySection';
-import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
-import { PriceField } from '../../../shared/components/forms/fields/PriceField';
-import { getCurrencyDisplay } from '../../../shared/utils/currency';
-import { priceToStorage } from '../../../shared/utils/currency';
-import { selectCurrentUser } from '../../auth/selectors';
+import React, { useEffect, useState, useRef } from "react";
+import { useForm, useController } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import {
+  Clock,
+  MapPin,
+  Users,
+  ClipboardPlus,
+  Layers2,
+  ArrowUpRight,
+  AlertCircle,
+} from "lucide-react";
+import { Label } from "../../../shared/components/ui/label";
+import { Input } from "../../../shared/components/ui/input";
+import { BaseSlider } from "../../../shared/components/common/BaseSlider";
+import { FormFooter } from "../../../shared/components/forms/FormFooter";
+import { TextField } from "../../../shared/components/forms/fields/TextField";
+import { TextareaField } from "../../../shared/components/forms/fields/TextareaField";
+import { PriceField } from "../../../shared/components/forms/fields/PriceField";
+import { Pill } from "../../../shared/components/ui/pill";
+import { CategorySection } from "./CategorySection";
+import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
+import {
+  getCurrencyDisplay,
+  priceToStorage,
+} from "../../../shared/utils/currency";
+import { getAllLocationsSelector } from "../../locations/selectors";
+import { selectTeamMembers } from "../../teamMembers/selectors";
+import type { TeamMember } from "../../../shared/types/team-member";
+import { selectCurrentUser } from "../../auth/selectors";
+import { listLocationsAction } from "../../locations/actions";
+import { listTeamMembersAction } from "../../teamMembers/actions";
+import { editServicesAction } from "../actions.ts";
+import type { EditServicePayload } from "../types.ts";
+import {
+  getEditFormSelector,
+  getServicesErrorSelector,
+  getServicesLoadingSelector,
+} from "../selectors.ts";
+import { listCategoriesApi } from "../../categories/api";
+import type { Category } from "./CategorySection";
+import { toast } from "sonner";
+import type { Service } from "../../../shared/types/service";
+import { ServiceFormSkeleton } from "./ServiceFormSkeleton";
+import { getLocationLoadingSelector } from "../../locations/selectors";
 
 interface EditServiceSliderProps {
   isOpen: boolean;
@@ -34,57 +52,202 @@ interface EditServiceSliderProps {
   service: Service | null;
 }
 
+interface EditServiceFormData {
+  id: number;
+  name: string;
+  price: number;
+  duration: number;
+  description: string;
+  isActive: boolean;
+  locationIds: number[];
+  teamMemberIds: number[];
+  categoryId: number | null;
+}
+
 const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   isOpen,
   onClose,
-  service: serviceProp
+  service: serviceProp,
 }) => {
-  const text = useTranslation('services').t;
+  const text = useTranslation("services").t;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const allLocations = useSelector(getAllLocationsSelector);
   const allTeamMembers = useSelector(selectTeamMembers);
-  const editForm = useSelector(getEditFormSelector);
+  const activeTeamMembers = allTeamMembers.filter(
+    (member: TeamMember) => member.status === "active"
+  );
   const currentUser = useSelector(selectCurrentUser);
-  const businessCurrency = currentUser?.business?.businessCurrency || 'eur';
-  
+  const businessCurrency = currentUser?.business?.businessCurrency || "eur";
+  const editForm = useSelector(getEditFormSelector);
+  const servicesError = useSelector(getServicesErrorSelector);
+  const isServicesLoading = useSelector(getServicesLoadingSelector);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Use service from Redux state (fetched via getServiceById) or fallback to prop
   const service = editForm.item || serviceProp;
-  
+
   // Convert decimal price from backend to cents for form
   const getPriceInCents = (decimalPrice: number | undefined): number => {
     if (!decimalPrice) return 0;
     return priceToStorage(decimalPrice, businessCurrency);
   };
-  
-  const { register, handleSubmit, reset, setValue, getValues, watch } = useForm<EditServicePayload>({
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    getValues,
+    trigger,
+    formState,
+  } = useForm<EditServiceFormData>({
     defaultValues: {
       id: service?.id ?? 0,
-      name: service?.name ?? '',
-      description: service?.description ?? '',
-      duration: service?.duration ?? 0,
-      price_amount_minor: getPriceInCents(service?.price),
+      name: service?.name ?? "",
+      price: getPriceInCents(service?.price),
+      duration: service?.duration ?? 60,
+      description: service?.description ?? "",
       isActive: service?.isActive ?? true,
-      locations: service?.locations?.map(l => l.id) ?? [],
-      teamMembers: service?.teamMembers?.map(tm => tm.id) ?? [],
+      locationIds: service?.locations?.map((l) => l.id) ?? [],
+      teamMemberIds: service?.teamMembers?.map((tm) => tm.id) ?? [],
       categoryId: service?.category?.id ?? null,
-    }
+    },
+    mode: "onChange",
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [teamMemberOpen, setTeamMemberOpen] = useState(false);
-  const [categoryExpanded, setCategoryExpanded] = useState(false);
-  
-  const locationIds = watch('locations') || [];
-  const teamMemberIds = watch('teamMembers') || [];
-  const categoryId = watch('categoryId');
+  const [categories, setCategories] = useState<Category[]>([]);
+  const categoriesFetchedRef = useRef(false);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+  const isLocationsLoading = useSelector(getLocationLoadingSelector);
 
-  // Fetch locations and team members when slider opens
+  const locationIds = watch("locationIds");
+  const teamMemberIds = watch("teamMemberIds");
+  const categoryId = watch("categoryId");
+
+  // Validation helpers with translations
+  const validateServiceName = (value: string): string | true => {
+    const v = (value ?? "").trim();
+    if (!v) return text("addService.form.validation.name.required");
+    if (v.length < 2) return text("addService.form.validation.name.minLength");
+    if (v.length > 70) return text("addService.form.validation.name.maxLength");
+    const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+    if (!NAME_PATTERN.test(v)) {
+      return text("addService.form.validation.name.invalidChars");
+    }
+    return true;
+  };
+
+  const validateServiceDescription = (value: string): string | true => {
+    if (!value || value.trim().length === 0) return true; // Optional field
+    const v = value.trim();
+    if (v.length > 500)
+      return text("addService.form.validation.description.maxLength");
+    if (/<script|<iframe|javascript:|onclick|onerror|onload/i.test(v)) {
+      return text("addService.form.validation.description.invalidChars");
+    }
+    return true;
+  };
+
+  // Controlled fields with validation
+  const { field: nameField, fieldState: nameState } = useController<
+    EditServiceFormData,
+    "name"
+  >({
+    name: "name",
+    control,
+    rules: {
+      validate: validateServiceName,
+    },
+  });
+
+  const { field: priceField } = useController<EditServiceFormData, "price">({
+    name: "price",
+    control,
+    rules: {
+      required: text("addService.form.validation.price.required"),
+      min: {
+        value: 0,
+        message: text("addService.form.validation.price.min"),
+      },
+    },
+  });
+
+  const { field: durationField, fieldState: durationState } = useController<
+    EditServiceFormData,
+    "duration"
+  >({
+    name: "duration",
+    control,
+    rules: {
+      required: text("addService.form.validation.duration.required"),
+      min: {
+        value: 1,
+        message: text("addService.form.validation.duration.min"),
+      },
+    },
+  });
+
+  const { field: descriptionField, fieldState: descriptionState } =
+    useController<EditServiceFormData, "description">({
+      name: "description",
+      control,
+      rules: {
+        validate: validateServiceDescription,
+      },
+    });
+
+  // Validate category requirement (either categoryId must be set)
+  const categoryError =
+    (formState.isSubmitted || formState.touchedFields.categoryId) && !categoryId
+      ? text("addService.form.validation.category.required")
+      : undefined;
+
+  // Check if category is set (required field)
+  const isCategorySet = categoryId !== null && categoryId !== undefined;
+
+  // Check if required fields are filled
+  const nameValue = watch("name");
+  const priceValue = watch("price");
+  const durationValue = watch("duration");
+  const areRequiredFieldsFilled =
+    nameValue &&
+    nameValue.trim().length > 0 &&
+    priceValue !== undefined &&
+    priceValue !== null &&
+    durationValue !== undefined &&
+    durationValue !== null &&
+    durationValue > 0;
+
+  // Fetch locations, team members, and categories when slider opens
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !categoriesFetchedRef.current) {
       dispatch(listLocationsAction.request());
       dispatch(listTeamMembersAction.request());
+
+      // Fetch categories only once (prevent duplicate calls from React Strict Mode)
+      categoriesFetchedRef.current = true;
+      setIsCategoriesLoading(true);
+      listCategoriesApi()
+        .then((cats) => {
+          setCategories(cats);
+          setIsCategoriesLoading(false);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch categories:", error);
+          setCategories([]);
+          setIsCategoriesLoading(false);
+        });
     }
   }, [isOpen, dispatch]);
+
+  // Reset fetch flag when slider closes
+  useEffect(() => {
+    if (!isOpen) {
+      categoriesFetchedRef.current = false;
+    }
+  }, [isOpen]);
 
   // Populate form with service data when opened
   useEffect(() => {
@@ -92,45 +255,93 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       reset({
         id: service.id,
         name: service.name,
-        description: service.description,
+        price: getPriceInCents(service.price),
         duration: service.duration,
-        price_amount_minor: getPriceInCents(service.price),
+        description: service.description,
         isActive: service.isActive,
-        locations: service.locations?.map(l => l.id) ?? [],
-        teamMembers: service.teamMembers?.map(tm => tm.id) ?? [],
+        locationIds: service.locations?.map((l) => l.id) ?? [],
+        teamMemberIds: service.teamMembers?.map((tm) => tm.id) ?? [],
         categoryId: service.category?.id ?? null,
       });
     }
   }, [service, isOpen, reset, businessCurrency]);
 
-  // Reset form when slider closes (with delay to allow closing animation)
+  // Reset form when slider closes
   useEffect(() => {
     if (!isOpen) {
-      const timer = setTimeout(() => reset(), 300); // Match animation duration
-      return () => clearTimeout(timer);
+      setIsSubmitting(false);
+      setIsCategoriesLoading(false);
     }
-  }, [isOpen, reset]);
+  }, [isOpen]);
+
+  // Show skeleton while loading
+  const isLoading = isLocationsLoading || isCategoriesLoading || !service;
+
+  // Form should be disabled if:
+  // - There are validation errors
+  // - Required fields are empty
+  // - Form is loading (showing skeleton)
+  // - No changes were made to the form
+  const isFormDisabled =
+    !formState.isValid ||
+    !isCategorySet ||
+    !areRequiredFieldsFilled ||
+    isLoading ||
+    !formState.isDirty;
+
+  // Watch for errors and show toast
+  useEffect(() => {
+    if (servicesError && isSubmitting) {
+      toast.error("We couldn't update the service", {
+        description: String(servicesError),
+        icon: undefined,
+      });
+      setIsSubmitting(false);
+    }
+  }, [servicesError, isSubmitting]);
+
+  // Watch for success and close form
+  useEffect(() => {
+    if (!isServicesLoading && isSubmitting && !servicesError) {
+      // Success - close form and reset
+      setShowConfirmDialog(false);
+      onClose();
+      setIsSubmitting(false);
+    }
+  }, [isServicesLoading, isSubmitting, servicesError, onClose]);
 
   const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmUpdate = () => {
-    const { id, name, description, duration, price_amount_minor, isActive, locations, teamMembers, categoryId } = getValues();
+    const {
+      id,
+      name,
+      price,
+      duration,
+      description,
+      isActive,
+      locationIds,
+      teamMemberIds,
+      categoryId,
+    } = getValues();
+
     const payload: EditServicePayload = {
       id,
       name,
       description,
       duration,
-      price_amount_minor: price_amount_minor || 0,
+      price_amount_minor: price ?? 0,
       isActive,
-      locations: locations && locations.length > 0 ? locations : undefined,
-      teamMembers: teamMembers && teamMembers.length > 0 ? teamMembers : undefined,
+      locations: locationIds.length > 0 ? locationIds : undefined,
+      teamMembers: teamMemberIds.length > 0 ? teamMemberIds : undefined,
       categoryId: categoryId ?? null,
     };
+    setIsSubmitting(true);
     dispatch(editServicesAction.request(payload));
     setShowConfirmDialog(false);
-    onClose();
+    // Don't close form here - wait for success/error response
   };
 
   const handleCancel = () => {
@@ -144,328 +355,407 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title={text('editService.title')}
-        contentClassName="bg-muted/50 scrollbar-hide"
+        title={text("editService.title")}
+        subtitle={text("editService.subtitle")}
+        icon={ClipboardPlus}
+        iconColor="text-foreground-1"
+        contentClassName="bg-surface scrollbar-hide"
         footer={
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1"
-            >
-              {text('editService.buttons.cancel')}
-            </Button>
-            <Button
-              type="submit"
-              form="edit-service-form"
-              className="flex-1"
-            >
-              {text('editService.buttons.update')}
-            </Button>
-          </div>
+          <FormFooter
+            onCancel={handleCancel}
+            formId="edit-service-form"
+            cancelLabel={text("editService.buttons.cancel")}
+            submitLabel={text("editService.buttons.update")}
+            disabled={isFormDisabled}
+          />
         }
       >
-        <form id="edit-service-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-            <CardContent className="space-y-8">
-              {/* Service Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">{text('editService.sections.serviceInfo')}</h3>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-foreground">{text('editService.form.name.label')}</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder={text('editService.form.name.placeholder')}
-                    {...register('name', { required: true })}
-                    className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-foreground">{text('editService.form.description.label')}</Label>
-                  <Textarea
-                    id="description"
-                    placeholder={text('editService.form.description.placeholder')}
-                    {...register('description')}
-                    rows={3}
-                    className="min-h-[80px] text-base border-border/50 bg-background/50 backdrop-blur-sm resize-none"
-                  />
-                </div>
-              </div>
+        <form
+          id="edit-service-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="h-full flex flex-col cursor-default"
+        >
+          <div className="flex-1 overflow-y-auto p-1 py-6 md:p-6 pt-0 md:pt-0 bg-surface">
+            {isLoading ? (
+              <ServiceFormSkeleton />
+            ) : (
+              <div className="max-w-2xl mx-auto space-y-8 cursor-default">
+                {/* Essential Fields */}
+                <div className="space-y-0 mb-0">
+                  {/* Service Information Section */}
+                  <div className="space-y-5">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold text-foreground-1">
+                        {text("addService.sections.serviceInfo")}
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        {text("addService.sections.serviceInfoDescription")}
+                      </p>
+                    </div>
 
-              {/* Pricing & Duration Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-green-50 dark:bg-success-bg">
-                    <DollarSign className="h-5 w-5 text-green-400 dark:text-success" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">{text('editService.sections.pricingDuration')}</h3>
-                </div>
-                <div className="mb-2 text-xs text-muted-foreground">
-                  All assigned team members will use this price and duration unless a custom value is set for them below.
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <PriceField
-                      value={watch('price_amount_minor') || 0}
-                      onChange={(value) => setValue('price_amount_minor', typeof value === 'number' ? value : 0)}
-                      label={text('editService.form.price.label')}
-                      placeholder={text('editService.form.price.placeholder')}
-                      required
-                      id="price"
-                      min={0}
-                      step={0.01}
-                      icon={getCurrencyDisplay(businessCurrency).icon}
-                      symbol={getCurrencyDisplay(businessCurrency).symbol}
-                      iconPosition="left"
-                      decimalPlaces={2}
-                      currency={businessCurrency}
-                      storageFormat="cents"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="duration" className="text-sm font-medium text-foreground">{text('editService.form.duration.label')}</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      min="1"
-                      step="1"
-                      placeholder={text('editService.form.duration.placeholder')}
-                      {...register('duration', { required: true, valueAsNumber: true, min: 1 })}
-                      className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
+                    <div className="space-y-5">
+                      <TextField
+                        value={nameField.value || ""}
+                        onChange={nameField.onChange}
+                        error={nameState.error?.message}
+                        label={text("addService.form.name.label")}
+                        placeholder={text("addService.form.name.placeholder")}
+                        required
+                        id="name"
+                        maxLength={70}
+                        icon={Layers2}
+                      />
 
-              {/* Locations Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
+                      <TextareaField
+                        value={descriptionField.value || ""}
+                        onChange={descriptionField.onChange}
+                        error={descriptionState.error?.message}
+                        label={text("addService.form.description.label")}
+                        placeholder={text(
+                          "addService.form.description.placeholder"
+                        )}
+                        id="description"
+                        rows={4}
+                      />
+                    </div>
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Locations</h3>
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-foreground">Available Locations</Label>
-                  <div className="space-y-2">
-                    {locationIds.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {locationIds.map((locationId: number) => {
-                          const location = allLocations.find(l => l.id === locationId);
-                          if (!location) return null;
-                          return (
-                            <Badge
-                              key={locationId}
-                              variant="secondary"
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm"
-                            >
-                              <MapPin className="h-3.5 w-3.5" />
-                              {location.name}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setValue('locations', locationIds.filter(id => id !== locationId));
-                                }}
-                                className="ml-1 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
+
+                  {/* Divider */}
+                  <div className="flex items-end gap-2 mb-6 pt-4">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
+
+                  {/* Pricing & Duration Section */}
+                  <div className="space-y-4">
+                    <div className="space-y-1 mb-4">
+                      <h3 className="text-lg font-semibold text-foreground-1">
+                        {text("addService.sections.pricingDuration")}
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        {text("addService.sections.pricingDurationDescription")}
+                      </p>
+                    </div>
+
+                    {/* Currency helper text - inline, no box */}
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                      {text("addService.form.currency.info")}{" "}
+                      <span className="font-medium">
+                        {getCurrencyDisplay(businessCurrency).symbol}
+                      </span>{" "}
+                      (
+                      <span
+                        onClick={() => navigate("/settings")}
+                        className="inline-flex items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+                      >
+                        {text("addService.form.currency.editText")}{" "}
+                        {text("addService.form.currency.infoLink")}
+                        <ArrowUpRight
+                          className="h-3 w-3 text-primary"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      ).
+                    </p>
+
+                    {/* Price & Duration on same row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Price Input */}
+                      <div className="space-y-2">
+                        <PriceField
+                          value={priceField.value || 0}
+                          onChange={priceField.onChange}
+                          label={text("addService.form.price.label")}
+                          placeholder="0.00"
+                          required
+                          id="price"
+                          min={0}
+                          step={0.01}
+                          icon={getCurrencyDisplay(businessCurrency).icon}
+                          symbol={getCurrencyDisplay(businessCurrency).symbol}
+                          iconPosition="left"
+                          decimalPlaces={2}
+                          currency={businessCurrency}
+                          storageFormat="cents"
+                        />
                       </div>
-                    )}
-                    <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full h-10 border-dashed border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          {locationIds.length === 0 ? 'Add Locations' : 'Add More Locations'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[350px] p-0 z-[80]">
-                        <Command>
-                          <CommandInput placeholder="Search locations..." />
-                          <CommandList>
-                            <CommandEmpty>No locations found.</CommandEmpty>
-                            <CommandGroup>
-                              {allLocations.map((location) => {
-                                const isSelected = locationIds.includes(location.id);
-                                return (
-                                  <CommandItem
-                                    key={location.id}
-                                    value={location.name}
-                                    onSelect={() => {
-                                      const newIds = isSelected
-                                        ? locationIds.filter((id: number) => id !== location.id)
-                                        : [...locationIds, location.id];
-                                      setValue('locations', newIds);
-                                    }}
-                                    className="flex items-center gap-3 p-3"
-                                  >
-                                    <div className={`h-4 w-4 rounded border-2 flex items-center justify-center ${
-                                      isSelected ? 'bg-primary border-primary' : 'border-border'
-                                    }`}>
-                                      {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
-                                    </div>
-                                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                                    <span className="flex-1">{location.name}</span>
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {locationIds.length === 0 && (
-                      <p className="text-xs text-muted-foreground">If no locations are selected, service will be available at all locations</p>
-                    )}
-                  </div>
-                </div>
-              </div>
 
-              {/* Team Members Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Users className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Team Members</h3>
-                </div>
-                <div className="space-y-3">
-                  <Label className="text-sm font-medium text-foreground">Assigned Team Members</Label>
-                  <div className="space-y-2">
-                    {teamMemberIds.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {teamMemberIds.map((memberId: number) => {
-                          const member = allTeamMembers.find((m: any) => m.id === memberId);
-                          if (!member) return null;
-                          return (
-                            <Badge
-                              key={memberId}
-                              variant="secondary"
-                              className="flex items-center gap-1.5 px-3 py-1.5 text-sm"
-                            >
-                              <Users className="h-3.5 w-3.5" />
-                              {member.firstName} {member.lastName}
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setValue('teamMembers', teamMemberIds.filter((id: number) => id !== memberId));
-                                }}
-                                className="ml-1 rounded-full hover:bg-destructive/20 p-0.5 transition-colors"
+                      {/* Duration Input */}
+                      <div className="space-y-2">
+                        <div className="space-y-2 mb-1">
+                          <Label
+                            htmlFor="duration"
+                            className="text-base font-medium"
+                          >
+                            {text("addService.form.duration.label")} *
+                          </Label>
+                          <div className="relative">
+                            {/* Clock icon on left */}
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+                            </div>
+                            <Input
+                              id="duration"
+                              type="text"
+                              inputMode="numeric"
+                              placeholder={text(
+                                "addService.form.duration.placeholder"
+                              )}
+                              value={durationField.value || ""}
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>
+                              ) => {
+                                const inputValue = e.target.value;
+                                // Only allow digits
+                                if (
+                                  inputValue === "" ||
+                                  /^\d+$/.test(inputValue)
+                                ) {
+                                  const numValue =
+                                    inputValue === ""
+                                      ? ""
+                                      : parseInt(inputValue, 10);
+                                  durationField.onChange(numValue);
+                                }
+                              }}
+                              className="!pl-10 !pr-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                              aria-invalid={!!durationState.error?.message}
+                            />
+                            {/* "minutes" suffix */}
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <span className="text-sm text-foreground-3 dark:text-foreground-2">
+                                {text("addService.form.duration.helperText")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-5">
+                            {durationState.error?.message && (
+                              <p
+                                className="flex items-center gap-1.5 text-xs text-destructive"
+                                role="alert"
+                                aria-live="polite"
                               >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </Badge>
-                          );
-                        })}
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                <span>{durationState.error.message}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {/* Duration chips - directly under Duration field */}
+                        <div className="flex items-center gap-2 pl-0">
+                          {[15, 30, 45, 60, 120].map((minutes) => (
+                            <button
+                              key={minutes}
+                              type="button"
+                              onClick={async () => {
+                                setValue("duration", minutes, {
+                                  shouldValidate: true,
+                                });
+                                await trigger("duration");
+                              }}
+                              className={`flex-1 cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-200 text-center focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0 ${
+                                durationField.value === minutes
+                                  ? "bg-primary text-white"
+                                  : "bg-surface hover:bg-surface-hover text-foreground-3 dark:text-foreground-2 border border-border"
+                              }`}
+                            >
+                              {text(`addService.form.durationChips.${minutes}`)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    )}
-                    <Popover open={teamMemberOpen} onOpenChange={setTeamMemberOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="w-full h-10 border-dashed border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
-                        >
-                          <Plus className="h-4 w-4 mr-2" />
-                          {teamMemberIds.length === 0 ? 'Add Team Members' : 'Add More Team Members'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[350px] p-0 z-[80]">
-                        <Command>
-                          <CommandInput placeholder="Search team members..." />
-                          <CommandList>
-                            <CommandEmpty>No team members found.</CommandEmpty>
-                            <CommandGroup>
-                              {allTeamMembers.map((member: any) => {
-                                const isSelected = teamMemberIds.includes(member.id);
-                                return (
-                                  <CommandItem
-                                    key={member.id}
-                                    value={`${member.firstName} ${member.lastName}`}
-                                    onSelect={() => {
-                                      const newIds = isSelected
-                                        ? teamMemberIds.filter((id: number) => id !== member.id)
-                                        : [...teamMemberIds, member.id];
-                                      setValue('teamMembers', newIds);
-                                    }}
-                                    className="flex items-center gap-3 p-3"
-                                  >
-                                    <div className={`h-4 w-4 rounded border-2 flex items-center justify-center ${
-                                      isSelected ? 'bg-primary border-primary' : 'border-border'
-                                    }`}>
-                                      {isSelected && <div className="h-2 w-2 rounded-full bg-white" />}
-                                    </div>
-                                    <Users className="h-4 w-4 text-muted-foreground" />
-                                    <span className="flex-1">{member.firstName} {member.lastName}</span>
-                                  </CommandItem>
-                                );
-                              })}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    {teamMemberIds.length === 0 && (
-                      <p className="text-xs text-muted-foreground">If no team members are selected, service will be available to all team members</p>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    </div>
 
-              {/* Category Section */}
-              <CategorySection
-                categoryId={categoryId}
-                categoryName={service.category?.name}
-                categoryColor={service.category?.color}
-                onCategoryIdChange={(value) => setValue('categoryId', value)}
-                onCategoryNameChange={() => {}} // Not used in edit mode
-                onCategoryColorChange={() => {}} // Not used in edit mode
-                expanded={categoryExpanded}
-                onExpandedChange={setCategoryExpanded}
-                mode="edit"
-                existingCategoryName={service.category?.name}
-              />
-
-              {/* Service Settings Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10 dark:bg-primary/20">
-                    <Settings className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">{text('editService.sections.settings')}</h3>
-                </div>
-                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">{text('editService.form.status.label')}</Label>
-                    <p className="text-xs text-muted-foreground">
-                      {watch('isActive') === true
-                        ? text('editService.form.status.activeDescription')
-                        : text('editService.form.status.inactiveDescription')}
+                    {/* Helper text - inline, no box */}
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                      {text("addService.form.pricingNote.text")}{" "}
+                      <span
+                        onClick={() => navigate("/assignments?tab=services")}
+                        className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+                      >
+                        {text("addService.form.pricingNote.link")}
+                        <ArrowUpRight
+                          className="h-3 w-3 text-primary"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      .
                     </p>
                   </div>
-                  <Switch
-                    checked={watch('isActive') === true}
-                    onCheckedChange={(checked) => setValue('isActive', checked ? true : false)}
+
+                  {/* Divider */}
+                  <div className="flex items-end gap-2 mb-6 pt-8">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
+
+                  {/* Category Section */}
+                  <CategorySection
+                    key={isOpen ? "open" : "closed"}
+                    categoryId={categoryId}
+                    categoryName={service.category?.name}
+                    categoryColor={service.category?.color}
+                    onCategoryIdChange={(value: number | null) => {
+                      setValue("categoryId", value, {
+                        shouldTouch: true,
+                        shouldDirty: true,
+                      });
+                    }}
+                    onCategoryNameChange={() => {}}
+                    onCategoryColorChange={() => {}}
+                    existingCategories={categories}
+                    required
+                    error={categoryError}
+                    existingCategoryName={service.category?.name}
                   />
                 </div>
+
+                {/* Divider */}
+                <div className="flex items-end gap-2 mb-6 pt-4">
+                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                </div>
+
+                {/* Locations Section */}
+                <div className="space-y-5">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold text-foreground-1">
+                      {text("addService.sections.locations")}
+                    </h3>
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                      {text("addService.sections.locationsDescription")}
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    {allLocations.length === 0 ? (
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                        {text("addService.form.locations.emptyMessage")}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {allLocations.map((location) => {
+                          const isSelected = locationIds.includes(location.id);
+
+                          return (
+                            <Pill
+                              key={location.id}
+                              selected={isSelected}
+                              icon={MapPin}
+                              className="w-auto justify-start items-start transition-none active:scale-100"
+                              showCheckmark={true}
+                              onClick={() => {
+                                const newIds = isSelected
+                                  ? locationIds.filter(
+                                      (id) => id !== location.id
+                                    )
+                                  : [...locationIds, location.id];
+                                setValue("locationIds", newIds, {
+                                  shouldDirty: true,
+                                });
+                              }}
+                            >
+                              <div className="flex flex-col text-left">
+                                <div className="flex items-center">
+                                  {location.name}
+                                </div>
+                                {location.address && (
+                                  <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
+                                    {location.address}
+                                  </div>
+                                )}
+                              </div>
+                            </Pill>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {allLocations.length > 0 && (
+                      <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                        {locationIds.length === 0
+                          ? text("addService.form.locations.helperTextNone")
+                          : locationIds.length === 1
+                          ? text("addService.form.locations.helperTextOne")
+                          : text("addService.form.locations.helperTextSome", {
+                              count: locationIds.length,
+                            })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-end gap-2 mb-6 pt-0">
+                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                </div>
+
+                {/* Team Members Section */}
+                <div className="space-y-5">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold text-foreground-1">
+                      {text("addService.sections.teamMembers")}
+                    </h3>
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                      {text("addService.sections.teamMembersDescription")}
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    {activeTeamMembers.length === 0 ? (
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                        {text("addService.form.teamMembers.emptyMessage")}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {activeTeamMembers.map((member: TeamMember) => {
+                          const isSelected = teamMemberIds.includes(member.id);
+
+                          return (
+                            <Pill
+                              key={member.id}
+                              selected={isSelected}
+                              icon={Users}
+                              className="w-auto justify-start items-start transition-none active:scale-100"
+                              showCheckmark={true}
+                              onClick={() => {
+                                const newIds = isSelected
+                                  ? teamMemberIds.filter(
+                                      (id) => id !== member.id
+                                    )
+                                  : [...teamMemberIds, member.id];
+                                setValue("teamMemberIds", newIds, {
+                                  shouldDirty: true,
+                                });
+                              }}
+                            >
+                              <div className="flex flex-col text-left">
+                                <div className="flex items-center">
+                                  {`${member.firstName} ${member.lastName}`}
+                                </div>
+                                {member.email && (
+                                  <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
+                                    {member.email}
+                                  </div>
+                                )}
+                              </div>
+                            </Pill>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {activeTeamMembers.length > 0 && (
+                      <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                        {teamMemberIds.length === 0
+                          ? text("addService.form.teamMembers.helperTextNone")
+                          : teamMemberIds.length === 1
+                          ? text("addService.form.teamMembers.helperTextOne")
+                          : text("addService.form.teamMembers.helperTextSome", {
+                              count: teamMemberIds.length,
+                            })}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </div>
         </form>
       </BaseSlider>
 
@@ -475,13 +765,16 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         onOpenChange={setShowConfirmDialog}
         onConfirm={handleConfirmUpdate}
         onCancel={() => setShowConfirmDialog(false)}
-        title={text('editService.confirmDialog.title')}
-        description={text('editService.confirmDialog.description', { name: getValues('name') })}
-        confirmTitle={text('editService.confirmDialog.confirm')}
-        cancelTitle={text('editService.confirmDialog.cancel')}
+        title={text("editService.confirmDialog.title")}
+        description={text("editService.confirmDialog.description", {
+          name: getValues("name"),
+        })}
+        confirmTitle={text("editService.confirmDialog.confirm")}
+        cancelTitle={text("editService.confirmDialog.cancel")}
+        showCloseButton={true}
       />
     </>
   );
 };
 
-export default EditServiceSlider; 
+export default EditServiceSlider;

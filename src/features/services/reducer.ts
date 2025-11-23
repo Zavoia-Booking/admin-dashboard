@@ -6,72 +6,116 @@ import type { Service } from "../../shared/types/service.ts";
 import { getDefaultServiceFilters } from "./utils.ts";
 import { toggleAddFormAction } from "./actions";
 
-type Actions = ActionType<typeof actions>
+type Actions = ActionType<typeof actions>;
 
 const initialState: ServicesState = {
-    services: [],
-    filters: getDefaultServiceFilters(),
-    addFormOpen: false,
-    editForm: {
-        open: false,
-        item: null,
-    },
+  services: [],
+  filters: getDefaultServiceFilters(),
+  addFormOpen: false,
+  editForm: {
+    open: false,
+    item: null,
+  },
+  error: null,
+  isLoading: false,
 };
 
-const handleGetServiceByIdSuccess = (state: ServicesState, payload: Service): ServicesState => {
-    // Update the service in the list if it exists, otherwise add it
-    const existingIndex = state.services.findIndex(s => s.id === payload.id);
-    const updatedServices = existingIndex >= 0
-        ? state.services.map((s, idx) => idx === existingIndex ? payload : s)
-        : [...state.services, payload];
-    
-    return {
+const handleGetServiceByIdSuccess = (
+  state: ServicesState,
+  payload: Service
+): ServicesState => {
+  // Update the service in the list if it exists, otherwise add it
+  const existingIndex = state.services.findIndex((s) => s.id === payload.id);
+  const updatedServices =
+    existingIndex >= 0
+      ? state.services.map((s, idx) => (idx === existingIndex ? payload : s))
+      : [...state.services, payload];
+
+  return {
+    ...state,
+    services: updatedServices,
+    editForm: {
+      ...state.editForm,
+      item: payload,
+    },
+  };
+};
+
+export const handleSetServiceFilters = (
+  state: ServicesState,
+  payload: ServiceFilterState
+): ServicesState => {
+  return {
+    ...state,
+    filters: payload,
+  };
+};
+
+export const handleToggleAddForm = (
+  state: ServicesState,
+  payload: boolean
+): ServicesState => {
+  return {
+    ...state,
+    addFormOpen: payload,
+  };
+};
+
+export const ServicesReducer: Reducer<ServicesState, Actions> = (
+  state: ServicesState = initialState,
+  action: Actions
+): ServicesState => {
+  switch (action.type) {
+    case getType(actions.getServicesAction.request):
+    case getType(actions.createServicesAction.request):
+    case getType(actions.editServicesAction.request):
+      return {
         ...state,
-        services: updatedServices,
-        editForm: {
-            ...state.editForm,
-            item: payload
-        }
-    }
-}
+        isLoading: true,
+        error: null,
+      };
 
-export const handleSetServiceFilters = (state: ServicesState, payload: ServiceFilterState):ServicesState => {
-    return {
+    case getType(actions.getServicesAction.success):
+      return {
         ...state,
-        filters: payload
-    }
-}
+        services: action.payload,
+        isLoading: false,
+        error: null,
+      };
 
-export const handleToggleAddForm = (state: ServicesState, payload: boolean):ServicesState => {
-    return {
+    case getType(actions.getServiceByIdAction.success):
+      return {
+        ...handleGetServiceByIdSuccess(state, action.payload as Service),
+        isLoading: false,
+        error: null,
+      };
+
+    case getType(actions.createServicesAction.success):
+    case getType(actions.editServicesAction.success):
+      return {
         ...state,
-        addFormOpen: payload
-    }
-}
+        isLoading: false,
+        error: null,
+      };
 
-export const ServicesReducer: Reducer<ServicesState, Actions> = (state: ServicesState = initialState, action: Actions): ServicesState => {
-    switch (action.type) {
-        case getType(actions.getServicesAction.success):
-            return {
-                ...state,
-                services: action.payload
-            }
+    case getType(actions.createServicesAction.failure):
+    case getType(actions.editServicesAction.failure):
+      return {
+        ...state,
+        isLoading: false,
+        error: (action.payload as any)?.message || "An error occurred",
+      };
 
-        case getType(actions.getServiceByIdAction.success):
-            return handleGetServiceByIdSuccess(state, action.payload as Service);
+    case getType(actions.setServiceFilterAction.success):
+      return {
+        ...handleSetServiceFilters(state, action.payload as ServiceFilterState),
+        services: [], // Reset services when filters change
+        error: null,
+      };
 
-        case getType(actions.editServicesAction.success):
-            return state;
-        case getType(actions.setServiceFilterAction.success):
-            return {
-                ...handleSetServiceFilters(state, action.payload as ServiceFilterState),
-                services: [] // Reset services when filters change
-            };
-            
-        case getType(toggleAddFormAction):
-            return handleToggleAddForm(state, action.payload as boolean);
-        default:
-            return state;
-    }
-}
-
+    case getType(toggleAddFormAction):
+      return handleToggleAddForm(state, action.payload as boolean);
+    default:
+      return state;
+  }
+};
