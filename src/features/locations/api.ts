@@ -15,7 +15,7 @@ export const createLocationApi = async (location: NewLocationPayload): Promise<L
 
 export const updateLocationApi = async (location: EditLocationType | EditLocationWorkingHours): Promise<LocationType> => {
   const { id, ...editLocationPayload } = location;
-  const { data } = await apiClient().post<LocationType>(`/locations/edit/${location.id}`, editLocationPayload);
+  const { data } = await apiClient().put<LocationType>(`/locations/${location.id}`, editLocationPayload);
   return data;
 }
 

@@ -223,7 +223,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
           <ChevronDown className={cn('h-4 w-4 text-foreground-3 dark:text-foreground-2 transition-transform', open && 'rotate-180')} />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[70vh] overflow-hidden" align="start" side="bottom" sideOffset={8} avoidCollisions={false} collisionPadding={0}>
+      <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[70vh] overflow-hidden !z-[80]" align="start" side="bottom" sideOffset={8} avoidCollisions={false} collisionPadding={0}>
         <Command shouldFilter={false}>
           <div className="p-2 bg-popover">
             <CommandInput 

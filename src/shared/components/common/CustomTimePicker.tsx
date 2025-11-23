@@ -288,7 +288,10 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
           <DrawerTrigger asChild>
             {trigger}
           </DrawerTrigger>
-          <DrawerContent className="outline-none">
+          <DrawerContent 
+            className="outline-none !z-[80]" 
+            overlayClassName="!z-[75]"
+          >
             <DrawerTitle className="sr-only">Select Time</DrawerTitle>
             <DrawerDescription className="sr-only">Choose hours, minutes, and AM/PM</DrawerDescription>
             <div className="p-4">
@@ -313,7 +316,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
             {trigger}
           </PopoverTrigger>
           <PopoverContent
-            className="w-[340px] p-3 rounded-lg border border-border bg-surface dark:bg-neutral-900 shadow-md"
+            className="w-[340px] p-3 rounded-lg border border-border bg-surface dark:bg-neutral-900 shadow-md !z-[80]"
             align="start"
             side="bottom"
             sideOffset={8}

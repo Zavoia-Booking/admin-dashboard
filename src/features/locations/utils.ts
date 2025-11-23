@@ -23,5 +23,9 @@ export const mapLocationForEdit = (location: LocationType): EditLocationType => 
         description: location.description,
         timezone: location.timezone,
         isRemote: location.isRemote,
+        workingHours: location.workingHours,
+        open247: location.open247,
+        addressComponents: (location as any).addressComponents,
+        addressManualMode: (location as any).addressManualMode,
     };
 }

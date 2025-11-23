@@ -15,6 +15,7 @@ export const ensureBusinessTimezone = (wizardData: WizardData): void => {
 
 /**
  * Copies business contact info to location when useBusinessContact toggle is enabled
+ * Note: We still send useBusinessContact flag to backend so it can track the relationship
  */
 export const applyBusinessContactToLocation = (wizardData: WizardData): void => {
   const location = wizardData.location as any;
@@ -35,6 +36,19 @@ export const applyBusinessContactToLocation = (wizardData: WizardData): void => 
     if (!location.phone && wizardData.businessInfo?.phone) {
       location.phone = wizardData.businessInfo.phone;
     }
+  }
+  
+  // Preserve useBusinessContact flag for backend
+  // Backend needs to know if this location should inherit future business contact changes
+  if (typeof wizardData.useBusinessContact === 'boolean') {
+    location.useBusinessContact = wizardData.useBusinessContact;
+  }
+  
+  // Preserve addressManualMode flag for backend
+  // Backend may need to know how the address was entered
+  if (typeof location.addressManualMode === 'boolean') {
+    // Already in location object, just ensure it's preserved
+    location.addressManualMode = location.addressManualMode;
   }
 };
 

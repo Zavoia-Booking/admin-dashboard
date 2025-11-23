@@ -1,20 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import { MapPin, Phone, Clock, AlertCircle } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
-import { Input } from '../../../shared/components/ui/input';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { MapPin } from 'lucide-react';
 import { Label } from '../../../shared/components/ui/label';
-import { Textarea } from '../../../shared/components/ui/textarea';
-import { Switch } from '../../../shared/components/ui/switch';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { FormFooter } from '../../../shared/components/forms/FormFooter';
+import { TextField } from '../../../shared/components/forms/fields/TextField';
+import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
+import AddressComposer from '../../../shared/components/address/AddressComposer';
+import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
+import TimezoneField from '../../../shared/components/common/TimezoneField';
+import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
+import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
+import Open247Toggle from '../../../shared/components/common/Open247Toggle';
+import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { createLocationAction } from '../actions';
 import type { NewLocationPayload } from '../types';
 import type { WorkingHours } from '../../../shared/types/location';
-import { useForm } from 'react-hook-form';
+import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
-import { capitalize } from '../utils';
+import { selectCurrentUser } from '../../auth/selectors';
+import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
+import { getLocationLoadingSelector, getLocationErrorSelector } from '../selectors';
+import { toast } from 'sonner';
 
 interface AddLocationSliderProps {
   isOpen: boolean;
@@ -30,6 +37,7 @@ const defaultValues: NewLocationPayload = {
   description: '',
   workingHours: defaultWorkingHours,
   timezone: 'UTC',
+  open247: false,
 };
 
 const AddLocationSlider: React.FC<AddLocationSliderProps> = ({ 
@@ -37,40 +45,254 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   onClose 
 }) => {
   const dispatch = useDispatch();
-  const { register, handleSubmit, reset, watch } = useForm<NewLocationPayload>({ defaultValues });
+  const currentUser = useSelector(selectCurrentUser);
+  const locationError = useSelector(getLocationErrorSelector);
+  const isLocationLoading = useSelector(getLocationLoadingSelector);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [useBusinessContact, setUseBusinessContact] = useState<boolean>(true);
+  const [isAddressValid, setIsAddressValid] = useState(true);
+  const [addressComposerKey, setAddressComposerKey] = useState(0);
+  const prevIsRemoteRef = useRef<boolean>(false);
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    resetField,
+    trigger,
+  } = useForm<NewLocationPayload>({
+    defaultValues,
+    mode: "onChange",
+  });
+
+  const isRemote = watch('isRemote');
   const currentWorkingHours = watch('workingHours') as WorkingHours;
+  const open247 = !!watch('open247');
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+  // Get business contact info (if available from user/business)
+  const businessEmail = currentUser?.email || "";
+  const businessPhone = currentUser?.business?.phone || "";
+
+  const applyWorkingHours = (next: WorkingHours) => {
+    setValue('workingHours', next);
+  };
+
+  // Controlled fields with validation
+  const { field: nameField, fieldState: nameState } = useController<NewLocationPayload, "name">({
+    name: "name",
+    control,
+    rules: {
+      validate: (value) => {
+        const error = validateLocationName(value);
+        return error === null ? true : error;
+      },
+    },
+  });
+
+  const { field: addressField, fieldState: addressState } = useController<NewLocationPayload, "address">({
+    name: "address",
+    control,
+    rules: {
+      validate: (value) => {
+        if (isRemote) return true; // Address not required for remote locations
+        if (!value || value.trim().length === 0) {
+          return "Address is required";
+        }
+        return true;
+      },
+    },
+  });
+
+  const { field: emailField, fieldState: emailState } = useController<NewLocationPayload, "email">({
+    name: "email",
+    control,
+    rules: {
+      validate: (value) => {
+        // Always validate - whether using business contact or location-specific contact
+        const error = requiredEmailError("Email", value);
+        return error === null ? true : error;
+      },
+    },
+  });
+
+  const { field: phoneField, fieldState: phoneState } = useController<NewLocationPayload, "phone">({
+    name: "phone",
+    control,
+    rules: {
+      validate: {
+        required: (value) =>
+          (!!value && value.trim().length > 0) ||
+          "Phone number is required",
+        format: (value) =>
+          !value ||
+          isE164(value) ||
+          "Enter a valid phone number",
+      },
+    },
+  });
+
+  const { field: descriptionField, fieldState: descriptionState } = useController<NewLocationPayload, "description">({
+    name: "description",
+    control,
+    rules: {
+      validate: (value) => {
+        if (!value || !value.trim()) return true; // Optional field
+        const error = validateDescription(value, 500);
+        return error === null ? true : error;
+      },
+    },
+  });
+
+  const { field: timezoneField, fieldState: timezoneState } = useController<NewLocationPayload, "timezone">({
+    name: "timezone",
+    control,
+    rules: {
+      validate: (value) => {
+        // Only require timezone when location is remote
+        if (!isRemote) return true; // Skip validation for physical locations
+        if (!value || value.trim().length === 0) {
+          return "Timezone is required";
+        }
+        return true;
+      },
+    },
+  });
 
   useEffect(() => {
     if (!isOpen) {
       reset(defaultValues);
+      setUseBusinessContact(true);
+      setIsAddressValid(true);
+      setAddressComposerKey(0);
+      prevIsRemoteRef.current = false;
+      setIsSubmitting(false);
     }
   }, [isOpen, reset]);
+
+  // Populate business contact info when slider opens (separate effect to avoid conflicts)
+  useEffect(() => {
+    if (isOpen && useBusinessContact) {
+      setValue("email", businessEmail, { shouldValidate: false, shouldDirty: false });
+      setValue("phone", businessPhone, { shouldValidate: false, shouldDirty: false });
+    }
+  }, [isOpen, useBusinessContact, businessEmail, businessPhone, setValue]);
+
+  // Watch for errors and show toast
+  useEffect(() => {
+    if (locationError && isSubmitting) {
+      toast.error("We couldn't create the location", {
+        description: String(locationError),
+        icon: undefined,
+      });
+      setIsSubmitting(false);
+    }
+  }, [locationError, isSubmitting]);
+
+  // Watch for success and close form
+  useEffect(() => {
+    if (!isLocationLoading && isSubmitting && !locationError) {
+      // Success - close form (reset will happen in the !isOpen effect)
+      setShowConfirmDialog(false);
+      onClose();
+      setIsSubmitting(false);
+    }
+  }, [isLocationLoading, isSubmitting, locationError, onClose]);
+
+  // Re-validate timezone when isRemote changes
+  useEffect(() => {
+    trigger("timezone");
+  }, [isRemote, trigger]);
+
+  // Remount address composer when toggling to physical location
+  useEffect(() => {
+    const prev = prevIsRemoteRef.current;
+    if (prev && !isRemote) {
+      setAddressComposerKey((k) => k + 1);
+    }
+    prevIsRemoteRef.current = isRemote;
+  }, [isRemote]);
+
+  const handleContactToggleChange = useCallback(
+    (checked: boolean) => {
+      setUseBusinessContact(checked);
+      if (checked) {
+        // Always inherit from business info (even if empty)
+        setValue("email", businessEmail, {
+          shouldValidate: true,
+          shouldDirty: false,
+        });
+        setValue("phone", businessPhone, {
+          shouldValidate: true,
+          shouldDirty: false,
+        });
+      } else {
+        // Clear fields when toggling OFF (don't validate immediately)
+        setValue("email", "", {
+          shouldDirty: false,
+          shouldValidate: false,
+          shouldTouch: false,
+        });
+        setValue("phone", "", {
+          shouldDirty: false,
+          shouldValidate: false,
+          shouldTouch: false,
+        });
+      }
+    },
+    [setValue, businessEmail, businessPhone]
+  );
+
+  // Check if required fields are filled
+  const nameValue = watch("name");
+  const addressValue = watch("address");
+  const emailValue = watch("email");
+  const phoneValue = watch("phone");
+  const timezoneValue = watch("timezone");
+  
+  const areRequiredFieldsFilled =
+    nameValue &&
+    nameValue.trim().length > 0 &&
+    (isRemote || (addressValue && addressValue.trim().length > 0)) &&
+    emailValue &&
+    emailValue.trim().length > 0 &&
+    phoneValue &&
+    phoneValue.trim().length > 0 &&
+    (isRemote ? (timezoneValue && timezoneValue.trim().length > 0) : true) &&
+    (isRemote || isAddressValid);
+
+  // Only check for actual validation errors (not untouched optional fields)
+  const hasValidationErrors = 
+    !!nameState.error || 
+    !!emailState.error || 
+    !!phoneState.error || 
+    !!descriptionState.error ||
+    (!isRemote && !!addressState.error) ||
+    (isRemote && !!timezoneState.error);
+
+  const isFormDisabled = hasValidationErrors || !areRequiredFieldsFilled;
 
   const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmCreate = () => {
-    dispatch(createLocationAction.request({ location: watch() }));
+    const formData = watch();
+    const payload: NewLocationPayload = {
+      ...formData,
+      useBusinessContact, // Include the toggle state
+    };
+    dispatch(createLocationAction.request({ location: payload }));
+    setIsSubmitting(true);
     setShowConfirmDialog(false);
-    onClose();
-    reset(defaultValues);
+    // Don't close form here - wait for success/error response
   };
 
   const handleCancel = () => {
     onClose();
-  };
-
-  const updateWorkingHours = (day: keyof typeof defaultWorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
-    const updated: WorkingHours = {
-      ...currentWorkingHours,
-      [day]: {
-        ...currentWorkingHours[day],
-        [field]: value as any,
-      },
-    } as WorkingHours;
-    reset({ ...watch(), workingHours: updated });
+    reset(defaultValues);
   };
 
   return (
@@ -79,216 +301,218 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         title="Add New Location"
-        contentClassName="bg-muted/50 scrollbar-hide"
+        subtitle="Create a new location for your business"
+        icon={MapPin}
+        iconColor="text-foreground-1"
+        contentClassName="bg-surface scrollbar-hide"
         footer={
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="add-location-form"
-              className="flex-1"
-            >
-              Create Location
-            </Button>
-          </div>
+          <FormFooter
+            onCancel={handleCancel}
+            formId="add-location-form"
+            cancelLabel="Cancel"
+            submitLabel="Create Location"
+            disabled={isFormDisabled}
+          />
         }
       >
-        <form id="add-location-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-            <CardContent className="space-y-8">
-              {/* Location Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Location Information</h3>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-foreground">Location Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter location name..."
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    {...register('name', { required: true })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm font-medium text-foreground">Address</Label>
-                  <Textarea
-                    id="address"
-                    placeholder="Enter full address..."
-                    rows={3}
-                    className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                    {...register('address', { required: true })}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe the location..."
-                    rows={3}
-                    className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                    {...register('description')}
-                  />
-                </div>
-              </div>
+        <form
+          id="add-location-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="h-full flex flex-col cursor-default"
+        >
+          <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+            <div className="max-w-2xl mx-auto space-y-6 cursor-default">
+              {/* Remote Location Toggle - First */}
+              <RemoteLocationToggle
+                isRemote={isRemote}
+                onChange={(checked) => {
+                  setValue('isRemote', checked);
+                  // Clear description and address when toggling between remote/physical
+                  resetField("description", { defaultValue: "" });
+                  resetField("address", { defaultValue: "" });
+                  resetField("addressComponents", { defaultValue: undefined });
+                }}
+              />
 
-              {/* Contact Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Contact Information</h3>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email address..."
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    {...register('email', { required: true })}
+              {/* Physical Location */}
+              {!isRemote && (
+                <div className="space-y-4">
+                  <TextField
+                    value={nameField.value || ""}
+                    onChange={nameField.onChange}
+                    error={nameState.error?.message}
+                    placeholder="e.g. Downtown Office"
+                    required
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm font-medium text-foreground">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    placeholder="Enter phone number..."
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    {...register('phone', { required: true })}
-                  />
-                </div>
-              </div>
 
-              {/* Working Hours Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Clock className="h-5 w-5 text-primary" />
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="location.address"
+                      className="text-base font-medium"
+                    >
+                      Address *
+                    </Label>
+                    <AddressComposer
+                      key={addressComposerKey}
+                      value={addressField.value || ""}
+                      onChange={(next) =>
+                        setValue("address", next, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                      addressComponents={watch("addressComponents")}
+                      onAddressComponentsChange={(components) =>
+                        setValue("addressComponents", components, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                      manualMode={watch("addressManualMode")}
+                      onManualModeChange={(isManual) =>
+                        setValue("addressManualMode", isManual, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                      onValidityChange={(isValid) => setIsAddressValid(isValid)}
+                    />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Working Hours</h3>
-                </div>
-                <div className="space-y-3">
-                  {(Object.entries(currentWorkingHours) as [string, WorkingHours['monday']][]).map(([day, hours]) => (
-                    <div key={day} className="bg-white rounded-xl shadow-xs p-4 flex flex-col gap-2 border">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-base">{capitalize(day)}</span>
-                        {hours.isOpen ? (
-                          <button
-                            type="button"
-                            className="px-2 py-0 rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium"
-                            onClick={() => updateWorkingHours(day as keyof typeof defaultWorkingHours, 'isOpen', false)}
-                          >
-                            Mark as Closed
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="px-2 py-0 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-medium"
-                            onClick={() => updateWorkingHours(day as keyof typeof defaultWorkingHours, 'isOpen', true)}
-                          >
-                            Mark as Open
-                          </button>
-                        )}
-                      </div>
-                      {hours.isOpen ? (
-                        <>
-                          <div>
-                            <Label className="text-xs text-gray-500 mb-1 block">Opening Time</Label>
-                            <Input
-                              type="time"
-                              value={hours.open}
-                              onChange={(e) => updateWorkingHours(day as keyof typeof defaultWorkingHours, 'open', e.target.value)}
-                              onClick={(e) => {
-                                e.currentTarget.showPicker?.();
-                              }}
-                              className="h-10 text-center cursor-pointer"
-                            />
-                          </div>
-                          <div className="mt-2">
-                            <Label className="text-xs text-gray-500 mb-1 block">Closing Time</Label>
-                            <Input
-                              type="time"
-                              value={hours.close}
-                              onChange={(e) => updateWorkingHours(day as keyof typeof defaultWorkingHours, 'close', e.target.value)}
-                              onClick={(e) => {
-                                e.currentTarget.showPicker?.();
-                              }}
-                              className="h-10 text-center cursor-pointer"
-                            />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-400 italic text-sm mt-2">
-                          This location is closed on {capitalize(day)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              {/* Location Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">Remote location</Label>
-                  </div>
-                  <Switch
-                    checked={!!watch('isRemote')}
-                    onCheckedChange={(checked) => {
-                      reset({ ...watch(), isRemote: checked });
+
+                  {/* Contact Information Toggle */}
+                  <ContactInformationToggle
+                    useInheritedContact={useBusinessContact}
+                    onToggleChange={handleContactToggleChange}
+                    inheritedEmail={businessEmail}
+                    inheritedPhone={businessPhone}
+                    inheritedLabel="your business"
+                    localEmail={emailField.value || ""}
+                    localPhone={phoneField.value || ""}
+                    onEmailChange={(email) => {
+                      emailField.onChange(email);
                     }}
+                    onPhoneChange={(phone) => {
+                      const sanitized = sanitizePhoneToE164Draft(phone || "");
+                      phoneField.onChange(sanitized);
+                    }}
+                    emailError={emailState.error?.message}
+                    phoneError={phoneState.error?.message}
+                    title="Contact information"
+                    emailLabel="Location Email *"
+                    phoneLabel="Location Phone *"
+                    helperTextOn="Your business contact info will be used for this location."
+                    helperTextOff="Provide different contact details for this location."
                   />
+
+                  <div className="pt-4">
+                    <TextareaField
+                      value={descriptionField.value || ""}
+                      onChange={descriptionField.onChange}
+                      error={descriptionState.error?.message}
+                      placeholder="Describe this location (e.g. Main office with parking)"
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-4">
+                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Open247Toggle
+                      open247={open247}
+                      onChange={(checked) => {
+                        setValue('open247', checked);
+                      }}
+                    />
+                    <div
+                      className={open247 ? "opacity-50 pointer-events-none" : ""}
+                    >
+                      <WorkingHoursEditor
+                        value={currentWorkingHours}
+                        onChange={applyWorkingHours}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="timezone" className="text-sm font-medium text-foreground">Timezone</Label>
-                  <Input
-                    id="timezone"
-                    type="text"
-                    placeholder="e.g., America/New_York"
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    {...register('timezone', { required: true })}
+              )}
+
+              {/* Remote Location */}
+              {isRemote && (
+                <div className="space-y-4">
+                  <TextField
+                    value={nameField.value || ""}
+                    onChange={nameField.onChange}
+                    error={nameState.error?.message}
+                    isRemote
+                    required
+                    placeholder="Online"
                   />
+
+                  <TimezoneField
+                    value={timezoneField.value || ""}
+                    onChange={(tz) => timezoneField.onChange(tz)}
+                    error={timezoneState.error?.message}
+                    required
+                  />
+
+                  {/* Contact Information Toggle */}
+                  <ContactInformationToggle
+                    useInheritedContact={useBusinessContact}
+                    onToggleChange={handleContactToggleChange}
+                    inheritedEmail={businessEmail}
+                    inheritedPhone={businessPhone}
+                    inheritedLabel="your business"
+                    localEmail={emailField.value || ""}
+                    localPhone={phoneField.value || ""}
+                    onEmailChange={(email) => {
+                      emailField.onChange(email);
+                    }}
+                    onPhoneChange={(phone) => {
+                      const sanitized = sanitizePhoneToE164Draft(phone || "");
+                      phoneField.onChange(sanitized);
+                    }}
+                    emailError={emailState.error?.message}
+                    phoneError={phoneState.error?.message}
+                    title="Contact information"
+                    emailLabel="Location Email *"
+                    phoneLabel="Location Phone *"
+                    helperTextOn="Business contact info will be used for this location."
+                    helperTextOff="Provide different contact details for this location."
+                  />
+
+                  <div className="space-y-2 pt-4">
+                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Open247Toggle
+                      open247={open247}
+                      onChange={(checked) => {
+                        setValue('open247', checked);
+                      }}
+                    />
+                    <div
+                      className={open247 ? "opacity-50 pointer-events-none" : ""}
+                    >
+                      <WorkingHoursEditor
+                        value={currentWorkingHours}
+                        onChange={applyWorkingHours}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+          </div>
         </form>
       </BaseSlider>
 
       {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Create Location
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {`Are you sure you want to create the location "${watch('name')}"?`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmCreate}>
-              Create Location
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmDialog
+        open={showConfirmDialog}
+        onOpenChange={setShowConfirmDialog}
+        onConfirm={handleConfirmCreate}
+        onCancel={() => setShowConfirmDialog(false)}
+        title="Create Location"
+        description={`Are you sure you want to create the location "${watch('name') || 'Untitled'}"?`}
+        confirmTitle="Create Location"
+        cancelTitle="Cancel"
+        showCloseButton={true}
+      />
     </>
   );
 };

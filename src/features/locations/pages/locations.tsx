@@ -293,15 +293,6 @@ export default function LocationsPage() {
                 )}
               </div>
             )}
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="rounded-lg border bg-white p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{allLocations.length}</div>
-                <div className="text-xs text-gray-500 mt-1">Total</div>
-              </div>
-            </div>
-
             {/* Locations Grid */}
             <div className="space-y-3">
               {filteredLocations.map((location) => (

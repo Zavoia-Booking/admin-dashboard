@@ -71,11 +71,9 @@ export default function AddressAutocomplete({
     const t = setTimeout(async () => {
       try {
         const raw = await locationIqAutocomplete({ query, limit, countryCodes });
-        console.log('LocationIQ raw response:', JSON.stringify(raw, null, 2));
         const seen = new Set<string>();
         const mapped: AddressSuggestion[] = [];
         (raw || []).forEach((r: any) => {
-          console.log('LocationIQ address fields:', r.address);
           const id = String(r.place_id ?? r.osm_id ?? r.placeId ?? `${r.lat},${r.lon}`);
           const lat = Number(r.lat);
           const lng = Number(r.lon ?? r.lng);

@@ -26,6 +26,7 @@ export interface NewLocationPayload {
   workingHours: WorkingHours;
   isRemote: boolean;
   open247?: boolean;
+  useBusinessContact?: boolean; // Track if using business contact info
 }
 
 export interface EditLocationType {
@@ -37,6 +38,18 @@ export interface EditLocationType {
   description: string;
   timezone: string;
   isRemote: boolean;
+  workingHours?: WorkingHours;
+  open247?: boolean;
+  // Address components for editing (optional, used for pre-filling on load)
+  addressComponents?: {
+    street?: string;
+    streetNumber?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+  };
+  addressManualMode?: boolean;
+  useBusinessContact?: boolean; // Track if using business contact info
 }
 
 export interface EditLocationWorkingHours {
