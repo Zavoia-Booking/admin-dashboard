@@ -30,7 +30,6 @@ const defaultValues: NewLocationPayload = {
   description: '',
   workingHours: defaultWorkingHours,
   timezone: 'UTC',
-  isActive: true,
 };
 
 const AddLocationSlider: React.FC<AddLocationSliderProps> = ({ 

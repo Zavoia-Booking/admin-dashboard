@@ -6,7 +6,6 @@ export interface Category {
   color?: string;
   description?: string;
   displayOrder?: number;
-  isActive?: boolean;
 }
 
 export const listCategoriesApi = async (): Promise<Category[]> => {

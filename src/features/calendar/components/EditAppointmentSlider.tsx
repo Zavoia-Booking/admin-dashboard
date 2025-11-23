@@ -16,10 +16,6 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { toast } from 'sonner';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { Appointment } from "../../../shared/types/calendar.ts";
-import { mockLocations } from '../../../mocks/locations.mock';
-import { mockTeamMembers } from '../../../mocks/team-members.mock';
-import { mockClients } from "../../../mocks/clients.ts";
-import { mockServices } from "../../../mocks/services.mock.ts";
 
 interface EditAppointmentSliderProps {
   isOpen: boolean;
@@ -181,10 +177,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   // };
   //
 
-  const services = mockServices.map(service => service.name)
-  const clients = mockClients;
-  const locations = mockLocations;
-  const teamMembers = mockTeamMembers;
+  const services: any[] = [];
+  const clients: any[] = [];
+  const locations: any[] = [];
+  const teamMembers: any[] = [];
 
 
   // Helper functions
@@ -673,7 +669,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                       <CommandList>
                         <CommandEmpty>No team members found.</CommandEmpty>
                         <CommandGroup>
-                          {mockTeamMembers.map((member) => (
+                          {teamMembers.map((member) => (
                             <CommandItem
                               key={member.id}
                               value={member.firstName + ' ' + member.lastName}

@@ -11,11 +11,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/compone
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import { mockLocations } from '../../../mocks/locations.mock';
-import { mockTeamMembers } from '../../../mocks/team-members.mock';
 import { useDispatch } from "react-redux";
 import { createCalendarAppointmentAction } from "../actions.ts";
-import { mockClients } from "../../../mocks/clients.ts";
 import type { LocationType } from "../../../shared/types/location.ts";
 import type { TeamMember } from "../../../shared/types/team-member.ts";
 
@@ -68,9 +65,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [minuteOpen, setMinuteOpen] = useState(false);
   const dispatch = useDispatch();
 
-  const clients: Array<any> = mockClients;
-  const locations: Array<LocationType> = mockLocations;
-  const teamMembers: Array<TeamMember> = mockTeamMembers;
+  const clients: Array<any> = [];
+  const locations: Array<LocationType> = [];
+  const teamMembers: Array<TeamMember> = [];
 
   React.useEffect(() => {
     if (!isOpen) {

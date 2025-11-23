@@ -161,7 +161,6 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode, selectedDate, appointmen
                                 return Array.from({ length: 7 }, (_, i) => {
                                     const day = new Date(weekStart);
                                     day.setDate(weekStart.getDate() + i);
-                                    // const dayAppointments = applyFilters(mockAppointments.filter(a => a.date.toDateString() === day.toDateString()));
                                     const dayAppointments: Array<any> = [];
 
                                     return (
@@ -248,9 +247,6 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode, selectedDate, appointmen
                                 const currentDate = new Date(startDate);
                                 while (currentDate <= endDate) {
                                     const isCurrentMonth = currentDate.getMonth() === month;
-                                    // const dayAppointments = applyFilters(mockAppointments.filter(a => a.date.toDateString() === currentDate.toDateString()));
-                                    // const dayDate = new Date(currentDate); // Capture the current date value
-                                    // TODO
                                     days.push(
                                         <div
                                             key={currentDate.toDateString()}

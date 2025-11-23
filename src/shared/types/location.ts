@@ -22,7 +22,6 @@ export interface LocationType {
   phone: string;
   description: string;
   workingHours: WorkingHours;
-  isActive: boolean;
   createdAt: string;
   timezone: string;
   isRemote: boolean;

@@ -70,7 +70,6 @@ const initialState: WizardState = {
       addressManualMode: undefined as unknown as boolean,
       timezone: undefined as unknown as string,
       workingHours: defaultWorkingHours,
-      isActive: true,
     },
     useBusinessContact: true, // Default: use business contact as location contact
     teamMembers: [],

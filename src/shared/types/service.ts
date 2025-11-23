@@ -10,7 +10,6 @@ export interface Service {
   price: number;
   duration: number;
   description: string;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
   locations?: Array<{ id: number; name: string }>;

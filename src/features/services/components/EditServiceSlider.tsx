@@ -58,7 +58,6 @@ interface EditServiceFormData {
   price: number;
   duration: number;
   description: string;
-  isActive: boolean;
   locationIds: number[];
   teamMemberIds: number[];
   categoryId: number | null;
@@ -109,7 +108,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       price: getPriceInCents(service?.price),
       duration: service?.duration ?? 60,
       description: service?.description ?? "",
-      isActive: service?.isActive ?? true,
       locationIds: service?.locations?.map((l) => l.id) ?? [],
       teamMemberIds: service?.teamMembers?.map((tm) => tm.id) ?? [],
       categoryId: service?.category?.id ?? null,
@@ -258,7 +256,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         price: getPriceInCents(service.price),
         duration: service.duration,
         description: service.description,
-        isActive: service.isActive,
         locationIds: service.locations?.map((l) => l.id) ?? [],
         teamMemberIds: service.teamMembers?.map((tm) => tm.id) ?? [],
         categoryId: service.category?.id ?? null,
@@ -321,7 +318,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       price,
       duration,
       description,
-      isActive,
       locationIds,
       teamMemberIds,
       categoryId,
@@ -333,7 +329,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       description,
       duration,
       price_amount_minor: price ?? 0,
-      isActive,
       locations: locationIds.length > 0 ? locationIds : undefined,
       teamMembers: teamMemberIds.length > 0 ? teamMemberIds : undefined,
       categoryId: categoryId ?? null,

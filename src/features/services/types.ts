@@ -17,7 +17,6 @@ export type CreateServicePayload = {
   price_amount_minor: number; // Price in integer cents
   duration: number;
   description: string;
-  isActive: boolean;
   locations?: number[];
   teamMembers?: number[];
   category?: {
@@ -37,7 +36,6 @@ export type EditServicePayload = {
   duration: number;
   price_amount_minor: number; // Price in integer cents
   id: number;
-  isActive: boolean;
   locations?: number[];
   teamMembers?: number[];
   categoryId?: number | null;

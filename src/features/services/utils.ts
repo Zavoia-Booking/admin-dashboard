@@ -16,7 +16,7 @@ export const getDefaultServiceFilters = (): ServiceFilterState => {
 export const mapToGenericFilter = (filters: ServiceFilterState): Array<FilterItem> => {
     const serverFilters: Array<FilterItem> = [];
 
-    const { searchTerm, priceMax, priceMin, durationMax, durationMin, status } = filters;
+    const { searchTerm, priceMax, priceMin, durationMax, durationMin } = filters;
 
     if (searchTerm) {
         serverFilters.push({
@@ -55,14 +55,6 @@ export const mapToGenericFilter = (filters: ServiceFilterState): Array<FilterIte
             field: 'service.duration',
             operator: FilterOperator.GTE,
             value: +durationMin
-        })
-    }
-
-    if (status && status != ALL) {
-        serverFilters.push({
-            field: 'service.isActive',
-            operator: FilterOperator.EQUALS,
-            value: status === 'enabled'
         })
     }
     

@@ -34,7 +34,6 @@ export interface Location {
   isRemote: boolean;
   email: string;
   address: string;
-  isActive: boolean;
   timezone: string;
   workingHours: any;
   open247: boolean;
@@ -49,7 +48,6 @@ export interface Category {
   description: string;
   color: string;
   displayOrder: number;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -62,7 +60,6 @@ export interface Service {
   description: string;
   price_amount_minor: number;
   duration: number;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
   category: Category;
@@ -80,7 +77,6 @@ export interface Industry {
   id: number;
   name: string;
   slug: string;
-  isActive: boolean;
   createdAt: string;
   updatedAt: string;
 }

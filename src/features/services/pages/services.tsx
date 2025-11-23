@@ -8,7 +8,6 @@ import { useTranslation } from "react-i18next";
 import AddServiceSlider from "../components/AddServiceSlider";
 import EditServiceSlider from "../components/EditServiceSlider";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
-import { Switch } from "../../../shared/components/ui/switch";
 import type { Service } from "../../../shared/types/service";
 import {
   getAddFormSelector,
@@ -20,7 +19,6 @@ import {
   getServicesAction,
   getServiceByIdAction,
   toggleAddFormAction,
-  toggleStatusServiceAction,
 } from "../actions.ts";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate.tsx";
 import { useConfirmRadix } from "../../../shared/hooks/useConfirm.tsx";
@@ -71,20 +69,6 @@ export default function ServicesPage() {
     [dispatch, confirm, text]
   );
 
-  const handleToggleServiceStatus = async (service: Service) => {
-    void (await confirm({
-      title: text("toggleService.title"),
-      content: text("toggleService.description", { serviceName: service.name }),
-      confirmationText: text("toggleService.confirm"),
-      cancellationText: text("toggleService.cancel"),
-      destructive: false,
-      dismissible: true,
-      onConfirm: () => {
-        dispatch(toggleStatusServiceAction.request(service));
-      },
-    }));
-  };
-
   const openEditSlider = (service: Service) => {
     // Fetch full service details with all relations
     dispatch(getServiceByIdAction.request(service.id));
@@ -118,14 +102,6 @@ export default function ServicesPage() {
                 </div>
               </div>
               <div className="rounded-lg border border-border bg-surface dark:bg-neutral-900 p-4 text-center">
-                <div className="text-2xl font-bold text-green-400 dark:text-success">
-                  {services.filter((s) => s.isActive).length}
-                </div>
-                <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-1">
-                  {text("page.stats.active")}
-                </div>
-              </div>
-              <div className="rounded-lg border border-border bg-surface dark:bg-neutral-900 p-4 text-center">
                 <div className="text-2xl font-bold text-primary">
                   $
                   {Math.round(
@@ -149,12 +125,11 @@ export default function ServicesPage() {
             <div className="space-y-3">
               {services.map((service) => {
                 // const bookings = service.bookings || (service.id === 1 ? 45 : service.id === 2 ? 32 : 28);
-                const isInactive = !service.isActive;
                 return (
                   <div
                     key={service.id}
                     className={`rounded-xl border border-border bg-surface dark:bg-neutral-900 p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200 ${
-                      isInactive ? "opacity-60" : ""
+                      "bg-green-50 dark:bg-success-bg text-green-700 dark:text-success"
                     }`}
                     onClick={() => openEditSlider(service)}
                   >
@@ -162,17 +137,6 @@ export default function ServicesPage() {
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-semibold text-lg truncate text-foreground-1">
                         {service.name}
-                      </span>
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                          isInactive
-                            ? "bg-surface-hover text-foreground-3 dark:text-foreground-2"
-                            : "bg-green-50 dark:bg-success-bg text-green-700 dark:text-success"
-                        }`}
-                      >
-                        {isInactive
-                          ? text("page.service.status.inactive")
-                          : text("page.service.status.active")}
                       </span>
                     </div>
                     {/* Description */}
@@ -239,17 +203,6 @@ export default function ServicesPage() {
                       className="flex items-center justify-between gap-2"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {/* Column 1: Toggle */}
-                      <div className="flex items-center gap-1">
-                        <Switch
-                          checked={service.isActive}
-                          onCheckedChange={() =>
-                            handleToggleServiceStatus(service)
-                          }
-                          className={`!h-5 !w-9 !min-h-0 !min-w-0`}
-                        />
-                      </div>
-
                       {/* Column 2: Edit/Delete */}
                       <div className="flex items-center gap-1">
                         {/* Edit */}

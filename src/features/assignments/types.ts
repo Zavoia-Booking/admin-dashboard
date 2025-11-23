@@ -72,7 +72,6 @@ export type ServiceAssignment = {
   description: string;
   price_amount_minor: number;
   duration: number;
-  isActive: boolean;
   assignedTeamMembers: Array<{
     userId: number;
     email: string;

@@ -25,7 +25,6 @@ export interface NewLocationPayload {
   timezone: string;
   workingHours: WorkingHours;
   isRemote: boolean;
-  isActive: boolean;
   open247?: boolean;
 }
 
@@ -38,7 +37,6 @@ export interface EditLocationType {
   description: string;
   timezone: string;
   isRemote: boolean;
-  isActive: boolean;
 }
 
 export interface EditLocationWorkingHours {

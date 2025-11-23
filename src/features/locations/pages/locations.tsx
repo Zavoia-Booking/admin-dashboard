@@ -181,24 +181,12 @@ export default function LocationsPage() {
     });
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'inactive':
-        return <Badge className="bg-gray-100 text-gray-800">Inactive</Badge>;
-      default:
-        return <Badge>{status}</Badge>;
-    }
-  };
-
   // Filter locations based on search and status
   const filteredLocations = allLocations.filter(location => {
     const matchesSearch = location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       location.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       location.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || location.isActive === (statusFilter === 'active');
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   return (
@@ -312,14 +300,6 @@ export default function LocationsPage() {
                 <div className="text-2xl font-bold text-blue-600">{allLocations.length}</div>
                 <div className="text-xs text-gray-500 mt-1">Total</div>
               </div>
-              <div className="rounded-lg border bg-white p-4 text-center">
-                <div className="text-2xl font-bold text-green-600">{allLocations.filter(l => l.isActive === true).length}</div>
-                <div className="text-xs text-gray-500 mt-1">Active</div>
-              </div>
-              <div className="rounded-lg border bg-white p-4 text-center">
-                <div className="text-2xl font-bold text-gray-600">{allLocations.filter(l => l.isActive === false).length}</div>
-                <div className="text-xs text-gray-500 mt-1">Inactive</div>
-              </div>
             </div>
 
             {/* Locations Grid */}
@@ -329,7 +309,6 @@ export default function LocationsPage() {
                   {/* Top Row: Name and Status */}
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-semibold text-lg truncate">{location.name}</span>
-                    {getStatusBadge(location.isActive ? 'active' : 'inactive')}
                   </div>
                   {/* Info Rows */}
                   <div className="flex flex-col gap-1 text-sm mt-2">

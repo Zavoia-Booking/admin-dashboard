@@ -3,8 +3,6 @@ import { ALL } from "../../../shared/constants.ts";
 import type { CalendarFilters } from "../types.ts";
 import { X } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
-import { mockLocations } from "../../../mocks/locations.mock.ts";
-import { mockTeamMembers } from "../../../mocks/team-members.mock.ts";
 import { findItemByKey } from "./utils.tsx";
 
 interface IProps {
@@ -13,8 +11,8 @@ interface IProps {
 }
 
 export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
-    const locations = mockLocations
-    const teamMembers = mockTeamMembers
+    const locations: any[] = [];
+    const teamMembers: any[] = [];
 
     const canShowFilterBadges = useCallback((): boolean => {
         return !!(

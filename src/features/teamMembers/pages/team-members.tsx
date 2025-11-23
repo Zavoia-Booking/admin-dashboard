@@ -9,7 +9,6 @@ import { Badge } from "../../../shared/components/ui/badge";
 import InviteTeamMemberSlider from '../components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '../components/TeamMemberProfileSlider';
 import TrialBanner from '../components/TrialBanner';
-import { mockLocations } from '../../../mocks/locations.mock';
 import type { TeamMember } from '../../../shared/types/team-member';
 import { Input } from '../../../shared/components/ui/input';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
@@ -60,6 +59,9 @@ export default function TeamMembersPage() {
     setIsConfirmDialogOpen(false);
     setPendingAction(null);
   };
+
+  // TODO: Replace with actual API call
+  const locations: any[] = [];
 
   const confirmCancelInvite = async () => {
     if (!pendingAction || pendingAction.type !== 'cancelInvite' || !pendingAction.teamMemberId) return;
@@ -222,7 +224,7 @@ export default function TeamMembersPage() {
                   value: localLocationFilter,
                   options: [
                     { value: 'all', label: 'All locations' },
-                    ...mockLocations.map(location => ({ value: String(location.id), label: location.name }))
+                    ...locations.map(location => ({ value: String(location.id), label: location.name }))
                   ],
                   searchable: true,
                 },
@@ -288,7 +290,7 @@ export default function TeamMembersPage() {
                   className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
                   onClick={() => setLocationFilter('all')}
                 >
-                  Location: {mockLocations.find(loc => String(loc.id) === locationFilter)?.name}
+                  Location: {locations.find(loc => String(loc.id) === locationFilter)?.name}
                   <X className="h-4 w-4 ml-1" />
                 </Badge>
               )}
@@ -397,7 +399,7 @@ export default function TeamMembersPage() {
                         {member.location && (
                           <div className="flex items-center gap-2 text-sm text-gray-700">
                             <MapPin className="h-4 w-4" />
-                            <span>{mockLocations.find(loc => String(loc.id) === `${member.location}`)?.name}</span>
+                            <span>{locations.find(loc => String(loc.id) === `${member.location}`)?.name}</span>
                           </div>
                         )}
                       </div>
@@ -452,7 +454,7 @@ export default function TeamMembersPage() {
           onDelete={() => {
             // handleDeleteTeamMember
           }}
-          locations={mockLocations.map(loc => ({ id: String(loc.id), name: loc.name }))}
+          locations={locations.map(loc => ({ id: String(loc.id), name: loc.name }))}
         />
       </BusinessSetupGate>
     </AppLayout>

@@ -53,7 +53,6 @@ interface ServiceFormData {
   price: number;
   duration: number;
   description: string;
-  isActive: boolean;
   locationIds: number[];
   teamMemberIds: number[];
   categoryId?: number | null;
@@ -66,7 +65,6 @@ const initialFormData: ServiceFormData = {
   price: 0,
   duration: 60,
   description: "",
-  isActive: true,
   locationIds: [],
   teamMemberIds: [],
   categoryId: null,
@@ -308,7 +306,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       price,
       duration,
       description,
-      isActive,
       locationIds,
       teamMemberIds,
       categoryId,
@@ -328,7 +325,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       price_amount_minor: price ?? 0, // Price is already in cents from PriceField
       duration,
       description,
-      isActive,
       locations: locationIds.length > 0 ? locationIds : undefined,
       teamMembers: teamMemberIds.length > 0 ? teamMemberIds : undefined,
       category:

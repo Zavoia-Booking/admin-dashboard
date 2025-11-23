@@ -23,6 +23,5 @@ export const mapLocationForEdit = (location: LocationType): EditLocationType => 
         description: location.description,
         timezone: location.timezone,
         isRemote: location.isRemote,
-        isActive: location.isActive,
     };
 }

@@ -32,12 +32,6 @@ export const deleteServicesAction = createAsyncAction(
     "DELETE/SERVICES/FAILURE"
 )<{ serviceId: number }, unknown, unknown>();
 
-export const toggleStatusServiceAction = createAsyncAction(
-    "TOGGLE/STATUS/SERVICES/REQUEST",
-    "TOGGLE/STATUS/SERVICES/SUCCESS",
-    "TOGGLE/STATUS/SERVICES/FAILURE"
-)<Service, unknown, unknown>();
-
 export const setServiceFilterAction = createAsyncAction(
     'SERVICE/FILTER/SET/REQUEST',
     'SERVICE/FILTER/SET/SUCCESS',

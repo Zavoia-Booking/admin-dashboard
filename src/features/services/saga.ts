@@ -6,7 +6,6 @@ import {
   getServicesAction,
   getServiceByIdAction,
   setServiceFilterAction,
-  toggleStatusServiceAction,
 } from "./actions.ts";
 import {
   createServicesRequest,
@@ -18,11 +17,9 @@ import {
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { Service } from "../../shared/types/service.ts";
-import type { EditServicePayload, ServiceFilterState } from "./types.ts";
+import type { ServiceFilterState } from "./types.ts";
 import { getServicesFilterSelector } from "./selectors.ts";
 import { mapToGenericFilter } from "./utils.ts";
-import { selectCurrentUser } from "../auth/selectors";
-import { priceToStorage } from "../../shared/utils/currency";
 import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleGetServices(): Generator<any, void, any> {
@@ -120,43 +117,6 @@ function* handleEditServices(
   }
 }
 
-function* handleToggleStatusService(
-  action: ActionType<typeof toggleStatusServiceAction.request>
-): Generator<any, void, any> {
-  try {
-    const { description, duration, id, isActive, name, price } = action.payload;
-
-    // Get current user to access business currency
-    const currentUser: any = yield select(selectCurrentUser);
-    const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-
-    // Convert decimal price from Service object to cents for EditServicePayload
-    const price_amount_minor = priceToStorage(price, businessCurrency);
-
-    const editPayload: Partial<EditServicePayload> = {
-      description,
-      duration,
-      isActive: !isActive,
-      name,
-      price_amount_minor,
-    };
-
-    const response: { data: unknown } = yield call(
-      editServicesRequest,
-      id,
-      editPayload
-    );
-
-    if (response.data) {
-      toast.success("Toggled service status successfully");
-      yield put(getServicesAction.request({ reset: true }));
-    }
-  } catch (error: unknown) {
-    toast.error("Failed to toggle service status");
-    console.error(error);
-  }
-}
-
 function* handleSetServiceFilters(
   action: ActionType<typeof setServiceFilterAction.request>
 ) {
@@ -171,7 +131,6 @@ export function* servicesSaga(): Generator<unknown, void, unknown> {
     takeLatest(createServicesAction.request, handleCreateServices),
     takeLatest(editServicesAction.request, handleEditServices),
     takeLatest(deleteServicesAction.request, handleDeleteService),
-    takeLatest(toggleStatusServiceAction.request, handleToggleStatusService),
     takeLatest(setServiceFilterAction.request, handleSetServiceFilters),
   ]);
 }

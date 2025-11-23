@@ -41,7 +41,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         description: location.description,
         timezone: location.timezone,
         isRemote: location.isRemote,
-        isActive: location.isActive,
       });
     }
   }, [location, isOpen, reset]);
@@ -167,19 +166,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
               {/* Location Settings */}
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
-                  <div className="space-y-1">
-                    <Label className="text-sm font-medium text-foreground">Active</Label>
-                  </div>
-                  <Switch
-                    checked={!!watch('isActive')}
-                    onCheckedChange={(checked) => {
-                      const current = watch();
-                      const next: EditLocationType = { ...current, isActive: checked } as EditLocationType;
-                      reset(next);
-                    }}
-                  />
-                </div>
                 <div className="flex items-center justify-between p-4 rounded-lg bg-background/50 backdrop-blur-sm border border-border/50">
                   <div className="space-y-1">
                     <Label className="text-sm font-medium text-foreground">Remote location</Label>
