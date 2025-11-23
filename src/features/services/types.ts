@@ -3,11 +3,13 @@ import type { Service } from "../../shared/types/service.ts";
 export type ServicesState = {
   services: Service[];
   filters: ServiceFilterState;
-  addFormOpen: boolean,
+  addFormOpen: boolean;
   editForm: {
-    open: boolean,
-    item: null | Service,
-  },
+    open: boolean;
+    item: null | Service;
+  };
+  error: string | null;
+  isLoading: boolean;
 };
 
 export type CreateServicePayload = {
@@ -23,25 +25,29 @@ export type CreateServicePayload = {
     categoryName?: string;
     categoryColor?: string;
   };
-}
+  additionalCategories?: Array<{
+    name: string;
+    color: string;
+  }>;
+};
 
 export type EditServicePayload = {
-  name: string,
-  description: string,
-  duration: number
+  name: string;
+  description: string;
+  duration: number;
   price_amount_minor: number; // Price in integer cents
-  id: number,
-  isActive: boolean,
+  id: number;
+  isActive: boolean;
   locations?: number[];
   teamMembers?: number[];
   categoryId?: number | null;
-}
+};
 
 export type ServiceFilterState = {
-  searchTerm: string,
-  status: string,
-  priceMin: string,
-  priceMax: string,
-  durationMin: string,
-  durationMax: string
-}
+  searchTerm: string;
+  status: string;
+  priceMin: string;
+  priceMax: string;
+  durationMin: string;
+  durationMax: string;
+};

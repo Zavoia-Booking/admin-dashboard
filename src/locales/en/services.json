@@ -26,12 +26,18 @@
   },
   "addService": {
     "title": "Add New Service",
-    "subtitle": "Create a new service for your business. Fill in the details below to get started.",
+    "subtitle": "Create a new service for your business. Fill in the details below to get started",
     "sections": {
       "serviceInfo": "Service Information",
       "serviceInfoDescription": "Provide the essential information that identifies and describes your service",
       "pricingDuration": "Pricing & Duration",
       "pricingDurationDescription": "Set the default price and duration",
+      "category": "Category",
+      "categoryDescription": "Assign this service to a category so you can organize and filter it later",
+      "locations": "Locations",
+      "locationsDescription": "By default, the service is available at all locations. Select specific locations to make it available only there.",
+      "teamMembers": "Team Members",
+      "teamMembersDescription": "By default, the service is available to all team members. Select specific team members to make it available only to them.",
       "settings": "Service Settings"
     },
     "form": {
@@ -62,6 +68,50 @@
       "pricingNote": {
         "text": "Default for all staff. You can set custom prices and durations per team member in",
         "link": "Assignments"
+      },
+      "locations": {
+        "emptyMessage": "No locations found.",
+        "helperTextNone": "Available at all locations",
+        "helperTextOne": "Available at 1 selected location",
+        "helperTextSome": "Available at {{count}} selected locations"
+      },
+      "teamMembers": {
+        "emptyMessage": "No team members found.",
+        "helperTextNone": "Available to all team members",
+        "helperTextOne": "Available to 1 selected member",
+        "helperTextSome": "Available to {{count}} selected members"
+      },
+      "category": {
+        "label": "Category Name",
+        "placeholder": "Category name",
+        "helperText": "Leave empty to create service without category",
+        "selectLabel": "Select one",
+        "selectHelperText": "Each service can be assigned to one category",
+        "manageCategoriesText": "You can manage them from",
+        "manageCategoriesLink": "Categories",
+        "createNew": "Create new category",
+        "backToSelect": "Back to categories",
+        "newCategoryLabel": "New category",
+        "newCategoryFieldLabel": "Category name",
+        "cancel": "Cancel",
+        "save": "Save",
+        "shuffleColor": "Randomize color",
+        "showMore": "Show {{count}} more",
+        "showLess": "Show less",
+        "remove": "Remove category",
+        "limitHelperText": {
+          "text": "Category limit reached ({{max}})."
+        },
+        "validation": {
+          "sectionError": "Select a category or create a new one",
+          "nameRequired": "Enter a category name",
+          "nameExists": "A category with this name already exists",
+          "limitReached": "You've reached the limit of 25 categories. Remove one to create a new category."
+        }
+      },
+      "categoryColor": {
+        "label": "Category Color",
+        "helperText": "Color is automatically generated based on the category name"
       },
       "durationChips": {
         "15": "15m",
@@ -94,6 +144,9 @@
         "duration": {
           "required": "Duration is required",
           "min": "Duration must be at least 1 minute"
+        },
+        "category": {
+          "required": "Please select or create a category"
         }
       }
     },
@@ -114,6 +167,7 @@
   },
   "editService": {
     "title": "Edit Service",
+    "subtitle": "Update service information, pricing, and availability",
     "sections": {
       "serviceInfo": "Service Information",
       "pricingDuration": "Pricing & Duration",
