@@ -1,7 +1,7 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
-import { cancelInvitationAction, deleteTeamMemberAction, inviteTeamMemberAction, listTeamMembersAction, resendInvitationAction } from "./actions";
+import { cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, inviteTeamMemberAction, listTeamMembersAction, resendInvitationAction } from "./actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
-import { cancelInvitationApi, deleteTeamMemberApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi } from "./api";
+import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi } from "./api";
 import type { InviteTeamMemberResponse } from "./types";
 import { toast } from "sonner";
 import type { DeleteResponse } from "../../shared/types/delete-response";
@@ -39,6 +39,7 @@ export function* teamMembersSaga() {
     takeLatest(cancelInvitationAction.request, handleCancelInvitation),
     takeLatest(resendInvitationAction.request, handleResendInvitation),
     takeLatest(deleteTeamMemberAction.request, handleDeleteTeamMember),
+    takeLatest(fetchTeamMemberByIdAction.request, handleFetchTeamMemberById),
   ]);
 }
 
@@ -82,5 +83,16 @@ function* handleDeleteTeamMember(action: ReturnType<typeof deleteTeamMemberActio
     const message = error?.response?.data?.error || error?.message || 'Failed to remove team member';
     toast.error(message);
     yield put(deleteTeamMemberAction.failure({ message }));
+  }
+}
+
+function* handleFetchTeamMemberById(action: ReturnType<typeof fetchTeamMemberByIdAction.request>) {
+  try {
+    const teamMember: TeamMember = yield call(fetchTeamMemberByIdApi, action.payload.id);
+    yield put(fetchTeamMemberByIdAction.success({ teamMember }));
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || 'Failed to fetch team member';
+    toast.error(message);
+    yield put(fetchTeamMemberByIdAction.failure({ message }));
   }
 }

@@ -330,7 +330,7 @@ export default function TeamMembersPage() {
                     className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
                     onClick={() => {
                       if (!canEdit) {
-                        toast.info('Cannot edit a pending invite until they complete registration.');
+                        toast.info('Cannot edit a pending team member until they complete registration.');
                         return;
                       }
                       openProfileSlider(member);

@@ -42,7 +42,7 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(actions.deleteLocationAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, deleteResponse: null };
 
     case getType(actions.deleteLocationAction.success):
       return { ...state, isLoading: false, error: null, deleteResponse: action.payload.deleteResponse };

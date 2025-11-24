@@ -6,6 +6,24 @@ export interface TeamMemberSummary {
   pending: number;
 }
 
+export interface TeamMemberLocation {
+  id: number;
+  name: string;
+  isRemote: boolean;
+  address: string;
+}
+
+export interface TeamMemberService {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  duration: number;
+  usesCustomPricing: boolean;
+  customPrice: number | null;
+  customDuration: number | null;
+}
+
 export interface TeamMember {
   id: number;
   firstName: string;
@@ -22,8 +40,8 @@ export interface TeamMember {
     lastName: string;
   };
   location?: number;
-  locations?: number[];
-  services?: number[];
+  locations?: number[] | TeamMemberLocation[];
+  services?: number[] | TeamMemberService[];
   workingHours?: {
     monday: { open: string; close: string; isOpen: boolean };
     tuesday: { open: string; close: string; isOpen: boolean };

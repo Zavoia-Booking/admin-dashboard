@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, UserPlus, MapPin, Loader2, CreditCard, ChevronsUpDown } from 'lucide-react';
+import { Mail, UserPlus, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
-import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { Pill } from '../../../shared/components/ui/pill';
 import type { InviteTeamMemberPayload } from '../types';
 import { useDispatch, useSelector } from 'react-redux';
 import { inviteTeamMemberAction, clearInviteResponseAction } from '../actions';
@@ -54,7 +51,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   const navigate = useNavigate();
   const seatCtx = computeSeatContext({ currentUser, subscriptionSummary, teamMembersSummary });
   const isInviteAllowed = !(seatCtx.isCancelled || !seatCtx.hasSubscription || !seatCtx.hasAvailableSeats);
-  const [locationOpen, setLocationOpen] = useState(false);
   const locationIds = watch('locationIds');
   
   // Prefill/lock location based on current location, and reset form when slider closes
@@ -62,7 +58,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     if (!isOpen) {
       reset(initialFormData);
       dispatch(clearInviteResponseAction());
-      setLocationOpen(false);
       return;
     }
     // Fetch locations when slider opens
@@ -79,6 +74,26 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       }
     }
   }, [isOpen, allLocations, getValues, setValue]);
+
+  // Register email with validation
+  useEffect(() => {
+    register('email', {
+      validate: (value) => {
+        // Only validate if invite is allowed or in trial
+        if (isInviteAllowed || seatCtx.isTrial) {
+          if (!value || value.trim().length === 0) {
+            return 'Email is required';
+          }
+          // Email pattern validation
+          const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+          if (!emailPattern.test(value)) {
+            return 'Invalid email address';
+          }
+        }
+        return true;
+      }
+    });
+  }, [register, isInviteAllowed, seatCtx.isTrial]);
 
   // Register locationIds with validation
   useEffect(() => {
@@ -192,7 +207,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         title="Invite Team Member"
-        contentClassName="bg-muted/50 scrollbar-hide"
         footer={
           <div className="flex gap-3">
             <Button
@@ -224,17 +238,25 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
           </div>
         }
       >
-        <form id="invite-team-member-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-            <CardContent className="space-y-8">
+        <form 
+          id="invite-team-member-form" 
+          onSubmit={handleSubmit(onSubmit)} 
+          className="h-full flex flex-col cursor-default"
+        >
+          <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+            <div className="max-w-2xl mx-auto space-y-8 cursor-default">
+              
               {/* Subscription & Pricing Information */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/20">
-                    <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Subscription Info</h3>
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground-1">
+                    Subscription Info
+                  </h3>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    Review your subscription details and available seats.
+                  </p>
                 </div>
+
                 {loadingPricing ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -250,140 +272,139 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                 )}
               </div>
 
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+              </div>
+
               {/* Contact Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Mail className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Contact Information</h3>
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground-1">
+                    Contact Information
+                  </h3>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    Enter the email address of the team member you want to invite.
+                  </p>
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email address..."
-                    aria-invalid={!!errors.email}
-                    className="h-12 text-base border-border/50 bg-background/50 backdrop-blur-sm"
-                    disabled={getDisableEmailStatus()}
-                    {...register('email', { required: isInviteAllowed || seatCtx.isTrial })}
-                  />
+                  <Label htmlFor="email" className="text-base font-medium">
+                    Email Address *
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="e.g. contact@example.com"
+                      value={watch('email')}
+                      onChange={(e) => {
+                        setValue('email', e.target.value, { shouldValidate: true });
+                      }}
+                      className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                        errors.email
+                          ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                          : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+                      }`}
+                      autoComplete="email"
+                      aria-invalid={!!errors.email}
+                      disabled={getDisableEmailStatus()}
+                    />
+                    <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                  </div>
+                  <div className="h-5">
+                    {errors.email && (
+                      <p className="mt-1 flex items-center gap-1.5 text-xs text-destructive" role="alert" aria-live="polite">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        <span>{errors.email.message as string}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+              </div>
+
               {/* Location Assignment Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-green-100 dark:bg-green-900/20">
-                    <MapPin className="h-5 w-5 text-green-600 dark:text-green-400" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Location Assignment</h3>
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground-1">
+                    Location Assignment
+                  </h3>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    Select which locations this team member will have access to.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Select Locations</Label>
-                  <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={locationOpen}
-                        className={cn(
-                          "border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full",
-                          errors.locationIds && "border-destructive border"
-                        )}
-                      >
-                        {locationIds.length > 0 
-                          ? `${locationIds.length} location${locationIds.length > 1 ? 's' : ''} selected`
-                          : "Select locations"
-                        }
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0 z-[80]">
-                      <Command>
-                        <CommandInput placeholder="Search locations..." />
-                        <CommandList>
-                          <CommandEmpty>No locations found.</CommandEmpty>
-                          <CommandGroup>
-                            {allLocations.map((location) => {
-                              const currentIds = watch('locationIds');
-                              const isSelected = currentIds.includes(location.id);
-                              const isLastSelected = isSelected && currentIds.length === 1;
-                              
-                              return (
-                              <CommandItem
-                                key={location.id}
-                                value={location.name}
-                                onSelect={() => {
-                                  const ids = getValues('locationIds');
-                                  const selected = ids.includes(location.id);
-                                  
-                                  // Prevent deselecting if only one location is selected
-                                  if (selected && ids.length === 1) {
-                                    return;
-                                  }
-                                  
-                                  const newIds = selected
-                                    ? ids.filter(id => id !== location.id)
-                                    : [...ids, location.id];
-                                  setValue('locationIds', newIds, { shouldDirty: true, shouldValidate: true });
-                                  trigger('locationIds');
-                                }}
-                                className={cn(
-                                  "flex items-center gap-3 p-3",
-                                  isLastSelected && "cursor-not-allowed opacity-75"
-                                )}
-                              >
-                                <div className="flex-1">
-                                  <div className="font-medium">{location.name}</div>
-                                  {location.address && (
-                                    <div className="text-sm text-muted-foreground truncate">{location.address}</div>
-                                  )}
+
+                <div className="space-y-5">
+                  {allLocations.length === 0 ? (
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                      No locations available. Please create a location first.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2 sm:gap-3">
+                      {allLocations.map((location) => {
+                        const isSelected = locationIds.includes(location.id);
+                        const isLastSelected = isSelected && locationIds.length === 1;
+
+                        return (
+                          <Pill
+                            key={location.id}
+                            selected={isSelected}
+                            icon={MapPin}
+                            className="w-auto justify-start items-start transition-none active:scale-100"
+                            showCheckmark={true}
+                            disabled={isLastSelected}
+                            onClick={() => {
+                              // Prevent deselecting if only one location is selected
+                              if (isLastSelected) {
+                                return;
+                              }
+
+                              const newIds = isSelected
+                                ? locationIds.filter((id) => id !== location.id)
+                                : [...locationIds, location.id];
+                              setValue('locationIds', newIds, { shouldDirty: true, shouldValidate: true });
+                              trigger('locationIds');
+                            }}
+                          >
+                            <div className="flex flex-col text-left">
+                              <div className="flex items-center">
+                                {location.name}
+                              </div>
+                              {location.address && (
+                                <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
+                                  {location.address}
                                 </div>
-                                <div
-                                  className={cn(
-                                    "ml-auto flex h-4 w-4 items-center justify-center rounded border-2 transition-colors",
-                                    isSelected
-                                      ? "border-primary bg-primary"
-                                      : "border-input bg-background",
-                                    isLastSelected && "cursor-not-allowed"
-                                  )}
-                                  title={isLastSelected ? "At least one location must be selected" : undefined}
-                                >
-                                  {locationIds.includes(location.id) && (
-                                    <svg
-                                      className="h-3 w-3 text-primary-foreground"
-                                      fill="none"
-                                      viewBox="0 0 24 24"
-                                      stroke="currentColor"
-                                      strokeWidth={3}
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        d="M5 13l4 4L19 7"
-                                      />
-                                    </svg>
-                                  )}
-                                </div>
-                              </CommandItem>
-                            );
-                            })}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                              )}
+                            </div>
+                          </Pill>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {allLocations.length > 0 && (
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                      {locationIds.length === 0
+                        ? 'No locations selected. At least one location is required.'
+                        : locationIds.length === 1
+                        ? '1 location selected. At least one location must remain selected.'
+                        : `${locationIds.length} locations selected.`}
+                    </p>
+                  )}
                   {errors.locationIds && (
-                    <p className="text-sm text-destructive mt-1">
-                      {errors.locationIds.message as string}
+                    <p className="text-sm text-destructive flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5" />
+                      <span>{errors.locationIds.message as string}</span>
                     </p>
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </form>
       </BaseSlider>
 

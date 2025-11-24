@@ -1,11 +1,12 @@
 import { getType } from "typesafe-actions";
-import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction } from "./actions";
+import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction } from "./actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import type { InviteTeamMemberResponse } from "./types";
 
 type TeamMembersState = {
   teamMembers: TeamMember[];
   summary: TeamMemberSummary | null;
+  currentTeamMember: TeamMember | null;
   error: string | null;
   inviteResponse: InviteTeamMemberResponse | null;
   isInviting: boolean;
@@ -14,11 +15,14 @@ type TeamMembersState = {
   isDeleting: boolean;
   deleteError: string | null;
   deleteResponse?: any | null;
+  isFetchingTeamMember: boolean;
+  fetchTeamMemberError: string | null;
 };
 
 const initialState: TeamMembersState = {
   teamMembers: [],
   summary: null,
+  currentTeamMember: null,
   error: null,
   inviteResponse: null,
   isInviting: false,
@@ -27,6 +31,8 @@ const initialState: TeamMembersState = {
   isDeleting: false,
   deleteError: null,
   deleteResponse: null,
+  isFetchingTeamMember: false,
+  fetchTeamMemberError: null,
 };
 
 export default function teamMembersReducer(state: TeamMembersState = initialState, action: any) {
@@ -68,13 +74,22 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
       return { ...state, error: action.payload.message };
 
     case getType(deleteTeamMemberAction.request):
-      return { ...state, isDeleting: true, deleteError: null };
+      return { ...state, isDeleting: true, deleteError: null, deleteResponse: null };
 
     case getType(deleteTeamMemberAction.success):
       return { ...state, isDeleting: false, deleteError: null, deleteResponse: action.payload.deleteResponse };
 
     case getType(deleteTeamMemberAction.failure):
       return { ...state, isDeleting: false, deleteError: action.payload.message };
+
+    case getType(fetchTeamMemberByIdAction.request):
+      return { ...state, isFetchingTeamMember: true, fetchTeamMemberError: null, currentTeamMember: null };
+
+    case getType(fetchTeamMemberByIdAction.success):
+      return { ...state, isFetchingTeamMember: false, currentTeamMember: action.payload.teamMember, fetchTeamMemberError: null };
+
+    case getType(fetchTeamMemberByIdAction.failure):
+      return { ...state, isFetchingTeamMember: false, fetchTeamMemberError: action.payload.message, currentTeamMember: null };
 
     default:
       return state;

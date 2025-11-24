@@ -25,3 +25,8 @@ export const deleteTeamMemberApi = async (id: number): Promise<any> => {
   const { data } = await apiClient().delete(`/team-members/${id}`);
   return data;
 };
+
+export const fetchTeamMemberByIdApi = async (id: number): Promise<TeamMember> => {
+  const { data } = await apiClient().get<{ teamMember: TeamMember }>(`/team-members/${id}`);
+  return data.teamMember;
+};

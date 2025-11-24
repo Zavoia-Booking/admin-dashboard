@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { AssignmentListPanel, type ListItem } from '../common/AssignmentListPanel';
 import { AssignmentDetailsPanel, type AssignmentSection } from '../common/AssignmentDetailsPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../../shared/components/ui/avatar';
@@ -24,6 +25,7 @@ import { MapPin, Wrench } from 'lucide-react';
 
 export function TeamMembersAssignments() {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
   
   // State selectors
   const isLoading = useSelector(getIsLoadingSelector);
@@ -41,6 +43,9 @@ export function TeamMembersAssignments() {
   const [initialServiceIds, setInitialServiceIds] = useState<number[]>([]);
   const [initialLocationIds, setInitialLocationIds] = useState<number[]>([]);
   
+  // Track if we've already auto-selected from URL
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  
   // Handlers
   const handleSelectTeamMember = (userId: number) => {
     dispatch(selectTeamMemberAction(userId));
@@ -50,6 +55,20 @@ export function TeamMembersAssignments() {
   useEffect(() => {
     dispatch(listTeamMembersAction.request());
   }, [dispatch]);
+
+  // Auto-select team member from URL parameter
+  useEffect(() => {
+    const userIdFromUrl = searchParams.get('userId');
+    if (userIdFromUrl && !hasAutoSelected && allTeamMembers.length > 0) {
+      const userId = parseInt(userIdFromUrl, 10);
+      const memberExists = allTeamMembers.some((m: TeamMember) => m.id === userId);
+      if (memberExists && !isNaN(userId)) {
+        dispatch(selectTeamMemberAction(userId));
+        dispatch(fetchTeamMemberAssignmentByIdAction.request(userId));
+        setHasAutoSelected(true);
+      }
+    }
+  }, [searchParams, allTeamMembers, hasAutoSelected, dispatch]);
 
   // Sync local state when selected team member changes
   useEffect(() => {

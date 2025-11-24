@@ -22,3 +22,18 @@ export const selectDeleteResponse = createSelector(
   (state: any) => state.deleteResponse
 );
 
+export const selectCurrentTeamMember = createSelector(
+  getTeamMembersStateSelector,
+  (state: any): any | null => state.currentTeamMember ?? null
+);
+
+export const selectIsFetchingTeamMember = createSelector(
+  getTeamMembersStateSelector,
+  (state: any): boolean => state.isFetchingTeamMember ?? false
+);
+
+export const selectFetchTeamMemberError = createSelector(
+  getTeamMembersStateSelector,
+  (state: any): string | null => state.fetchTeamMemberError ?? null
+);
+

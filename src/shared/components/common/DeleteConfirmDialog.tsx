@@ -1,14 +1,17 @@
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogPortal,
+  DialogOverlay,
 } from "../ui/dialog";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { XIcon, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { AlertTriangle, XCircle } from "lucide-react";
 import type { DeleteConfirmDialogProps } from "../../types/delete-response";
+import { cn } from "../../lib/utils";
 
 const resourceLabels: Record<string, { singular: string; plural: string }> = {
   location: { singular: "location", plural: "locations" },
@@ -25,13 +28,16 @@ export function DeleteConfirmDialog({
   onConfirm,
   isLoading = false,
   secondaryActions,
+  className,
+  overlayClassName,
 }: DeleteConfirmDialogProps) {
   const labels = resourceLabels[resourceType] || {
     singular: "resource",
     plural: "resources",
   };
 
-  if (!deleteResponse) return null;
+  // Show loading state if no response yet
+  const isCheckingDependencies = !deleteResponse;
 
   const {
     canDelete,
@@ -41,7 +47,7 @@ export function DeleteConfirmDialog({
     locationsCount,
     teamMembersCount,
     isVisibleInMarketplace,
-  } = deleteResponse;
+  } = deleteResponse || {};
 
   // Build dynamic dependency list
   const dependencies: { count: number; label: string }[] = [];
@@ -72,35 +78,60 @@ export function DeleteConfirmDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="bg-surface border-border" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <DialogHeader>
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              {canDelete ? (
-                <div className="rounded-full bg-warning-bg p-2 border border-warning-border">
-                  <AlertTriangle className="h-5 w-5 text-warning" />
-                </div>
-              ) : (
-                <div className="rounded-full bg-error-bg p-2 border border-error-border">
-                  <XCircle className="h-5 w-5 text-error" />
-                </div>
-              )}
+      <DialogPortal>
+        <DialogOverlay className={cn(overlayClassName)} />
+        <DialogPrimitive.Content
+          className={cn(
+            "bg-surface border-border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+            className
+          )}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+        {isCheckingDependencies ? (
+          // Loading state while checking dependencies
+          <>
+            <DialogHeader>
               <DialogTitle className="text-foreground-1">
-                {canDelete ? `Delete ${labels.singular}?` : `Cannot delete ${labels.singular}`}
+                Checking dependencies...
               </DialogTitle>
+            </DialogHeader>
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+              <p className="text-sm text-foreground-3">
+                Verifying if this {labels.singular} can be deleted...
+              </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleOpenChange(false)}
-              className="inline-flex h-7 w-7 items-center justify-center rounded-md text-foreground-3 hover:text-foreground-1 hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border"
-            >
-              <span className="sr-only">Close</span>
-            </button>
-          </div>
-        </DialogHeader>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  {canDelete ? (
+                    <div className="rounded-full bg-warning-bg p-2 border border-warning-border">
+                      <AlertTriangle className="h-5 w-5 text-warning" />
+                    </div>
+                  ) : (
+                    <div className="rounded-full bg-error-bg p-2 border border-error-border">
+                      <XCircle className="h-5 w-5 text-error" />
+                    </div>
+                  )}
+                  <DialogTitle className="text-foreground-1">
+                    {canDelete ? `Delete ${labels.singular}?` : `Cannot delete ${labels.singular}`}
+                  </DialogTitle>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleOpenChange(false)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-foreground-3 hover:text-foreground-1 hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border"
+                >
+                  <span className="sr-only">Close</span>
+                </button>
+              </div>
+            </DialogHeader>
 
         {/* Main question / explanation row */}
-        <DialogDescription className="text-foreground-2">
+        <div className="text-foreground-2 text-sm">
           {canDelete ? (
             <div className="space-y-1 text-left">
               <p>
@@ -121,7 +152,7 @@ export function DeleteConfirmDialog({
               because it has associated dependencies.
             </p>
           )}
-        </DialogDescription>
+        </div>
 
         {!canDelete && dependencies.length > 0 && (
           <div className="rounded-lg bg-info-bg border border-info-border p-4">
@@ -203,7 +234,14 @@ export function DeleteConfirmDialog({
             </>
           )}
         </DialogFooter>
-      </DialogContent>
+          </>
+        )}
+        <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+          <XIcon />
+          <span className="sr-only">Close</span>
+        </DialogPrimitive.Close>
+      </DialogPrimitive.Content>
+      </DialogPortal>
     </Dialog>
   );
 }

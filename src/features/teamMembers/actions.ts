@@ -33,3 +33,9 @@ export const deleteTeamMemberAction = createAsyncAction(
   'teamMembers/DELETE_SUCCESS',
   'teamMembers/DELETE_FAILURE',
 )<{ id: number }, { deleteResponse: any }, { message: string }>();
+
+export const fetchTeamMemberByIdAction = createAsyncAction(
+  'teamMembers/FETCH_BY_ID_REQUEST',
+  'teamMembers/FETCH_BY_ID_SUCCESS',
+  'teamMembers/FETCH_BY_ID_FAILURE',
+)<{ id: number }, { teamMember: TeamMember }, { message: string }>();

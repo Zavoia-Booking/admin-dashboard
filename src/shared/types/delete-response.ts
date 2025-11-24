@@ -24,5 +24,7 @@ export interface DeleteConfirmDialogProps {
     label: string;
     onClick: () => void;
   }[];
+  className?: string;
+  overlayClassName?: string;
 }
 

@@ -47,7 +47,7 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
         </div>
 
         <div className="text-xs text-blue-700 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 rounded-lg">
-          ✓ During your trial, you can invite unlimited team members to explore features together!
+          ✓ During your trial period, you can invite unlimited team members to explore features together!
         </div>
       </>
     );
