@@ -87,6 +87,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const servicesError = useSelector(getServicesErrorSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const justOpenedRef = useRef(false);
   const {
     control,
     handleSubmit,
@@ -267,9 +268,23 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     if (!isOpen) {
       reset(initialFormData);
       setNewlyCreatedCategories([]);
-      setIsSubmitting(false);
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
     }
   }, [isOpen, reset]);
+
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setShowConfirmDialog(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+    }
+  }, [isOpen]);
 
   // Watch for errors and show toast
   useEffect(() => {
@@ -284,23 +299,33 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
 
   // Watch for success and close form
   useEffect(() => {
-    if (!isServicesLoading && isSubmitting && !servicesError) {
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current) {
       // Success - close form and reset
+      // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
       reset(initialFormData);
       setNewlyCreatedCategories([]);
-      setIsSubmitting(false);
     }
-  }, [isServicesLoading, isSubmitting, servicesError, onClose, reset]);
+  }, [isOpen, isServicesLoading, isSubmitting, servicesError, onClose, reset]);
 
   // no per-form location state when All locations
 
   const onSubmit = () => {
+    // Prevent opening dialog if already submitting or loading
+    if (isSubmitting || isServicesLoading) {
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
   const handleConfirmCreate = () => {
+    // Guard against double-clicks on Confirm button
+    if (isSubmitting || isServicesLoading) {
+      return;
+    }
+
     const {
       name,
       price,
@@ -371,13 +396,22 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
             formId="add-service-form"
             cancelLabel={text("addService.buttons.cancel")}
             submitLabel={text("addService.buttons.create")}
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isSubmitting || isServicesLoading}
+            isLoading={isSubmitting || isServicesLoading}
           />
         }
       >
         <form
           id="add-service-form"
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={(e) => {
+            // Prevent form submission if already submitting or loading
+            if (isFormDisabled || isSubmitting || isServicesLoading) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            handleSubmit(onSubmit)(e);
+          }}
           className="h-full flex flex-col cursor-default"
         >
           <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">

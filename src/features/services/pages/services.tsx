@@ -38,6 +38,13 @@ export default function ServicesPage() {
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
+  // Reset the "add form open" flag when leaving this page
+  useEffect(() => {
+    return () => {
+      dispatch(toggleAddFormAction(false));
+    };
+  }, [dispatch]);
+
   // Check for URL parameters to auto-open sliders
   useEffect(() => {
     const openParam = searchParams.get("open");
