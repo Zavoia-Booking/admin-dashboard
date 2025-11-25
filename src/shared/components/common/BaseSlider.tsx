@@ -263,24 +263,22 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
           <div
             className={cn(
               "overflow-y-auto flex flex-col",
-              // Mobile: flex-1 with padding
+              // Mobile: flex-1 with padding, footer inside
               "flex-1 p-3",
               // Desktop: full width and height, no padding (content handles its own spacing)
-              "md:w-full md:h-full md:p-0",
+              "md:w-full md:h-full md:p-0 md:flex-1",
               contentClassName
             )}
           >
             <div className="flex-1">{children}</div>
 
-            {/* Footer - Show on both mobile and desktop, scrolls with content */}
+            {/* Mobile: Footer inside scrollable content */}
             {footer && (
-              <div
-                className={cn("bg-surface", "px-0 md:px-6", footerClassName)}
-              >
+              <div className={cn("md:hidden bg-surface", footerClassName)}>
                 {/* Dotted Divider */}
                 <DashedDivider
                   marginTop="mt-0"
-                  className="mb-0 md:mb-6"
+                  className="mb-0"
                   paddingTop="pt-0"
                   dashPattern="1 1"
                 />
@@ -289,8 +287,24 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
             )}
           </div>
 
-          {/* Bottom padding - Always visible, sticky at bottom */}
-          <div className="hidden md:block h-6 bg-surface shrink-0" />
+          {/* Desktop: Footer outside content, sticky at bottom */}
+          {footer && (
+            <div
+              className={cn(
+                "hidden md:flex flex-col bg-surface shrink-0",
+                footerClassName
+              )}
+            >
+              {/* Dotted Divider */}
+              <DashedDivider
+                marginTop="mt-0"
+                className="mb-0"
+                paddingTop="pt-4"
+                dashPattern="1 1"
+              />
+              <div className="px-6 pb-2">{footer}</div>
+            </div>
+          )}
         </div>
       </div>
     </>

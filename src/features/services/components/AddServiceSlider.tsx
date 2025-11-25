@@ -87,6 +87,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const servicesError = useSelector(getServicesErrorSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const justOpenedRef = useRef(false);
   const {
     control,
     handleSubmit,
@@ -277,6 +278,11 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     if (isOpen) {
       setIsSubmitting(false);
       setShowConfirmDialog(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
     }
   }, [isOpen]);
 
@@ -293,7 +299,8 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
 
   // Watch for success and close form
   useEffect(() => {
-    if (!isServicesLoading && isSubmitting && !servicesError) {
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current) {
       // Success - close form and reset
       // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
@@ -301,7 +308,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       reset(initialFormData);
       setNewlyCreatedCategories([]);
     }
-  }, [isServicesLoading, isSubmitting, servicesError, onClose, reset]);
+  }, [isOpen, isServicesLoading, isSubmitting, servicesError, onClose, reset]);
 
   // no per-form location state when All locations
 

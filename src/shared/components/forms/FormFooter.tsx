@@ -30,7 +30,7 @@ export const FormFooter: React.FC<FormFooterProps> = ({
 }) => {
   return (
     <div
-      className={`flex justify-between gap-2 mt-6 mb-3 md:mb-2 ${className}`}
+      className={`flex justify-between gap-2 mt-4 mb-3 md:mb-2 ${className}`}
     >
       {showCancel && (
         <Button

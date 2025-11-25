@@ -82,6 +82,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   const servicesError = useSelector(getServicesErrorSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const justOpenedRef = useRef(false);
 
   // Use service from Redux state (fetched via getServiceById) or fallback to prop
   const service = editForm.item || serviceProp;
@@ -277,6 +278,11 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     if (isOpen) {
       setIsSubmitting(false);
       setShowConfirmDialog(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
     }
   }, [isOpen]);
 
@@ -308,13 +314,14 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
 
   // Watch for success and close form
   useEffect(() => {
-    if (!isServicesLoading && isSubmitting && !servicesError) {
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current) {
       // Success - close form and reset
       // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
     }
-  }, [isServicesLoading, isSubmitting, servicesError, onClose]);
+  }, [isOpen, isServicesLoading, isSubmitting, servicesError, onClose]);
 
   const onSubmit = () => {
     // Prevent opening dialog if already submitting or loading
