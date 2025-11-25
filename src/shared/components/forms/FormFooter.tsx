@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "../ui/button";
 import { ArrowRight } from "lucide-react";
+import { Spinner } from "../ui/spinner";
 
 export interface FormFooterProps {
   onCancel: () => void;
@@ -45,15 +46,30 @@ export const FormFooter: React.FC<FormFooterProps> = ({
       )}
       {showSubmit && (
         <Button
-          type="submit"
+          type={isLoading || disabled ? "button" : "submit"}
           form={formId}
           rounded="full"
-          onClick={onSubmit}
+          onClick={(e) => {
+            if (isLoading || disabled) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            if (onSubmit) {
+              onSubmit();
+            }
+          }}
           className="group gap-2 h-11 cursor-pointer w-72"
           disabled={isLoading || disabled}
         >
-          {submitLabel}
-          <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+          {isLoading ? (
+            <Spinner size="sm" color="white" />
+          ) : (
+            <>
+              {submitLabel}
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+            </>
+          )}
         </Button>
       )}
     </div>

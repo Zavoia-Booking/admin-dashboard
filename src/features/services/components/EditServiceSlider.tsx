@@ -266,8 +266,17 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   // Reset form when slider closes
   useEffect(() => {
     if (!isOpen) {
-      setIsSubmitting(false);
       setIsCategoriesLoading(false);
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
+    }
+  }, [isOpen]);
+
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setShowConfirmDialog(false);
     }
   }, [isOpen]);
 
@@ -301,17 +310,26 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   useEffect(() => {
     if (!isServicesLoading && isSubmitting && !servicesError) {
       // Success - close form and reset
+      // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
-      setIsSubmitting(false);
     }
   }, [isServicesLoading, isSubmitting, servicesError, onClose]);
 
   const onSubmit = () => {
+    // Prevent opening dialog if already submitting or loading
+    if (isSubmitting || isServicesLoading) {
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
   const handleConfirmUpdate = () => {
+    // Guard against double-clicks on Confirm button
+    if (isSubmitting || isServicesLoading) {
+      return;
+    }
+
     const {
       id,
       name,
@@ -361,13 +379,22 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
             formId="edit-service-form"
             cancelLabel={text("editService.buttons.cancel")}
             submitLabel={text("editService.buttons.update")}
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isSubmitting || isServicesLoading}
+            isLoading={isSubmitting || isServicesLoading}
           />
         }
       >
         <form
           id="edit-service-form"
-          onSubmit={handleSubmit(onSubmit)}
+          onSubmit={(e) => {
+            // Prevent form submission if already submitting or loading
+            if (isFormDisabled || isSubmitting || isServicesLoading) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            handleSubmit(onSubmit)(e);
+          }}
           className="h-full flex flex-col cursor-default"
         >
           <div className="flex-1 overflow-y-auto p-1 py-6 md:p-6 pt-0 md:pt-0 bg-surface">
