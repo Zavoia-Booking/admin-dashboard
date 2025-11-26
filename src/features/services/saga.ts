@@ -82,16 +82,28 @@ function* handleDeleteService(
   action: ActionType<typeof deleteServicesAction.request>
 ) {
   try {
-    const response: { data: unknown } = yield call(
+    const response: { data: any } = yield call(
       deleteServiceRequest,
       action.payload.serviceId
     );
-    if (response.data) {
+    
+    // Check if response indicates service cannot be deleted
+    const deleteResponse = response.data?.deleteResponse || response.data;
+    
+    if (deleteResponse?.canDelete === false) {
+      // Service has dependencies and cannot be deleted
+      yield put(deleteServicesAction.success(deleteResponse));
+    } else {
+      // Service was successfully deleted
       toast.success("Service deleted successfully");
+      yield put(deleteServicesAction.success({ canDelete: true, message: 'Service deleted successfully' }));
       yield put(getServicesAction.request({ reset: true }));
     }
-  } catch {
-    toast.error("Failed to delete service");
+  } catch (error: unknown) {
+    console.error("Failed to delete service:", error);
+    const errorMessage = getErrorMessage(error);
+    toast.error(errorMessage || "Failed to delete service");
+    yield put(deleteServicesAction.failure({ message: errorMessage }));
   }
 }
 
@@ -108,6 +120,7 @@ function* handleEditServices(
     );
     if (response.data) {
       toast.success("Service edited successfully");
+      yield put(editServicesAction.success(response.data));
       yield put(getServicesAction.request({ reset: true }));
     }
   } catch (error: unknown) {

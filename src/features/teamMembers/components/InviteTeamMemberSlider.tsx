@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Mail, UserPlus, MapPin, Loader2, AlertCircle } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
+import { Mail, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { Pill } from '../../../shared/components/ui/pill';
 import type { InviteTeamMemberPayload } from '../types';
 import { useDispatch, useSelector } from 'react-redux';
@@ -45,6 +45,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   const inviteResponse = useSelector(selectInviteResponse);
   const inviteError = useSelector(selectTeamMembersError);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const justOpenedRef = React.useRef(false);
   const subscriptionSummary = useSelector(selectSubscriptionSummary);
   const loadingPricing = useSelector(selectIsLoadingSubscriptionSummary);
   const allLocations = useSelector(getAllLocationsSelector);
@@ -53,16 +54,26 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   const isInviteAllowed = !(seatCtx.isCancelled || !seatCtx.hasSubscription || !seatCtx.hasAvailableSeats);
   const locationIds = watch('locationIds');
   
-  // Prefill/lock location based on current location, and reset form when slider closes
+  // When slider opens, reset submission state and fetch data
+  useEffect(() => {
+    if (isOpen) {
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+      // Fetch locations when slider opens
+      dispatch(listLocationsAction.request());
+    }
+  }, [isOpen, dispatch]);
+
+  // Reset form when slider closes
   useEffect(() => {
     if (!isOpen) {
       reset(initialFormData);
       dispatch(clearInviteResponseAction());
-      return;
     }
-    // Fetch locations when slider opens
-    dispatch(listLocationsAction.request());
-  }, [isOpen, reset, setValue, dispatch]);
+  }, [isOpen, reset, dispatch]);
 
   // Initialize all locations as selected by default when locations are loaded
   useEffect(() => {
@@ -114,8 +125,11 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
 
   // Handle invite success/error
   useEffect(() => {
+    // Don't process if slider just opened (prevents race condition)
+    if (justOpenedRef.current) return;
+    
     if (inviteResponse && !isInviting) {
-      // Success: show toast and close slider
+      // Success: navigate and close slider
       navigate(`/team-members/invitation-success?email=${watch('email')}`);
       onClose();
       reset(initialFormData);
@@ -127,9 +141,14 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       toast.error(inviteError);
       dispatch(clearInviteResponseAction());
     }
-  }, [inviteResponse, inviteError, isInviting, onClose, reset, dispatch]);
+  }, [inviteResponse, inviteError, isInviting, onClose, reset, dispatch, navigate, watch]);
 
   const onSubmit = async () => {
+    // Prevent opening dialog if already submitting
+    if (isInviting) {
+      return;
+    }
+
     const isValid = await trigger('locationIds');
     if (!isValid) {
       return;
@@ -149,6 +168,11 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   };
 
   const handleConfirmInvite = () => {
+    // Guard against double-clicks on Confirm button
+    if (isInviting) {
+      return;
+    }
+
     const email = watch('email');
     const locationIds = watch('locationIds');
     const data: InviteTeamMemberPayload = {
@@ -208,34 +232,14 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
         onClose={onClose}
         title="Invite Team Member"
         footer={
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1"
-              disabled={isInviting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="invite-team-member-form"
-              className="flex-1 gap-2"
-              disabled={isInviting}
-            >
-              {isInviting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Sending...
-                </>
-              ) : (
-                <>
-                  <UserPlus className="h-4 w-4" />
-                  {getTextForButton()}
-                </>
-              )}
-            </Button>
-          </div>
+          <FormFooter
+            onCancel={handleCancel}
+            formId="invite-team-member-form"
+            cancelLabel="Cancel"
+            submitLabel={getTextForButton()}
+            disabled={isInviting}
+            isLoading={isInviting}
+          />
         }
       >
         <form 

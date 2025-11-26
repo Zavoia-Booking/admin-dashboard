@@ -1,11 +1,13 @@
 import { getType } from 'typesafe-actions';
-import { fetchCurrentBusinessAction } from './actions';
+import { fetchCurrentBusinessAction, updateBusinessAction } from './actions';
 import type { BusinessState } from './types';
 
 const initialState: BusinessState = {
   current: null,
   isLoading: false,
   error: null,
+  isUpdating: false,
+  updateError: null,
 };
 
 export default function businessReducer(
@@ -21,6 +23,15 @@ export default function businessReducer(
     
     case getType(fetchCurrentBusinessAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };
+    
+    case getType(updateBusinessAction.request):
+      return { ...state, isUpdating: true, updateError: null };
+    
+    case getType(updateBusinessAction.success):
+      return { ...state, isUpdating: false, updateError: null };
+    
+    case getType(updateBusinessAction.failure):
+      return { ...state, isUpdating: false, updateError: action.payload.message };
     
     default:
       return state;

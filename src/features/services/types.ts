@@ -10,6 +10,9 @@ export type ServicesState = {
   };
   error: string | null;
   isLoading: boolean;
+  isDeleting: boolean;
+  deleteError: string | null;
+  deleteResponse?: any | null;
 };
 
 export type CreateServicePayload = {
@@ -36,8 +39,6 @@ export type EditServicePayload = {
   duration: number;
   price_amount_minor: number; // Price in integer cents
   id: number;
-  locations?: number[];
-  teamMembers?: number[];
   category?: {
     categoryId?: number;
     categoryName?: string;

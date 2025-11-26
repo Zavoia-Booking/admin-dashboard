@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Building2, Mail, Globe, Clock, Shield, Instagram, Facebook, Camera, User } from 'lucide-react';
+import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '../../../shared/components/ui/dialog';
 import { toast } from 'sonner';
-import LogoUpload from '../../../shared/components/common/LogoUpload';
+import CurrencySelect from '../../../shared/components/common/CurrencySelect';
 import FormSectionHeader from '../../../shared/components/forms/FormSectionHeader';
 import TextField from '../../../shared/components/forms/fields/TextField';
 import TextareaField from '../../../shared/components/forms/fields/TextareaField';
 import { uploadBusinessLogo } from '../api';
 import GoogleAccountManager from './GoogleAccountManager';
-import { fetchCurrentBusinessAction } from '../../business/actions';
-import { getCurrentBusinessSelector } from '../../business/selectors';
+import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
+import { getCurrentBusinessSelector, getBusinessUpdatingSelector } from '../../business/selectors';
+import { fetchCurrentUserAction } from '../../auth/actions';
 
 interface BusinessFormData {
   businessName: string;
@@ -22,6 +22,7 @@ interface BusinessFormData {
   businessPhone: string;
   timeZone: string;
   country: string;
+  businessCurrency: string;
   instagramUrl: string;
   facebookUrl: string;
   bookingSlug: string;
@@ -37,6 +38,7 @@ const initialFormData: BusinessFormData = {
   businessPhone: '',
   timeZone: 'America/New_York',
   country: '',
+  businessCurrency: 'eur',
   instagramUrl: '',
   facebookUrl: '',
   bookingSlug: '',
@@ -47,10 +49,11 @@ const initialFormData: BusinessFormData = {
 const BusinessProfile: React.FC = () => {
   const dispatch = useDispatch();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
+  const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<BusinessFormData>(initialFormData);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [isLogoDialogOpen, setIsLogoDialogOpen] = useState(false);
 
   // Fetch business data on mount
   useEffect(() => {
@@ -68,6 +71,7 @@ const BusinessProfile: React.FC = () => {
         businessPhone: currentBusiness.phone || '',
         timeZone: currentBusiness.timezone || 'America/New_York',
         country: currentBusiness.country || '',
+        businessCurrency: currentBusiness.businessCurrency || 'eur',
         instagramUrl: currentBusiness.instagramUrl || '',
         facebookUrl: currentBusiness.facebookUrl || '',
         bookingSlug: currentBusiness.uuid || '',
@@ -77,9 +81,21 @@ const BusinessProfile: React.FC = () => {
     }
   }, [currentBusiness]);
 
-  const handleLogoUpload = async (file: File | null) => {
-    if (!file) {
-      setFormData(prev => ({ ...prev, logo: null, logoKey: null }));
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml', 'image/avif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    const maxSizeMB = 10;
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      toast.error(`File size must be less than ${maxSizeMB}MB`);
       return;
     }
 
@@ -94,19 +110,36 @@ const BusinessProfile: React.FC = () => {
       }));
       
       toast.success('Logo uploaded successfully!');
+      
+      // Refresh user data to update sidebar logo
+      dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       console.error('Error uploading logo:', error);
       toast.error(error?.message || 'Failed to upload logo');
     } finally {
       setIsUploadingLogo(false);
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
-    console.log('Saving business info:', formData);
-    toast.success('✅ Business information saved successfully');
+    // Prepare update data (logo is handled separately via upload endpoint)
+    const updateData = {
+      name: formData.businessName,
+      description: formData.description,
+      email: formData.businessEmail,
+      phone: formData.businessPhone,
+      businessCurrency: formData.businessCurrency,
+      instagramUrl: formData.instagramUrl,
+      facebookUrl: formData.facebookUrl,
+    };
+    
+    dispatch(updateBusinessAction.request(updateData));
   };
 
   return (
@@ -129,7 +162,16 @@ const BusinessProfile: React.FC = () => {
                 Your logo appears on your booking page and communications
               </p>
               
-              {/* Circular Logo Preview */}
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,image/avif"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              
+              {/* Circular Logo Preview with Edit Button */}
               <div className="flex items-center gap-4 pt-2">
                 <div className="relative">
                   <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border flex items-center justify-center">
@@ -143,76 +185,19 @@ const BusinessProfile: React.FC = () => {
                       <User className="w-12 h-12 text-muted-foreground" />
                     )}
                   </div>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="outline"
-                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full shadow-md bg-surface border-border hover:bg-surface-hover"
-                    onClick={() => setIsLogoDialogOpen(true)}
+                  {/* Edit Button on Logo */}
+                  <div
+                    onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-white text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-gray-50 transition-colors border border-border ${
+                      isUploadingLogo ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                    }`}
                   >
-                    <Camera className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                <div className="flex-1">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsLogoDialogOpen(true)}
-                  >
-                    {formData.logo ? 'Change Logo' : 'Upload Logo'}
-                  </Button>
-                  {formData.logo && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="ml-2 text-destructive hover:text-destructive"
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, logo: null, logoKey: null }));
-                        toast.success('Logo removed');
-                      }}
-                    >
-                      Remove
-                    </Button>
-                  )}
+                    <Camera className="h-3 w-3" />
+                    {isUploadingLogo ? 'Uploading...' : 'Edit'}
+                  </div>
                 </div>
               </div>
             </div>
-
-            {/* Logo Upload Dialog */}
-            <Dialog open={isLogoDialogOpen} onOpenChange={setIsLogoDialogOpen}>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>Upload Business Logo</DialogTitle>
-                  <DialogDescription>
-                    Choose a logo for your business.
-                  </DialogDescription>
-                </DialogHeader>
-                <LogoUpload
-                  value={formData.logo}
-                  onChange={handleLogoUpload}
-                  uploading={isUploadingLogo}
-                  maxSizeMB={10}
-                  recommendedSizeMB={2}
-                  recommendedDimensions={{ width: 1024, height: 1024 }}
-                  allowedTypes={[
-                    'image/jpeg',
-                    'image/jpg',
-                    'image/png',
-                    'image/webp',
-                    'image/svg+xml',
-                    'image/avif',
-                  ]}
-                />
-                {formData.logo && (
-                  <div className="flex justify-end">
-                    <Button onClick={() => setIsLogoDialogOpen(false)}>
-                      Done
-                    </Button>
-                  </div>
-                )}
-              </DialogContent>
-            </Dialog>
 
             {/* Two Column Layout */}
             <div className="flex flex-wrap gap-6">
@@ -234,6 +219,7 @@ const BusinessProfile: React.FC = () => {
                   value={formData.industry}
                   onChange={(value) => setFormData(prev => ({ ...prev, industry: value }))}
                   icon={Globe}
+                  disabled
                 />
               </div>
             </div>
@@ -246,6 +232,21 @@ const BusinessProfile: React.FC = () => {
               onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
               maxLength={500}
             />
+
+            {/* Currency */}
+            <div className="space-y-2">
+              <Label htmlFor="businessCurrency" className="text-base font-medium">
+                Default Pricing Currency *
+              </Label>
+              <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                Choose your default currency for pricing
+              </p>
+              <CurrencySelect
+                id="businessCurrency"
+                value={formData.businessCurrency}
+                onChange={(value) => setFormData(prev => ({ ...prev, businessCurrency: value }))}
+              />
+            </div>
           </div>
         </div>
 
@@ -313,38 +314,6 @@ const BusinessProfile: React.FC = () => {
             </div>
           </div>
         </div>
-
-        {/* Settings Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <FormSectionHeader
-            icon={Clock}
-            title="Regional Settings"
-            description="Configure timezone and location preferences"
-            className="mb-6"
-          />
-          
-          <div className="flex flex-wrap gap-6">
-            <div className="flex-1 min-w-[280px]">
-              <TextField
-                label="Time Zone"
-                placeholder="America/New_York"
-                value={formData.timeZone}
-                onChange={(value) => setFormData(prev => ({ ...prev, timeZone: value }))}
-                icon={Clock}
-              />
-            </div>
-            
-            <div className="flex-1 min-w-[280px]">
-              <TextField
-                label="Country"
-                placeholder="United States"
-                value={formData.country}
-                onChange={(value) => setFormData(prev => ({ ...prev, country: value }))}
-                icon={Globe}
-              />
-            </div>
-          </div>
-        </div>
         
         {/* Account Security Section */}
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
@@ -364,11 +333,12 @@ const BusinessProfile: React.FC = () => {
             type="button" 
             variant="outline"
             onClick={() => dispatch(fetchCurrentBusinessAction.request())}
+            disabled={isUpdating}
           >
             Reset Changes
           </Button>
-          <Button type="submit" className="min-w-[140px]">
-            Save Changes
+          <Button type="submit" className="min-w-[140px]" disabled={isUpdating}>
+            {isUpdating ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MapPin, ArrowRight } from 'lucide-react';
 import { AssignmentListPanel, type ListItem } from '../common/AssignmentListPanel';
 import { AssignmentDetailsPanel } from '../common/AssignmentDetailsPanel';
@@ -19,10 +19,12 @@ import {
 } from '../../selectors';
 import { getAllLocationsSelector } from '../../../locations/selectors';
 import { listLocationsAction } from '../../../locations/actions';
+import type { LocationType } from '../../../../shared/types/location';
 
 export function LocationsAssignments() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // State selectors
   const isLoading = useSelector(getIsLoadingSelector);
@@ -38,11 +40,28 @@ export function LocationsAssignments() {
   // Track initial state to detect changes
   const [initialUserIds, setInitialUserIds] = useState<number[]>([]);
   const [initialServiceIds, setInitialServiceIds] = useState<number[]>([]);
+  
+  // Track if we've already auto-selected from URL
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   // Load locations list on mount
   useEffect(() => {
     dispatch(listLocationsAction.request());
   }, [dispatch]);
+
+  // Auto-select location from URL parameter
+  useEffect(() => {
+    const locationIdFromUrl = searchParams.get('locationId');
+    if (locationIdFromUrl && !hasAutoSelected && allLocations.length > 0) {
+      const locationId = parseInt(locationIdFromUrl, 10);
+      const locationExists = allLocations.some((l: LocationType) => l.id === locationId);
+      if (locationExists && !isNaN(locationId)) {
+        dispatch(selectLocationAction(locationId));
+        dispatch(fetchLocationAssignmentByIdAction.request(locationId));
+        setHasAutoSelected(true);
+      }
+    }
+  }, [searchParams, allLocations, hasAutoSelected, dispatch]);
 
   // Sync local state when selected location changes
   useEffect(() => {

@@ -10,7 +10,7 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { XIcon, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { AlertTriangle, XCircle } from "lucide-react";
-import type { DeleteConfirmDialogProps } from "../../types/delete-response";
+import type { DeleteConfirmDialogProps, DeleteResponse } from "../../types/delete-response";
 import { cn } from "../../lib/utils";
 
 const resourceLabels: Record<string, { singular: string; plural: string }> = {
@@ -46,14 +46,22 @@ export function DeleteConfirmDialog({
     appointmentsCount,
     locationsCount,
     teamMembersCount,
+    activeUsersCount,
+    pendingUsersCount,
     isVisibleInMarketplace,
-  } = deleteResponse || {};
+  } = (deleteResponse || {}) as Partial<DeleteResponse>;
 
   // Build dynamic dependency list
-  const dependencies: { count: number; label: string }[] = [];
+  const dependencies: { count: number; label: string; isPending?: boolean }[] = [];
 
   if (usersCount && usersCount > 0) {
     dependencies.push({ count: usersCount, label: usersCount === 1 ? "user" : "users" });
+  }
+  if (activeUsersCount && activeUsersCount > 0) {
+    dependencies.push({ count: activeUsersCount, label: activeUsersCount === 1 ? "active team member" : "active team members" });
+  }
+  if (pendingUsersCount && pendingUsersCount > 0) {
+    dependencies.push({ count: pendingUsersCount, label: pendingUsersCount === 1 ? "pending team member invitation" : "pending team member invitations", isPending: true });
   }
   if (servicesCount && servicesCount > 0) {
     dependencies.push({ count: servicesCount, label: servicesCount === 1 ? "service" : "services" });
@@ -163,14 +171,19 @@ export function DeleteConfirmDialog({
               {dependencies.map((dep, index) => (
                 <li
                   key={index}
-                  className="flex items-center gap-2 text-sm text-foreground-2"
+                  className="flex items-start gap-2 text-sm text-foreground-2"
                 >
-                  <div className="h-1.5 w-1.5 rounded-full bg-info" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-info mt-1.5 flex-shrink-0" />
                   <span>
                     <span className="font-semibold text-foreground-1">
                       {dep.count}
                     </span>{" "}
                     {dep.label}
+                    {dep.isPending && (
+                      <span className="block text-xs text-foreground-3 mt-0.5">
+                        Cancel the invitation{dep.count > 1 ? 's' : ''} before removing this {labels.singular}
+                      </span>
+                    )}
                   </span>
                 </li>
               ))}

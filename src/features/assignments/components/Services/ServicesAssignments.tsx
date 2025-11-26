@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { AssignmentListPanel, type ListItem } from '../common/AssignmentListPanel';
 import { AssignmentDetailsPanel, type AssignmentSection } from '../common/AssignmentDetailsPanel';
 import { Briefcase } from 'lucide-react';
@@ -16,9 +17,11 @@ import {
 } from '../../selectors';
 import { getServicesAction } from '../../../services/actions';
 import { getServicesListSelector } from '../../../services/selectors';
+import type { Service } from '../../../../shared/types/service';
 
 export function ServicesAssignments() {
   const dispatch = useDispatch();
+  const [searchParams] = useSearchParams();
   
   // State selectors
   const isLoading = useSelector(getIsLoadingSelector);
@@ -33,10 +36,27 @@ export function ServicesAssignments() {
   // Track initial state to detect changes
   const [initialUserIds, setInitialUserIds] = useState<number[]>([]);
   const [initialLocationIds, setInitialLocationIds] = useState<number[]>([]);
+  
+  // Track if we've already auto-selected from URL
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   useEffect(() => {
     dispatch(getServicesAction.request({ reset: true }));
   }, [dispatch]);
+
+  // Auto-select service from URL parameter
+  useEffect(() => {
+    const serviceIdFromUrl = searchParams.get('serviceId');
+    if (serviceIdFromUrl && !hasAutoSelected && allServices.length > 0) {
+      const serviceId = parseInt(serviceIdFromUrl, 10);
+      const serviceExists = allServices.some((s: Service) => s.id === serviceId);
+      if (serviceExists && !isNaN(serviceId)) {
+        dispatch(selectServiceAction(serviceId));
+        dispatch(fetchServiceAssignmentByIdAction.request(serviceId));
+        setHasAutoSelected(true);
+      }
+    }
+  }, [searchParams, allServices, hasAutoSelected, dispatch]);
 
   // Sync local state when selected service changes
   useEffect(() => {

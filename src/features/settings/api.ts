@@ -38,7 +38,7 @@ export const uploadBusinessLogo = async (file: File): Promise<{ success: boolean
   
   // Don't set Content-Type header manually - let axios handle it with the boundary
   const response = await apiClient().post<{ success: boolean; logo: string; logoKey: string }>(
-    '/business-info/upload-logo',
+    '/business/upload-logo',
     formData
   );
   return response.data;

@@ -42,3 +42,24 @@ export const getServicesLoadingSelector = createSelector(
     return state.isLoading;
   }
 );
+
+export const getServicesDeletingSelector = createSelector(
+  getServicesStateSelector,
+  (state): boolean => {
+    return state.isDeleting ?? false;
+  }
+);
+
+export const getServicesDeleteResponseSelector = createSelector(
+  getServicesStateSelector,
+  (state) => {
+    return state.deleteResponse;
+  }
+);
+
+export const getServicesDeleteErrorSelector = createSelector(
+  getServicesStateSelector,
+  (state): string | null => {
+    return state.deleteError ?? null;
+  }
+);

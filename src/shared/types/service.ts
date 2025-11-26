@@ -15,4 +15,6 @@ export interface Service {
   locations?: Array<{ id: number; name: string }>;
   teamMembers?: Array<{ id: number; firstName: string; lastName: string }>;
   category?: { id: number; name: string; color?: string } | null;
+  locationsCount?: number;
+  teamMembersCount?: number;
 }

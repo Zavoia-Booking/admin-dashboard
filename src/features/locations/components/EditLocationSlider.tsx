@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Loader2 } from 'lucide-react';
 import { Label } from '../../../shared/components/ui/label';
+import { Button } from '../../../shared/components/ui/button';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { TextField } from '../../../shared/components/forms/fields/TextField';
@@ -13,14 +15,16 @@ import ContactInformationToggle from '../../../shared/components/common/ContactI
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
-import { updateLocationAction } from '../actions';
+import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import type { DeleteResponse } from '../../../shared/types/delete-response';
+import { updateLocationAction, deleteLocationAction } from '../actions';
 import type { EditLocationType } from '../types';
 import type { LocationType, WorkingHours } from '../../../shared/types/location';
 import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
 import { selectCurrentUser } from '../../auth/selectors';
 import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
-import { getLocationLoadingSelector, getLocationErrorSelector } from '../selectors';
+import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector } from '../selectors';
 import { toast } from 'sonner';
 import { mapLocationForEdit } from '../utils';
 
@@ -36,9 +40,12 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   location 
 }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const currentUser = useSelector(selectCurrentUser);
   const locationError = useSelector(getLocationErrorSelector);
   const isLocationLoading = useSelector(getLocationLoadingSelector);
+  const isDeleting = useSelector(getIsDeletingSelector);
+  const deleteResponseFromState = useSelector(getDeleteResponseSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(false);
   const [isAddressValid, setIsAddressValid] = useState(true);
@@ -46,6 +53,10 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const prevIsRemoteRef = useRef<boolean>(false);
   const originalEmailRef = useRef<string>("");
   const originalPhoneRef = useRef<string>("");
+  const justOpenedRef = useRef(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
+  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
 
   const {
     control,
@@ -199,17 +210,54 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   // Reset when slider closes
   useEffect(() => {
     if (!isOpen) {
-      setIsSubmitting(false);
       setIsAddressValid(true);
       setAddressComposerKey(0);
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
+      // Reset delete state when closing
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
     }
   }, [isOpen]);
+
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setShowConfirmDialog(false);
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+    }
+  }, [isOpen]);
+
+  // Handle delete response from Redux state
+  useEffect(() => {
+    if (deleteResponseFromState && hasAttemptedDelete && !isDeleting) {
+      if (deleteResponseFromState.canDelete === false) {
+        // Cannot delete - update dialog to show blocking info
+        setDeleteResponse(deleteResponseFromState as DeleteResponse);
+      } else {
+        // Successfully deleted - close dialog
+        setShowDeleteDialog(false);
+        setDeleteResponse(null);
+        setHasAttemptedDelete(false);
+        onClose();
+      }
+    }
+  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, onClose]);
 
   // Watch for errors and show toast
   useEffect(() => {
     if (locationError && isSubmitting) {
       toast.error("We couldn't update the location", {
-        description: String(locationError),
+        description: "Please check your information and try again.",
         icon: undefined,
       });
       setIsSubmitting(false);
@@ -218,11 +266,12 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
   // Watch for success and close form
   useEffect(() => {
-    if (!isLocationLoading && isSubmitting && !locationError) {
-      // Success - close form
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
+      // Success - close form and reset
+      // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
-      setIsSubmitting(false);
     }
   }, [isLocationLoading, isSubmitting, locationError, onClose]);
 
@@ -296,11 +345,18 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     !formState.isDirty;
 
   const onSubmit = () => {
+    // Prevent opening dialog if already submitting or loading
+    if (isSubmitting || isLocationLoading) {
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
   const handleConfirmUpdate = () => {
-    if (!location) return;
+    // Guard against double-clicks on Confirm button
+    if (isSubmitting || isLocationLoading || !location) {
+      return;
+    }
     
     const formData = watch();
     const payload: EditLocationType = {
@@ -309,14 +365,39 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       useBusinessContact, // Include the toggle state
     };
     
-    dispatch(updateLocationAction.request({ location: payload }));
     setIsSubmitting(true);
+    dispatch(updateLocationAction.request({ location: payload }));
     setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
   const handleCancel = () => {
     onClose();
+  };
+
+  const handleDeleteClick = () => {
+    // Show confirmation dialog first with optimistic state
+    setDeleteResponse({
+      canDelete: true,
+      message: '',
+    });
+    setShowDeleteDialog(true);
+    setHasAttemptedDelete(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteResponse?.canDelete || !location) return;
+    // User confirmed - now make the backend call
+    setHasAttemptedDelete(true);
+    dispatch(deleteLocationAction.request({ id: location.id }));
+  };
+
+  const handleCloseDeleteDialog = (open: boolean) => {
+    if (!open) {
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+    }
   };
 
   if (!location) return null;
@@ -337,7 +418,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
             formId="edit-location-form"
             cancelLabel="Cancel"
             submitLabel="Update Location"
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isSubmitting || isLocationLoading}
+            isLoading={isSubmitting || isLocationLoading}
           />
         }
       >
@@ -543,6 +625,79 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+              </div>
+
+              {/* Assignments Section */}
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground-1">
+                    Assignments
+                  </h3>
+                </div>
+
+                <div className="rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed mb-3">
+                        Manage which services and team members are assigned to this location. 
+                        View and modify all assignments in the dedicated Assignments section.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        rounded="full"
+                        onClick={() => {
+                          navigate(`/assignments?tab=locations&locationId=${location.id}`);
+                        }}
+                        className="w-full sm:w-auto"
+                      >
+                        Go to Assignments
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+              </div>
+
+              {/* Remove Location */}
+              <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
+                <div className="space-y-1">
+                  <h3 className="text-base font-medium text-foreground-1">
+                    Remove Location
+                  </h3>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    This will permanently remove this location from your locations list. This action cannot be undone.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={handleDeleteClick}
+                    className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Removing...
+                      </>
+                    ) : (
+                      'Remove Location'
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </form>
@@ -560,6 +715,39 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         cancelTitle="Cancel"
         showCloseButton={true}
       />
+
+      {/* Delete Confirmation Dialog */}
+      {location && (
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={handleCloseDeleteDialog}
+          resourceType="location"
+          resourceName={location.name}
+          deleteResponse={deleteResponse}
+          onConfirm={handleConfirmDelete}
+          isLoading={isDeleting}
+          className="z-[80]"
+          overlayClassName="z-[80]"
+          secondaryActions={[
+            ...(deleteResponse?.isVisibleInMarketplace
+              ? [{
+                label: 'Go to Marketplace',
+                onClick: () => {
+                  handleCloseDeleteDialog(false);
+                  navigate('/marketplace');
+                }
+              }]
+              : []),
+            {
+              label: 'Go to Assignments',
+              onClick: () => {
+                handleCloseDeleteDialog(false);
+                navigate(`/assignments?tab=locations&locationId=${location.id}`);
+              }
+            },
+          ]}
+        />
+      )}
     </>
   );
 };

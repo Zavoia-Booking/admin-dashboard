@@ -12,6 +12,7 @@ import settingsReducer from "../../features/settings/reducer";
 import { AssignmentsReducer } from "../../features/assignments/reducer.ts";
 import businessReducer from "../../features/business/reducer";
 import { MarketplaceReducer } from "../../features/marketplace/reducer";
+import { CustomersReducer } from "../../features/customers/reducer";
 // --- create saga middleware ---
 const sagaMiddleware = createSagaMiddleware();
 
@@ -28,6 +29,7 @@ export const store = configureStore({
     settings: settingsReducer,
     business: businessReducer,
     marketplace: MarketplaceReducer,
+    customers: CustomersReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

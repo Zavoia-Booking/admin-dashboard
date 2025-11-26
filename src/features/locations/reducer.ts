@@ -9,6 +9,8 @@ const initialState: LocationState = {
   isLoading: false,
   error: null,
   allLocations: [],
+  isDeleting: false,
+  deleteError: null,
   deleteResponse: null,
 };
 
@@ -42,13 +44,13 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(actions.deleteLocationAction.request):
-      return { ...state, isLoading: true, error: null, deleteResponse: null };
+      return { ...state, isDeleting: true, deleteError: null, deleteResponse: null };
 
     case getType(actions.deleteLocationAction.success):
-      return { ...state, isLoading: false, error: null, deleteResponse: action.payload.deleteResponse };
+      return { ...state, isDeleting: false, deleteError: null, deleteResponse: action.payload.deleteResponse };
 
     case getType(actions.deleteLocationAction.failure):
-      return { ...state, isLoading: false, error: action.payload.message };
+      return { ...state, isDeleting: false, deleteError: action.payload.message };
 
     default:
       return state;

@@ -4,6 +4,8 @@ export interface LocationState {
   isLoading: boolean;
   error: string | null;
   allLocations: LocationType[];
+  isDeleting: boolean;
+  deleteError: string | null;
   deleteResponse?: any | null;
 }
 
@@ -27,6 +29,8 @@ export interface NewLocationPayload {
   isRemote: boolean;
   open247?: boolean;
   useBusinessContact?: boolean; // Track if using business contact info
+  teamMemberIds?: number[];
+  serviceIds?: number[];
 }
 
 export interface EditLocationType {

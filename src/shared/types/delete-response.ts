@@ -7,6 +7,8 @@ export interface DeleteResponse {
   appointmentsCount?: number;
   locationsCount?: number;
   teamMembersCount?: number;
+  activeUsersCount?: number;
+  pendingUsersCount?: number;
   isVisibleInMarketplace?: boolean;
 }
 

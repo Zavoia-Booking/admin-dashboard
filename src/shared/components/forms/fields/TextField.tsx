@@ -14,6 +14,7 @@ export interface TextFieldProps {
   maxLength?: number;
   id?: string;
   className?: string;
+  disabled?: boolean;
   icon?: React.ComponentType<{ className?: string }>; // optional override icon
 }
 
@@ -28,6 +29,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   maxLength = 70,
   id = "location-name",
   className = "",
+  disabled = false,
   icon,
 }) => {
   const Icon = icon ?? (isRemote ? Monitor : MapPin);
@@ -47,6 +49,7 @@ export const TextField: React.FC<TextFieldProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           maxLength={maxLength}
+          disabled={disabled}
           className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error
               ? "border-destructive bg-error-bg focus-visible:ring-error"

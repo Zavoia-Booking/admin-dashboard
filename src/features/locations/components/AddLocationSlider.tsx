@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin } from 'lucide-react';
+import { MapPin, Users } from 'lucide-react';
 import { Label } from '../../../shared/components/ui/label';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { TextField } from '../../../shared/components/forms/fields/TextField';
 import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
+import { Pill } from '../../../shared/components/ui/pill';
+import { MultiSelect } from '../../../shared/components/common/MultiSelect';
 import AddressComposer from '../../../shared/components/address/AddressComposer';
 import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
 import TimezoneField from '../../../shared/components/common/TimezoneField';
@@ -19,6 +21,11 @@ import type { WorkingHours } from '../../../shared/types/location';
 import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
 import { selectCurrentUser } from '../../auth/selectors';
+import { selectTeamMembers } from '../../teamMembers/selectors';
+import { listTeamMembersAction } from '../../teamMembers/actions';
+import { getServicesListSelector } from '../../services/selectors';
+import { getServicesAction } from '../../services/actions';
+import type { TeamMember } from '../../../shared/types/team-member';
 import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
 import { getLocationLoadingSelector, getLocationErrorSelector } from '../selectors';
 import { toast } from 'sonner';
@@ -38,21 +45,27 @@ const defaultValues: NewLocationPayload = {
   workingHours: defaultWorkingHours,
   timezone: 'UTC',
   open247: false,
+  teamMemberIds: [],
+  serviceIds: [],
 };
 
-const AddLocationSlider: React.FC<AddLocationSliderProps> = ({ 
-  isOpen, 
-  onClose 
+const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
+  isOpen,
+  onClose
 }) => {
   const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
   const locationError = useSelector(getLocationErrorSelector);
   const isLocationLoading = useSelector(getLocationLoadingSelector);
+  const allTeamMembers = useSelector(selectTeamMembers);
+  const allServices = useSelector(getServicesListSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(true);
   const [isAddressValid, setIsAddressValid] = useState(true);
   const [addressComposerKey, setAddressComposerKey] = useState(0);
   const prevIsRemoteRef = useRef<boolean>(false);
+  const justOpenedRef = useRef(false);
+  const dataFetchedRef = useRef(false);
 
   const {
     control,
@@ -168,9 +181,23 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       setIsAddressValid(true);
       setAddressComposerKey(0);
       prevIsRemoteRef.current = false;
-      setIsSubmitting(false);
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
     }
   }, [isOpen, reset]);
+
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setShowConfirmDialog(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+    }
+  }, [isOpen]);
 
   // Populate business contact info when slider opens (separate effect to avoid conflicts)
   useEffect(() => {
@@ -180,11 +207,41 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     }
   }, [isOpen, useBusinessContact, businessEmail, businessPhone, setValue]);
 
+  // Fetch team members and services when slider opens, and pre-select all
+  useEffect(() => {
+    if (isOpen && !dataFetchedRef.current) {
+      dispatch(listTeamMembersAction.request());
+      dispatch(getServicesAction.request({ reset: true }));
+      dataFetchedRef.current = true;
+    }
+  }, [isOpen, dispatch]);
+
+  // Pre-select all active team members and all services when data is loaded
+  useEffect(() => {
+    if (isOpen && allTeamMembers.length > 0 && allServices.length > 0) {
+      const activeTeamMembers = allTeamMembers.filter(
+        (member: TeamMember) => member.status === 'active'
+      );
+      const activeTeamMemberIds = activeTeamMembers.map((member: TeamMember) => member.id);
+      const allServiceIds = allServices.map((service) => service.id);
+
+      setValue('teamMemberIds', activeTeamMemberIds, { shouldDirty: false });
+      setValue('serviceIds', allServiceIds, { shouldDirty: false });
+    }
+  }, [isOpen, allTeamMembers, allServices, setValue]);
+
+  // Reset fetch flag when slider closes
+  useEffect(() => {
+    if (!isOpen) {
+      dataFetchedRef.current = false;
+    }
+  }, [isOpen]);
+
   // Watch for errors and show toast
   useEffect(() => {
     if (locationError && isSubmitting) {
       toast.error("We couldn't create the location", {
-        description: String(locationError),
+        description: "Please check your information and try again.",
         icon: undefined,
       });
       setIsSubmitting(false);
@@ -193,11 +250,12 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
 
   // Watch for success and close form
   useEffect(() => {
-    if (!isLocationLoading && isSubmitting && !locationError) {
-      // Success - close form (reset will happen in the !isOpen effect)
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
+      // Success - close form and reset
+      // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
-      setIsSubmitting(false);
     }
   }, [isLocationLoading, isSubmitting, locationError, onClose]);
 
@@ -251,7 +309,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const emailValue = watch("email");
   const phoneValue = watch("phone");
   const timezoneValue = watch("timezone");
-  
+
   const areRequiredFieldsFilled =
     nameValue &&
     nameValue.trim().length > 0 &&
@@ -264,10 +322,10 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     (isRemote || isAddressValid);
 
   // Only check for actual validation errors (not untouched optional fields)
-  const hasValidationErrors = 
-    !!nameState.error || 
-    !!emailState.error || 
-    !!phoneState.error || 
+  const hasValidationErrors =
+    !!nameState.error ||
+    !!emailState.error ||
+    !!phoneState.error ||
     !!descriptionState.error ||
     (!isRemote && !!addressState.error) ||
     (isRemote && !!timezoneState.error);
@@ -275,17 +333,25 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const isFormDisabled = hasValidationErrors || !areRequiredFieldsFilled;
 
   const onSubmit = () => {
+    // Prevent opening dialog if already submitting or loading
+    if (isSubmitting || isLocationLoading) {
+      return;
+    }
     setShowConfirmDialog(true);
   };
 
   const handleConfirmCreate = () => {
+    // Guard against double-clicks on Confirm button
+    if (isSubmitting || isLocationLoading) {
+      return;
+    }
     const formData = watch();
     const payload: NewLocationPayload = {
       ...formData,
       useBusinessContact, // Include the toggle state
     };
-    dispatch(createLocationAction.request({ location: payload }));
     setIsSubmitting(true);
+    dispatch(createLocationAction.request({ location: payload }));
     setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
@@ -311,7 +377,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
             formId="add-location-form"
             cancelLabel="Cancel"
             submitLabel="Create Location"
-            disabled={isFormDisabled}
+            disabled={isFormDisabled || isSubmitting || isLocationLoading}
+            isLoading={isSubmitting || isLocationLoading}
           />
         }
       >
@@ -411,6 +478,122 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                       error={descriptionState.error?.message}
                       placeholder="Describe this location (e.g. Main office with parking)"
                     />
+                  </div>
+
+
+                  {/* Divider */}
+                  <div className="flex items-end gap-2 mb-6 pt-4">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
+
+                  {/* Team Members Section */}
+                  <div className="space-y-5">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold text-foreground-1">
+                        Team Members
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        Select which team members can work at this location. All active team members are selected by default.
+                      </p>
+                    </div>
+
+                    <div className="space-y-5">
+                      {allTeamMembers.filter((member: TeamMember) => member.status === 'active').length === 0 ? (
+                        <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                          No active team members available.
+                        </p>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                          {allTeamMembers
+                            .filter((member: TeamMember) => member.status === 'active')
+                            .map((member: TeamMember) => {
+                              const teamMemberIds = watch('teamMemberIds') || [];
+                              const isSelected = teamMemberIds.includes(member.id);
+
+                              return (
+                                <Pill
+                                  key={member.id}
+                                  selected={isSelected}
+                                  icon={Users}
+                                  className="w-auto justify-start items-start transition-none active:scale-100"
+                                  showCheckmark={true}
+                                  onClick={() => {
+                                    const newIds = isSelected
+                                      ? teamMemberIds.filter((id) => id !== member.id)
+                                      : [...teamMemberIds, member.id];
+                                    setValue('teamMemberIds', newIds, { shouldDirty: true });
+                                  }}
+                                >
+                                  <div className="flex flex-col text-left">
+                                    <div className="flex items-center">
+                                      {`${member.firstName} ${member.lastName}`}
+                                    </div>
+                                    {member.email && (
+                                      <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
+                                        {member.email}
+                                      </div>
+                                    )}
+                                  </div>
+                                </Pill>
+                              );
+                            })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-end gap-2 mb-6">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
+
+                  {/* Services Section */}
+                  <div className="space-y-5">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold text-foreground-1">
+                        Services
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        Select which services are available at this location. All services are selected by default.
+                      </p>
+                    </div>
+
+                    <div className="max-w-md">
+                      {allServices.length === 0 ? (
+                        <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                          No services available. Create services first to assign them to this location.
+                        </p>
+                      ) : (
+                        <MultiSelect
+                          value={(watch('serviceIds') || []).map(String)}
+                          onChange={(newSelectedIds) => {
+                            const serviceIds = watch('serviceIds') || [];
+                            // Find newly selected items and toggle them
+                            const currentIds = new Set(serviceIds.map(String));
+                            const newIds = [...serviceIds];
+
+                            newSelectedIds.forEach((id) => {
+                              if (!currentIds.has(String(id))) {
+                                newIds.push(Number(id));
+                              }
+                            });
+
+                            // Find removed items
+                            const finalIds = newIds.filter(id =>
+                              newSelectedIds.includes(String(id))
+                            );
+
+                            setValue('serviceIds', finalIds, { shouldDirty: true });
+                          }}
+                          options={allServices.map(service => ({
+                            id: String(service.id),
+                            name: service.name,
+                          }))}
+                          placeholder="+ Add Services"
+                          searchPlaceholder="Search services..."
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div className="space-y-4 pt-4">

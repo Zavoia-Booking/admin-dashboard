@@ -18,6 +18,9 @@ const initialState: ServicesState = {
   },
   error: null,
   isLoading: false,
+  isDeleting: false,
+  deleteError: null,
+  deleteResponse: null,
 };
 
 const handleGetServiceByIdSuccess = (
@@ -115,6 +118,16 @@ export const ServicesReducer: Reducer<ServicesState, Actions> = (
 
     case getType(toggleAddFormAction):
       return handleToggleAddForm(state, action.payload as boolean);
+
+    case getType(actions.deleteServicesAction.request):
+      return { ...state, isDeleting: true, deleteError: null, deleteResponse: null };
+
+    case getType(actions.deleteServicesAction.success):
+      return { ...state, isDeleting: false, deleteError: null, deleteResponse: action.payload };
+
+    case getType(actions.deleteServicesAction.failure):
+      return { ...state, isDeleting: false, deleteError: (action.payload as any)?.message || "Failed to delete service" };
+
     default:
       return state;
   }

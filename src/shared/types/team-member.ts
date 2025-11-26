@@ -24,6 +24,27 @@ export interface TeamMemberService {
   customDuration: number | null;
 }
 
+export interface TeamMemberAppointment {
+  id: number;
+  scheduledAt: string;
+  endsAt: string;
+  status: 'confirmed' | 'pending' | 'cancelled' | 'completed';
+  customer: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  service: {
+    id: number;
+    name: string;
+  };
+  location: {
+    id: number;
+    name: string;
+  };
+}
+
 export interface TeamMember {
   id: number;
   firstName: string;
@@ -51,4 +72,8 @@ export interface TeamMember {
     saturday: { open: string; close: string; isOpen: boolean };
     sunday: { open: string; close: string; isOpen: boolean };
   };
+  servicesCount?: number;
+  locationsCount?: number;
+  totalAppointments?: number;
+  upcomingAppointments?: TeamMemberAppointment[];
 }

@@ -113,7 +113,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className }
                   onClick={handleUnlinkClick}
                   disabled={linkingLoading}
                   aria-busy={linkingLoading}
-                  className="h-8 px-4 rounded-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                  className="h-auto py-1.5 px-4 rounded-full text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
                   {linkingLoading ? (
                     <>
@@ -141,7 +141,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className }
                   onClick={handleLinkClick}
                   disabled={linkingLoading}
                   aria-busy={linkingLoading}
-                  className="h-8 px-4 rounded-full"
+                  className="h-auto py-1.5 px-4 rounded-full"
                 >
                   {linkingLoading ? (
                     <>
