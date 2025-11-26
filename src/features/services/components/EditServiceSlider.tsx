@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
@@ -60,7 +60,9 @@ interface EditServiceFormData {
   description: string;
   locationIds: number[];
   teamMemberIds: number[];
-  categoryId: number | null;
+  categoryId?: number | null;
+  categoryName?: string;
+  categoryColor?: string;
 }
 
 const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
@@ -112,18 +114,25 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       locationIds: service?.locations?.map((l) => l.id) ?? [],
       teamMemberIds: service?.teamMembers?.map((tm) => tm.id) ?? [],
       categoryId: service?.category?.id ?? null,
+      categoryName: undefined,
+      categoryColor: undefined,
     },
     mode: "onChange",
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const categoriesFetchedRef = useRef(false);
+  const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
+    Category[]
+  >([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
 
   const locationIds = watch("locationIds");
   const teamMemberIds = watch("teamMemberIds");
   const categoryId = watch("categoryId");
+  const categoryName = watch("categoryName");
+  const categoryColor = watch("categoryColor");
 
   // Validation helpers with translations
   const validateServiceName = (value: string): string | true => {
@@ -197,14 +206,18 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       },
     });
 
-  // Validate category requirement (either categoryId must be set)
+  // Validate category requirement (either categoryId or categoryName must be set)
   const categoryError =
-    (formState.isSubmitted || formState.touchedFields.categoryId) && !categoryId
+    (formState.isSubmitted || formState.touchedFields.categoryId) &&
+    !categoryId &&
+    (!categoryName || !categoryName.trim())
       ? text("addService.form.validation.category.required")
       : undefined;
 
   // Check if category is set (required field)
-  const isCategorySet = categoryId !== null && categoryId !== undefined;
+  const isCategorySet =
+    (categoryId !== null && categoryId !== undefined) ||
+    (categoryName && categoryName.trim().length > 0);
 
   // Check if required fields are filled
   const nameValue = watch("name");
@@ -251,6 +264,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   // Populate form with service data when opened
   useEffect(() => {
     if (service && isOpen) {
+      const serviceCategoryId = service.category?.id ?? null;
       reset({
         id: service.id,
         name: service.name,
@@ -259,15 +273,23 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         description: service.description,
         locationIds: service.locations?.map((l) => l.id) ?? [],
         teamMemberIds: service.teamMembers?.map((tm) => tm.id) ?? [],
-        categoryId: service.category?.id ?? null,
+        categoryId: serviceCategoryId,
+        categoryName: undefined,
+        categoryColor: undefined,
       });
+      // Explicitly set categoryId to ensure it's properly tracked
+      if (serviceCategoryId !== null) {
+        setValue("categoryId", serviceCategoryId, { shouldDirty: false });
+      }
+      setNewlyCreatedCategories([]);
     }
-  }, [service, isOpen, reset, businessCurrency]);
+  }, [service, isOpen, reset, setValue, businessCurrency]);
 
   // Reset form when slider closes
   useEffect(() => {
     if (!isOpen) {
       setIsCategoriesLoading(false);
+      setNewlyCreatedCategories([]);
       // Do NOT reset isSubmitting here - keep it true during closing animation
       // to prevent button from being re-enabled
     }
@@ -286,6 +308,14 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     }
   }, [isOpen]);
 
+  // Memoize callback to prevent infinite loops
+  const handleNewlyCreatedCategoriesChange = useCallback(
+    (newCategories: Category[]) => {
+      setNewlyCreatedCategories(newCategories);
+    },
+    []
+  );
+
   // Show skeleton while loading
   const isLoading = isLocationsLoading || isCategoriesLoading || !service;
 
@@ -301,16 +331,13 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     isLoading ||
     !formState.isDirty;
 
-  // Watch for errors and show toast
+  // Watch for errors and show toast, reset submitting state
   useEffect(() => {
-    if (servicesError && isSubmitting) {
-      toast.error("We couldn't update the service", {
-        description: String(servicesError),
-        icon: undefined,
-      });
+    if (servicesError && !isServicesLoading && isSubmitting) {
+      toast.error(String(servicesError));
       setIsSubmitting(false);
     }
-  }, [servicesError, isSubmitting]);
+  }, [servicesError, isServicesLoading, isSubmitting]);
 
   // Watch for success and close form
   useEffect(() => {
@@ -348,6 +375,15 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       categoryId,
     } = getValues();
 
+    // Separate selected category from other new categories
+    const selectedCategory = newlyCreatedCategories.find(
+      (cat) => cat.id === categoryId
+    );
+    const isSelectedNew = !!selectedCategory;
+    const otherNewCategories = newlyCreatedCategories.filter(
+      (cat) => cat.id !== categoryId
+    );
+
     const payload: EditServicePayload = {
       id,
       name,
@@ -356,7 +392,22 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       price_amount_minor: price ?? 0,
       locations: locationIds.length > 0 ? locationIds : undefined,
       teamMembers: teamMemberIds.length > 0 ? teamMemberIds : undefined,
-      categoryId: categoryId ?? null,
+      category:
+        categoryId && !isSelectedNew
+          ? { categoryId } // Existing category
+          : selectedCategory
+          ? {
+              categoryName: selectedCategory.name,
+              categoryColor: selectedCategory.color!,
+            }
+          : undefined,
+      additionalCategories:
+        otherNewCategories.length > 0
+          ? otherNewCategories.map((cat) => ({
+              name: cat.name,
+              color: cat.color!,
+            }))
+          : undefined,
     };
     setIsSubmitting(true);
     dispatch(editServicesAction.request(payload));
@@ -620,20 +671,63 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   <CategorySection
                     key={isOpen ? "open" : "closed"}
                     categoryId={categoryId}
-                    categoryName={service.category?.name}
-                    categoryColor={service.category?.color}
+                    categoryName={categoryName}
+                    categoryColor={categoryColor}
                     onCategoryIdChange={(value: number | null) => {
                       setValue("categoryId", value, {
                         shouldTouch: true,
                         shouldDirty: true,
                       });
+                      // Clear category name when selecting existing category
+                      if (value) {
+                        setValue("categoryName", "", { shouldDirty: true });
+                        setValue("categoryColor", "", { shouldDirty: true });
+                      }
                     }}
-                    onCategoryNameChange={() => {}}
-                    onCategoryColorChange={() => {}}
+                    onCategoryNameChange={(value: string) => {
+                      setValue("categoryName", value, {
+                        shouldTouch: true,
+                        shouldDirty: true,
+                      });
+                      // Clear categoryId when creating new category
+                      if (value) {
+                        setValue("categoryId", null, { shouldDirty: true });
+                      }
+                    }}
+                    onCategoryColorChange={(value: string) =>
+                      setValue("categoryColor", value, {
+                        shouldTouch: true,
+                        shouldDirty: true,
+                      })
+                    }
                     existingCategories={categories}
                     required
                     error={categoryError}
-                    existingCategoryName={service.category?.name}
+                    onNewCategoryCreated={(newCategory) => {
+                      // Add the new category to the local categories list
+                      // The category will be created on backend when service is saved
+                      // For now, we just update the form state
+                      setValue("categoryId", newCategory.id, {
+                        shouldDirty: true,
+                      });
+                      setValue("categoryName", newCategory.name, {
+                        shouldDirty: true,
+                      });
+                      setValue("categoryColor", newCategory.color || "", {
+                        shouldDirty: true,
+                      });
+                    }}
+                    onCategoryRemoved={(removedCategoryId) => {
+                      // If the removed category was selected, clear the selection
+                      if (categoryId === removedCategoryId) {
+                        setValue("categoryId", null, { shouldDirty: true });
+                        setValue("categoryName", "", { shouldDirty: true });
+                        setValue("categoryColor", "", { shouldDirty: true });
+                      }
+                    }}
+                    onNewlyCreatedCategoriesChange={
+                      handleNewlyCreatedCategoriesChange
+                    }
                   />
                 </div>
 

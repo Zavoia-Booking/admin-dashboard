@@ -88,6 +88,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const isServicesLoading = useSelector(getServicesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const justOpenedRef = useRef(false);
+  const prevLoadingRef = useRef(isServicesLoading);
   const {
     control,
     handleSubmit,
@@ -286,16 +287,20 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     }
   }, [isOpen]);
 
-  // Watch for errors and show toast
+  // Watch for errors and show toast, reset submitting state
   useEffect(() => {
-    if (servicesError && isSubmitting) {
-      toast.error("We couldn't create the service", {
-        description: String(servicesError),
-        icon: undefined,
-      });
+    // When loading stops and we have an error, reset submitting state
+    const loadingStopped = prevLoadingRef.current && !isServicesLoading;
+    if (servicesError && loadingStopped && isSubmitting) {
+      toast.error(String(servicesError));
       setIsSubmitting(false);
     }
-  }, [servicesError, isSubmitting]);
+    // Also handle case where error exists and loading is already stopped
+    if (servicesError && !isServicesLoading && isSubmitting && !loadingStopped) {
+      setIsSubmitting(false);
+    }
+    prevLoadingRef.current = isServicesLoading;
+  }, [servicesError, isServicesLoading, isSubmitting]);
 
   // Watch for success and close form
   useEffect(() => {

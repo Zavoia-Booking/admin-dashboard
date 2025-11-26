@@ -113,7 +113,8 @@ function* handleEditServices(
   } catch (error: unknown) {
     console.error("Failed to edit service:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage);
+    // Error toast is handled in the component
+    yield put(editServicesAction.failure({ message: errorMessage }));
   }
 }
 
