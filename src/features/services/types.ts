@@ -38,7 +38,15 @@ export type EditServicePayload = {
   id: number;
   locations?: number[];
   teamMembers?: number[];
-  categoryId?: number | null;
+  category?: {
+    categoryId?: number;
+    categoryName?: string;
+    categoryColor?: string;
+  };
+  additionalCategories?: Array<{
+    name: string;
+    color: string;
+  }>;
 };
 
 export type ServiceFilterState = {
