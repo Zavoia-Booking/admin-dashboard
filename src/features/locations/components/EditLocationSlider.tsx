@@ -16,6 +16,7 @@ import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEd
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
 import { updateLocationAction, deleteLocationAction } from '../actions';
 import type { EditLocationType } from '../types';
@@ -639,27 +640,13 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   </h3>
                 </div>
 
-                <div className="rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed mb-3">
-                        Manage which services and team members are assigned to this location. 
-                        View and modify all assignments in the dedicated Assignments section.
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        rounded="full"
-                        onClick={() => {
-                          navigate(`/assignments?tab=locations&locationId=${location.id}`);
-                        }}
-                        className="w-full sm:w-auto"
-                      >
-                        Go to Assignments
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <AssignmentsCard
+                  description="Manage which services and team members are assigned to this location. View and modify all assignments in the dedicated Assignments section."
+                  buttonLabel="Go to Assignments"
+                  onButtonClick={() => {
+                    navigate(`/assignments?tab=locations&locationId=${location.id}`);
+                  }}
+                />
               </div>
 
               {/* Divider */}

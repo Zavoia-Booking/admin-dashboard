@@ -71,13 +71,13 @@
       },
       "locations": {
         "emptyMessage": "Nu s-au găsit locații.",
-        "helperTextNone": "Disponibil în toate locațiile",
+        "helperTextNone": "Nu este disponibil în nicio locație",
         "helperTextOne": "Disponibil în 1 locație selectată",
         "helperTextSome": "Disponibil în {{count}} locații selectate"
       },
       "teamMembers": {
         "emptyMessage": "Nu s-au găsit membri ai echipei.",
-        "helperTextNone": "Disponibil pentru toți membrii echipei",
+        "helperTextNone": "Nu este disponibil pentru niciun membru al echipei",
         "helperTextOne": "Disponibil pentru 1 membru selectat",
         "helperTextSome": "Disponibil pentru {{count}} membri selectați"
       },

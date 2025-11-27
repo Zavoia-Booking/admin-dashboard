@@ -10,6 +10,7 @@ import type { TeamMember, TeamMemberAppointment } from '../../../shared/types/te
 import { deleteTeamMemberAction, fetchTeamMemberByIdAction } from '../actions';
 import { selectIsDeleting, selectDeleteResponse, selectCurrentTeamMember, selectIsFetchingTeamMember } from '../selectors';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
 import { format } from 'date-fns';
 
@@ -286,60 +287,18 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   </h3>
                 </div>
 
-                <div className="rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                  <div className="space-y-4">
-                    {/* Statistics Grid */}
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="space-y-1">
-                        <p className="text-xs text-foreground-3 dark:text-foreground-2 uppercase tracking-wide">
-                          Services
-                        </p>
-                        <p className="text-2xl font-semibold text-foreground-1">
-                          {displayTeamMember.servicesCount || 0}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-foreground-3 dark:text-foreground-2 uppercase tracking-wide">
-                          Locations
-                        </p>
-                        <p className="text-2xl font-semibold text-foreground-1">
-                          {displayTeamMember.locationsCount || 0}
-                        </p>
-                      </div>
-                      <div className="space-y-1">
-                        <p className="text-xs text-foreground-3 dark:text-foreground-2 uppercase tracking-wide">
-                          Appointments
-                        </p>
-                        <p className="text-2xl font-semibold text-foreground-1">
-                          {displayTeamMember.totalAppointments || 0}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Divider */}
-                    <div className="h-px bg-border dark:bg-border-strong"></div>
-
-                    {/* Description and action */}
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed mb-3">
-                          All assignments for this team member, including services, locations, custom pricing, and custom working hours,
-                          are managed in the dedicated Assignments section.
-                        </p>
-                        <Button
-                          variant="outline"
-                          rounded="full"
-                          onClick={() => {
-                            navigate(`/assignments?tab=team_members&userId=${displayTeamMember.id}`);
-                          }}
-                          className="w-full sm:w-auto"
-                        >
-                          Go to Assignments
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <AssignmentsCard
+                  stats={[
+                    { label: 'Services', value: displayTeamMember.servicesCount || 0 },
+                    { label: 'Locations', value: displayTeamMember.locationsCount || 0 },
+                    { label: 'Appointments', value: displayTeamMember.totalAppointments || 0 },
+                  ]}
+                  description="All assignments for this team member, including services, locations, custom pricing, and custom working hours, are managed in the dedicated Assignments section."
+                  buttonLabel="Go to Assignments"
+                  onButtonClick={() => {
+                    navigate(`/assignments?tab=team_members&userId=${displayTeamMember.id}`);
+                  }}
+                />
               </div>
 
               {/* Divider */}

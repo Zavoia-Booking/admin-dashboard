@@ -89,6 +89,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const justOpenedRef = useRef(false);
   const prevLoadingRef = useRef(isServicesLoading);
+  const hasInitializedSelectionsRef = useRef(false);
   const {
     control,
     handleSubmit,
@@ -249,9 +250,23 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   useEffect(() => {
     if (!isOpen) {
       categoriesFetchedRef.current = false;
+      hasInitializedSelectionsRef.current = false;
       setIsCategoriesLoading(false);
     }
   }, [isOpen]);
+
+  // Pre-select all locations and active team members when slider opens (only once)
+  useEffect(() => {
+    if (isOpen && allLocations.length > 0 && !isLocationsLoading && !hasInitializedSelectionsRef.current) {
+      const allLocationIds = allLocations.map((location) => location.id);
+      const activeTeamMemberIds = activeTeamMembers.map((member: TeamMember) => member.id);
+      
+      setValue('locationIds', allLocationIds, { shouldDirty: false });
+      setValue('teamMemberIds', activeTeamMemberIds, { shouldDirty: false });
+      
+      hasInitializedSelectionsRef.current = true;
+    }
+  }, [isOpen, allLocations, activeTeamMembers, isLocationsLoading, setValue]);
 
   // Show skeleton while loading
   const isLoading = isLocationsLoading || isCategoriesLoading;

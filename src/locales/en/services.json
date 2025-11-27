@@ -35,9 +35,9 @@
       "category": "Category",
       "categoryDescription": "Assign this service to a category so you can organize and filter it later",
       "locations": "Locations",
-      "locationsDescription": "By default, the service is available at all locations. Select specific locations to make it available only there.",
+      "locationsDescription": "Select the locations where this service is available",
       "teamMembers": "Team Members",
-      "teamMembersDescription": "By default, the service is available to all team members. Select specific team members to make it available only to them.",
+      "teamMembersDescription": "Select the team members who can provide this service",
       "settings": "Service Settings"
     },
     "form": {
@@ -71,13 +71,13 @@
       },
       "locations": {
         "emptyMessage": "No locations found.",
-        "helperTextNone": "Available at all locations",
+        "helperTextNone": "Not available at any location",
         "helperTextOne": "Available at 1 selected location",
         "helperTextSome": "Available at {{count}} selected locations"
       },
       "teamMembers": {
         "emptyMessage": "No team members found.",
-        "helperTextNone": "Available to all team members",
+        "helperTextNone": "Not available to any team member",
         "helperTextOne": "Available to 1 selected member",
         "helperTextSome": "Available to {{count}} selected members"
       },

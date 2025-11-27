@@ -22,6 +22,7 @@ import { PriceField } from "../../../shared/components/forms/fields/PriceField";
 import { CategorySection } from "./CategorySection";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { DeleteConfirmDialog } from "../../../shared/components/common/DeleteConfirmDialog";
+import { AssignmentsCard } from "../../../shared/components/common/AssignmentsCard";
 import type { DeleteResponse } from "../../../shared/types/delete-response";
 import {
   getCurrencyDisplay,
@@ -773,53 +774,17 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     </h3>
                   </div>
 
-                  <div className="rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                    <div className="space-y-4">
-                      {/* Statistics Grid */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                          <p className="text-xs text-foreground-3 dark:text-foreground-2 uppercase tracking-wide">
-                            Team Members
-                          </p>
-                          <p className="text-2xl font-semibold text-foreground-1">
-                            {service.teamMembersCount || 0}
-                          </p>
-                        </div>
-                        <div className="space-y-1">
-                          <p className="text-xs text-foreground-3 dark:text-foreground-2 uppercase tracking-wide">
-                            Locations
-                          </p>
-                          <p className="text-2xl font-semibold text-foreground-1">
-                            {service.locationsCount || 0}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Divider */}
-                      <div className="h-px bg-border dark:bg-border-strong"></div>
-
-                      {/* Description and action */}
-                      <div className="flex items-start gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed mb-3">
-                            Manage which team members and locations can offer this service. 
-                            View and modify all assignments in the dedicated Assignments section.
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            rounded="full"
-                            onClick={() => {
-                              navigate(`/assignments?tab=services&serviceId=${service.id}`);
-                            }}
-                            className="w-full sm:w-auto"
-                          >
-                            Go to Assignments
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <AssignmentsCard
+                    stats={[
+                      { label: 'Team Members', value: service.teamMembersCount || 0 },
+                      { label: 'Locations', value: service.locationsCount || 0 },
+                    ]}
+                    description="Manage which team members and locations can offer this service. View and modify all assignments in the dedicated Assignments section."
+                    buttonLabel="Go to Assignments"
+                    onButtonClick={() => {
+                      navigate(`/assignments?tab=services&serviceId=${service.id}`);
+                    }}
+                  />
                 </div>
 
                 {/* Divider */}
