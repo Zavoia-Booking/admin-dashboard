@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { UserRole } from '../../../shared/types/auth';
 import { Button } from "../../../shared/components/ui/button";
-import { Plus, Mail, Search, Filter, X, MapPin, Phone, Edit } from "lucide-react";
+import { Plus, Mail, Search, Filter, X, Phone, Edit, Clock, Send, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
 import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
@@ -16,6 +16,9 @@ import { useDispatch, useSelector } from 'react-redux';
 import { cancelInvitationAction, listTeamMembersAction, resendInvitationAction } from '../actions.ts';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { selectTeamMembers } from '../selectors';
+import { ItemCard, type ItemCardAction } from '../../../shared/components/common/ItemCard';
+import { Avatar, AvatarImage, AvatarFallback } from '../../../shared/components/ui/avatar';
+import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 
 export default function TeamMembersPage() {
   const dispatch = useDispatch();
@@ -115,28 +118,22 @@ export default function TeamMembersPage() {
     }
   };
 
-  const getStatusBadge = (roleStatus: string) => {
-    switch (roleStatus) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800 w-fit">Active</Badge>;
-      case 'pending_acceptance':
-        return <Badge className="bg-orange-100 text-orange-800 w-fit">Pending Acceptance</Badge>;
-      default:
-        return <Badge className="w-fit">{roleStatus.toUpperCase().replace('_', ' ')}</Badge>;
-    }
-  };
 
   // Filter team members based on search, status, role, and location
   const filteredTeamMembers = teamMembers.filter((member: TeamMember) => {
     const matchesSearch = (member.firstName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (member.lastName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (member.email || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const memberRoleStatus = (member as any).roleStatus || member.status;
+    const memberRoleStatus = member.roleStatus;
     const matchesStatus = statusFilter === 'all' || memberRoleStatus === statusFilter;
     const matchesRole = roleFilter === 'all' || (roleFilter === 'team_member' && member.role === UserRole.TEAM_MEMBER);
     const matchesLocation = locationFilter === 'all' || (`${member?.location}` === locationFilter);
     return matchesSearch && matchesStatus && matchesRole && matchesLocation;
   });
+
+  // Split into active and pending members
+  const activeMembers = filteredTeamMembers.filter((member: TeamMember) => member.roleStatus === 'active');
+  const pendingMembers = filteredTeamMembers.filter((member: TeamMember) => member.roleStatus === 'pending_acceptance');
 
   // Get unique roles from data
   const uniqueRoles = Array.from(new Set(teamMembers.map((m: TeamMember) => m.role)));
@@ -159,7 +156,7 @@ export default function TeamMembersPage() {
   return (
     <AppLayout>
       <BusinessSetupGate>
-        <div className="space-y-4 max-w-2xl mx-auto">
+        <div className="space-y-4 max-w-7xl mx-auto">
           {/* Trial Banner */}
           <TrialBanner />
 
@@ -303,7 +300,7 @@ export default function TeamMembersPage() {
               <div className="text-xs text-gray-500 mt-1">{filteredCount === totalMembers ? 'Total Members' : 'Filtered Members'}</div>
             </div>
             <div className="rounded-lg border bg-white p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">{filteredTeamMembers.filter((m: TeamMember) => ((m as any).roleStatus || m.status) === 'active').length}</div>
+              <div className="text-2xl font-bold text-green-600">{filteredTeamMembers.filter((m: TeamMember) => ((m as any).roleStatus) === 'active').length}</div>
               <div className="text-xs text-gray-500 mt-1">Active</div>
             </div>
             <div className="rounded-lg border bg-white p-4 text-center">
@@ -311,23 +308,94 @@ export default function TeamMembersPage() {
               <div className="text-xs text-gray-500 mt-1">Roles</div>
             </div>
           </div>
-          <div className="space-y-3">
-            {filteredTeamMembers.length === 0 ? (
-              <div className="rounded-lg border bg-white p-8 text-center">
-                <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
-                <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
-              </div>
-            ) : (
-              filteredTeamMembers.map((member: TeamMember) => {
-                const memberRoleStatus = (member as any).roleStatus || member.status;
+          {/* Empty State */}
+          {filteredTeamMembers.length === 0 ? (
+            <div className="rounded-lg border bg-white p-8 text-center">
+              <div className="mb-4 text-gray-500">No team members found matching your filters.</div>
+              <Button variant="outline" onClick={() => { setSearchTerm(''); setRoleFilter('all'); setStatusFilter('all'); setLocationFilter('all'); setShowFilters(false); }}>Clear filters</Button>
+            </div>
+          ) : (
+            <>
+              {/* Active Team Members */}
+              {activeMembers.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
+                  {activeMembers.map((member: TeamMember) => {
+                const memberRoleStatus = member.roleStatus;
                 const canEdit = memberRoleStatus !== 'pending_acceptance';
                 const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
-                const safeInitials = `${(member.firstName?.[0] || member.email?.[0] || '?')}${(member.lastName?.[0] || '')}`;
-                const displayPhone = member.phone || 'Phone not set yet';
+                
+                // Create initials for avatar
+                const initials = member.firstName && member.lastName
+                  ? `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
+                  : (member.email?.[0] || '?').toUpperCase();
+
+                // Create avatar/thumbnail
+                const thumbnail = (
+                  <Avatar className="h-12 w-12 shrink-0">
+                    <AvatarImage 
+                      src={member.profileImage || undefined} 
+                      alt={displayName}
+                    />
+                    <AvatarFallback 
+                      className="text-sm font-medium"
+                      style={{ backgroundColor: getAvatarBgColor(member.email) }}
+                    >
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                );
+
+                // Build custom description with email and phone
+                const customContent = (
+                  <div className="flex flex-col gap-2 mt-1">
+                    {/* Pending Invitation Badge */}
+                    {memberRoleStatus === 'pending_acceptance' && (
+                      <Badge
+                        variant="secondary"
+                        className="font-medium text-xs h-8 w-fit py-2 px-3"
+                        style={{
+                          backgroundColor: '#dbeafe',
+                          borderColor: '#bfdbfe',
+                          color: '#1e40af',
+                        }}
+                      >
+                        <Clock className="h-3 w-3 mr-1.5 mt-0.5" />
+                        Invitation sent
+                      </Badge>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-foreground-2">
+                      <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{member.email}</span>
+                    </div>
+                    {member.phone && (
+                      <div className="flex items-center gap-2 text-sm text-foreground-2">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{member.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+
+                // Build actions array
+                const actions = [];
+                if (canEdit) {
+                  actions.push({
+                    icon: Edit,
+                    label: "Edit Team Member",
+                    onClick: (e: React.MouseEvent) => {
+                      e.stopPropagation();
+                      openEditSlider(member);
+                    },
+                  });
+                }
+
                 return (
-                  <div
+                  <ItemCard
                     key={member.id}
-                    className="rounded-xl border bg-white p-4 flex flex-col gap-2 shadow-sm cursor-pointer hover:shadow-md transition-shadow duration-200"
+                    title={displayName || member.email}
+                    customContent={customContent}
+                    actions={actions}
+                    thumbnail={thumbnail}
                     onClick={() => {
                       if (!canEdit) {
                         toast.info('Cannot edit a pending team member until they complete registration.');
@@ -335,80 +403,139 @@ export default function TeamMembersPage() {
                       }
                       openProfileSlider(member);
                     }}
+                  />
+                );
+              })}
+                </div>
+              )}
+
+              {/* Divider with "Invitation Sent" Badge */}
+              {pendingMembers.length > 0 && (
+                <div className="relative flex items-center justify-center my-8">
+                  <div className="flex-grow border-t-2 border-gray-300"></div>
+                  <Badge
+                    variant="secondary"
+                    className="font-medium text-xs h-8 w-fit py-2 px-3"
+                    style={{
+                      backgroundColor: '#dbeafe',
+                      borderColor: '#bfdbfe',
+                      color: '#1e40af',
+                    }}
                   >
-                    <div className="flex flex-row items-start gap-4">
-                      <div className="flex-shrink-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-green-400 flex items-center justify-center text-white font-bold text-lg">
-                        {safeInitials}
-                      </div>
-                      <div className="flex flex-col justify-start min-w-0">
-                        <span className="font-semibold text-base truncate">{displayName || member.email}</span>
-                        <span className="text-sm text-gray-500 truncate">{member.role}</span>
-                        {getStatusBadge(memberRoleStatus)}
-                      </div>
-                      <div className="flex-1 flex justify-end items-start gap-1">
-                        {memberRoleStatus === 'pending_acceptance' && (
-                          <div className="flex items-center gap-1">
-                            <button
-                              className="p-2 rounded hover:bg-muted text-blue-600"
-                              title="Resend Invitation"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPendingAction({ type: 'resend', teamMemberId: member.id, teamMemberName: displayName || member.email });
-                                setIsConfirmDialogOpen(true);
-                              }}
-                            >
-                              <Mail className="h-5 w-5" />
-                            </button>
-                            <button
-                              className="p-2 rounded hover:bg-red-50 text-red-600"
-                              title="Cancel Invitation"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setPendingAction({ type: 'cancelInvite', teamMemberId: member.id, email: member.email });
-                                setIsConfirmDialogOpen(true);
-                              }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        )}
-                        {canEdit && (
-                          <button
-                            className="p-2 rounded hover:bg-muted"
-                            title="Edit"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditSlider(member);
-                            }}
-                          >
-                            <Edit className="h-5 w-5" />
-                          </button>
-                        )}
-                      </div>
+                    <Clock className="h-3 w-3 mr-1.5 mt-0.5" />
+                    Invitation Sent
+                  </Badge>
+                  <div className="flex-grow border-t-2 border-gray-300"></div>
+                </div>
+              )}
+
+              {/* Pending Team Members */}
+              {pendingMembers.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
+                  {pendingMembers.map((member: TeamMember) => {
+                const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
+                
+                // Create initials for avatar
+                const initials = member.firstName && member.lastName
+                  ? `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
+                  : (member.email?.[0] || '?').toUpperCase();
+
+                // Create avatar/thumbnail
+                const thumbnail = (
+                  <Avatar className="h-12 w-12 shrink-0">
+                    <AvatarImage 
+                      src={member.profileImage || undefined} 
+                      alt={displayName}
+                    />
+                    <AvatarFallback 
+                      className="text-sm font-medium"
+                      style={{ backgroundColor: getAvatarBgColor(member.email) }}
+                    >
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                );
+
+                // Build custom description with email and phone
+                const customContent = (
+                  <div className="flex flex-col gap-1 mt-1">
+                    <div className="flex items-center gap-2 text-sm text-foreground-2">
+                      <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{member.email}</span>
                     </div>
-                    <div className="flex flex-row gap-4 mt-1">
-                      <div className="flex-1 flex flex-col gap-1">
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Mail className="h-4 w-4" />
-                          <span>{member.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-700">
-                          <Phone className="h-4 w-4" />
-                          <span>{displayPhone}</span>
-                        </div>
-                        {member.location && (
-                          <div className="flex items-center gap-2 text-sm text-gray-700">
-                            <MapPin className="h-4 w-4" />
-                            <span>{locations.find(loc => String(loc.id) === `${member.location}`)?.name}</span>
-                          </div>
-                        )}
+                    {member.phone && (
+                      <div className="flex items-center gap-2 text-sm text-foreground-2">
+                        <Phone className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">{member.phone}</span>
                       </div>
-                    </div>
+                    )}
                   </div>
                 );
-              })
-            )}
-          </div>
+
+                // Build bottom action buttons for pending members
+                const bottomActions = (
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                      type="button"
+                      variant="info"
+                      rounded="full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingAction({ 
+                          type: 'resend', 
+                          teamMemberId: member.id, 
+                          teamMemberName: displayName || member.email 
+                        });
+                        setIsConfirmDialogOpen(true);
+                      }}
+                      className="flex-1"
+                    >
+                      <Send className="h-4 w-4" />
+                      Resend
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      rounded="full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPendingAction({ 
+                          type: 'cancelInvite', 
+                          teamMemberId: member.id, 
+                          email: member.email 
+                        });
+                        setIsConfirmDialogOpen(true);
+                      }}
+                      className="flex-1"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Cancel
+                    </Button>
+                  </div>
+                );
+
+                // Build actions array (empty for pending members)
+                const actions: ItemCardAction[] = [];
+
+                return (
+                  <ItemCard
+                    key={member.id}
+                    title={displayName || member.email}
+                    customContent={customContent}
+                    actions={actions}
+                    thumbnail={thumbnail}
+                    bottomActions={bottomActions}
+                    onClick={() => {
+                      // Do nothing on click for pending members
+                      return;
+                    }}
+                  />
+                );
+              })}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Confirmation Dialog */}
@@ -448,13 +575,6 @@ export default function TeamMembersPage() {
           isOpen={isProfileSliderOpen}
           onClose={() => setIsProfileSliderOpen(false)}
           teamMember={selectedTeamMember as TeamMember}
-          onUpdate={() => {
-            // handleUpdateTeamMember
-          }}
-          onDelete={() => {
-            // handleDeleteTeamMember
-          }}
-          locations={locations.map(loc => ({ id: String(loc.id), name: loc.name }))}
         />
       </BusinessSetupGate>
     </AppLayout>

@@ -143,7 +143,6 @@ export function ServicesListTab() {
               <ItemCard
                 key={service.id}
                 title={service.name}
-                description={service.description}
                 category={
                   service.category
                     ? {

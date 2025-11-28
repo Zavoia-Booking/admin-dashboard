@@ -30,7 +30,7 @@ export interface ItemCardBadge {
 
 export interface ItemCardProps {
   title: string;
-  description?: string;
+  customContent?: React.ReactNode;
   category?: ItemCardCategory | null;
   badges?: ItemCardBadge[];
   metadata?: ItemCardMetadata[];
@@ -39,11 +39,13 @@ export interface ItemCardProps {
   onClick?: () => void;
   className?: string;
   variant?: "default" | "compact";
+  thumbnail?: React.ReactNode;
+  bottomActions?: React.ReactNode;
 }
 
 export function ItemCard({
   title,
-  description,
+  customContent,
   category,
   badges = [],
   metadata = [],
@@ -52,6 +54,8 @@ export function ItemCard({
   onClick,
   className,
   variant = "default",
+  thumbnail,
+  bottomActions,
 }: ItemCardProps) {
   const hasSecondaryMetadata = metadata.length > 0;
 
@@ -68,14 +72,27 @@ export function ItemCard({
         {/* Header with Edit Button */}
         <div className={cn(variant === "default" ? "mb-5" : "mb-3")}>
           <div className="flex items-center justify-between gap-3">
-            <h3
-              className={cn(
-                "font-semibold text-foreground-1 line-clamp-1 truncate leading-tight flex-1 min-w-0",
-                variant === "default" ? "text-lg" : "text-base"
+            {/* Thumbnail/Avatar */}
+            {thumbnail && (
+              <div className="flex-shrink-0">
+                {thumbnail}
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <h3
+                className={cn(
+                  "font-semibold text-foreground-1 line-clamp-1 truncate leading-tight",
+                  variant === "default" ? "text-lg" : "text-base"
+                )}
+              >
+                {title}
+              </h3>
+              {customContent && (
+                <div className="mt-1">
+                  {customContent}
+                </div>
               )}
-            >
-              {title}
-            </h3>
+            </div>
             {/* Edit Button */}
             {actions.length > 0 && actions[0] && (
               <button
@@ -203,6 +220,13 @@ export function ItemCard({
                   <span>{item.value}</span>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Bottom Actions */}
+          {bottomActions && (
+            <div className="pt-3">
+              {bottomActions}
             </div>
           )}
         </div>

@@ -184,7 +184,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                           <span className="flex-1">{localTeamMember?.phone}</span>
                         </div>
                       </div>
-                      {getStatusBadge(displayTeamMember.status)}
+                      {getStatusBadge(displayTeamMember.roleStatus)}
                     </div>
                   </div>
                 </div>

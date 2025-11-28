@@ -1,38 +1,27 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { deleteLocationAction, listLocationsAction } from '../actions';
+import { listLocationsAction } from '../actions';
 import { selectCurrentUser } from '../../auth/selectors';
-import { Plus, Trash2, MapPin, Clock, Phone, Mail, Search, Filter, X, Edit } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
+import { Plus, MapPin, Phone, Mail, Search, Filter, X, Edit, Users, Briefcase } from "lucide-react";
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { Badge } from "../../../shared/components/ui/badge";
 import AddLocationSlider from '../components/AddLocationSlider';
 import EditLocationSlider from '../components/EditLocationSlider';
-import EditWorkingHoursSlider from '../components/EditWorkingHoursSlider';
 import { FilterPanel } from '../../../shared/components/common/FilterPanel';
-import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
-import type { DeleteResponse } from '../../../shared/types/delete-response';
-import type { LocationType, WorkingHours, WorkingHoursDay } from '../../../shared/types/location';
+import type { LocationType } from '../../../shared/types/location';
 import { Button } from '../../../shared/components/ui/button';
 import { Input } from '../../../shared/components/ui/input';
-import { Label } from '../../../shared/components/ui/label';
-import { capitalize, shortDay } from '../utils';
-import { getAllLocationsSelector, getDeleteResponseSelector, getLocationLoadingSelector } from '../selectors';
-import { updateLocationAction } from '../actions';
-import { defaultWorkingHours } from '../constants';
+import { getAllLocationsSelector } from '../selectors';
 import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
+import { ItemCard, type ItemCardMetadata, type ItemCardBadge } from '../../../shared/components/common/ItemCard';
 
 
 export default function LocationsPage() {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
   const user = useSelector(selectCurrentUser);
-  const deleteResponseFromState = useSelector(getDeleteResponseSelector);
-  const isLoadingFromState = useSelector(getLocationLoadingSelector);
 
   const [isCreateSliderOpen, setIsCreateSliderOpen] = useState(false);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
@@ -43,21 +32,6 @@ export default function LocationsPage() {
 
   // Local filter state (used in filter card only)
   const [localStatusFilter, setLocalStatusFilter] = useState(statusFilter);
-
-  const [isWorkingHoursSliderOpen, setIsWorkingHoursSliderOpen] = useState(false);
-  const [editingWorkingHoursLocation, setEditingWorkingHoursLocation] = useState<LocationType | null>(null);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
-  const [locationToDelete, setLocationToDelete] = useState<LocationType | null>(null);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
-  const [isDayEditModalOpen, setIsDayEditModalOpen] = useState(false);
-  const [editingDayData, setEditingDayData] = useState<{
-    location: LocationType;
-    day: string;
-    dayLabel: string;
-  } | null>(null);
-  const [dayEditDraft, setDayEditDraft] = useState<WorkingHoursDay | null>(null);
 
   useEffect(() => {
     if (user?.businessId) {
@@ -72,113 +46,15 @@ export default function LocationsPage() {
     }
   }, [showFilters, statusFilter]);
 
-  // Handle delete response from Redux state
-  useEffect(() => {
-    if (deleteResponseFromState && hasAttemptedDelete) {
-      setIsDeleting(false);
-      
-      if (deleteResponseFromState.canDelete === false) {
-        // Cannot delete - update dialog to show blocking info
-        setDeleteResponse(deleteResponseFromState as DeleteResponse);
-      } else {
-        // Successfully deleted - close dialog
-        setShowDeleteDialog(false);
-        setLocationToDelete(null);
-        setDeleteResponse(null);
-        setHasAttemptedDelete(false);
-      }
-    }
-  }, [deleteResponseFromState, hasAttemptedDelete]);
-
-  // Handle delete errors (reset loading state)
-  useEffect(() => {
-    if (hasAttemptedDelete && !isLoadingFromState && !deleteResponseFromState) {
-      // Error occurred (loading stopped but no response)
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-      setLocationToDelete(null);
-      setDeleteResponse(null);
-      setHasAttemptedDelete(false);
-    }
-  }, [hasAttemptedDelete, isLoadingFromState, deleteResponseFromState]);
-
   // Calculate number of active filters
   const activeFiltersCount = [
     !!searchTerm,
     statusFilter !== 'all'
   ].filter(Boolean).length;
 
-  const handleDeleteClick = (location: LocationType) => {
-    // Show confirmation dialog first
-    setLocationToDelete(location);
-    setDeleteResponse({
-      canDelete: true,
-      message: '',
-    });
-    setShowDeleteDialog(true);
-    setHasAttemptedDelete(false);
-  };
-
-  const handleConfirmDelete = () => {
-    if (!locationToDelete) return;
-    
-    // User confirmed - now make the backend call
-    setIsDeleting(true);
-    setHasAttemptedDelete(true);
-    dispatch(deleteLocationAction.request({ id: locationToDelete.id }));
-  };
-
-  const handleCloseDialog = (open: boolean) => {
-    if (!open) {
-      // Dialog wants to close (user clicked backdrop, pressed Escape, or clicked Cancel)
-      setShowDeleteDialog(false);
-      setLocationToDelete(null);
-      setDeleteResponse(null);
-      setHasAttemptedDelete(false);
-    }
-  };
-
-  const handleGoToAssignments = () => {
-    setShowDeleteDialog(false);
-    setLocationToDelete(null);
-    setDeleteResponse(null);
-    setHasAttemptedDelete(false);
-    navigate('/assignments');
-  };
-
-  const handleGoToMarketplace = () => {
-    setShowDeleteDialog(false);
-    setLocationToDelete(null);
-    setDeleteResponse(null);
-    setHasAttemptedDelete(false);
-    navigate('/marketplace');
-  };
-
   const openEditSlider = (location: LocationType) => {
     setEditingLocation(location);
     setIsEditSliderOpen(true);
-  };
-
-  const openDayEditModal = (location: LocationType, day: string, dayLabel: string) => {
-    setEditingDayData({ location, day, dayLabel });
-    const initial = location.workingHours[day as keyof typeof defaultWorkingHours];
-    setDayEditDraft({ ...initial });
-    setIsDayEditModalOpen(true);
-  };
-
-  const updateLocationDayHours = (
-    _locationId: number,
-    _day: string,
-    field: 'open' | 'close' | 'isOpen',
-    value: string | boolean
-  ) => {
-    setDayEditDraft(prev => {
-      if (!prev) return prev as any;
-      return {
-        ...prev,
-        [field]: value as any,
-      } as WorkingHoursDay;
-    });
   };
 
   // Filter locations based on search and status
@@ -193,7 +69,7 @@ export default function LocationsPage() {
     <AppLayout>
       <BusinessSetupGate>
         <AccessGuard>
-          <div className="space-y-4 max-w-2xl mx-auto">
+          <div className="space-y-6">
             {/* Top Controls: Search, Filter, Add */}
             <div className="flex gap-2 items-center">
               <div className="relative flex-1">
@@ -294,96 +170,70 @@ export default function LocationsPage() {
               </div>
             )}
             {/* Locations Grid */}
-            <div className="space-y-3">
-              {filteredLocations.map((location) => (
-                <div key={location.id} className="rounded-xl border bg-white p-6 flex flex-col gap-2 shadow-sm">
-                  {/* Top Row: Name and Status */}
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-lg truncate">{location.name}</span>
-                  </div>
-                  {/* Info Rows */}
-                  <div className="flex flex-col gap-1 text-sm mt-2">
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <MapPin className="h-4 w-4" />
-                      <span>{location.address}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Phone className="h-4 w-4" />
-                      <span>{location.phone}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-500">
-                      <Mail className="h-4 w-4" />
-                      <span>{location.email}</span>
-                    </div>
-                  </div>
-                  {/* Description (moved up) */}
-                  {location.description && (
-                    <p className="text-sm text-gray-600 mt-2 mb-1">{location.description}</p>
-                  )}
-                  {/* Divider */}
-                  <hr className="my-1 border-gray-200" />
-                  {/* Working Hours Section */}
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-gray-500" />
-                    <span className="font-semibold text-base">Working Hours</span>
-                  </div>
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <div className="flex flex-col gap-2">
-                      {Object.entries(location.workingHours).map(([day, { open, close, isOpen }]) => (
-                        <button
-                          key={day}
-                          onClick={() => openDayEditModal(location, day, capitalize(day))}
-                          className="flex justify-between items-center bg-white rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer"
-                        >
-                          <span>{shortDay(day)}</span>
-                          {isOpen ? (
-                            <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-mono font-semibold">
-                              {open} - {close}
-                            </span>
-                          ) : (
-                            <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-semibold">Closed</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                    <hr className="my-1 border-gray-200 mt-3" />
-                    {/* Summary row */}
-                    <div className="flex justify-between text-xs text-gray-500 mt-2">
-                      <span>Open: {Object.values(location.workingHours).filter(d => d.isOpen).length} days</span>
-                      <span>Closed: {Object.values(location.workingHours).filter(d => !d.isOpen).length} days</span>
-                    </div>
-                  </div>
+            <div className="grid grid-cols-1 gap-2">
+              {filteredLocations.map((location) => {
+                // Build metadata array (address, phone, email)
+                const metadata: ItemCardMetadata[] = [
+                  {
+                    icon: MapPin,
+                    label: "address",
+                    value: location.address,
+                  },
+                  {
+                    icon: Phone,
+                    label: "phone",
+                    value: location.phone,
+                  },
+                  {
+                    icon: Mail,
+                    label: "email",
+                    value: location.email,
+                  },
+                ];
 
-                  {/* Actions Row at Bottom */}
-                  <hr className="my-2 border-gray-200" />
-                  <div className="flex items-center justify-end gap-2 mt-2">
-                    <div
-                      className="flex items-center justify-center h-8 w-8 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer"
-                      title="Edit Working Hours"
-                      aria-label="Edit Working Hours"
-                      onClick={() => { setEditingWorkingHoursLocation(location); setIsWorkingHoursSliderOpen(true); }}
-                    >
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div
-                      className="flex items-center justify-center h-8 w-8 rounded hover:bg-gray-100 active:bg-gray-200 transition-colors cursor-pointer"
-                      title="Edit Location"
-                      aria-label="Edit Location"
-                      onClick={() => openEditSlider(location)}
-                    >
-                      <Edit className="h-5 w-5" />
-                    </div>
-                    <div
-                      className="flex items-center justify-center h-8 w-8 rounded hover:bg-red-50 active:bg-red-100 text-red-600 transition-colors cursor-pointer"
-                      title="Delete Location"
-                      aria-label="Delete Location"
-                      onClick={() => handleDeleteClick(location)}
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </div>
-                  </div>
-                </div>
-              ))}
+                // Build badges array (services and team members)
+                const badges: ItemCardBadge[] = [];
+                
+                const servicesCount = location.servicesCount ?? 0;
+                if (servicesCount > 0) {
+                  badges.push({
+                    label: servicesCount === 1 ? "Service" : "Services",
+                    count: servicesCount,
+                    icon: Briefcase,
+                  });
+                }
+
+                const teamMembersCount = location.teamMembersCount ?? 0;
+                if (teamMembersCount > 0) {
+                  badges.push({
+                    label: teamMembersCount === 1 ? "Team Member" : "Team Members",
+                    count: teamMembersCount,
+                    icon: Users,
+                  });
+                }
+
+                return (
+                  <ItemCard
+                    key={location.id}
+                    title={location.name}
+                    customContent={<div className="text-foreground-2 line-clamp-2 mt-1">{location.description}</div>}
+                    badges={badges}
+                    metadata={metadata}
+                    actions={[
+                      {
+                        icon: Edit,
+                        label: "Edit Location",
+                        onClick: (e) => {
+                          e.stopPropagation();
+                          openEditSlider(location);
+                        },
+                      },
+                    ]}
+                    onClick={() => openEditSlider(location)}
+                    className="w-full"
+                  />
+                );
+              })}
             </div>
 
             {/* Empty State */}
@@ -407,127 +257,6 @@ export default function LocationsPage() {
                 </div>
               )
             )}
-
-            {/* Edit Dialog - Replaced with EditLocationSlider */}
-
-            {/* Working Hours Slider */}
-            <EditWorkingHoursSlider
-              isOpen={isWorkingHoursSliderOpen}
-              onClose={() => {
-                setIsWorkingHoursSliderOpen(false);
-                setEditingWorkingHoursLocation(null);
-              }}
-              location={editingWorkingHoursLocation}
-            />
-
-            {/* Day Edit Modal */}
-            <Dialog open={isDayEditModalOpen} onOpenChange={setIsDayEditModalOpen}>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Edit {editingDayData?.dayLabel} Hours</DialogTitle>
-                  <DialogDescription>
-                    Update working hours for {editingDayData?.location?.name} on {editingDayData?.dayLabel}.
-                  </DialogDescription>
-                </DialogHeader>
-                {editingDayData && (() => {
-                  const currentLocation = allLocations.find(loc => loc.id === editingDayData.location.id);
-                  const currentDayHours = dayEditDraft || currentLocation?.workingHours[editingDayData.day as keyof typeof defaultWorkingHours];
-
-                  return (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{editingDayData.dayLabel}</span>
-                        {currentDayHours?.isOpen ? (
-                          <button
-                            type="button"
-                            className="px-3 py-1 rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-sm font-medium"
-                            onClick={() => updateLocationDayHours(editingDayData.location.id, editingDayData.day, 'isOpen', false)}
-                          >
-                            Mark as Closed
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            className="px-3 py-1 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-sm font-medium"
-                            onClick={() => updateLocationDayHours(editingDayData.location.id, editingDayData.day, 'isOpen', true)}
-                          >
-                            Mark as Open
-                          </button>
-                        )}
-                      </div>
-                      {currentDayHours?.isOpen ? (
-                        <div className="space-y-3">
-                          <div>
-                            <Label className="text-sm text-gray-600 mb-1 block">Opening Time</Label>
-                            <Input
-                              type="time"
-                              value={currentDayHours.open}
-                              onChange={(e) => updateLocationDayHours(editingDayData.location.id, editingDayData.day, 'open', e.target.value)}
-                              onClick={(e) => e.currentTarget.showPicker?.()}
-                              className="h-10 text-center cursor-pointer"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-sm text-gray-600 mb-1 block">Closing Time</Label>
-                            <Input
-                              type="time"
-                              value={currentDayHours.close}
-                              onChange={(e) => updateLocationDayHours(editingDayData.location.id, editingDayData.day, 'close', e.target.value)}
-                              onClick={(e) => e.currentTarget.showPicker?.()}
-                              className="h-10 text-center cursor-pointer"
-                            />
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-400 italic text-sm">
-                          This location is closed on {editingDayData.dayLabel}
-                        </div>
-                      )}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          onClick={() => {
-                            if (!editingDayData || !currentLocation || !dayEditDraft) {
-                              setIsDayEditModalOpen(false);
-                              setEditingDayData(null);
-                              setDayEditDraft(null);
-                              return;
-                            }
-                            const updatedWorkingHours: WorkingHours = {
-                              ...currentLocation.workingHours,
-                              [editingDayData.day]: dayEditDraft,
-                            } as WorkingHours;
-                            dispatch(updateLocationAction.request({ location: { id: editingDayData.location.id, workingHours: updatedWorkingHours } }));
-                            setIsDayEditModalOpen(false);
-                            setEditingDayData(null);
-                            setDayEditDraft(null);
-                          }}
-                          className="flex-1"
-                        >
-                          Done
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </DialogContent>
-            </Dialog>
-
-            {/* Delete Confirmation Dialog */}
-            <DeleteConfirmDialog
-              open={showDeleteDialog}
-              onOpenChange={handleCloseDialog}
-              resourceType="location"
-              resourceName={locationToDelete?.name || ''}
-              deleteResponse={deleteResponse}
-              onConfirm={handleConfirmDelete}
-              isLoading={isDeleting}
-              secondaryActions={[
-                ...(deleteResponse?.isVisibleInMarketplace
-                  ? [{ label: 'Go to Marketplace', onClick: handleGoToMarketplace }]
-                  : []),
-                { label: 'Go to Assignments', onClick: handleGoToAssignments },
-              ]}
-            />
 
             {/* Add Location Slider */}
             <AddLocationSlider

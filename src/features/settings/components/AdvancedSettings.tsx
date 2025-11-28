@@ -37,7 +37,7 @@ const AdvancedSettings = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {/* Data Import Section */}
       <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
         <CardContent className="space-y-4">
