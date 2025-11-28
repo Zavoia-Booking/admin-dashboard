@@ -17,6 +17,11 @@
         "services": "Services",
         "locations": "Locations"
       },
+      "services": {
+        "allServices": "All Services",
+        "bundles": "Bundles",
+        "promotions": "Promotions"
+      },
       "settings": {
         "profile": "Profile",
         "billing": "Billing & Subscription",

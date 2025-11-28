@@ -1,6 +1,12 @@
 {
   "page": {
     "title": "Servicii",
+    "subtitle": "Gestionați serviciile și pachetele dvs",
+    "tabs": {
+      "allServices": "Toate Serviciile",
+      "bundles": "Pachete",
+      "promotions": "Promoții"
+    },
     "stats": {
       "total": "Total",
       "active": "Active",
@@ -21,6 +27,12 @@
       "actions": {
         "edit": "Editează",
         "delete": "Șterge"
+      },
+      "metadata": {
+        "location": "locație",
+        "locations": "locații",
+        "teamMember": "membru echipă",
+        "teamMembers": "membri echipă"
       }
     }
   },
@@ -219,5 +231,13 @@
     "description": "Sunteți sigur că doriți să schimbați statusul serviciului \"{{serviceName}}\"?",
     "confirm": "Comută",
     "cancel": "Anulează"
+  },
+  "bundles": {
+    "comingSoon": "Pachete în Curând",
+    "description": "Gestionarea pachetelor va fi disponibilă aici în curând. Creați pachete de servicii și oferiți-le ca pachete clienților dvs."
+  },
+  "promotions": {
+    "comingSoon": "Promoții în Curând",
+    "description": "Gestionarea promoțiilor va fi disponibilă aici în curând. Creați reduceri, oferte speciale și campanii promoționale pentru serviciile dvs."
   }
 }
