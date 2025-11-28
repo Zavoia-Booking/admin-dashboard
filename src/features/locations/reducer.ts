@@ -12,6 +12,7 @@ const initialState: LocationState = {
   isDeleting: false,
   deleteError: null,
   deleteResponse: null,
+  updateResponse: null,
 };
 
 export const LocationsReducer: Reducer<LocationState, any> = (state: LocationState = initialState, action: Actions) => {
@@ -29,7 +30,10 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
       return { ...state, isLoading: true, error: null };
 
     case getType(actions.updateLocationAction.request):
-      return { ...state, isLoading: true, error: null };
+      return { ...state, isLoading: true, error: null, updateResponse: null };
+
+    case getType(actions.updateLocationAction.success):
+      return { ...state, isLoading: false, updateResponse: action.payload.updateResponse, error: null };
 
     case getType(actions.listLocationsAction.success):
       return { ...state, isLoading: false, allLocations: action.payload.locations, error: null };

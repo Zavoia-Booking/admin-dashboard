@@ -28,3 +28,40 @@ export const deleteLocationApi = async (id: number): Promise<any> => {
   const { data } = await apiClient().delete(`/locations/${id}`);
   return data;
 }
+
+export interface ConfirmMapPinPayload {
+  address: string;
+  addressComponents: {
+    street?: string;
+    streetNumber?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    latitude: number;
+    longitude: number;
+  };
+}
+
+export interface ConfirmMapPinResponse {
+  message: string;
+  location: {
+    id: number;
+    name: string;
+    address: string;
+    addressComponents: {
+      city?: string;
+      street?: string;
+      country?: string;
+      postalCode?: string;
+      streetNumber?: string;
+      latitude: number;
+      longitude: number;
+    };
+    mapPinConfirmed: boolean;
+  };
+}
+
+export const confirmMapPinApi = async (locationId: number, payload: ConfirmMapPinPayload): Promise<ConfirmMapPinResponse> => {
+  const { data } = await apiClient().post<ConfirmMapPinResponse>(`/locations/${locationId}/confirm-pin`, payload);
+  return data;
+}

@@ -27,4 +27,6 @@ export interface LocationType {
   isRemote: boolean;
   open247?: boolean;
   isVisibleInMarketplace?: boolean;
+  servicesCount?: number;
+  teamMembersCount?: number;
 }

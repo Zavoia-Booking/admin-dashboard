@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Loader2 } from 'lucide-react';
+import { MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { Label } from '../../../shared/components/ui/label';
 import { Button } from '../../../shared/components/ui/button';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
@@ -16,6 +16,14 @@ import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEd
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../shared/components/ui/alert-dialog';
 import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
 import { updateLocationAction, deleteLocationAction } from '../actions';
@@ -25,7 +33,7 @@ import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
 import { selectCurrentUser } from '../../auth/selectors';
 import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
-import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector } from '../selectors';
+import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector, getUpdateResponseSelector } from '../selectors';
 import { toast } from 'sonner';
 import { mapLocationForEdit } from '../utils';
 
@@ -47,7 +55,9 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const isLocationLoading = useSelector(getLocationLoadingSelector);
   const isDeleting = useSelector(getIsDeletingSelector);
   const deleteResponseFromState = useSelector(getDeleteResponseSelector);
+  const updateResponse = useSelector(getUpdateResponseSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPinConfirmationDialog, setShowPinConfirmationDialog] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(false);
   const [isAddressValid, setIsAddressValid] = useState(true);
   const [addressComposerKey, setAddressComposerKey] = useState(0);
@@ -265,16 +275,24 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     }
   }, [locationError, isSubmitting]);
 
-  // Watch for success and close form
+  // Watch for success and check for pin confirmation requirement
   useEffect(() => {
     // Don't close if slider just opened (prevents race condition with isSubmitting reset)
     if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
-      // Success - close form and reset
-      // Don't set isSubmitting to false here - let it stay true until slider closes
-      setShowConfirmDialog(false);
-      onClose();
+      // Check if pin confirmation is needed
+      if (updateResponse?.needsPinConfirmation) {
+        // Show unclosable dialog instead of closing
+        setShowConfirmDialog(false);
+        setShowPinConfirmationDialog(true);
+        setIsSubmitting(false);
+      } else {
+        // Success - close form and reset
+        // Don't set isSubmitting to false here - let it stay true until slider closes
+        setShowConfirmDialog(false);
+        onClose();
+      }
     }
-  }, [isLocationLoading, isSubmitting, locationError, onClose]);
+  }, [isLocationLoading, isSubmitting, locationError, onClose, updateResponse]);
 
   // Re-validate timezone when isRemote changes
   useEffect(() => {
@@ -641,6 +659,10 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                 </div>
 
                 <AssignmentsCard
+                  stats={[
+                    { label: 'Services', value: location.servicesCount || 0 },
+                    { label: 'Team Members', value: location.teamMembersCount || 0 },
+                  ]}
                   description="Manage which services and team members are assigned to this location. View and modify all assignments in the dedicated Assignments section."
                   buttonLabel="Go to Assignments"
                   onButtonClick={() => {
@@ -735,6 +757,39 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           ]}
         />
       )}
+
+      {/* Pin Confirmation Required Dialog - Cannot be dismissed */}
+      <AlertDialog open={showPinConfirmationDialog} onOpenChange={() => {}}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/30 p-2">
+                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <AlertDialogTitle className="text-left">Pin Verification Required</AlertDialogTitle>
+              </div>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogDescription className="text-left">
+            This location is currently listed in the marketplace. Since you modified the address, 
+            you need to verify that the pin location is still displayed in the right place on the map.
+          </AlertDialogDescription>
+          <AlertDialogFooter>
+            <Button
+              onClick={() => {
+                setShowPinConfirmationDialog(false);
+                onClose();
+                navigate('/marketplace');
+              }}
+              rounded="full"
+              className="w-full sm:w-auto"
+            >
+              Go to Marketplace
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

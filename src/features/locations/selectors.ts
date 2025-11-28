@@ -25,3 +25,7 @@ export const getIsDeletingSelector = createSelector(getLocationStateSelector, (s
 export const getDeleteErrorSelector = createSelector(getLocationStateSelector, (state): string | null => {
     return state.deleteError ?? null;
 });
+
+export const getUpdateResponseSelector = createSelector(getLocationStateSelector, (state) => {
+    return state.updateResponse ?? null;
+});

@@ -38,7 +38,8 @@ function* handleCreateLocation(action: ActionType<typeof createLocationAction.re
 
 function* handleUpdateLocation(action: ActionType<typeof updateLocationAction.request>) {
   try {
-    yield call(updateLocationApi, action.payload.location);
+    const response: any = yield call(updateLocationApi, action.payload.location);
+    yield put(updateLocationAction.success({ updateResponse: response }));
     yield put(listLocationsAction.request());
   } catch (error: any) {
     const message = error?.response?.data?.error || error?.message || "Failed to update location";

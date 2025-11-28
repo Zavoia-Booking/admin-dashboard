@@ -80,7 +80,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const allLocations = useSelector(getAllLocationsSelector);
   const allTeamMembers = useSelector(selectTeamMembers);
   const activeTeamMembers = allTeamMembers.filter(
-    (member: TeamMember) => member.status === "active"
+    (member: TeamMember) => member.roleStatus === "active"
   );
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";

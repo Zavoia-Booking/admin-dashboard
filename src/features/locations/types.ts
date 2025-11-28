@@ -1,5 +1,14 @@
 import type { LocationType, WorkingHours } from "../../shared/types/location";
 
+export interface UpdateLocationResponse {
+  message: string;
+  location: {
+    id: number;
+    name: string;
+  };
+  needsPinConfirmation?: boolean;
+}
+
 export interface LocationState {
   isLoading: boolean;
   error: string | null;
@@ -7,6 +16,7 @@ export interface LocationState {
   isDeleting: boolean;
   deleteError: string | null;
   deleteResponse?: any | null;
+  updateResponse?: UpdateLocationResponse | null;
 }
 
 export interface NewLocationPayload {

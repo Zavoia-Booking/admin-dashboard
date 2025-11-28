@@ -220,7 +220,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   useEffect(() => {
     if (isOpen && allTeamMembers.length > 0 && allServices.length > 0) {
       const activeTeamMembers = allTeamMembers.filter(
-        (member: TeamMember) => member.status === 'active'
+        (member: TeamMember) => member.roleStatus === 'active'
       );
       const activeTeamMemberIds = activeTeamMembers.map((member: TeamMember) => member.id);
       const allServiceIds = allServices.map((service) => service.id);
@@ -498,14 +498,14 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     </div>
 
                     <div className="space-y-5">
-                      {allTeamMembers.filter((member: TeamMember) => member.status === 'active').length === 0 ? (
+                      {allTeamMembers.filter((member: TeamMember) => member.roleStatus === 'active').length === 0 ? (
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
                           No active team members available.
                         </p>
                       ) : (
                         <div className="flex flex-wrap gap-2 sm:gap-3">
                           {allTeamMembers
-                            .filter((member: TeamMember) => member.status === 'active')
+                            .filter((member: TeamMember) => member.roleStatus === 'active')
                             .map((member: TeamMember) => {
                               const teamMemberIds = watch('teamMemberIds') || [];
                               const isSelected = teamMemberIds.includes(member.id);

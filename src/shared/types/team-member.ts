@@ -52,7 +52,8 @@ export interface TeamMember {
   email: string;
   phone: string;
   role: UserRole;
-  status: 'pending' | 'active' | 'inactive';
+  // status: 'pending' | 'active' | 'inactive';
+  roleStatus: 'active' | 'pending_acceptance' | 'disabled';
   createdAt: string;
   profileImage?: string | null;
   invitedBy?: {

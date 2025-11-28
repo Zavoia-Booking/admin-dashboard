@@ -22,6 +22,37 @@ function normalizeDiacritics(text: string): string {
   return text.replace(/[ăâîșțĂÂÎȘȚ]/g, char => diacriticsMap[char] || char);
 }
 
+/**
+ * Forward geocoding: Convert address string to coordinates
+ */
+export async function locationIqGeocode(address: string): Promise<{ lat: number; lon: number; display_name: string; address: any } | null> {
+  const token = getToken();
+  if (!token) {
+    console.warn('[LocationIQ] Missing VITE_LOCATIONIQ_TOKEN. Geocoding disabled.');
+    return null;
+  }
+
+  const url = new URL(`${BASE_URL}/search`);
+  url.searchParams.set('key', token);
+  url.searchParams.set('q', normalizeDiacritics(address));
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('limit', '1');
+
+  try {
+    const res = await fetch(url.toString());
+    if (res.status === 404 || !res.ok) return null;
+    const json = await res.json();
+    if (json && json.length > 0) {
+      return json[0]; // Return first result
+    }
+    return null;
+  } catch (error) {
+    console.error('[LocationIQ] Geocoding error:', error);
+    return null;
+  }
+}
+
 export async function locationIqAutocomplete(params: {
   query: string;
   limit?: number;

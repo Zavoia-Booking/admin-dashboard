@@ -46,6 +46,11 @@ export function TeamMembersAssignments() {
   // Track if we've already auto-selected from URL
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
   
+  // Filter out team members with pending_acceptance status
+  const activeTeamMembers = useMemo(() => {
+    return allTeamMembers.filter((member: TeamMember) => member.roleStatus !== 'pending_acceptance');
+  }, [allTeamMembers]);
+  
   // Handlers
   const handleSelectTeamMember = (userId: number) => {
     dispatch(selectTeamMemberAction(userId));
@@ -59,16 +64,16 @@ export function TeamMembersAssignments() {
   // Auto-select team member from URL parameter
   useEffect(() => {
     const userIdFromUrl = searchParams.get('userId');
-    if (userIdFromUrl && !hasAutoSelected && allTeamMembers.length > 0) {
+    if (userIdFromUrl && !hasAutoSelected && activeTeamMembers.length > 0) {
       const userId = parseInt(userIdFromUrl, 10);
-      const memberExists = allTeamMembers.some((m: TeamMember) => m.id === userId);
+      const memberExists = activeTeamMembers.some((m: TeamMember) => m.id === userId);
       if (memberExists && !isNaN(userId)) {
         dispatch(selectTeamMemberAction(userId));
         dispatch(fetchTeamMemberAssignmentByIdAction.request(userId));
         setHasAutoSelected(true);
       }
     }
-  }, [searchParams, allTeamMembers, hasAutoSelected, dispatch]);
+  }, [searchParams, activeTeamMembers, hasAutoSelected, dispatch]);
 
   // Sync local state when selected team member changes
   useEffect(() => {
@@ -107,16 +112,16 @@ export function TeamMembersAssignments() {
 
   // Transform team members into list items
   const listItems: ListItem[] = useMemo(() => {
-    return allTeamMembers.map((member: TeamMember) => ({
+    return activeTeamMembers.map((member: TeamMember) => ({
       id: member.id,
       title: `${member.firstName} ${member.lastName}`,
       subtitle: member.email,
     }));
-  }, [allTeamMembers]);
+  }, [activeTeamMembers]);
 
   // Custom render function for team member items
   const renderTeamMemberItem = (item: ListItem, isSelected: boolean) => {
-    const member = allTeamMembers.find((m: TeamMember) => m.id === item.id);
+    const member = activeTeamMembers.find((m: TeamMember) => m.id === item.id);
     if (!member) return null;
 
     const initials = `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
@@ -246,7 +251,7 @@ export function TeamMembersAssignments() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
       <AssignmentListPanel
-        title={`Team Members (${allTeamMembers.length})`}
+        title={`Team Members (${activeTeamMembers.length})`}
         items={listItems}
         selectedId={selectedTeamMember?.id ?? null}
         onSelect={(id) => handleSelectTeamMember(Number(id))}

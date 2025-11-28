@@ -34,6 +34,16 @@ export interface Location {
   isRemote: boolean;
   email: string;
   address: string;
+  addressComponents: {
+    street?: string;
+    streetNumber?: string;
+    city?: string;
+    postalCode?: string;
+    country?: string;
+    latitude?: number;
+    longitude?: number;
+  };
+  mapPinConfirmed?: boolean;
   timezone: string;
   workingHours: any;
   open247: boolean;
