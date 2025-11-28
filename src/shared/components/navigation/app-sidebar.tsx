@@ -94,6 +94,20 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     url: "/services",
     icon: Briefcase,
     roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    items: [
+      {
+        title: t("sidebar.subItems.services.allServices"),
+        url: "/services?tab=services",
+      },
+      {
+        title: t("sidebar.subItems.services.bundles"),
+        url: "/services?tab=bundles",
+      },
+      {
+        title: t("sidebar.subItems.services.promotions"),
+        url: "/services?tab=promotions",
+      },
+    ],
   },
   {
     title: t("sidebar.locations"),

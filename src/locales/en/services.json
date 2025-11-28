@@ -1,6 +1,12 @@
 {
   "page": {
     "title": "Services",
+    "subtitle": "Manage your services and bundles",
+    "tabs": {
+      "allServices": "All Services",
+      "bundles": "Bundles",
+      "promotions": "Promotions"
+    },
     "stats": {
       "total": "Total",
       "active": "Active",
@@ -21,6 +27,12 @@
       "actions": {
         "edit": "Edit",
         "delete": "Delete"
+      },
+      "metadata": {
+        "location": "location",
+        "locations": "locations",
+        "teamMember": "team member",
+        "teamMembers": "team members"
       }
     }
   },
@@ -222,5 +234,13 @@
     "description": "Are you sure you want to change status to the service \"{{serviceName}}\".",
     "confirm": "Toggle",
     "cancel": "Cancel"
+  },
+  "bundles": {
+    "comingSoon": "Bundles Coming Soon",
+    "description": "Bundle management will be available here soon. Create service packages and offer them as bundles to your customers."
+  },
+  "promotions": {
+    "comingSoon": "Promotions Coming Soon",
+    "description": "Promotion management will be available here soon. Create discounts, special offers, and promotional campaigns for your services."
   }
 }

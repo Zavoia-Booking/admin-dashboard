@@ -17,6 +17,11 @@
         "services": "Servicii",
         "locations": "Locații"
       },
+      "services": {
+        "allServices": "Toate Serviciile",
+        "bundles": "Pachete",
+        "promotions": "Promoții"
+      },
       "settings": {
         "profile": "Profil",
         "billing": "Facturare și abonament",
