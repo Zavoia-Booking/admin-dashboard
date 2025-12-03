@@ -105,7 +105,7 @@ export function ResponsiveTabs({
                     : "flex-none rounded-none px-4 py-2 text-sm",
                   isActive
                     ? "text-foreground"
-                    : "text-foreground-3 hover:text-foreground"
+                    : "text-foreground-2 hover:text-foreground"
                 )}
               >
                 <div className="flex items-center gap-2">

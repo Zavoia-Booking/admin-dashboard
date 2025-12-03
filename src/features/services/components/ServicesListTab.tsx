@@ -72,30 +72,26 @@ export function ServicesListTab() {
     dispatch(getServicesAction.request({ reset: true }));
   }, [dispatch]);
 
+  // Helper to (re)load categories from backend
+  const reloadCategories = async () => {
+    try {
+      const cats: ApiCategory[] = await listCategoriesApi();
+      const mapped = cats.map<ServiceCategory>((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        color: cat.color,
+      }));
+      setCategories(mapped);
+      setInitialCategories(mapped);
+    } catch (error) {
+      console.error("Failed to load categories for services list:", error);
+      setCategories([]);
+    }
+  };
+
   // Load categories once when the Services page mounts
   useEffect(() => {
-    let isMounted = true;
-
-    listCategoriesApi()
-      .then((cats: ApiCategory[]) => {
-        if (!isMounted) return;
-        const mapped = cats.map<ServiceCategory>((cat) => ({
-          id: cat.id,
-          name: cat.name,
-          color: cat.color,
-        }));
-        setCategories(mapped);
-        setInitialCategories(mapped);
-      })
-      .catch((error) => {
-        console.error("Failed to load categories for services list:", error);
-        if (!isMounted) return;
-        setCategories([]);
-      });
-
-    return () => {
-      isMounted = false;
-    };
+    void reloadCategories();
   }, []);
 
   // Compute how many services are assigned to each category
@@ -179,14 +175,7 @@ export function ServicesListTab() {
       }
 
       // Reload canonical list
-      const refreshed = await listCategoriesApi();
-      const mapped = refreshed.map<ServiceCategory>((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        color: cat.color,
-      }));
-      setCategories(mapped);
-      setInitialCategories(mapped);
+      await reloadCategories();
       // Also refresh services so cards pick up updated category names/colors
       dispatch(getServicesAction.request({ reset: true }));
       toast.success(text("addService.form.category.manageApplySuccess"));
@@ -474,6 +463,9 @@ export function ServicesListTab() {
         isOpen={isCreateSliderOpen}
         onClose={() => {
           dispatch(toggleAddFormAction(false));
+          // After creating a service, new categories may have been created via the form.
+          // Reload categories so the Manage Categories popover stays in sync without a full page refresh.
+          void reloadCategories();
         }}
         categories={initialCategories}
       />
@@ -481,7 +473,12 @@ export function ServicesListTab() {
       {/* Edit Service Slider */}
       <EditServiceSlider
         isOpen={isEditSliderOpen}
-        onClose={() => setIsEditSliderOpen(false)}
+        onClose={() => {
+          setIsEditSliderOpen(false);
+          // After editing a service, additional categories may have been created.
+          // Reload categories so the Manage Categories popover and forms see the latest list.
+          void reloadCategories();
+        }}
         service={editingService}
         categories={initialCategories}
       />
