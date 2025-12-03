@@ -2,28 +2,37 @@ import { type FC, useCallback } from "react";
 import { X } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
 import type { ServiceFilterState } from "../types.ts";
-import { ALL } from "../../../shared/constants.ts";
+import type { Category } from "./CategorySection";
 
 interface IProps {
-    filters: ServiceFilterState
-    changeFilters: (filters: ServiceFilterState) => void
+    filters: ServiceFilterState;
+    changeFilters: (filters: ServiceFilterState) => void;
+    categories?: Category[];
 }
 
-export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
+export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) => {
+    const { priceMin, priceMax, durationMin, durationMax, categoryIds = [] } = filters;
+
+    // Treat empty string and "0" as "no price filter" (for UX we don't want to show 0 when user never set it)
+    const hasPriceMin = priceMin !== "" && priceMin !== "0";
+    const hasPriceMax = priceMax !== "" && priceMax !== "0";
+
     const canShowFilterBadges = useCallback((): boolean => {
         return !!(
-            filters.status !== ALL ||
-            filters.searchTerm ||
-            filters.priceMin ||
-            filters.priceMax ||
-            filters.durationMin ||
-            filters.durationMax
+            hasPriceMin ||
+            hasPriceMax ||
+            durationMin ||
+            durationMax ||
+            (Array.isArray(categoryIds) && categoryIds.length > 0)
         );
-    }, [filters])
+    }, [hasPriceMin, hasPriceMax, durationMin, durationMax, categoryIds]);
 
-    const { searchTerm, status, priceMin, priceMax, durationMin, durationMax } = filters
+    const selectedCategories =
+      Array.isArray(categoryIds) && categories
+        ? categories.filter((c) => categoryIds.includes(c.id))
+        : [];
 
-    const setFilters = useCallback((filterKey: string, filterValue: string|number|boolean) => {
+    const setFilters = useCallback((filterKey: string, filterValue: string | number | boolean | null) => {
         const newFilters = {
             ...filters,
             [filterKey]: filterValue
@@ -35,40 +44,20 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
     return (<>
         {canShowFilterBadges() && (
             <div className="flex flex-wrap gap-2 mb-4">
-                {status !== ALL && (
+                {hasPriceMin && (
                     <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('status', '')}
-                    >
-                        Service: {status}
-                        <X className="h-4 w-4 ml-1"/>
-                    </Badge>
-                )}
-                {searchTerm && (
-                    <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
-                        onClick={() => setFilters('searchTerm', '')}
-                    >
-                        Search by {searchTerm}
-                        <X className="h-4 w-4 ml-1"/>
-                    </Badge>
-                )}
-                {priceMin && (
-                    <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                        variant="filter"
+                        className="flex items-center gap-1 cursor-pointer   text-xs"
                         onClick={() => setFilters('priceMin', '')}
                     >
                         Price min: {priceMin}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
-                {priceMax && (
+                {hasPriceMax && (
                     <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                        variant="filter"
+                        className="flex items-center gap-1 cursor-pointer   text-xs"
                         onClick={() => setFilters('priceMax', '')}
                     >
                         Price max: {priceMax}
@@ -77,8 +66,8 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
                 )}
                 {durationMin && (
                     <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                        variant="filter"
+                        className="flex items-center gap-1 cursor-pointer  text-xs"
                         onClick={() => setFilters('durationMin', '')}
                     >
                         Duration min: {durationMin}
@@ -87,14 +76,33 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters }) => {
                 )}
                 {durationMax && (
                     <Badge
-                        variant="secondary"
-                        className="flex items-center gap-1 cursor-pointer hover:bg-destructive/10 hover:text-destructive transition-colors text-sm"
+                        variant="filter"
+                        className="flex items-center gap-1 cursor-pointer  text-xs"
                         onClick={() => setFilters('durationMax', '')}
                     >
                         Duration max: {durationMax}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
+                {selectedCategories.map((cat) => (
+                    <Badge
+                        key={cat.id}
+                        variant="filter"
+                        className="flex items-center gap-1 cursor-pointer  text-xs"
+                        onClick={() => {
+                            const nextCategoryIds = categoryIds.filter(
+                                (id) => id !== cat.id
+                            );
+                            changeFilters({
+                                ...filters,
+                                categoryIds: nextCategoryIds,
+                            });
+                        }}
+                    >
+                        Category: {cat.name}
+                        <X className="h-4 w-4 ml-1" />
+                    </Badge>
+                ))}
             </div>
         )}
     </>)

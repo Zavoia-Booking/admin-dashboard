@@ -74,3 +74,19 @@ export function getColorHex(name: string | undefined): string {
   const hsl = getAvatarBgColor(name);
   return hslToHex(hsl);
 }
+
+/**
+ * Given a hex background color, returns either black or white text
+ * for good contrast. Shared by category pills and other colored chips.
+ */
+export function getReadableTextColor(bgColor: string): string {
+  const hex = bgColor.replace("#", "");
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.5 ? "#000000" : "#FFFFFF";
+}
+

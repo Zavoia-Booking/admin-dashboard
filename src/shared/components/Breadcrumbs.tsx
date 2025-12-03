@@ -1,13 +1,8 @@
-import React, { FC } from 'react';
-import { Link } from 'react-router-dom';
-import {
-  Breadcrumb,
-  BreadcrumbList,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from './ui/breadcrumb';
+import React from 'react';
+import type { FC } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
+import { Button } from './ui/button';
 
 export type BreadcrumbItemType = {
   label: string;
@@ -20,38 +15,32 @@ interface BreadcrumbsProps {
 }
 
 export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
-  return (
-    <div className="bg-surface border border-border rounded-lg px-6 py-3 mb-6 shadow-sm">
-      <Breadcrumb>
-        <BreadcrumbList>
-          {items.map((item, index) => {
-            const isLast = index === items.length - 1;
+  const navigate = useNavigate();
 
-            return (
-              <React.Fragment key={index}>
-                <BreadcrumbItem className="flex items-center gap-1.5">
-                  {item.icon && <span className="flex items-center text-foreground-2">{item.icon}</span>}
-                  {isLast || !item.path ? (
-                    <BreadcrumbPage className="font-semibold text-sm text-foreground-1">
-                      {item.label}
-                    </BreadcrumbPage>
-                  ) : (
-                    <BreadcrumbLink asChild>
-                      <Link
-                        to={item.path}
-                        className="text-sm text-foreground-3 hover:text-primary transition-colors"
-                      >
-                        {item.label}
-                      </Link>
-                    </BreadcrumbLink>
-                  )}
-                </BreadcrumbItem>
-                {!isLast && <BreadcrumbSeparator />}
-              </React.Fragment>
-            );
-          })}
-        </BreadcrumbList>
-      </Breadcrumb>
+  const current = items[items.length - 1];
+
+  const handleBack = () => {
+    // Always go back in browser history to better match user expectation
+    navigate(-1);
+  };
+
+  return (
+    <div className="bg-surface px-1 py-3 shadow-sm">
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          rounded="full"
+          onClick={handleBack}
+          className="h-8 !w-8"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        <span className="text-lg font-semibold text-foreground-1 truncate min-w-0">
+          {current?.label}
+        </span>
+      </div>
     </div>
   );
 };

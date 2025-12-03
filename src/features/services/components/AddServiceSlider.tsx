@@ -34,7 +34,6 @@ import { listLocationsAction } from "../../locations/actions";
 import { listTeamMembersAction } from "../../teamMembers/actions";
 import { createServicesAction } from "../actions.ts";
 import type { CreateServicePayload } from "../types.ts";
-import { listCategoriesApi } from "../../categories/api";
 import type { Category } from "./CategorySection";
 import {
   getServicesErrorSelector,
@@ -47,6 +46,7 @@ import { getLocationLoadingSelector } from "../../locations/selectors";
 interface AddServiceSliderProps {
   isOpen: boolean;
   onClose: () => void;
+  categories: Category[];
 }
 interface ServiceFormData {
   name: string;
@@ -73,6 +73,7 @@ const initialFormData: ServiceFormData = {
 const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   isOpen,
   onClose,
+  categories: initialCategories,
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
@@ -104,12 +105,10 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     mode: "onChange",
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const categoriesFetchedRef = useRef(false);
   const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
     Category[]
   >([]);
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
 
   const locationIds = watch("locationIds");
@@ -224,36 +223,21 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const isFormDisabled =
     !formState.isValid || !isCategorySet || !areRequiredFieldsFilled;
 
-  // Fetch locations, team members, and categories when slider opens
+  // Fetch locations and team members when slider opens
   useEffect(() => {
-    if (isOpen && !categoriesFetchedRef.current) {
+    if (isOpen && !hasInitializedSelectionsRef.current) {
       dispatch(listLocationsAction.request());
       dispatch(listTeamMembersAction.request());
-
-      // Fetch categories only once (prevent duplicate calls from React Strict Mode)
-      categoriesFetchedRef.current = true;
-      setIsCategoriesLoading(true);
-      listCategoriesApi()
-        .then((cats) => {
-          setCategories(cats);
-          setIsCategoriesLoading(false);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch categories:", error);
-          setCategories([]);
-          setIsCategoriesLoading(false);
-        });
     }
   }, [isOpen, dispatch]);
 
   // Reset fetch flag when slider closes
   useEffect(() => {
     if (!isOpen) {
-      categoriesFetchedRef.current = false;
       hasInitializedSelectionsRef.current = false;
-      setIsCategoriesLoading(false);
+      setCategories(initialCategories);
     }
-  }, [isOpen]);
+  }, [isOpen, initialCategories]);
 
   // Pre-select all locations and active team members when slider opens (only once)
   useEffect(() => {
@@ -269,7 +253,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   }, [isOpen, allLocations, activeTeamMembers, isLocationsLoading, setValue]);
 
   // Show skeleton while loading
-  const isLoading = isLocationsLoading || isCategoriesLoading;
+  const isLoading = isLocationsLoading;
 
   // Memoize callback to prevent infinite loops
   const handleNewlyCreatedCategoriesChange = useCallback(

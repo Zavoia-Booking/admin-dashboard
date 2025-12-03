@@ -50,11 +50,21 @@ export type EditServicePayload = {
   }>;
 };
 
+export type ServiceSortField = "price" | "duration" | "createdAt" | "updatedAt";
+
+export type ServiceSortDirection = "asc" | "desc";
+
 export type ServiceFilterState = {
   searchTerm: string;
-  status: string;
   priceMin: string;
   priceMax: string;
   durationMin: string;
   durationMax: string;
+  /**
+   * Selected category filters. Empty array = no category filter.
+   * This is independent from the single category used in add/edit forms.
+   */
+  categoryIds: number[];
+  sortField: ServiceSortField;
+  sortDirection: ServiceSortDirection;
 };

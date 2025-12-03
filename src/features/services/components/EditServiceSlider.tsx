@@ -38,7 +38,6 @@ import {
   getServicesDeletingSelector,
   getServicesDeleteResponseSelector,
 } from "../selectors.ts";
-import { listCategoriesApi } from "../../categories/api";
 import type { Category } from "./CategorySection";
 import { toast } from "sonner";
 import type { Service } from "../../../shared/types/service";
@@ -48,6 +47,7 @@ interface EditServiceSliderProps {
   isOpen: boolean;
   onClose: () => void;
   service: Service | null;
+  categories: Category[];
 }
 
 interface EditServiceFormData {
@@ -65,6 +65,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   isOpen,
   onClose,
   service: serviceProp,
+  categories: initialCategories,
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
@@ -114,8 +115,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     mode: "onChange",
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const categoriesFetchedRef = useRef(false);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
     Category[]
   >([]);
@@ -223,31 +223,12 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     durationValue !== null &&
     durationValue > 0;
 
-  // Fetch categories when slider opens
-  useEffect(() => {
-    if (isOpen && !categoriesFetchedRef.current) {
-      // Fetch categories only once (prevent duplicate calls from React Strict Mode)
-      categoriesFetchedRef.current = true;
-      setIsCategoriesLoading(true);
-      listCategoriesApi()
-        .then((cats) => {
-          setCategories(cats);
-          setIsCategoriesLoading(false);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch categories:", error);
-          setCategories([]);
-          setIsCategoriesLoading(false);
-        });
-    }
-  }, [isOpen, dispatch]);
-
-  // Reset fetch flag when slider closes
+  // Reset categories state when slider closes
   useEffect(() => {
     if (!isOpen) {
-      categoriesFetchedRef.current = false;
+      setCategories(initialCategories);
     }
-  }, [isOpen]);
+  }, [isOpen, initialCategories]);
 
   // Populate form with service data when opened
   useEffect(() => {

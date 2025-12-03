@@ -2,6 +2,7 @@ import React from "react";
 import { Badge } from "../ui/badge";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { getReadableTextColor } from "../../utils/color";
 
 export interface ItemCardMetadata {
   icon?: LucideIcon;
@@ -10,7 +11,7 @@ export interface ItemCardMetadata {
 }
 
 export interface ItemCardCategory {
-  name: string;
+  name: React.ReactNode;
   color?: string;
   icon?: LucideIcon;
 }
@@ -29,7 +30,7 @@ export interface ItemCardBadge {
 }
 
 export interface ItemCardProps {
-  title: string;
+  title: React.ReactNode;
   customContent?: React.ReactNode;
   category?: ItemCardCategory | null;
   badges?: ItemCardBadge[];
@@ -62,8 +63,8 @@ export function ItemCard({
   return (
     <div
       className={cn(
-        "group rounded-xl border border-border bg-surface dark:bg-neutral-900 overflow-hidden shadow-sm transition-all duration-300 flex flex-col",
-        onClick && "cursor-pointer hover:border-border-strong hover:shadow-lg hover:-translate-y-0.5",
+        "group rounded-xl border border-border dark:border-border bg-surface dark:bg-transparent overflow-hidden shadow-sm transition-all duration-300 flex flex-col",
+        onClick && "cursor-pointer hover:border-border-strong dark:hover:border-border hover:shadow-lg hover:-translate-y-0.5",
         className
       )}
       onClick={onClick}
@@ -98,7 +99,7 @@ export function ItemCard({
               <button
                 className={cn(
                   "flex items-center justify-center h-8 w-8 rounded-lg transition-all duration-200 flex-shrink-0 cursor-pointer",
-                  "text-foreground-3 hover:text-foreground-1 hover:bg-muted/50 active:scale-95"
+                  "text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 hover:bg-muted/50 dark:hover:bg-neutral-800 active:scale-95"
                 )}
                 title={actions[0].label}
                 onClick={(e) => {
@@ -129,11 +130,15 @@ export function ItemCard({
                 style={{
                   backgroundColor: category.color ? `${category.color}` : undefined,
                   borderColor: category.color || undefined,
+                  color: category.color ? getReadableTextColor(category.color) : undefined,
                 }}
               >
                 {category.icon && (
                   <category.icon
-                    className={cn("mr-1.5", variant === "default" ? "h-3 w-3 mt-.5" : "h-2.5 w-2.5")}
+                    className={cn("mr-1.5 flex-shrink-0", variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5")}
+                    style={{
+                      color: category.color ? getReadableTextColor(category.color) : undefined,
+                    }}
                   />
                 )}
                 {category.name}
@@ -151,7 +156,7 @@ export function ItemCard({
               >
                 {badge.icon && (
                   <badge.icon
-                    className={cn("mr-1.5", variant === "default" ? "h-3 w-3 mt-.5" : "h-2.5 w-2.5")}
+                    className={cn("mr-1.5 flex-shrink-0", variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5")}
                   />
                 )}
                 {badge.count} {badge.label}
@@ -168,7 +173,7 @@ export function ItemCard({
               {metadata.length > 0 && metadata[0] && (
                 <div
                   className={cn(
-                    "flex items-center gap-2 text-foreground-2",
+                    "flex items-center gap-2 text-foreground-2 dark:text-foreground-2",
                     variant === "default" ? "text-sm" : "text-xs"
                   )}
                 >
@@ -177,7 +182,7 @@ export function ItemCard({
                     return (
                       <Icon
                         className={cn(
-                          "text-foreground-3 flex-shrink-0",
+                          "text-foreground-3 dark:text-foreground-2 flex-shrink-0",
                           variant === "default" ? "h-4 w-4" : "h-3.5 w-3.5"
                         )}
                       />
@@ -203,7 +208,7 @@ export function ItemCard({
           {hasSecondaryMetadata && metadata.length > 1 && (
             <div
               className={cn(
-                "flex flex-wrap items-center gap-3 text-foreground-3 pt-3 border-t border-border-subtle",
+                "flex flex-wrap items-center gap-3 text-foreground-3 dark:text-foreground-2 pt-3 border-t border-border-subtle",
                 variant === "default" ? "text-xs" : "text-[10px]"
               )}
             >
@@ -212,7 +217,7 @@ export function ItemCard({
                   {item.icon && (
                     <item.icon
                       className={cn(
-                        "flex-shrink-0",
+                        "flex-shrink-0 text-foreground-3 dark:text-foreground-2",
                         variant === "default" ? "h-3.5 w-3.5" : "h-3 w-3"
                       )}
                     />

@@ -42,7 +42,8 @@ export default function ServicesPage() {
   const handleTabChange = (tabId: string) => {
     const tab = tabId as ServicesTab;
     setActiveTab(tab);
-    navigate(`/services?tab=${tab}`);
+    // Use replace so tab switches don't pollute browser history
+    navigate(`/services?tab=${tab}`, { replace: true });
   };
 
   const tabItems: ResponsiveTabItem[] = [

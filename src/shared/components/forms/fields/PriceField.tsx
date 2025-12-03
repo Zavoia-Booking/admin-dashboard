@@ -12,6 +12,7 @@ export interface PriceFieldProps
   decimalPlaces?: number; // Number of decimal places (default: 2 for prices)
   currency?: string; // Currency code for conversion (default: 'usd')
   storageFormat?: "cents" | "decimal"; // Storage format: 'cents' (299) or 'decimal' (2.99) - default: 'decimal' for backward compatibility
+  customLabelClassName?: string; // Optional override for label typography
 }
 
 /**
@@ -50,6 +51,7 @@ export const PriceField: React.FC<PriceFieldProps> = ({
   onChange,
   error,
   label,
+  customLabelClassName,
   placeholder,
   required = false,
   min,
@@ -161,7 +163,10 @@ export const PriceField: React.FC<PriceFieldProps> = ({
   return (
     <div className={`space-y-2 ${className}`}>
       {label && (
-        <Label htmlFor={id} className="text-base font-medium">
+        <Label
+          htmlFor={id}
+          className={customLabelClassName || "text-base font-medium"}
+        >
           {label} {required && "*"}
         </Label>
       )}

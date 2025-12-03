@@ -11,12 +11,17 @@
       "total": "Total",
       "active": "Active",
       "avgPrice": "Preț Mediu",
-      "bookings": "Rezervări"
+      "bookings": "Rezervări",
+      "helperTotalPrefix": "Ai în prezent",
+      "helperTotalSuffix": "în listă",
+      "helperTotalServiceOne": "serviciu",
+      "helperTotalServiceOther": "servicii"
     },
     "emptyState": {
-      "noServices": "Nu au fost găsite servicii",
-      "noServicesDescription": "Începeți prin adăugarea primului serviciu.",
+      "noServices": "Nu ai creat încă niciun serviciu",
+      "noServicesDescription": "Creează primul tău serviciu pentru a începe să-l oferi clienților tăi.",
       "noResults": "Nu au fost găsite servicii care să corespundă filtrelor.",
+      "noResultsDescription": "Încercați să ajustați căutarea sau filtrele pentru a găsi ceea ce căutați.",
       "clearFilters": "Șterge filtrele"
     },
     "service": {
@@ -34,6 +39,9 @@
         "teamMember": "membru echipă",
         "teamMembers": "membri echipă"
       }
+    },
+    "actions": {
+      "addService": "Adaugă serviciu"
     }
   },
   "addService": {
@@ -100,7 +108,18 @@
         "selectLabel": "Selectează una",
         "selectHelperText": "Fiecare serviciu poate fi atribuit unei singure categorii",
         "manageCategoriesText": "Le poți gestiona din",
-        "manageCategoriesLink": "Categorii",
+        "manageCategoriesLink": "Administrare Categorii",
+        "managePopoverTitle": "Categorii",
+        "managePopoverDescription": "Gestionează categoriile folosite de serviciile tale, astfel încât totul să rămână organizat.",
+        "managePopoverHelperText": "Poți șterge o categorie doar dacă nu are niciun serviciu atribuit.",
+        "manageConfirmTitle": "Aplici modificările la categorii?",
+        "manageConfirmDescription": "Aceste modificări vor actualiza lista de categorii folosită în serviciile tale. Poți reveni oricând la lista inițială din această pagină.",
+        "manageConfirmConfirm": "Aplică modificările",
+        "manageConfirmCancel": "Anulează",
+        "manageApplySuccess": "Categoriile au fost actualizate cu succes.",
+        "manageApplyError": "Actualizarea categoriilor a eșuat. Încearcă din nou.",
+        "manageFooterClear": "Șterge modificările",
+        "manageFooterApply": "Aplică",
         "createNew": "Creează categorie nouă",
         "backToSelect": "Înapoi la categorii",
         "newCategoryLabel": "Categorie nouă",
@@ -239,5 +258,39 @@
   "promotions": {
     "comingSoon": "Promoții în Curând",
     "description": "Gestionarea promoțiilor va fi disponibilă aici în curând. Creați reduceri, oferte speciale și campanii promoționale pentru serviciile dvs."
+  },
+  "filters": {
+    "searchPlaceholder": "Caută servicii...",
+    "addFilter": "Filtre",
+    "byPrice": "După preț",
+    "byDuration": "După durată",
+    "byCategory": "După categorie",
+    "clearAll": "Șterge toate filtrele",
+    "apply": "Aplică",
+    "noCategories": "Nu există încă nicio categorie.",
+    "minPriceLabel": "Preț minim",
+    "maxPriceLabel": "Preț maxim",
+    "minPricePlaceholder": "0.00",
+    "maxPricePlaceholder": "∞",
+    "minDurationLabel": "Durată minimă (min)",
+    "maxDurationLabel": "Durată maximă (min)",
+    "minDurationPlaceholder": "0",
+    "maxDurationPlaceholder": "∞",
+    "showFiltersAria": "Afișează filtrele"
+  },
+  "sort": {
+    "trigger": "Sortare",
+    "priceAsc": "Mic → mare",
+    "priceDesc": "Mare → mic",
+    "durationAsc": "Scurtă → lungă",
+    "durationDesc": "Lungă → scurtă",
+    "createdAtDesc": "Cele mai noi",
+    "createdAtAsc": "Cele mai vechi",
+    "updatedAtDesc": "Actualizate recent",
+    "updatedAtAsc": "Mai puțin recente",
+    "groupPrice": "Preț",
+    "groupDuration": "Durată",
+    "groupCreatedAt": "Dată creare",
+    "groupUpdatedAt": "Ultima actualizare"
   }
 }
