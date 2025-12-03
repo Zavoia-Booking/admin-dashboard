@@ -195,7 +195,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
           <div
             className={cn(
               "flex flex-col bg-surface relative",
-              "p-4 md:p-6",
+              "p-4 px-0 md:p-6",
               headerClassName
             )}
           >

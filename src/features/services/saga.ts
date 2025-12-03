@@ -1,4 +1,4 @@
-import { all, call, put, select, takeLatest } from "redux-saga/effects";
+import { all, call, put, takeLatest } from "redux-saga/effects";
 import {
   createServicesAction,
   deleteServicesAction,
@@ -17,19 +17,14 @@ import {
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { Service } from "../../shared/types/service.ts";
-import type { ServiceFilterState } from "./types.ts";
-import { getServicesFilterSelector } from "./selectors.ts";
-import { mapToGenericFilter } from "./utils.ts";
 import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleGetServices(): Generator<any, void, any> {
-  const filters: ServiceFilterState = yield select(getServicesFilterSelector);
-  const mappedFilters = mapToGenericFilter(filters);
-
+  // Always fetch the full list; all filtering is handled client-side
   try {
     const response: { data: Service[] } = yield call(
       getServicesRequest,
-      mappedFilters
+      []
     );
     if (response.data) {
       yield put(getServicesAction.success(response.data));
@@ -134,8 +129,9 @@ function* handleEditServices(
 function* handleSetServiceFilters(
   action: ActionType<typeof setServiceFilterAction.request>
 ) {
+  // Only update filters in state; do not refetch from backend.
+  // Client-side selectors derive filtered views from the full list.
   yield put(setServiceFilterAction.success(action.payload));
-  yield put(getServicesAction.request({ reset: true }));
 }
 
 export function* servicesSaga(): Generator<unknown, void, unknown> {

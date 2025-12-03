@@ -11,12 +11,17 @@
       "total": "Total",
       "active": "Active",
       "avgPrice": "Avg Price",
-      "bookings": "Bookings"
+      "bookings": "Bookings",
+      "helperTotalPrefix": "You currently have",
+      "helperTotalSuffix": "in your list",
+      "helperTotalServiceOne": "service",
+      "helperTotalServiceOther": "services"
     },
     "emptyState": {
-      "noServices": "No services found",
-      "noServicesDescription": "Get started by adding your first service.",
+      "noServices": "You haven't created any services yet",
+      "noServicesDescription": "Create your first service to start offering it to your customers.",
       "noResults": "No services found matching your filters.",
+      "noResultsDescription": "Try adjusting your search or filters to find what you're looking for.",
       "clearFilters": "Clear filters"
     },
     "service": {
@@ -34,6 +39,9 @@
         "teamMember": "team member",
         "teamMembers": "team members"
       }
+    },
+    "actions": {
+      "addService": "Add service"
     }
   },
   "addService": {
@@ -100,7 +108,18 @@
         "selectLabel": "Select one",
         "selectHelperText": "Each service can be assigned to one category",
         "manageCategoriesText": "You can manage them from",
-        "manageCategoriesLink": "Categories",
+        "manageCategoriesLink": "Manage Categories",
+        "managePopoverTitle": "Categories",
+        "managePopoverDescription": "Manage the categories your services use so everything stays organized and consistent.",
+        "managePopoverHelperText": "You can remove a category only if it doesn’t have any services assigned to it.",
+        "manageConfirmTitle": "Apply category changes?",
+        "manageConfirmDescription": "These changes will update the category list used across your services. You can still revert to the original list later from this page.",
+        "manageConfirmConfirm": "Apply changes",
+        "manageConfirmCancel": "Cancel",
+        "manageApplySuccess": "Categories updated successfully.",
+        "manageApplyError": "Failed to update categories. Please try again.",
+        "manageFooterClear": "Clear changes",
+        "manageFooterApply": "Apply",
         "createNew": "Create new category",
         "backToSelect": "Back to categories",
         "newCategoryLabel": "New category",
@@ -242,5 +261,39 @@
   "promotions": {
     "comingSoon": "Promotions Coming Soon",
     "description": "Promotion management will be available here soon. Create discounts, special offers, and promotional campaigns for your services."
+  },
+  "filters": {
+    "searchPlaceholder": "Search services...",
+    "addFilter": "Filters",
+    "byPrice": "By price",
+    "byDuration": "By duration",
+    "byCategory": "By category",
+    "clearAll": "Clear all filters",
+    "apply": "Apply",
+    "noCategories": "No categories available yet.",
+    "minPriceLabel": "Min price",
+    "maxPriceLabel": "Max price",
+    "minPricePlaceholder": "0.00",
+    "maxPricePlaceholder": "∞",
+    "minDurationLabel": "Min duration (min)",
+    "maxDurationLabel": "Max duration (min)",
+    "minDurationPlaceholder": "0",
+    "maxDurationPlaceholder": "∞",
+    "showFiltersAria": "Show filters"
+  },
+  "sort": {
+    "trigger": "Sort",
+    "priceAsc": "Low → high",
+    "priceDesc": "High → low",
+    "durationAsc": "Short → long",
+    "durationDesc": "Long → short",
+    "createdAtDesc": "Newest first",
+    "createdAtAsc": "Oldest first",
+    "updatedAtDesc": "Recently updated",
+    "updatedAtAsc": "Least recent",
+    "groupPrice": "Price",
+    "groupDuration": "Duration",
+    "groupCreatedAt": "Date created",
+    "groupUpdatedAt": "Last updated"
   }
 }

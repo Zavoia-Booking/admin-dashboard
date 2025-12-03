@@ -38,7 +38,8 @@ export default function AssignmentsPage() {
   const handleTabChange = (tabId: string) => {
     const tab = tabId as AssignmentTab;
     setActiveTab(tab);
-    navigate(`/assignments?tab=${tab}`);
+    // Use replace so tab switches don't pollute browser history
+    navigate(`/assignments?tab=${tab}`, { replace: true });
   };
 
   const tabItems: ResponsiveTabItem[] = [

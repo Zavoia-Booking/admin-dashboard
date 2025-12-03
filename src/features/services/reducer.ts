@@ -112,7 +112,6 @@ export const ServicesReducer: Reducer<ServicesState, Actions> = (
     case getType(actions.setServiceFilterAction.success):
       return {
         ...handleSetServiceFilters(state, action.payload as ServiceFilterState),
-        services: [], // Reset services when filters change
         error: null,
       };
 
