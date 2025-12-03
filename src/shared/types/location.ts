@@ -29,4 +29,5 @@ export interface LocationType {
   isVisibleInMarketplace?: boolean;
   servicesCount?: number;
   teamMembersCount?: number;
+  mapPinConfirmed?: boolean;
 }

@@ -8,6 +8,9 @@ export type AddressComponents = {
   city?: string;
   postalCode?: string;
   country?: string;
+  latitude?: number;
+  longitude?: number;
+  mapPinConfirmed?: boolean;
 };
 
 type Params = {
@@ -78,8 +81,19 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
     onChange(fullAddress);
     // Update streetBase display to reflect the changes (for locked mode)
     setStreetBase(fullAddress);
-    onComponentsChange?.({ street: s, streetNumber: n, city: c, postalCode: p, country: co });
-  }, [onChange, onComponentsChange]);
+    // Preserve existing latitude, longitude, and mapPinConfirmed when updating components
+    // Default mapPinConfirmed to false if not set
+    onComponentsChange?.({ 
+      street: s, 
+      streetNumber: n, 
+      city: c, 
+      postalCode: p, 
+      country: co,
+      latitude: components?.latitude,
+      longitude: components?.longitude,
+      mapPinConfirmed: components?.mapPinConfirmed ?? false,
+    });
+  }, [onChange, onComponentsChange, components?.latitude, components?.longitude, components?.mapPinConfirmed]);
 
   const onStreetChange = useCallback((next: string) => {
     setStreetBase(next);

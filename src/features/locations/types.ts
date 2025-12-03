@@ -32,8 +32,11 @@ export interface NewLocationPayload {
     city?: string;
     postalCode?: string;
     country?: string;
+    latitude?: number;
+    longitude?: number;
   };
   addressManualMode?: boolean; // Track if user was in manual or search mode
+  mapPinConfirmed?: boolean; // Track if user confirmed the pin location on the map (top-level)
   timezone: string;
   workingHours: WorkingHours;
   isRemote: boolean;
@@ -61,9 +64,12 @@ export interface EditLocationType {
     city?: string;
     postalCode?: string;
     country?: string;
+    latitude?: number;
+    longitude?: number;
   };
   addressManualMode?: boolean;
   useBusinessContact?: boolean; // Track if using business contact info
+  mapPinConfirmed?: boolean; // Track if map pin has been confirmed
 }
 
 export interface EditLocationWorkingHours {

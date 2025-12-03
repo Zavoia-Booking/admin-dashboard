@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card';
 import { Button } from '../../../shared/components/ui/button';
 import { Switch } from '../../../shared/components/ui/switch';
@@ -9,13 +9,9 @@ import { Pill } from '../../../shared/components/ui/pill';
 import { MultiSelect } from '../../../shared/components/common/MultiSelect';
 import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
 import { Checkbox } from '../../../shared/components/ui/checkbox';
-import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2, Loader2 } from 'lucide-react';
-import { MapDialog } from '../../../shared/components/map';
+import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2 } from 'lucide-react';
 import type { Location, Service, TeamMember, Category, Business } from '../types';
 import { MarketplaceImagesSection, type PortfolioImage } from './MarketplaceImagesSection';
-import { confirmMapPinApi } from '../../locations/api';
-import { locationIqGeocode } from '../../../shared/lib/locationiq';
-import { toast } from 'sonner';
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -92,137 +88,8 @@ export function ListingConfigurationView({
   const [categorySearchTerms, setCategorySearchTerms] = useState<Record<number, string>>({});
   const [categoryValidationErrors, setCategoryValidationErrors] = useState<number[]>([]);
   
-  // Local state for updated locations (to avoid extra API calls)
-  const [updatedLocations, setUpdatedLocations] = useState<Record<number, Location>>({});
-  
-  // Merge prop locations with locally updated ones
-  const locations = locationsFromProps.map(loc => updatedLocations[loc.id] || loc);
-  
-  // Map dialog state
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [selectedMapLocation, setSelectedMapLocation] = useState<Location | null>(null);
-  const [adjustedCoordinates, setAdjustedCoordinates] = useState<[number, number] | null>(null);
-  const [initialMapCenter, setInitialMapCenter] = useState<[number, number]>([0, 0]);
-  const [searchedAddressData, setSearchedAddressData] = useState<any>(null);
-  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
-  const [isConfirmingPin, setIsConfirmingPin] = useState(false);
-  const mapInstanceRef = useRef<any>(null);
-  
-  // Handle marker drag
-  const handleMarkerDrag = (coordinates: [number, number]) => {
-    setAdjustedCoordinates(coordinates);
-  };
-  
-  // Handle map click (click-to-place)
-  const handleMapClick = (coordinates: [number, number]) => {
-    setAdjustedCoordinates(coordinates);
-  };
-  
-  // Handle search result selection from AddressAutocomplete
-  const handleSearchSelect = (coordinates: [number, number], suggestion: any) => {
-    console.log('Search selected - Full suggestion data:', suggestion);
-    setAdjustedCoordinates(coordinates);
-    setSearchedAddressData(suggestion);
-    // Pan the map to the new location using the map instance
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.flyTo({
-        center: coordinates,
-        zoom: 16,
-        essential: true
-      });
-    }
-  };
-  
-  // Handle map load to store the instance
-  const handleMapLoad = (map: any) => {
-    mapInstanceRef.current = map;
-  };
-  
-  // Handle map pin confirmation
-  const handleConfirmMapPin = async () => {
-    if (!selectedMapLocation || isConfirmingPin) return;
-
-    // Use adjusted coordinates if available, otherwise use original coordinates
-    const finalCoordinates = adjustedCoordinates || [
-      selectedMapLocation.addressComponents.longitude || 0,
-      selectedMapLocation.addressComponents.latitude || 0
-    ];
-
-    setIsConfirmingPin(true);
-
-    try {
-      // Build payload based on whether user searched for a new address or just adjusted pin
-      const payload: any = {
-        address: selectedMapLocation.address,
-        addressComponents: {
-          street: selectedMapLocation.addressComponents.street,
-          streetNumber: selectedMapLocation.addressComponents.streetNumber,
-          city: selectedMapLocation.addressComponents.city,
-          postalCode: selectedMapLocation.addressComponents.postalCode,
-          country: selectedMapLocation.addressComponents.country,
-          latitude: finalCoordinates[1], // lat is second in [lng, lat]
-          longitude: finalCoordinates[0], // lng is first
-        },
-      };
-
-      // If user searched for a new address, update all address fields
-      if (searchedAddressData) {
-        // AddressAutocomplete already processes LocationIQ data and provides clean fields
-        // Fields: address (street), streetNumber, city, postalCode, country, displayName
-        const displayName = searchedAddressData.displayName || selectedMapLocation.address;
-        
-        payload.address = displayName;
-        payload.addressComponents = {
-          street: searchedAddressData.address || selectedMapLocation.addressComponents.street,
-          streetNumber: searchedAddressData.streetNumber || selectedMapLocation.addressComponents.streetNumber,
-          city: searchedAddressData.city || selectedMapLocation.addressComponents.city,
-          postalCode: searchedAddressData.postalCode || selectedMapLocation.addressComponents.postalCode,
-          country: searchedAddressData.country || selectedMapLocation.addressComponents.country,
-          latitude: finalCoordinates[1],
-          longitude: finalCoordinates[0],
-        };
-        
-        console.log('Extracted address from search:', {
-          searchedData: searchedAddressData,
-          finalPayload: payload
-        });
-      }
-
-      // Call API to confirm pin and update location
-      const response = await confirmMapPinApi(selectedMapLocation.id, payload);
-
-      // Update local state with the response data to avoid extra API call
-      if (response && response.location) {
-        setUpdatedLocations(prev => ({
-          ...prev,
-          [response.location.id]: {
-            ...selectedMapLocation,
-            ...response.location,
-            mapPinConfirmed: response.location.mapPinConfirmed ?? true,
-          }
-        }));
-      }
-
-      // Add location to selected locations if not already selected
-      if (!selectedLocationIds.includes(selectedMapLocation.id)) {
-        setSelectedLocationIds(prev => [...prev, selectedMapLocation.id]);
-      }
-
-      toast.success('Location pin confirmed successfully');
-
-      // Close the map
-      setIsMapOpen(false);
-      setSelectedMapLocation(null);
-      setAdjustedCoordinates(null);
-      setSearchedAddressData(null);
-      setIsConfirmingPin(false);
-      mapInstanceRef.current = null;
-    } catch (error) {
-      console.error('Failed to confirm map pin:', error);
-      toast.error('Failed to confirm location pin. Please try again.');
-      setIsConfirmingPin(false);
-    }
-  };
+  // Use locations directly from props
+  const locations = locationsFromProps;
   
   // Toggle states (default to true if undefined)
   const [useBusinessName, setUseBusinessName] = useState<boolean>(initialUseBusinessName ?? true);
@@ -257,61 +124,7 @@ export function ListingConfigurationView({
     }
   });
 
-  const toggleLocation = async (id: number) => {
-    const location = locations.find(loc => loc.id === id);
-    const isCurrentlySelected = selectedLocationIds.includes(id);
-    
-    // If trying to select (not deselect) and map pin not confirmed, show map first
-    if (!isCurrentlySelected && location && !location.mapPinConfirmed) {
-      const hasCoordinates = location.addressComponents.latitude && location.addressComponents.longitude;
-      
-      if (hasCoordinates) {
-        // Location has coordinates, use them
-        setSelectedMapLocation(location);
-        setInitialMapCenter([
-          location.addressComponents.longitude || 0,
-          location.addressComponents.latitude || 0
-        ]);
-        setIsMapOpen(true);
-      } else {
-        // Location doesn't have coordinates - geocode the address first
-        setIsGeocodingAddress(true);
-        try {
-          const geocodeResult = await locationIqGeocode(location.address);
-          
-          if (geocodeResult) {
-            // Successfully geocoded - use these coordinates as initial position
-            const geocodedCoords: [number, number] = [
-              Number(geocodeResult.lon),
-              Number(geocodeResult.lat)
-            ];
-            
-            setSelectedMapLocation(location);
-            setInitialMapCenter(geocodedCoords);
-            setAdjustedCoordinates(geocodedCoords); // Set as adjusted so user can confirm
-            setIsMapOpen(true);
-          } else {
-            // Geocoding failed - show error
-            toast.error('Could not find location on map. Please search for the correct address in the map.');
-            // Still open map but with default center
-            setSelectedMapLocation(location);
-            setInitialMapCenter([0, 0]); // Will need to search
-            setIsMapOpen(true);
-          }
-        } catch (error) {
-          console.error('Geocoding error:', error);
-          toast.error('Could not geocode address. Please adjust the pin manually.');
-          setSelectedMapLocation(location);
-          setInitialMapCenter([0, 0]);
-          setIsMapOpen(true);
-        } finally {
-          setIsGeocodingAddress(false);
-        }
-      }
-      return;
-    }
-    
-    // Otherwise, toggle normally
+  const toggleLocation = (id: number) => {
     setSelectedLocationIds(prev =>
       prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
     );
@@ -646,16 +459,10 @@ export function ListingConfigurationView({
                       className="w-auto justify-start items-start transition-none active:scale-100"
                       showCheckmark={true}
                       onClick={() => toggleLocation(location.id)}
-                      disabled={isGeocodingAddress}
                     >
                       <div className="flex flex-col text-left">
                         <div className="flex items-center gap-2">
                           {location.name}
-                          {!location.mapPinConfirmed && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
-                              Verify Pin
-                            </span>
-                          )}
                         </div>
                         <div className="text-xs text-muted-foreground mt-0.5">
                           {location.address}
@@ -665,14 +472,6 @@ export function ListingConfigurationView({
                   </div>
                 ))}
               </div>
-              
-              {/* Geocoding loading indicator */}
-              {isGeocodingAddress && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Finding location on map...</span>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
@@ -932,83 +731,6 @@ export function ListingConfigurationView({
         </Button>
       </div>
 
-      {/* Map Dialog */}
-      {selectedMapLocation && (
-        <MapDialog
-          isOpen={isMapOpen}
-          onClose={() => {
-            if (isConfirmingPin) return; // Prevent closing during confirmation
-            setIsMapOpen(false);
-            setSelectedMapLocation(null);
-            setAdjustedCoordinates(null);
-            setSearchedAddressData(null);
-            mapInstanceRef.current = null;
-          }}
-          title={selectedMapLocation.name}
-          description={
-            !selectedMapLocation.mapPinConfirmed 
-              ? selectedMapLocation.address
-              : selectedMapLocation.address
-          }
-          apiKey={import.meta.env.VITE_MAPTILER_API_KEY || ''}
-          center={initialMapCenter}
-          zoom={14}
-          style="streets-v2"
-          marker={{
-            coordinates: adjustedCoordinates || [
-              selectedMapLocation.addressComponents.longitude || 0,
-              selectedMapLocation.addressComponents.latitude || 0
-            ],
-            color: '#3b82f6',
-            draggable: !selectedMapLocation.mapPinConfirmed,
-          }}
-          onMarkerDragEnd={handleMarkerDrag}
-          onMapClick={handleMapClick}
-          onMapLoad={handleMapLoad}
-          clickToPlace={!selectedMapLocation.mapPinConfirmed}
-          showSearch={!selectedMapLocation.mapPinConfirmed}
-          onSearchSelect={handleSearchSelect}
-          showAddressWarning={!selectedMapLocation.mapPinConfirmed}
-          showControls
-          mapHeight="500px"
-          footerActions={
-            !selectedMapLocation.mapPinConfirmed ? (
-              <>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setIsMapOpen(false);
-                    setSelectedMapLocation(null);
-                    setAdjustedCoordinates(null);
-                    setSearchedAddressData(null);
-                    mapInstanceRef.current = null;
-                  }}
-                  disabled={isConfirmingPin}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleConfirmMapPin}
-                  className="gap-2"
-                  disabled={isConfirmingPin}
-                >
-                  {isConfirmingPin ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Confirming...
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="h-4 w-4" />
-                      {adjustedCoordinates ? 'Confirm Adjusted Location' : 'Confirm Location'}
-                    </>
-                  )}
-                </Button>
-              </>
-            ) : undefined
-          }
-        />
-      )}
     </div>
   );
 }

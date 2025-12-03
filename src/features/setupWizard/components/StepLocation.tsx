@@ -15,6 +15,9 @@ import TimezoneField from "../../../shared/components/common/TimezoneField";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
 import Open247Toggle from "../../../shared/components/common/Open247Toggle";
 import { Label } from "../../../shared/components/ui/label";
+import { Button } from "../../../shared/components/ui/button";
+import { MapDialog } from "../../../shared/components/map";
+import { locationIqGeocode } from "../../../shared/lib/locationiq";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import type { WorkingHours } from "../../../shared/types/location";
@@ -24,6 +27,8 @@ import { makeWizardToggleHandler } from "../utils";
 import { useFieldDraftValidation } from "../../../shared/hooks/useDraftValidation";
 import type { RootState } from "../../../app/providers/store";
 import { useSelector } from "react-redux";
+import { toast } from "sonner";
+import { MapPin, CheckCircle2, AlertCircle } from "lucide-react";
 
 const StepLocation = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
@@ -54,9 +59,39 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       !!watch("location" satisfies WizardFieldPath)?.isRemote
     );
 
+    // Map pin confirmation state
+    const [isPinConfirmed, setIsPinConfirmed] = useState(false);
+    const [isMapOpen, setIsMapOpen] = useState(false);
+    const [adjustedCoordinates, setAdjustedCoordinates] = useState<[number, number] | null>(null);
+    const [initialMapCenter, setInitialMapCenter] = useState<[number, number]>([0, 0]);
+    const [searchedAddressData, setSearchedAddressData] = useState<any>(null);
+    const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+    const mapInstanceRef = useRef<any>(null);
+    const isConfirmingFromMap = useRef(false); // Flag to prevent reset during map confirmation
+
     const isRemote = watch("location.isRemote" satisfies WizardFieldPath) === true;
     const businessEmail = (watch("businessInfo.email" satisfies WizardFieldPath) as string) || "";
     const businessPhone = (watch("businessInfo.phone" satisfies WizardFieldPath) as string) || "";
+    
+    // Sync isPinConfirmed state with form data and ensure mapPinConfirmed field exists
+    const addressComponents = watch("location.addressComponents" satisfies WizardFieldPath) as any;
+    useEffect(() => {
+      if (addressComponents?.mapPinConfirmed) {
+        setIsPinConfirmed(true);
+      }
+    }, [addressComponents?.mapPinConfirmed]);
+    
+    // Initialize mapPinConfirmed field if addressComponents exist but field is missing
+    useEffect(() => {
+      if (addressComponents && typeof addressComponents.mapPinConfirmed !== 'boolean') {
+        setValue("location.addressComponents" satisfies WizardFieldPath, {
+          ...addressComponents,
+          mapPinConfirmed: false,
+        } as any, {
+          shouldDirty: false, // Don't mark as dirty, this is just initialization
+        });
+      }
+    }, [addressComponents, setValue]);
 
     // Controlled name with validation
     const { field: nameField, fieldState: nameState } = useController<WizardData, "location.name">({
@@ -134,6 +169,196 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         },
       });
 
+    // Map handlers
+    const handleMarkerDrag = (coordinates: [number, number]) => {
+      setAdjustedCoordinates(coordinates);
+    };
+
+    const handleMapClick = (coordinates: [number, number]) => {
+      setAdjustedCoordinates(coordinates);
+    };
+
+    const handleSearchSelect = (coordinates: [number, number], suggestion: any) => {
+      setAdjustedCoordinates(coordinates);
+      // Store coordinates in the suggestion data for later use
+      setSearchedAddressData({
+        ...suggestion,
+        coordinates: coordinates
+      });
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo({
+          center: coordinates,
+          zoom: 16,
+          essential: true
+        });
+      }
+    };
+
+    const handleMapLoad = (map: any) => {
+      mapInstanceRef.current = map;
+    };
+
+    const handleVerifyPinClick = async () => {
+      const addressComponents = watch("location.addressComponents" satisfies WizardFieldPath) as any;
+      const address = watch("location.address" satisfies WizardFieldPath) as string;
+      
+      // Check if we have coordinates
+      const hasCoordinates = addressComponents?.latitude != null && addressComponents?.longitude != null;
+      const hasAddress = address && address.trim().length > 0;
+
+      if (!hasAddress) {
+        toast.error('Please enter a valid address first');
+        return;
+      }
+      
+      if (hasCoordinates) {
+        // Location has coordinates, use them
+        setInitialMapCenter([
+          addressComponents.longitude,
+          addressComponents.latitude
+        ]);
+        setAdjustedCoordinates(null);
+        setSearchedAddressData(null);
+        setIsMapOpen(true);
+      } else {
+        // Location doesn't have coordinates - geocode the address first
+        setIsGeocodingAddress(true);
+        try {
+          const geocodeResult = await locationIqGeocode(address);
+          
+          if (geocodeResult) {
+            // Successfully geocoded - use these coordinates as initial position
+            const geocodedCoords: [number, number] = [
+              Number(geocodeResult.lon),
+              Number(geocodeResult.lat)
+            ];
+            
+            setInitialMapCenter(geocodedCoords);
+            setAdjustedCoordinates(geocodedCoords); // Set as adjusted so user can confirm
+            setIsMapOpen(true);
+          } else {
+            // Geocoding failed - show error
+            toast.error('Could not find location on map. Please search for the correct address in the map.');
+            // Still open map but with default center
+            setInitialMapCenter([0, 0]); // Will need to search
+            setIsMapOpen(true);
+          }
+        } catch (error) {
+          console.error('Geocoding error:', error);
+          toast.error('Could not geocode address. Please adjust the pin manually.');
+          setInitialMapCenter([0, 0]);
+          setIsMapOpen(true);
+        } finally {
+          setIsGeocodingAddress(false);
+        }
+      }
+    };
+
+    const handleConfirmPin = () => {
+      const addressComponents = watch("location.addressComponents" satisfies WizardFieldPath) as any;
+      const currentAddress = watch("location.address" satisfies WizardFieldPath) as string;
+      
+      // Set flag to prevent address change effect from resetting pin confirmation
+      isConfirmingFromMap.current = true;
+      
+      // CASE 1: User searched for a new address in the map → Override entire address
+      if (searchedAddressData) {
+        const displayName = searchedAddressData.displayName || currentAddress;
+        const finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
+        
+        if (!finalCoordinates) {
+          toast.error('Please select a location on the map');
+          return;
+        }
+        
+        // Override entire address with new searched address
+        setValue("location.address" satisfies WizardFieldPath, displayName, {
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+
+        setValue("location.addressComponents" satisfies WizardFieldPath, {
+          street: searchedAddressData.address || '',
+          streetNumber: searchedAddressData.streetNumber || '',
+          city: searchedAddressData.city || '',
+          postalCode: searchedAddressData.postalCode || '',
+          country: searchedAddressData.country || '',
+          latitude: finalCoordinates[1],
+          longitude: finalCoordinates[0],
+          mapPinConfirmed: true,
+        } as any, {
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+        
+        // Ensure manual mode is off for search-selected addresses
+        setValue("location.addressManualMode" satisfies WizardFieldPath, false, {
+          shouldDirty: true,
+        });
+        
+        // Force remount of AddressComposer to reflect new address
+        setAddressComposerKey(prev => prev + 1);
+      } 
+      // CASE 2: User only moved the pin → Override only lat/long
+      else if (adjustedCoordinates) {
+        setValue("location.addressComponents" satisfies WizardFieldPath, {
+          ...addressComponents,
+          latitude: adjustedCoordinates[1],
+          longitude: adjustedCoordinates[0],
+          mapPinConfirmed: true,
+        } as any, {
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      } 
+      // CASE 3: User just clicked confirm without changes → Set mapPinConfirmed to true
+      else {
+        // Get existing coordinates or use initialMapCenter
+        let finalLat = addressComponents?.latitude;
+        let finalLng = addressComponents?.longitude;
+        
+        // If no coordinates yet, use initialMapCenter (from geocoding)
+        if ((!finalLat || !finalLng) && initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0) {
+          finalLng = initialMapCenter[0];
+          finalLat = initialMapCenter[1];
+        }
+        
+        if (!finalLat || !finalLng) {
+          toast.error('Please select a location on the map or search for an address');
+          return;
+        }
+        
+        setValue("location.addressComponents" satisfies WizardFieldPath, {
+          ...addressComponents,
+          latitude: finalLat,
+          longitude: finalLng,
+          mapPinConfirmed: true,
+        } as any, {
+          shouldDirty: true,
+          shouldTouch: true,
+        });
+      }
+
+      // Mark as confirmed and close map
+      setIsPinConfirmed(true);
+      setIsMapOpen(false);
+      setAdjustedCoordinates(null);
+      setSearchedAddressData(null);
+      setInitialMapCenter([0, 0]);
+      mapInstanceRef.current = null;
+
+      // Persist the updated data immediately
+      const updatedFormData = getValues();
+      updateData?.(updatedFormData);
+
+      // Reset flag after a short delay to allow effects to process
+      setTimeout(() => {
+        isConfirmingFromMap.current = false;
+      }, 100);
+
+      toast.success('Location pin confirmed');
+    };
+
     // Per-field draft validation - only show errors for fields that actually have draft data
     const nameHasDraft = useFieldDraftValidation({
       fieldName: 'name',
@@ -172,10 +397,10 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         const valid =
           formIsValid &&
           Object.keys(errors).length === 0 &&
-          (isRemote || isAddressValid);
+          (isRemote || (isAddressValid && isPinConfirmed));
         onValidityChange(valid);
       }
-    }, [formIsValid, errors, isAddressValid, isRemote, onValidityChange]);
+    }, [formIsValid, errors, isAddressValid, isRemote, isPinConfirmed, onValidityChange]);
 
     // Expose methods to parent via ref
     useImperativeHandle(
@@ -185,12 +410,20 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           const formData = watch();
           // Ensure location contact fields are always present in the payload
           const location = formData.location || {};
+          
+          // Ensure mapPinConfirmed field exists in addressComponents
+          const addressComps = location.addressComponents as any;
+          if (addressComps && typeof addressComps.mapPinConfirmed !== 'boolean') {
+            addressComps.mapPinConfirmed = false;
+          }
+          
           const result: Partial<WizardData> = {
             ...formData,
             location: {
               ...location,
               email: (emailField.value as string) || '',
               phone: (phoneField.value as string) || '',
+              addressComponents: addressComps,
             },
             useBusinessContact, // Include toggle state at top level
           };
@@ -201,10 +434,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           // Check if there are any errors
           if (Object.keys(errors).length > 0) return false;
           if (!isRemote && !isAddressValid) return false;
+          if (!isRemote && !isPinConfirmed) return false;
           return formIsValid;
         },
       }),
-      [watch, trigger, errors, formIsValid, isAddressValid, isRemote, useBusinessContact, emailField, phoneField, timezoneField]
+      [watch, trigger, errors, formIsValid, isAddressValid, isRemote, isPinConfirmed, useBusinessContact, emailField, phoneField, timezoneField]
     );
 
     // Reset form ONLY once when wizard finishes loading (same pattern as business step)
@@ -227,9 +461,38 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       const prev = prevIsRemoteRef.current;
       if (prev && !isRemote) {
         setAddressComposerKey((k) => k + 1);
+        setIsPinConfirmed(false); // Reset pin confirmation when switching to physical
       }
       prevIsRemoteRef.current = isRemote;
     }, [isRemote]);
+
+    // Reset pin confirmation when address changes (but not during map confirmation)
+    const addressValue = watch("location.address" satisfies WizardFieldPath) as string;
+    const prevAddressRef = useRef<string | undefined>(undefined);
+    
+    useEffect(() => {
+      // Skip reset if we're confirming from map (programmatic change)
+      if (isConfirmingFromMap.current) {
+        prevAddressRef.current = addressValue;
+        return;
+      }
+      
+      // Only reset if address actually changed (not just initial load or mapPinConfirmed change)
+      if (!isRemote && addressValue && prevAddressRef.current && prevAddressRef.current !== addressValue) {
+        setIsPinConfirmed(false);
+        // Also reset mapPinConfirmed in form data
+        const currentComponents = getValues("location.addressComponents" satisfies WizardFieldPath) as any;
+        if (currentComponents?.mapPinConfirmed) {
+          setValue("location.addressComponents" satisfies WizardFieldPath, {
+            ...currentComponents,
+            mapPinConfirmed: false,
+          } as any, {
+            shouldDirty: true,
+          });
+        }
+      }
+      prevAddressRef.current = addressValue;
+    }, [addressValue, isRemote, setValue, getValues]);
 
     const currentWorkingHours = watch("location" satisfies WizardFieldPath)
       ?.workingHours as WorkingHours;
@@ -347,6 +610,52 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   onValidityChange={(isValid) => setIsAddressValid(isValid)}
                 />
               </div>
+
+              {/* Pin Verification Indicator */}
+              {isAddressValid && watch("location.address" satisfies WizardFieldPath) && (
+                <div className={`rounded-lg border p-4 ${isPinConfirmed ? 'bg-success-bg border-success-border' : 'bg-warning-bg border-warning-border'}`}>
+                  <div className="flex items-start gap-3">
+                    <div className="shrink-0 mt-0.5">
+                      {isPinConfirmed ? (
+                        <CheckCircle2 className="h-5 w-5 text-success" />
+                      ) : (
+                        <AlertCircle className="h-5 w-5 text-warning" />
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm font-medium ${isPinConfirmed ? 'text-success' : 'text-warning'}`}>
+                        {isPinConfirmed ? 'Location pin confirmed' : 'Location pin verification required'}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {isPinConfirmed 
+                          ? 'Your location pin has been verified on the map.' 
+                          : 'Please verify your location pin on the map to continue.'}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        rounded="full"
+                        size="sm"
+                        className="mt-3 gap-2"
+                        onClick={handleVerifyPinClick}
+                        disabled={isGeocodingAddress}
+                      >
+                        {isGeocodingAddress ? (
+                          <>
+                            <span className="animate-spin">⏳</span>
+                            Loading map...
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            {isPinConfirmed ? 'Move Pin' : 'Verify Pin on Map'}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Contact Information Toggle */}
               <ContactInformationToggle
@@ -478,6 +787,70 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
             </div>
           )}
         </div>
+
+        {/* Map Pin Verification Dialog */}
+        {isMapOpen && (() => {
+          const hasValidCoords = initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0;
+          
+          return (
+            <MapDialog
+              isOpen={isMapOpen}
+              onClose={() => {
+                setIsMapOpen(false);
+                setAdjustedCoordinates(null);
+                setSearchedAddressData(null);
+                setInitialMapCenter([0, 0]);
+                mapInstanceRef.current = null;
+              }}
+              title="Verify Location Pin"
+              description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
+              apiKey={import.meta.env.VITE_MAPTILER_API_KEY || ''}
+              center={initialMapCenter}
+              zoom={hasValidCoords ? 16 : 2}
+              marker={hasValidCoords ? {
+                coordinates: adjustedCoordinates || initialMapCenter,
+                color: '#3b82f6',
+                draggable: true,
+              } : undefined}
+              onMarkerDragEnd={handleMarkerDrag}
+              onMapClick={handleMapClick}
+              onMapLoad={handleMapLoad}
+              clickToPlace={true}
+              showSearch={true}
+              onSearchSelect={handleSearchSelect}
+              showAddressWarning={true}
+              showControls
+              mapHeight="500px"
+              className="z-[100]"
+              overlayClassName="z-[100]"
+              footerActions={
+                <>
+                  <Button
+                    variant="outline"
+                    rounded="full"
+                    onClick={() => {
+                      setIsMapOpen(false);
+                      setAdjustedCoordinates(null);
+                      setSearchedAddressData(null);
+                      setInitialMapCenter([0, 0]);
+                      mapInstanceRef.current = null;
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleConfirmPin}
+                    className="gap-2"
+                    rounded="full"
+                  >
+                    <MapPin className="h-4 w-4" />
+                    Confirm Location
+                  </Button>
+                </>
+              }
+            />
+          );
+        })()}
       </div>
     );
   }

@@ -50,6 +50,21 @@ export const applyBusinessContactToLocation = (wizardData: WizardData): void => 
     // Already in location object, just ensure it's preserved
     location.addressManualMode = location.addressManualMode;
   }
+  
+  // Ensure addressComponents object exists and preserve/set coordinate fields
+  if (location.addressComponents) {
+    // Preserve latitude and longitude (required for map functionality)
+    if (typeof location.addressComponents.latitude === 'number') {
+      location.addressComponents.latitude = location.addressComponents.latitude;
+    }
+    if (typeof location.addressComponents.longitude === 'number') {
+      location.addressComponents.longitude = location.addressComponents.longitude;
+    }
+    
+    // Preserve mapPinConfirmed flag, default to false if not set
+    // Backend needs to track whether the user confirmed the location pin on the map
+    location.addressComponents.mapPinConfirmed = location.addressComponents.mapPinConfirmed ?? false;
+  }
 };
 
 /**
@@ -65,12 +80,38 @@ export const ensureBusinessCurrency = (wizardData: WizardData): void => {
 /**
  * Prepares wizard data for backend submission
  * Ensures all required fields are populated with proper defaults
+ * 
+ * Preserves the following location fields:
+ * - addressComponents.latitude (number)
+ * - addressComponents.longitude (number)
+ * - addressComponents.mapPinConfirmed (boolean, defaults to false)
+ * - addressManualMode (boolean)
+ * - useBusinessContact (boolean)
  */
 export const prepareWizardDataForSubmission = (wizardData: WizardData): WizardData => {
   const payload = { ...wizardData, businessInfo: { ...wizardData.businessInfo, country: wizardData.location.addressComponents?.country || '' } };
   ensureBusinessTimezone(payload);
   ensureBusinessCurrency(payload);
   applyBusinessContactToLocation(payload);
+  
+  // Final validation: Ensure coordinate fields are present for physical locations
+  const location = payload.location as any;
+  if (!location.isRemote && location.addressComponents) {
+    // Ensure latitude exists
+    if (typeof location.addressComponents.latitude !== 'number') {
+      console.warn('[Wizard] Missing latitude for physical location');
+    }
+    // Ensure longitude exists
+    if (typeof location.addressComponents.longitude !== 'number') {
+      console.warn('[Wizard] Missing longitude for physical location');
+    }
+    // Ensure mapPinConfirmed exists (default to false if missing)
+    if (typeof location.addressComponents.mapPinConfirmed !== 'boolean') {
+      console.warn('[Wizard] Missing mapPinConfirmed, defaulting to false');
+      location.addressComponents.mapPinConfirmed = false;
+    }
+  }
+  
   return payload;
 }; 
 

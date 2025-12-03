@@ -1,4 +1,3 @@
-import type { EditLocationType } from "./types";
 import type { LocationType } from "../../shared/types/location";
 
 export const capitalize = (str: string) => {
@@ -13,7 +12,7 @@ export const shortDay = (day: string) => {
     return map[day.toLowerCase()] || day;
 };
 
-export const mapLocationForEdit = (location: LocationType): EditLocationType => {
+export const mapLocationForEdit = (location: LocationType): any => {
     return {
         id: location.id,
         name: location.name,
@@ -25,6 +24,7 @@ export const mapLocationForEdit = (location: LocationType): EditLocationType => 
         isRemote: location.isRemote,
         workingHours: location.workingHours,
         open247: location.open247,
+        mapPinConfirmed: location.mapPinConfirmed,
         addressComponents: (location as any).addressComponents,
         addressManualMode: (location as any).addressManualMode,
     };

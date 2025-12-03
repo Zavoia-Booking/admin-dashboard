@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Clienți",
+    "subtitle": "Gestionează clienții tăi",
+    "actions": {
+      "addCustomer": "Adaugă client"
+    },
+    "emptyState": {
+      "noCustomers": "Nu ai adăugat încă niciun client",
+      "noCustomersDescription": "Adaugă primul tău client pentru a începe să gestionezi baza ta de clienți.",
+      "noResults": "Nu s-au găsit clienți care să corespundă căutării tale.",
+      "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
+    }
+  },
+  "filters": {
+    "searchPlaceholder": "Caută clienți după nume sau email..."
+  }
+}
+

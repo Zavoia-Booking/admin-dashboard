@@ -35,6 +35,9 @@ export const LocationsReducer: Reducer<LocationState, any> = (state: LocationSta
     case getType(actions.updateLocationAction.success):
       return { ...state, isLoading: false, updateResponse: action.payload.updateResponse, error: null };
 
+    case getType(actions.listLocationsAction.request):
+      return { ...state, isLoading: true, error: null };
+
     case getType(actions.listLocationsAction.success):
       return { ...state, isLoading: false, allLocations: action.payload.locations, error: null };
 

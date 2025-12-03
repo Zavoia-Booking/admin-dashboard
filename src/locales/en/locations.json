@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Locations",
+    "subtitle": "Manage your business locations",
+    "actions": {
+      "addLocation": "Add Location"
+    },
+    "emptyState": {
+      "noLocations": "You haven't created any locations yet",
+      "noLocationsDescription": "Create your first location to start managing your business locations.",
+      "noResults": "No locations found matching your search.",
+      "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    }
+  },
+  "filters": {
+    "searchPlaceholder": "Search locations by name, address, or email..."
+  }
+}
+

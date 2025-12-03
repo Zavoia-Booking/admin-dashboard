@@ -37,3 +37,8 @@ export const selectFetchTeamMemberError = createSelector(
   (state: any): string | null => state.fetchTeamMemberError ?? null
 );
 
+export const selectTeamMembersLoading = createSelector(
+  getTeamMembersStateSelector,
+  (state: any): boolean => state.isLoading ?? false
+);
+

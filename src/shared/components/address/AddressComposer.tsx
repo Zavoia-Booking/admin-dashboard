@@ -15,6 +15,9 @@ type Props = {
     city?: string;
     postalCode?: string;
     country?: string;
+    latitude?: number;
+    longitude?: number;
+    mapPinConfirmed?: boolean;
   };
   onAddressComponentsChange?: (components: {
     street: string;
@@ -22,16 +25,23 @@ type Props = {
     city: string;
     postalCode: string;
     country: string;
+    latitude?: number;
+    longitude?: number;
+    mapPinConfirmed?: boolean;
   }) => void;
   onValidityChange?: (isValid: boolean) => void;
   manualMode?: boolean; // External control of manual vs search mode
   onManualModeChange?: (isManual: boolean) => void; // Callback to persist mode changes
+  preserveInitialData?: boolean; // If true, original server data is preserved and not updated by user actions
+  alwaysClearOnSwitch?: boolean; // If true, always clear everything when switching modes (for Add Location)
 };
 
-export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange }: Props) {
+export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange, preserveInitialData = false, alwaysClearOnSwitch = false }: Props) {
   const [addressSelected, setAddressSelected] = useState(false);
   const lastSelectedRef = useRef<{ s: string; n: string; c: string; p: string; co: string; display: string } | null>(null);
   const [manualEdited, setManualEdited] = useState(false);
+  const draftMode = useRef<boolean | null>(null); // Track which mode the draft was saved in (null = no draft, false = search, true = manual)
+  const originalDraftData = useRef<{ components: any; address: string; mode: boolean } | null>(null); // Preserve original draft data
   const {
     streetBase,
     actualStreet,
@@ -66,13 +76,20 @@ export default function AddressComposer({ value, onChange, className, addressCom
 
   // full composed address is derived on demand via composeFullAddress
 
-  // When addressComponents prop changes (from saved draft), populate all fields
+  // When addressComponents prop changes (from saved draft), populate all fields and track draft mode
   useEffect(() => {
     if (!hasLoadedFromDraft && addressComponents && (addressComponents.street || addressComponents.city)) {
       setAddressSelected(true);
       setHasLoadedFromDraft(true);
+      // Remember which mode the draft was saved in and preserve the original data
+      draftMode.current = externalManualMode ?? false;
+      originalDraftData.current = {
+        components: { ...addressComponents },
+        address: value || '',
+        mode: externalManualMode ?? false
+      };
     }
-  }, [addressComponents, hasLoadedFromDraft]);
+  }, [addressComponents, hasLoadedFromDraft, externalManualMode, value]);
 
   // Bubble validity to parent (e.g., to disable Continue button)
   useEffect(() => {
@@ -88,7 +105,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
   const handleAutocompleteChange = useCallback((c: { address: string; suggestion?: any | null }) => {
     setShouldAutoFocus(false);
     if (c.suggestion) {
-      const s = c.suggestion as { address?: string; streetNumber?: string; displayName?: string; city?: string; postalCode?: string; country?: string };
+      const s = c.suggestion as { address?: string; streetNumber?: string; displayName?: string; city?: string; postalCode?: string; country?: string; lat?: number; lng?: number };
       const streetName = s.address ?? '';
       const number = s.streetNumber ?? '';
       // Use the full displayName which already contains the complete address
@@ -100,9 +117,37 @@ export default function AddressComposer({ value, onChange, className, addressCom
       setManualEdited(false);
       setAddressSelected(true);
       setManualMode(false);
+      // User selected a new address in search mode - update draft mode and original data
+      draftMode.current = false;
+      // Only update originalDraftData if NOT in alwaysClearOnSwitch mode
+      if (!alwaysClearOnSwitch) {
+        originalDraftData.current = {
+          components: {
+            street: streetName,
+            streetNumber: number,
+            city: s.city ?? '',
+            postalCode: s.postalCode ?? '',
+            country: s.country ?? '',
+            latitude: s.lat,
+            longitude: s.lng,
+            mapPinConfirmed: false,
+          },
+          address: fullAddress,
+          mode: false
+        };
+      }
       // Save the full display name as the address, not the composed version
       onChange(fullAddress);
-      onAddressComponentsChange?.({ street: streetName, streetNumber: number, city: s.city ?? '', postalCode: s.postalCode ?? '', country: s.country ?? '' });
+      onAddressComponentsChange?.({ 
+        street: streetName, 
+        streetNumber: number, 
+        city: s.city ?? '', 
+        postalCode: s.postalCode ?? '', 
+        country: s.country ?? '',
+        latitude: s.lat,
+        longitude: s.lng,
+        mapPinConfirmed: false, // Reset to false when selecting new address from search
+      });
       return;
     }
     // User is typing but didn't select a suggestion yet — keep search mode
@@ -115,18 +160,22 @@ export default function AddressComposer({ value, onChange, className, addressCom
   }, [onChange, onAddressComponentsChange]);
 
   const handleStreetNumberChange = useCallback((next: string) => {
+    setManualEdited(true);
     onNumberChange(next);
   }, [onNumberChange]);
 
   const handlePostcodeChange = useCallback((next: string) => {
+    setManualEdited(true);
     onPostalChange(next);
   }, [onPostalChange]);
 
   const handleCityChange = useCallback((next: string) => {
+    setManualEdited(true);
     onCityChange(next);
   }, [onCityChange]);
 
   const handleCountryChange = useCallback((next: string) => {
+    setManualEdited(true);
     onCountryChange(next);
   }, [onCountryChange]);
 
@@ -141,7 +190,79 @@ export default function AddressComposer({ value, onChange, className, addressCom
 
   // Segmented control handlers
   const handleSelectSearchMode = useCallback(() => {
-    // If user didn't edit in manual mode and we have a last selected address, restore it
+    // If alwaysClearOnSwitch is true, always clear everything (for Add Location)
+    if (alwaysClearOnSwitch) {
+      setManualMode(false);
+      setAddressSelected(false);
+      hydrateFromComponents('', '', '', '', '');
+      lastSelectedRef.current = null;
+      setManualEdited(false);
+      onChange('');
+      onAddressComponentsChange?.({
+        street: '',
+        streetNumber: '',
+        city: '',
+        postalCode: '',
+        country: '',
+        latitude: undefined,
+        longitude: undefined,
+        mapPinConfirmed: false,
+      });
+      setShouldAutoFocus(true);
+      setSearchKey(prev => prev + 1);
+      return;
+    }
+    
+    // If preserving initial data, only restore if original was in search mode
+    if (preserveInitialData) {
+      if (originalDraftData.current && originalDraftData.current.mode === false) {
+        const draft = originalDraftData.current;
+        setManualMode(false);
+        setAddressSelected(true);
+        hydrateFromComponents(
+          draft.components.street || '',
+          draft.components.streetNumber || '',
+          draft.components.city || '',
+          draft.components.postalCode || '',
+          draft.components.country || '',
+          draft.address,
+          true
+        );
+        onChange(draft.address);
+        onAddressComponentsChange?.({
+          street: draft.components.street || '',
+          streetNumber: draft.components.streetNumber || '',
+          city: draft.components.city || '',
+          postalCode: draft.components.postalCode || '',
+          country: draft.components.country || '',
+          latitude: draft.components.latitude,
+          longitude: draft.components.longitude,
+          mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
+        });
+        return;
+      }
+      // Not the original mode, clear everything
+      setManualMode(false);
+      setAddressSelected(false);
+      hydrateFromComponents('', '', '', '', '');
+      lastSelectedRef.current = null;
+      onChange('');
+      onAddressComponentsChange?.({
+        street: '',
+        streetNumber: '',
+        city: '',
+        postalCode: '',
+        country: '',
+        latitude: undefined,
+        longitude: undefined,
+        mapPinConfirmed: false,
+      });
+      setShouldAutoFocus(true);
+      setSearchKey(prev => prev + 1);
+      return;
+    }
+    
+    // Original wizard behavior: restore last selected if not edited
     if (!manualEdited && lastSelectedRef.current) {
       const { s, n, c, p, co, display } = lastSelectedRef.current;
       setManualMode(false);
@@ -150,24 +271,171 @@ export default function AddressComposer({ value, onChange, className, addressCom
       onChange(composeFullAddress(s, n, c, p, co));
       return;
     }
-    // Otherwise behave like Change address
+    
+    // If draft was saved in search mode, restore the ORIGINAL draft data
+    if (originalDraftData.current && originalDraftData.current.mode === false) {
+      const draft = originalDraftData.current;
+      setManualMode(false);
+      setAddressSelected(true);
+      hydrateFromComponents(
+        draft.components.street || '',
+        draft.components.streetNumber || '',
+        draft.components.city || '',
+        draft.components.postalCode || '',
+        draft.components.country || '',
+        draft.address,
+        true
+      );
+      onChange(draft.address);
+      // Restore original draft components including coordinates
+      onAddressComponentsChange?.({
+        street: draft.components.street || '',
+        streetNumber: draft.components.streetNumber || '',
+        city: draft.components.city || '',
+        postalCode: draft.components.postalCode || '',
+        country: draft.components.country || '',
+        latitude: draft.components.latitude,
+        longitude: draft.components.longitude,
+        mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
+      });
+      return;
+    }
+    
+    // Otherwise clear everything and start fresh search
     setManualMode(false);
     setAddressSelected(false);
     hydrateFromComponents('', '', '', '', '');
     lastSelectedRef.current = null;
     onChange('');
+    
+    // Clear address components including coordinates
+    onAddressComponentsChange?.({
+      street: '',
+      streetNumber: '',
+      city: '',
+      postalCode: '',
+      country: '',
+      latitude: undefined,
+      longitude: undefined,
+      mapPinConfirmed: false,
+    });
+    
     setShouldAutoFocus(true);
     setSearchKey(prev => prev + 1);
-  }, [manualEdited, onChange, hydrateFromComponents, setManualMode]);
+  }, [alwaysClearOnSwitch, preserveInitialData, manualEdited, onChange, hydrateFromComponents, setManualMode, onAddressComponentsChange]);
 
   const handleSelectManualMode = useCallback(() => {
     setManualMode(true);
     setAddressSelected(true);
-    // In manual mode, street should be a free input: clear any auto-populated value
+    
+    // If alwaysClearOnSwitch is true, always clear everything (for Add Location)
+    if (alwaysClearOnSwitch) {
+      hydrateFromComponents('', '', '', '', '', undefined, true);
+      onAddressComponentsChange?.({
+        street: '',
+        streetNumber: '',
+        city: '',
+        postalCode: '',
+        country: '',
+        latitude: undefined,
+        longitude: undefined,
+        mapPinConfirmed: false,
+      });
+      setManualEdited(false);
+      onChange('');
+      return;
+    }
+    
+    // If preserving initial data, only restore if original was in manual mode
+    if (preserveInitialData) {
+      if (originalDraftData.current && originalDraftData.current.mode === true) {
+        const draft = originalDraftData.current;
+        hydrateFromComponents(
+          draft.components.street || '',
+          draft.components.streetNumber || '',
+          draft.components.city || '',
+          draft.components.postalCode || '',
+          draft.components.country || '',
+          undefined,
+          true
+        );
+        onChange(draft.address);
+        onAddressComponentsChange?.({
+          street: draft.components.street || '',
+          streetNumber: draft.components.streetNumber || '',
+          city: draft.components.city || '',
+          postalCode: draft.components.postalCode || '',
+          country: draft.components.country || '',
+          latitude: draft.components.latitude,
+          longitude: draft.components.longitude,
+          mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
+        });
+        setManualEdited(false);
+        return;
+      }
+      // Not the original mode, clear everything
+      hydrateFromComponents('', '', '', '', '', undefined, true);
+      onAddressComponentsChange?.({
+        street: '',
+        streetNumber: '',
+        city: '',
+        postalCode: '',
+        country: '',
+        latitude: undefined,
+        longitude: undefined,
+        mapPinConfirmed: false,
+      });
+      setManualEdited(false);
+      onChange('');
+      return;
+    }
+    
+    // Original wizard behavior: restore if draft was saved in manual mode
+    if (originalDraftData.current && originalDraftData.current.mode === true) {
+      const draft = originalDraftData.current;
+      hydrateFromComponents(
+        draft.components.street || '',
+        draft.components.streetNumber || '',
+        draft.components.city || '',
+        draft.components.postalCode || '',
+        draft.components.country || '',
+        undefined,
+        true
+      );
+      onChange(draft.address);
+      // Restore original draft components including coordinates
+      onAddressComponentsChange?.({
+        street: draft.components.street || '',
+        streetNumber: draft.components.streetNumber || '',
+        city: draft.components.city || '',
+        postalCode: draft.components.postalCode || '',
+        country: draft.components.country || '',
+        latitude: draft.components.latitude,
+        longitude: draft.components.longitude,
+        mapPinConfirmed: draft.components.mapPinConfirmed ?? false,
+      });
+      setManualEdited(false);
+      return;
+    }
+    
+    // Otherwise clear everything when switching to manual mode
     hydrateFromComponents('', '', '', '', '', undefined, true);
+    
+    // Clear address components including coordinates
+    onAddressComponentsChange?.({
+      street: '',
+      streetNumber: '',
+      city: '',
+      postalCode: '',
+      country: '',
+      latitude: undefined,
+      longitude: undefined,
+      mapPinConfirmed: false,
+    });
+    
     setManualEdited(false);
-    if (value) onChange(value);
-  }, [onChange, value, setManualMode, hydrateFromComponents]);
+    onChange('');
+  }, [alwaysClearOnSwitch, preserveInitialData, onChange, setManualMode, hydrateFromComponents, onAddressComponentsChange]);
 
   const handleChangeAddressClick = useCallback(() => {
     setManualMode(false);

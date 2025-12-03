@@ -17,6 +17,7 @@ type TeamMembersState = {
   deleteResponse?: any | null;
   isFetchingTeamMember: boolean;
   fetchTeamMemberError: string | null;
+  isLoading: boolean;
 };
 
 const initialState: TeamMembersState = {
@@ -33,6 +34,7 @@ const initialState: TeamMembersState = {
   deleteResponse: null,
   isFetchingTeamMember: false,
   fetchTeamMemberError: null,
+  isLoading: false,
 };
 
 export default function teamMembersReducer(state: TeamMembersState = initialState, action: any) {
@@ -49,11 +51,14 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
     case getType(clearInviteResponseAction):
       return { ...state, inviteResponse: null };
 
+    case getType(listTeamMembersAction.request):
+      return { ...state, isLoading: true, error: null };
+
     case getType(listTeamMembersAction.success):
-      return { ...state, teamMembers: action.payload.teamMembers, summary: action.payload.summary, error: null };
+      return { ...state, isLoading: false, teamMembers: action.payload.teamMembers, summary: action.payload.summary, error: null };
 
     case getType(listTeamMembersAction.failure):
-      return { ...state, error: action.payload.message };
+      return { ...state, isLoading: false, error: action.payload.message };
 
     case getType(resendInvitationAction.request):
       return { ...state, isResending: true, resendError: null };

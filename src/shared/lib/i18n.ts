@@ -7,15 +7,27 @@ import enServices from '../../locales/en/services.json';
 import roServices from '../../locales/ro/services.json';
 import enNavigation from '../../locales/en/navigation.json';
 import roNavigation from '../../locales/ro/navigation.json';
+import enLocations from '../../locales/en/locations.json';
+import roLocations from '../../locales/ro/locations.json';
+import enTeamMembers from '../../locales/en/teamMembers.json';
+import roTeamMembers from '../../locales/ro/teamMembers.json';
+import enCustomers from '../../locales/en/customers.json';
+import roCustomers from '../../locales/ro/customers.json';
 
 const resources = {
   en: {
     services: enServices,
     navigation: enNavigation,
+    locations: enLocations,
+    teamMembers: enTeamMembers,
+    customers: enCustomers,
   },
   ro: {
     services: roServices,
     navigation: roNavigation,
+    locations: roLocations,
+    teamMembers: roTeamMembers,
+    customers: roCustomers,
   },
 };
 
