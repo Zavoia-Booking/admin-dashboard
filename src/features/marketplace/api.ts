@@ -1,4 +1,4 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingRequest } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingRequest, BookingSettings, UpdateBookingSettingsPayload } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const getMarketplaceListingApi = async (): Promise<MarketplaceListingResponse> => {
@@ -23,6 +23,17 @@ export const publishMarketplaceListingApi = async (req: PublishMarketplaceListin
 
 export const updateMarketplaceVisibilityApi = async (isVisible: boolean): Promise<{ isVisible: boolean }> => {
   const { data } = await apiClient().post<{ isVisible: boolean }>('/marketplace-listing/update-visibility', { isVisible });
+  return data;
+}
+
+// Booking Settings API
+export const getBookingSettingsApi = async (): Promise<BookingSettings> => {
+  const { data } = await apiClient().get<BookingSettings>('/marketplace-listing/booking-settings');
+  return data;
+}
+
+export const updateBookingSettingsApi = async (payload: UpdateBookingSettingsPayload): Promise<BookingSettings> => {
+  const { data } = await apiClient().put<BookingSettings>('/marketplace-listing/booking-settings', payload);
   return data;
 }
 

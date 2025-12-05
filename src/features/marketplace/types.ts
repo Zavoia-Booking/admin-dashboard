@@ -138,6 +138,33 @@ export interface PublishMarketplaceListingRequest {
   newImageFiles?: Record<string, File>;
 }
 
+// Booking settings for marketplace
+export interface BookingSettings {
+  businessId: number;
+  minAdvanceBookingMinutes: number;
+  maxAdvanceBookingMinutes: number;
+  slotIntervalMinutes: number;
+  bufferTimeMinutes: number;
+  cancellationWindowMinutes: number;
+  allowCustomerCancellation: boolean;
+  allowCustomerReschedule: boolean;
+  autoConfirmBookings: boolean;
+  requireCustomerAccount: boolean;
+  requirePhoneNumber: boolean;
+  allowStaffSelection: boolean;
+  showAnyStaffOption: boolean;
+  maxActiveBookingsPerCustomer: number | null;
+  maxBookingsPerDay: number | null;
+  showPrices: boolean;
+  showDurations: boolean;
+  showStaffImages: boolean;
+  cancellationPolicyMessage: string | null;
+  bookingConfirmationMessage: string | null;
+}
+
+// Payload for updating booking settings (omit businessId as it's not editable)
+export type UpdateBookingSettingsPayload = Omit<BookingSettings, 'businessId'>;
+
 // Redux state for marketplace feature
 export interface MarketplaceState {
   isLoading: boolean;
@@ -155,5 +182,9 @@ export interface MarketplaceState {
   listedTeamMembers: number[];
   isPublishing: boolean;
   isUpdatingVisibility: boolean;
+  // Booking settings
+  bookingSettings: BookingSettings | null;
+  isLoadingBookingSettings: boolean;
+  isSavingBookingSettings: boolean;
 }
 

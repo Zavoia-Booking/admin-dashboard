@@ -16,3 +16,8 @@ export const selectListedCategories = (state: RootState) => state.marketplace.li
 export const selectListedTeamMembers = (state: RootState) => state.marketplace.listedTeamMembers;
 export const selectMarketplacePublishing = (state: RootState) => state.marketplace.isPublishing;
 export const selectMarketplaceUpdatingVisibility = (state: RootState) => state.marketplace.isUpdatingVisibility;
+
+// Booking Settings selectors
+export const selectBookingSettings = (state: RootState) => state.marketplace.bookingSettings;
+export const selectBookingSettingsLoading = (state: RootState) => state.marketplace.isLoadingBookingSettings;
+export const selectBookingSettingsSaving = (state: RootState) => state.marketplace.isSavingBookingSettings;

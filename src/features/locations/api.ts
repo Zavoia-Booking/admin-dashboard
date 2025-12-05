@@ -29,19 +29,6 @@ export const deleteLocationApi = async (id: number): Promise<any> => {
   return data;
 }
 
-export interface ConfirmMapPinPayload {
-  address: string;
-  addressComponents: {
-    street?: string;
-    streetNumber?: string;
-    city?: string;
-    postalCode?: string;
-    country?: string;
-    latitude: number;
-    longitude: number;
-  };
-}
-
 export interface ConfirmMapPinResponse {
   message: string;
   location: {
@@ -59,9 +46,4 @@ export interface ConfirmMapPinResponse {
     };
     mapPinConfirmed: boolean;
   };
-}
-
-export const confirmMapPinApi = async (locationId: number, payload: ConfirmMapPinPayload): Promise<ConfirmMapPinResponse> => {
-  const { data } = await apiClient().post<ConfirmMapPinResponse>(`/locations/${locationId}/confirm-pin`, payload);
-  return data;
 }

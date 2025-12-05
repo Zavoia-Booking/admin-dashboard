@@ -11,11 +11,12 @@ import { MultiSelect } from '../../../shared/components/common/MultiSelect';
 import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
 import { Checkbox } from '../../../shared/components/ui/checkbox';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
-import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2, User, Images, Megaphone } from 'lucide-react';
+import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2, User, Images, Megaphone, Settings } from 'lucide-react';
 import type { Location, Service, TeamMember, Category, Business } from '../types';
 import { MarketplaceImagesSection, type PortfolioImage } from './MarketplaceImagesSection';
+import { BookingSettingsTab } from './BookingSettingsTab';
 
-type MarketplaceTab = 'profile' | 'portfolio' | 'promotions';
+type MarketplaceTab = 'profile' | 'portfolio' | 'promotions' | 'booking-settings';
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -90,7 +91,7 @@ export function ListingConfigurationView({
   // Get initial tab from URL or default to 'profile'
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get('tab') as MarketplaceTab | null;
-    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
+    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions' || tab === 'booking-settings')) {
       return tab;
     }
     return 'profile';
@@ -101,7 +102,7 @@ export function ListingConfigurationView({
   // Sync with URL changes (for sidebar navigation)
   useEffect(() => {
     const tab = searchParams.get('tab') as MarketplaceTab | null;
-    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
+    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions' || tab === 'booking-settings')) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -824,6 +825,12 @@ export function ListingConfigurationView({
       label: 'Promotions',
       icon: Megaphone,
       content: <PromotionsTabContent />,
+    },
+    {
+      id: 'booking-settings',
+      label: 'Booking Settings',
+      icon: Settings,
+      content: <BookingSettingsTab />,
     },
   ];
 

@@ -30,7 +30,8 @@
       "marketplace": {
         "profile": "Profile",
         "portfolio": "Portfolio",
-        "promotions": "Promotions"
+        "promotions": "Promotions",
+        "bookingSettings": "Booking Settings"
       }
     }
   },

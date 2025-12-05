@@ -21,6 +21,10 @@ const initialState: MarketplaceState = {
   listedTeamMembers: [],
   isPublishing: false,
   isUpdatingVisibility: false,
+  // Booking settings
+  bookingSettings: null,
+  isLoadingBookingSettings: false,
+  isSavingBookingSettings: false,
 };
 
 export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: MarketplaceState = initialState, action: Actions) => {
@@ -80,6 +84,25 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
 
     case getType(actions.updateMarketplaceVisibilityAction.failure):
       return { ...state, isUpdatingVisibility: false, error: action.payload.message };
+
+    // Booking Settings
+    case getType(actions.fetchBookingSettingsAction.request):
+      return { ...state, isLoadingBookingSettings: true, error: null };
+
+    case getType(actions.fetchBookingSettingsAction.success):
+      return { ...state, isLoadingBookingSettings: false, bookingSettings: action.payload, error: null };
+
+    case getType(actions.fetchBookingSettingsAction.failure):
+      return { ...state, isLoadingBookingSettings: false, error: action.payload.message };
+
+    case getType(actions.updateBookingSettingsAction.request):
+      return { ...state, isSavingBookingSettings: true, error: null };
+
+    case getType(actions.updateBookingSettingsAction.success):
+      return { ...state, isSavingBookingSettings: false, bookingSettings: action.payload, error: null };
+
+    case getType(actions.updateBookingSettingsAction.failure):
+      return { ...state, isSavingBookingSettings: false, error: action.payload.message };
 
     default:
       return state;

@@ -30,7 +30,8 @@
       "marketplace": {
         "profile": "Profil",
         "portfolio": "Portofoliu",
-        "promotions": "Promoții"
+        "promotions": "Promoții",
+        "bookingSettings": "Setări Rezervări"
       }
     }
   },

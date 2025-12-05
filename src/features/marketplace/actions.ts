@@ -1,5 +1,5 @@
 import { createAsyncAction } from "typesafe-actions";
-import type { MarketplaceListingResponse, PublishMarketplaceListingRequest } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingRequest, BookingSettings, UpdateBookingSettingsPayload } from "./types";
 
 export const fetchMarketplaceListingAction = createAsyncAction(
   'marketplace/FETCH_LISTING_REQUEST',
@@ -18,4 +18,17 @@ export const updateMarketplaceVisibilityAction = createAsyncAction(
   'marketplace/UPDATE_VISIBILITY_SUCCESS',
   'marketplace/UPDATE_VISIBILITY_FAILURE',
 )<{ isVisible: boolean }, { isVisible: boolean }, { message: string }>();
+
+// Booking Settings Actions
+export const fetchBookingSettingsAction = createAsyncAction(
+  'marketplace/FETCH_BOOKING_SETTINGS_REQUEST',
+  'marketplace/FETCH_BOOKING_SETTINGS_SUCCESS',
+  'marketplace/FETCH_BOOKING_SETTINGS_FAILURE',
+)<void, BookingSettings, { message: string }>();
+
+export const updateBookingSettingsAction = createAsyncAction(
+  'marketplace/UPDATE_BOOKING_SETTINGS_REQUEST',
+  'marketplace/UPDATE_BOOKING_SETTINGS_SUCCESS',
+  'marketplace/UPDATE_BOOKING_SETTINGS_FAILURE',
+)<UpdateBookingSettingsPayload, BookingSettings, { message: string }>();
 
