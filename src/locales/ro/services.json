@@ -280,6 +280,8 @@
   },
   "sort": {
     "trigger": "Sortare",
+    "nameAsc": "Nume (A-Z)",
+    "nameDesc": "Nume (Z-A)",
     "priceAsc": "Mic → mare",
     "priceDesc": "Mare → mic",
     "durationAsc": "Scurtă → lungă",
@@ -288,9 +290,18 @@
     "createdAtAsc": "Cele mai vechi",
     "updatedAtDesc": "Actualizate recent",
     "updatedAtAsc": "Mai puțin recente",
+    "groupName": "Nume",
     "groupPrice": "Preț",
     "groupDuration": "Durată",
     "groupCreatedAt": "Dată creare",
     "groupUpdatedAt": "Ultima actualizare"
+  },
+  "manageServices": {
+    "title": "Gestionează servicii pentru",
+    "uncategorized": "Fără categorie",
+    "durationUnit": "min",
+    "clear": "Șterge",
+    "apply": "Aplică",
+    "close": "Închide"
   }
 }

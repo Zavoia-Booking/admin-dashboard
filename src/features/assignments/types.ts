@@ -47,6 +47,12 @@ export type TeamMemberAssignment = {
   allServices?: Array<{
     serviceId: number;
     serviceName: string;
+    price_amount_minor: number;
+    displayPrice: number;
+    duration: number;
+    createdAt: string;
+    updatedAt: string;
+    category?: { id: number; name: string; color?: string } | null;
   }>;
   allLocations?: Array<{
     locationId: number;
@@ -58,6 +64,7 @@ export type TeamMemberAssignment = {
     serviceName: string;
     customPrice: number | null;
     customDuration: number | null;
+    category?: { id: number; name: string; color?: string } | null;
   }>;
   assignedLocations: Array<{
     locationId: number;
@@ -70,7 +77,7 @@ export type ServiceAssignment = {
   id: number;
   name: string;
   description: string;
-  price_amount_minor: number;
+  displayPrice: number;
   duration: number;
   assignedTeamMembers: Array<{
     userId: number;

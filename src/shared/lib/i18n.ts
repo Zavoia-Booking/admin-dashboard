@@ -13,6 +13,8 @@ import enTeamMembers from '../../locales/en/teamMembers.json';
 import roTeamMembers from '../../locales/ro/teamMembers.json';
 import enCustomers from '../../locales/en/customers.json';
 import roCustomers from '../../locales/ro/customers.json';
+import enAssignments from '../../locales/en/assignments.json';
+import roAssignments from '../../locales/ro/assignments.json';
 
 const resources = {
   en: {
@@ -21,6 +23,7 @@ const resources = {
     locations: enLocations,
     teamMembers: enTeamMembers,
     customers: enCustomers,
+    assignments: enAssignments,
   },
   ro: {
     services: roServices,
@@ -28,6 +31,7 @@ const resources = {
     locations: roLocations,
     teamMembers: roTeamMembers,
     customers: roCustomers,
+    assignments: roAssignments,
   },
 };
 

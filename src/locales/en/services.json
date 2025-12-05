@@ -283,6 +283,8 @@
   },
   "sort": {
     "trigger": "Sort",
+    "nameAsc": "Name (A-Z)",
+    "nameDesc": "Name (Z-A)",
     "priceAsc": "Low → high",
     "priceDesc": "High → low",
     "durationAsc": "Short → long",
@@ -291,9 +293,18 @@
     "createdAtAsc": "Oldest first",
     "updatedAtDesc": "Recently updated",
     "updatedAtAsc": "Least recent",
+    "groupName": "Name",
     "groupPrice": "Price",
     "groupDuration": "Duration",
     "groupCreatedAt": "Date created",
     "groupUpdatedAt": "Last updated"
+  },
+  "manageServices": {
+    "title": "Manage services for",
+    "uncategorized": "Uncategorized",
+    "durationUnit": "min",
+    "clear": "Clear",
+    "apply": "Apply",
+    "close": "Close"
   }
 }
