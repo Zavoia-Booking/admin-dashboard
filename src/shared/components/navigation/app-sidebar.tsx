@@ -103,10 +103,6 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
         title: t("sidebar.subItems.services.bundles"),
         url: "/services?tab=bundles",
       },
-      {
-        title: t("sidebar.subItems.services.promotions"),
-        url: "/services?tab=promotions",
-      },
     ],
   },
   {

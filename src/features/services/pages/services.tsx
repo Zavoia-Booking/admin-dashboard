@@ -2,17 +2,16 @@
 
 import React, { useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Briefcase, Package, Tag } from "lucide-react";
+import { Briefcase, Package } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { ResponsiveTabs, type ResponsiveTabItem } from "../../../shared/components/ui/responsive-tabs";
 import { ServicesListTab } from "../components/services/ServicesListTab.tsx";
 import { BundlesTab } from "../components/bundles/BundlesTab.tsx";
-import { PromotionsTab } from "../components/PromotionsTab";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate.tsx";
 import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 
-type ServicesTab = "services" | "bundles" | "promotions";
+type ServicesTab = "services" | "bundles";
 
 export default function ServicesPage() {
   const { t } = useTranslation("services");
@@ -22,7 +21,7 @@ export default function ServicesPage() {
   // Get initial tab from URL or default to 'services'
   const getInitialTab = (): ServicesTab => {
     const tab = searchParams.get("tab") as ServicesTab | null;
-    if (tab && (tab === "services" || tab === "bundles" || tab === "promotions")) {
+    if (tab && (tab === "services" || tab === "bundles")) {
       return tab;
     }
     return "services";
@@ -33,7 +32,7 @@ export default function ServicesPage() {
   // Sync with URL changes
   useEffect(() => {
     const tab = searchParams.get("tab") as ServicesTab | null;
-    if (tab && (tab === "services" || tab === "bundles" || tab === "promotions")) {
+    if (tab && (tab === "services" || tab === "bundles")) {
       setActiveTab(tab);
     }
   }, [searchParams]);
@@ -58,13 +57,7 @@ export default function ServicesPage() {
       label: t("page.tabs.bundles"),
       icon: Package,
       content: <BundlesTab />,
-    },
-    {
-      id: "promotions",
-      label: t("page.tabs.promotions"),
-      icon: Tag,
-      content: <PromotionsTab />,
-    },
+    }
   ];
 
   return (
