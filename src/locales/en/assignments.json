@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "Assignments",
+    "subtitle": "Manage team member assignments",
+    "tabs": {
+      "teamMembers": "Team Members",
+      "services": "Services",
+      "locations": "Locations"
+    },
+    "teamMembers": {
+      "sections": {
+        "services": {
+          "description": {
+            "assignedPrefix": "has",
+            "assignedSuffix": "assigned",
+            "assignedHelper": "Manage their services and fine‑tune pricing and duration below.",
+            "notAssigned": "has no services assigned yet.",
+            "notAssignedHelper": "Add services below to control what they can perform and adjust pricing and duration if needed."
+          },
+          "serviceOne": "service",
+          "serviceOther": "services"
+        },
+        "locations": {
+          "description": {
+            "assignedPrefix": "is assigned to",
+            "assignedSuffix": ".",
+            "assignedHelper": "Manage their working locations below.",
+            "notAssigned": "is not assigned to any locations yet.",
+            "notAssignedHelper": "Choose locations below to control where they can work."
+          },
+          "locationOne": "location",
+          "locationOther": "locations"
+        }
+      },
+      "emptyState": {
+        "noTeamMemberSelected": "Choose a team member from the list to view and manage their assignments",
+        "noTeamMembers": "No team members found",
+        "noTeamMembersMatchSearch": "No team members match your search"
+      }
+    }
+  }
+}
+

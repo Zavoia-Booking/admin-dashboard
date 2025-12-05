@@ -43,7 +43,12 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (state: Assign
       return { ...state, isLoading: false };
       
     case getType(actions.selectTeamMemberAction):
-      return { ...state, selectedTeamMemberId: action.payload };
+      return { 
+        ...state, 
+        selectedTeamMemberId: action.payload,
+        // Clear the assignment data when deselecting (null) so UI shows empty state
+        selectedTeamMemberAssignment: action.payload === null ? null : state.selectedTeamMemberAssignment,
+      };
       
     case getType(actions.assignServicesToTeamMemberAction.request):
     case getType(actions.assignLocationsToTeamMemberAction.request):
@@ -70,7 +75,12 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (state: Assign
       return { ...state, isLoading: false };
       
     case getType(actions.selectServiceAction):
-      return { ...state, selectedServiceId: action.payload };
+      return { 
+        ...state, 
+        selectedServiceId: action.payload,
+        // Clear the assignment data when deselecting (null) so UI shows empty state
+        selectedServiceAssignment: action.payload === null ? null : state.selectedServiceAssignment,
+      };
       
     case getType(actions.assignTeamMembersToServiceAction.request):
     case getType(actions.assignLocationsToServiceAction.request):
@@ -97,7 +107,12 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (state: Assign
       return { ...state, isLoading: false };
       
     case getType(actions.selectLocationAction):
-      return { ...state, selectedLocationId: action.payload };
+      return { 
+        ...state, 
+        selectedLocationId: action.payload,
+        // Clear the assignment data when deselecting (null) so UI shows empty state
+        selectedLocationAssignment: action.payload === null ? null : state.selectedLocationAssignment,
+      };
       
     case getType(actions.assignTeamMembersToLocationAction.request):
     case getType(actions.assignServicesToLocationAction.request):

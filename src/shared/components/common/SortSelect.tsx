@@ -109,6 +109,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
                     }}
                     className={cn(
                       "cursor-pointer flex items-center gap-2 px-2 py-2 text-sm rounded-md",
+                      "data-[selected=true]:bg-transparent data-[selected=true]:text-inherit md:data-[selected=true]:bg-info-100 md:dark:data-[selected=true]:bg-neutral-900",
                       isSelected && "bg-muted text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1"
                     )}
                   >
@@ -138,6 +139,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
     <>
       {isMobile ? (
         <Drawer
+          autoFocus={true}
           open={open}
           onOpenChange={(isOpen) => {
             setOpen(isOpen);

@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "Atribuiri",
+    "subtitle": "Gestionați atribuirile membrilor echipei",
+    "tabs": {
+      "teamMembers": "Membri echipă",
+      "services": "Servicii",
+      "locations": "Locații"
+    },
+    "teamMembers": {
+      "sections": {
+        "services": {
+          "description": {
+            "assignedPrefix": "are",
+            "assignedSuffix": "atribuite",
+            "assignedHelper": "Gestionați serviciile lor și ajustați prețul și durata mai jos.",
+            "notAssigned": "nu are încă servicii atribuite.",
+            "notAssignedHelper": "Adăugați servicii mai jos pentru a controla ce pot presta și ajusta prețul și durata dacă este nevoie."
+          },
+          "serviceOne": "serviciu",
+          "serviceOther": "servicii"
+        },
+        "locations": {
+          "description": {
+            "assignedPrefix": "este atribuit la",
+            "assignedSuffix": ".",
+            "assignedHelper": "Gestionați locațiile în care poate lucra mai jos.",
+            "notAssigned": "nu este atribuit la nicio locație încă.",
+            "notAssignedHelper": "Alegeți locații mai jos pentru a controla unde poate lucra."
+          },
+          "locationOne": "locație",
+          "locationOther": "locații"
+        }
+      },
+      "emptyState": {
+        "noTeamMemberSelected": "Alegeți un membru al echipei din listă pentru a vedea și gestiona atribuirile acestuia",
+        "noTeamMembers": "Nu s-au găsit membri ai echipei",
+        "noTeamMembersMatchSearch": "Niciun membru al echipei nu se potrivește căutării dvs."
+      }
+    }
+  }
+}
+

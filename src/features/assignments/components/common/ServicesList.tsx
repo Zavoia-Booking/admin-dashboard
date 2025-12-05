@@ -2,21 +2,71 @@ import { useNavigate } from 'react-router-dom';
 import { Briefcase, ArrowRight } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
 import { MultiSelect } from '../../../../shared/components/common/MultiSelect';
+import { ServicePill } from './ServicePill';
+import { CompactServicesSection } from './CompactServicesSection';
 
 interface Service {
   id: number | string;
   name: string;
+  price?: number; // displayPrice (decimal) for display
+  price_amount_minor?: number; // price_amount_minor (cents) for comparison
+  duration?: number;
+}
+
+interface AssignedService {
+  serviceId: number;
+  serviceName: string;
+  customPrice: number | null;
+  customDuration: number | null;
+  defaultPrice?: number; // price_amount_minor (cents) for comparison
+  defaultDisplayPrice?: number; // displayPrice (decimal) for display
+  defaultDuration?: number;
 }
 
 interface ServicesListProps {
   allServices: Service[];
   assignedServiceIds: number[];
+  assignedServices?: AssignedService[];
   onToggle: (id: number) => void;
+  onUpdateCustomPrice?: (serviceId: number, price: number | null) => void;
+  onUpdateCustomDuration?: (serviceId: number, duration: number | null) => void;
   showEmptyState?: boolean;
+  currency?: string;
+  teamMemberName?: string;
+  onApplyServices?: (serviceIds: number[]) => void;
+  useCompactLayout?: boolean;
 }
 
-export function ServicesList({ allServices, assignedServiceIds, onToggle, showEmptyState = false }: ServicesListProps) {
+export function ServicesList({ 
+  allServices, 
+  assignedServiceIds, 
+  assignedServices = [],
+  onToggle,
+  onUpdateCustomPrice,
+  onUpdateCustomDuration,
+  showEmptyState = false,
+  currency = 'USD',
+  teamMemberName,
+  onApplyServices,
+  useCompactLayout = false,
+}: ServicesListProps) {
   const navigate = useNavigate();
+
+  // Use compact layout if requested and we have team member name
+  if (useCompactLayout && teamMemberName && onApplyServices && assignedServices) {
+    return (
+      <CompactServicesSection
+        assignedServices={assignedServices}
+        assignedServiceIds={assignedServiceIds}
+        allServices={allServices}
+        teamMemberName={teamMemberName}
+        onUpdateCustomPrice={onUpdateCustomPrice!}
+        onUpdateCustomDuration={onUpdateCustomDuration!}
+        onApplyServices={onApplyServices}
+        currency={currency}
+      />
+    );
+  }
 
   if (allServices.length === 0 && showEmptyState) {
     return (
@@ -49,32 +99,63 @@ export function ServicesList({ allServices, assignedServiceIds, onToggle, showEm
     return null;
   }
 
+  // Show assigned services as Pills (matching LocationsList pattern)
+  const hasAssignedServices = assignedServices.length > 0 && onUpdateCustomPrice && onUpdateCustomDuration;
+
   return (
-    <div className="max-w-md">
-      <MultiSelect
-        value={assignedServiceIds.map(String)}
-        onChange={(newSelectedIds) => {
-          // Find newly selected items and toggle them
-          const currentIds = new Set(assignedServiceIds.map(String));
-          newSelectedIds.forEach((id) => {
-            if (!currentIds.has(String(id))) {
-              onToggle(Number(id));
-            }
-          });
-          // Find removed items and toggle them
-          assignedServiceIds.forEach((id) => {
-            if (!newSelectedIds.includes(String(id))) {
-              onToggle(Number(id));
-            }
-          });
-        }}
-        options={allServices.map(service => ({
-          id: String(service.id),
-          name: service.name,
-        }))}
-        placeholder="+ Add Services"
-        searchPlaceholder="Search services..."
-      />
+    <div className="space-y-4">
+      {/* Assigned Services as Pills */}
+      {hasAssignedServices && assignedServices.length > 0 && (
+        <div className="flex flex-wrap gap-2 sm:gap-3">
+          {assignedServices.map((assigned) => {
+            const defaultService = allServices.find(s => Number(s.id) === assigned.serviceId);
+            return (
+              <ServicePill
+                key={assigned.serviceId}
+                serviceId={assigned.serviceId}
+                serviceName={assigned.serviceName}
+                defaultPrice={assigned.defaultPrice ?? defaultService?.price_amount_minor}
+                defaultDisplayPrice={assigned.defaultDisplayPrice ?? defaultService?.price}
+                defaultDuration={assigned.defaultDuration ?? defaultService?.duration}
+                customPrice={assigned.customPrice}
+                customDuration={assigned.customDuration}
+                onUpdateCustomPrice={onUpdateCustomPrice}
+                onUpdateCustomDuration={onUpdateCustomDuration}
+                onToggle={onToggle}
+                currency={currency}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* MultiSelect for adding services */}
+      <div className="max-w-md">
+        <MultiSelect
+          value={assignedServiceIds.map(String)}
+          onChange={(newSelectedIds) => {
+            // Find newly selected items and toggle them
+            const currentIds = new Set(assignedServiceIds.map(String));
+            newSelectedIds.forEach((id) => {
+              if (!currentIds.has(String(id))) {
+                onToggle(Number(id));
+              }
+            });
+            // Find removed items and toggle them
+            assignedServiceIds.forEach((id) => {
+              if (!newSelectedIds.includes(String(id))) {
+                onToggle(Number(id));
+              }
+            });
+          }}
+          options={allServices.map(service => ({
+            id: String(service.id),
+            name: service.name,
+          }))}
+          placeholder="+ Add Services"
+          searchPlaceholder="Search services..."
+        />
+      </div>
     </div>
   );
 }

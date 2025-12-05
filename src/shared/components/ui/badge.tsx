@@ -16,7 +16,7 @@ function Badge({ className, variant = "default", ...props }: BadgeProps) {
     outline: "text-foreground",
     // Softer, neutral pill variant – useful for filter chips, etc.
     filter:
-      "border-border px-3 py-1.5 bg-surface-hover text-foreground-2 hover:bg-info-100",
+      "border-border px-3 py-1.5 bg-surface-hover text-foreground-2 hover:bg-info-100 dark:hover:bg-neutral-800",
   }
 
   return (
