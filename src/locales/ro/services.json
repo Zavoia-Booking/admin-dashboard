@@ -253,7 +253,230 @@
   },
   "bundles": {
     "comingSoon": "Pachete în Curând",
-    "description": "Gestionarea pachetelor va fi disponibilă aici în curând. Creați pachete de servicii și oferiți-le ca pachete clienților dvs."
+    "description": "Gestionarea pachetelor va fi disponibilă aici în curând. Creați pachete de servicii și oferiți-le ca pachete clienților dvs.",
+    "filters": {
+      "searchPlaceholder": "Caută pachete...",
+      "addBundle": "Adaugă Pachet",
+      "addFilter": "Filtre",
+      "showFiltersAria": "Afișează filtrele",
+      "byPrice": "După preț",
+      "byServiceCount": "După număr servicii",
+      "byPriceType": "După tip preț",
+      "minPriceLabel": "Preț minim",
+      "maxPriceLabel": "Preț maxim",
+      "minPricePlaceholder": "0.00",
+      "maxPricePlaceholder": "∞",
+      "minServiceCountLabel": "Min servicii",
+      "maxServiceCountLabel": "Max servicii",
+      "minServiceCountPlaceholder": "0",
+      "maxServiceCountPlaceholder": "∞",
+      "priceTypes": {
+        "sum": "Sumă servicii",
+        "fixed": "Preț fix",
+        "discount": "Reducere"
+      },
+      "clearAll": "Șterge toate filtrele",
+      "apply": "Aplică"
+    },
+    "sort": {
+      "trigger": "Sortare",
+      "priceAsc": "Preț: mic → mare",
+      "priceDesc": "Preț: mare → mic",
+      "serviceCountAsc": "Servicii: puține → multe",
+      "serviceCountDesc": "Servicii: multe → puține",
+      "createdAtDesc": "Cele mai noi",
+      "createdAtAsc": "Cele mai vechi",
+      "updatedAtDesc": "Actualizate recent",
+      "updatedAtAsc": "Mai puțin recente",
+      "groupPrice": "Preț",
+      "groupServiceCount": "Număr servicii",
+      "groupCreatedAt": "Dată creare",
+      "groupUpdatedAt": "Ultima actualizare"
+    },
+    "stats": {
+      "helperTotalPrefix": "Ai în prezent",
+      "helperTotalSuffix": "în listă",
+      "helperTotalBundleOne": "pachet",
+      "helperTotalBundleOther": "pachete"
+    },
+    "badges": {
+      "priceMin": "Preț min",
+      "priceMax": "Preț max",
+      "serviceCountMin": "Servicii min",
+      "serviceCountMax": "Servicii max"
+    },
+    "emptyState": {
+      "noBundles": "Niciun pachet încă",
+      "noBundlesDescription": "Creați primul dvs. pachet pentru a oferi pachete de servicii clienților dvs.",
+      "noResults": "Nu s-au găsit pachete",
+      "noResultsDescription": "Încercați să ajustați căutarea pentru a găsi ceea ce căutați."
+    },
+    "addBundle": {
+      "title": "Creează Pachet",
+      "subtitle": "Combină mai multe servicii într-un pachet",
+      "sections": {
+        "bundleInfo": "Informații Pachet",
+        "bundleInfoDescription": "Dă un nume și o descriere pachetului tău",
+        "pricing": "Preț",
+        "pricingDescription": "Alege cum se calculează prețul pachetului",
+        "services": "Servicii",
+        "servicesDescription": "Selectează serviciile de inclus în acest pachet"
+      },
+      "form": {
+        "name": {
+          "label": "Nume Pachet",
+          "placeholder": "ex., Pachet Îngrijire Completă"
+        },
+        "description": {
+          "label": "Descriere",
+          "placeholder": "Descrie ce este inclus în acest pachet..."
+        },
+        "priceType": {
+          "sum": "Suma prețurilor serviciilor",
+          "sumDescription": "Calculează automat totalul adunând toate prețurile serviciilor",
+          "fixed": "Preț fix",
+          "fixedDescription": "Stabilește un preț fix unic pentru întregul pachet, indiferent de prețurile individuale ale serviciilor",
+          "discount": "Procent de reducere",
+          "discountDescription": "Aplică un procent de reducere la suma tuturor prețurilor serviciilor"
+        },
+        "fixedPrice": {
+          "label": "Preț Fix",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Procent Reducere",
+          "placeholder": "0",
+          "help": "Introdu un procent între 0 și 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Total Servicii",
+        "originalPrice": "Preț Original",
+        "finalPrice": "Preț Final Pachet",
+        "savings": "Economii Clienți",
+        "increase": "Creștere Preț",
+        "service": "serviciu",
+        "services": "servicii"
+      },
+      "buttons": {
+        "cancel": "Anulează",
+        "create": "Creează Pachet"
+      },
+      "noServices": "Nu sunt servicii disponibile. Creează servicii mai întâi înainte de a crea pachete.",
+      "manageServices": "Gestionează servicii",
+      "bundleLabel": "acest pachet",
+      "validation": {
+        "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
+      },
+      "confirmDialog": {
+        "title": "Creează Pachet?",
+        "description": "Ești sigur că vrei să creezi pachetul \"{{name}}\" cu {{serviceCount}} serviciu(i)?",
+        "confirm": "Creează Pachet",
+        "cancel": "Anulează"
+      }
+    },
+    "editBundle": {
+      "title": "Editează Pachet",
+      "subtitle": "Actualizează informațiile și serviciile pachetului",
+      "sections": {
+        "bundleInfo": "Informații Pachet",
+        "bundleInfoDescription": "Actualizează numele și descrierea pachetului",
+        "pricing": "Preț",
+        "pricingDescription": "Alege cum se calculează prețul pachetului",
+        "services": "Servicii",
+        "servicesDescription": "Actualizează serviciile incluse în acest pachet"
+      },
+      "form": {
+        "name": {
+          "label": "Nume Pachet",
+          "placeholder": "ex., Pachet Îngrijire Completă"
+        },
+        "description": {
+          "label": "Descriere",
+          "placeholder": "Descrie ce este inclus în acest pachet..."
+        },
+        "priceType": {
+          "sum": "Suma prețurilor serviciilor",
+          "sumDescription": "Calculează automat totalul adunând toate prețurile serviciilor",
+          "fixed": "Preț fix",
+          "fixedDescription": "Stabilește un preț fix unic pentru întregul pachet, indiferent de prețurile individuale ale serviciilor",
+          "discount": "Procent de reducere",
+          "discountDescription": "Aplică un procent de reducere la suma tuturor prețurilor serviciilor"
+        },
+        "fixedPrice": {
+          "label": "Preț Fix",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Procent Reducere",
+          "placeholder": "0",
+          "help": "Introdu un procent între 0 și 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Total Servicii",
+        "originalPrice": "Preț Original",
+        "finalPrice": "Preț Final Pachet",
+        "savings": "Economii Clienți",
+        "increase": "Creștere Preț",
+        "service": "serviciu",
+        "services": "servicii"
+      },
+      "buttons": {
+        "cancel": "Anulează",
+        "update": "Actualizează Pachet"
+      },
+      "noServices": "Nu sunt servicii disponibile. Creează servicii mai întâi înainte de a edita pachete.",
+      "manageServices": "Gestionează servicii",
+      "bundleLabel": "acest pachet",
+      "validation": {
+        "nameRequired": "Numele pachetului este obligatoriu",
+        "nameMinLength": "Numele pachetului trebuie să aibă cel puțin 2 caractere",
+        "nameMaxLength": "Numele pachetului nu trebuie să depășească 100 de caractere",
+        "descriptionMaxLength": "Descrierea nu trebuie să depășească 500 de caractere",
+        "fixedPriceRequired": "Prețul fix este obligatoriu",
+        "fixedPriceMin": "Prețul fix trebuie să fie mai mare sau egal cu 0",
+        "discountRequired": "Procentul de reducere este obligatoriu",
+        "discountMin": "Procentul de reducere trebuie să fie cel puțin 0",
+        "discountMax": "Procentul de reducere nu trebuie să depășească 100",
+        "servicesRequired": "Cel puțin un serviciu trebuie selectat",
+        "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
+      },
+      "confirmDialog": {
+        "title": "Actualizezi Pachetul?",
+        "description": "Ești sigur că vrei să actualizezi pachetul \"{{name}}\" cu {{serviceCount}} serviciu(i)?",
+        "confirm": "Actualizează Pachet",
+        "cancel": "Anulează"
+      },
+      "removeBundle": {
+        "title": "Șterge Pachet",
+        "description": "Acest lucru va șterge permanent acest pachet din lista de pachete. Această acțiune nu poate fi anulată.",
+        "button": "Șterge Pachet",
+        "removing": "Se șterge..."
+      },
+      "deleteDialog": {
+        "title": "Ștergi Pachetul?",
+        "description": "Ești sigur că vrei să ștergi pachetul \"{{name}}\"? Această acțiune nu poate fi anulată.",
+        "confirm": "Șterge Pachet",
+        "cancel": "Anulează"
+      }
+    },
+    "priceType": {
+      "sum": "Sumă",
+      "fixed": "Fix",
+      "discount": "Reducere"
+    },
+    "priceTypeCategory": {
+      "sum": "Sumă servicii",
+      "fixed": "Preț fix",
+      "discount": "Reducere"
+    },
+    "actions": {
+      "edit": "Editează Pachet"
+    },
+    "service": "serviciu",
+    "services": "servicii",
+    "loading": "Se încarcă pachetele..."
   },
   "promotions": {
     "comingSoon": "Promoții în Curând",

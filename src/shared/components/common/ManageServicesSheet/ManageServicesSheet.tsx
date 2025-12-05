@@ -761,7 +761,7 @@ export function ManageServicesSheet({
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={onClose} autoFocus={true}>
-        <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground">
+        <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80" overlayClassName="!z-80">
           <DrawerTitle className="sr-only">{t("manageServices.title")} {teamMemberName}</DrawerTitle>
           <DrawerDescription className="sr-only">{t("manageServices.title")} {teamMemberName}</DrawerDescription>
           {content}
@@ -774,8 +774,8 @@ export function ManageServicesSheet({
 
   const modalContent = (
     <>
-      <div className="fixed inset-0 z-50 bg-black/50 animate-in fade-in-0" onClick={onClose} />
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div className="fixed inset-0 z-80 bg-black/50 animate-in fade-in-0" onClick={onClose} />
+      <div className="fixed inset-0 z-80 flex items-center justify-center p-4 pointer-events-none">
         <div
           className="bg-popover overflow-hidden text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-full h-[85vh] flex flex-col p-0 pointer-events-auto animate-in fade-in-0 zoom-in-95"
           onClick={(e) => e.stopPropagation()}

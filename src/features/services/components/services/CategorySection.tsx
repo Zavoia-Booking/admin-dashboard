@@ -1,17 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Plus, Check, Shuffle, X, ArrowUpRight } from "lucide-react";
-import { Label } from "../../../shared/components/ui/label";
-import { Button } from "../../../shared/components/ui/button";
-import { Input } from "../../../shared/components/ui/input";
+import { Label } from "../../../../shared/components/ui/label";
+import { Button } from "../../../../shared/components/ui/button";
+import { Input } from "../../../../shared/components/ui/input";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { getColorHex, getReadableTextColor } from "../../../shared/utils/color";
-import { validateCategoryName } from "../../../shared/utils/validation";
+import { getColorHex, getReadableTextColor } from "../../../../shared/utils/color";
+import { validateCategoryName } from "../../../../shared/utils/validation";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-} from "../../../shared/components/ui/tooltip";
+} from "../../../../shared/components/ui/tooltip";
 import { AlertCircle } from "lucide-react";
 
 export interface Category {

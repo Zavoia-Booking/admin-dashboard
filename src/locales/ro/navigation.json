@@ -26,6 +26,11 @@
         "profile": "Profil",
         "billing": "Facturare și abonament",
         "advanced": "Setări avansate"
+      },
+      "marketplace": {
+        "profile": "Profil",
+        "portfolio": "Portofoliu",
+        "promotions": "Promoții"
       }
     }
   },

@@ -387,7 +387,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   useEffect(() => {
     if (isOpen && !dataFetchedRef.current) {
       dispatch(listTeamMembersAction.request());
-      dispatch(getServicesAction.request({ reset: true }));
+      dispatch(getServicesAction.request());
       dataFetchedRef.current = true;
     }
   }, [isOpen, dispatch]);

@@ -13,6 +13,7 @@ export interface PriceFieldProps
   currency?: string; // Currency code for conversion (default: 'usd')
   storageFormat?: "cents" | "decimal"; // Storage format: 'cents' (299) or 'decimal' (2.99) - default: 'decimal' for backward compatibility
   customLabelClassName?: string; // Optional override for label typography
+  liveUpdate?: boolean; // If true, calls onChange on every keystroke (useful for real-time price calculations)
 }
 
 /**
@@ -66,6 +67,7 @@ export const PriceField: React.FC<PriceFieldProps> = ({
   decimalPlaces = 2,
   currency = "usd",
   storageFormat = "cents", // Default to 'cents' - prices are stored as integer minor units
+  liveUpdate = false, // When true, calls onChange on every keystroke
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const [localInputValue, setLocalInputValue] = useState<string>("");
@@ -121,6 +123,24 @@ export const PriceField: React.FC<PriceFieldProps> = ({
 
     if (isValidInput) {
       setLocalInputValue(inputValue);
+
+      // If liveUpdate is enabled, call onChange immediately
+      if (liveUpdate) {
+        const normalized = normalizeDecimalInput(inputValue);
+        const parsed = parseFloat(normalized);
+
+        if (!isNaN(parsed) && normalized !== "") {
+          const safeValue = Math.max(0, parsed);
+          if (storageFormat === "cents") {
+            const storageValue = priceToStorage(safeValue, currency);
+            onChange(storageValue);
+          } else {
+            onChange(safeValue);
+          }
+        } else if (normalized === "" || normalized === ".") {
+          onChange(storageFormat === "cents" ? 0 : 0);
+        }
+      }
     }
   };
 

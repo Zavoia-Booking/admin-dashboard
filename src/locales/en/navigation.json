@@ -26,6 +26,11 @@
         "profile": "Profile",
         "billing": "Billing & Subscription",
         "advanced": "Advanced Settings"
+      },
+      "marketplace": {
+        "profile": "Profile",
+        "portfolio": "Portfolio",
+        "promotions": "Promotions"
       }
     }
   },

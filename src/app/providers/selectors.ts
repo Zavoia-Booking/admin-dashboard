@@ -10,5 +10,6 @@ export const getTeamMembersStateSelector = createSelector(mainState, (state) => 
 export const getCalendarViewStateSelector = createSelector(mainState, (state) => state.calendarView);
 export const getSettingsStateSelector = createSelector(mainState, (state) => state.settings);
 export const getCustomersStateSelector = createSelector(mainState, (state) => state.customers);
+export const getBundlesStateSelector = createSelector(mainState, (state) => state.bundles);
 
 export default mainState;

@@ -22,10 +22,7 @@ import { getErrorMessage } from "../../shared/utils/error";
 function* handleGetServices(): Generator<any, void, any> {
   // Always fetch the full list; all filtering is handled client-side
   try {
-    const response: { data: Service[] } = yield call(
-      getServicesRequest,
-      []
-    );
+    const response: { data: Service[] } = yield call(getServicesRequest);
     if (response.data) {
       yield put(getServicesAction.success(response.data));
     }
@@ -62,7 +59,7 @@ function* handleCreateServices(
     );
     if (response.data) {
       toast.success("Service created successfully");
-      yield put(getServicesAction.request({ reset: true }));
+      yield put(getServicesAction.request());
       yield put(createServicesAction.success(response.data));
     }
   } catch (error: unknown) {
@@ -92,7 +89,7 @@ function* handleDeleteService(
       // Service was successfully deleted
       toast.success("Service deleted successfully");
       yield put(deleteServicesAction.success({ canDelete: true, message: 'Service deleted successfully' }));
-      yield put(getServicesAction.request({ reset: true }));
+      yield put(getServicesAction.request());
     }
   } catch (error: unknown) {
     console.error("Failed to delete service:", error);
@@ -116,7 +113,7 @@ function* handleEditServices(
     if (response.data) {
       toast.success("Service edited successfully");
       yield put(editServicesAction.success(response.data));
-      yield put(getServicesAction.request({ reset: true }));
+      yield put(getServicesAction.request());
     }
   } catch (error: unknown) {
     console.error("Failed to edit service:", error);

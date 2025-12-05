@@ -112,7 +112,7 @@ function* handleAssignTeamMembersToService(action: ReturnType<typeof assignTeamM
     const { serviceId, userIds } = action.payload;
     yield call(assignTeamMembersToServiceRequest, serviceId, userIds);
     yield put(assignTeamMembersToServiceAction.success());
-    yield put(getServicesAction.request({ reset: true }));
+    yield put(getServicesAction.request());
     toast.success('Team members assigned successfully');
   } catch (error: any) {
     yield put(assignTeamMembersToServiceAction.failure({ message: error?.message || 'Failed to assign team members' }));
@@ -125,7 +125,7 @@ function* handleAssignLocationsToService(action: ReturnType<typeof assignLocatio
     const { serviceId, locationIds } = action.payload;
     yield call(assignLocationsToServiceRequest, serviceId, locationIds);
     yield put(assignLocationsToServiceAction.success());
-    yield put(getServicesAction.request({ reset: true }));
+    yield put(getServicesAction.request());
     toast.success('Locations assigned successfully');
   } catch (error: any) {
     yield put(assignLocationsToServiceAction.failure({ message: error?.message || 'Failed to assign locations' }));

@@ -11,28 +11,28 @@ import {
   updateCategoryApi,
   deleteCategoryApi,
   type Category as ApiCategory,
-} from "../../categories/api";
+} from "../../../categories/api";
 import type { Category as ServiceCategory } from "./CategorySection";
-import type { Service } from "../../../shared/types/service";
+import type { Service } from "../../../../shared/types/service";
 import {
   getFilteredServicesListSelector,
   getServicesListSelector,
   getServicesFilterSelector,
   getAddFormSelector,
   getServicesLoadingSelector,
-} from "../selectors.ts";
+} from "../../selectors.ts";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getServicesAction,
   getServiceByIdAction,
   toggleAddFormAction,
-} from "../actions.ts";
+} from "../../actions.ts";
 import { ServiceFilters } from "./ServiceFilters.tsx";
 import AddServiceSlider from "./AddServiceSlider";
-import { ItemCard, type ItemCardMetadata, type ItemCardBadge } from "../../../shared/components/common/ItemCard";
+import { ItemCard, type ItemCardMetadata, type ItemCardBadge } from "../../../../shared/components/common/ItemCard";
 import { toast } from "sonner";
 import ServicesListSkeleton from "./ServicesListSkeleton";
-import { highlightMatches as highlight } from "../../../shared/utils/highlight";
+import { highlightMatches as highlight } from "../../../../shared/utils/highlight";
 
 export function ServicesListTab() {
   const text = useTranslation("services").t;
@@ -70,7 +70,7 @@ export function ServicesListTab() {
 
   // Load services on mount
   useEffect(() => {
-    dispatch(getServicesAction.request({ reset: true }));
+    dispatch(getServicesAction.request());
   }, [dispatch]);
 
   // Helper to (re)load categories from backend
@@ -178,7 +178,7 @@ export function ServicesListTab() {
       // Reload canonical list
       await reloadCategories();
       // Also refresh services so cards pick up updated category names/colors
-      dispatch(getServicesAction.request({ reset: true }));
+      dispatch(getServicesAction.request());
       toast.success(text("addService.form.category.manageApplySuccess"));
     } catch (error) {
       console.error("Failed to apply category changes:", error);

@@ -5,93 +5,92 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import {
   Clock,
+  MapPin,
+  Users,
   ClipboardPlus,
   Layers2,
   ArrowUpRight,
   AlertCircle,
-  Loader2,
 } from "lucide-react";
-import { Label } from "../../../shared/components/ui/label";
-import { Input } from "../../../shared/components/ui/input";
-import { Button } from "../../../shared/components/ui/button";
-import { BaseSlider } from "../../../shared/components/common/BaseSlider";
-import { FormFooter } from "../../../shared/components/forms/FormFooter";
-import { TextField } from "../../../shared/components/forms/fields/TextField";
-import { TextareaField } from "../../../shared/components/forms/fields/TextareaField";
-import { PriceField } from "../../../shared/components/forms/fields/PriceField";
+import { Label } from "../../../../shared/components/ui/label";
+import { Input } from "../../../../shared/components/ui/input";
+import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
+import { FormFooter } from "../../../../shared/components/forms/FormFooter";
+import { TextField } from "../../../../shared/components/forms/fields/TextField";
+import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
+import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
+import { Pill } from "../../../../shared/components/ui/pill";
 import { CategorySection } from "./CategorySection";
-import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
-import { DeleteConfirmDialog } from "../../../shared/components/common/DeleteConfirmDialog";
-import { AssignmentsCard } from "../../../shared/components/common/AssignmentsCard";
-import type { DeleteResponse } from "../../../shared/types/delete-response";
+import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import {
   getCurrencyDisplay,
-  priceToStorage,
-} from "../../../shared/utils/currency";
-import { selectCurrentUser } from "../../auth/selectors";
-import { editServicesAction, deleteServicesAction } from "../actions.ts";
-import type { EditServicePayload } from "../types.ts";
+  priceFromStorage,
+} from "../../../../shared/utils/currency";
+import { getAllLocationsSelector } from "../../../locations/selectors";
+import { selectTeamMembers } from "../../../teamMembers/selectors";
+import type { TeamMember } from "../../../../shared/types/team-member";
+import { selectCurrentUser } from "../../../auth/selectors";
+import { listLocationsAction } from "../../../locations/actions";
+import { listTeamMembersAction } from "../../../teamMembers/actions";
+import { createServicesAction } from "../../actions.ts";
+import type { CreateServicePayload } from "../../types.ts";
+import type { Category } from "./CategorySection";
 import {
-  getEditFormSelector,
   getServicesErrorSelector,
   getServicesLoadingSelector,
-  getServicesDeletingSelector,
-  getServicesDeleteResponseSelector,
-} from "../selectors.ts";
-import type { Category } from "./CategorySection";
+} from "../../selectors.ts";
 import { toast } from "sonner";
-import type { Service } from "../../../shared/types/service";
 import { ServiceFormSkeleton } from "./ServiceFormSkeleton";
+import { getLocationLoadingSelector } from "../../../locations/selectors";
 
-interface EditServiceSliderProps {
+interface AddServiceSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  service: Service | null;
   categories: Category[];
 }
-
-interface EditServiceFormData {
-  id: number;
+interface ServiceFormData {
   name: string;
   price: number;
   duration: number;
   description: string;
+  locationIds: number[];
+  teamMemberIds: number[];
   categoryId?: number | null;
   categoryName?: string;
   categoryColor?: string;
 }
 
-const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
+const initialFormData: ServiceFormData = {
+  name: "",
+  price: 0,
+  duration: 60,
+  description: "",
+  locationIds: [],
+  teamMemberIds: [],
+  categoryId: null,
+};
+
+const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   isOpen,
   onClose,
-  service: serviceProp,
   categories: initialCategories,
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const allLocations = useSelector(getAllLocationsSelector);
+  const allTeamMembers = useSelector(selectTeamMembers);
+  const activeTeamMembers = allTeamMembers.filter(
+    (member: TeamMember) => member.roleStatus === "active"
+  );
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-  const editForm = useSelector(getEditFormSelector);
   const servicesError = useSelector(getServicesErrorSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
-  const isDeleting = useSelector(getServicesDeletingSelector);
-  const deleteResponseFromState = useSelector(getServicesDeleteResponseSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const justOpenedRef = useRef(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
-  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
-
-  // Use service from Redux state (fetched via getServiceById) or fallback to prop
-  const service = editForm.item || serviceProp;
-
-  // Convert decimal price from backend to cents for form
-  const getPriceInCents = (decimalPrice: number | undefined): number => {
-    if (!decimalPrice) return 0;
-    return priceToStorage(decimalPrice, businessCurrency);
-  };
-
+  const prevLoadingRef = useRef(isServicesLoading);
+  const hasInitializedSelectionsRef = useRef(false);
   const {
     control,
     handleSubmit,
@@ -101,26 +100,19 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     getValues,
     trigger,
     formState,
-  } = useForm<EditServiceFormData>({
-    defaultValues: {
-      id: service?.id ?? 0,
-      name: service?.name ?? "",
-      price: getPriceInCents(service?.price),
-      duration: service?.duration ?? 60,
-      description: service?.description ?? "",
-      categoryId: service?.category?.id ?? null,
-      categoryName: undefined,
-      categoryColor: undefined,
-    },
+  } = useForm<ServiceFormData>({
+    defaultValues: initialFormData,
     mode: "onChange",
   });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
     Category[]
   >([]);
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const isLocationsLoading = useSelector(getLocationLoadingSelector);
 
+  const locationIds = watch("locationIds");
+  const teamMemberIds = watch("teamMemberIds");
   const categoryId = watch("categoryId");
   const categoryName = watch("categoryName");
   const categoryColor = watch("categoryColor");
@@ -139,10 +131,13 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   };
 
   const validateServiceDescription = (value: string): string | true => {
-    if (!value || value.trim().length === 0) return true; // Optional field
+    if (!value || !value.trim()) return true; // Optional field
     const v = value.trim();
-    if (v.length > 500)
-      return text("addService.form.validation.description.maxLength");
+    if (v.length > 500) {
+      return text("addService.form.validation.description.maxLength", {
+        max: 500,
+      });
+    }
     if (/<script|<iframe|javascript:|onclick|onerror|onload/i.test(v)) {
       return text("addService.form.validation.description.invalidChars");
     }
@@ -151,7 +146,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
 
   // Controlled fields with validation
   const { field: nameField, fieldState: nameState } = useController<
-    EditServiceFormData,
+    ServiceFormData,
     "name"
   >({
     name: "name",
@@ -161,7 +156,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     },
   });
 
-  const { field: priceField } = useController<EditServiceFormData, "price">({
+  const { field: priceField } = useController<ServiceFormData, "price">({
     name: "price",
     control,
     rules: {
@@ -174,7 +169,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   });
 
   const { field: durationField, fieldState: durationState } = useController<
-    EditServiceFormData,
+    ServiceFormData,
     "duration"
   >({
     name: "duration",
@@ -189,7 +184,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   });
 
   const { field: descriptionField, fieldState: descriptionState } =
-    useController<EditServiceFormData, "description">({
+    useController<ServiceFormData, "description">({
       name: "description",
       control,
       rules: {
@@ -198,6 +193,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     });
 
   // Validate category requirement (either categoryId or categoryName must be set)
+  // Only show error after form submission attempt or if category field has been touched
   const categoryError =
     (formState.isSubmitted || formState.touchedFields.categoryId) &&
     !categoryId &&
@@ -223,64 +219,41 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     durationValue !== null &&
     durationValue > 0;
 
-  // Reset categories state when slider closes
+  // Form should be disabled if there are validation errors or if required fields are empty
+  const isFormDisabled =
+    !formState.isValid || !isCategorySet || !areRequiredFieldsFilled;
+
+  // Fetch locations and team members when slider opens
+  useEffect(() => {
+    if (isOpen && !hasInitializedSelectionsRef.current) {
+      dispatch(listLocationsAction.request());
+      dispatch(listTeamMembersAction.request());
+    }
+  }, [isOpen, dispatch]);
+
+  // Reset fetch flag when slider closes
   useEffect(() => {
     if (!isOpen) {
+      hasInitializedSelectionsRef.current = false;
       setCategories(initialCategories);
     }
   }, [isOpen, initialCategories]);
 
-  // Populate form with service data when opened
+  // Pre-select all locations and active team members when slider opens (only once)
   useEffect(() => {
-    if (service && isOpen) {
-      const serviceCategoryId = service.category?.id ?? null;
-      reset({
-        id: service.id,
-        name: service.name,
-        price: getPriceInCents(service.price),
-        duration: service.duration,
-        description: service.description,
-        categoryId: serviceCategoryId,
-        categoryName: undefined,
-        categoryColor: undefined,
-      });
-      // Explicitly set categoryId to ensure it's properly tracked
-      if (serviceCategoryId !== null) {
-        setValue("categoryId", serviceCategoryId, { shouldDirty: false });
-      }
-      setNewlyCreatedCategories([]);
+    if (isOpen && allLocations.length > 0 && !isLocationsLoading && !hasInitializedSelectionsRef.current) {
+      const allLocationIds = allLocations.map((location) => location.id);
+      const activeTeamMemberIds = activeTeamMembers.map((member: TeamMember) => member.id);
+      
+      setValue('locationIds', allLocationIds, { shouldDirty: false });
+      setValue('teamMemberIds', activeTeamMemberIds, { shouldDirty: false });
+      
+      hasInitializedSelectionsRef.current = true;
     }
-  }, [service, isOpen, reset, setValue, businessCurrency]);
+  }, [isOpen, allLocations, activeTeamMembers, isLocationsLoading, setValue]);
 
-  // Reset form when slider closes
-  useEffect(() => {
-    if (!isOpen) {
-      setIsCategoriesLoading(false);
-      setNewlyCreatedCategories([]);
-      // Do NOT reset isSubmitting here - keep it true during closing animation
-      // to prevent button from being re-enabled
-      // Reset delete state when closing
-      setShowDeleteDialog(false);
-      setDeleteResponse(null);
-      setHasAttemptedDelete(false);
-    }
-  }, [isOpen]);
-
-  // When slider opens, reset submission state for a fresh form
-  useEffect(() => {
-    if (isOpen) {
-      setIsSubmitting(false);
-      setShowConfirmDialog(false);
-      setShowDeleteDialog(false);
-      setDeleteResponse(null);
-      setHasAttemptedDelete(false);
-      justOpenedRef.current = true;
-      // Clear the flag after a brief delay to allow effects to run
-      setTimeout(() => {
-        justOpenedRef.current = false;
-      }, 0);
-    }
-  }, [isOpen]);
+  // Show skeleton while loading
+  const isLoading = isLocationsLoading;
 
   // Memoize callback to prevent infinite loops
   const handleNewlyCreatedCategoriesChange = useCallback(
@@ -290,27 +263,42 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     []
   );
 
-  // Show skeleton while loading
-  const isLoading = isCategoriesLoading || !service;
+  // Reset form when slider closes
+  useEffect(() => {
+    if (!isOpen) {
+      reset(initialFormData);
+      setNewlyCreatedCategories([]);
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
+    }
+  }, [isOpen, reset]);
 
-  // Form should be disabled if:
-  // - There are validation errors
-  // - Required fields are empty
-  // - Form is loading (showing skeleton)
-  // - No changes were made to the form
-  const isFormDisabled =
-    !formState.isValid ||
-    !isCategorySet ||
-    !areRequiredFieldsFilled ||
-    isLoading ||
-    !formState.isDirty;
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setShowConfirmDialog(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+    }
+  }, [isOpen]);
 
   // Watch for errors and show toast, reset submitting state
   useEffect(() => {
-    if (servicesError && !isServicesLoading && isSubmitting) {
+    // When loading stops and we have an error, reset submitting state
+    const loadingStopped = prevLoadingRef.current && !isServicesLoading;
+    if (servicesError && loadingStopped && isSubmitting) {
       toast.error(String(servicesError));
       setIsSubmitting(false);
     }
+    // Also handle case where error exists and loading is already stopped
+    if (servicesError && !isServicesLoading && isSubmitting && !loadingStopped) {
+      setIsSubmitting(false);
+    }
+    prevLoadingRef.current = isServicesLoading;
   }, [servicesError, isServicesLoading, isSubmitting]);
 
   // Watch for success and close form
@@ -321,8 +309,12 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
+      reset(initialFormData);
+      setNewlyCreatedCategories([]);
     }
-  }, [isOpen, isServicesLoading, isSubmitting, servicesError, onClose]);
+  }, [isOpen, isServicesLoading, isSubmitting, servicesError, onClose, reset]);
+
+  // no per-form location state when All locations
 
   const onSubmit = () => {
     // Prevent opening dialog if already submitting or loading
@@ -332,18 +324,19 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     setShowConfirmDialog(true);
   };
 
-  const handleConfirmUpdate = () => {
+  const handleConfirmCreate = () => {
     // Guard against double-clicks on Confirm button
     if (isSubmitting || isServicesLoading) {
       return;
     }
 
     const {
-      id,
       name,
       price,
       duration,
       description,
+      locationIds,
+      teamMemberIds,
       categoryId,
     } = getValues();
 
@@ -356,12 +349,13 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       (cat) => cat.id !== categoryId
     );
 
-    const payload: EditServicePayload = {
-      id,
+    const payload: CreateServicePayload = {
       name,
-      description,
+      price_amount_minor: price ?? 0, // Price is already in cents from PriceField
       duration,
-      price_amount_minor: price ?? 0,
+      description,
+      locations: locationIds.length > 0 ? locationIds : undefined,
+      teamMembers: teamMemberIds.length > 0 ? teamMemberIds : undefined,
       category:
         categoryId && !isSelectedNew
           ? { categoryId } // Existing category
@@ -380,81 +374,39 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           : undefined,
     };
     setIsSubmitting(true);
-    dispatch(editServicesAction.request(payload));
+    dispatch(createServicesAction.request(payload));
     setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
   const handleCancel = () => {
     onClose();
+    reset(initialFormData);
   };
-
-  // Handle delete response from Redux state
-  useEffect(() => {
-    if (deleteResponseFromState && hasAttemptedDelete && !isDeleting) {
-      if (deleteResponseFromState.canDelete === false) {
-        // Cannot delete - update dialog to show blocking info
-        setDeleteResponse(deleteResponseFromState as DeleteResponse);
-      } else {
-        // Successfully deleted - close dialog
-        setShowDeleteDialog(false);
-        setDeleteResponse(null);
-        setHasAttemptedDelete(false);
-        onClose();
-      }
-    }
-  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, onClose]);
-
-  const handleDeleteClick = () => {
-    // Show confirmation dialog first with optimistic state
-    setDeleteResponse({
-      canDelete: true,
-      message: '',
-    });
-    setShowDeleteDialog(true);
-    setHasAttemptedDelete(false);
-  };
-
-  const handleConfirmDelete = () => {
-    if (!deleteResponse?.canDelete || !service) return;
-    // User confirmed - now make the backend call
-    setHasAttemptedDelete(true);
-    dispatch(deleteServicesAction.request({ serviceId: service.id }));
-  };
-
-  const handleCloseDeleteDialog = (open: boolean) => {
-    if (!open) {
-      setShowDeleteDialog(false);
-      setDeleteResponse(null);
-      setHasAttemptedDelete(false);
-    }
-  };
-
-  if (!service) return null;
 
   return (
     <>
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title={text("editService.title")}
-        subtitle={text("editService.subtitle")}
+        title={text("addService.title")}
+        subtitle={text("addService.subtitle")}
         icon={ClipboardPlus}
         iconColor="text-foreground-1"
         contentClassName="bg-surface scrollbar-hide"
         footer={
           <FormFooter
             onCancel={handleCancel}
-            formId="edit-service-form"
-            cancelLabel={text("editService.buttons.cancel")}
-            submitLabel={text("editService.buttons.update")}
+            formId="add-service-form"
+            cancelLabel={text("addService.buttons.cancel")}
+            submitLabel={text("addService.buttons.create")}
             disabled={isFormDisabled || isSubmitting || isServicesLoading}
             isLoading={isSubmitting || isServicesLoading}
           />
         }
       >
         <form
-          id="edit-service-form"
+          id="add-service-form"
           onSubmit={(e) => {
             // Prevent form submission if already submitting or loading
             if (isFormDisabled || isSubmitting || isServicesLoading) {
@@ -466,7 +418,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           }}
           className="h-full flex flex-col cursor-default"
         >
-          <div className="flex-1 overflow-y-auto p-1 py-6 md:p-6 pt-0 md:pt-0 bg-surface">
+          <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
             {isLoading ? (
               <ServiceFormSkeleton />
             ) : (
@@ -685,31 +637,22 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     categoryName={categoryName}
                     categoryColor={categoryColor}
                     onCategoryIdChange={(value: number | null) => {
-                      setValue("categoryId", value, {
-                        shouldTouch: true,
-                        shouldDirty: true,
-                      });
+                      setValue("categoryId", value, { shouldTouch: true });
                       // Clear category name when selecting existing category
                       if (value) {
-                        setValue("categoryName", "", { shouldDirty: true });
-                        setValue("categoryColor", "", { shouldDirty: true });
+                        setValue("categoryName", "");
+                        setValue("categoryColor", "");
                       }
                     }}
                     onCategoryNameChange={(value: string) => {
-                      setValue("categoryName", value, {
-                        shouldTouch: true,
-                        shouldDirty: true,
-                      });
+                      setValue("categoryName", value, { shouldTouch: true });
                       // Clear categoryId when creating new category
                       if (value) {
-                        setValue("categoryId", null, { shouldDirty: true });
+                        setValue("categoryId", null);
                       }
                     }}
                     onCategoryColorChange={(value: string) =>
-                      setValue("categoryColor", value, {
-                        shouldTouch: true,
-                        shouldDirty: true,
-                      })
+                      setValue("categoryColor", value, { shouldTouch: true })
                     }
                     existingCategories={categories}
                     required
@@ -718,22 +661,16 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                       // Add the new category to the local categories list
                       // The category will be created on backend when service is saved
                       // For now, we just update the form state
-                      setValue("categoryId", newCategory.id, {
-                        shouldDirty: true,
-                      });
-                      setValue("categoryName", newCategory.name, {
-                        shouldDirty: true,
-                      });
-                      setValue("categoryColor", newCategory.color || "", {
-                        shouldDirty: true,
-                      });
+                      setValue("categoryId", newCategory.id);
+                      setValue("categoryName", newCategory.name);
+                      setValue("categoryColor", newCategory.color || "");
                     }}
                     onCategoryRemoved={(removedCategoryId) => {
                       // If the removed category was selected, clear the selection
                       if (categoryId === removedCategoryId) {
-                        setValue("categoryId", null, { shouldDirty: true });
-                        setValue("categoryName", "", { shouldDirty: true });
-                        setValue("categoryColor", "", { shouldDirty: true });
+                        setValue("categoryId", null);
+                        setValue("categoryName", "");
+                        setValue("categoryColor", "");
                       }
                     }}
                     onNewlyCreatedCategoriesChange={
@@ -747,61 +684,140 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                   <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
                 </div>
 
-                {/* Assignments Section */}
+                {/* Locations Section */}
                 <div className="space-y-5">
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-foreground-1">
-                      Assignments
-                    </h3>
-                  </div>
-
-                  <AssignmentsCard
-                    stats={[
-                      { label: 'Team Members', value: service.teamMembersCount || 0 },
-                      { label: 'Locations', value: service.locationsCount || 0 },
-                    ]}
-                    description="Manage which team members and locations can offer this service. View and modify all assignments in the dedicated Assignments section."
-                    buttonLabel="Go to Assignments"
-                    onButtonClick={() => {
-                      navigate(`/assignments?tab=services&serviceId=${service.id}`);
-                    }}
-                  />
-                </div>
-
-                {/* Divider */}
-                <div className="flex items-end gap-2 mb-6 pt-4">
-                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
-                </div>
-
-                {/* Remove Service */}
-                <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                  <div className="space-y-1">
-                    <h3 className="text-base font-medium text-foreground-1">
-                      Remove Service
+                      {text("addService.sections.locations")}
                     </h3>
                     <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      This will permanently remove this service from your service list. This action cannot be undone.
+                      {text("addService.sections.locationsDescription")}
                     </p>
                   </div>
 
-                  <div className="flex flex-col gap-3 items-center">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      rounded="full"
-                      onClick={handleDeleteClick}
-                      className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Removing...
-                        </>
-                      ) : (
-                        'Remove Service'
-                      )}
-                    </Button>
+                  <div className="space-y-5">
+                    {allLocations.length === 0 ? (
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                        {text("addService.form.locations.emptyMessage")}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {allLocations.map((location) => {
+                          const isSelected = locationIds.includes(location.id);
+
+                          return (
+                            <Pill
+                              key={location.id}
+                              selected={isSelected}
+                              icon={MapPin}
+                              className="w-auto justify-start items-start transition-none active:scale-100"
+                              showCheckmark={true}
+                              onClick={() => {
+                                const newIds = isSelected
+                                  ? locationIds.filter(
+                                      (id) => id !== location.id
+                                    )
+                                  : [...locationIds, location.id];
+                                setValue("locationIds", newIds);
+                              }}
+                            >
+                              <div className="flex flex-col text-left">
+                                <div className="flex items-center">
+                                  {location.name}
+                                </div>
+                                {location.address && (
+                                  <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
+                                    {location.address}
+                                  </div>
+                                )}
+                              </div>
+                            </Pill>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {allLocations.length > 0 && (
+                      <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                        {locationIds.length === 0
+                          ? text("addService.form.locations.helperTextNone")
+                          : locationIds.length === 1
+                          ? text("addService.form.locations.helperTextOne")
+                          : text("addService.form.locations.helperTextSome", {
+                              count: locationIds.length,
+                            })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-end gap-2 mb-6 pt-0">
+                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                </div>
+
+                {/* Team Members Section */}
+                <div className="space-y-5">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold text-foreground-1">
+                      {text("addService.sections.teamMembers")}
+                    </h3>
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                      {text("addService.sections.teamMembersDescription")}
+                    </p>
+                  </div>
+
+                  <div className="space-y-5">
+                    {activeTeamMembers.length === 0 ? (
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                        {text("addService.form.teamMembers.emptyMessage")}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2 sm:gap-3">
+                        {activeTeamMembers.map((member: TeamMember) => {
+                          const isSelected = teamMemberIds.includes(member.id);
+
+                          return (
+                            <Pill
+                              key={member.id}
+                              selected={isSelected}
+                              icon={Users}
+                              className="w-auto justify-start items-start transition-none active:scale-100"
+                              showCheckmark={true}
+                              onClick={() => {
+                                const newIds = isSelected
+                                  ? teamMemberIds.filter(
+                                      (id) => id !== member.id
+                                    )
+                                  : [...teamMemberIds, member.id];
+                                setValue("teamMemberIds", newIds);
+                              }}
+                            >
+                              <div className="flex flex-col text-left">
+                                <div className="flex items-center">
+                                  {`${member.firstName} ${member.lastName}`}
+                                </div>
+                                {member.email && (
+                                  <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
+                                    {member.email}
+                                  </div>
+                                )}
+                              </div>
+                            </Pill>
+                          );
+                        })}
+                      </div>
+                    )}
+                    {activeTeamMembers.length > 0 && (
+                      <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                        {teamMemberIds.length === 0
+                          ? text("addService.form.teamMembers.helperTextNone")
+                          : teamMemberIds.length === 1
+                          ? text("addService.form.teamMembers.helperTextOne")
+                          : text("addService.form.teamMembers.helperTextSome", {
+                              count: teamMemberIds.length,
+                            })}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -814,51 +830,23 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       <ConfirmDialog
         open={showConfirmDialog}
         onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmUpdate}
+        onConfirm={handleConfirmCreate}
         onCancel={() => setShowConfirmDialog(false)}
-        title={text("editService.confirmDialog.title")}
-        description={text("editService.confirmDialog.description", {
+        title={text("addService.confirmDialog.title")}
+        description={text("addService.confirmDialog.description", {
           name: getValues("name"),
+          price: priceFromStorage(
+            getValues("price") || 0,
+            businessCurrency
+          ).toFixed(2),
+          duration: getValues("duration"),
         })}
-        confirmTitle={text("editService.confirmDialog.confirm")}
-        cancelTitle={text("editService.confirmDialog.cancel")}
+        confirmTitle={text("addService.confirmDialog.confirm")}
+        cancelTitle={text("addService.confirmDialog.cancel")}
         showCloseButton={true}
       />
-
-      {/* Delete Confirmation Dialog */}
-      {service && (
-        <DeleteConfirmDialog
-          open={showDeleteDialog}
-          onOpenChange={handleCloseDeleteDialog}
-          resourceType="service"
-          resourceName={service.name}
-          deleteResponse={deleteResponse}
-          onConfirm={handleConfirmDelete}
-          isLoading={isDeleting}
-          className="z-[80]"
-          overlayClassName="z-[80]"
-          secondaryActions={[
-            ...(deleteResponse?.isVisibleInMarketplace
-              ? [{
-                label: 'Go to Marketplace',
-                onClick: () => {
-                  handleCloseDeleteDialog(false);
-                  navigate('/marketplace');
-                }
-              }]
-              : []),
-            {
-              label: 'Go to Assignments',
-              onClick: () => {
-                handleCloseDeleteDialog(false);
-                navigate(`/assignments?tab=services&serviceId=${service.id}`);
-              }
-            },
-          ]}
-        />
-      )}
     </>
   );
 };
 
-export default EditServiceSlider;
+export default AddServiceSlider;

@@ -126,6 +126,20 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     url: "/marketplace",
     icon: Store,
     roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    items: [
+      {
+        title: t("sidebar.subItems.marketplace.profile"),
+        url: "/marketplace?tab=profile",
+      },
+      {
+        title: t("sidebar.subItems.marketplace.portfolio"),
+        url: "/marketplace?tab=portfolio",
+      },
+      {
+        title: t("sidebar.subItems.marketplace.promotions"),
+        url: "/marketplace?tab=promotions",
+      },
+    ],
   },
   {
     title: t("sidebar.support"),

@@ -41,7 +41,7 @@ export function ServicesAssignments() {
   const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
   useEffect(() => {
-    dispatch(getServicesAction.request({ reset: true }));
+    dispatch(getServicesAction.request());
   }, [dispatch]);
 
   // Auto-select service from URL parameter

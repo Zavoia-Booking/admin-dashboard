@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card';
 import { Button } from '../../../shared/components/ui/button';
 import { Switch } from '../../../shared/components/ui/switch';
@@ -9,9 +10,12 @@ import { Pill } from '../../../shared/components/ui/pill';
 import { MultiSelect } from '../../../shared/components/common/MultiSelect';
 import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
 import { Checkbox } from '../../../shared/components/ui/checkbox';
-import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2 } from 'lucide-react';
+import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
+import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2, User, Images, Megaphone } from 'lucide-react';
 import type { Location, Service, TeamMember, Category, Business } from '../types';
 import { MarketplaceImagesSection, type PortfolioImage } from './MarketplaceImagesSection';
+
+type MarketplaceTab = 'profile' | 'portfolio' | 'promotions';
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -80,6 +84,28 @@ export function ListingConfigurationView({
   onSave,
   onToggleVisibility,
 }: ListingConfigurationViewProps) {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Get initial tab from URL or default to 'profile'
+  const getInitialTab = (): MarketplaceTab => {
+    const tab = searchParams.get('tab') as MarketplaceTab | null;
+    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
+      return tab;
+    }
+    return 'profile';
+  };
+
+  const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
+
+  // Sync with URL changes (for sidebar navigation)
+  useEffect(() => {
+    const tab = searchParams.get('tab') as MarketplaceTab | null;
+    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
+      setActiveTab(tab);
+    }
+  }, [searchParams]);
+
   const [selectedLocationIds, setSelectedLocationIds] = useState<number[]>(listedLocations);
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>(listedServices);
   const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(listedCategories);
@@ -123,6 +149,12 @@ export function ListingConfigurationView({
       }
     }
   });
+
+  const handleTabChange = (tabId: string) => {
+    const tab = tabId as MarketplaceTab;
+    setActiveTab(tab);
+    navigate(`/marketplace?tab=${tab}`, { replace: true });
+  };
 
   const toggleLocation = (id: number) => {
     setSelectedLocationIds(prev =>
@@ -209,18 +241,9 @@ export function ListingConfigurationView({
     });
   };
 
-  return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold">Configure Your Marketplace Listing</h1>
-          <p className="text-muted-foreground mt-1">
-            Select what you want to display on your marketplace profile
-          </p>
-        </div>
-      </div>
-
+  // Profile Tab Content
+  const ProfileTabContent = () => (
+    <div className="space-y-6">
       {/* Visibility Toggle Card - Only show when already listed */}
       {isListed && (
         <Card className={isVisible ? "border-green-500/50 bg-green-500/5 dark:bg-green-500/10" : "border-orange-500/50 bg-orange-500/5 dark:bg-orange-500/10"}>
@@ -385,14 +408,6 @@ export function ListingConfigurationView({
           </div>
         </CardContent>
       </Card>
-
-      {/* Marketplace Images Section */}
-      <MarketplaceImagesSection
-        featuredImageId={featuredImageId}
-        portfolioImages={portfolio}
-        onFeaturedImageChange={setFeaturedImageId}
-        onPortfolioImagesChange={setPortfolio}
-      />
 
       {/* Team Members Section */}
       <Card>
@@ -730,8 +745,96 @@ export function ListingConfigurationView({
           {isPublishing ? 'Publishing...' : 'Save & Publish Listing'}
         </Button>
       </div>
+    </div>
+  );
 
+  // Portfolio Tab Content
+  const PortfolioTabContent = () => (
+    <div className="space-y-6">
+      <MarketplaceImagesSection
+        featuredImageId={featuredImageId}
+        portfolioImages={portfolio}
+        onFeaturedImageChange={setFeaturedImageId}
+        onPortfolioImagesChange={setPortfolio}
+      />
+
+      {/* Save Button */}
+      <div className="flex justify-end gap-3">
+        <Button 
+          onClick={handleSave} 
+          size="lg" 
+          className="gap-2"
+          disabled={isPublishing}
+        >
+          <Save className="h-4 w-4" />
+          {isPublishing ? 'Publishing...' : 'Save & Publish Listing'}
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Promotions Tab Content
+  const PromotionsTabContent = () => (
+    <div className="flex flex-col items-center justify-center py-20 text-center gap-6">
+      {/* Illustration */}
+      <div className="relative w-full max-w-md h-44 text-left">
+        {/* Subtle background glow */}
+        <div className="absolute inset-0 -top-4 -bottom-4 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-2xl opacity-50 dark:opacity-40" />
+        
+        {/* back cards with better shadows */}
+        <div className="absolute inset-x-10 top-2 h-28 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-lg opacity-70 rotate-[-14deg] blur-[0.5px]" />
+        <div className="absolute inset-x-6 top-10 h-30 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-xl opacity-85 rotate-[10deg] blur-[0.5px]" />
+
+        {/* front card */}
+        <div className="absolute inset-x-2 top-6 h-32 rounded-2xl bg-surface dark:bg-neutral-900 border border-border shadow-xl overflow-hidden">
+          <div className="h-full w-full px-5 py-4 flex flex-col items-center justify-center gap-3">
+            <Megaphone className="h-10 w-10 text-muted-foreground" />
+            <div className="h-3 w-32 rounded bg-neutral-300 dark:bg-neutral-800" />
+          </div>
+        </div>
+      </div>
+
+      {/* Copy */}
+      <div className="space-y-2 max-w-md px-4">
+        <h3 className="text-lg font-semibold text-foreground-1">
+          Promotions Coming Soon
+        </h3>
+        <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+          Create discounts, special offers, and promotional campaigns to attract more customers from the marketplace.
+        </p>
+      </div>
+    </div>
+  );
+
+  const tabItems: ResponsiveTabItem[] = [
+    {
+      id: 'profile',
+      label: 'Profile',
+      icon: User,
+      content: <ProfileTabContent />,
+    },
+    {
+      id: 'portfolio',
+      label: 'Portfolio',
+      icon: Images,
+      content: <PortfolioTabContent />,
+    },
+    {
+      id: 'promotions',
+      label: 'Promotions',
+      icon: Megaphone,
+      content: <PromotionsTabContent />,
+    },
+  ];
+
+  return (
+    <div>
+      {/* Responsive Tabs */}
+      <ResponsiveTabs
+        items={tabItems}
+        value={activeTab}
+        onValueChange={handleTabChange}
+      />
     </div>
   );
 }
-

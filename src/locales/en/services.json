@@ -256,7 +256,230 @@
   },
   "bundles": {
     "comingSoon": "Bundles Coming Soon",
-    "description": "Bundle management will be available here soon. Create service packages and offer them as bundles to your customers."
+    "description": "Bundle management will be available here soon. Create service packages and offer them as bundles to your customers.",
+    "filters": {
+      "searchPlaceholder": "Search bundles...",
+      "addBundle": "Add Bundle",
+      "addFilter": "Filters",
+      "showFiltersAria": "Show filters",
+      "byPrice": "By price",
+      "byServiceCount": "By service count",
+      "byPriceType": "By price type",
+      "minPriceLabel": "Min price",
+      "maxPriceLabel": "Max price",
+      "minPricePlaceholder": "0.00",
+      "maxPricePlaceholder": "∞",
+      "minServiceCountLabel": "Min services",
+      "maxServiceCountLabel": "Max services",
+      "minServiceCountPlaceholder": "0",
+      "maxServiceCountPlaceholder": "∞",
+      "priceTypes": {
+        "sum": "Sum of services",
+        "fixed": "Fixed price",
+        "discount": "Discount"
+      },
+      "clearAll": "Clear all filters",
+      "apply": "Apply"
+    },
+    "sort": {
+      "trigger": "Sort",
+      "priceAsc": "Price: low → high",
+      "priceDesc": "Price: high → low",
+      "serviceCountAsc": "Services: few → many",
+      "serviceCountDesc": "Services: many → few",
+      "createdAtDesc": "Newest first",
+      "createdAtAsc": "Oldest first",
+      "updatedAtDesc": "Recently updated",
+      "updatedAtAsc": "Least recent",
+      "groupPrice": "Price",
+      "groupServiceCount": "Service count",
+      "groupCreatedAt": "Date created",
+      "groupUpdatedAt": "Last updated"
+    },
+    "stats": {
+      "helperTotalPrefix": "You currently have",
+      "helperTotalSuffix": "in your list",
+      "helperTotalBundleOne": "bundle",
+      "helperTotalBundleOther": "bundles"
+    },
+    "badges": {
+      "priceMin": "Price min",
+      "priceMax": "Price max",
+      "serviceCountMin": "Services min",
+      "serviceCountMax": "Services max"
+    },
+    "emptyState": {
+      "noBundles": "No bundles yet",
+      "noBundlesDescription": "Create your first bundle to offer service packages to your customers.",
+      "noResults": "No bundles found",
+      "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    },
+    "addBundle": {
+      "title": "Create Bundle",
+      "subtitle": "Combine multiple services into a bundle",
+      "sections": {
+        "bundleInfo": "Bundle Information",
+        "bundleInfoDescription": "Give your bundle a name and description",
+        "pricing": "Pricing",
+        "pricingDescription": "Choose how the bundle price is calculated",
+        "services": "Services",
+        "servicesDescription": "Select the services to include in this bundle"
+      },
+      "form": {
+        "name": {
+          "label": "Bundle Name",
+          "placeholder": "e.g., Complete Care Package"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Describe what's included in this bundle..."
+        },
+        "priceType": {
+          "sum": "Sum of service prices",
+          "sumDescription": "Automatically calculate the total by adding all service prices together",
+          "fixed": "Fixed price",
+          "fixedDescription": "Set a single fixed price for the entire bundle, regardless of individual service prices",
+          "discount": "Discount percentage",
+          "discountDescription": "Apply a percentage discount to the sum of all service prices"
+        },
+        "fixedPrice": {
+          "label": "Fixed Price",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Discount Percentage",
+          "placeholder": "0",
+          "help": "Enter a percentage between 0 and 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Service Total",
+        "originalPrice": "Original Price",
+        "finalPrice": "Final Bundle Price",
+        "savings": "Customer Savings",
+        "increase": "Price Increase",
+        "service": "service",
+        "services": "services"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "create": "Create Bundle"
+      },
+      "noServices": "No services available. Create services first before creating bundles.",
+      "manageServices": "Manage services",
+      "bundleLabel": "this bundle",
+      "validation": {
+        "servicesMinimum": "At least 2 services must be selected for a bundle"
+      },
+      "confirmDialog": {
+        "title": "Create Bundle?",
+        "description": "Are you sure you want to create the bundle \"{{name}}\" with {{serviceCount}} service(s)?",
+        "confirm": "Create Bundle",
+        "cancel": "Cancel"
+      }
+    },
+    "editBundle": {
+      "title": "Edit Bundle",
+      "subtitle": "Update bundle information and services",
+      "sections": {
+        "bundleInfo": "Bundle Information",
+        "bundleInfoDescription": "Update your bundle name and description",
+        "pricing": "Pricing",
+        "pricingDescription": "Choose how the bundle price is calculated",
+        "services": "Services",
+        "servicesDescription": "Update the services included in this bundle"
+      },
+      "form": {
+        "name": {
+          "label": "Bundle Name",
+          "placeholder": "e.g., Complete Care Package"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Describe what's included in this bundle..."
+        },
+        "priceType": {
+          "sum": "Sum of service prices",
+          "sumDescription": "Automatically calculate the total by adding all service prices together",
+          "fixed": "Fixed price",
+          "fixedDescription": "Set a single fixed price for the entire bundle, regardless of individual service prices",
+          "discount": "Discount percentage",
+          "discountDescription": "Apply a percentage discount to the sum of all service prices"
+        },
+        "fixedPrice": {
+          "label": "Fixed Price",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Discount Percentage",
+          "placeholder": "0",
+          "help": "Enter a percentage between 0 and 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Service Total",
+        "originalPrice": "Original Price",
+        "finalPrice": "Final Bundle Price",
+        "savings": "Customer Savings",
+        "increase": "Price Increase",
+        "service": "service",
+        "services": "services"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "update": "Update Bundle"
+      },
+      "noServices": "No services available. Create services first before editing bundles.",
+      "manageServices": "Manage services",
+      "bundleLabel": "this bundle",
+      "validation": {
+        "nameRequired": "Bundle name is required",
+        "nameMinLength": "Bundle name must be at least 2 characters",
+        "nameMaxLength": "Bundle name must not exceed 100 characters",
+        "descriptionMaxLength": "Description must not exceed 500 characters",
+        "fixedPriceRequired": "Fixed price is required",
+        "fixedPriceMin": "Fixed price must be greater than or equal to 0",
+        "discountRequired": "Discount percentage is required",
+        "discountMin": "Discount percentage must be at least 0",
+        "discountMax": "Discount percentage must not exceed 100",
+        "servicesRequired": "At least one service must be selected",
+        "servicesMinimum": "At least 2 services must be selected for a bundle"
+      },
+      "confirmDialog": {
+        "title": "Update Bundle?",
+        "description": "Are you sure you want to update the bundle \"{{name}}\" with {{serviceCount}} service(s)?",
+        "confirm": "Update Bundle",
+        "cancel": "Cancel"
+      },
+      "removeBundle": {
+        "title": "Remove Bundle",
+        "description": "This will permanently remove this bundle from your bundles list. This action cannot be undone.",
+        "button": "Remove Bundle",
+        "removing": "Removing..."
+      },
+      "deleteDialog": {
+        "title": "Remove Bundle?",
+        "description": "Are you sure you want to remove the bundle \"{{name}}\"? This action cannot be undone.",
+        "confirm": "Remove Bundle",
+        "cancel": "Cancel"
+      }
+    },
+    "priceType": {
+      "sum": "Sum",
+      "fixed": "Fixed",
+      "discount": "Discount"
+    },
+    "priceTypeCategory": {
+      "sum": "Sum of services",
+      "fixed": "Fixed price",
+      "discount": "Discount"
+    },
+    "actions": {
+      "edit": "Edit Bundle"
+    },
+    "service": "service",
+    "services": "services",
+    "loading": "Loading bundles..."
   },
   "promotions": {
     "comingSoon": "Promotions Coming Soon",

@@ -1,25 +1,25 @@
 import { type FC, useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { ServiceFilterState } from "../types.ts";
-import { getDefaultServiceFilters } from "../utils.ts";
+import type { ServiceFilterState } from "../../types.ts";
+import { getDefaultServiceFilters } from "../../utils.ts";
 import { useDispatch, useSelector } from "react-redux";
-import { BadgeList } from "./BadgeList.tsx";
-import { setServiceFilterAction, toggleAddFormAction } from "../actions.ts";
+import { BadgeList } from "../BadgeList.tsx";
+import { setServiceFilterAction, toggleAddFormAction } from "../../actions.ts";
 import { Filter, Plus } from "lucide-react";
-import { Button } from "../../../shared/components/ui/button.tsx";
-import { SearchInput } from "../../../shared/components/common/SearchInput";
+import { Button } from "../../../../shared/components/ui/button.tsx";
+import { SearchInput } from "../../../../shared/components/common/SearchInput";
 import {
   SortSelect,
   type SortOption,
   type SortGroup,
-} from "../../../shared/components/common/SortSelect";
-import { Popover, PopoverContent, PopoverTrigger } from "../../../shared/components/ui/popover";
-import { Input } from "../../../shared/components/ui/input";
-import { PriceField } from "../../../shared/components/forms/fields/PriceField";
-import { selectCurrentUser } from "../../auth/selectors";
-import { getServicesFilterSelector } from "../selectors";
-import { getCurrencyDisplay } from "../../../shared/utils/currency";
-import { getColorHex, getReadableTextColor } from "../../../shared/utils/color";
+} from "../../../../shared/components/common/SortSelect";
+import { Popover, PopoverContent, PopoverTrigger } from "../../../../shared/components/ui/popover";
+import { Input } from "../../../../shared/components/ui/input";
+import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
+import { selectCurrentUser } from "../../../auth/selectors";
+import { getServicesFilterSelector } from "../../selectors";
+import { getCurrencyDisplay } from "../../../../shared/utils/currency";
+import { getColorHex, getReadableTextColor } from "../../../../shared/utils/color";
 import {
   ArrowDown01,
   ArrowUp01,
@@ -30,7 +30,7 @@ import {
   Bookmark,
 } from "lucide-react";
 import CategorySection, { type Category } from "./CategorySection";
-import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
+import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import {
   Drawer,
   DrawerContent,
@@ -38,7 +38,7 @@ import {
   DrawerFooter,
   DrawerTitle,
   DrawerDescription,
-} from "../../../shared/components/ui/drawer";
+} from "../../../../shared/components/ui/drawer";
 
 interface ServiceFiltersProps {
   categories: Category[];
