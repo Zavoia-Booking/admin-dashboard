@@ -6,12 +6,12 @@ import { Edit, Clock, MapPin, Users, Bookmark } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import EditServiceSlider from "./EditServiceSlider";
 import {
-  listCategoriesApi,
   createCategoryApi,
   updateCategoryApi,
   deleteCategoryApi,
-  type Category as ApiCategory,
 } from "../../../categories/api";
+import { listCategoriesAction } from "../../../categories/actions";
+import { getCategoriesListSelector, getCategoriesLoadingSelector } from "../../../categories/selectors";
 import type { Category as ServiceCategory } from "./CategorySection";
 import type { Service } from "../../../../shared/types/service";
 import {
@@ -41,6 +41,10 @@ export function ServicesListTab() {
   const filters = useSelector(getServicesFilterSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
 
+  // Categories from Redux
+  const reduxCategories = useSelector(getCategoriesListSelector);
+  const isCategoriesLoading = useSelector(getCategoriesLoadingSelector);
+
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -48,6 +52,7 @@ export function ServicesListTab() {
   const isCreateSliderOpen = useSelector(getAddFormSelector);
   const [isEditSliderOpen, setIsEditSliderOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  // Local categories state for managing edits (before applying to backend)
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [initialCategories, setInitialCategories] = useState<ServiceCategory[]>([]);
   const [isCategoriesApplying, setIsCategoriesApplying] = useState(false);
@@ -68,32 +73,22 @@ export function ServicesListTab() {
     }
   }, [searchParams, setSearchParams, dispatch]);
 
-  // Load services on mount
+  // Load services and categories on mount
   useEffect(() => {
     dispatch(getServicesAction.request());
+    dispatch(listCategoriesAction.request());
   }, [dispatch]);
 
-  // Helper to (re)load categories from backend
-  const reloadCategories = async () => {
-    try {
-      const cats: ApiCategory[] = await listCategoriesApi();
-      const mapped = cats.map<ServiceCategory>((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        color: cat.color,
-      }));
-      setCategories(mapped);
-      setInitialCategories(mapped);
-    } catch (error) {
-      console.error("Failed to load categories for services list:", error);
-      setCategories([]);
-    }
-  };
-
-  // Load categories once when the Services page mounts
+  // Sync local categories state from Redux when categories are loaded/updated
   useEffect(() => {
-    void reloadCategories();
-  }, []);
+    const mapped: ServiceCategory[] = reduxCategories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      color: cat.color,
+    }));
+    setCategories(mapped);
+    setInitialCategories(mapped);
+  }, [reduxCategories]);
 
   // Compute how many services are assigned to each category
   const categoriesWithServiceCounts: ServiceCategory[] = useMemo(() => {
@@ -176,7 +171,7 @@ export function ServicesListTab() {
       }
 
       // Reload canonical list
-      await reloadCategories();
+      dispatch(listCategoriesAction.request());
       // Also refresh services so cards pick up updated category names/colors
       dispatch(getServicesAction.request());
       toast.success(text("addService.form.category.manageApplySuccess"));
@@ -212,7 +207,7 @@ export function ServicesListTab() {
     return highlight(text, filters.searchTerm ?? "");
   };
 
-  const isPageLoading = isServicesLoading || isCategoriesApplying;
+  const isPageLoading = isServicesLoading || isCategoriesLoading || isCategoriesApplying;
 
   // Check if filters are active
   const hasActiveFilters = useMemo(() => {
@@ -400,9 +395,6 @@ export function ServicesListTab() {
         isOpen={isCreateSliderOpen}
         onClose={() => {
           dispatch(toggleAddFormAction(false));
-          // After creating a service, new categories may have been created via the form.
-          // Reload categories so the Manage Categories popover stays in sync without a full page refresh.
-          void reloadCategories();
         }}
         categories={initialCategories}
       />
@@ -412,9 +404,6 @@ export function ServicesListTab() {
         isOpen={isEditSliderOpen}
         onClose={() => {
           setIsEditSliderOpen(false);
-          // After editing a service, additional categories may have been created.
-          // Reload categories so the Manage Categories popover and forms see the latest list.
-          void reloadCategories();
         }}
         service={editingService}
         categories={initialCategories}

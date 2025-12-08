@@ -11,5 +11,6 @@ export const getCalendarViewStateSelector = createSelector(mainState, (state) =>
 export const getSettingsStateSelector = createSelector(mainState, (state) => state.settings);
 export const getCustomersStateSelector = createSelector(mainState, (state) => state.customers);
 export const getBundlesStateSelector = createSelector(mainState, (state) => state.bundles);
+export const getCategoriesStateSelector = createSelector(mainState, (state) => state.categories);
 
 export default mainState;

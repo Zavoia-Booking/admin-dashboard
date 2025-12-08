@@ -2,10 +2,12 @@ import React, { useEffect, useState, useRef } from "react";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
 import { Package, AlertCircle, Calculator, DollarSign, Percent, TrendingDown, TrendingUp, Settings2, Loader2 } from "lucide-react";
 import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
 import { FormFooter } from "../../../../shared/components/forms/FormFooter";
 import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
+import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
@@ -15,12 +17,15 @@ import { BundlePriceType } from "../../../bundles/types";
 import {
   getBundlesErrorSelector,
   getBundlesLoadingSelector,
+  getBundlesDeletingSelector,
+  getBundlesDeleteResponseSelector,
 } from "../../../bundles/selectors";
 import { getServicesListSelector } from "../../selectors";
 import { getServicesAction } from "../../actions";
 import { toast } from "sonner";
 import { selectCurrentUser } from "../../../auth/selectors";
 import type { Service } from "../../../../shared/types/service";
+import type { DeleteResponse } from "../../../../shared/types/delete-response";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Button } from "../../../../shared/components/ui/button";
 import { ManageServicesSheet } from "../../../../shared/components/common/ManageServicesSheet";
@@ -48,25 +53,44 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const allServices = useSelector(getServicesListSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const bundlesError = useSelector(getBundlesErrorSelector);
   const isBundlesLoading = useSelector(getBundlesLoadingSelector);
+  const isDeleting = useSelector(getBundlesDeletingSelector);
+  const deleteResponseFromState = useSelector(getBundlesDeleteResponseSelector);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isManageServicesOpen, setIsManageServicesOpen] = useState(false);
+  
+  // Delete handling state
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
+  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
+  
   const prevLoadingRef = useRef(isBundlesLoading);
 
+  // Keep track of the last valid bundle to allow exit animation when bundle becomes null
+  const [activeBundle, setActiveBundle] = useState<Bundle | null>(bundle);
+
+  useEffect(() => {
+    if (bundle) {
+      setActiveBundle(bundle);
+    }
+  }, [bundle]);
+
+  const effectiveBundle = bundle || activeBundle;
+
   const getInitialFormData = (): BundleFormData => ({
-    name: bundle?.name || "",
-    description: bundle?.description || "",
-    priceType: bundle?.priceType || BundlePriceType.SUM,
-    fixedPriceAmountMinor: bundle?.fixedPriceAmountMinor,
-    discountPercentage: bundle?.discountPercentage,
-    serviceIds: bundle?.serviceIds || [],
+    name: effectiveBundle?.name || "",
+    description: effectiveBundle?.description || "",
+    priceType: effectiveBundle?.priceType || BundlePriceType.SUM,
+    fixedPriceAmountMinor: effectiveBundle?.fixedPriceAmountMinor,
+    discountPercentage: effectiveBundle?.discountPercentage,
+    serviceIds: effectiveBundle?.serviceIds || [],
   });
 
   const {
@@ -125,6 +149,15 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
       setIsSubmitting(false);
     }
   }, [isOpen, bundle, reset]);
+
+  // Reset delete state when slider closes or opens
+  useEffect(() => {
+    if (isOpen) {
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+    }
+  }, [isOpen]);
 
   // Watch for errors and show toast, reset submitting state
   useEffect(() => {
@@ -272,7 +305,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
   };
 
   const handleConfirmUpdate = () => {
-    if (isSubmitting || isBundlesLoading || !bundle) {
+    if (isSubmitting || isBundlesLoading || !effectiveBundle) {
       return;
     }
 
@@ -280,7 +313,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
     setIsSubmitting(true);
 
     const payload: UpdateBundlePayload = {
-      id: bundle.id,
+      id: effectiveBundle.id,
       name: data.name.trim(),
       description: data.description?.trim() || undefined,
       priceType: data.priceType,
@@ -314,30 +347,48 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
     reset(getInitialFormData());
   };
 
+  // Handle delete response from Redux state
+  useEffect(() => {
+    if (deleteResponseFromState && hasAttemptedDelete && !isDeleting) {
+      if (deleteResponseFromState.canDelete === false) {
+        // Cannot delete - update dialog to show blocking info
+        setDeleteResponse(deleteResponseFromState as DeleteResponse);
+      } else {
+        // Successfully deleted - close dialog
+        setShowDeleteDialog(false);
+        setDeleteResponse(null);
+        setHasAttemptedDelete(false);
+        onClose();
+      }
+    }
+  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, onClose]);
+
   const handleDeleteClick = () => {
+    // Show confirmation dialog first with optimistic state
+    setDeleteResponse({
+      canDelete: true,
+      message: '',
+    });
     setShowDeleteDialog(true);
+    setHasAttemptedDelete(false);
   };
 
   const handleConfirmDelete = () => {
-    if (!bundle || isDeleting) return;
+    if (!deleteResponse?.canDelete || !effectiveBundle) return;
     
-    setIsDeleting(true);
-    dispatch(deleteBundleAction.request({ id: bundle.id }));
-    setShowDeleteDialog(false);
+    setHasAttemptedDelete(true);
+    dispatch(deleteBundleAction.request({ id: effectiveBundle.id }));
   };
 
-  // Handle successful delete
-  useEffect(() => {
-    if (!isBundlesLoading && isDeleting && !bundlesError) {
-      setIsDeleting(false);
-      onClose();
+  const handleCloseDeleteDialog = (open: boolean) => {
+    if (!open) {
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
     }
-    if (bundlesError && isDeleting) {
-      setIsDeleting(false);
-    }
-  }, [isBundlesLoading, isDeleting, bundlesError, onClose]);
+  };
 
-  if (!bundle) return null;
+  if (!effectiveBundle) return null;
 
   return (
     <>
@@ -914,22 +965,32 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
       />
 
       {/* Delete Confirmation Dialog */}
-      <ConfirmDialog
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setShowDeleteDialog(false)}
-        title={text("bundles.editBundle.deleteDialog.title")}
-        description={text("bundles.editBundle.deleteDialog.description", {
-          name: bundle?.name,
-        })}
-        confirmTitle={text("bundles.editBundle.deleteDialog.confirm")}
-        cancelTitle={text("bundles.editBundle.deleteDialog.cancel")}
-        showCloseButton={true}
-      />
+      {effectiveBundle && (
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={handleCloseDeleteDialog}
+          resourceType="bundle"
+          resourceName={effectiveBundle.name}
+          deleteResponse={deleteResponse}
+          onConfirm={handleConfirmDelete}
+          isLoading={isDeleting}
+          className="z-[80]"
+          overlayClassName="z-[80]"
+          secondaryActions={[
+            ...(deleteResponse?.isVisibleInMarketplace
+              ? [{
+                label: 'Go to Marketplace',
+                onClick: () => {
+                  handleCloseDeleteDialog(false);
+                  navigate('/marketplace');
+                }
+              }]
+              : [])
+          ]}
+        />
+      )}
     </>
   );
 };
 
 export default EditBundleSlider;
-

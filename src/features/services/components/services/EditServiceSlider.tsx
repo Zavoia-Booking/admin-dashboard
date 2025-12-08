@@ -317,12 +317,12 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   useEffect(() => {
     // Don't close if slider just opened (prevents race condition with isSubmitting reset)
     if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current) {
-      // Success - close form and reset
+      // Success - close form
       // Don't set isSubmitting to false here - let it stay true until slider closes
       setShowConfirmDialog(false);
       onClose();
     }
-  }, [isOpen, isServicesLoading, isSubmitting, servicesError, onClose]);
+  }, [isServicesLoading, isSubmitting, servicesError, onClose]);
 
   const onSubmit = () => {
     // Prevent opening dialog if already submitting or loading

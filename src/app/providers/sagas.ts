@@ -13,6 +13,7 @@ import { businessSaga } from "../../features/business/saga";
 import { marketplaceSaga } from "../../features/marketplace/saga";
 import { customersSaga } from "../../features/customers/saga";
 import { bundlesSaga } from "../../features/bundles/saga";
+import { categoriesSaga } from "../../features/categories/saga";
 
 export function* rootSaga() {
     yield all([
@@ -29,5 +30,6 @@ export function* rootSaga() {
         marketplaceSaga(),
         customersSaga(),
         bundlesSaga(),
+        categoriesSaga(),
     ]);
 }

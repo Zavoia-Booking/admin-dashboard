@@ -248,13 +248,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarTrigger className="h-8 w-8" />
           </div>
         ) : (
-          <div className="flex items-center justify-between w-full h-full">
-            <CompanyLogo 
-              logoUrl={logoUrl}
-              companyName={companyName}
-              isLoading={isLogoLoading}
-            />
-            <div className="pr-2">
+          <div className="flex items-center justify-between w-full h-full min-w-0 overflow-hidden">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <CompanyLogo 
+                logoUrl={logoUrl}
+                companyName={companyName}
+                isLoading={isLogoLoading}
+              />
+            </div>
+            <div className="pr-2 flex-shrink-0">
               <SidebarTrigger className="h-8 w-8" />
             </div>
           </div>

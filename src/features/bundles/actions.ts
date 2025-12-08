@@ -23,5 +23,4 @@ export const deleteBundleAction = createAsyncAction(
   "DELETE/BUNDLE/REQUEST",
   "DELETE/BUNDLE/SUCCESS",
   "DELETE/BUNDLE/FAILURE"
-)<{ id: number }, { message: string }, { message: string }>();
-
+)<{ id: number }, any, any>();

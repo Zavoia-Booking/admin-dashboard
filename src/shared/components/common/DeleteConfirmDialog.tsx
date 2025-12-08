@@ -17,6 +17,7 @@ const resourceLabels: Record<string, { singular: string; plural: string }> = {
   location: { singular: "location", plural: "locations" },
   service: { singular: "service", plural: "services" },
   team_member: { singular: "team member", plural: "team members" },
+  bundle: { singular: "bundle", plural: "bundles" },
 };
 
 export function DeleteConfirmDialog({

@@ -12,7 +12,7 @@ export interface DeleteResponse {
   isVisibleInMarketplace?: boolean;
 }
 
-export type ResourceType = 'location' | 'service' | 'team_member';
+export type ResourceType = 'location' | 'service' | 'team_member' | 'bundle';
 
 export interface DeleteConfirmDialogProps {
   open: boolean;

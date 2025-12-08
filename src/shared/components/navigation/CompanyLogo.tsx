@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Building2 } from "lucide-react";
 import { Skeleton } from "../ui/skeleton";
+import { Tooltip, TooltipTrigger, TooltipContent } from "../ui/tooltip";
 
 // Module-level cache to track loaded images across component instances
 const loadedImagesCache = new Set<string>();
@@ -106,7 +107,7 @@ export const CompanyLogo = React.memo(function CompanyLogo({
   }
 
   return (
-    <div className="flex items-center gap-3 p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2">
+    <div className="flex items-center gap-3 p-4 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-2 min-w-0 max-w-full overflow-hidden">
       <div className="relative h-10 w-10 flex-shrink-0 rounded-full bg-sidebar-accent flex items-center justify-center overflow-hidden">
         {shouldShowDefaultLogo ? (
           // Default logo with Building icon - shown when /me is done but no logo uploaded
@@ -133,10 +134,17 @@ export const CompanyLogo = React.memo(function CompanyLogo({
 
       {/* Company name - hidden when sidebar is collapsed */}
       {/* Shows "Bookaroo" if /me is done but wizard not completed (no company name) */}
-      <div className="flex-1 min-w-0 group-data-[collapsible=icon]:hidden">
-        <p className="text-sm font-semibold text-sidebar-foreground truncate">
-          {displayName}
-        </p>
+      <div className="flex-1 min-w-0 overflow-hidden group-data-[collapsible=icon]:hidden">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate max-w-full cursor-default">
+              {displayName}
+            </p>
+          </TooltipTrigger>
+          <TooltipContent side="right" align="center" sideOffset={8}>
+            {displayName}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </div>
   );

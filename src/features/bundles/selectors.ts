@@ -23,3 +23,16 @@ export const getBundlesLoadingSelector = createSelector(
   }
 );
 
+export const getBundlesDeletingSelector = createSelector(
+  getBundlesStateSelector,
+  (state) => {
+    return state.isDeleting;
+  }
+);
+
+export const getBundlesDeleteResponseSelector = createSelector(
+  getBundlesStateSelector,
+  (state) => {
+    return state.deleteResponse;
+  }
+);

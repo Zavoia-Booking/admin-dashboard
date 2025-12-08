@@ -90,7 +90,6 @@ export function ResponsiveTabs({
           )}
         >
           {items.map((item) => {
-            const Icon = item.icon;
             const isActive = value === item.id;
 
             return (

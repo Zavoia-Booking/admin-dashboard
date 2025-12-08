@@ -32,6 +32,9 @@ export type BundlesState = {
   bundles: Bundle[];
   error: string | null;
   isLoading: boolean;
+  isDeleting: boolean;
+  deleteError: string | null;
+  deleteResponse?: any | null;
 };
 
 export type CreateBundlePayload = {
@@ -81,4 +84,3 @@ export const getDefaultBundleFilters = (): BundleFilterState => ({
   sortField: "createdAt",
   sortDirection: "desc",
 });
-
