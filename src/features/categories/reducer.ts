@@ -11,7 +11,7 @@ const initialState: CategoriesState = {
   error: null,
 };
 
-export const CategoriesReducer: Reducer<CategoriesState, Actions> = (
+export const CategoriesReducer: Reducer<CategoriesState, any> = (
   state: CategoriesState = initialState,
   action: Actions
 ): CategoriesState => {

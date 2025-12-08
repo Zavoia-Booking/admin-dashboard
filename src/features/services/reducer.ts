@@ -64,7 +64,7 @@ export const handleToggleAddForm = (
   };
 };
 
-export const ServicesReducer: Reducer<ServicesState, Actions> = (
+export const ServicesReducer: Reducer<ServicesState, any> = (
   state: ServicesState = initialState,
   action: Actions
 ): ServicesState => {

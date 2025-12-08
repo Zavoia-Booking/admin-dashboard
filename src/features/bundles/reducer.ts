@@ -14,7 +14,7 @@ const initialState: BundlesState = {
   deleteResponse: null,
 };
 
-export const BundlesReducer: Reducer<BundlesState, Actions> = (
+export const BundlesReducer: Reducer<BundlesState, any> = (
   state: BundlesState = initialState,
   action: Actions
 ): BundlesState => {

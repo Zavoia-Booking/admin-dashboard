@@ -255,7 +255,7 @@ const SetupWizardPage: React.FC = () => {
 
   // Filter to only show pending team members (invited but not yet accepted)
   const pendingTeamMembers = (allTeamMembers || []).filter(
-    (member: TeamMember) => member.status === 'pending'
+    (member: TeamMember) => member.roleStatus === 'pending_acceptance'
   );
 
   const isBusinessLoading = useSelector(getBusinessLoadingSelector);

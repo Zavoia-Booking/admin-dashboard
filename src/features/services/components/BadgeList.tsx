@@ -2,7 +2,7 @@ import { type FC, useCallback } from "react";
 import { X } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
 import type { ServiceFilterState } from "../types.ts";
-import type { Category } from "./CategorySection";
+import type { Category } from "./services/CategorySection";
 
 interface IProps {
     filters: ServiceFilterState;

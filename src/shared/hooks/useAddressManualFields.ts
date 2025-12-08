@@ -89,8 +89,8 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
       city: c, 
       postalCode: p, 
       country: co,
-      latitude: components?.latitude,
-      longitude: components?.longitude,
+      latitude: components?.latitude ?? 0,
+      longitude: components?.longitude ?? 0,
       mapPinConfirmed: components?.mapPinConfirmed ?? false,
     });
   }, [onChange, onComponentsChange, components?.latitude, components?.longitude, components?.mapPinConfirmed]);

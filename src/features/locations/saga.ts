@@ -6,7 +6,7 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { DeleteResponse } from "../../shared/types/delete-response";
 
-function* handleFetchLocationById(action: ActionType<typeof fetchLocationByIdAction.request>) {
+function* handleFetchLocationById(action: ActionType<typeof fetchLocationByIdAction.request>): Generator<any, void, any> {
   try {
     const location: LocationType = yield call(getLocationByIdApi, action.payload.locationId);
     yield put(fetchLocationByIdAction.success({ location }));
@@ -26,7 +26,7 @@ export function* locationsSaga(): Generator<any, void, any> {
   ]);
 }
 
-function* handleCreateLocation(action: ActionType<typeof createLocationAction.request>) {
+function* handleCreateLocation(action: ActionType<typeof createLocationAction.request>): Generator<any, void, any> {
   try {
     yield call(createLocationApi, action.payload.location);
     yield put(listLocationsAction.request());
@@ -36,7 +36,7 @@ function* handleCreateLocation(action: ActionType<typeof createLocationAction.re
   }
 }
 
-function* handleUpdateLocation(action: ActionType<typeof updateLocationAction.request>) {
+function* handleUpdateLocation(action: ActionType<typeof updateLocationAction.request>): Generator<any, void, any> {
   try {
     const response: any = yield call(updateLocationApi, action.payload.location);
     yield put(updateLocationAction.success({ updateResponse: response }));
@@ -56,7 +56,7 @@ function* handleListLocations(): Generator<any, void, any> {
   }
 }
 
-function* handleDeleteLocation(action: ActionType<typeof deleteLocationAction.request>) {
+function* handleDeleteLocation(action: ActionType<typeof deleteLocationAction.request>): Generator<any, void, any> {
   try {
     const response: DeleteResponse = yield call(deleteLocationApi, action.payload.id);
     

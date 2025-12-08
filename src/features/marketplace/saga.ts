@@ -17,7 +17,7 @@ import type { MarketplaceListingResponse, BookingSettings } from "./types";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 
-function* handleFetchMarketplaceListing(action: ActionType<typeof fetchMarketplaceListingAction.request>) {
+function* handleFetchMarketplaceListing() {
   try {
     const response: MarketplaceListingResponse = yield call(getMarketplaceListingApi);
     yield put(fetchMarketplaceListingAction.success(response));

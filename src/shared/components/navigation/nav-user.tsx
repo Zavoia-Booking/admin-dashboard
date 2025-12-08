@@ -28,7 +28,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "../ui/sidebar"
-import { useIsMobile } from "../../../hooks/use-mobile"
+import { useIsMobile } from "../../hooks/use-mobile"
 
 export function NavUser({
   user,
