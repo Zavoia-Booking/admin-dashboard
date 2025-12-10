@@ -1,0 +1,76 @@
+# PROJECT SUMMARY
+Bookaroo Admin Dashboard - React SaaS for appointment booking businesses. Built with Vite + React 19 + TypeScript + Redux Saga + TailwindCSS + Capacitor (mobile), PWA. Features: auth, calendar, services, team members, locations, marketplace, customers, bundles, categories, settings, business setup wizard.
+
+# ARCHITECTURE PATTERNS
+
+## Redux State Management
+- Use `typesafe-actions` for all actions: `createAction`, `createAsyncAction`
+- Async actions follow REQUEST/SUCCESS/FAILURE pattern:
+  ```ts
+  export const myAction = createAsyncAction(
+    'FEATURE/ACTION/REQUEST',
+    'FEATURE/ACTION/SUCCESS', 
+    'FEATURE/ACTION/FAILURE'
+  )<RequestPayload, SuccessPayload, ErrorPayload>();
+  ```
+- Simple actions: `createAction('FEATURE/ACTION')<Payload>()`
+
+## Redux Saga
+- Use `call`, `put`, `select`, `takeLatest`, `all` from redux-saga/effects
+- Handler functions: `function* handleAction(action: ActionType<typeof myAction.request>) {...}`
+- Export single saga per feature: `export function* featureSaga() { yield all([...]) }`
+- Register in `src/app/providers/sagas.ts`
+
+## Selectors
+- Use `createSelector` from @reduxjs/toolkit
+- Base selectors in `src/app/providers/selectors.ts`: `getFeatureStateSelector`
+- Feature selectors derive from base: `createSelector(getFeatureStateSelector, (state) => state.field)`
+
+## Reducers
+- Use `getType(actions.myAction)` in switch statements
+- Handler functions: `const handleMyAction = (state, payload) => ({...state, field: payload})`
+- Type actions as `ActionType<typeof actions>`
+
+## API Layer
+- Use `apiClient()` from `src/shared/lib/http.ts`
+- Pattern: `const { data } = await apiClient().post<Type>('/endpoint', payload)`
+
+## Feature Structure
+Each feature in `src/features/[name]/` must have:
+- actions.ts, saga.ts, reducer.ts, selectors.ts, types.ts, api.ts
+- components/, pages/ folders
+
+## Components
+- Wrap pages in `<AppLayout>`, `<BusinessSetupGate>`, `<AccessGuard>`
+- Use `useDispatch`, `useSelector` from react-redux
+- Dispatch actions: `dispatch(myAction.request(payload))`
+
+# STYLING
+
+## TailwindCSS Theme System
+- Use semantic CSS variables, NOT raw colors
+- Light/dark mode: `:root` for light, `.dark` for dark overrides
+- Key variables: `--surface`, `--base`, `--text-primary`, `--border`, `--primary`
+- Tailwind utilities map to variables: `bg-surface`, `text-foreground-1`, `border-border`
+
+## Status Colors
+- Info: `bg-info-bg`, `border-info-border`, `text-info`
+- Success: `bg-success-bg`, `border-success-border`, `text-success`
+- Warning: `bg-warning-bg`, `border-warning-border`, `text-warning`
+- Error: `bg-error-bg`, `border-error-border`, `text-error`
+
+## UI Components
+- Use Radix UI primitives from `src/shared/components/ui/`
+- Button variants: default, destructive, outline, secondary, ghost, link, info
+- Forms: use field components from `src/shared/components/forms/fields/`
+
+# FILE GENERATION RULES
+- NEVER write .md files unless explicitly requested
+- NEVER write .example files unless explicitly requested
+- NEVER add unnecessary comments or documentation
+
+# RESPONSE RULES
+- Keep answers short and concise
+- Skip explanations unless asked
+- Code only, minimal prose
+- No emoji unless requested
