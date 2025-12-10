@@ -36,8 +36,17 @@ export const removeLocationFromTeamMemberRequest = async (userId: number, locati
   return data;
 };
 
-export const updateTeamMemberAssignmentsRequest = async (userId: number, serviceIds: number[], locationIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/team-members/update/${userId}`, { serviceIds, locationIds });
+export const updateTeamMemberAssignmentsRequest = async (
+  userId: number,
+  serviceIds: number[],
+  locationIds: number[],
+  services: Array<{ serviceId: number; customPrice?: number; customDuration?: number }>,
+) => {
+  const { data } = await apiClient().post(`/assignments/team-members/update/${userId}`, {
+    serviceIds,
+    locationIds,
+    services,
+  });
   return data;
 };
 

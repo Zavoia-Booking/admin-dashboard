@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Briefcase, Edit2 } from 'lucide-react';
 import { Pill } from '../../../../shared/components/ui/pill';
 import { Badge } from '../../../../shared/components/ui/badge';
@@ -36,6 +37,7 @@ export function ServicePill({
   onToggle,
   currency = 'USD',
 }: ServicePillProps) {
+  const { t } = useTranslation('assignments');
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [durationInput, setDurationInput] = useState(
     customDuration !== null ? customDuration.toString() : (defaultDuration?.toString() || '')
@@ -52,11 +54,7 @@ export function ServicePill({
 
   const handlePriceChange = (value: number | string) => {
     const priceInCents = typeof value === 'string' ? parseInt(value, 10) : value;
-    if (priceInCents === 0 || (defaultPrice && priceInCents === defaultPrice)) {
-      onUpdateCustomPrice(serviceId, null);
-    } else {
       onUpdateCustomPrice(serviceId, priceInCents);
-    }
   };
 
   const handleSave = () => {
@@ -99,7 +97,7 @@ export function ServicePill({
                 {serviceName}
                 {(hasCustomPrice || hasCustomDuration) && (
                   <Badge variant="secondary" className="text-[10px] h-4 px-1 font-medium">
-                    Custom
+                    {t('page.servicePill.badge.custom')}
                   </Badge>
                 )}
               </div>
@@ -114,7 +112,7 @@ export function ServicePill({
               setIsEditOpen(true);
             }}
             className="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-surface-active z-10"
-            aria-label="Edit custom price/duration"
+            aria-label={t('page.servicePill.editAriaLabel')}
           >
             <Edit2 className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
@@ -130,7 +128,7 @@ export function ServicePill({
         <div className="space-y-4">
           <div>
             <h4 className="font-medium text-sm mb-0.5">{serviceName}</h4>
-            <p className="text-xs text-muted-foreground">Set custom pricing for this team member</p>
+            <p className="text-xs text-muted-foreground">{t('page.servicePill.helperText')}</p>
           </div>
 
           <div className="space-y-3">
@@ -151,7 +149,7 @@ export function ServicePill({
               />
               {defaultDisplayPrice && (
                 <p className="text-xs text-muted-foreground">
-                  Default: {currencyDisplay.symbol}{defaultDisplayPrice.toFixed(2)}
+                  {t('page.servicePill.fields.default')} {currencyDisplay.symbol}{defaultDisplayPrice.toFixed(2)}
                 </p>
               )}
             </div>
@@ -159,7 +157,7 @@ export function ServicePill({
             {/* Duration */}
             <div className="space-y-1.5">
               <Label htmlFor={`duration-${serviceId}`} className="text-xs font-medium">
-                Duration
+                {t('page.servicePill.fields.duration')}
               </Label>
               <div className="flex items-center gap-2">
                 <Input
@@ -171,11 +169,11 @@ export function ServicePill({
                   min="0"
                   placeholder={defaultDuration?.toString() || '0'}
                 />
-                <span className="text-xs text-muted-foreground font-medium">min</span>
+                <span className="text-xs text-muted-foreground font-medium">{t('page.servicePill.fields.minSuffix')}</span>
               </div>
               {defaultDuration && (
                 <p className="text-xs text-muted-foreground">
-                  Default: {defaultDuration} min
+                  {t('page.servicePill.fields.default')} {defaultDuration} {t('page.servicePill.fields.minSuffix')}
                 </p>
               )}
             </div>
@@ -189,14 +187,14 @@ export function ServicePill({
               className="flex-1"
               disabled={!hasCustomPrice && !hasCustomDuration}
             >
-              Reset
+              {t('page.servicePill.buttons.reset')}
             </Button>
             <Button
               size="sm"
               onClick={handleSave}
               className="flex-1"
             >
-              Save
+              {t('page.servicePill.buttons.save')}
             </Button>
           </div>
         </div>

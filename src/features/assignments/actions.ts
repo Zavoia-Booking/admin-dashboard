@@ -36,7 +36,16 @@ export const updateTeamMemberAssignmentsAction = createAsyncAction(
   'ASSIGNMENTS/UPDATE_TEAM_MEMBER_ASSIGNMENTS_REQUEST',
   'ASSIGNMENTS/UPDATE_TEAM_MEMBER_ASSIGNMENTS_SUCCESS',
   'ASSIGNMENTS/UPDATE_TEAM_MEMBER_ASSIGNMENTS_FAILURE',
-)<{ userId: number; serviceIds: number[]; locationIds: number[] }, void, { message: string }>();
+)<{
+  userId: number;
+  serviceIds: number[];
+  locationIds: number[];
+  services: Array<{
+    serviceId: number;
+    customPrice?: number;
+    customDuration?: number;
+  }>;
+}, void, { message: string }>();
 
 // Services perspective
 export const selectServiceAction = createAction('ASSIGNMENTS/SELECT_SERVICE')<number | null>();

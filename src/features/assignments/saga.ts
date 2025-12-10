@@ -82,8 +82,8 @@ function* handleAssignLocationsToTeamMember(action: ReturnType<typeof assignLoca
 
 function* handleUpdateTeamMemberAssignments(action: ReturnType<typeof updateTeamMemberAssignmentsAction.request>) {
   try {
-    const { userId, serviceIds, locationIds } = action.payload;
-    yield call(updateTeamMemberAssignmentsRequest, userId, serviceIds, locationIds);
+    const { userId, serviceIds, locationIds, services } = action.payload;
+    yield call(updateTeamMemberAssignmentsRequest, userId, serviceIds, locationIds, services);
     yield put(updateTeamMemberAssignmentsAction.success());
     
     // Refresh the team member's assignment details

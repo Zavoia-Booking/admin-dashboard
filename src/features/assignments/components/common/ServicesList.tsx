@@ -1,3 +1,5 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Briefcase, ArrowRight } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
@@ -35,6 +37,8 @@ interface ServicesListProps {
   teamMemberName?: string;
   onApplyServices?: (serviceIds: number[]) => void;
   useCompactLayout?: boolean;
+  description?: React.ReactNode;
+  summaryLine?: React.ReactNode;
 }
 
 export function ServicesList({ 
@@ -49,7 +53,10 @@ export function ServicesList({
   teamMemberName,
   onApplyServices,
   useCompactLayout = false,
+  description,
+  summaryLine,
 }: ServicesListProps) {
+  const { t } = useTranslation('assignments');
   const navigate = useNavigate();
 
   // Use compact layout if requested and we have team member name
@@ -64,6 +71,7 @@ export function ServicesList({
         onUpdateCustomDuration={onUpdateCustomDuration!}
         onApplyServices={onApplyServices}
         currency={currency}
+        summaryLine={summaryLine}
       />
     );
   }
@@ -77,17 +85,17 @@ export function ServicesList({
           </div>
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-foreground">
-              No services available
+              {t('page.servicesList.emptyState.title')}
             </h3>
             <p className="text-sm text-muted-foreground">
-              You need to create services before you can assign them to team members. Get started by creating your first service.
+              {t('page.servicesList.emptyState.description')}
             </p>
           </div>
           <Button
             onClick={() => navigate('/services')}
             className="mt-2"
           >
-            Go to Services
+            {t('page.servicesList.emptyState.goToServices')}
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>
@@ -152,8 +160,8 @@ export function ServicesList({
             id: String(service.id),
             name: service.name,
           }))}
-          placeholder="+ Add Services"
-          searchPlaceholder="Search services..."
+          placeholder={t('page.servicesList.multiSelect.placeholder')}
+          searchPlaceholder={t('page.servicesList.multiSelect.searchPlaceholder')}
         />
       </div>
     </div>

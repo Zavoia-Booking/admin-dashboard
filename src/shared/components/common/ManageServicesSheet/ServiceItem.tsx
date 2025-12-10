@@ -82,10 +82,10 @@ export function ServiceItem({
                       <span>{service.price.toFixed(2)}</span>
                     </>
                   ) : (
-                    <span>
-                      {currencyDisplay.symbol || ""}
-                      {service.price.toFixed(2)}
-                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <span>{currencyDisplay.symbol || ""}</span>
+                      <span>{service.price.toFixed(2)}</span>
+                    </div>
                   )}
                 </>
               )}

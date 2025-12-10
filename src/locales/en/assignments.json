@@ -8,25 +8,39 @@
       "locations": "Locations"
     },
     "teamMembers": {
+      "title": "Team Members",
+      "titleWithCount": "Team Members ({{count}}{{ofTotal}})",
+      "titleOfTotal": " of {{total}}",
+      "searchPlaceholder": "Search team members...",
       "sections": {
         "services": {
+          "title": "Services",
+          "titleWithPricing": "Service assignments & pricing",
           "description": {
             "assignedPrefix": "has",
             "assignedSuffix": "assigned",
             "assignedHelper": "Manage their services and fine‑tune pricing and duration below.",
             "notAssigned": "has no services assigned yet.",
-            "notAssignedHelper": "Add services below to control what they can perform and adjust pricing and duration if needed."
+            "notAssignedHelper": "Add services below to control what they can perform and adjust pricing and duration if needed.",
+            "controlServices": "Control which services",
+            "offersAndCustomize": "offers, and customize their pricing and duration.",
+            "setCustomPricingHelper": "You can set custom pricing and duration for each service below.",
+            "assignFirstHelper": "Assign services first, then you will be able to set custom pricing and duration for each."
           },
           "serviceOne": "service",
           "serviceOther": "services"
         },
         "locations": {
+          "title": "Locations",
+          "titleAssignments": "Location assignments",
           "description": {
             "assignedPrefix": "is assigned to",
             "assignedSuffix": ".",
             "assignedHelper": "Manage their working locations below.",
             "notAssigned": "is not assigned to any locations yet.",
-            "notAssignedHelper": "Choose locations below to control where they can work."
+            "notAssignedHelper": "Choose locations below to control where they can work.",
+            "controlLocations": "Control which locations",
+            "canWorkAt": "can work at."
           },
           "locationOne": "location",
           "locationOther": "locations"
@@ -35,7 +49,83 @@
       "emptyState": {
         "noTeamMemberSelected": "Choose a team member from the list to view and manage their assignments",
         "noTeamMembers": "No team members found",
-        "noTeamMembersMatchSearch": "No team members match your search"
+        "noTeamMembersMatchSearch": "No team members match your search",
+        "selectItemToGetStarted": "Select an item to get started"
+      },
+      "buttons": {
+        "saveChanges": "Save Changes"
+      }
+    },
+    "serviceRow": {
+      "badge": {
+        "custom": "Custom"
+      },
+      "default": "Default: •",
+      "popover": {
+        "helperText": "Set a custom price and duration for",
+        "whenOfferedBy": "when offered by",
+        "thisTeamMember": "this team member",
+        "close": "Close"
+      },
+      "fields": {
+        "price": "Price",
+        "originalPrice": "Original price –",
+        "duration": "Duration (minutes)",
+        "originalDuration": "Original duration –",
+        "minSuffix": "min"
+      },
+      "buttons": {
+        "reset": "Reset",
+        "save": "Save"
+      }
+    },
+    "compactServices": {
+      "buttons": {
+        "manageServices": "Manage services",
+        "showMore": "Show {{count}} more",
+        "showLess": "Show less"
+      }
+    },
+    "servicePill": {
+      "badge": {
+        "custom": "Custom"
+      },
+      "editAriaLabel": "Edit custom price/duration",
+      "helperText": "Set custom pricing for this team member",
+      "fields": {
+        "price": "Price",
+        "duration": "Duration",
+        "default": "Default:",
+        "minSuffix": "min"
+      },
+      "buttons": {
+        "reset": "Reset",
+        "save": "Save"
+      }
+    },
+    "servicesList": {
+      "emptyState": {
+        "title": "No services available",
+        "description": "You need to create services before you can assign them to team members. Get started by creating your first service.",
+        "goToServices": "Go to Services"
+      },
+      "multiSelect": {
+        "placeholder": "+ Add Services",
+        "searchPlaceholder": "Search services..."
+      }
+    },
+    "servicesAssignments": {
+      "title": "Services ({{count}})",
+      "emptyState": {
+        "noServicesFound": "No services found",
+        "noServicesAvailable": "No services available",
+        "description": "Create services to assign them to team members and locations.",
+        "goToServices": "Go to Services",
+        "chooseService": "Choose a service from the list to view and manage its assignments"
+      },
+      "sections": {
+        "teamMembersAssigned": "Team Members Assigned",
+        "locations": "Locations"
       }
     }
   }

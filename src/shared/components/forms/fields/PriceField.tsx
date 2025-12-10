@@ -14,6 +14,7 @@ export interface PriceFieldProps
   storageFormat?: "cents" | "decimal"; // Storage format: 'cents' (299) or 'decimal' (2.99) - default: 'decimal' for backward compatibility
   customLabelClassName?: string; // Optional override for label typography
   liveUpdate?: boolean; // If true, calls onChange on every keystroke (useful for real-time price calculations)
+  hideInlineError?: boolean; // If true, hide the inline error message
 }
 
 /**
@@ -65,6 +66,7 @@ export const PriceField: React.FC<PriceFieldProps> = ({
   iconPosition = "left",
   helpText,
   decimalPlaces = 2,
+  hideInlineError = false,
   currency = "usd",
   storageFormat = "cents", // Default to 'cents' - prices are stored as integer minor units
   liveUpdate = false, // When true, calls onChange on every keystroke
@@ -236,7 +238,7 @@ export const PriceField: React.FC<PriceFieldProps> = ({
           {helpText}
         </p>
       )}
-      <div className="h-5">
+      {!hideInlineError && <div className="h-5">
         {error && (
           <p
             className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
@@ -247,7 +249,7 @@ export const PriceField: React.FC<PriceFieldProps> = ({
             <span>{error}</span>
           </p>
         )}
-      </div>
+      </div>}
     </div>
   );
 };

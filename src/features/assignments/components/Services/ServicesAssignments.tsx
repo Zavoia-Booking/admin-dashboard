@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import { AssignmentListPanel, type ListItem } from '../common/AssignmentListPanel';
@@ -20,6 +21,7 @@ import { getServicesListSelector } from '../../../services/selectors';
 import type { Service } from '../../../../shared/types/service';
 
 export function ServicesAssignments() {
+  const { t } = useTranslation('assignments');
   const dispatch = useDispatch();
   const [searchParams] = useSearchParams();
   
@@ -200,14 +202,14 @@ export function ServicesAssignments() {
    
     return [
       {
-        title: 'Team Members Assigned',
+        title: t('page.servicesAssignments.sections.teamMembersAssigned'),
         assignedItems: assignedTeamMembers,
         availableItems: allTeamMembersList,
         selectedIds: selectedUserIds,
         onToggleSelection: toggleUserSelection,
       },
       {
-        title: 'Locations',
+        title: t('page.servicesAssignments.sections.locations'),
         assignedItems: assignedLocations,
         availableItems: allLocationsList,
         selectedIds: selectedLocationIds,
@@ -231,17 +233,17 @@ export function ServicesAssignments() {
         </div>
         <div className="space-y-2">
           <h3 className="text-base font-semibold text-foreground">
-            No services available
+            {t('page.servicesAssignments.emptyState.noServicesAvailable')}
           </h3>
           <p className="text-xs text-muted-foreground">
-            Create services to assign them to team members and locations.
+            {t('page.servicesAssignments.emptyState.description')}
           </p>
         </div>
         <button
           onClick={() => window.location.href = '/services'}
           className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-colors h-9 px-4 py-2 bg-primary text-white shadow-xs hover:bg-primary-hover rounded-md mt-2"
         >
-          Go to Services
+          {t('page.servicesAssignments.emptyState.goToServices')}
           <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 12h14"/>
             <path d="m12 5 7 7-7 7"/>
@@ -254,12 +256,12 @@ export function ServicesAssignments() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
       <AssignmentListPanel
-        title={`Services (${allServices.length})`}
+        title={t('page.servicesAssignments.title', { count: allServices.length })}
         items={listItems}
         selectedId={selectedService?.id ?? null}
         onSelect={(id) => handleSelectService(Number(id))}
         isLoading={isLoading}
-        emptyMessage="No services found"
+        emptyMessage={t('page.servicesAssignments.emptyState.noServicesFound')}
         emptyStateComponent={emptyStateComponent}
         renderItem={renderServiceItem}
       />
@@ -269,7 +271,7 @@ export function ServicesAssignments() {
         onSave={handleSave}
         isSaving={isSaving}
         hasChanges={hasChanges}
-        emptyStateMessage="Choose a service from the list to view and manage its assignments"
+        emptyStateMessage={t('page.servicesAssignments.emptyState.chooseService')}
       />
     </div>
   );

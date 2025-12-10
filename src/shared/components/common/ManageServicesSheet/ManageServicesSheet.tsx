@@ -102,6 +102,7 @@ export function ManageServicesSheet({
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const contentRefs = useRef<Map<number | null, HTMLDivElement>>(new Map());
 
@@ -350,6 +351,7 @@ export function ManageServicesSheet({
       setLocalDurationMin(appliedDurationMin);
       setLocalDurationMax(appliedDurationMax);
       setLocalCategoryIds(appliedCategoryIds);
+      setShowAllCategories(false); // Reset show all when opening filters
     }
   }, [showFilters, appliedPriceMin, appliedPriceMax, appliedDurationMin, appliedDurationMax, appliedCategoryIds]);
 
@@ -398,7 +400,15 @@ export function ManageServicesSheet({
     maxDuration: t("filters.maxDurationLabel"),
   };
 
-  const renderFilterContent = () => (
+  const MAX_VISIBLE_CATEGORIES = 6;
+
+  const renderFilterContent = () => {
+    const hasMoreCategories = availableCategories.length > MAX_VISIBLE_CATEGORIES;
+    const visibleCategories = showAllCategories
+      ? availableCategories
+      : availableCategories.slice(0, MAX_VISIBLE_CATEGORIES);
+
+    return (
     <>
       <div className="space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -496,7 +506,7 @@ export function ManageServicesSheet({
             {t("filters.byCategory")}
           </div>
           <div className="flex flex-wrap gap-2">
-            {availableCategories.map((category) => {
+            {visibleCategories.map((category) => {
               const isSelected = localCategoryIds.includes(category.id);
               const bgColor = getDisplayColor(category);
               const textColor = getTextColor(bgColor);
@@ -528,11 +538,40 @@ export function ManageServicesSheet({
                 </Button>
               );
             })}
+
+            {/* "Show more" button (only when collapsed and there are more categories) */}
+            {hasMoreCategories && !showAllCategories && (
+              <Button
+                type="button"
+                variant="outline"
+                rounded="full"
+                onClick={() => setShowAllCategories(true)}
+                className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+              >
+                {t("addService.form.category.showMore", {
+                  count: availableCategories.length - MAX_VISIBLE_CATEGORIES,
+                })}
+              </Button>
+            )}
+
+            {/* "Show less" button (only when expanded) */}
+            {hasMoreCategories && showAllCategories && (
+              <Button
+                type="button"
+                variant="outline"
+                rounded="full"
+                onClick={() => setShowAllCategories(false)}
+                className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+              >
+                {t("addService.form.category.showLess")}
+              </Button>
+            )}
           </div>
         </div>
       )}
     </>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center py-8 text-center gap-4 w-full">

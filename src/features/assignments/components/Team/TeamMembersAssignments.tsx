@@ -4,9 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { AssignmentListPanel, type ListItem } from '../common/AssignmentListPanel';
 import { AssignmentDetailsPanel, type AssignmentSection } from '../common/AssignmentDetailsPanel';
 import { Avatar, AvatarImage, AvatarFallback } from '../../../../shared/components/ui/avatar';
-import { Pill } from '../../../../shared/components/ui/pill';
-import { Badge } from '../../../../shared/components/ui/badge';
-import { SearchInput } from '../../../../shared/components/common/SearchInput';
 import { highlightMatches } from '../../../../shared/utils/highlight';
 import { useUndoRedo } from '../../../../shared/hooks/useUndoRedo';
 import type { TeamMember } from '../../../../shared/types/team-member';
@@ -25,7 +22,9 @@ import { listTeamMembersAction } from '../../../teamMembers/actions';
 import { selectTeamMembers } from '../../../teamMembers/selectors';
 import { getServicesListSelector } from '../../../services/selectors';
 import { getAllLocationsSelector } from '../../../locations/selectors';
-import { MapPin, Wrench, Briefcase } from 'lucide-react';
+import { MapPin, Wrench } from 'lucide-react';
+import { cn } from '../../../../shared/lib/utils';
+import { selectCurrentUser } from '../../../auth/selectors';
 
 export function TeamMembersAssignments() {
   const { t } = useTranslation('assignments');
@@ -38,6 +37,8 @@ export function TeamMembersAssignments() {
   const allTeamMembers = useSelector(selectTeamMembers);
   const allServices = useSelector(getServicesListSelector);
   const allLocations = useSelector(getAllLocationsSelector);
+  const currentUser = useSelector(selectCurrentUser);
+  const businessCurrency = currentUser?.business?.businessCurrency || 'eur';
   
   // Local state for selected IDs with undo/redo
   interface AssignmentState {
@@ -50,10 +51,6 @@ export function TeamMembersAssignments() {
   const {
     state: assignmentState,
     setState: setAssignmentState,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
     clearHistory,
   } = useUndoRedo<AssignmentState>(
     { serviceIds: [], locationIds: [], customPrices: {}, customDurations: {} },
@@ -66,6 +63,8 @@ export function TeamMembersAssignments() {
   // Track initial state to detect changes
   const [initialServiceIds, setInitialServiceIds] = useState<number[]>([]);
   const [initialLocationIds, setInitialLocationIds] = useState<number[]>([]);
+  const [initialCustomPrices, setInitialCustomPrices] = useState<Record<number, number | null>>({});
+  const [initialCustomDurations, setInitialCustomDurations] = useState<Record<number, number | null>>({});
   
   // Search/filter state
   const [searchTerm, setSearchTerm] = useState('');
@@ -128,6 +127,8 @@ export function TeamMembersAssignments() {
       // Store initial state for change detection
       setInitialServiceIds(serviceIds);
       setInitialLocationIds(locationIds);
+      setInitialCustomPrices(customPrices);
+      setInitialCustomDurations(customDurations);
     } else {
       setAssignmentState({ 
         serviceIds: [], 
@@ -138,6 +139,8 @@ export function TeamMembersAssignments() {
       clearHistory();
       setInitialServiceIds([]);
       setInitialLocationIds([]);
+      setInitialCustomPrices({});
+      setInitialCustomDurations({});
     }
   }, [selectedTeamMember, setAssignmentState, clearHistory]);
   
@@ -153,8 +156,54 @@ export function TeamMembersAssignments() {
       selectedLocationIds.some(id => !initialLocationIds.includes(id)) ||
       initialLocationIds.some(id => !selectedLocationIds.includes(id));
     
-    return serviceIdsChanged || locationIdsChanged;
-  }, [selectedServiceIds, selectedLocationIds, initialServiceIds, initialLocationIds]);
+    // Compare custom prices
+    const customPricesChanged = (() => {
+      const allKeys = new Set<number>([
+        ...Object.keys(initialCustomPrices).map(Number),
+        ...Object.keys(assignmentState.customPrices).map(Number),
+      ]);
+      for (const key of allKeys) {
+        const initial = initialCustomPrices[key] ?? null;
+        const current = assignmentState.customPrices[key] ?? null;
+        if (initial !== current) {
+          return true;
+        }
+      }
+      return false;
+    })();
+
+    // Compare custom durations
+    const customDurationsChanged = (() => {
+      const allKeys = new Set<number>([
+        ...Object.keys(initialCustomDurations).map(Number),
+        ...Object.keys(assignmentState.customDurations).map(Number),
+      ]);
+      for (const key of allKeys) {
+        const initial = initialCustomDurations[key] ?? null;
+        const current = assignmentState.customDurations[key] ?? null;
+        if (initial !== current) {
+          return true;
+        }
+      }
+      return false;
+    })();
+    
+    return (
+      serviceIdsChanged ||
+      locationIdsChanged ||
+      customPricesChanged ||
+      customDurationsChanged
+    );
+  }, [
+    selectedServiceIds,
+    selectedLocationIds,
+    initialServiceIds,
+    initialLocationIds,
+    initialCustomPrices,
+    initialCustomDurations,
+    assignmentState.customPrices,
+    assignmentState.customDurations,
+  ]);
 
   // Get assignment counts for each team member (from Redux or calculate)
   const getAssignmentCounts = useCallback((memberId: number) => {
@@ -203,15 +252,57 @@ export function TeamMembersAssignments() {
 
     const initials = `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
     const counts = getAssignmentCounts(member.id);
+    const tags: Array<{ label: string; variant?: "default" | "secondary" | "destructive" | "outline" | "filter" }> = [];
+    
+    if (counts.services > 0) {
+      tags.push({ label: 'Work', variant: 'secondary' });
+    }
+    if (counts.locations > 0) {
+      tags.push({ label: 'App', variant: 'secondary' });
+    }
 
     return (
-      <Pill
-        key={item.id}
-        selected={isSelected}
+      <button
         onClick={() => handleSelectTeamMember(Number(item.id))}
-        className="w-full justify-start items-center text-left"
-        logo={
-          <Avatar className="h-10 w-10 shrink-0">
+        className={cn(
+          'group relative cursor-pointer flex items-start gap-3 w-full px-2 py-3 rounded-lg border text-left',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0',
+          isSelected
+            ? 'border-border-strong bg-white shadow-xs'
+            : 'border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]'
+        )}
+      >
+        {/* Left-side circular indicator */}
+        <div className="flex-shrink-0 mt-2.5">
+          <div
+            className={cn(
+              'h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center',
+              isSelected
+                ? 'border-primary bg-primary'
+                : 'border-border-strong group-hover:border-primary'
+            )}
+          >
+            {isSelected && (
+              <svg
+                className="h-3.5 w-3.5 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={3}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M5 13l4 4L19 7"
+                />
+              </svg>
+            )}
+          </div>
+        </div>
+
+        {/* Avatar section */}
+        <div className="flex-shrink-0">
+          <Avatar className="h-10 w-10">
             <AvatarImage src={member.profileImage || undefined} alt={`${member.firstName} ${member.lastName}`} />
             <AvatarFallback 
               className="text-sm font-medium"
@@ -220,35 +311,23 @@ export function TeamMembersAssignments() {
               {initials}
             </AvatarFallback>
           </Avatar>
-        }
-      >
-        <div className="flex-1 min-w-0">
-          <div className="font-medium truncate">
+        </div>
+
+        {/* Main content area */}
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          {/* Title */}
+          <div className="font-semibold text-sm text-foreground-1 truncate">
             {searchTerm ? highlightMatches(item.title, searchTerm) : item.title}
           </div>
+
+          {/* Subtitle (Topic) */}
           {item.subtitle && (
-            <div className="text-sm text-muted-foreground truncate">
-              {searchTerm ? highlightMatches(item.subtitle, searchTerm) : item.subtitle}
-            </div>
-          )}
-          {item.badges && item.badges.length > 0 && (
-            <div className="flex gap-1.5 mt-2 flex-wrap">
-              {counts.services > 0 && (
-                <Badge variant="secondary" className="text-xs h-5 px-1.5 gap-1">
-                  <Briefcase className="h-3 w-3" />
-                  {counts.services}
-                </Badge>
-              )}
-              {counts.locations > 0 && (
-                <Badge variant="secondary" className="text-xs h-5 px-1.5 gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {counts.locations}
-                </Badge>
-              )}
+            <div className="text-xs text-muted-foreground truncate">
+             {searchTerm ? highlightMatches(item.subtitle, searchTerm) : item.subtitle}
             </div>
           )}
         </div>
-      </Pill>
+      </button>
     );
   };
 
@@ -296,10 +375,34 @@ export function TeamMembersAssignments() {
   const handleSave = () => {
     if (!selectedTeamMember) return;
     
+    // Build per-service overrides payload for services that have custom values
+    const servicesOverrides = selectedServiceIds
+      .map((serviceId) => {
+        const customPrice = assignmentState.customPrices[serviceId];
+        const customDuration = assignmentState.customDurations[serviceId];
+        const payload: {
+          serviceId: number;
+          customPrice?: number;
+          customDuration?: number;
+        } = { serviceId };
+
+        if (typeof customPrice === 'number') {
+          payload.customPrice = customPrice;
+        }
+        if (typeof customDuration === 'number') {
+          payload.customDuration = customDuration;
+        }
+
+        return payload;
+      })
+      // Only send entries that actually have an override
+      .filter((svc) => svc.customPrice !== undefined || svc.customDuration !== undefined);
+
     dispatch(updateTeamMemberAssignmentsAction.request({
       userId: selectedTeamMember.id,
       serviceIds: selectedServiceIds,
-      locationIds: selectedLocationIds
+      locationIds: selectedLocationIds,
+      services: servicesOverrides,
     }));
   };
 
@@ -363,8 +466,13 @@ export function TeamMembersAssignments() {
           return {
             serviceId: existing.serviceId,
             serviceName: existing.serviceName,
-            customPrice: assignmentState.customPrices[id] ?? existing.customPrice,
-            customDuration: assignmentState.customDurations[id] ?? existing.customDuration,
+            // Check if key exists in state, not just if value is null (null is a valid value meaning "no custom price")
+            customPrice: id in assignmentState.customPrices 
+              ? assignmentState.customPrices[id] 
+              : existing.customPrice,
+            customDuration: id in assignmentState.customDurations
+              ? assignmentState.customDurations[id]
+              : existing.customDuration,
             defaultPrice: service?.price_amount_minor, // Use price_amount_minor (cents) for comparison
             defaultDisplayPrice: service?.price, // Use displayPrice (decimal) for display
             defaultDuration: service?.duration,
@@ -376,8 +484,13 @@ export function TeamMembersAssignments() {
           return {
             serviceId: Number(service.id),
             serviceName: service.name,
-            customPrice: assignmentState.customPrices[id] ?? null,
-            customDuration: assignmentState.customDurations[id] ?? null,
+            // Check if key exists in state, not just if value is null
+            customPrice: id in assignmentState.customPrices 
+              ? assignmentState.customPrices[id] 
+              : null,
+            customDuration: id in assignmentState.customDurations
+              ? assignmentState.customDurations[id]
+              : null,
             defaultPrice: service.price_amount_minor, // Use price_amount_minor (cents) from backend
             defaultDisplayPrice: service.price, // Use displayPrice (decimal) from backend
             defaultDuration: service.duration,
@@ -409,38 +522,36 @@ export function TeamMembersAssignments() {
     const servicesCount = selectedServiceIds.length;
     const locationsCount = selectedLocationIds.length;
     
-    // Format descriptions matching ServicesListTab pattern with emphasized names/numbers
-    const servicesDescription = servicesCount === 0 ? (
-      <>
-        <div>
-          <span className="font-semibold text-foreground-1">{teamMemberName}</span>
-          {' '}
-          {t('page.teamMembers.sections.services.description.notAssigned')}
-        </div>
-        <div className="mt-1">
-          {t('page.teamMembers.sections.services.description.notAssignedHelper')}
-        </div>
-      </>
+    // Split services copy into:
+    const servicesSummaryLine = servicesCount === 0 ? (
+      <div>
+        <span className="font-semibold text-foreground-1">{teamMemberName}</span>{' '}
+        {t('page.teamMembers.sections.services.description.notAssigned')}
+      </div>
     ) : (
-      <>
-        <div>
-          <span className="font-semibold text-foreground-1">{teamMemberName}</span>
-          {' '}
-          {t('page.teamMembers.sections.services.description.assignedPrefix')}{' '}
-          <span className="font-semibold text-foreground-1">
-            {servicesCount}{' '}
-            {t(
-              servicesCount === 1
-                ? 'page.teamMembers.sections.services.serviceOne'
-                : 'page.teamMembers.sections.services.serviceOther'
-            )}
-          </span>{' '}
-          {t('page.teamMembers.sections.services.description.assignedSuffix')}
-        </div>
-        <div className="mt-1">
-          {t('page.teamMembers.sections.services.description.assignedHelper')}
-        </div>
-      </>
+      <div>
+        <span className="font-semibold text-foreground-1">{teamMemberName}</span>{' '}
+        {t('page.teamMembers.sections.services.description.assignedPrefix')}{' '}
+        <span className="font-semibold text-foreground-1">
+          {servicesCount}{' '}
+          {t(
+            servicesCount === 1
+              ? 'page.teamMembers.sections.services.serviceOne'
+              : 'page.teamMembers.sections.services.serviceOther'
+          )}
+        </span>{' '}
+        {t('page.teamMembers.sections.services.description.assignedSuffix')}
+      </div>
+    );
+
+    const servicesDescription = servicesCount === 0 ? (
+      <div className="mt-1">
+        {t('page.teamMembers.sections.services.description.notAssignedHelper')}
+      </div>
+    ) : (
+      <div className="mt-1">
+        {t('page.teamMembers.sections.services.description.assignedHelper')}
+      </div>
     );
     
     const locationsDescription = locationsCount === 0 ? (
@@ -449,9 +560,6 @@ export function TeamMembersAssignments() {
           <span className="font-semibold text-foreground-1">{teamMemberName}</span>
           {' '}
           {t('page.teamMembers.sections.locations.description.notAssigned')}
-        </div>
-        <div className="mt-1">
-          {t('page.teamMembers.sections.locations.description.notAssignedHelper')}
         </div>
       </>
     ) : (
@@ -470,16 +578,14 @@ export function TeamMembersAssignments() {
           </span>
           {t('page.teamMembers.sections.locations.description.assignedSuffix')}
         </div>
-        <div className="mt-1">
-          {t('page.teamMembers.sections.locations.description.assignedHelper')}
-        </div>
       </>
     );
 
     return [
       {
-        title: 'Services',
+        title: t('page.teamMembers.sections.services.title'),
         description: servicesDescription,
+        summaryLine: servicesSummaryLine,
         icon: Wrench,
         assignedItems: assignedServices,
         assignedServices: assignedServicesData,
@@ -488,17 +594,19 @@ export function TeamMembersAssignments() {
         onToggleSelection: toggleServiceSelection,
         onUpdateCustomPrice: handleUpdateCustomPrice,
         onUpdateCustomDuration: handleUpdateCustomDuration,
+        currency: businessCurrency,
         teamMemberName: teamMemberName,
         onApplyServices: handleApplyServices,
       },
       {
-        title: 'Locations',
+        title: t('page.teamMembers.sections.locations.title'),
         description: locationsDescription,
         icon: MapPin,
         assignedItems: assignedLocations,
         availableItems: allLocationsList, // Show ALL locations in dropdown
         selectedIds: selectedLocationIds,
         onToggleSelection: toggleLocationSelection,
+        teamMemberName: teamMemberName,
       },
     ];
   }, [
@@ -507,45 +615,50 @@ export function TeamMembersAssignments() {
     allLocations,
     selectedServiceIds,
     selectedLocationIds,
+    assignmentState.customPrices,
+    assignmentState.customDurations,
     toggleServiceSelection,
     toggleLocationSelection,
+    handleUpdateCustomPrice,
+    handleUpdateCustomDuration,
+    handleApplyServices,
+    businessCurrency,
+    t,
   ]);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-      <div className="col-span-4 md:col-span-4">
-        <div className="space-y-4">
-          {/* Search Input */}
-          <SearchInput
-            placeholder="Search team members..."
-            value={searchTerm}
-            onChange={setSearchTerm}
-            className="w-full"
-          />
-          
-          <AssignmentListPanel
-            title={`Team Members (${filteredTeamMembers.length}${searchTerm ? ` of ${activeTeamMembers.length}` : ''})`}
-            items={listItems}
-            selectedId={selectedTeamMember?.id ?? null}
-            onSelect={(id) => handleSelectTeamMember(Number(id))}
-            isLoading={isLoading}
-            emptyMessage={searchTerm ? "No team members match your search" : "No team members found"}
-            renderItem={renderTeamMemberItem}
-          />
-        </div>
+    <div className="flex gap-2 w-full">
+      {/* Left list panel: fixed fraction width */}
+      <div className="w-[32%] min-w-0">
+        <AssignmentListPanel
+          title={t('page.teamMembers.titleWithCount', {
+            count: filteredTeamMembers.length,
+            ofTotal: searchTerm ? t('page.teamMembers.titleOfTotal', { total: activeTeamMembers.length }) : ''
+          })}
+          items={listItems}
+          selectedId={selectedTeamMember?.id ?? null}
+          onSelect={(id) => handleSelectTeamMember(Number(id))}
+          isLoading={isLoading}
+          emptyMessage={searchTerm ? t('page.teamMembers.emptyState.noTeamMembersMatchSearch') : t('page.teamMembers.emptyState.noTeamMembers')}
+          renderItem={renderTeamMemberItem}
+          searchValue={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder={t('page.teamMembers.searchPlaceholder')}
+          showSearch={true}
+        />
       </div>
 
-      <AssignmentDetailsPanel
-        sections={detailsSections}
-        onSave={handleSave}
-        isSaving={isSaving}
-        hasChanges={hasChanges}
-        emptyStateMessage={t('page.teamMembers.emptyState.noTeamMemberSelected')}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-      />
+      {/* Right details panel: takes remaining space but doesn't grow past container */}
+      <div className="flex-1 min-w-0">
+        <AssignmentDetailsPanel
+          sections={detailsSections}
+          onSave={handleSave}
+          isSaving={isSaving}
+          isLoading={isLoading}
+          hasChanges={hasChanges}
+          emptyStateMessage={t('page.teamMembers.emptyState.noTeamMemberSelected')}
+        />
+      </div>
     </div>
   );
 }
