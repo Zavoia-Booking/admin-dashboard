@@ -63,6 +63,7 @@ export type TeamMemberAssignment = {
     serviceId: number;
     serviceName: string;
     customPrice: number | null;
+    displayCustomPrice: number | null;
     customDuration: number | null;
     category?: { id: number; name: string; color?: string } | null;
   }>;
@@ -130,6 +131,12 @@ export type LocationAssignment = {
   allServices: Array<{
     serviceId: number;
     serviceName: string;
+    price_amount_minor: number;
+    displayPrice: number;
+    duration: number;
+    createdAt: string;
+    updatedAt: string;
+    category?: { id: number; name: string; color?: string } | null;
   }>;
 };
 

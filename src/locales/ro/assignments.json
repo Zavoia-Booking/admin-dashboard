@@ -54,6 +54,12 @@
       },
       "buttons": {
         "saveChanges": "Salvează modificările"
+      },
+      "confirmDialog": {
+        "title": "Salvează atribuirile pentru {{teamMemberName}}",
+        "description": "Vei actualiza serviciile, locațiile și orice prețuri sau durate personalizate pe care le-ați setat pentru acest membru al echipei.",
+        "confirm": "Salvează modificările",
+        "cancel": "Anulează"
       }
     },
     "serviceRow": {
@@ -116,16 +122,114 @@
     },
     "servicesAssignments": {
       "title": "Servicii ({{count}})",
+      "header": {
+        "title": "Atribuiri servicii",
+        "description": {
+          "controlService": "Alegeți ce membri ai echipei și locații pot oferi",
+          "assignedTo": "este atribuit.",
+          "selectServiceToManage": "Alegeți un serviciu pentru a atribui membri ai echipei și locații."
+        }
+      },
+      "selectService": {
+        "title": "Selectați un serviciu",
+        "button": "Selectați un serviciu"
+      },
       "emptyState": {
         "noServicesFound": "Nu s-au găsit servicii",
         "noServicesAvailable": "Nu sunt servicii disponibile",
+        "noServicesYet": "Nu există servicii încă",
+        "noServicesYetDescription": "Creați primul serviciu pentru a începe să atribuiți membri ai echipei și locații.",
+        "selectServiceTitle": "Începeți prin selectarea unui serviciu",
+        "selectServiceDescription": "Apoi puteți alege ce membri ai echipei și locații îl oferă.",
         "description": "Creați servicii pentru a le atribui membrilor echipei și locațiilor.",
         "goToServices": "Mergi la Servicii",
         "chooseService": "Alegeți un serviciu din listă pentru a vedea și gestiona atribuirile acestuia"
       },
       "sections": {
         "teamMembersAssigned": "Membri echipă atribuiți",
-        "locations": "Locații"
+        "teamMembersTitle": "Membri ai echipei care oferă acest serviciu",
+        "teamMembersSubHelper": "{{count}} {{memberText}} selectat",
+        "teamMembersSubHelperOne": "{{count}} membru selectat",
+        "teamMembersSubHelperOther": "{{count}} membri selectați",
+        "teamMembersEmptyHelper": "Niciun membru al echipei selectat încă.",
+        "locations": "Locații",
+        "locationsTitle": "Locații unde este disponibil acest serviciu",
+        "locationsSubHelper": "{{count}} {{locationText}} selectat",
+        "locationsSubHelperOne": "{{count}} locație selectată",
+        "locationsSubHelperOther": "{{count}} locații selectate",
+        "locationsEmptyHelper": "Nicio locație selectată.",
+        "teamMembersDescription": {
+          "assignedPrefix": "este atribuit",
+          "assignedSuffix": ".",
+          "notAssigned": "nu este atribuit niciunui membru al echipei încă.",
+          "memberOne": "membru al echipei",
+          "memberOther": "membri ai echipei"
+        },
+        "locationsDescription": {
+          "assignedPrefix": "este atribuit",
+          "assignedSuffix": ".",
+          "notAssigned": "nu este atribuit niciunei locații încă.",
+          "locationOne": "locație",
+          "locationOther": "locații"
+        }
+      },
+      "buttons": {
+        "save": "Salvează"
+      }
+    },
+    "locationsAssignments": {
+      "title": "Locații",
+      "titleWithCount": "Locații ({{count}}{{ofTotal}})",
+      "titleOfTotal": " din {{total}}",
+      "searchPlaceholder": "Căutare locații...",
+      "sections": {
+        "services": {
+          "title": "Servicii",
+          "titleAssignments": "Atribuiri servicii",
+          "description": {
+            "assignedPrefix": "este atribuit",
+            "assignedSuffix": ".",
+            "assignedHelper": "Gestionați serviciile disponibile la această locație mai jos.",
+            "notAssigned": "nu este atribuit niciunui serviciu încă.",
+            "notAssignedHelper": "Adăugați servicii mai jos pentru a controla ce poate fi oferit la această locație.",
+            "controlServices": "Controlați ce servicii",
+            "availableAt": "sunt disponibile la"
+          },
+          "serviceOne": "serviciu",
+          "serviceOther": "servicii"
+        },
+        "teamMembers": {
+          "title": "Membri echipă",
+          "titleAssignments": "Atribuiri membri echipă",
+          "description": {
+            "assignedPrefix": "este atribuit",
+            "assignedSuffix": ".",
+            "assignedHelper": "Gestionați membrii echipei care lucrează la această locație mai jos.",
+            "notAssigned": "nu este atribuit niciunui membru al echipei încă.",
+            "notAssignedHelper": "Adăugați membri ai echipei mai jos pentru a controla cine poate lucra la această locație.",
+            "controlTeamMembers": "Controlați ce membri ai echipei",
+            "canWorkAt": "pot lucra la"
+          },
+          "teamMemberOne": "membru al echipei",
+          "teamMemberOther": "membri ai echipei"
+        }
+      },
+      "emptyState": {
+        "noLocationSelected": "Alegeți o locație din listă pentru a vedea și gestiona atribuirile acesteia",
+        "noLocations": "Nu s-au găsit locații",
+        "noLocationsMatchSearch": "Nicio locație nu se potrivește căutării dvs.",
+        "noLocationsAvailable": "Nu sunt locații disponibile",
+        "noLocationsAvailableDescription": "Trebuie să creați locații înainte de a putea gestiona atribuirile. Începeți prin crearea primei locații.",
+        "goToLocations": "Mergi la Locații"
+      },
+      "buttons": {
+        "saveChanges": "Salvează modificările"
+      },
+      "confirmDialog": {
+        "title": "Salvează atribuirile pentru {{locationName}}",
+        "description": "Aceasta va actualiza membrii echipei și serviciile atribuite acestei locații.",
+        "confirm": "Salvează modificările",
+        "cancel": "Anulează"
       }
     }
   }

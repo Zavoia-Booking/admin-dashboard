@@ -7,6 +7,7 @@ import { useIsMobile } from "../../hooks/use-mobile";
 export interface ResponsiveTabItem {
   id: string;
   label: string;
+  mobileLabel?: string;
   icon?: LucideIcon;
   content: React.ReactNode;
 }
@@ -69,8 +70,6 @@ export function ResponsiveTabs({
     });
   }, [value, items.length, isMobile]);
 
-  const activeTab = items.find((item) => item.id === value);
-  const activeContent = activeTab?.content;
 
   return (
     <div className={cn("space-y-6", className)}>
@@ -98,18 +97,20 @@ export function ResponsiveTabs({
                 data-tab-id={item.id}
                 onClick={() => setValue(item.id)}
                 className={cn(
-                  "relative z-10 flex items-center justify-center gap-2 text-xs font-medium cursor-pointer transition-colors",
+                  "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors",
                   isMobile
                     ? "flex-1 rounded-full px-1.5 py-1.5"
                     : "flex-none rounded-none px-4 py-2 text-sm",
                   isActive
-                    ? "text-foreground"
-                    : "text-foreground-2 hover:text-foreground"
+                    ? "text-foreground cursor-default"
+                    : "text-foreground-2 hover:text-foreground cursor-pointer"
                 )}
               >
                 <div className="flex items-center gap-2">
                   {/* {Icon && !isMobile && <Icon className="h-4 w-4" />} */}
-                  <span className="text-sm md:text-lg ">{item.label}</span>
+                  <span className="text-sm md:text-lg ">
+                    {isMobile && item.mobileLabel ? item.mobileLabel : item.label}
+                  </span>
                 </div>
               </button>
             );
@@ -139,12 +140,22 @@ export function ResponsiveTabs({
         </div>
       </div>
 
-      {/* Tab Content */}
-      {activeContent && (
-        <div className={cn("outline-none", contentClassName)}>
-          {activeContent}
-        </div>
-      )}
+      {/* Tab Content - Keep all tabs mounted but hidden to prevent remounting */}
+      <div className={cn("outline-none", contentClassName)}>
+        {items.map((item) => {
+          const isActive = value === item.id;
+          return (
+            <div
+              key={item.id}
+              className={cn(
+                isActive ? "block" : "hidden"
+              )}
+            >
+              {item.content}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -19,7 +19,7 @@ import {
   getSelectedTeamMemberSelector,
 } from '../../selectors';
 import { listTeamMembersAction } from '../../../teamMembers/actions';
-import { selectTeamMembers } from '../../../teamMembers/selectors';
+import { selectTeamMembers, selectTeamMembersLoading } from '../../../teamMembers/selectors';
 import { getServicesListSelector } from '../../../services/selectors';
 import { getAllLocationsSelector } from '../../../locations/selectors';
 import { MapPin, Wrench } from 'lucide-react';
@@ -35,6 +35,7 @@ export function TeamMembersAssignments() {
   const isSaving = useSelector(getIsSavingSelector);
   const selectedTeamMember = useSelector(getSelectedTeamMemberSelector);
   const allTeamMembers = useSelector(selectTeamMembers);
+  const isTeamMembersLoading = useSelector(selectTeamMembersLoading);
   const allServices = useSelector(getServicesListSelector);
   const allLocations = useSelector(getAllLocationsSelector);
   const currentUser = useSelector(selectCurrentUser);
@@ -268,7 +269,7 @@ export function TeamMembersAssignments() {
           'group relative cursor-pointer flex items-start gap-3 w-full px-2 py-3 rounded-lg border text-left',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0',
           isSelected
-            ? 'border-border-strong bg-white shadow-xs'
+            ? 'border-border-strong bg-white dark:bg-surface shadow-xs'
             : 'border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]'
         )}
       >
@@ -453,6 +454,7 @@ export function TeamMembersAssignments() {
       serviceId: number;
       serviceName: string;
       customPrice: number | null;
+      displayCustomPrice?: number | null;
       customDuration: number | null;
       defaultPrice?: number;
       defaultDuration?: number;
@@ -463,31 +465,45 @@ export function TeamMembersAssignments() {
         const service = allServicesList.find(s => Number(s.id) === id);
         
         if (existing) {
+          // Calculate displayCustomPrice from customPrice if we have a custom price in state
+          const currentCustomPrice = id in assignmentState.customPrices 
+            ? assignmentState.customPrices[id] 
+            : existing.customPrice;
+          const displayCustomPrice = currentCustomPrice !== null 
+            ? currentCustomPrice / 100 
+            : existing.displayCustomPrice ?? null;
+          
           return {
             serviceId: existing.serviceId,
             serviceName: existing.serviceName,
             // Check if key exists in state, not just if value is null (null is a valid value meaning "no custom price")
-            customPrice: id in assignmentState.customPrices 
-              ? assignmentState.customPrices[id] 
-              : existing.customPrice,
+            customPrice: currentCustomPrice,
+            displayCustomPrice: displayCustomPrice,
             customDuration: id in assignmentState.customDurations
               ? assignmentState.customDurations[id]
               : existing.customDuration,
             defaultPrice: service?.price_amount_minor, // Use price_amount_minor (cents) for comparison
-            defaultDisplayPrice: service?.price, // Use displayPrice (decimal) for display
+            defaultDisplayPrice: service?.price, // Use displayPrice (decimal) from backend
             defaultDuration: service?.duration,
             category: service?.category || null,
           };
         }
         
         if (service) {
+          // Calculate displayCustomPrice from customPrice if we have a custom price in state
+          const currentCustomPrice = id in assignmentState.customPrices 
+            ? assignmentState.customPrices[id] 
+            : null;
+          const displayCustomPrice = currentCustomPrice !== null 
+            ? currentCustomPrice / 100 
+            : null;
+          
           return {
             serviceId: Number(service.id),
             serviceName: service.name,
             // Check if key exists in state, not just if value is null
-            customPrice: id in assignmentState.customPrices 
-              ? assignmentState.customPrices[id] 
-              : null,
+            customPrice: currentCustomPrice,
+            displayCustomPrice: displayCustomPrice,
             customDuration: id in assignmentState.customDurations
               ? assignmentState.customDurations[id]
               : null,
@@ -627,9 +643,9 @@ export function TeamMembersAssignments() {
   ]);
 
   return (
-    <div className="flex gap-2 w-full">
+    <div className="flex flex-col md:flex-row gap-8 w-full">
       {/* Left list panel: fixed fraction width */}
-      <div className="w-[32%] min-w-0">
+      <div className="w-full md:w-[32%] min-w-0">
         <AssignmentListPanel
           title={t('page.teamMembers.titleWithCount', {
             count: filteredTeamMembers.length,
@@ -638,7 +654,7 @@ export function TeamMembersAssignments() {
           items={listItems}
           selectedId={selectedTeamMember?.id ?? null}
           onSelect={(id) => handleSelectTeamMember(Number(id))}
-          isLoading={isLoading}
+          isLoading={isTeamMembersLoading}
           emptyMessage={searchTerm ? t('page.teamMembers.emptyState.noTeamMembersMatchSearch') : t('page.teamMembers.emptyState.noTeamMembers')}
           renderItem={renderTeamMemberItem}
           searchValue={searchTerm}
@@ -649,7 +665,7 @@ export function TeamMembersAssignments() {
       </div>
 
       {/* Right details panel: takes remaining space but doesn't grow past container */}
-      <div className="flex-1 min-w-0">
+      <div className="w-full md:flex-1 min-w-0">
         <AssignmentDetailsPanel
           sections={detailsSections}
           onSave={handleSave}

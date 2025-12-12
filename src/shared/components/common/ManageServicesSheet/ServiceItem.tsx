@@ -59,7 +59,7 @@ export function ServiceItem({
         {/* Duration + price, aligned to the right in fixed-width columns */}
         <div className="flex items-center gap-4 ml-auto whitespace-nowrap">
           {/* Duration column */}
-          <div className="flex justify-start w-14">
+          <div className="flex justify-start w-16">
             <div className="flex items-center gap-1 text-xs text-foreground-3 dark:text-foreground-2">
               {service.duration !== undefined && (
                 <>
@@ -72,7 +72,7 @@ export function ServiceItem({
             </div>
           </div>
           {/* Price column */}
-          <div className="flex justify-start w-12">
+          <div className="flex justify-start w-14">
             <div className="flex items-center gap-0 text-xs font-medium text-foreground-1">
               {service.price !== undefined && (
                 <>

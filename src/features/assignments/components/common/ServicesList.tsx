@@ -18,7 +18,8 @@ interface Service {
 interface AssignedService {
   serviceId: number;
   serviceName: string;
-  customPrice: number | null;
+  customPrice: number | null; // in cents (for backend)
+  displayCustomPrice?: number | null; // in decimal (for display) - calculated by backend
   customDuration: number | null;
   defaultPrice?: number; // price_amount_minor (cents) for comparison
   defaultDisplayPrice?: number; // displayPrice (decimal) for display
@@ -53,22 +54,22 @@ export function ServicesList({
   teamMemberName,
   onApplyServices,
   useCompactLayout = false,
-  description,
   summaryLine,
 }: ServicesListProps) {
   const { t } = useTranslation('assignments');
   const navigate = useNavigate();
 
   // Use compact layout if requested and we have team member name
-  if (useCompactLayout && teamMemberName && onApplyServices && assignedServices) {
+  // assignedServices can be empty array, that's fine - we still want to show the compact layout
+  if (useCompactLayout && teamMemberName && onApplyServices) {
     return (
       <CompactServicesSection
         assignedServices={assignedServices}
         assignedServiceIds={assignedServiceIds}
         allServices={allServices}
         teamMemberName={teamMemberName}
-        onUpdateCustomPrice={onUpdateCustomPrice!}
-        onUpdateCustomDuration={onUpdateCustomDuration!}
+        onUpdateCustomPrice={onUpdateCustomPrice}
+        onUpdateCustomDuration={onUpdateCustomDuration}
         onApplyServices={onApplyServices}
         currency={currency}
         summaryLine={summaryLine}
@@ -126,6 +127,7 @@ export function ServicesList({
                 defaultDisplayPrice={assigned.defaultDisplayPrice ?? defaultService?.price}
                 defaultDuration={assigned.defaultDuration ?? defaultService?.duration}
                 customPrice={assigned.customPrice}
+                displayCustomPrice={assigned.displayCustomPrice}
                 customDuration={assigned.customDuration}
                 onUpdateCustomPrice={onUpdateCustomPrice}
                 onUpdateCustomDuration={onUpdateCustomDuration}

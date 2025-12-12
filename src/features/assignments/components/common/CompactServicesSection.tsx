@@ -8,7 +8,8 @@ import { AssignedServiceRow } from "./AssignedServiceRow";
 interface AssignedService {
   serviceId: number;
   serviceName: string;
-  customPrice: number | null;
+  customPrice: number | null; // in cents (for backend)
+  displayCustomPrice?: number | null; // in decimal (for display) - calculated by backend
   customDuration: number | null;
   defaultPrice?: number; // price_amount_minor (cents) for comparison
   defaultDisplayPrice?: number; // displayPrice (decimal) for display
@@ -28,8 +29,8 @@ interface CompactServicesSectionProps {
     category?: { id: number; name: string; color?: string } | null;
   }>;
   teamMemberName: string;
-  onUpdateCustomPrice: (serviceId: number, price: number | null) => void;
-  onUpdateCustomDuration: (serviceId: number, duration: number | null) => void;
+  onUpdateCustomPrice?: (serviceId: number, price: number | null) => void;
+  onUpdateCustomDuration?: (serviceId: number, duration: number | null) => void;
   onApplyServices: (serviceIds: number[]) => void;
   currency?: string;
   summaryLine?: React.ReactNode;
@@ -48,7 +49,7 @@ export function CompactServicesSection({
   currency = "USD",
   summaryLine,
 }: CompactServicesSectionProps) {
-  const { t } = useTranslation('assignments');
+  const { t } = useTranslation("assignments");
   const [isManageSheetOpen, setIsManageSheetOpen] = useState(false);
   const [showAllServices, setShowAllServices] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false); // Track if user toggled
@@ -100,9 +101,9 @@ export function CompactServicesSection({
             rounded="full"
             onClick={() => setIsManageSheetOpen(true)}
             className="!px-6 mt-2 border-border-strong text-foreground-1"
-            >
+          >
             <Settings2 className="h-3 w-3 text-primary" />
-            <span>{t('page.compactServices.buttons.manageServices')}</span>
+            <span>{t("page.compactServices.buttons.manageServices")}</span>
           </Button>
         </div>
         <ManageServicesSheet
@@ -114,11 +115,15 @@ export function CompactServicesSection({
           onApply={onApplyServices}
         />
 
-        <div className="border-b border-border mb-6 pb-6 mt-5">
+        <div className="border-b border-border dark:border-border mb-6 pb-6 mt-5">
           <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
             {summaryLine}
           </div>
-          <span className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">{t('page.teamMembers.sections.services.description.assignFirstHelper')}</span>
+          <span className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+            {t(
+              "page.teamMembers.sections.services.description.assignFirstHelper"
+            )}
+          </span>
         </div>
       </div>
     );
@@ -127,7 +132,7 @@ export function CompactServicesSection({
   return (
     <div className="space-y-4">
       {/* Manage services button */}
-      <div className="flex border-b border-border mb-6 pb-6">
+      <div className="flex border-b border-border dark:border-border mb-6 pb-6">
         <Button
           variant="outline"
           rounded="full"
@@ -135,7 +140,7 @@ export function CompactServicesSection({
           className="!px-6 mt-2 border-border-strong text-foreground-1"
         >
           <Settings2 className="h-3 w-3 text-primary" />
-          <span>{t('page.compactServices.buttons.manageServices')}</span>
+          <span>{t("page.compactServices.buttons.manageServices")}</span>
         </Button>
       </div>
 
@@ -154,9 +159,13 @@ export function CompactServicesSection({
             {summaryLine}
           </div>
 
-          <span className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-            {t('page.teamMembers.sections.services.description.setCustomPricingHelper')}
-          </span>
+          {onUpdateCustomPrice && onUpdateCustomDuration && (
+            <span className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+              {t(
+                "page.teamMembers.sections.services.description.setCustomPricingHelper"
+              )}
+            </span>
+          )}
         </div>
       )}
 
@@ -164,37 +173,40 @@ export function CompactServicesSection({
       <div className="space-y-2 border border-border rounded-lg p-2">
         {/* Always render first 5 services */}
         <div className="divide-y divide-border">
-          {assignedServices.slice(0, MAX_VISIBLE_SERVICES).map((service) => {
-            const defaultService = allServices.find(
-              (s) => Number(s.id) === service.serviceId
-            );
-            const category =
-              service.category ?? defaultService?.category ?? null;
-            return (
-              <AssignedServiceRow
-                key={service.serviceId}
-                serviceId={service.serviceId}
-                serviceName={service.serviceName}
-                defaultPrice={
-                  service.defaultPrice ?? defaultService?.price_amount_minor
-                }
-                defaultDisplayPrice={
-                  service.defaultDisplayPrice ?? defaultService?.price
-                }
-                defaultDuration={
-                  service.defaultDuration ?? defaultService?.duration
-                }
-                categoryName={category?.name}
-                categoryColor={category?.color ?? null}
-                customPrice={service.customPrice}
-                customDuration={service.customDuration}
-                onUpdateCustomPrice={onUpdateCustomPrice}
-                onUpdateCustomDuration={onUpdateCustomDuration}
-                currency={currency}
-                teamMemberName={teamMemberName}
-              />
-            );
-          })}
+          {assignedServices
+            .slice(0, MAX_VISIBLE_SERVICES)
+            .map((service: AssignedService) => {
+              const defaultService = allServices.find(
+                (s) => Number(s.id) === service.serviceId
+              );
+              const category =
+                service.category ?? defaultService?.category ?? null;
+              return (
+                <AssignedServiceRow
+                  key={service.serviceId}
+                  serviceId={service.serviceId}
+                  serviceName={service.serviceName}
+                  defaultPrice={
+                    service.defaultPrice ?? defaultService?.price_amount_minor
+                  }
+                  defaultDisplayPrice={
+                    service.defaultDisplayPrice ?? defaultService?.price
+                  }
+                  defaultDuration={
+                    service.defaultDuration ?? defaultService?.duration
+                  }
+                  categoryName={category?.name}
+                  categoryColor={category?.color ?? null}
+                  customPrice={service.customPrice}
+                  displayCustomPrice={service.displayCustomPrice}
+                  customDuration={service.customDuration}
+                  onUpdateCustomPrice={onUpdateCustomPrice}
+                  onUpdateCustomDuration={onUpdateCustomDuration}
+                  currency={currency}
+                  teamMemberName={teamMemberName}
+                />
+              );
+            })}
         </div>
 
         {/* Collapsible section for remaining services */}
@@ -215,38 +227,45 @@ export function CompactServicesSection({
               } as React.CSSProperties
             }
           >
-            <div className="divide-y divide-border">
-              {assignedServices.slice(MAX_VISIBLE_SERVICES).map((service) => {
-                const defaultService = allServices.find(
-                  (s) => Number(s.id) === service.serviceId
-                );
-                const category =
-                  service.category ?? defaultService?.category ?? null;
-                return (
-                  <AssignedServiceRow
-                    key={service.serviceId}
-                    serviceId={service.serviceId}
-                    serviceName={service.serviceName}
-                    defaultPrice={
-                      service.defaultPrice ?? defaultService?.price_amount_minor
-                    }
-                    defaultDisplayPrice={
-                      service.defaultDisplayPrice ?? defaultService?.price
-                    }
-                    defaultDuration={
-                      service.defaultDuration ?? defaultService?.duration
-                    }
-                    categoryName={category?.name}
-                    categoryColor={category?.color ?? null}
-                    customPrice={service.customPrice}
-                    customDuration={service.customDuration}
-                    onUpdateCustomPrice={onUpdateCustomPrice}
-                    onUpdateCustomDuration={onUpdateCustomDuration}
-                    currency={currency}
-                teamMemberName={teamMemberName}
-                  />
-                );
-              })}
+            <div
+              className={`divide-y divide-border ${
+                showAllServices ? "border-t border-border" : ""
+              }`}
+            >
+              {assignedServices
+                .slice(MAX_VISIBLE_SERVICES)
+                .map((service: AssignedService) => {
+                  const defaultService = allServices.find(
+                    (s) => Number(s.id) === service.serviceId
+                  );
+                  const category =
+                    service.category ?? defaultService?.category ?? null;
+                  return (
+                    <AssignedServiceRow
+                      key={service.serviceId}
+                      serviceId={service.serviceId}
+                      serviceName={service.serviceName}
+                      defaultPrice={
+                        service.defaultPrice ??
+                        defaultService?.price_amount_minor
+                      }
+                      defaultDisplayPrice={
+                        service.defaultDisplayPrice ?? defaultService?.price
+                      }
+                      defaultDuration={
+                        service.defaultDuration ?? defaultService?.duration
+                      }
+                      categoryName={category?.name}
+                      categoryColor={category?.color ?? null}
+                      customPrice={service.customPrice}
+                      customDuration={service.customDuration}
+                      onUpdateCustomPrice={onUpdateCustomPrice}
+                      onUpdateCustomDuration={onUpdateCustomDuration}
+                      currency={currency}
+                      teamMemberName={teamMemberName}
+                    />
+                  );
+                })}
             </div>
           </div>
         )}
@@ -259,12 +278,14 @@ export function CompactServicesSection({
               variant="outline"
               rounded="full"
               onClick={handleShowMore}
-              className="group h-auto px-3 py-1.5 gap-1.5 border-border w-1/3"
+              className="group h-auto px-3 py-1.5 gap-1.5 border-border w-[60%] md:w-1/3"
             >
               <span>
-                {t('page.compactServices.buttons.showMore', { count: assignedServices.length - MAX_VISIBLE_SERVICES })}
+                {t("page.compactServices.buttons.showMore", {
+                  count: assignedServices.length - MAX_VISIBLE_SERVICES,
+                })}
               </span>
-              <ChevronDown className="h-3.5 w-3.5 mt-0.5 text-foreground-3 group-hover:text-foreground-1 rotate-0" />
+              <ChevronDown className="h-3.5 w-3.5 mt-0.5 text-foreground-3 group-hover:text-foreground-1 dark:text-neutral-700 dark:group-hover:text-neutral-900 rotate-0" />
             </Button>
           </div>
         )}
@@ -277,10 +298,10 @@ export function CompactServicesSection({
               variant="outline"
               rounded="full"
               onClick={handleShowLess}
-              className="group h-auto px-3 py-1.5 gap-1.5 border-border w-1/3"
+              className="group h-auto px-3 py-1.5 gap-1.5 border-border w-[60%] md:w-1/3"
             >
-              <span>{t('page.compactServices.buttons.showLess')}</span>
-              <ChevronDown className="h-3.5 w-3.5 mt-0.5 text-foreground-3 group-hover:text-foreground-1 rotate-180" />
+              <span>{t("page.compactServices.buttons.showLess")}</span>
+              <ChevronDown className="h-3.5 w-3.5 mt-0.5 text-foreground-3 dark:text-neutral-700 dark:group-hover:text-neutral-900 group-hover:text-foreground-1 rotate-180" />
             </Button>
           </div>
         )}

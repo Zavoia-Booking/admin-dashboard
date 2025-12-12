@@ -25,7 +25,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
   };
 
   return (
-    <div className="bg-surface px-1 py-3 shadow-sm">
+    <div className="bg-surface px-1 py-1 shadow-sm">
       <div className="flex items-center gap-3">
         <Button
           variant="ghost"

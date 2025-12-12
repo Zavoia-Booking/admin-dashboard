@@ -528,6 +528,8 @@
     "durationUnit": "min",
     "clear": "Clear",
     "apply": "Apply",
-    "close": "Close"
+    "close": "Close",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All"
   }
 }

@@ -16,7 +16,8 @@ interface ServicePillProps {
   defaultPrice?: number; // price_amount_minor (cents) from backend - for comparison
   defaultDisplayPrice?: number; // displayPrice (decimal) from backend - for display
   defaultDuration?: number;
-  customPrice: number | null;
+  customPrice: number | null; // in cents (for backend)
+  displayCustomPrice?: number | null; // in decimal (for display) - calculated by backend
   customDuration: number | null;
   onUpdateCustomPrice: (serviceId: number, price: number | null) => void;
   onUpdateCustomDuration: (serviceId: number, duration: number | null) => void;
@@ -31,6 +32,7 @@ export function ServicePill({
   defaultDisplayPrice,
   defaultDuration,
   customPrice,
+  displayCustomPrice,
   customDuration,
   onUpdateCustomPrice,
   onUpdateCustomDuration,
@@ -48,8 +50,12 @@ export function ServicePill({
   // defaultPrice is already in cents (price_amount_minor from backend) - for comparison
   const hasCustomPrice = customPrice !== null && customPrice !== (defaultPrice ?? 0);
   const hasCustomDuration = customDuration !== null && customDuration !== defaultDuration;
-  // For display: use customPrice converted to decimal, or defaultDisplayPrice from backend
-  const displayPrice = customPrice !== null ? customPrice / 100 : (defaultDisplayPrice ?? 0);
+  // For display: use displayCustomPrice from backend if available, otherwise calculate from customPrice
+  const displayPrice = displayCustomPrice !== null && displayCustomPrice !== undefined
+    ? displayCustomPrice
+    : customPrice !== null 
+    ? customPrice / 100 
+    : (defaultDisplayPrice ?? 0);
   const displayDuration = customDuration !== null ? customDuration : (defaultDuration || 0);
 
   const handlePriceChange = (value: number | string) => {
@@ -179,7 +185,7 @@ export function ServicePill({
             </div>
           </div>
 
-          <div className="flex gap-2 pt-2 border-t border-border">
+          <div className="flex gap-2 pt-2 border-t border-border dark:border-border">
             <Button
               variant="outline"
               size="sm"

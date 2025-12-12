@@ -14,6 +14,8 @@ import {
   Filter,
   Settings2,
   ArrowRight,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   Drawer,
@@ -44,10 +46,14 @@ import type { Service, CategoryGroup, SortField, SortDirection } from "./types";
 interface ManageServicesSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  teamMemberName: string;
+  teamMemberName?: string;
   allServices: Service[];
   initialSelectedIds: number[];
-  onApply: (serviceIds: number[]) => void;
+  onApply?: (serviceIds: number[]) => void;
+  // Single select mode props
+  mode?: 'multi' | 'single';
+  onSelect?: (serviceId: number) => void;
+  title?: string;
 }
 
 export function ManageServicesSheet({
@@ -57,8 +63,12 @@ export function ManageServicesSheet({
   allServices,
   initialSelectedIds,
   onApply,
+  mode = 'multi',
+  onSelect,
+  title,
 }: ManageServicesSheetProps) {
   const { t } = useTranslation("services");
+  const isSingleSelect = mode === 'single';
   const isMobile = useIsMobile();
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
@@ -107,6 +117,16 @@ export function ManageServicesSheet({
   const contentRefs = useRef<Map<number | null, HTMLDivElement>>(new Map());
 
   const [expandedCategories, setExpandedCategories] = useState<Set<number | null>>(() => {
+    if (isSingleSelect) {
+      // In single-select mode, expand all categories by default
+      const allCategoryIds = new Set<number | null>();
+      allServices.forEach((service) => {
+        allCategoryIds.add(service.category?.id ?? null);
+      });
+      return allCategoryIds;
+    }
+    
+    // In multi-select mode, only expand categories with selected services
     const selectedSet = new Set(initialSelectedIds);
     const expandedSet = new Set<number | null>();
     allServices.forEach((service) => {
@@ -118,6 +138,17 @@ export function ManageServicesSheet({
   });
 
   useEffect(() => {
+    if (isSingleSelect) {
+      // In single-select mode, keep all categories expanded
+      const allCategoryIds = new Set<number | null>();
+      allServices.forEach((service) => {
+        allCategoryIds.add(service.category?.id ?? null);
+      });
+      setExpandedCategories(allCategoryIds);
+      return;
+    }
+    
+    // In multi-select mode, only expand categories with selected services
     const selectedSet = new Set(selectedServiceIds);
     const newExpanded = new Set<number | null>();
     allServices.forEach((service) => {
@@ -126,7 +157,7 @@ export function ManageServicesSheet({
       }
     });
     setExpandedCategories(newExpanded);
-  }, [selectedServiceIds, allServices]);
+  }, [selectedServiceIds, allServices, isSingleSelect]);
 
   useEffect(() => {
     if (isOpen) {
@@ -145,16 +176,26 @@ export function ManageServicesSheet({
       setSortField("createdAt");
       setSortDirection("desc");
 
-      const selectedSet = new Set(initialSelectedIds);
-      const expandedSet = new Set<number | null>();
-      allServices.forEach((service) => {
-        if (selectedSet.has(Number(service.id))) {
-          expandedSet.add(service.category?.id ?? null);
-        }
-      });
-      setExpandedCategories(expandedSet);
+      if (isSingleSelect) {
+        // In single-select mode, expand all categories by default
+        const allCategoryIds = new Set<number | null>();
+        allServices.forEach((service) => {
+          allCategoryIds.add(service.category?.id ?? null);
+        });
+        setExpandedCategories(allCategoryIds);
+      } else {
+        // In multi-select mode, only expand categories with selected services
+        const selectedSet = new Set(initialSelectedIds);
+        const expandedSet = new Set<number | null>();
+        allServices.forEach((service) => {
+          if (selectedSet.has(Number(service.id))) {
+            expandedSet.add(service.category?.id ?? null);
+          }
+        });
+        setExpandedCategories(expandedSet);
+      }
     }
-  }, [isOpen, initialSelectedIds, allServices]);
+  }, [isOpen, initialSelectedIds, allServices, isSingleSelect]);
 
   const filteredCategoryGroups = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -290,6 +331,14 @@ export function ManageServicesSheet({
   };
 
   const toggleService = (serviceId: number) => {
+    if (isSingleSelect && onSelect) {
+      // Single select mode: immediately select and close
+      onSelect(serviceId);
+      onClose();
+      return;
+    }
+    
+    // Multi select mode: toggle selection
     setSelectedServiceIds((prev) =>
       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
     );
@@ -307,8 +356,10 @@ export function ManageServicesSheet({
   const handleClear = () => setSelectedServiceIds(initialSelectedIds);
 
   const handleApply = () => {
-    onApply(selectedServiceIds);
-    onClose();
+    if (onApply) {
+      onApply(selectedServiceIds);
+      onClose();
+    }
   };
 
   const getActiveFilterCount = useMemo(() => {
@@ -654,6 +705,64 @@ export function ManageServicesSheet({
     </button>
   );
 
+  // Get all visible service IDs from filtered category groups
+  const visibleServiceIds = useMemo(() => {
+    const ids: number[] = [];
+    filteredCategoryGroups.forEach((group) => {
+      group.services.forEach((service) => {
+        ids.push(Number(service.id));
+      });
+    });
+    return ids;
+  }, [filteredCategoryGroups]);
+
+  // Check if all visible services are selected
+  const areAllVisibleSelected = useMemo(() => {
+    if (visibleServiceIds.length === 0) return false;
+    return visibleServiceIds.every((id) => selectedServiceIds.includes(id));
+  }, [visibleServiceIds, selectedServiceIds]);
+
+  // Toggle all visible services
+  const toggleAllVisible = () => {
+    if (areAllVisibleSelected) {
+      // Deselect all visible services
+      setSelectedServiceIds((prev) => prev.filter((id) => !visibleServiceIds.includes(id)));
+    } else {
+      // Select all visible services (merge with existing selections)
+      setSelectedServiceIds((prev) => {
+        const newSet = new Set(prev);
+        visibleServiceIds.forEach((id) => newSet.add(id));
+        return Array.from(newSet);
+      });
+    }
+  };
+
+  const renderSelectAllButton = () => {
+    if (isSingleSelect) return null;
+    return (
+    <button
+      onClick={toggleAllVisible}
+      className={cn(
+        "inline-flex items-center justify-center h-auto !min-w-36 px-3 py-1.5 gap-1.5 rounded-full border border-border  cursor-pointer",
+        areAllVisibleSelected
+          ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
+          : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong"
+      )}
+      aria-label={areAllVisibleSelected ? t("manageServices.deselectAll") : t("manageServices.selectAll")}
+      disabled={visibleServiceIds.length === 0}
+    >
+      {areAllVisibleSelected ? (
+        <CheckSquare className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      ) : (
+        <Square className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      )}
+      <span className="text-xs font-medium">
+        {areAllVisibleSelected ? t("manageServices.deselectAll") : t("manageServices.selectAll")}
+      </span>
+    </button>
+    );
+  };
+
   const renderFilterActions = () => (
     <div className="flex justify-end gap-2 w-full pt-4 border-t border-border-subtle">
       <Button
@@ -676,7 +785,9 @@ export function ManageServicesSheet({
     </div>
   );
 
-  const renderFooter = (isMobileFooter = false) => (
+  const renderFooter = (isMobileFooter = false) => {
+    if (isSingleSelect) return null;
+    return (
     <div className={isMobileFooter ? "md:hidden bg-surface" : "hidden md:flex flex-col bg-surface shrink-0"}>
       <DashedDivider marginTop="mt-0" className="mb-0" paddingTop={isMobileFooter ? "pt-2" : "pt-4"} dashPattern="1 1" />
       <div className={isMobileFooter ? "flex justify-between gap-2 mt-0 md:mb-2 p-4" : "px-6 pb-2"}>
@@ -704,7 +815,8 @@ export function ManageServicesSheet({
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const content = (
     <>
@@ -712,7 +824,7 @@ export function ManageServicesSheet({
         <div className="flex items-center gap-3 px-4 md:px-0">
           <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
             <DrawerTitle className="text-lg text-foreground-1 cursor-default">
-              {t("manageServices.title")} <span className="font-semibold">{teamMemberName}</span>
+              {title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}
             </DrawerTitle>
           </div>
         </div>
@@ -771,6 +883,7 @@ export function ManageServicesSheet({
               </PopoverContent>
             </Popover>
           )}
+          {renderSelectAllButton()}
         </div>
 
         <FilterBadges
@@ -789,7 +902,11 @@ export function ManageServicesSheet({
         />
       </div>
 
-      <div className={cn("flex-1 p-4 space-y-4", filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center")}>
+      <div className={cn(
+        "flex-1 space-y-4",
+        filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center",
+        isSingleSelect ? "px-4 pt-4 pb-12" : "p-4"
+      )}>
         {filteredCategoryGroups.length === 0 ? renderEmptyState() : renderCategoryList()}
       </div>
 
@@ -801,8 +918,8 @@ export function ManageServicesSheet({
     return (
       <Drawer open={isOpen} onOpenChange={onClose} autoFocus={true}>
         <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80" overlayClassName="!z-80">
-          <DrawerTitle className="sr-only">{t("manageServices.title")} {teamMemberName}</DrawerTitle>
-          <DrawerDescription className="sr-only">{t("manageServices.title")} {teamMemberName}</DrawerDescription>
+          <DrawerTitle className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerTitle>
+          <DrawerDescription className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerDescription>
           {content}
         </DrawerContent>
       </Drawer>
@@ -828,7 +945,7 @@ export function ManageServicesSheet({
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
                 <h2 className="text-lg text-foreground-1 cursor-default">
-                  {t("manageServices.title")} <span className="font-semibold">{teamMemberName}</span>
+                  {title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}
                 </h2>
               </div>
               <Button
@@ -875,6 +992,7 @@ export function ManageServicesSheet({
                       {renderFilterActions()}
                     </PopoverContent>
                   </Popover>
+                  {renderSelectAllButton()}
                 </div>
               </div>
 
@@ -894,8 +1012,13 @@ export function ManageServicesSheet({
               />
             </div>
 
-            <div className={cn("flex-1 p-4 space-y-4 scrollbar-hide", filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center")}>
+            <div className={cn(
+              "flex-1 space-y-4 scrollbar-hide relative",
+              filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center",
+              isSingleSelect ? "px-4 pt-4 pb-0" : "p-4"
+            )}>
               {filteredCategoryGroups.length === 0 ? renderEmptyState() : renderCategoryList()}
+              {isSingleSelect && <div className="h-4 sticky bottom-0 left-0 right-0 w-full bg-surface" />}
             </div>
           </div>
 
