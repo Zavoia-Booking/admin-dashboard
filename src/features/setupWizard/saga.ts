@@ -5,6 +5,7 @@ import { fetchCurrentUserAction, setTokensAction, setCsrfToken } from "../auth/a
 import { fetchCurrentBusinessAction } from "../business/actions";
 import { prepareWizardDataForSubmission } from "./utils";
 import { apiClient } from "../../shared/lib/http";
+import { tokenStorage } from "../../shared/lib/tokenStorage";
 import type { RootState } from "../../app/providers/store";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
 
@@ -147,6 +148,11 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
       csrfToken: response.csrfToken ?? null,
       refreshToken: response.refreshToken ?? null
     }));
+    
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
     
     if (response.csrfToken) {
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));

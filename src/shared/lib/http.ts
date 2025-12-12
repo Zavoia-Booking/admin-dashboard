@@ -8,6 +8,7 @@ import {
 } from "../../features/auth/actions";
 import type { AuthState } from "../../features/auth/types";
 import config, { isNativeApp } from "../../app/config/env";
+import { tokenStorage } from "./tokenStorage";
 
 // ---- CONFIG ----
 const API_BASE_URL = config.API_URL;
@@ -138,9 +139,15 @@ async function performRefresh(): Promise<string> {
     headers["X-Native-App"] = "capacitor";
   }
   
+  // For native apps, get refresh token from Redux or persistent storage
+  let refreshToken = state.auth.refreshToken;
+  if (isNative && !refreshToken) {
+    refreshToken = await tokenStorage.loadRefreshToken();
+  }
+  
   // For native apps, send refresh token in body (cookies don't work cross-origin)
-  const body = isNative && state.auth.refreshToken 
-    ? { refreshToken: state.auth.refreshToken }
+  const body = isNative && refreshToken 
+    ? { refreshToken }
     : {};
   
   const { data } = await axios.post(
@@ -155,6 +162,11 @@ async function performRefresh(): Promise<string> {
   const newAccessToken: string = data.accessToken;
   const newCsrfToken: string | null = data.csrfToken ?? null;
   const newRefreshToken: string | null = data.refreshToken ?? null; // For native apps
+
+  // Persist refresh token to storage for native apps
+  if (isNative && newRefreshToken) {
+    await tokenStorage.saveRefreshToken(newRefreshToken);
+  }
 
   const decoded = decodeJwt<{ tid?: string; sub?: string; roles?: string[]; email?: string }>(newAccessToken);
   const businessId = (decoded as any)?.tid ?? _storeRef.getState().auth.businessId;

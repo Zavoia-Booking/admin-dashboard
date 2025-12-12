@@ -27,6 +27,7 @@ import { listLocationsAction } from "../locations/actions";
 import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
 import { refreshSession } from "../../shared/lib/http";
+import { tokenStorage } from "../../shared/lib/tokenStorage";
 
 function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOwnerPayload }): Generator<any, void, any> {
   try {
@@ -35,6 +36,12 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
+    
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
+    
     if (response.csrfToken) {
         yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
@@ -77,9 +84,15 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
 
 function* handleLogout(): Generator<any, void, any> {
   try {
+    // Clear stored refresh token for native apps
+    yield call([tokenStorage, 'clearRefreshToken']);
+    
     yield call(logoutApi);
     yield put(logoutRequestAction.success());
   } catch (error: any) {
+    // Still clear the token even if API call fails
+    yield call([tokenStorage, 'clearRefreshToken']);
+    
     const message = error?.response?.data?.error || error?.message || "Logout failed";
     yield put(logoutRequestAction.failure(message));
   }
@@ -92,6 +105,11 @@ function* handleLogin(action: { type: string; payload: { email: string, password
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
+    
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
 
     // Fetch locations post-login
     yield put(listLocationsAction.request());
@@ -220,6 +238,11 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
+    
     // Fetch locations post-authentication only if user has a business
     const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
     if (hasBusinessGoogle) {
@@ -310,6 +333,11 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
+    
     // Fetch locations post-authentication only if user has a business
     const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
     if (hasBusinessGoogle) {
@@ -397,6 +425,12 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     
     // Store authentication tokens (auto-login) + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
+    
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
+    
     yield put(setAuthUserAction({ user: response.user }));
     
     // Also fetch current user to ensure we have the latest data
@@ -472,6 +506,12 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     const response: AuthResponse = yield call(linkGoogleByCodeApi, action.payload);
     // Update user in Redux + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
+    
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
+    
     yield put(setAuthUserAction({ user: response.user }));
     yield put(linkGoogleByCodeAction.success({ message: 'Google account linked', user: response.user, accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
     
@@ -518,6 +558,11 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
+    
+    // Persist refresh token to storage for native apps
+    if (response.refreshToken) {
+      yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
+    }
 
     // Fetch locations post-login
     yield put(listLocationsAction.request());
