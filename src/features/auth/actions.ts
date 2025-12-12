@@ -9,7 +9,7 @@ import type {
 
 export const setTokensAction = createAction(
   'auth/SET_TOKENS',
-)<{ accessToken: string | null, csrfToken: string | null }>();
+)<{ accessToken: string | null, csrfToken: string | null, refreshToken?: string | null }>();
 
 export const setAuthLoadingAction = createAction(
   'auth/SET_AUTH_LOADING',

@@ -7,7 +7,7 @@ import {
   hydrateSessionAction,
 } from "../../features/auth/actions";
 import type { AuthState } from "../../features/auth/types";
-import config from "../../app/config/env";
+import config, { isNativeApp } from "../../app/config/env";
 
 // ---- CONFIG ----
 const API_BASE_URL = config.API_URL;
@@ -55,8 +55,14 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
     if (accessToken && config.headers) {
       config.headers["Authorization"] = `Bearer ${accessToken}`;
     }
-    // Always try to send CSRF token for protected endpoints
-    if (csrfHeaderNeeded && config.headers) {
+    
+    // Mark requests from native apps (for backend to skip CSRF validation)
+    if (isNativeApp() && config.headers) {
+      config.headers["X-Native-App"] = "capacitor";
+    }
+    
+    // Always try to send CSRF token for protected endpoints (web only)
+    if (csrfHeaderNeeded && config.headers && !isNativeApp()) {
       // First try Redux, then fall back to cookie (important for page reloads)
       const csrf = state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME);
       if (csrf) {
@@ -120,24 +126,41 @@ export function apiClient(): AxiosInstance {
 async function performRefresh(): Promise<string> {
   if (!_storeRef) throw new Error("API client not initialized");
   const state = _storeRef.getState();
-  const csrf = state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME);
+  const isNative = isNativeApp();
+  const csrf = !isNative ? (state.auth.csrfToken || readCookie(CSRF_COOKIE_NAME)) : null;
+  
+  // Build headers based on platform
+  const headers: Record<string, string> = {};
+  if (csrf) {
+    headers["x-csrf-token"] = csrf;
+  }
+  if (isNative) {
+    headers["X-Native-App"] = "capacitor";
+  }
+  
+  // For native apps, send refresh token in body (cookies don't work cross-origin)
+  const body = isNative && state.auth.refreshToken 
+    ? { refreshToken: state.auth.refreshToken }
+    : {};
+  
   const { data } = await axios.post(
     `${API_BASE_URL}${REFRESH_ENDPOINT}`,
-    {},
+    body,
     {
-      withCredentials: true, // send refresh cookie on /auth/refresh
-      headers: csrf ? { "x-csrf-token": csrf } : {},
+      withCredentials: true, // send refresh cookie on /auth/refresh (web only)
+      headers,
     }
   );
 
   const newAccessToken: string = data.accessToken;
   const newCsrfToken: string | null = data.csrfToken ?? null;
+  const newRefreshToken: string | null = data.refreshToken ?? null; // For native apps
 
   const decoded = decodeJwt<{ tid?: string; sub?: string; roles?: string[]; email?: string }>(newAccessToken);
   const businessId = (decoded as any)?.tid ?? _storeRef.getState().auth.businessId;
   const user = decoded?.sub ? { id: decoded.sub, email: decoded?.email, roles: decoded?.roles } : undefined;
 
-  _storeRef.dispatch(setTokensAction({ accessToken: newAccessToken, csrfToken: newCsrfToken }));
+  _storeRef.dispatch(setTokensAction({ accessToken: newAccessToken, csrfToken: newCsrfToken, refreshToken: newRefreshToken }));
   _storeRef.dispatch(setCsrfTokenAction({ csrfToken: newCsrfToken }));
   _storeRef.dispatch(
     hydrateSessionAction.success({

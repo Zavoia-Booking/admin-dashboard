@@ -9,6 +9,7 @@ type Actions = ActionType<typeof actions>
 
 const initialState: AuthState = {
   accessToken: null,
+  refreshToken: null,
   csrfToken: null,
   businessId: null,
   user: null,
@@ -140,10 +141,11 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
     }
 
     case getType(setTokensAction): {
-      const { accessToken, csrfToken } = action.payload as { accessToken: string | null; csrfToken?: string | null };
+      const { accessToken, csrfToken, refreshToken } = action.payload as { accessToken: string | null; csrfToken?: string | null; refreshToken?: string | null };
       return {
         ...state,
         accessToken,
+        refreshToken: typeof refreshToken !== "undefined" ? refreshToken : state.refreshToken,
         csrfToken: typeof csrfToken !== "undefined" ? csrfToken : state.csrfToken,
         isAuthenticated: !!accessToken,
         status: accessToken ? AuthStatusEnum.AUTHENTICATED : AuthStatusEnum.UNAUTHENTICATED,

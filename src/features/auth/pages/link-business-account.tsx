@@ -13,6 +13,7 @@ type LinkBusinessAccountResponse = {
   message: string;
   accessToken: string;
   csrfToken: string | null;
+  refreshToken?: string | null; // For native apps
   user: AuthUser;
 };
 
@@ -39,10 +40,11 @@ export default function LinkBusinessAccountPage() {
           { token }
         );
 
-        // Auto-login the user with the returned tokens
+        // Auto-login the user with the returned tokens + refresh token for native apps
         dispatch(setTokensAction({ 
           accessToken: data.accessToken, 
-          csrfToken: data.csrfToken ?? null 
+          csrfToken: data.csrfToken ?? null,
+          refreshToken: data.refreshToken ?? null
         }));
         dispatch(setAuthUserAction({ user: data.user }));
 

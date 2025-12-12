@@ -1,32 +1,41 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+// Live reload: Set LIVE_RELOAD_IP to your machine's IP address
+// Example: LIVE_RELOAD_IP=192.168.1.100 npx cap sync android
+const liveReloadIP = process.env.LIVE_RELOAD_IP;
+
+// Use HTTP scheme for dev builds to avoid mixed content issues with local HTTP APIs
+const useHttpScheme = process.env.CAPACITOR_USE_HTTP === 'true';
+
 const config: CapacitorConfig = {
   appId: 'com.bookaroo.admin',
   appName: 'Bookaroo Admin',
   webDir: 'dist',
-  
-  // Server configuration for development
-  // Comment out for production builds
-  // server: {
-  //   url: 'http://YOUR_LOCAL_IP:5173',
-  //   cleartext: true
-  // },
 
-  // Android specific configuration
+  server: {
+    // Live reload: load from Vite dev server
+    ...(liveReloadIP ? {
+      url: `http://${liveReloadIP}:5173`,
+      cleartext: true,
+    } : {}),
+    // Use HTTP scheme for dev builds (avoids mixed content with http:// APIs)
+    ...(useHttpScheme ? {
+      androidScheme: 'http',
+    } : {}),
+  },
+
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: true, // Set to false for production
+    webContentsDebuggingEnabled: true,
   },
 
-  // iOS specific configuration
   ios: {
     contentInset: 'automatic',
-    allowsLinkPreview: true,
     scrollEnabled: true,
+    webContentsDebuggingEnabled: true,
   },
 
-  // Plugins configuration
   plugins: {
     SplashScreen: {
       launchShowDuration: 2000,

@@ -33,8 +33,8 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = (yield call(registerOwnerRequestApi, action.payload)) as AuthResponse;
 
-    // Store access token in Redux (memory) + optional CSRF token
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     if (response.csrfToken) {
         yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
@@ -90,8 +90,8 @@ function* handleLogin(action: { type: string; payload: { email: string, password
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = (yield call(loginApi, action.payload)) as AuthResponse;
 
-    // Store access token in Redux (memory) + optional CSRF token
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
 
     // Fetch locations post-login
     yield put(listLocationsAction.request());
@@ -217,8 +217,8 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = yield call(googleLoginApi, action.payload);
 
-    // Store access token in Redux (memory) + optional CSRF token
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     
     // Fetch locations post-authentication only if user has a business
     const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
@@ -307,8 +307,8 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = yield call(googleRegisterApi, action.payload);
 
-    // Store access token in Redux (memory) + optional CSRF token
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     
     // Fetch locations post-authentication only if user has a business
     const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
@@ -395,8 +395,8 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     // Call linking API - now returns auth tokens
     const response: AuthResponse = yield call(linkGoogleApi, action.payload);
     
-    // Store authentication tokens (auto-login)
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Store authentication tokens (auto-login) + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     yield put(setAuthUserAction({ user: response.user }));
     
     // Also fetch current user to ensure we have the latest data
@@ -470,8 +470,8 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     }
 
     const response: AuthResponse = yield call(linkGoogleByCodeApi, action.payload);
-    // Update user in Redux
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Update user in Redux + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     yield put(setAuthUserAction({ user: response.user }));
     yield put(linkGoogleByCodeAction.success({ message: 'Google account linked', user: response.user, accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
     
@@ -516,8 +516,8 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = yield call(selectBusinessApi, action.payload);
 
-    // Store access token in Redux (memory) + optional CSRF token
-    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+    // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
+    yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
 
     // Fetch locations post-login
     yield put(listLocationsAction.request());

@@ -51,6 +51,7 @@ export type AuthResponse = {
   accessToken: string;
   user: AuthUser;
   csrfToken: string;
+  refreshToken?: string; // Returned for native apps
 };
 
 export enum AuthStatusEnum {
@@ -84,6 +85,7 @@ export type AccountLinkingDetails = {
 
 export interface AuthState {
   accessToken: string | null;
+  refreshToken: string | null; // For native apps only
   csrfToken: string | null;
   businessId: string | null;
   user: AuthUser | null;

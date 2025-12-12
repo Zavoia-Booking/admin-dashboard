@@ -141,10 +141,11 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
     
     const response: CompleteWizardResponse = yield call(completeWizardApi, payload);
     
-    // Update tokens with the new JWT that includes businessId
+    // Update tokens with the new JWT that includes businessId + refresh token for native apps
     yield put(setTokensAction({ 
       accessToken: response.accessToken, 
-      csrfToken: response.csrfToken ?? null 
+      csrfToken: response.csrfToken ?? null,
+      refreshToken: response.refreshToken ?? null
     }));
     
     if (response.csrfToken) {

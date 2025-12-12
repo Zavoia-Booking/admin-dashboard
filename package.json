@@ -5,28 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:host": "vite --host",
     "build": "tsc -b && vite build",
-    "build:analyze": "tsc -b && vite build --mode analyze",
     "lint": "eslint .",
-    "pwa:preview": "vite preview --host",
-    "tunnel:start": "cloudflared tunnel --config .cloudflared/config.yml run bookaroo-admin-dev",
-    "tunnel:create": "cloudflared tunnel create bookaroo-admin-dev",
-    "tunnel:login": "cloudflared tunnel login",
-    "icons:generate": "echo 'Open generate-pwa-icons.html in your browser to download icons'",
-    "cap:init": "npx cap init",
-    "cap:sync": "npx cap sync",
-    "cap:copy": "npx cap copy",
-    "cap:update": "npx cap update",
-    "cap:add:android": "npx cap add android",
-    "cap:add:ios": "npx cap add ios",
-    "cap:open:android": "npx cap open android",
-    "cap:open:ios": "npx cap open ios",
-    "cap:run:android": "npx cap run android",
-    "cap:run:ios": "npx cap run ios",
-    "build:android": "yarn build && npx cap sync android",
-    "build:ios": "yarn build && npx cap sync ios",
-    "build:native": "yarn build && npx cap sync"
+    "preview": "vite preview --host",
+
+    "android": "tsc -b && vite build --mode mobile && cross-env CAPACITOR_USE_HTTP=true npx cap sync android && bash scripts/sync-to-windows.sh",
+    "android:prod": "tsc -b && vite build --mode mobile-prod && npx cap sync android && bash scripts/sync-to-windows.sh",
+    "android:live": "vite --host --mode mobile",
+    "android:sync": "bash scripts/sync-to-windows.sh",
+    "android:sync:full": "bash scripts/sync-to-windows.sh --full",
+
+    "ios": "tsc -b && vite build --mode mobile && cross-env CAPACITOR_USE_HTTP=true npx cap sync ios",
+    "ios:prod": "tsc -b && vite build --mode mobile-prod && npx cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "^7.4.4",
@@ -79,8 +69,8 @@
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-basic-ssl": "^2.1.0",
     "@vitejs/plugin-react-swc": "^4.0.0",
+    "cross-env": "^7.0.3",
     "eruda": "^3.4.1",
     "eslint": "^9.33.0",
     "eslint-plugin-react-hooks": "^5.2.0",
@@ -88,9 +78,6 @@
     "globals": "^16.3.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
-    "vite": "^7.1.2",
-    "vite-plugin-pwa": "^1.1.0",
-    "workbox-build": "^7.3.0",
-    "workbox-window": "^7.3.0"
+    "vite": "^7.1.2"
   }
 }
