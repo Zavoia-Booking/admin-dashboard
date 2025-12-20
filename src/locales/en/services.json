@@ -528,6 +528,7 @@
     "durationUnit": "min",
     "clear": "Clear",
     "apply": "Apply",
+    "saveChanges": "Save changes",
     "close": "Close",
     "selectAll": "Select All",
     "deselectAll": "Deselect All"

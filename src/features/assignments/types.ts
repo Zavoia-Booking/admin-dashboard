@@ -1,205 +1,181 @@
-import type { FilterItem } from "../../shared/types/common";
-import { FilterOperator } from "../../shared/types/common";
-import { ALL } from "../../shared/constants.ts";
-
-export type Assignment = {
-  id: number;
-  title: string;
-  assigneeName: string;
-  assigneeEmail?: string;
-  status: "open" | "in_progress" | "completed" | "archived";
-  dueDate?: string | null;
-  locationName?: string | null;
-  createdAt?: string;
+// Service assigned to a location
+export type LocationService = {
+  serviceId: number;
+  serviceName: string;
+  category?: { id: number; name: string; color?: string } | null;
+  
+  // Default from service (global)
+  defaultPrice: number; // cents
+  defaultDisplayPrice: number; // decimal
+  defaultDuration: number; // minutes
+  
+  // Location overrides (null = inherited from service default)
+  customPrice: number | null; // cents
+  customDuration: number | null; // minutes
+  
+  // Staff info
+  staffCount: number; // how many team members can perform
+  staffWithOverrides: number; // how many have custom pricing
 };
 
-export type AssignmentItem = {
-  id: number,
-  service: any,
-  user: any,
-  customDuration: number | null
-  customPrice: number | null
-}
-
-export type AssignmentGroup = {
-  service: any
-  assignees: Array<any>
-}
-
-export type AssignmentSummary = {
-  total: number;
-  open: number;
-  inProgress: number;
-  completed: number;
+// Staff service assignment at location level
+export type StaffService = {
+  serviceId: number;
+  serviceName: string;
+  canPerform: boolean;
+  category?: { id: number; name: string; color?: string } | null;
+  
+  // Inherited from location (what the staff inherits)
+  inheritedPrice: number; // cents
+  inheritedDisplayPrice: number; // decimal
+  inheritedDuration: number; // minutes
+  
+  // Staff overrides (null = inherited from location)
+  customPrice: number | null; // cents
+  customDuration: number | null; // minutes
+  
+  isCustom: boolean; // true if has any override
 };
 
-export type AssignmentFilterState = {
-  serviceId: number | string;
-};
-
-export type TeamMemberAssignment = {
-  id: number;
-  profileImage: string | null;
-  email: string;
+// Team member summary at location
+export type LocationTeamMember = {
+  userId: number;
   firstName: string;
   lastName: string;
+  email: string;
+  profileImage: string | null;
   role: string;
-  allServices?: Array<{
-    serviceId: number;
-    serviceName: string;
-    price_amount_minor: number;
-    displayPrice: number;
-    duration: number;
-    createdAt: string;
-    updatedAt: string;
-    category?: { id: number; name: string; color?: string } | null;
-  }>;
-  allLocations?: Array<{
-    locationId: number;
-    locationName: string;
-    address: string;
-  }>;
-  assignedServices: Array<{
-    serviceId: number;
-    serviceName: string;
-    customPrice: number | null;
-    displayCustomPrice: number | null;
-    customDuration: number | null;
-    category?: { id: number; name: string; color?: string } | null;
-  }>;
-  assignedLocations: Array<{
-    locationId: number;
-    locationName: string;
-    address: string;
-  }>;
+  servicesEnabled: number; // count of services they can perform
+  overridesCount: number; // count of services with custom pricing
 };
 
-export type ServiceAssignment = {
-  id: number;
-  name: string;
-  description: string;
-  displayPrice: number;
-  duration: number;
-  assignedTeamMembers: Array<{
-    userId: number;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  }>;
-  assignedLocations: Array<{
-    locationId: number;
-    locationName: string;
-    address: string;
-  }>;
-  allTeamMembers: Array<{
-    userId: number;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  }>;
-  allLocations: Array<{
-    locationId: number;
-    locationName: string;
-    address: string;
-  }>;
-};
-
-export type LocationAssignment = {
+// Full location assignment data for the new flow
+export type LocationFullAssignment = {
   id: number;
   name: string;
   address: string;
-  assignedTeamMembers: Array<{
-    userId: number;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  }>;
-  assignedServices: Array<{
-    serviceId: number;
-    serviceName: string;
-  }>;
-  allTeamMembers: Array<{
-    userId: number;
-    email: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-  }>;
+  
+  // All available services (from business) - for "Manage Services" drawer
   allServices: Array<{
     serviceId: number;
     serviceName: string;
     price_amount_minor: number;
     displayPrice: number;
     duration: number;
-    createdAt: string;
-    updatedAt: string;
     category?: { id: number; name: string; color?: string } | null;
+  }>;
+  
+  // Services assigned to this location (only assigned ones)
+  services: LocationService[];
+  
+  // Team members at this location with summary info
+  teamMembers: LocationTeamMember[];
+  
+  // All available team members (from business)
+  allTeamMembers: Array<{
+    userId: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+    profileImage: string | null;
+    role: string;
   }>;
 };
 
-export type BulkAssignmentPayload = {
-  type: 'service_to_locations' | 'team_member_to_services' | 'team_member_to_locations' | 'service_to_team_members';
-  sourceId: number;
-  targetIds: number[];
+// Staff services data for the drawer
+export type StaffServicesAtLocation = {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  locationId: number;
+  locationName: string;
+  services: StaffService[];
 };
 
+// Staff member with override data for a specific service
+export type StaffOverrideData = {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImage: string | null;
+  customPrice: number | null; // cents
+  customDisplayPrice: number | null; // decimal
+  customDuration: number | null; // minutes
+  inheritedPrice: number; // cents
+  inheritedDisplayPrice: number; // decimal
+  inheritedDuration: number; // minutes
+};
+
+// Response for service staff overrides endpoint
+export type ServiceStaffOverrides = {
+  serviceId: number;
+  serviceName: string;
+  locationId: number;
+  staffOverrides: StaffOverrideData[];
+};
+
+// Payload for updating location services
+export type UpdateLocationServicesPayload = {
+  locationId: number;
+  services: Array<{
+    serviceId: number;
+    isEnabled: boolean;
+    customPrice?: number | null; // cents
+    customDuration?: number | null; // minutes
+  }>;
+};
+
+// Payload for updating staff services at location
+export type UpdateStaffServicesPayload = {
+  locationId: number;
+  userId: number;
+  services: Array<{
+    serviceId: number;
+    canPerform: boolean;
+    customPrice?: number | null; // cents
+    customDuration?: number | null; // minutes
+  }>;
+};
+
+// Copy setup payload
+export type CopyStaffSetupPayload = {
+  locationId: number;
+  sourceUserId: number;
+  targetUserId: number;
+  copyEnabledServices: boolean;
+  copyCustomPricing: boolean;
+};
+
+// Payload for updating team member assignments at a location
+export type UpdateLocationTeamMembersPayload = {
+  locationId: number;
+  userIds: number[]; // List of user IDs to assign to this location
+};
+
+// Unified payload for updating location assignments (services and team members)
+export type UpdateLocationAssignmentsPayload = {
+  locationId: number;
+  services?: Array<{
+    serviceId: number;
+    isEnabled: boolean;
+    customPrice?: number | null;
+    customDuration?: number | null;
+  }>;
+  userIds?: number[];
+  // Metadata for team member toggles (for better toast messages)
+  teamMemberToggle?: {
+    userId: number;
+    enabled: boolean;
+  };
+};
+
+// Redux state
 export type AssignmentsState = {
-  // Selected item in left panel
-  selectedTeamMemberId: number | null;
-  selectedServiceId: number | null;
   selectedLocationId: number | null;
-  
-  // Data for team members
-  teamMemberAssignments: TeamMemberAssignment[];
-  selectedTeamMemberAssignment: TeamMemberAssignment | null;
-  
-  // Data for services (selected service assignment details)
-  selectedServiceAssignment: ServiceAssignment | null;
-  
-  // Data for locations (selected location assignment details)
-  selectedLocationAssignment: LocationAssignment | null;
-  
-  // Loading states
+  selectedLocationFullAssignment: LocationFullAssignment | null;
+  staffServices: StaffService[];
   isLoading: boolean;
   isSaving: boolean;
+  isStaffServicesLoading: boolean;
 };
-
-export function mapAssignmentFiltersToGeneric(filters: AssignmentFilterState): Array<FilterItem> {
-  const items: Array<FilterItem> = [];
-  const { serviceId } = filters;
-
-  if (serviceId !== "all") {
-    items.push({ field: 'service.id', operator: FilterOperator.EQUALS, value: Number(serviceId) });
-  }
-  return items;
-}
-
-export function getDefaultAssignmentFilters(): AssignmentFilterState {
-  return {
-    serviceId: ALL,
-  };
-}
-
-export type GetAssignmentSuccessResponse = {
-  summary: AssignmentSummary;
-  assignments: Assignment[]
-}
-
-export type AssignmentFormData = {
-  serviceId: number | null;
-  userId: number | null;
-  customPrice: boolean;
-  customDuration: boolean;
-  customPriceValue: number;
-  customDurationValue: number;
-}
-
-export type AssignmentRequestPayload = {
-  serviceId: number;
-  userId: number;
-  customPrice: number | null;
-  customDuration: number | null;
-}

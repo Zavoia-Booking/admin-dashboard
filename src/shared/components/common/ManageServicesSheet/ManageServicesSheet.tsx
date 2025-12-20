@@ -50,10 +50,14 @@ interface ManageServicesSheetProps {
   allServices: Service[];
   initialSelectedIds: number[];
   onApply?: (serviceIds: number[]) => void;
+  onSave?: (serviceIds: number[]) => void;
   // Single select mode props
   mode?: 'multi' | 'single';
   onSelect?: (serviceId: number) => void;
   title?: string;
+  subtitle?: string;
+  titleLocationName?: string;
+  expandAllCategories?: boolean;
 }
 
 export function ManageServicesSheet({
@@ -63,9 +67,13 @@ export function ManageServicesSheet({
   allServices,
   initialSelectedIds,
   onApply,
+  onSave,
   mode = 'multi',
   onSelect,
   title,
+  subtitle,
+  titleLocationName,
+  expandAllCategories = false,
 }: ManageServicesSheetProps) {
   const { t } = useTranslation("services");
   const isSingleSelect = mode === 'single';
@@ -117,8 +125,8 @@ export function ManageServicesSheet({
   const contentRefs = useRef<Map<number | null, HTMLDivElement>>(new Map());
 
   const [expandedCategories, setExpandedCategories] = useState<Set<number | null>>(() => {
-    if (isSingleSelect) {
-      // In single-select mode, expand all categories by default
+    if (isSingleSelect || expandAllCategories) {
+      // In single-select mode or when expandAllCategories is true, expand all categories by default
       const allCategoryIds = new Set<number | null>();
       allServices.forEach((service) => {
         allCategoryIds.add(service.category?.id ?? null);
@@ -138,8 +146,8 @@ export function ManageServicesSheet({
   });
 
   useEffect(() => {
-    if (isSingleSelect) {
-      // In single-select mode, keep all categories expanded
+    if (isSingleSelect || expandAllCategories) {
+      // In single-select mode or when expandAllCategories is true, keep all categories expanded
       const allCategoryIds = new Set<number | null>();
       allServices.forEach((service) => {
         allCategoryIds.add(service.category?.id ?? null);
@@ -157,7 +165,7 @@ export function ManageServicesSheet({
       }
     });
     setExpandedCategories(newExpanded);
-  }, [selectedServiceIds, allServices, isSingleSelect]);
+  }, [selectedServiceIds, allServices, isSingleSelect, expandAllCategories]);
 
   useEffect(() => {
     if (isOpen) {
@@ -176,8 +184,8 @@ export function ManageServicesSheet({
       setSortField("createdAt");
       setSortDirection("desc");
 
-      if (isSingleSelect) {
-        // In single-select mode, expand all categories by default
+      if (isSingleSelect || expandAllCategories) {
+        // In single-select mode or when expandAllCategories is true, expand all categories by default
         const allCategoryIds = new Set<number | null>();
         allServices.forEach((service) => {
           allCategoryIds.add(service.category?.id ?? null);
@@ -356,7 +364,10 @@ export function ManageServicesSheet({
   const handleClear = () => setSelectedServiceIds(initialSelectedIds);
 
   const handleApply = () => {
-    if (onApply) {
+    if (onSave) {
+      onSave(selectedServiceIds);
+      onClose();
+    } else if (onApply) {
       onApply(selectedServiceIds);
       onClose();
     }
@@ -522,7 +533,7 @@ export function ManageServicesSheet({
                   }
                 }}
                 placeholder={t("filters.minDurationPlaceholder")}
-                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-2 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus/50"
               />
             </div>
           </div>
@@ -542,7 +553,7 @@ export function ManageServicesSheet({
                   }
                 }}
                 placeholder={t("filters.maxDurationPlaceholder")}
-                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-2 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus/50"
               />
             </div>
           </div>
@@ -569,7 +580,7 @@ export function ManageServicesSheet({
                   rounded="full"
                   onClick={() => toggleCategoryFilter(category.id)}
                   className={cn(
-                    "h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium",
+                    "h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
                     isSelected
                       ? "border-neutral-500 text-neutral-900 dark:text-neutral-900 shadow-xs focus-visible:!border-neutral-500"
                       : "border-border opacity-100",
@@ -597,7 +608,7 @@ export function ManageServicesSheet({
                 variant="outline"
                 rounded="full"
                 onClick={() => setShowAllCategories(true)}
-                className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+                className="h-auto px-3 py-1.5 gap-1.5 border-dashed focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0"
               >
                 {t("addService.form.category.showMore", {
                   count: availableCategories.length - MAX_VISIBLE_CATEGORIES,
@@ -612,7 +623,7 @@ export function ManageServicesSheet({
                 variant="outline"
                 rounded="full"
                 onClick={() => setShowAllCategories(false)}
-                className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+                className="h-auto px-3 py-1.5 gap-1.5 border-dashed focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0"
               >
                 {t("addService.form.category.showLess")}
               </Button>
@@ -688,7 +699,7 @@ export function ManageServicesSheet({
   const renderFilterButton = (isActive: boolean) => (
     <button
       className={cn(
-        "relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border transition-[colors,box-shadow,background-color,color] duration-200 ease-out cursor-pointer",
+        "relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border transition-[colors,box-shadow,background-color,color] duration-200 ease-out cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
         isActive
           ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
           : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong"
@@ -743,7 +754,7 @@ export function ManageServicesSheet({
     <button
       onClick={toggleAllVisible}
       className={cn(
-        "inline-flex items-center justify-center h-auto !min-w-36 px-3 py-1.5 gap-1.5 rounded-full border border-border  cursor-pointer",
+        "inline-flex items-center justify-center h-auto !min-w-36 px-3 py-1.5 gap-1.5 rounded-full border border-border  cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
         areAllVisibleSelected
           ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
           : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong"
@@ -809,7 +820,7 @@ export function ManageServicesSheet({
             disabled={!hasChanges}
             className={`group gap-2 h-11 cursor-pointer ${isMobileFooter ? "flex-1" : "w-72"}`}
           >
-            {t("manageServices.apply")}
+            {onSave ? t("manageServices.saveChanges") : t("manageServices.apply")}
             <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
           </Button>
         </div>
@@ -824,8 +835,22 @@ export function ManageServicesSheet({
         <div className="flex items-center gap-3 px-4 md:px-0">
           <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
             <DrawerTitle className="text-lg text-foreground-1 cursor-default">
-              {title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}
+              {title && titleLocationName ? (
+                <>
+                  {title.split(titleLocationName)[0]}
+                  <span className="font-semibold">{titleLocationName}</span>
+                </>
+              ) : title ? (
+                title
+              ) : (
+                teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title")
+              )}
             </DrawerTitle>
+            {subtitle && (
+              <DrawerDescription className="text-sm text-foreground-3 dark:text-foreground-2 mt-1">
+                {subtitle}
+              </DrawerDescription>
+            )}
           </div>
         </div>
         <DashedDivider marginTop="mt-3" className="pt-0 md:pt-3" dashPattern="1 1" />
@@ -945,8 +970,22 @@ export function ManageServicesSheet({
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
                 <h2 className="text-lg text-foreground-1 cursor-default">
-                  {title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}
+                  {title && titleLocationName ? (
+                    <>
+                      {title.split(titleLocationName)[0]}
+                      <span className="font-semibold">{titleLocationName}</span>
+                    </>
+                  ) : title ? (
+                    title
+                  ) : (
+                    teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title")
+                  )}
                 </h2>
+                {subtitle && (
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-1">
+                    {subtitle}
+                  </p>
+                )}
               </div>
               <Button
                 variant="ghost"

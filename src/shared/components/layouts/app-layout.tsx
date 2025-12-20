@@ -35,7 +35,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <div className="sticky top-0 z-20 md:hidden">
               <Breadcrumbs items={breadcrumbs} />
             </div>
-            <div className="px-4 py-4">
+            <div className="px-2 py-4 md:px-4">
               {children}
             </div>
             </div>

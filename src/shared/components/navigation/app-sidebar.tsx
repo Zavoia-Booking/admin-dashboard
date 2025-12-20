@@ -68,20 +68,6 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     url: "/assignments",
     icon: ClipboardList,
     roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
-    items: [
-      {
-        title: t("sidebar.subItems.assignments.teamMembers"),
-        url: "/assignments?tab=team_members",
-      },
-      {
-        title: t("sidebar.subItems.assignments.services"),
-        url: "/assignments?tab=services",
-      },
-      {
-        title: t("sidebar.subItems.assignments.locations"),
-        url: "/assignments?tab=locations",
-      },
-    ],
   },
   {
     title: t("sidebar.teamMembers"),

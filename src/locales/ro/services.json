@@ -525,6 +525,7 @@
     "durationUnit": "min",
     "clear": "Șterge",
     "apply": "Aplică",
+    "saveChanges": "Salvează modificările",
     "close": "Închide",
     "selectAll": "Selectează tot",
     "deselectAll": "Deselectează tot"

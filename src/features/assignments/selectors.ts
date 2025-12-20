@@ -4,14 +4,10 @@ import type { RootState } from "../../app/providers/store.ts";
 export const getIsLoadingSelector = (state: RootState) => state.assignments.isLoading;
 export const getIsSavingSelector = (state: RootState) => state.assignments.isSaving;
 
-// Team Members selectors
-export const getTeamMemberAssignmentsSelector = (state: RootState) => state.assignments.teamMemberAssignments;
-export const getSelectedTeamMemberIdSelector = (state: RootState) => state.assignments.selectedTeamMemberId;
-export const getSelectedTeamMemberSelector = (state: RootState) => state.assignments.selectedTeamMemberAssignment;
-
-// Services selectors
-export const getSelectedServiceSelector = (state: RootState) => state.assignments.selectedServiceAssignment;
-
-// Locations selectors
+// Location selectors
 export const getSelectedLocationIdSelector = (state: RootState) => state.assignments.selectedLocationId;
-export const getSelectedLocationSelector = (state: RootState) => state.assignments.selectedLocationAssignment;
+export const getSelectedLocationFullSelector = (state: RootState) => state.assignments.selectedLocationFullAssignment;
+
+// Staff services at location (for drawer)
+export const getStaffServicesSelector = (state: RootState) => state.assignments.staffServices;
+export const getStaffServicesLoadingSelector = (state: RootState) => state.assignments.isStaffServicesLoading;

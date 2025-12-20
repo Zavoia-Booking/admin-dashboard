@@ -48,7 +48,7 @@ export function AssignmentListPanel({
         'w-full text-left px-3 py-2.5 rounded-lg border transition-all duration-150',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0',
         isSelected
-          ? 'border-primary bg-info-100/70 shadow-xs'
+          ? 'border-primary bg-info-100/70 dark:bg-neutral-900 shadow-xs'
           : 'border-border-subtle bg-transparent hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]'
       )}
     >
