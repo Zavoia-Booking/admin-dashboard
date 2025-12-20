@@ -1,86 +1,62 @@
 import { apiClient } from "../../shared/lib/http";
 import type { 
-  TeamMemberAssignment,
-  ServiceAssignment,
-  LocationAssignment,
+  LocationFullAssignment,
+  StaffServicesAtLocation,
+  ServiceStaffOverrides,
+  UpdateLocationServicesPayload,
+  UpdateStaffServicesPayload,
+  UpdateLocationTeamMembersPayload,
+  UpdateLocationAssignmentsPayload,
 } from "./types";
 
-// Team Members perspective
-export const fetchTeamMemberAssignmentsRequest = async (): Promise<TeamMemberAssignment[]> => {
-  const { data } = await apiClient().get<TeamMemberAssignment[]>('/assignments/team-members');
+// Fetch full location assignment data with services and team members
+export const fetchLocationFullAssignmentRequest = async (locationId: number): Promise<LocationFullAssignment> => {
+  const { data } = await apiClient().get<LocationFullAssignment>(`/assignments/locations/${locationId}/full`);
   return data;
 };
 
-export const fetchTeamMemberAssignmentByIdRequest = async (id: number): Promise<TeamMemberAssignment> => {
-  const { data } = await apiClient().get<TeamMemberAssignment>(`/assignments/team-members/${id}`);
+// Update location services (enable/disable and location-level overrides)
+export const updateLocationServicesRequest = async (payload: UpdateLocationServicesPayload): Promise<void> => {
+  const { locationId, services } = payload;
+  await apiClient().put(`/assignments/locations/${locationId}/services`, { services });
+};
+
+// Fetch staff services at a specific location
+export const fetchStaffServicesAtLocationRequest = async (
+  locationId: number,
+  userId: number
+): Promise<StaffServicesAtLocation> => {
+  const { data } = await apiClient().get<StaffServicesAtLocation>(
+    `/assignments/locations/${locationId}/staff/${userId}/services`
+  );
   return data;
 };
 
-export const assignServicesToTeamMemberRequest = async (userId: number, serviceIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/team-members/${userId}/services`, { serviceIds });
+// Fetch all staff members with overrides for a specific service at a location
+export const fetchServiceStaffOverridesRequest = async (
+  locationId: number,
+  serviceId: number
+): Promise<ServiceStaffOverrides> => {
+  const { data } = await apiClient().get<ServiceStaffOverrides>(
+    `/assignments/locations/${locationId}/services/${serviceId}/staff-overrides`
+  );
   return data;
 };
 
-export const assignLocationsToTeamMemberRequest = async (userId: number, locationIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/team-members/${userId}/locations`, { locationIds });
-  return data;
+// Update staff services at a location
+export const updateStaffServicesRequest = async (payload: UpdateStaffServicesPayload): Promise<void> => {
+  const { locationId, userId, services } = payload;
+  await apiClient().put(`/assignments/locations/${locationId}/staff/${userId}/services`, { services });
 };
 
-export const removeServiceFromTeamMemberRequest = async (userId: number, serviceId: number) => {
-  const { data } = await apiClient().delete(`/assignments/team-members/${userId}/services/${serviceId}`);
-  return data;
+// Unified update for location assignments (services and team members)
+export const updateLocationAssignmentsRequest = async (payload: UpdateLocationAssignmentsPayload): Promise<void> => {
+  const { locationId, services, userIds } = payload;
+  await apiClient().put(`/assignments/locations/${locationId}`, { services, userIds });
 };
 
-export const removeLocationFromTeamMemberRequest = async (userId: number, locationId: number) => {
-  const { data } = await apiClient().delete(`/assignments/team-members/${userId}/locations/${locationId}`);
-  return data;
+// Update team member assignments at a location (kept for backward compatibility if needed)
+export const updateLocationTeamMembersRequest = async (payload: UpdateLocationTeamMembersPayload): Promise<void> => {
+  const { locationId, userIds } = payload;
+  await apiClient().put(`/assignments/locations/${locationId}/team-members`, { userIds });
 };
-
-export const updateTeamMemberAssignmentsRequest = async (userId: number, serviceIds: number[], locationIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/team-members/update/${userId}`, { serviceIds, locationIds });
-  return data;
-};
-
-// Services perspective
-export const fetchServiceAssignmentByIdRequest = async (id: number): Promise<ServiceAssignment> => {
-  const { data } = await apiClient().get<ServiceAssignment>(`/assignments/services/${id}`);
-  return data;
-};
-
-export const assignTeamMembersToServiceRequest = async (serviceId: number, userIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/services/${serviceId}/team-members`, { userIds });
-  return data;
-};
-
-export const assignLocationsToServiceRequest = async (serviceId: number, locationIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/services/${serviceId}/locations`, { locationIds });
-  return data;
-};
-
-export const updateServiceAssignmentsRequest = async (serviceId: number, teamMemberIds: number[], locationIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/services/update/${serviceId}`, { teamMemberIds, locationIds });
-  return data;
-};
-
-// Locations perspective
-export const fetchLocationAssignmentByIdRequest = async (id: number): Promise<LocationAssignment> => {
-  const { data } = await apiClient().get<LocationAssignment>(`/assignments/locations/${id}`);
-  return data;
-};
-
-export const assignTeamMembersToLocationRequest = async (locationId: number, userIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/locations/${locationId}/team-members`, { userIds });
-  return data;
-};
-
-export const assignServicesToLocationRequest = async (locationId: number, serviceIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/locations/${locationId}/services`, { serviceIds });
-  return data;
-};
-
-export const updateLocationAssignmentsRequest = async (locationId: number, teamMemberIds: number[], serviceIds: number[]) => {
-  const { data } = await apiClient().post(`/assignments/locations/update/${locationId}`, { teamMemberIds, serviceIds });
-  return data;
-};
-
-

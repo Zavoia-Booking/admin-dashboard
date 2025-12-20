@@ -84,7 +84,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         onChange={handleChange}
         autoFocus={autoFocus}
         className={cn(
-          "!h-11 text-base !pr-12 pl-4 !rounded-full border border-input bg-surface dark:bg-neutral-900",
+          "!h-11 text-base !pr-12 pl-4 !rounded-full border border-input bg-surface dark:bg-neutral-900 dark:border-border",
           inputClassName
         )}
       />

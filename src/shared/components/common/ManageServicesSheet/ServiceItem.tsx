@@ -26,9 +26,20 @@ export function ServiceItem({
     <div
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg border border-transparent duration-150 cursor-pointer",
-        "md:hover:bg-info-100 dark:md:hover:bg-surface-hover"
+        "md:hover:bg-info-100 dark:md:hover:bg-surface-hover",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0"
       )}
       onClick={() => onToggle(Number(service.id))}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onToggle(Number(service.id));
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-pressed={isSelected}
+      aria-label={`${isSelected ? "Deselect" : "Select"} ${service.name}`}
     >
       {/* Circle checkbox */}
       <div
@@ -59,7 +70,7 @@ export function ServiceItem({
         {/* Duration + price, aligned to the right in fixed-width columns */}
         <div className="flex items-center gap-4 ml-auto whitespace-nowrap">
           {/* Duration column */}
-          <div className="flex justify-start w-14">
+          <div className="flex justify-start w-16">
             <div className="flex items-center gap-1 text-xs text-foreground-3 dark:text-foreground-2">
               {service.duration !== undefined && (
                 <>
@@ -72,7 +83,7 @@ export function ServiceItem({
             </div>
           </div>
           {/* Price column */}
-          <div className="flex justify-start w-12">
+          <div className="flex justify-start w-14">
             <div className="flex items-center gap-0 text-xs font-medium text-foreground-1">
               {service.price !== undefined && (
                 <>
@@ -82,10 +93,10 @@ export function ServiceItem({
                       <span>{service.price.toFixed(2)}</span>
                     </>
                   ) : (
-                    <span>
-                      {currencyDisplay.symbol || ""}
-                      {service.price.toFixed(2)}
-                    </span>
+                    <div className="flex items-center gap-0.5">
+                      <span>{currencyDisplay.symbol || ""}</span>
+                      <span>{service.price.toFixed(2)}</span>
+                    </div>
                   )}
                 </>
               )}

@@ -6,125 +6,150 @@ import { type Reducer } from "redux";
 type Actions = ActionType<typeof actions>;
 
 const initialState: AssignmentsState = {
-  selectedTeamMemberId: null,
-  selectedServiceId: null,
   selectedLocationId: null,
-  teamMemberAssignments: [],
-  selectedTeamMemberAssignment: null,
-  selectedServiceAssignment: null,
-  selectedLocationAssignment: null,
+  selectedLocationFullAssignment: null,
+  staffServices: [],
   isLoading: false,
   isSaving: false,
+  isStaffServicesLoading: false,
 };
 
-export const AssignmentsReducer: Reducer<AssignmentsState, any> = (state: AssignmentsState = initialState, action: Actions): AssignmentsState => {
+export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
+  state: AssignmentsState = initialState,
+  action: Actions
+): AssignmentsState => {
   switch (action.type) {
-    // Team Members
-    case getType(actions.fetchTeamMemberAssignmentsAction.request):
-      return { ...state, isLoading: true };
-    case getType(actions.fetchTeamMemberAssignmentsAction.success):
-      return { 
-        ...state, 
-        teamMemberAssignments: action.payload,
-        isLoading: false 
-      };
-    case getType(actions.fetchTeamMemberAssignmentsAction.failure):
-      return { ...state, isLoading: false };
-      
-    case getType(actions.fetchTeamMemberAssignmentByIdAction.request):
-      return { ...state, isLoading: true };
-    case getType(actions.fetchTeamMemberAssignmentByIdAction.success):
-      return { 
-        ...state, 
-        selectedTeamMemberAssignment: action.payload,
-        isLoading: false 
-      };
-    case getType(actions.fetchTeamMemberAssignmentByIdAction.failure):
-      return { ...state, isLoading: false };
-      
-    case getType(actions.selectTeamMemberAction):
-      return { 
-        ...state, 
-        selectedTeamMemberId: action.payload,
-        // Clear the assignment data when deselecting (null) so UI shows empty state
-        selectedTeamMemberAssignment: action.payload === null ? null : state.selectedTeamMemberAssignment,
-      };
-      
-    case getType(actions.assignServicesToTeamMemberAction.request):
-    case getType(actions.assignLocationsToTeamMemberAction.request):
-    case getType(actions.updateTeamMemberAssignmentsAction.request):
-      return { ...state, isSaving: true };
-    case getType(actions.assignServicesToTeamMemberAction.success):
-    case getType(actions.assignServicesToTeamMemberAction.failure):
-    case getType(actions.assignLocationsToTeamMemberAction.success):
-    case getType(actions.assignLocationsToTeamMemberAction.failure):
-    case getType(actions.updateTeamMemberAssignmentsAction.success):
-    case getType(actions.updateTeamMemberAssignmentsAction.failure):
-      return { ...state, isSaving: false };
-    
-    // Services
-    case getType(actions.fetchServiceAssignmentByIdAction.request):
-      return { ...state, isLoading: true };
-    case getType(actions.fetchServiceAssignmentByIdAction.success):
-      return { 
-        ...state, 
-        selectedServiceAssignment: action.payload,
-        isLoading: false 
-      };
-    case getType(actions.fetchServiceAssignmentByIdAction.failure):
-      return { ...state, isLoading: false };
-      
-    case getType(actions.selectServiceAction):
-      return { 
-        ...state, 
-        selectedServiceId: action.payload,
-        // Clear the assignment data when deselecting (null) so UI shows empty state
-        selectedServiceAssignment: action.payload === null ? null : state.selectedServiceAssignment,
-      };
-      
-    case getType(actions.assignTeamMembersToServiceAction.request):
-    case getType(actions.assignLocationsToServiceAction.request):
-    case getType(actions.updateServiceAssignmentsAction.request):
-      return { ...state, isSaving: true };
-    case getType(actions.assignTeamMembersToServiceAction.success):
-    case getType(actions.assignTeamMembersToServiceAction.failure):
-    case getType(actions.assignLocationsToServiceAction.success):
-    case getType(actions.assignLocationsToServiceAction.failure):
-    case getType(actions.updateServiceAssignmentsAction.success):
-    case getType(actions.updateServiceAssignmentsAction.failure):
-      return { ...state, isSaving: false };
-    
-    // Locations
-    case getType(actions.fetchLocationAssignmentByIdAction.request):
-      return { ...state, isLoading: true };
-    case getType(actions.fetchLocationAssignmentByIdAction.success):
-      return { 
-        ...state, 
-        selectedLocationAssignment: action.payload,
-        isLoading: false 
-      };
-    case getType(actions.fetchLocationAssignmentByIdAction.failure):
-      return { ...state, isLoading: false };
-      
+    // Location selection
     case getType(actions.selectLocationAction):
       return { 
         ...state, 
         selectedLocationId: action.payload,
-        // Clear the assignment data when deselecting (null) so UI shows empty state
-        selectedLocationAssignment: action.payload === null ? null : state.selectedLocationAssignment,
+        selectedLocationFullAssignment: action.payload === null ? null : state.selectedLocationFullAssignment,
+        staffServices: action.payload === null ? [] : state.staffServices,
       };
+
+    // Fetch full location assignment
+    case getType(actions.fetchLocationFullAssignmentAction.request): {
+      const payload = action.payload;
+      const skipLoading = typeof payload === 'object' && payload.skipLoading === true;
+      return { ...state, isLoading: skipLoading ? false : true };
+    }
+    case getType(actions.fetchLocationFullAssignmentAction.success):
+      return { 
+        ...state, 
+        selectedLocationFullAssignment: action.payload,
+        isLoading: false 
+      };
+    case getType(actions.fetchLocationFullAssignmentAction.failure):
+      return { ...state, isLoading: false };
+
+    // Update location services
+    case getType(actions.updateLocationServicesAction.request):
+      return { ...state, isSaving: true };
+    case getType(actions.updateLocationServicesAction.success):
+    case getType(actions.updateLocationServicesAction.failure):
+      return { ...state, isSaving: false };
+
+    // Fetch staff services at location
+    case getType(actions.fetchStaffServicesAtLocationAction.request):
+      return { ...state, isStaffServicesLoading: true, staffServices: [] };
+    case getType(actions.fetchStaffServicesAtLocationAction.success):
+      return { 
+        ...state, 
+        staffServices: action.payload.services,
+        isStaffServicesLoading: false 
+      };
+    case getType(actions.fetchStaffServicesAtLocationAction.failure):
+      return { ...state, isStaffServicesLoading: false };
+
+    // Update staff services
+    case getType(actions.updateStaffServicesAction.request):
+      return { ...state, isSaving: true };
+    case getType(actions.updateStaffServicesAction.success): {
+      // Update team member stats locally to avoid re-fetching entire location data
+      // (which would reset unsaved location service changes)
+      const payload = action.payload;
+      if (!state.selectedLocationFullAssignment) {
+        return { ...state, isSaving: false };
+      }
       
-    case getType(actions.assignTeamMembersToLocationAction.request):
-    case getType(actions.assignServicesToLocationAction.request):
+      const enabledCount = payload.services.filter(s => s.canPerform).length;
+      const overridesCount = payload.services.filter(
+        s => s.canPerform && (s.customPrice !== null || s.customDuration !== null)
+      ).length;
+      
+      return {
+        ...state,
+        isSaving: false,
+        selectedLocationFullAssignment: {
+          ...state.selectedLocationFullAssignment,
+          teamMembers: state.selectedLocationFullAssignment.teamMembers.map(member =>
+            member.userId === payload.userId
+              ? { ...member, servicesEnabled: enabledCount, overridesCount }
+              : member
+          ),
+        },
+      };
+    }
+    case getType(actions.updateStaffServicesAction.failure):
+      return { ...state, isSaving: false };
+
+    // Unified update for location assignments
     case getType(actions.updateLocationAssignmentsAction.request):
       return { ...state, isSaving: true };
-    case getType(actions.assignTeamMembersToLocationAction.success):
-    case getType(actions.assignTeamMembersToLocationAction.failure):
-    case getType(actions.assignServicesToLocationAction.success):
-    case getType(actions.assignServicesToLocationAction.failure):
     case getType(actions.updateLocationAssignmentsAction.success):
     case getType(actions.updateLocationAssignmentsAction.failure):
       return { ...state, isSaving: false };
+
+    // Update team members at location
+    case getType(actions.updateLocationTeamMembersAction.request):
+      return { ...state, isSaving: true };
+    case getType(actions.updateLocationTeamMembersAction.success):
+    case getType(actions.updateLocationTeamMembersAction.failure):
+      return { ...state, isSaving: false };
+
+    // Update team member stats without full refetch
+    case getType(actions.updateTeamMemberStatsAction):
+      if (!state.selectedLocationFullAssignment) {
+        return state;
+      }
+      const { userId, servicesEnabled, overridesCount } = action.payload;
+      const existingMember = state.selectedLocationFullAssignment.teamMembers.find(m => m.userId === userId);
+      
+      if (existingMember) {
+        // Update existing member stats
+        return {
+          ...state,
+          selectedLocationFullAssignment: {
+            ...state.selectedLocationFullAssignment,
+            teamMembers: state.selectedLocationFullAssignment.teamMembers.map(member =>
+              member.userId === userId
+                ? { ...member, servicesEnabled, overridesCount }
+                : member
+            ),
+          },
+        };
+      } else {
+        // Member not in teamMembers array yet - find them in allTeamMembers and add with stats
+        const allMember = state.selectedLocationFullAssignment.allTeamMembers.find(m => m.userId === userId);
+        if (allMember) {
+          return {
+            ...state,
+            selectedLocationFullAssignment: {
+              ...state.selectedLocationFullAssignment,
+              teamMembers: [
+                ...state.selectedLocationFullAssignment.teamMembers,
+                {
+                  ...allMember,
+                  servicesEnabled,
+                  overridesCount,
+                },
+              ],
+            },
+          };
+        }
+      }
+      return state;
       
     default:
       return state;

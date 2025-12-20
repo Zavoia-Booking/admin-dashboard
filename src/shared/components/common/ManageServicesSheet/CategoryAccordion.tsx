@@ -34,11 +34,11 @@ export function CategoryAccordion({
   const categoryTextColor = getReadableTextColor(categoryBgColor);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 mb-0">
       {/* Category header */}
       <button
         onClick={() => onToggleExpand(group.categoryId)}
-        className="flex items-center justify-between w-full p-2 rounded-lg hover:bg-surface-hover cursor-pointer"
+        className="flex items-center justify-between w-full p-2 mb-0 rounded-lg hover:bg-surface-hover cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0"
       >
         <div className="flex items-center gap-2">
           {isExpanded ? (
@@ -68,7 +68,7 @@ export function CategoryAccordion({
         ref={contentRef}
         data-slot="collapsible-content"
         data-state={isExpanded ? "open" : "closed"}
-        className={`overflow-hidden ${isExpanded ? "h-auto" : "h-0"}`}
+        className={`overflow-hidden ${isExpanded ? "h-auto py-0.5 pr-0.5" : "h-0"}`}
       >
         <div className="ml-4 space-y-1">
           {group.services.map((service) => (

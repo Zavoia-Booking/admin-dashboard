@@ -123,9 +123,9 @@ export function ItemCard({
               <Badge
                 variant="secondary"
                 className={cn(
-                  "font-medium",
+                  "font-medium max-w-48",
                   variant === "default" ? "text-xs" : "text-[10px]",
-                  variant === "default" ? "h-8 w-fit py-2 px-3" : "h-2.5 w-2.5"
+                  variant === "default" ? "h-8 py-2 px-3" : "h-2.5"
                 )}
                 style={{
                   backgroundColor: category.color ? `${category.color}` : undefined,
@@ -141,7 +141,7 @@ export function ItemCard({
                     }}
                   />
                 )}
-                {category.name}
+                <span className="truncate">{category.name}</span>
               </Badge>
             )}
             {badges.map((badge, index) => (

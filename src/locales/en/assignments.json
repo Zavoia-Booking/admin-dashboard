@@ -1,43 +1,202 @@
 {
   "page": {
     "title": "Assignments",
-    "subtitle": "Manage team member assignments",
-    "tabs": {
-      "teamMembers": "Team Members",
-      "services": "Services",
-      "locations": "Locations"
-    },
-    "teamMembers": {
-      "sections": {
-        "services": {
-          "description": {
-            "assignedPrefix": "has",
-            "assignedSuffix": "assigned",
-            "assignedHelper": "Manage their services and fine‑tune pricing and duration below.",
-            "notAssigned": "has no services assigned yet.",
-            "notAssignedHelper": "Add services below to control what they can perform and adjust pricing and duration if needed."
-          },
-          "serviceOne": "service",
-          "serviceOther": "services"
-        },
-        "locations": {
-          "description": {
-            "assignedPrefix": "is assigned to",
-            "assignedSuffix": ".",
-            "assignedHelper": "Manage their working locations below.",
-            "notAssigned": "is not assigned to any locations yet.",
-            "notAssignedHelper": "Choose locations below to control where they can work."
-          },
-          "locationOne": "location",
-          "locationOther": "locations"
-        }
+    "subtitle": "Manage service and staff assignments by location",
+    "assignments": {
+      "titleWithCount": "Locations ({{count}}{{ofTotal}})",
+      "titleOfTotal": " of {{total}}",
+      "searchPlaceholder": "Search locations...",
+      "buttons": {
+        "saveChanges": "Save Changes"
       },
       "emptyState": {
-        "noTeamMemberSelected": "Choose a team member from the list to view and manage their assignments",
-        "noTeamMembers": "No team members found",
-        "noTeamMembersMatchSearch": "No team members match your search"
+        "noLocationsAvailable": "No locations available",
+        "noLocationsAvailableDescription": "Create locations first to manage service and staff assignments.",
+        "goToLocations": "Go to Locations",
+        "noLocations": "No locations found",
+        "noLocationsMatchSearch": "No locations match your search",
+        "selectLocationTitle": "Select a location to get started",
+        "selectLocationDescription": "Choose a location from the list to manage which services are available and configure team member assignments."
       }
+    },
+    "locationService": {
+      "badge": {
+        "custom": "Custom rates"
+      },
+      "overrides": "overrides",
+      "teamMemberOverrides": "Customized for {{count}} team members",
+      "teamMemberOverrides_one": "Customized for {{count}} team member",
+      "teamMemberOverrides_other": "Customized for {{count}} team members",
+      "teamMemberOverridesModal": {
+        "description": "Managing custom rates for",
+        "descriptionSuffix": "team members",
+        "descriptionSuffix_one": "team member",
+        "emptyState": "No team members with custom rates for this service"
+      },
+      "popover": {
+        "helperText": "In here you can customize the price and duration specifically for {{locationName}}.",
+        "thisLocation": "this location"
+      },
+      "fields": {
+        "price": "Price",
+        "duration": "Duration",
+        "serviceDefault": "Default –",
+        "defaultLabel": "Default",
+        "minSuffix": "min"
+      },
+      "buttons": {
+        "revert": "Use default",
+        "save": "Save changes",
+        "customize": "Customize"
+      }
+    },
+    "locationServices": {
+      "title": "Services offered at this location",
+      "description": {
+        "controlServices": "Manage service availability and customize pricing or duration specifically for this location."
+      },
+      "stats": {
+        "serviceEnabled": "service enabled",
+        "servicesEnabled": "services enabled",
+        "withLocationOverrides": "with location overrides",
+        "staffOverrides": "staff overrides",
+        "active": "Enabled",
+        "customized": "Customized"
+      },
+      "buttons": {
+        "manageServices": "Select Services",
+        "addServices": "Add Services",
+        "showMore": "Show {{count}} more",
+        "showLess": "Show less"
+      },
+      "sheet": {
+        "title": "Select Services for {{locationName}}",
+        "subtitle": "Select which services customers can book at this location"
+      },
+      "emptyState": {
+        "title": "No services added",
+        "description": "Add services to make them available at this location."
+      }
+    },
+    "locationTeamMembers": {
+      "title": "Team members at this location",
+      "description": {
+        "helperText": "Enable the staff members who work at this location. You can optionally customize services and pricing for specific employees."
+      },
+      "bookingMode": {
+        "title": "Allow customers to select specific staff members",
+        "descriptionOff": "Customers will book the location directly. Jobs are assigned automatically based on the staff you enable below.",
+        "descriptionOn": "Customers can now choose their preferred specialist. You can customize services and pricing for each team member below."
+      },
+      "simpleMode": {
+        "listHeader": "Who works at this location?",
+        "helperText": "Toggle on the staff members who work at this location. Their schedules will be used to calculate the location's total booking capacity.",
+        "calendarActive": "Calendar active (Adds to location capacity)",
+        "notWorking": "Not working at this location"
+      },
+      "detailedMode": {
+        "locationRates": "Location Rates",
+        "customRates": "Custom Rates",
+        "customRatesPlural": "Custom Rates",
+        "noServices": "No services"
+      },
+      "status": {
+        "notAssigned": "Not assigned"
+      },
+      "badge": {
+        "custom": "Custom rates"
+      },
+      "searchPlaceholder": "Search team members...",
+      "filters": {
+        "onlyWithOverrides": "Only with overrides"
+      },
+      "stats": {
+        "member": "member",
+        "members": "members",
+        "service": "service",
+        "services": "services",
+        "override": "override",
+        "overrides": "overrides",
+        "totalOverrides": "total overrides",
+        "assigned": "Assigned",
+        "customized": "Customized"
+      },
+      "servicesCount_one": "Provides {{count}} service",
+      "servicesCount_other": "Provides {{count}} services",
+      "noServicesAssigned": "No services assigned yet",
+      "buttons": {
+        "manage": "Manage",
+        "manageServices": "Manage Services"
+      },
+      "emptyState": {
+        "title": "No team members assigned",
+        "description": "Assign team members to this location to manage their services.",
+        "noMatchingMembers": "No team members match your search.",
+        "noMembersWithOverrides": "No team members have custom overrides.",
+        "noTeamMembersInBusiness": "No team members available",
+        "noTeamMembersInBusinessDescription": "Add team members to your business first to assign them to locations."
+      }
+    },
+    "manageTeamMemberDrawer": {
+      "title": "Manage Services for {{name}}",
+      "titleSubtitle": "Enable services and set custom rates for this location.",
+      "description": "Configure services and pricing for this team member at this location.",
+      "badge": {
+        "custom": "Custom"
+      },
+      "info": {
+        "basePrices": "Base prices come from location service settings.",
+        "overrides": "Overrides: {{count}} services"
+      },
+      "fields": {
+        "price": "Price",
+        "duration": "Duration",
+        "inherited": "Inherited from location",
+        "usingLocationDefault": "Using location default"
+      },
+      "filters": {
+        "all": "All",
+        "enabled": "Enabled",
+        "custom": "Custom",
+        "customRates": "Custom"
+      },
+      "buttons": {
+        "copySetup": "Copy setup",
+        "revert": "Use default",
+        "cancel": "Cancel",
+        "save": "Save Changes",
+        "saving": "Saving..."
+      },
+      "copySetup": {
+        "selectMember": "Copy from team member",
+        "placeholder": "Select a member...",
+        "copyEnabled": "Copy enabled services",
+        "copyPricing": "Copy custom price/duration",
+        "apply": "Apply"
+      },
+      "disabledMessage": "Enable this service to set custom pricing.",
+      "emptyState": {
+        "noServices": "No services available at this location.",
+        "noServicesDescription": "No services available at this location.",
+        "noEnabled": "No services enabled for this member.",
+        "noCustom": "No services have custom pricing."
+      }
+    },
+    "toasts": {
+      "teamMemberAssigned": "{{memberName}} has been assigned to this location",
+      "teamMemberRemoved": "{{memberName}} has been removed from this location",
+      "teamMemberAssignFailed": "Failed to assign {{memberName}} to this location",
+      "teamMemberRemoveFailed": "Failed to remove {{memberName}} from this location",
+      "locationServicesUpdated": "Location services updated successfully",
+      "locationAssignmentsUpdated": "Location assignments updated successfully",
+      "teamMembersUpdated": "Team members updated successfully",
+      "staffServicesUpdated": "Staff services updated successfully",
+      "failedToUpdateLocationServices": "Failed to update location services",
+      "failedToUpdateLocationAssignments": "Failed to update location assignments",
+      "failedToUpdateTeamMembers": "Failed to update team members",
+      "failedToUpdateStaffServices": "Failed to update staff services",
+      "failedToLoadLocationData": "Failed to load location data",
+      "failedToLoadStaffServices": "Failed to load staff services"
     }
   }
 }
-

@@ -1,43 +1,202 @@
 {
   "page": {
     "title": "Atribuiri",
-    "subtitle": "Gestionați atribuirile membrilor echipei",
-    "tabs": {
-      "teamMembers": "Membri echipă",
-      "services": "Servicii",
-      "locations": "Locații"
-    },
-    "teamMembers": {
-      "sections": {
-        "services": {
-          "description": {
-            "assignedPrefix": "are",
-            "assignedSuffix": "atribuite",
-            "assignedHelper": "Gestionați serviciile lor și ajustați prețul și durata mai jos.",
-            "notAssigned": "nu are încă servicii atribuite.",
-            "notAssignedHelper": "Adăugați servicii mai jos pentru a controla ce pot presta și ajusta prețul și durata dacă este nevoie."
-          },
-          "serviceOne": "serviciu",
-          "serviceOther": "servicii"
-        },
-        "locations": {
-          "description": {
-            "assignedPrefix": "este atribuit la",
-            "assignedSuffix": ".",
-            "assignedHelper": "Gestionați locațiile în care poate lucra mai jos.",
-            "notAssigned": "nu este atribuit la nicio locație încă.",
-            "notAssignedHelper": "Alegeți locații mai jos pentru a controla unde poate lucra."
-          },
-          "locationOne": "locație",
-          "locationOther": "locații"
-        }
+    "subtitle": "Gestionați atribuirile de servicii și personal pe locații",
+    "assignments": {
+      "titleWithCount": "Locații ({{count}}{{ofTotal}})",
+      "titleOfTotal": " din {{total}}",
+      "searchPlaceholder": "Căutare locații...",
+      "buttons": {
+        "saveChanges": "Salvează modificările"
       },
       "emptyState": {
-        "noTeamMemberSelected": "Alegeți un membru al echipei din listă pentru a vedea și gestiona atribuirile acestuia",
-        "noTeamMembers": "Nu s-au găsit membri ai echipei",
-        "noTeamMembersMatchSearch": "Niciun membru al echipei nu se potrivește căutării dvs."
+        "noLocationsAvailable": "Nu sunt locații disponibile",
+        "noLocationsAvailableDescription": "Creați mai întâi locații pentru a gestiona serviciile și atribuirile de personal.",
+        "goToLocations": "Mergi la Locații",
+        "noLocations": "Nu s-au găsit locații",
+        "noLocationsMatchSearch": "Nicio locație nu se potrivește căutării dvs.",
+        "selectLocationTitle": "Selectați o locație pentru a începe",
+        "selectLocationDescription": "Alegeți o locație din listă pentru a gestiona ce servicii sunt disponibile și configurați atribuirile membrilor echipei."
       }
+    },
+    "locationService": {
+      "badge": {
+        "custom": "Tarife personalizate"
+      },
+      "overrides": "personalizări",
+      "teamMemberOverrides": "Personalizat pentru {{count}} membri",
+      "teamMemberOverrides_one": "Personalizat pentru {{count}} membru",
+      "teamMemberOverrides_other": "Personalizat pentru {{count}} membri ai echipei",
+      "teamMemberOverridesModal": {
+        "description": "Gestionează tarifele personalizate pentru",
+        "descriptionSuffix": "membri din echipă",
+        "descriptionSuffix_one": "membru din echipă",
+        "emptyState": "Niciun membru al echipei nu are tarife personalizate pentru acest serviciu"
+      },
+      "popover": {
+        "helperText": "Aici puteți personaliza prețul și durata specific pentru {{locationName}}.",
+        "thisLocation": "această locație"
+      },
+      "fields": {
+        "price": "Preț",
+        "duration": "Durată",
+        "serviceDefault": "Implicit –",
+        "defaultLabel": "Implicit",
+        "minSuffix": "min"
+      },
+      "buttons": {
+        "revert": "Folosește implicit",
+        "save": "Salvează modificările",
+        "customize": "Personalizează"
+      }
+    },
+    "locationServices": {
+      "title": "Servicii oferite la această locație",
+      "description": {
+        "controlServices": "Gestionați disponibilitatea serviciilor și personalizați prețurile sau durata specific pentru această locație."
+      },
+      "stats": {
+        "serviceEnabled": "serviciu activat",
+        "servicesEnabled": "servicii activate",
+        "withLocationOverrides": "cu personalizări de locație",
+        "staffOverrides": "personalizări personal",
+        "active": "Activate",
+        "customized": "Personalizate"
+      },
+      "buttons": {
+        "manageServices": "Selectează servicii",
+        "addServices": "Adaugă servicii",
+        "showMore": "Afișează încă {{count}}",
+        "showLess": "Afișează mai puțin"
+      },
+      "sheet": {
+        "title": "Selectează servicii pentru {{locationName}}",
+        "subtitle": "Selectează ce servicii pot rezerva clienții la această locație"
+      },
+      "emptyState": {
+        "title": "Niciun serviciu adăugat",
+        "description": "Adăugați servicii pentru a le face disponibile la această locație."
+      }
+    },
+    "locationTeamMembers": {
+      "title": "Membri ai echipei la această locație",
+      "description": {
+        "helperText": "Activați membrii personalului care lucrează la această locație. Puteți opțional personaliza serviciile și prețurile pentru anumiți angajați."
+      },
+      "bookingMode": {
+        "title": "Permiteți clienților să selecteze membri specifici ai echipei",
+        "descriptionOff": "Clienții vor rezerva direct locația. Joburile sunt atribuite automat pe baza personalului pe care îl activați mai jos.",
+        "descriptionOn": "Clienții pot acum alege specialistul preferat. Puteți personaliza serviciile și prețurile pentru fiecare membru al echipei mai jos."
+      },
+      "simpleMode": {
+        "listHeader": "Cine lucrează la această locație?",
+        "helperText": "Activați membrii personalului care lucrează la această locație. Programările lor vor fi folosite pentru a calcula capacitatea totală de rezervare a locației.",
+        "calendarActive": "Calendar activ (Adaugă la capacitatea locației)",
+        "notWorking": "Nu lucrează la această locație"
+      },
+      "detailedMode": {
+        "locationRates": "Tarife locație",
+        "customRates": "Tarife personalizate",
+        "customRatesPlural": "Tarife personalizate",
+        "noServices": "Fără servicii"
+      },
+      "status": {
+        "notAssigned": "Neatribuit"
+      },
+      "badge": {
+        "custom": "Tarife personalizate"
+      },
+      "searchPlaceholder": "Căutare membri echipă...",
+      "filters": {
+        "onlyWithOverrides": "Doar cu personalizări"
+      },
+      "stats": {
+        "member": "membru",
+        "members": "membri",
+        "service": "serviciu",
+        "services": "servicii",
+        "override": "personalizare",
+        "overrides": "personalizări",
+        "totalOverrides": "personalizări total",
+        "assigned": "Atribuiți",
+        "customized": "Personalizați"
+      },
+      "servicesCount_one": "Oferă {{count}} serviciu",
+      "servicesCount_other": "Oferă {{count}} servicii",
+      "noServicesAssigned": "Niciun serviciu atribuit încă",
+      "buttons": {
+        "manage": "Gestionează",
+        "manageServices": "Gestionează Serviciile"
+      },
+      "emptyState": {
+        "title": "Niciun membru al echipei atribuit",
+        "description": "Atribuiți membri ai echipei la această locație pentru a gestiona serviciile lor.",
+        "noMatchingMembers": "Niciun membru al echipei nu se potrivește căutării dvs.",
+        "noMembersWithOverrides": "Niciun membru al echipei nu are personalizări.",
+        "noTeamMembersInBusiness": "Nu există membri ai echipei disponibili",
+        "noTeamMembersInBusinessDescription": "Adăugați mai întâi membri ai echipei în afacerea dvs. pentru a-i atribui locațiilor."
+      }
+    },
+    "manageTeamMemberDrawer": {
+      "title": "Gestionează Serviciile pentru {{name}}",
+      "titleSubtitle": "Activează serviciile și setează tarife personalizate pentru această locație.",
+      "description": "Configurați serviciile și prețurile pentru acest membru al echipei la această locație.",
+      "badge": {
+        "custom": "Personalizat"
+      },
+      "info": {
+        "basePrices": "Prețurile de bază vin din setările serviciilor la locație.",
+        "overrides": "Personalizări: {{count}} servicii"
+      },
+      "fields": {
+        "price": "Preț",
+        "duration": "Durată",
+        "inherited": "Moștenit de la locație",
+        "usingLocationDefault": "Folosind implicitul locației"
+      },
+      "filters": {
+        "all": "Toate",
+        "enabled": "Activate",
+        "custom": "Personalizate",
+        "customRates": "Personalizate"
+      },
+      "buttons": {
+        "copySetup": "Copiază configurația",
+        "revert": "Folosește implicit",
+        "cancel": "Anulează",
+        "save": "Salvează modificările",
+        "saving": "Se salvează..."
+      },
+      "copySetup": {
+        "selectMember": "Copiază de la membrul echipei",
+        "placeholder": "Selectați un membru...",
+        "copyEnabled": "Copiază serviciile activate",
+        "copyPricing": "Copiază preț/durată personalizată",
+        "apply": "Aplică"
+      },
+      "disabledMessage": "Activați acest serviciu pentru a seta prețuri personalizate.",
+      "emptyState": {
+        "noServices": "Niciun serviciu disponibil la această locație.",
+        "noServicesDescription": "Niciun serviciu disponibil la această locație.",
+        "noEnabled": "Niciun serviciu activat pentru acest membru.",
+        "noCustom": "Niciun serviciu nu are prețuri personalizate."
+      }
+    },
+    "toasts": {
+      "teamMemberAssigned": "{{memberName}} a fost adăugat la această locație",
+      "teamMemberRemoved": "{{memberName}} a fost eliminat de la această locație",
+      "teamMemberAssignFailed": "Nu s-a putut adăuga {{memberName}} la această locație",
+      "teamMemberRemoveFailed": "Nu s-a putut elimina {{memberName}} de la această locație",
+      "locationServicesUpdated": "Serviciile locației au fost actualizate cu succes",
+      "locationAssignmentsUpdated": "Atribuirile locației au fost actualizate cu succes",
+      "teamMembersUpdated": "Membrii echipei au fost actualizați cu succes",
+      "staffServicesUpdated": "Serviciile echipei au fost actualizate cu succes",
+      "failedToUpdateLocationServices": "Nu s-au putut actualiza serviciile locației",
+      "failedToUpdateLocationAssignments": "Nu s-au putut actualiza atribuirile locației",
+      "failedToUpdateTeamMembers": "Nu s-au putut actualiza membrii echipei",
+      "failedToUpdateStaffServices": "Nu s-au putut actualiza serviciile echipei",
+      "failedToLoadLocationData": "Nu s-au putut încărca datele locației",
+      "failedToLoadStaffServices": "Nu s-au putut încărca serviciile echipei"
     }
   }
 }
-

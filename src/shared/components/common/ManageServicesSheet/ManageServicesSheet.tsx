@@ -14,6 +14,8 @@ import {
   Filter,
   Settings2,
   ArrowRight,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import {
   Drawer,
@@ -44,10 +46,18 @@ import type { Service, CategoryGroup, SortField, SortDirection } from "./types";
 interface ManageServicesSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  teamMemberName: string;
+  teamMemberName?: string;
   allServices: Service[];
   initialSelectedIds: number[];
-  onApply: (serviceIds: number[]) => void;
+  onApply?: (serviceIds: number[]) => void;
+  onSave?: (serviceIds: number[]) => void;
+  // Single select mode props
+  mode?: 'multi' | 'single';
+  onSelect?: (serviceId: number) => void;
+  title?: string;
+  subtitle?: string;
+  titleLocationName?: string;
+  expandAllCategories?: boolean;
 }
 
 export function ManageServicesSheet({
@@ -57,8 +67,16 @@ export function ManageServicesSheet({
   allServices,
   initialSelectedIds,
   onApply,
+  onSave,
+  mode = 'multi',
+  onSelect,
+  title,
+  subtitle,
+  titleLocationName,
+  expandAllCategories = false,
 }: ManageServicesSheetProps) {
   const { t } = useTranslation("services");
+  const isSingleSelect = mode === 'single';
   const isMobile = useIsMobile();
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
@@ -102,10 +120,21 @@ export function ManageServicesSheet({
   const [sortField, setSortField] = useState<SortField>("createdAt");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
 
   const contentRefs = useRef<Map<number | null, HTMLDivElement>>(new Map());
 
   const [expandedCategories, setExpandedCategories] = useState<Set<number | null>>(() => {
+    if (isSingleSelect || expandAllCategories) {
+      // In single-select mode or when expandAllCategories is true, expand all categories by default
+      const allCategoryIds = new Set<number | null>();
+      allServices.forEach((service) => {
+        allCategoryIds.add(service.category?.id ?? null);
+      });
+      return allCategoryIds;
+    }
+    
+    // In multi-select mode, only expand categories with selected services
     const selectedSet = new Set(initialSelectedIds);
     const expandedSet = new Set<number | null>();
     allServices.forEach((service) => {
@@ -117,6 +146,17 @@ export function ManageServicesSheet({
   });
 
   useEffect(() => {
+    if (isSingleSelect || expandAllCategories) {
+      // In single-select mode or when expandAllCategories is true, keep all categories expanded
+      const allCategoryIds = new Set<number | null>();
+      allServices.forEach((service) => {
+        allCategoryIds.add(service.category?.id ?? null);
+      });
+      setExpandedCategories(allCategoryIds);
+      return;
+    }
+    
+    // In multi-select mode, only expand categories with selected services
     const selectedSet = new Set(selectedServiceIds);
     const newExpanded = new Set<number | null>();
     allServices.forEach((service) => {
@@ -125,7 +165,7 @@ export function ManageServicesSheet({
       }
     });
     setExpandedCategories(newExpanded);
-  }, [selectedServiceIds, allServices]);
+  }, [selectedServiceIds, allServices, isSingleSelect, expandAllCategories]);
 
   useEffect(() => {
     if (isOpen) {
@@ -144,16 +184,26 @@ export function ManageServicesSheet({
       setSortField("createdAt");
       setSortDirection("desc");
 
-      const selectedSet = new Set(initialSelectedIds);
-      const expandedSet = new Set<number | null>();
-      allServices.forEach((service) => {
-        if (selectedSet.has(Number(service.id))) {
-          expandedSet.add(service.category?.id ?? null);
-        }
-      });
-      setExpandedCategories(expandedSet);
+      if (isSingleSelect || expandAllCategories) {
+        // In single-select mode or when expandAllCategories is true, expand all categories by default
+        const allCategoryIds = new Set<number | null>();
+        allServices.forEach((service) => {
+          allCategoryIds.add(service.category?.id ?? null);
+        });
+        setExpandedCategories(allCategoryIds);
+      } else {
+        // In multi-select mode, only expand categories with selected services
+        const selectedSet = new Set(initialSelectedIds);
+        const expandedSet = new Set<number | null>();
+        allServices.forEach((service) => {
+          if (selectedSet.has(Number(service.id))) {
+            expandedSet.add(service.category?.id ?? null);
+          }
+        });
+        setExpandedCategories(expandedSet);
+      }
     }
-  }, [isOpen, initialSelectedIds, allServices]);
+  }, [isOpen, initialSelectedIds, allServices, isSingleSelect]);
 
   const filteredCategoryGroups = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
@@ -289,6 +339,14 @@ export function ManageServicesSheet({
   };
 
   const toggleService = (serviceId: number) => {
+    if (isSingleSelect && onSelect) {
+      // Single select mode: immediately select and close
+      onSelect(serviceId);
+      onClose();
+      return;
+    }
+    
+    // Multi select mode: toggle selection
     setSelectedServiceIds((prev) =>
       prev.includes(serviceId) ? prev.filter((id) => id !== serviceId) : [...prev, serviceId]
     );
@@ -306,8 +364,13 @@ export function ManageServicesSheet({
   const handleClear = () => setSelectedServiceIds(initialSelectedIds);
 
   const handleApply = () => {
-    onApply(selectedServiceIds);
-    onClose();
+    if (onSave) {
+      onSave(selectedServiceIds);
+      onClose();
+    } else if (onApply) {
+      onApply(selectedServiceIds);
+      onClose();
+    }
   };
 
   const getActiveFilterCount = useMemo(() => {
@@ -350,6 +413,7 @@ export function ManageServicesSheet({
       setLocalDurationMin(appliedDurationMin);
       setLocalDurationMax(appliedDurationMax);
       setLocalCategoryIds(appliedCategoryIds);
+      setShowAllCategories(false); // Reset show all when opening filters
     }
   }, [showFilters, appliedPriceMin, appliedPriceMax, appliedDurationMin, appliedDurationMax, appliedCategoryIds]);
 
@@ -398,7 +462,15 @@ export function ManageServicesSheet({
     maxDuration: t("filters.maxDurationLabel"),
   };
 
-  const renderFilterContent = () => (
+  const MAX_VISIBLE_CATEGORIES = 6;
+
+  const renderFilterContent = () => {
+    const hasMoreCategories = availableCategories.length > MAX_VISIBLE_CATEGORIES;
+    const visibleCategories = showAllCategories
+      ? availableCategories
+      : availableCategories.slice(0, MAX_VISIBLE_CATEGORIES);
+
+    return (
     <>
       <div className="space-y-2">
         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -461,7 +533,7 @@ export function ManageServicesSheet({
                   }
                 }}
                 placeholder={t("filters.minDurationPlaceholder")}
-                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-2 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus/50"
               />
             </div>
           </div>
@@ -481,7 +553,7 @@ export function ManageServicesSheet({
                   }
                 }}
                 placeholder={t("filters.maxDurationPlaceholder")}
-                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-2 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus/50"
               />
             </div>
           </div>
@@ -496,7 +568,7 @@ export function ManageServicesSheet({
             {t("filters.byCategory")}
           </div>
           <div className="flex flex-wrap gap-2">
-            {availableCategories.map((category) => {
+            {visibleCategories.map((category) => {
               const isSelected = localCategoryIds.includes(category.id);
               const bgColor = getDisplayColor(category);
               const textColor = getTextColor(bgColor);
@@ -508,7 +580,7 @@ export function ManageServicesSheet({
                   rounded="full"
                   onClick={() => toggleCategoryFilter(category.id)}
                   className={cn(
-                    "h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium",
+                    "h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
                     isSelected
                       ? "border-neutral-500 text-neutral-900 dark:text-neutral-900 shadow-xs focus-visible:!border-neutral-500"
                       : "border-border opacity-100",
@@ -528,11 +600,40 @@ export function ManageServicesSheet({
                 </Button>
               );
             })}
+
+            {/* "Show more" button (only when collapsed and there are more categories) */}
+            {hasMoreCategories && !showAllCategories && (
+              <Button
+                type="button"
+                variant="outline"
+                rounded="full"
+                onClick={() => setShowAllCategories(true)}
+                className="h-auto px-3 py-1.5 gap-1.5 border-dashed focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0"
+              >
+                {t("addService.form.category.showMore", {
+                  count: availableCategories.length - MAX_VISIBLE_CATEGORIES,
+                })}
+              </Button>
+            )}
+
+            {/* "Show less" button (only when expanded) */}
+            {hasMoreCategories && showAllCategories && (
+              <Button
+                type="button"
+                variant="outline"
+                rounded="full"
+                onClick={() => setShowAllCategories(false)}
+                className="h-auto px-3 py-1.5 gap-1.5 border-dashed focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0"
+              >
+                {t("addService.form.category.showLess")}
+              </Button>
+            )}
           </div>
         </div>
       )}
     </>
-  );
+    );
+  };
 
   const renderEmptyState = () => (
     <div className="flex flex-col items-center justify-center py-8 text-center gap-4 w-full">
@@ -598,7 +699,7 @@ export function ManageServicesSheet({
   const renderFilterButton = (isActive: boolean) => (
     <button
       className={cn(
-        "relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border transition-[colors,box-shadow,background-color,color] duration-200 ease-out cursor-pointer",
+        "relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border transition-[colors,box-shadow,background-color,color] duration-200 ease-out cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
         isActive
           ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
           : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong"
@@ -614,6 +715,64 @@ export function ManageServicesSheet({
       )}
     </button>
   );
+
+  // Get all visible service IDs from filtered category groups
+  const visibleServiceIds = useMemo(() => {
+    const ids: number[] = [];
+    filteredCategoryGroups.forEach((group) => {
+      group.services.forEach((service) => {
+        ids.push(Number(service.id));
+      });
+    });
+    return ids;
+  }, [filteredCategoryGroups]);
+
+  // Check if all visible services are selected
+  const areAllVisibleSelected = useMemo(() => {
+    if (visibleServiceIds.length === 0) return false;
+    return visibleServiceIds.every((id) => selectedServiceIds.includes(id));
+  }, [visibleServiceIds, selectedServiceIds]);
+
+  // Toggle all visible services
+  const toggleAllVisible = () => {
+    if (areAllVisibleSelected) {
+      // Deselect all visible services
+      setSelectedServiceIds((prev) => prev.filter((id) => !visibleServiceIds.includes(id)));
+    } else {
+      // Select all visible services (merge with existing selections)
+      setSelectedServiceIds((prev) => {
+        const newSet = new Set(prev);
+        visibleServiceIds.forEach((id) => newSet.add(id));
+        return Array.from(newSet);
+      });
+    }
+  };
+
+  const renderSelectAllButton = () => {
+    if (isSingleSelect) return null;
+    return (
+    <button
+      onClick={toggleAllVisible}
+      className={cn(
+        "inline-flex items-center justify-center h-auto !min-w-36 px-3 py-1.5 gap-1.5 rounded-full border border-border  cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+        areAllVisibleSelected
+          ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
+          : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong"
+      )}
+      aria-label={areAllVisibleSelected ? t("manageServices.deselectAll") : t("manageServices.selectAll")}
+      disabled={visibleServiceIds.length === 0}
+    >
+      {areAllVisibleSelected ? (
+        <CheckSquare className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      ) : (
+        <Square className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      )}
+      <span className="text-xs font-medium">
+        {areAllVisibleSelected ? t("manageServices.deselectAll") : t("manageServices.selectAll")}
+      </span>
+    </button>
+    );
+  };
 
   const renderFilterActions = () => (
     <div className="flex justify-end gap-2 w-full pt-4 border-t border-border-subtle">
@@ -637,7 +796,9 @@ export function ManageServicesSheet({
     </div>
   );
 
-  const renderFooter = (isMobileFooter = false) => (
+  const renderFooter = (isMobileFooter = false) => {
+    if (isSingleSelect) return null;
+    return (
     <div className={isMobileFooter ? "md:hidden bg-surface" : "hidden md:flex flex-col bg-surface shrink-0"}>
       <DashedDivider marginTop="mt-0" className="mb-0" paddingTop={isMobileFooter ? "pt-2" : "pt-4"} dashPattern="1 1" />
       <div className={isMobileFooter ? "flex justify-between gap-2 mt-0 md:mb-2 p-4" : "px-6 pb-2"}>
@@ -659,13 +820,14 @@ export function ManageServicesSheet({
             disabled={!hasChanges}
             className={`group gap-2 h-11 cursor-pointer ${isMobileFooter ? "flex-1" : "w-72"}`}
           >
-            {t("manageServices.apply")}
+            {onSave ? t("manageServices.saveChanges") : t("manageServices.apply")}
             <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
           </Button>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   const content = (
     <>
@@ -673,8 +835,22 @@ export function ManageServicesSheet({
         <div className="flex items-center gap-3 px-4 md:px-0">
           <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
             <DrawerTitle className="text-lg text-foreground-1 cursor-default">
-              {t("manageServices.title")} <span className="font-semibold">{teamMemberName}</span>
+              {title && titleLocationName ? (
+                <>
+                  {title.split(titleLocationName)[0]}
+                  <span className="font-semibold">{titleLocationName}</span>
+                </>
+              ) : title ? (
+                title
+              ) : (
+                teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title")
+              )}
             </DrawerTitle>
+            {subtitle && (
+              <DrawerDescription className="text-sm text-foreground-3 dark:text-foreground-2 mt-1">
+                {subtitle}
+              </DrawerDescription>
+            )}
           </div>
         </div>
         <DashedDivider marginTop="mt-3" className="pt-0 md:pt-3" dashPattern="1 1" />
@@ -732,6 +908,7 @@ export function ManageServicesSheet({
               </PopoverContent>
             </Popover>
           )}
+          {renderSelectAllButton()}
         </div>
 
         <FilterBadges
@@ -750,7 +927,11 @@ export function ManageServicesSheet({
         />
       </div>
 
-      <div className={cn("flex-1 p-4 space-y-4", filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center")}>
+      <div className={cn(
+        "flex-1 space-y-4",
+        filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center",
+        isSingleSelect ? "px-4 pt-4 pb-12" : "p-4"
+      )}>
         {filteredCategoryGroups.length === 0 ? renderEmptyState() : renderCategoryList()}
       </div>
 
@@ -762,8 +943,8 @@ export function ManageServicesSheet({
     return (
       <Drawer open={isOpen} onOpenChange={onClose} autoFocus={true}>
         <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80" overlayClassName="!z-80">
-          <DrawerTitle className="sr-only">{t("manageServices.title")} {teamMemberName}</DrawerTitle>
-          <DrawerDescription className="sr-only">{t("manageServices.title")} {teamMemberName}</DrawerDescription>
+          <DrawerTitle className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerTitle>
+          <DrawerDescription className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerDescription>
           {content}
         </DrawerContent>
       </Drawer>
@@ -789,8 +970,22 @@ export function ManageServicesSheet({
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
                 <h2 className="text-lg text-foreground-1 cursor-default">
-                  {t("manageServices.title")} <span className="font-semibold">{teamMemberName}</span>
+                  {title && titleLocationName ? (
+                    <>
+                      {title.split(titleLocationName)[0]}
+                      <span className="font-semibold">{titleLocationName}</span>
+                    </>
+                  ) : title ? (
+                    title
+                  ) : (
+                    teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title")
+                  )}
                 </h2>
+                {subtitle && (
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-1">
+                    {subtitle}
+                  </p>
+                )}
               </div>
               <Button
                 variant="ghost"
@@ -836,6 +1031,7 @@ export function ManageServicesSheet({
                       {renderFilterActions()}
                     </PopoverContent>
                   </Popover>
+                  {renderSelectAllButton()}
                 </div>
               </div>
 
@@ -855,8 +1051,13 @@ export function ManageServicesSheet({
               />
             </div>
 
-            <div className={cn("flex-1 p-4 space-y-4 scrollbar-hide", filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center")}>
+            <div className={cn(
+              "flex-1 space-y-4 scrollbar-hide relative",
+              filteredCategoryGroups.length > 0 ? "overflow-y-auto" : "overflow-hidden flex items-center justify-center",
+              isSingleSelect ? "px-4 pt-4 pb-0" : "p-4"
+            )}>
               {filteredCategoryGroups.length === 0 ? renderEmptyState() : renderCategoryList()}
+              {isSingleSelect && <div className="h-4 sticky bottom-0 left-0 right-0 w-full bg-surface" />}
             </div>
           </div>
 

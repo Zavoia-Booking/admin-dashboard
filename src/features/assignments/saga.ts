@@ -1,222 +1,164 @@
-import { all, call, put, takeLatest } from "redux-saga/effects";
+import { all, call, put, takeLatest, select } from "redux-saga/effects";
 import {
-  fetchTeamMemberAssignmentsAction,
-  fetchTeamMemberAssignmentByIdAction,
-  assignServicesToTeamMemberAction,
-  assignLocationsToTeamMemberAction,
-  updateTeamMemberAssignmentsAction,
-  fetchServiceAssignmentByIdAction,
-  assignTeamMembersToServiceAction,
-  assignLocationsToServiceAction,
-  updateServiceAssignmentsAction,
-  fetchLocationAssignmentByIdAction,
-  assignTeamMembersToLocationAction,
-  assignServicesToLocationAction,
+  fetchLocationFullAssignmentAction,
+  updateLocationServicesAction,
+  fetchStaffServicesAtLocationAction,
+  updateStaffServicesAction,
+  updateLocationTeamMembersAction,
   updateLocationAssignmentsAction,
+  updateTeamMemberStatsAction,
 } from "./actions";
 import {
-  fetchTeamMemberAssignmentsRequest,
-  fetchTeamMemberAssignmentByIdRequest,
-  assignServicesToTeamMemberRequest,
-  assignLocationsToTeamMemberRequest,
-  updateTeamMemberAssignmentsRequest,
-  fetchServiceAssignmentByIdRequest,
-  assignTeamMembersToServiceRequest,
-  assignLocationsToServiceRequest,
-  updateServiceAssignmentsRequest,
-  fetchLocationAssignmentByIdRequest,
-  assignTeamMembersToLocationRequest,
-  assignServicesToLocationRequest,
+  fetchLocationFullAssignmentRequest,
+  updateLocationServicesRequest,
+  fetchStaffServicesAtLocationRequest,
+  updateStaffServicesRequest,
+  updateLocationTeamMembersRequest,
   updateLocationAssignmentsRequest,
 } from "./api";
-import { type TeamMemberAssignment, type ServiceAssignment, type LocationAssignment } from "./types";
+import type { LocationFullAssignment, StaffServicesAtLocation } from "./types";
 import { toast } from "sonner";
-import { getServicesAction } from "../services/actions";
+import i18n from "../../shared/lib/i18n";
 
-// Team Members perspective
-function* handleFetchTeamMemberAssignments() {
+function* handleFetchLocationFullAssignment(action: ReturnType<typeof fetchLocationFullAssignmentAction.request>) {
   try {
-    const data: TeamMemberAssignment[] = yield call(fetchTeamMemberAssignmentsRequest);
-    yield put(fetchTeamMemberAssignmentsAction.success(data));
+    const locationId = typeof action.payload === 'number' ? action.payload : action.payload.locationId;
+    const data: LocationFullAssignment = yield call(fetchLocationFullAssignmentRequest, locationId);
+    yield put(fetchLocationFullAssignmentAction.success(data));
   } catch (error: any) {
-    yield put(fetchTeamMemberAssignmentsAction.failure({ message: error?.message || 'Failed to fetch team member assignments' }));
-    toast.error('Failed to load team members');
+    yield put(fetchLocationFullAssignmentAction.failure({ message: error?.message || 'Failed to fetch location data' }));
+    toast.error(i18n.t('assignments:page.toasts.failedToLoadLocationData'));
   }
 }
 
-function* handleFetchTeamMemberAssignmentById(action: ReturnType<typeof fetchTeamMemberAssignmentByIdAction.request>) {
+function* handleUpdateLocationServices(action: ReturnType<typeof updateLocationServicesAction.request>) {
   try {
-    const data: TeamMemberAssignment = yield call(fetchTeamMemberAssignmentByIdRequest, action.payload);
-    yield put(fetchTeamMemberAssignmentByIdAction.success(data));
-  } catch (error: any) {
-    yield put(fetchTeamMemberAssignmentByIdAction.failure({ message: error?.message || 'Failed to fetch team member assignment' }));
-    toast.error('Failed to load team member assignment');
-  }
-}
-
-function* handleAssignServicesToTeamMember(action: ReturnType<typeof assignServicesToTeamMemberAction.request>) {
-  try {
-    const { userId, serviceIds } = action.payload;
-    yield call(assignServicesToTeamMemberRequest, userId, serviceIds);
-    yield put(assignServicesToTeamMemberAction.success());
-    yield put(fetchTeamMemberAssignmentsAction.request());
-    toast.success('Services assigned successfully');
-  } catch (error: any) {
-    yield put(assignServicesToTeamMemberAction.failure({ message: error?.message || 'Failed to assign services' }));
-    toast.error('Failed to assign services');
-  }
-}
-
-function* handleAssignLocationsToTeamMember(action: ReturnType<typeof assignLocationsToTeamMemberAction.request>) {
-  try {
-    const { userId, locationIds } = action.payload;
-    yield call(assignLocationsToTeamMemberRequest, userId, locationIds);
-    yield put(assignLocationsToTeamMemberAction.success());
-    yield put(fetchTeamMemberAssignmentsAction.request());
-    toast.success('Locations assigned successfully');
-  } catch (error: any) {
-    yield put(assignLocationsToTeamMemberAction.failure({ message: error?.message || 'Failed to assign locations' }));
-    toast.error('Failed to assign locations');
-  }
-}
-
-function* handleUpdateTeamMemberAssignments(action: ReturnType<typeof updateTeamMemberAssignmentsAction.request>) {
-  try {
-    const { userId, serviceIds, locationIds } = action.payload;
-    yield call(updateTeamMemberAssignmentsRequest, userId, serviceIds, locationIds);
-    yield put(updateTeamMemberAssignmentsAction.success());
+    yield call(updateLocationServicesRequest, action.payload);
+    yield put(updateLocationServicesAction.success());
     
-    // Refresh the team member's assignment details
-    yield put(fetchTeamMemberAssignmentByIdAction.request(userId));
+    // Refresh the location's full assignment data
+    yield put(fetchLocationFullAssignmentAction.request({ locationId: action.payload.locationId }));
     
-    toast.success('Assignments updated successfully');
+    toast.success(i18n.t('assignments:page.toasts.locationServicesUpdated'));
   } catch (error: any) {
-    yield put(updateTeamMemberAssignmentsAction.failure({ message: error?.message || 'Failed to update assignments' }));
-    toast.error('Failed to update assignments');
+    yield put(updateLocationServicesAction.failure({ message: error?.message || 'Failed to update location services' }));
+    toast.error(i18n.t('assignments:page.toasts.failedToUpdateLocationServices'));
   }
 }
 
-// Services perspective
-function* handleFetchServiceAssignmentById(action: ReturnType<typeof fetchServiceAssignmentByIdAction.request>) {
+function* handleFetchStaffServicesAtLocation(action: ReturnType<typeof fetchStaffServicesAtLocationAction.request>) {
+  const { locationId, userId } = action.payload;
   try {
-    const data: ServiceAssignment = yield call(fetchServiceAssignmentByIdRequest, action.payload);
-    yield put(fetchServiceAssignmentByIdAction.success(data));
+    const data: StaffServicesAtLocation = yield call(fetchStaffServicesAtLocationRequest, locationId, userId);
+    yield put(fetchStaffServicesAtLocationAction.success(data));
   } catch (error: any) {
-    yield put(fetchServiceAssignmentByIdAction.failure({ message: error?.message || 'Failed to fetch service assignment' }));
-    toast.error('Failed to load service assignment');
+    yield put(fetchStaffServicesAtLocationAction.failure({ message: error?.message || 'Failed to fetch staff services' }));
+    toast.error(i18n.t('assignments:page.toasts.failedToLoadStaffServices'));
   }
 }
 
-function* handleAssignTeamMembersToService(action: ReturnType<typeof assignTeamMembersToServiceAction.request>) {
+function* handleUpdateStaffServices(action: ReturnType<typeof updateStaffServicesAction.request>) {
   try {
-    const { serviceId, userIds } = action.payload;
-    yield call(assignTeamMembersToServiceRequest, serviceId, userIds);
-    yield put(assignTeamMembersToServiceAction.success());
-    yield put(getServicesAction.request());
-    toast.success('Team members assigned successfully');
-  } catch (error: any) {
-    yield put(assignTeamMembersToServiceAction.failure({ message: error?.message || 'Failed to assign team members' }));
-    toast.error('Failed to assign team members');
-  }
-}
-
-function* handleAssignLocationsToService(action: ReturnType<typeof assignLocationsToServiceAction.request>) {
-  try {
-    const { serviceId, locationIds } = action.payload;
-    yield call(assignLocationsToServiceRequest, serviceId, locationIds);
-    yield put(assignLocationsToServiceAction.success());
-    yield put(getServicesAction.request());
-    toast.success('Locations assigned successfully');
-  } catch (error: any) {
-    yield put(assignLocationsToServiceAction.failure({ message: error?.message || 'Failed to assign locations' }));
-    toast.error('Failed to assign locations');
-  }
-}
-
-function* handleUpdateServiceAssignments(action: ReturnType<typeof updateServiceAssignmentsAction.request>) {
-  try {
-    const { serviceId, teamMemberIds, locationIds } = action.payload;
-    yield call(updateServiceAssignmentsRequest, serviceId, teamMemberIds, locationIds);
-    yield put(updateServiceAssignmentsAction.success());
+    yield call(updateStaffServicesRequest, action.payload);
+    yield put(updateStaffServicesAction.success(action.payload));
     
-    // Refresh the service's assignment details
-    yield put(fetchServiceAssignmentByIdAction.request(serviceId));
+    // Refresh the location's full assignment data to get updated team member stats and service assignments
+    yield put(fetchLocationFullAssignmentAction.request({ locationId: action.payload.locationId }));
     
-    toast.success('Assignments updated successfully');
+    toast.success(i18n.t('assignments:page.toasts.staffServicesUpdated'));
   } catch (error: any) {
-    yield put(updateServiceAssignmentsAction.failure({ message: error?.message || 'Failed to update assignments' }));
-    toast.error('Failed to update assignments');
+    yield put(updateStaffServicesAction.failure({ message: error?.message || 'Failed to update staff services' }));
+    toast.error(i18n.t('assignments:page.toasts.failedToUpdateStaffServices'));
   }
 }
 
-// Locations perspective
-function* handleFetchLocationAssignmentById(action: ReturnType<typeof fetchLocationAssignmentByIdAction.request>) {
+function* handleUpdateLocationAssignments(action: ReturnType<typeof updateLocationAssignmentsAction.request>): Generator<any, void, any> {
   try {
-    const data: LocationAssignment = yield call(fetchLocationAssignmentByIdRequest, action.payload);
-    yield put(fetchLocationAssignmentByIdAction.success(data));
-  } catch (error: any) {
-    yield put(fetchLocationAssignmentByIdAction.failure({ message: error?.message || 'Failed to fetch location assignment' }));
-    toast.error('Failed to load location assignment');
-  }
-}
-
-function* handleAssignTeamMembersToLocation(action: ReturnType<typeof assignTeamMembersToLocationAction.request>) {
-  try {
-    const { locationId, userIds } = action.payload;
-    yield call(assignTeamMembersToLocationRequest, locationId, userIds);
-    yield put(assignTeamMembersToLocationAction.success());
-    toast.success('Team members assigned successfully');
-  } catch (error: any) {
-    yield put(assignTeamMembersToLocationAction.failure({ message: error?.message || 'Failed to assign team members' }));
-    toast.error('Failed to assign team members');
-  }
-}
-
-function* handleAssignServicesToLocation(action: ReturnType<typeof assignServicesToLocationAction.request>) {
-  try {
-    const { locationId, serviceIds } = action.payload;
-    yield call(assignServicesToLocationRequest, locationId, serviceIds);
-    yield put(assignServicesToLocationAction.success());
-    toast.success('Services assigned successfully');
-  } catch (error: any) {
-    yield put(assignServicesToLocationAction.failure({ message: error?.message || 'Failed to assign services' }));
-    toast.error('Failed to assign services');
-  }
-}
-
-function* handleUpdateLocationAssignments(action: ReturnType<typeof updateLocationAssignmentsAction.request>) {
-  try {
-    const { locationId, teamMemberIds, serviceIds } = action.payload;
-    yield call(updateLocationAssignmentsRequest, locationId, teamMemberIds, serviceIds);
+    yield call(updateLocationAssignmentsRequest, action.payload);
     yield put(updateLocationAssignmentsAction.success());
     
-    // Refresh the location's assignment details
-    yield put(fetchLocationAssignmentByIdAction.request(locationId));
-    
-    toast.success('Assignments updated successfully');
+    // Only refetch if services were updated (team member toggles update optimistically, no refetch needed)
+    // This prevents skeleton/scroll issues when just toggling team members
+    if (action.payload.services !== undefined) {
+      // Refresh the location's full assignment data to get updated services
+      yield put(fetchLocationFullAssignmentAction.request({ locationId: action.payload.locationId }));
+      toast.success(i18n.t('assignments:page.toasts.locationServicesUpdated'));
+    } else if (action.payload.userIds !== undefined) {
+      // Team members were toggled - refetch full location data to get updated data
+      // Skip loading state to prevent skeleton from showing
+      yield put(fetchLocationFullAssignmentAction.request({ locationId: action.payload.locationId, skipLoading: true }));
+      
+      // Show personalized toast message for team member toggle
+      if (action.payload.teamMemberToggle) {
+        const state: any = yield select((state: any) => state.assignments);
+        const location = state.selectedLocationFullAssignment;
+        const { userId, enabled } = action.payload.teamMemberToggle;
+        
+        // Find team member name from allTeamMembers or teamMembers
+        const member = location?.allTeamMembers?.find((m: any) => m.userId === userId) ||
+                      location?.teamMembers?.find((m: any) => m.userId === userId);
+        
+        const memberName = member ? `${member.firstName} ${member.lastName}` : i18n.t('assignments:page.locationTeamMembers.stats.member');
+        
+        if (enabled) {
+          toast.success(i18n.t('assignments:page.toasts.teamMemberAssigned', { memberName }));
+        } else {
+          toast.success(i18n.t('assignments:page.toasts.teamMemberRemoved', { memberName }));
+        }
+      } else {
+        toast.success(i18n.t('assignments:page.toasts.teamMembersUpdated'));
+      }
+    } else {
+      toast.success(i18n.t('assignments:page.toasts.locationAssignmentsUpdated'));
+    }
   } catch (error: any) {
-    yield put(updateLocationAssignmentsAction.failure({ message: error?.message || 'Failed to update assignments' }));
-    toast.error('Failed to update assignments');
+    yield put(updateLocationAssignmentsAction.failure({ message: error?.message || 'Failed to update location assignments' }));
+    
+    // Show personalized error message for team member toggle
+    if (action.payload.teamMemberToggle) {
+      const state: any = yield select((state: any) => state.assignments);
+      const location = state.selectedLocationFullAssignment;
+      const toggleInfo = action.payload.teamMemberToggle;
+      const { userId, enabled } = toggleInfo;
+      
+      const member = location?.allTeamMembers?.find((m: any) => m.userId === userId) ||
+                    location?.teamMembers?.find((m: any) => m.userId === userId);
+      
+      const memberName = member ? `${member.firstName} ${member.lastName}` : i18n.t('assignments:page.locationTeamMembers.stats.member');
+      
+      if (enabled) {
+        toast.error(i18n.t('assignments:page.toasts.teamMemberAssignFailed', { memberName }));
+      } else {
+        toast.error(i18n.t('assignments:page.toasts.teamMemberRemoveFailed', { memberName }));
+      }
+    } else {
+      toast.error(i18n.t('assignments:page.toasts.failedToUpdateLocationAssignments'));
+    }
+  }
+}
+
+function* handleUpdateLocationTeamMembers(action: ReturnType<typeof updateLocationTeamMembersAction.request>) {
+  try {
+    yield call(updateLocationTeamMembersRequest, action.payload);
+    yield put(updateLocationTeamMembersAction.success());
+    
+    // Refresh the location's full assignment data to get updated team members
+    yield put(fetchLocationFullAssignmentAction.request({ locationId: action.payload.locationId }));
+    
+    toast.success(i18n.t('assignments:page.toasts.teamMembersUpdated'));
+  } catch (error: any) {
+    yield put(updateLocationTeamMembersAction.failure({ message: error?.message || 'Failed to update team members' }));
+    toast.error(i18n.t('assignments:page.toasts.failedToUpdateTeamMembers'));
   }
 }
 
 export function* assignmentsSaga() {
   yield all([
-    // Team Members
-    takeLatest(fetchTeamMemberAssignmentsAction.request, handleFetchTeamMemberAssignments),
-    takeLatest(fetchTeamMemberAssignmentByIdAction.request, handleFetchTeamMemberAssignmentById),
-    takeLatest(assignServicesToTeamMemberAction.request, handleAssignServicesToTeamMember),
-    takeLatest(assignLocationsToTeamMemberAction.request, handleAssignLocationsToTeamMember),
-    takeLatest(updateTeamMemberAssignmentsAction.request, handleUpdateTeamMemberAssignments),
-    // Services
-    takeLatest(fetchServiceAssignmentByIdAction.request, handleFetchServiceAssignmentById),
-    takeLatest(assignTeamMembersToServiceAction.request, handleAssignTeamMembersToService),
-    takeLatest(assignLocationsToServiceAction.request, handleAssignLocationsToService),
-    takeLatest(updateServiceAssignmentsAction.request, handleUpdateServiceAssignments),
-    // Locations
-    takeLatest(fetchLocationAssignmentByIdAction.request, handleFetchLocationAssignmentById),
-    takeLatest(assignTeamMembersToLocationAction.request, handleAssignTeamMembersToLocation),
-    takeLatest(assignServicesToLocationAction.request, handleAssignServicesToLocation),
+    takeLatest(fetchLocationFullAssignmentAction.request, handleFetchLocationFullAssignment),
+    takeLatest(updateLocationServicesAction.request, handleUpdateLocationServices),
+    takeLatest(fetchStaffServicesAtLocationAction.request, handleFetchStaffServicesAtLocation),
+    takeLatest(updateStaffServicesAction.request, handleUpdateStaffServices),
     takeLatest(updateLocationAssignmentsAction.request, handleUpdateLocationAssignments),
+    takeLatest(updateLocationTeamMembersAction.request, handleUpdateLocationTeamMembers),
   ]);
 }
