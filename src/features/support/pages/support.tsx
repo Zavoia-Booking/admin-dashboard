@@ -1,17 +1,15 @@
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
-import { MessageCircle } from 'lucide-react';
 
 export default function SupportPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <MessageCircle className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-semibold">Support</h1>
-          </div>
+        {/* Page Header */}
+        <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+          <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
+            Support
+          </h1>
         </div>
 
         {/* Main Content */}

@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Plus, Check, Shuffle, X, ArrowUpRight } from "lucide-react";
+import { Plus, Check, Shuffle, X } from "lucide-react";
 import { Label } from "../../../../shared/components/ui/label";
 import { Button } from "../../../../shared/components/ui/button";
 import { Input } from "../../../../shared/components/ui/input";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import { getColorHex, getReadableTextColor } from "../../../../shared/utils/color";
 import { validateCategoryName } from "../../../../shared/utils/validation";
 import {
@@ -35,7 +34,6 @@ export interface CategorySectionProps {
   onNewCategoryCreated?: (category: Category) => void; // Callback when new category is created inline
   onCategoryRemoved?: (categoryId: number) => void; // Callback when a newly created category is removed
   onNewlyCreatedCategoriesChange?: (categories: Category[]) => void; // Callback when newly created categories change
-  showManageCategoriesHelper?: boolean;
   customTitle?: string;
   customSubtitle?: string;
   customHelperText?: string;
@@ -57,7 +55,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onNewCategoryCreated,
   onCategoryRemoved,
   onNewlyCreatedCategoriesChange,
-  showManageCategoriesHelper = true,
   customTitle,
   customSubtitle,
   customHelperText,
@@ -67,7 +64,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
   onCategoriesChange,
 }) => {
   const text = useTranslation("services").t;
-  const navigate = useNavigate();
   const lastCategoryNameRef = useRef<string>("");
   const MAX_VISIBLE_CATEGORIES = 6;
   const MAX_CATEGORIES = 25;
@@ -926,22 +922,6 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
             <p className="text-xs text-foreground-3 dark:text-foreground-2">
               {customHelperText ||
                 text("addService.form.category.selectHelperText")}
-            </p>
-          )}
-
-          {showManageCategoriesHelper && (
-            <p className="text-xs leading-relaxed pb-4 pt-1 text-foreground-3 dark:text-foreground-2">
-              {text("addService.form.category.manageCategoriesText")}{" "}
-              <span
-                onClick={() => navigate("/services?tab=categories")}
-                className="inline-flex items-center gap-0.5 cursor-pointer text-xs font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
-              >
-                {text("addService.form.category.manageCategoriesLink")}
-                <ArrowUpRight
-                  className="h-3 w-3 text-primary"
-                  aria-hidden="true"
-                />
-              </span>
             </p>
           )}
         </div>

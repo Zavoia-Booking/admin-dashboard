@@ -296,7 +296,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   description="All assignments for this team member, including services, locations, custom pricing, and custom working hours, are managed in the dedicated Assignments section."
                   buttonLabel="Go to Assignments"
                   onButtonClick={() => {
-                    navigate(`/assignments?tab=team_members&userId=${displayTeamMember.id}`);
+                    navigate('/assignments');
                   }}
                 />
               </div>
@@ -367,7 +367,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
               label: 'Go to Assignments',
               onClick: () => {
                 handleCloseDialog(false);
-                navigate(`/assignments?tab=team_members&userId=${displayTeamMember.id}`);
+                navigate('/assignments');
               }
             },
           ]}

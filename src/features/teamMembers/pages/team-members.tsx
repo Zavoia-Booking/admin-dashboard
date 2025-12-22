@@ -129,6 +129,13 @@ export default function TeamMembersPage() {
     <AppLayout>
       <BusinessSetupGate>
         <div className="space-y-4 max-w-7xl mx-auto">
+          {/* Page Header */}
+          <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+            <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
+              {text("page.title")}
+            </h1>
+          </div>
+
           {/* Trial Banner */}
           <TrialBanner />
 

@@ -603,7 +603,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                     <p className="text-xs text-foreground-3 dark:text-foreground-2">
                       {text("addService.form.pricingNote.text")}{" "}
                       <span
-                        onClick={() => navigate("/assignments?tab=services")}
+                        onClick={() => navigate("/assignments")}
                         className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.pricingNote.link")}

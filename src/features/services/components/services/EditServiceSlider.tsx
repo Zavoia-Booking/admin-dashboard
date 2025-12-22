@@ -660,7 +660,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     <p className="text-xs text-foreground-3 dark:text-foreground-2">
                       {text("addService.form.pricingNote.text")}{" "}
                       <span
-                        onClick={() => navigate("/assignments?tab=services")}
+                        onClick={() => navigate("/assignments")}
                         className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.pricingNote.link")}
@@ -763,7 +763,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                     description="Manage which team members and locations can offer this service. View and modify all assignments in the dedicated Assignments section."
                     buttonLabel="Go to Assignments"
                     onButtonClick={() => {
-                      navigate(`/assignments?tab=services&serviceId=${service.id}`);
+                      navigate('/assignments');
                     }}
                   />
                 </div>
@@ -851,7 +851,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
               label: 'Go to Assignments',
               onClick: () => {
                 handleCloseDeleteDialog(false);
-                navigate(`/assignments?tab=services&serviceId=${service.id}`);
+                navigate('/assignments');
               }
             },
           ]}

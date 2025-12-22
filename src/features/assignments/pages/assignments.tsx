@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
@@ -9,21 +9,24 @@ import { selectLocationAction } from "../actions";
 export default function AssignmentsPage() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { t } = useTranslation("assignments");
 
   // Track the last location.key to detect new navigation to this page
   const lastLocationKeyRef = useRef<string | null>(null);
 
-  // Clear selection when navigating TO the assignments page
+  // Clear selection when navigating TO the assignments page (only if no locationId in URL)
   useEffect(() => {
+    const locationIdFromUrl = searchParams.get("locationId");
     if (
       location.pathname === "/assignments" &&
-      location.key !== lastLocationKeyRef.current
+      location.key !== lastLocationKeyRef.current &&
+      !locationIdFromUrl
     ) {
       dispatch(selectLocationAction(null));
       lastLocationKeyRef.current = location.key;
     }
-  }, [location.pathname, location.key, dispatch]);
+  }, [location.pathname, location.key, searchParams, dispatch]);
 
   return (
     <AppLayout>

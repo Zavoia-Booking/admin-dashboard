@@ -21,7 +21,11 @@ import { selectCurrentUser } from "../../../auth/selectors";
 import type { Bundle } from "../../../bundles/types";
 import { type BundleFilterState, getDefaultBundleFilters } from "../../../bundles/types";
 
-export function BundlesTab() {
+interface BundlesTabProps {
+  isActive?: boolean;
+}
+
+export function BundlesTab({ isActive = true }: BundlesTabProps) {
   const { t } = useTranslation("services");
   const dispatch = useDispatch();
   const bundles = useSelector(getBundlesListSelector);
@@ -34,10 +38,12 @@ export function BundlesTab() {
   const [isEditBundleSliderOpen, setIsEditBundleSliderOpen] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
 
-  // Fetch bundles on mount
+  // Fetch bundles when tab becomes active
   useEffect(() => {
-    dispatch(listBundlesAction.request());
-  }, [dispatch]);
+    if (isActive) {
+      dispatch(listBundlesAction.request());
+    }
+  }, [isActive, dispatch]);
 
   // Filter and sort bundles
   const filteredBundles = useMemo(() => {

@@ -4,6 +4,8 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // Example: LIVE_RELOAD_IP=192.168.1.100 npx cap sync android
 const liveReloadIP = process.env.LIVE_RELOAD_IP;
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // Use HTTP scheme for dev builds to avoid mixed content issues with local HTTP APIs
 const useHttpScheme = process.env.CAPACITOR_USE_HTTP === 'true';
 
@@ -27,13 +29,13 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: !isProduction,
   },
 
   ios: {
     contentInset: 'automatic',
     scrollEnabled: true,
-    webContentsDebuggingEnabled: true,
+    webContentsDebuggingEnabled: !isProduction,
   },
 
   plugins: {

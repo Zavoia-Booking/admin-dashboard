@@ -107,7 +107,6 @@
         "helperText": "Leave empty to create service without category",
         "selectLabel": "Select one",
         "selectHelperText": "Each service can be assigned to one category",
-        "manageCategoriesText": "You can manage them from",
         "manageCategoriesLink": "Manage Categories",
         "managePopoverTitle": "Categories",
         "managePopoverDescription": "Manage the categories your services use so everything stays organized and consistent.",

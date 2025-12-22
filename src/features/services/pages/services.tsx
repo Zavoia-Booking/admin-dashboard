@@ -50,13 +50,13 @@ export default function ServicesPage() {
       id: "services",
       label: t("page.tabs.allServices"),
       icon: Briefcase,
-      content: <ServicesListTab />,
+      content: <ServicesListTab isActive={activeTab === "services"} />,
     },
     {
       id: "bundles",
       label: t("page.tabs.bundles"),
       icon: Package,
-      content: <BundlesTab />,
+      content: <BundlesTab isActive={activeTab === "bundles"} />,
     }
   ];
 

@@ -65,6 +65,13 @@ export default function CustomersPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
+        {/* Page Header */}
+        <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+          <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
+            {text("page.title")}
+          </h1>
+        </div>
+
         {/* While customers are loading, show full-page skeleton (including filters) */}
         {isLoading ? (
           <CustomersListSkeleton />

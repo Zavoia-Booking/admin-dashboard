@@ -14,6 +14,7 @@ import {
   getServicesRequest,
   getServiceByIdRequest,
 } from "./api.ts";
+import { listCategoriesAction } from "../categories/actions";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { Service } from "../../shared/types/service.ts";
@@ -60,6 +61,8 @@ function* handleCreateServices(
     if (response.data) {
       toast.success("Service created successfully");
       yield put(getServicesAction.request());
+      // Refresh categories in case a new one was created during service creation
+      yield put(listCategoriesAction.request());
       yield put(createServicesAction.success(response.data));
     }
   } catch (error: unknown) {
@@ -114,6 +117,8 @@ function* handleEditServices(
       toast.success("Service edited successfully");
       yield put(editServicesAction.success(response.data));
       yield put(getServicesAction.request());
+      // Refresh categories in case a new one was created during service edit
+      yield put(listCategoriesAction.request());
     }
   } catch (error: unknown) {
     console.error("Failed to edit service:", error);

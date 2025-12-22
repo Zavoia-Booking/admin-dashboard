@@ -34,7 +34,11 @@ import { toast } from "sonner";
 import ServicesListSkeleton from "./ServicesListSkeleton";
 import { highlightMatches as highlight } from "../../../../shared/utils/highlight";
 
-export function ServicesListTab() {
+interface ServicesListTabProps {
+  isActive?: boolean;
+}
+
+export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
   const text = useTranslation("services").t;
   const services: Service[] = useSelector(getFilteredServicesListSelector);
   const allServices: Service[] = useSelector(getServicesListSelector);
@@ -73,11 +77,13 @@ export function ServicesListTab() {
     }
   }, [searchParams, setSearchParams, dispatch]);
 
-  // Load services and categories on mount
+  // Load services and categories when tab becomes active
   useEffect(() => {
-    dispatch(getServicesAction.request());
-    dispatch(listCategoriesAction.request());
-  }, [dispatch]);
+    if (isActive) {
+      dispatch(getServicesAction.request());
+      dispatch(listCategoriesAction.request());
+    }
+  }, [isActive, dispatch]);
 
   // Sync local categories state from Redux when categories are loaded/updated
   useEffect(() => {

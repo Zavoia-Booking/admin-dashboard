@@ -915,7 +915,6 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                     }}
                     required={false}
                     error={undefined}
-                    showManageCategoriesHelper={false}
                     customTitle={text("addService.form.category.managePopoverTitle")}
                     customSubtitle={text("addService.form.category.managePopoverDescription")}
                     customHelperText={text("addService.form.category.managePopoverHelperText")}
@@ -1008,7 +1007,6 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                   }}
                   required={false}
                   error={undefined}
-                  showManageCategoriesHelper={false}
                   customTitle={text("addService.form.category.managePopoverTitle")}
                   customSubtitle={text("addService.form.category.managePopoverDescription")}
                   customHelperText={text("addService.form.category.managePopoverHelperText")}

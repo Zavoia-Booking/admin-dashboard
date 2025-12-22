@@ -392,19 +392,24 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     }
   }, [isOpen, dispatch]);
 
-  // Pre-select all active team members and all services when data is loaded
+  // Pre-select all active team members when data is loaded
   useEffect(() => {
-    if (isOpen && allTeamMembers.length > 0 && allServices.length > 0) {
+    if (isOpen && allTeamMembers.length > 0) {
       const activeTeamMembers = allTeamMembers.filter(
         (member: TeamMember) => member.roleStatus === 'active'
       );
       const activeTeamMemberIds = activeTeamMembers.map((member: TeamMember) => member.id);
-      const allServiceIds = allServices.map((service) => service.id);
-
       setValue('teamMemberIds', activeTeamMemberIds, { shouldDirty: false });
+    }
+  }, [isOpen, allTeamMembers, setValue]);
+
+  // Pre-select all services when data is loaded
+  useEffect(() => {
+    if (isOpen && allServices.length > 0) {
+      const allServiceIds = allServices.map((service) => service.id);
       setValue('serviceIds', allServiceIds, { shouldDirty: false });
     }
-  }, [isOpen, allTeamMembers, allServices, setValue]);
+  }, [isOpen, allServices, setValue]);
 
   // Reset fetch flag when slider closes
   useEffect(() => {
@@ -831,7 +836,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     <div className="max-w-md">
                       {allServices.length === 0 ? (
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                          No services available. Create services first to assign them to this location.
+                          No services available yet.
                         </p>
                       ) : (
                         <MultiSelect
