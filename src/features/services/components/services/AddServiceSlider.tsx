@@ -88,6 +88,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const servicesError = useSelector(getServicesErrorSelector);
   const isServicesLoading = useSelector(getServicesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const justOpenedRef = useRef(false);
   const prevLoadingRef = useRef(isServicesLoading);
   const hasInitializedSelectionsRef = useRef(false);
@@ -273,9 +274,17 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     }
   }, [isOpen, reset]);
 
+  // Track isOpen changes with previous value
+  const prevIsOpenRef = useRef(isOpen);
+  
   // When slider opens, reset submission state for a fresh form
   useEffect(() => {
-    if (isOpen) {
+    const prevIsOpen = prevIsOpenRef.current;
+    const actuallyChanged = prevIsOpen !== isOpen;
+    
+    // Only reset state if isOpen actually changed from false to true
+    // This prevents resetting state when component remounts with isOpen already true
+    if (isOpen && actuallyChanged && !prevIsOpen) {
       setIsSubmitting(false);
       setShowConfirmDialog(false);
       justOpenedRef.current = true;
@@ -284,6 +293,8 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
         justOpenedRef.current = false;
       }, 0);
     }
+    
+    prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
   // Watch for errors and show toast, reset submitting state
@@ -304,14 +315,15 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   // Watch for success and close form
   useEffect(() => {
     // Don't close if slider just opened (prevents race condition with isSubmitting reset)
-    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current) {
+    // Also don't close if slider is already closed (prevents multiple calls)
+    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current && isOpen) {
       // Success - close form
-      // Don't set isSubmitting to false here - let it stay true until slider closes
-      // Don't reset here - the close effect handles cleanup
+      // Reset isSubmitting immediately to prevent effect from running again
+      setIsSubmitting(false);
       setShowConfirmDialog(false);
       onClose();
     }
-  }, [isServicesLoading, isSubmitting, servicesError, onClose]);
+  }, [isServicesLoading, isSubmitting, servicesError, onClose, isOpen]);
 
   // no per-form location state when All locations
 
@@ -583,6 +595,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                               onClick={async () => {
                                 setValue("duration", minutes, {
                                   shouldValidate: true,
+                                  shouldDirty: true,
                                 });
                                 await trigger("duration");
                               }}
