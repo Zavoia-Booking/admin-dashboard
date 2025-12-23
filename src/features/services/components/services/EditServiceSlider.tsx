@@ -67,6 +67,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   service: serviceProp,
   categories: initialCategories,
 }) => {
+  
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -79,12 +80,18 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   const deleteResponseFromState = useSelector(getServicesDeleteResponseSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const justOpenedRef = useRef(false);
+  
+  // Wrap onClose to ensure it's stable
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
   const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
 
   // Use service from Redux state (fetched via getServiceById) or fallback to prop
   const service = editForm.item || serviceProp;
+  
 
   // Convert decimal price from backend to cents for form
   const getPriceInCents = (decimalPrice: number | undefined): number => {
@@ -266,9 +273,17 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     }
   }, [isOpen]);
 
+  // Track isOpen changes with previous value
+  const prevIsOpenRef = useRef(isOpen);
+  
   // When slider opens, reset submission state for a fresh form
   useEffect(() => {
-    if (isOpen) {
+    const prevIsOpen = prevIsOpenRef.current;
+    const actuallyChanged = prevIsOpen !== isOpen;
+    
+    // Only reset state if isOpen actually changed from false to true
+    // This prevents resetting state when component remounts with isOpen already true
+    if (isOpen && actuallyChanged && !prevIsOpen) {
       setIsSubmitting(false);
       setShowConfirmDialog(false);
       setShowDeleteDialog(false);
@@ -280,6 +295,8 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         justOpenedRef.current = false;
       }, 0);
     }
+    
+    prevIsOpenRef.current = isOpen;
   }, [isOpen]);
 
   // Memoize callback to prevent infinite loops
@@ -316,13 +333,15 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   // Watch for success and close form
   useEffect(() => {
     // Don't close if slider just opened (prevents race condition with isSubmitting reset)
-    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current) {
+    // Also don't close if slider is already closed (prevents multiple calls)
+    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current && isOpen) {
       // Success - close form
-      // Don't set isSubmitting to false here - let it stay true until slider closes
+      // Reset isSubmitting immediately to prevent effect from running again
+      setIsSubmitting(false);
       setShowConfirmDialog(false);
-      onClose();
+      handleClose();
     }
-  }, [isServicesLoading, isSubmitting, servicesError, onClose]);
+  }, [isServicesLoading, isSubmitting, servicesError, handleClose, isOpen]);
 
   const onSubmit = () => {
     // Prevent opening dialog if already submitting or loading
@@ -386,7 +405,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
   };
 
   const handleCancel = () => {
-    onClose();
+    handleClose();
   };
 
   // Handle delete response from Redux state
@@ -400,10 +419,10 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
         setShowDeleteDialog(false);
         setDeleteResponse(null);
         setHasAttemptedDelete(false);
-        onClose();
+        handleClose();
       }
     }
-  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, onClose]);
+  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, handleClose]);
 
   const handleDeleteClick = () => {
     // Show confirmation dialog first with optimistic state
@@ -430,13 +449,34 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     }
   };
 
-  if (!service) return null;
+  // NEVER unmount when slider is open - this prevents the slider from reopening after submission
+  // If service is null but slider is open, show skeleton instead of unmounting
+  if (!service && !isOpen) {
+    return null;
+  }
+  
+  // If service is temporarily null but slider is open, show skeleton to prevent unmount
+  if (!service && isOpen) {
+    return (
+      <BaseSlider
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={text("editService.title")}
+        subtitle={text("editService.subtitle")}
+        icon={ClipboardPlus}
+        iconColor="text-foreground-1"
+        contentClassName="bg-surface scrollbar-hide"
+      >
+        <ServiceFormSkeleton />
+      </BaseSlider>
+    );
+  }
 
   return (
     <>
       <BaseSlider
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={handleClose}
         title={text("editService.title")}
         subtitle={text("editService.subtitle")}
         icon={ClipboardPlus}
@@ -640,6 +680,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                               onClick={async () => {
                                 setValue("duration", minutes, {
                                   shouldValidate: true,
+                                  shouldDirty: true,
                                 });
                                 await trigger("duration");
                               }}

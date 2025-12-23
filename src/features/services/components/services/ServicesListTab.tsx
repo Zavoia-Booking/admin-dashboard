@@ -396,7 +396,10 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
         </div>
       )}
 
-      {/* Add Service Slider */}
+      </>
+      )}
+
+      {/* Add Service Slider - Outside conditional to prevent unmounting */}
       <AddServiceSlider
         isOpen={isCreateSliderOpen}
         onClose={() => {
@@ -405,17 +408,16 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
         categories={initialCategories}
       />
 
-      {/* Edit Service Slider */}
+      {/* Edit Service Slider - Outside conditional to prevent unmounting */}
       <EditServiceSlider
         isOpen={isEditSliderOpen}
         onClose={() => {
           setIsEditSliderOpen(false);
+          setEditingService(null);
         }}
         service={editingService}
         categories={initialCategories}
       />
-      </>
-      )}
     </div>
   );
 }
