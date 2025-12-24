@@ -1,0 +1,60 @@
+{
+  "deleteConfirmDialog": {
+    "loading": {
+      "title": "Verificare dependențe",
+      "description": "Se verifică dacă acest {{resourceType}} poate fi șters..."
+    },
+    "canDelete": {
+      "title": "Ștergi \"{{resourceName}}\"?",
+      "description": "Aceasta va elimina permanent acest {{resourceType}} din lista ta. Nu poți anula această acțiune.",
+      "cancel": "Anulează",
+      "delete": "Șterge {{resourceType}}",
+      "deleting": "Se șterge..."
+    },
+    "cannotDelete": {
+      "title": "{{resourceType}} este activ",
+      "descriptionPrefix": "Nu poți șterge",
+      "descriptionSuffix": "deoarece este folosit în prezent de:",
+      "footer": "Te rugăm să elimini aceste asocieri înainte de a șterge {{resourceType}}.",
+      "manageAssignments": "Vezi asocierile",
+      "cancel": "Anulează",
+      "visibleInMarketplace": "Vizibil în Marketplace"
+    },
+    "dependencies": {
+      "user": "utilizator",
+      "users": "utilizatori",
+      "activeTeamMember": "membru activ al echipei",
+      "activeTeamMembers": "membri activi ai echipei",
+      "pendingTeamMemberInvitation": "invitație în așteptare pentru membru al echipei",
+      "pendingTeamMemberInvitations": "invitații în așteptare pentru membri ai echipei",
+      "service": "serviciu",
+      "services": "servicii",
+      "appointment": "programare",
+      "appointments": "programări",
+      "location": "locație",
+      "locations": "locații",
+      "teamMember": "membru al echipei",
+      "teamMembers": "membri ai echipei",
+      "cancelInvitationHint": "Anulează invitația{{plural}} înainte de a elimina acest {{resourceType}}"
+    },
+    "resourceTypes": {
+      "location": "locație",
+      "locations": "locații",
+      "service": "serviciu",
+      "services": "servicii",
+      "team_member": "membru al echipei",
+      "team_members": "membri ai echipei",
+      "bundle": "pachet",
+      "bundles": "pachete",
+      "resource": "resursă",
+      "resources": "resurse",
+      "locationTitle": "Locația",
+      "serviceTitle": "Serviciul",
+      "team_memberTitle": "Membrul echipei",
+      "bundleTitle": "Pachetul",
+      "resourceTitle": "Resursa"
+    },
+    "close": "Închide"
+  }
+}
+

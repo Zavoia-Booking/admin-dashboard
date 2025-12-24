@@ -66,6 +66,7 @@
       "buttons": {
         "manageServices": "Select Services",
         "addServices": "Add Services",
+        "createFirstService": "Create Your First Service",
         "showMore": "Show {{count}} more",
         "showLess": "Show less"
       },
@@ -74,14 +75,19 @@
         "subtitle": "Select which services customers can book at this location"
       },
       "emptyState": {
-        "title": "No services added",
-        "description": "Add services to make them available at this location."
+        "title": "No services assigned to this location yet",
+        "description": "Select services to make them available at this location.",
+        "noServicesCreated": {
+          "title": "No services created yet",
+          "description": "Create your first service to get started. Once created, you can assign it to this location."
+        }
       }
     },
     "locationTeamMembers": {
       "title": "Team members at this location",
       "description": {
-        "helperText": "Enable the staff members who work at this location. You can optionally customize services and pricing for specific employees."
+        "helperText": "Enable the staff members who work at this location. You can optionally customize services and pricing for specific employees.",
+        "disabledHelperText": "Add services to this location before assigning team members."
       },
       "bookingMode": {
         "title": "Allow customers to select specific staff members",
@@ -134,7 +140,9 @@
         "noMatchingMembers": "No team members match your search.",
         "noMembersWithOverrides": "No team members have custom overrides.",
         "noTeamMembersInBusiness": "No team members available",
-        "noTeamMembersInBusinessDescription": "Add team members to your business first to assign them to locations."
+        "noTeamMembersInBusinessDescription": "Add team members to your business first to assign them to locations.",
+        "noServicesRequired": "Add services first",
+        "noServicesRequiredDescription": "You need to add services to this location before you can assign team members."
       }
     },
     "manageTeamMemberDrawer": {

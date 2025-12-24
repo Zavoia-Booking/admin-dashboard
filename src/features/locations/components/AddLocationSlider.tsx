@@ -615,6 +615,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
             <div className="max-w-2xl mx-auto space-y-6 cursor-default">
               {/* Remote Location Toggle - First */}
               <RemoteLocationToggle
+                id="add-location-isRemote"
                 isRemote={isRemote}
                 onChange={(checked) => {
                   setValue('isRemote', checked);
@@ -629,6 +630,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               {!isRemote && (
                 <div className="space-y-4">
                   <TextField
+                    id="add-location-name"
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
@@ -723,6 +725,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
 
                   {/* Contact Information Toggle */}
                   <ContactInformationToggle
+                    id="add-location-contact-toggle"
                     useInheritedContact={useBusinessContact}
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
@@ -748,6 +751,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
 
                   <div className="pt-4">
                     <TextareaField
+                      id="add-location-description"
                       value={descriptionField.value || ""}
                       onChange={descriptionField.onChange}
                       error={descriptionState.error?.message}
@@ -874,6 +878,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   <div className="space-y-4 pt-4">
                     <Label className="text-base font-medium">Working Hours</Label>
                     <Open247Toggle
+                      id="add-location-open247"
                       open247={open247}
                       onChange={(checked) => {
                         setValue('open247', checked);
@@ -895,6 +900,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               {isRemote && (
                 <div className="space-y-4">
                   <TextField
+                    id="add-location-name-remote"
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
@@ -912,6 +918,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
 
                   {/* Contact Information Toggle */}
                   <ContactInformationToggle
+                    id="add-location-contact-toggle-remote"
                     useInheritedContact={useBusinessContact}
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
@@ -938,6 +945,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   <div className="space-y-2 pt-4">
                     <Label className="text-base font-medium">Working Hours</Label>
                     <Open247Toggle
+                      id="add-location-open247-remote"
                       open247={open247}
                       onChange={(checked) => {
                         setValue('open247', checked);

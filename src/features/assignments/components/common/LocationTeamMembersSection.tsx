@@ -300,11 +300,11 @@ export function LocationTeamMembersSection({
                 e.stopPropagation();
                 onManageMember(member.userId);
               }}
-              className={cn(
-                "h-fit !px-4 py-1.5 text-xs !min-h-0 text-foreground-1 border border-border-strong flex-1",
-                (!isEnabled || isAnySaving) && "opacity-50"
-              )}
-              disabled={!isEnabled || isAnySaving}
+                className={cn(
+                  "h-fit !px-4 py-1.5 text-xs !min-h-0 text-foreground-1 border border-border-strong flex-1",
+                  (!isEnabled || isAnySaving) && "opacity-50"
+                )}
+                disabled={!isEnabled || isAnySaving}
             >
               {t("page.locationTeamMembers.buttons.manageServices")}
               <ChevronRight className="h-3 w-3 text-primary mt-0.5" />

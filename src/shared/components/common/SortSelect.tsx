@@ -62,7 +62,10 @@ export const SortSelect: React.FC<SortSelectProps> = ({
       size="sm"
       rounded="full"
       className={cn(
-        "h-auto px-3 py-1.5 gap-1.5 border sidebar-border dark:bg-transparent dark:border-border-strong flex items-center justify-between dark:hover:bg-neutral-900",
+        "h-auto px-3 py-1.5 gap-1.5 border transition-[colors,box-shadow,background-color,color] duration-200 ease-out flex items-center justify-between",
+        open
+          ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
+          : "border-border bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong",
         className
       )}
     >
@@ -70,7 +73,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
         <ArrowUpDown className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
         <span
           className={cn(
-            "truncate text-xs dark:text-foreground-1",
+            "truncate text-xs font-medium dark:text-foreground-1",
             !selectedLabel && "text-muted-foreground dark:text-foreground-1"
           )}
         >

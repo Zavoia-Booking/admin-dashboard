@@ -415,22 +415,22 @@ export default function TeamMembersPage() {
                   </div>
                 </DialogContent>
               </Dialog>
-
-              {/* Invite Team Member Slider */}
-              <InviteTeamMemberSlider
-                isOpen={isInviteSliderOpen}
-                onClose={() => setIsInviteSliderOpen(false)}
-              />
-
-              {/* Team Member Profile Slider */}
-              <TeamMemberProfileSlider
-                isOpen={isProfileSliderOpen}
-                onClose={() => setIsProfileSliderOpen(false)}
-                teamMember={selectedTeamMember as TeamMember}
-              />
             </>
           )}
         </div>
+
+        {/* Invite Team Member Slider - Outside conditional to prevent unmounting */}
+        <InviteTeamMemberSlider
+          isOpen={isInviteSliderOpen}
+          onClose={() => setIsInviteSliderOpen(false)}
+        />
+
+        {/* Team Member Profile Slider - Outside conditional to prevent unmounting */}
+        <TeamMemberProfileSlider
+          isOpen={isProfileSliderOpen}
+          onClose={() => setIsProfileSliderOpen(false)}
+          teamMember={selectedTeamMember as TeamMember}
+        />
       </BusinessSetupGate>
     </AppLayout>
   );

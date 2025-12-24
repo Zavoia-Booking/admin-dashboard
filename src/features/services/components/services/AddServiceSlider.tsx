@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import {
   Clock,
   MapPin,
-  Users,
   ClipboardPlus,
   Layers2,
   ArrowUpRight,
@@ -27,11 +26,8 @@ import {
   priceFromStorage,
 } from "../../../../shared/utils/currency";
 import { getAllLocationsSelector } from "../../../locations/selectors";
-import { selectTeamMembers } from "../../../teamMembers/selectors";
-import type { TeamMember } from "../../../../shared/types/team-member";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { listLocationsAction } from "../../../locations/actions";
-import { listTeamMembersAction } from "../../../teamMembers/actions";
 import { createServicesAction } from "../../actions.ts";
 import type { CreateServicePayload } from "../../types.ts";
 import type { Category } from "./CategorySection";
@@ -54,7 +50,6 @@ interface ServiceFormData {
   duration: number;
   description: string;
   locationIds: number[];
-  teamMemberIds: number[];
   categoryId?: number | null;
   categoryName?: string;
   categoryColor?: string;
@@ -66,7 +61,6 @@ const initialFormData: ServiceFormData = {
   duration: 60,
   description: "",
   locationIds: [],
-  teamMemberIds: [],
   categoryId: null,
 };
 
@@ -79,10 +73,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const allLocations = useSelector(getAllLocationsSelector);
-  const allTeamMembers = useSelector(selectTeamMembers);
-  const activeTeamMembers = allTeamMembers.filter(
-    (member: TeamMember) => member.roleStatus === "active"
-  );
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const servicesError = useSelector(getServicesErrorSelector);
@@ -113,7 +103,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
 
   const locationIds = watch("locationIds");
-  const teamMemberIds = watch("teamMemberIds");
   const categoryId = watch("categoryId");
   const categoryName = watch("categoryName");
   const categoryColor = watch("categoryColor");
@@ -224,34 +213,34 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   const isFormDisabled =
     !formState.isValid || !isCategorySet || !areRequiredFieldsFilled;
 
-  // Fetch locations and team members when slider opens
+  // Fetch locations when slider opens
   useEffect(() => {
     if (isOpen && !hasInitializedSelectionsRef.current) {
       dispatch(listLocationsAction.request());
-      dispatch(listTeamMembersAction.request());
     }
   }, [isOpen, dispatch]);
 
-  // Reset fetch flag when slider closes
+  // Sync categories when they're loaded or when slider closes
   useEffect(() => {
     if (!isOpen) {
       hasInitializedSelectionsRef.current = false;
+    }
+    // Always sync categories when initialCategories changes (handles async loading)
+    if (initialCategories.length > 0) {
       setCategories(initialCategories);
     }
   }, [isOpen, initialCategories]);
 
-  // Pre-select all locations and active team members when slider opens (only once)
+  // Pre-select all locations when slider opens (only once)
   useEffect(() => {
     if (isOpen && allLocations.length > 0 && !isLocationsLoading && !hasInitializedSelectionsRef.current) {
       const allLocationIds = allLocations.map((location) => location.id);
-      const activeTeamMemberIds = activeTeamMembers.map((member: TeamMember) => member.id);
       
       setValue('locationIds', allLocationIds, { shouldDirty: false });
-      setValue('teamMemberIds', activeTeamMemberIds, { shouldDirty: false });
       
       hasInitializedSelectionsRef.current = true;
     }
-  }, [isOpen, allLocations, activeTeamMembers, isLocationsLoading, setValue]);
+  }, [isOpen, allLocations, isLocationsLoading, setValue]);
 
   // Show skeleton while loading
   const isLoading = isLocationsLoading;
@@ -347,7 +336,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       duration,
       description,
       locationIds,
-      teamMemberIds,
       categoryId,
     } = getValues();
 
@@ -366,7 +354,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       duration,
       description,
       locations: locationIds.length > 0 ? locationIds : undefined,
-      teamMembers: teamMemberIds.length > 0 ? teamMemberIds : undefined,
       category:
         categoryId && !isSelectedNew
           ? { categoryId } // Existing category
@@ -754,76 +741,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
                   </div>
                 </div>
 
-                {/* Divider */}
-                <div className="flex items-end gap-2 mb-6 pt-0">
-                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
-                </div>
-
-                {/* Team Members Section */}
-                <div className="space-y-5">
-                  <div className="space-y-1">
-                    <h3 className="text-lg font-semibold text-foreground-1">
-                      {text("addService.sections.teamMembers")}
-                    </h3>
-                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      {text("addService.sections.teamMembersDescription")}
-                    </p>
-                  </div>
-
-                  <div className="space-y-5">
-                    {activeTeamMembers.length === 0 ? (
-                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                        {text("addService.form.teamMembers.emptyMessage")}
-                      </p>
-                    ) : (
-                      <div className="flex flex-wrap gap-2 sm:gap-3">
-                        {activeTeamMembers.map((member: TeamMember) => {
-                          const isSelected = teamMemberIds.includes(member.id);
-
-                          return (
-                            <Pill
-                              key={member.id}
-                              selected={isSelected}
-                              icon={Users}
-                              className="w-auto justify-start items-start transition-none active:scale-100"
-                              showCheckmark={true}
-                              onClick={() => {
-                                const newIds = isSelected
-                                  ? teamMemberIds.filter(
-                                      (id) => id !== member.id
-                                    )
-                                  : [...teamMemberIds, member.id];
-                                setValue("teamMemberIds", newIds);
-                              }}
-                            >
-                              <div className="flex flex-col text-left">
-                                <div className="flex items-center">
-                                  {`${member.firstName} ${member.lastName}`}
-                                </div>
-                                {member.email && (
-                                  <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-0.5">
-                                    {member.email}
-                                  </div>
-                                )}
-                              </div>
-                            </Pill>
-                          );
-                        })}
-                      </div>
-                    )}
-                    {activeTeamMembers.length > 0 && (
-                      <p className="text-xs text-foreground-3 dark:text-foreground-2">
-                        {teamMemberIds.length === 0
-                          ? text("addService.form.teamMembers.helperTextNone")
-                          : teamMemberIds.length === 1
-                          ? text("addService.form.teamMembers.helperTextOne")
-                          : text("addService.form.teamMembers.helperTextSome", {
-                              count: teamMemberIds.length,
-                            })}
-                      </p>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
           </div>

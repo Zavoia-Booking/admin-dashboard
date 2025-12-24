@@ -115,6 +115,25 @@ export function LocationAssignmentsView() {
     }
   }, [searchParams, allLocations, hasAutoSelected, dispatch]);
 
+  // Auto-select first location when page loads (if no locationId in URL and no selection)
+  useEffect(() => {
+    const locationIdFromUrl = searchParams.get("locationId");
+    if (
+      !locationIdFromUrl &&
+      !hasAutoSelected &&
+      !isLocationsLoading &&
+      allLocations.length > 0 &&
+      selectedLocationId === null
+    ) {
+      const firstLocation = allLocations[0];
+      if (firstLocation) {
+        dispatch(selectLocationAction(firstLocation.id));
+        dispatch(fetchLocationFullAssignmentAction.request({ locationId: firstLocation.id }));
+        setHasAutoSelected(true);
+      }
+    }
+  }, [searchParams, allLocations, hasAutoSelected, isLocationsLoading, selectedLocationId, dispatch]);
+
 
   // Consolidated save completion handler
   useEffect(() => {
@@ -158,12 +177,16 @@ export function LocationAssignmentsView() {
   // Handlers
   const handleSelectLocation = useCallback(
     (locationId: number) => {
+      // Prevent selecting the same location that's already selected (avoids unnecessary backend calls)
+      if (selectedLocationId === locationId) {
+        return;
+      }
       dispatch(selectLocationAction(locationId));
       // Refetch user data to get updated currency
       dispatch(fetchCurrentUserAction.request());
       dispatch(fetchLocationFullAssignmentAction.request({ locationId }));
     },
-    [dispatch]
+    [dispatch, selectedLocationId]
   );
 
   // Save single service override to backend

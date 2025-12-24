@@ -679,6 +679,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
             <div className="max-w-2xl mx-auto space-y-6 cursor-default">
               {/* Remote Location Toggle - First */}
               <RemoteLocationToggle
+                id="edit-location-isRemote"
                 isRemote={isRemote}
                 onChange={(checked) => {
                   setValue('isRemote', checked, { shouldDirty: true });
@@ -695,6 +696,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               {!isRemote && (
                 <div className="space-y-4">
                   <TextField
+                    id="edit-location-name"
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
@@ -792,6 +794,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
                   {/* Contact Information Toggle */}
                   <ContactInformationToggle
+                    id="edit-location-contact-toggle"
                     useInheritedContact={useBusinessContact}
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
@@ -817,6 +820,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
                   <div className="pt-4">
                     <TextareaField
+                      id="edit-location-description"
                       value={descriptionField.value || ""}
                       onChange={descriptionField.onChange}
                       error={descriptionState.error?.message}
@@ -829,6 +833,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   <div className="space-y-4 pt-4">
                     <Label className="text-base font-medium">Working Hours</Label>
                     <Open247Toggle
+                      id="edit-location-open247"
                       open247={open247}
                       onChange={(checked) => {
                         setValue('open247', checked, { shouldDirty: true });
@@ -850,6 +855,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               {isRemote && (
                 <div className="space-y-4">
                   <TextField
+                    id="edit-location-name-remote"
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
@@ -870,6 +876,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
                   {/* Contact Information Toggle */}
                   <ContactInformationToggle
+                    id="edit-location-contact-toggle-remote"
                     useInheritedContact={useBusinessContact}
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
@@ -895,6 +902,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
 
                   <div className="pt-4">
                     <TextareaField
+                      id="edit-location-description-remote"
                       value={descriptionField.value || ""}
                       onChange={descriptionField.onChange}
                       error={descriptionState.error?.message}
@@ -907,6 +915,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   <div className="space-y-2 pt-4">
                     <Label className="text-base font-medium">Working Hours</Label>
                     <Open247Toggle
+                      id="edit-location-open247-remote"
                       open247={open247}
                       onChange={(checked) => {
                         setValue('open247', checked, { shouldDirty: true });
