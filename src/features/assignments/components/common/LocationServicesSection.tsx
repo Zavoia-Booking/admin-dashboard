@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Settings2, Info, ChevronDown, Briefcase, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Settings2, Info, ChevronDown, Plus } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { ManageServicesSheet } from "../../../../shared/components/common/ManageServicesSheet/ManageServicesSheet";
@@ -35,12 +36,17 @@ export function LocationServicesSection({
   onSaveStart,
 }: LocationServicesSectionProps) {
   const { t } = useTranslation("assignments");
+  const navigate = useNavigate();
   const [isManageSheetOpen, setIsManageSheetOpen] = useState(false);
   const [showAllServices, setShowAllServices] = useState(false);
   const collapsibleRef = useRef<HTMLDivElement>(null);
 
   // Services from backend are already filtered to only assigned ones
   const assignedServices = services;
+  
+  // Determine scenarios
+  const hasNoServicesCreated = allServices.length === 0;
+  const hasServicesButNotAssigned = allServices.length > 0 && assignedServices.length === 0;
 
   // Get enabled service IDs for the ManageServicesSheet
   const enabledServiceIds = useMemo(
@@ -133,7 +139,8 @@ export function LocationServicesSection({
             variant="outline"
             rounded="full"
             onClick={() => setIsManageSheetOpen(true)}
-            className="!px-6 w-full md:w-auto border-border-strong text-foreground-1 group"
+            disabled={hasNoServicesCreated}
+            className="!px-6 w-full md:w-auto border-border-strong text-foreground-1 group disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
             <span>{t("page.locationServices.buttons.manageServices")}</span>
@@ -157,29 +164,70 @@ export function LocationServicesSection({
 
       {/* Services list - only assigned services */}
       {assignedServices.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-12 px-4 border border-dashed border-border rounded-lg bg-muted/30">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-sm">
-            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-              <Briefcase className="w-8 h-8 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center py-12 text-center gap-5">
+          {/* Abstract cards illustration - smaller and more compact */}
+          <div className="relative w-full max-w-xs h-28 text-left">
+            {/* Subtle background glow */}
+            <div className="absolute inset-0 -top-2 -bottom-2 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-xl opacity-40 dark:opacity-30" />
+            
+            {/* back cards - smaller */}
+            <div className="absolute inset-x-6 top-0.5 h-16 rounded-xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-md opacity-60 rotate-[-12deg] blur-[0.5px]" />
+            <div className="absolute inset-x-3 top-4 h-18 rounded-xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-lg opacity-75 rotate-[8deg] blur-[0.5px]" />
+
+            {/* front skeleton card - compact service card preview */}
+            <div className="absolute inset-x-0 top-2 h-20 rounded-xl bg-surface dark:bg-neutral-900 border border-border shadow-lg overflow-hidden">
+              <div className="h-full w-full px-3 py-2.5 flex flex-col gap-2">
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-1">
+                    {/* Icon placeholder - smaller */}
+                    <div className="h-8 w-8 rounded-lg bg-neutral-300 dark:bg-neutral-800 flex-shrink-0" />
+                    {/* Title and metadata */}
+                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                      <div className="h-3 w-28 rounded bg-neutral-300 dark:bg-neutral-800" />
+                      <div className="flex items-center gap-1.5">
+                        <div className="h-2 w-12 rounded-full bg-neutral-300/80 dark:bg-neutral-800/80" />
+                        <div className="h-2 w-10 rounded-full bg-neutral-300/70 dark:bg-neutral-800/70" />
+                      </div>
+                    </div>
+                  </div>
+                  {/* Price placeholder - smaller */}
+                  <div className="h-4 w-12 rounded bg-neutral-300 dark:bg-neutral-800 flex-shrink-0" />
+                </div>
+                
+                {/* Badge row - smaller */}
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <div className="h-3.5 w-16 rounded-full bg-neutral-300/90 dark:bg-neutral-800/90" />
+                  <div className="h-3.5 w-12 rounded-full bg-neutral-300/80 dark:bg-neutral-800/80" />
+                </div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-foreground">
-                {t("page.locationServices.emptyState.title")}
-              </h3>
-              <p className="text-sm text-muted-foreground">
-                {t("page.locationServices.emptyState.description")}
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              rounded="full"
-              onClick={() => setIsManageSheetOpen(true)}
-              className="mt-2"
-            >
-              <Settings2 className="h-4 w-4 mr-2" />
-              {t("page.locationServices.buttons.addServices")}
-            </Button>
           </div>
+
+          {/* Copy with better spacing */}
+          <div className="space-y-2 max-w-md px-4">
+            <h3 className="text-lg font-semibold text-foreground-1">
+              {hasNoServicesCreated
+                ? t("page.locationServices.emptyState.noServicesCreated.title")
+                : t("page.locationServices.emptyState.title")}
+            </h3>
+            <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+              {hasNoServicesCreated
+                ? t("page.locationServices.emptyState.noServicesCreated.description")
+                : t("page.locationServices.emptyState.description")}
+            </p>
+          </div>
+
+          {/* Action button */}
+          {hasNoServicesCreated && <Button
+            variant="default"
+            rounded="full"
+            onClick={() => {navigate("/services?open=add")}}
+            className="mt-2"
+          >
+            <Settings2 className="h-4 w-4 mr-2" />
+             {t("page.locationServices.buttons.createFirstService")}
+          </Button>}
         </div>
       ) : (
         <div className="space-y-2">

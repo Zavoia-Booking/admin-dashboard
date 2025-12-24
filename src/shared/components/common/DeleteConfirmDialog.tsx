@@ -7,18 +7,16 @@ import {
   DialogOverlay,
 } from "../ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { XIcon, Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle, XCircle, X } from "lucide-react";
 import { Button } from "../ui/button";
-import { AlertTriangle, XCircle } from "lucide-react";
-import type { DeleteConfirmDialogProps, DeleteResponse } from "../../types/delete-response";
+import { Badge } from "../ui/badge";
+import { DashedDivider } from "./DashedDivider";
+import type {
+  DeleteConfirmDialogProps,
+  DeleteResponse,
+} from "../../types/delete-response";
 import { cn } from "../../lib/utils";
-
-const resourceLabels: Record<string, { singular: string; plural: string }> = {
-  location: { singular: "location", plural: "locations" },
-  service: { singular: "service", plural: "services" },
-  team_member: { singular: "team member", plural: "team members" },
-  bundle: { singular: "bundle", plural: "bundles" },
-};
+import { useTranslation } from "react-i18next";
 
 export function DeleteConfirmDialog({
   open,
@@ -32,10 +30,35 @@ export function DeleteConfirmDialog({
   className,
   overlayClassName,
 }: DeleteConfirmDialogProps) {
-  const labels = resourceLabels[resourceType] || {
-    singular: "resource",
-    plural: "resources",
+  const { t } = useTranslation("common");
+
+  const getResourceLabel = (count: number, type: string) => {
+    // Map resourceType to locale key (handle team_member -> team_member, etc.)
+    const localeKey = count === 1 ? type : `${type}s`;
+    const key = `deleteConfirmDialog.resourceTypes.${localeKey}`;
+    const translated = t(key);
+    // If translation returns the key itself, fallback to a readable default
+    if (translated === key) {
+      return count === 1
+        ? type.replace("_", " ")
+        : `${type.replace("_", " ")}s`;
+    }
+    return translated;
   };
+
+  const getResourceTitle = (type: string) => {
+    const key = `deleteConfirmDialog.resourceTypes.${type}Title`;
+    const translated = t(key);
+    // If translation returns the key itself, fallback to capitalized resource label
+    if (translated === key) {
+      const label = getResourceLabel(1, type);
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+    return translated;
+  };
+
+  const resourceLabelSingular = getResourceLabel(1, resourceType);
+  const resourceTitle = getResourceTitle(resourceType);
 
   // Show loading state if no response yet
   const isCheckingDependencies = !deleteResponse;
@@ -53,28 +76,90 @@ export function DeleteConfirmDialog({
   } = (deleteResponse || {}) as Partial<DeleteResponse>;
 
   // Build dynamic dependency list
-  const dependencies: { count: number; label: string; isPending?: boolean }[] = [];
+  const dependencies: {
+    count: number;
+    label: string;
+    isPending?: boolean;
+    isTeamMember?: boolean;
+    isLocation?: boolean;
+  }[] = [];
 
   if (usersCount && usersCount > 0) {
-    dependencies.push({ count: usersCount, label: usersCount === 1 ? "user" : "users" });
+    dependencies.push({
+      count: usersCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          usersCount === 1 ? "user" : "users"
+        }`
+      ),
+    });
   }
   if (activeUsersCount && activeUsersCount > 0) {
-    dependencies.push({ count: activeUsersCount, label: activeUsersCount === 1 ? "active team member" : "active team members" });
+    dependencies.push({
+      count: activeUsersCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          activeUsersCount === 1 ? "activeTeamMember" : "activeTeamMembers"
+        }`
+      ),
+      isTeamMember: true,
+    });
   }
   if (pendingUsersCount && pendingUsersCount > 0) {
-    dependencies.push({ count: pendingUsersCount, label: pendingUsersCount === 1 ? "pending team member invitation" : "pending team member invitations", isPending: true });
+    dependencies.push({
+      count: pendingUsersCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          pendingUsersCount === 1
+            ? "pendingTeamMemberInvitation"
+            : "pendingTeamMemberInvitations"
+        }`
+      ),
+      isPending: true,
+      isTeamMember: true,
+    });
   }
   if (servicesCount && servicesCount > 0) {
-    dependencies.push({ count: servicesCount, label: servicesCount === 1 ? "service" : "services" });
+    dependencies.push({
+      count: servicesCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          servicesCount === 1 ? "service" : "services"
+        }`
+      ),
+    });
   }
   if (appointmentsCount && appointmentsCount > 0) {
-    dependencies.push({ count: appointmentsCount, label: appointmentsCount === 1 ? "appointment" : "appointments" });
+    dependencies.push({
+      count: appointmentsCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          appointmentsCount === 1 ? "appointment" : "appointments"
+        }`
+      ),
+    });
   }
   if (locationsCount && locationsCount > 0) {
-    dependencies.push({ count: locationsCount, label: locationsCount === 1 ? "location" : "locations" });
+    dependencies.push({
+      count: locationsCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          locationsCount === 1 ? "location" : "locations"
+        }`
+      ),
+      isLocation: true,
+    });
   }
   if (teamMembersCount && teamMembersCount > 0) {
-    dependencies.push({ count: teamMembersCount, label: teamMembersCount === 1 ? "team member" : "team members" });
+    dependencies.push({
+      count: teamMembersCount,
+      label: t(
+        `deleteConfirmDialog.dependencies.${
+          teamMembersCount === 1 ? "teamMember" : "teamMembers"
+        }`
+      ),
+      isTeamMember: true,
+    });
   }
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -91,172 +176,241 @@ export function DeleteConfirmDialog({
         <DialogOverlay className={cn(overlayClassName)} />
         <DialogPrimitive.Content
           className={cn(
-            "bg-surface border-border data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg",
+            "bg-surface border-border dark:border-border-subtle data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg cursor-default",
             className
           )}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
-        {isCheckingDependencies ? (
-          // Loading state while checking dependencies
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-foreground-1">
-                Checking dependencies...
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-sm text-foreground-3">
-                Verifying if this {labels.singular} can be deleted...
-              </p>
-            </div>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  {canDelete ? (
-                    <div className="rounded-full bg-warning-bg p-2 border border-warning-border">
-                      <AlertTriangle className="h-5 w-5 text-warning" />
-                    </div>
-                  ) : (
-                    <div className="rounded-full bg-error-bg p-2 border border-error-border">
-                      <XCircle className="h-5 w-5 text-error" />
-                    </div>
-                  )}
-                  <DialogTitle className="text-foreground-1">
-                    {canDelete ? `Delete ${labels.singular}?` : `Cannot delete ${labels.singular}`}
-                  </DialogTitle>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleOpenChange(false)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md text-foreground-3 hover:text-foreground-1 hover:bg-surface-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-border"
-                >
-                  <span className="sr-only">Close</span>
-                </button>
+          {isCheckingDependencies ? (
+            // Loading state while checking dependencies
+            <>
+              <DialogHeader className="space-y-4 text-left pr-6 cursor-default">
+                <DialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default">
+                  {t("deleteConfirmDialog.loading.title")}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+                <p className="text-sm text-foreground-3 dark:text-foreground-2 cursor-default">
+                  {t("deleteConfirmDialog.loading.description", {
+                    resourceType: resourceLabelSingular,
+                  })}
+                </p>
               </div>
-            </DialogHeader>
-
-        {/* Main question / explanation row */}
-        <div className="text-foreground-2 text-sm">
-          {canDelete ? (
-            <div className="space-y-1 text-left">
-              <p>
-                Are you sure you want to delete{" "}
-                <span className="font-semibold text-foreground-1">
-                  {resourceName}
+            </>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => handleOpenChange(false)}
+                className={cn(
+                  "absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-md",
+                  "text-foreground-2 hover:text-foreground-1",
+                  "active:bg-surface-active",
+                  "transition-colors duration-200",
+                  "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+                  "disabled:pointer-events-none",
+                  "cursor-pointer"
+                )}
+              >
+                <X className="h-6 w-6" />
+                <span className="sr-only">
+                  {t("deleteConfirmDialog.close")}
                 </span>
-                ?
-              </p>
-              <p>This action cannot be undone.</p>
-            </div>
-          ) : (
-            <p>
-              You cannot delete{" "}
-              <span className="font-semibold text-foreground-1">
-                {resourceName}
-              </span>{" "}
-              because it has associated dependencies.
-            </p>
-          )}
-        </div>
+              </button>
+              <DialogHeader className="space-y-4 text-left pr-6 cursor-default">
+                <div className="flex items-end gap-3">
+                  {canDelete ? (
+                    <AlertTriangle className="h-6 w-6 text-warning flex-shrink-0 cursor-default mb-0.5" />
+                  ) : (
+                    <XCircle className="h-6 w-6 text-error flex-shrink-0 cursor-default mb-0.5" />
+                  )}
+                  <div className="space-y-2 cursor-default flex-1 min-w-0">
+                    <DialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default">
+                      {canDelete
+                        ? t("deleteConfirmDialog.canDelete.title", {
+                            resourceName,
+                          })
+                        : t("deleteConfirmDialog.cannotDelete.title", {
+                            resourceType: resourceTitle,
+                          })}
+                    </DialogTitle>
+                  </div>
+                </div>
+              </DialogHeader>
 
-        {!canDelete && dependencies.length > 0 && (
-          <div className="rounded-lg bg-info-bg border border-info-border p-4">
-            <h4 className="text-sm font-semibold text-info mb-2">
-              This {labels.singular} is currently used by:
-            </h4>
-            <ul className="space-y-1.5">
-              {dependencies.map((dep, index) => (
-                <li
-                  key={index}
-                  className="flex items-start gap-2 text-sm text-foreground-2"
-                >
-                  <div className="h-1.5 w-1.5 rounded-full bg-info mt-1.5 flex-shrink-0" />
-                  <span>
+              {/* Main question / explanation row */}
+              <div className="text-sm text-foreground-3 dark:text-foreground-2 cursor-default">
+                {canDelete ? (
+                  <p className="text-left">
+                    {t("deleteConfirmDialog.canDelete.description", {
+                      resourceType: resourceLabelSingular,
+                    })}
+                  </p>
+                ) : (
+                  <p className="text-left">
+                    {t("deleteConfirmDialog.cannotDelete.descriptionPrefix")}{" "}
                     <span className="font-semibold text-foreground-1">
-                      {dep.count}
+                      {resourceName}
                     </span>{" "}
-                    {dep.label}
-                    {dep.isPending && (
-                      <span className="block text-xs text-foreground-3 mt-0.5">
-                        Cancel the invitation{dep.count > 1 ? 's' : ''} before removing this {labels.singular}
-                      </span>
-                    )}
-                  </span>
-                </li>
-              ))}
-              {isVisibleInMarketplace && (
-                <li className="flex items-center gap-2 text-sm text-foreground-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-info" />
-                  <span>
-                    <span className="font-semibold text-foreground-1">
-                      Visible in the Marketplace
-                    </span>
-                  </span>
-                </li>
-              )}
-            </ul>
-            <p className="mt-3 text-sm text-foreground-3">
-              Please remove or reassign these dependencies before deleting this{" "}
-              {labels.singular}.
-            </p>
-          </div>
-        )}
+                    {t("deleteConfirmDialog.cannotDelete.descriptionSuffix")}
+                  </p>
+                )}
+              </div>
 
-        <DialogFooter>
-          {canDelete ? (
-            <>
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-                tabIndex={-1}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={onConfirm}
-                disabled={isLoading}
-                className="bg-error hover:bg-error-border text-white border-0"
-              >
-                {isLoading ? "Deleting..." : "Delete"}
-              </Button>
-            </>
-          ) : (
-            <>
-              {secondaryActions?.map((action: { label: string; onClick: () => void }) => (
-                <Button
-                  key={action.label}
-                  onClick={action.onClick}
-                  disabled={isLoading}
-                  className="bg-primary text-white hover:bg-primary-hover"
-                >
-                  {action.label}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-                className="w-full sm:w-auto"
-              >
-                Close
-              </Button>
+              {!canDelete && dependencies.length > 0 && (
+                <>
+                  <div>
+                    <div className="flex flex-wrap gap-2">
+                      {dependencies.map((dep, index) => (
+                        <Badge
+                          key={index}
+                          variant="secondary"
+                          className={cn(
+                            "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
+                            dep.isTeamMember
+                              ? "bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+                              : dep.isLocation
+                              ? "bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800"
+                              : "bg-info/20 dark:bg-info/60 border-border dark:border-border-subtle"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              dep.isTeamMember
+                                ? "bg-purple-500"
+                                : dep.isLocation
+                                ? "bg-blue-500"
+                                : "bg-info"
+                            )}
+                          />
+                          <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                            {dep.count}
+                          </span>
+                          <span className="text-neutral-900 dark:text-foreground-1">
+                            {dep.label}
+                          </span>
+                        </Badge>
+                      ))}
+                      {isVisibleInMarketplace && (
+                        <Badge
+                          variant="secondary"
+                          className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-info/20 dark:bg-info/60 border border-border dark:border-border-subtle"
+                        >
+                          <div className="h-2 w-2 rounded-full bg-info" />
+                          <span className="text-neutral-900 dark:text-foreground-1">
+                            {t(
+                              "deleteConfirmDialog.cannotDelete.visibleInMarketplace"
+                            )}
+                          </span>
+                        </Badge>
+                      )}
+                    </div>
+                    {dependencies.some((dep) => dep.isPending) && (
+                      <div className="mt-3 space-y-1">
+                        {dependencies
+                          .filter((dep) => dep.isPending)
+                          .map((dep, index) => (
+                            <p
+                              key={index}
+                              className="text-xs text-foreground-3 dark:text-foreground-2"
+                            >
+                              {t(
+                                "deleteConfirmDialog.dependencies.cancelInvitationHint",
+                                {
+                                  plural: dep.count > 1 ? "s" : "",
+                                  resourceType: resourceLabelSingular,
+                                }
+                              )}
+                            </p>
+                          ))}
+                      </div>
+                    )}
+                    <p className="mt-3 text-sm text-foreground-3 dark:text-foreground-2">
+                      {t("deleteConfirmDialog.cannotDelete.footer", {
+                        resourceType: resourceLabelSingular,
+                      })}
+                    </p>
+                  </div>
+                </>
+              )}
+              {!canDelete && (
+                <DashedDivider marginTop="mt-0" paddingTop="pt-0" />
+              )}
+
+              <DialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end">
+                {canDelete ? (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isLoading}
+                      className="rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer"
+                    >
+                      {t("deleteConfirmDialog.canDelete.cancel")}
+                    </Button>
+                    <Button
+                      onClick={onConfirm}
+                      disabled={isLoading}
+                      className="rounded-full h-11 px-6 font-semibold cursor-pointer bg-error hover:bg-error-border text-white border-0"
+                    >
+                      {isLoading
+                        ? t("deleteConfirmDialog.canDelete.deleting")
+                        : t("deleteConfirmDialog.canDelete.delete", {
+                            resourceType: resourceLabelSingular,
+                          })}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    {secondaryActions?.find(
+                      (action) => action.label === "Go to Assignments"
+                    ) ? (
+                      <Button
+                        onClick={() => {
+                          const assignmentsAction = secondaryActions.find(
+                            (action) => action.label === "Go to Assignments"
+                          );
+                          if (assignmentsAction) {
+                            assignmentsAction.onClick();
+                          }
+                        }}
+                        disabled={isLoading}
+                        className="rounded-full h-11 px-6 font-semibold cursor-pointer bg-primary text-white hover:bg-primary-hover"
+                      >
+                        {t(
+                          "deleteConfirmDialog.cannotDelete.manageAssignments"
+                        )}
+                      </Button>
+                    ) : null}
+                    {secondaryActions
+                      ?.filter((action) => action.label !== "Go to Assignments")
+                      .map((action: { label: string; onClick: () => void }) => (
+                        <Button
+                          key={action.label}
+                          onClick={action.onClick}
+                          disabled={isLoading}
+                          className="rounded-full h-11 px-6 font-semibold cursor-pointer bg-primary text-white hover:bg-primary-hover"
+                        >
+                          {action.label}
+                        </Button>
+                      ))}
+                    <Button
+                      variant="outline"
+                      onClick={() => onOpenChange(false)}
+                      disabled={isLoading}
+                      className="rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer"
+                    >
+                      {t("deleteConfirmDialog.cannotDelete.cancel")}
+                    </Button>
+                  </>
+                )}
+              </DialogFooter>
             </>
           )}
-        </DialogFooter>
-          </>
-        )}
-        <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
-          <XIcon />
-          <span className="sr-only">Close</span>
-        </DialogPrimitive.Close>
-      </DialogPrimitive.Content>
+        </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>
   );
 }
-

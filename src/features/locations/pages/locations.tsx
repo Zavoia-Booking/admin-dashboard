@@ -163,22 +163,22 @@ export default function LocationsPage() {
                     } : undefined}
                   />
                 )}
-
-                {/* Add Location Slider */}
-                <AddLocationSlider
-                  isOpen={isCreateSliderOpen}
-                  onClose={() => setIsCreateSliderOpen(false)}
-                />
-
-                {/* Edit Location Slider */}
-                <EditLocationSlider
-                  isOpen={isEditSliderOpen}
-                  onClose={() => setIsEditSliderOpen(false)}
-                  location={editingLocation}
-                />
               </>
             )}
           </div>
+
+          {/* Add Location Slider - Outside conditional to prevent unmounting */}
+          <AddLocationSlider
+            isOpen={isCreateSliderOpen}
+            onClose={() => setIsCreateSliderOpen(false)}
+          />
+
+          {/* Edit Location Slider - Outside conditional to prevent unmounting */}
+          <EditLocationSlider
+            isOpen={isEditSliderOpen}
+            onClose={() => setIsEditSliderOpen(false)}
+            location={editingLocation}
+          />
         </AccessGuard>
       </BusinessSetupGate>
     </AppLayout>
