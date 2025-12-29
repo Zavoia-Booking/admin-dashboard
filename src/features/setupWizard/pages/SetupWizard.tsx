@@ -237,6 +237,7 @@ const WizardRunner: React.FC = () => {
 
 const SetupWizardPage: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
   const business = useSelector(getCurrentBusinessSelector);
   const locations = useSelector(getAllLocationsSelector);
@@ -253,6 +254,13 @@ const SetupWizardPage: React.FC = () => {
     }
   }, [dispatch, user?.wizardCompleted]);
 
+  // Team members should never see the wizard - redirect to dashboard
+  useEffect(() => {
+    if (user && user.role !== 'owner') {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   // Filter to only show pending team members (invited but not yet accepted)
   const pendingTeamMembers = (allTeamMembers || []).filter(
     (member: TeamMember) => member.roleStatus === 'pending_acceptance'
@@ -264,6 +272,11 @@ const SetupWizardPage: React.FC = () => {
 
   // AuthGate handles spinner when user is null
   if (!user) {
+    return null;
+  }
+
+  // Don't render wizard for non-owners (redirect is in progress)
+  if (user.role !== 'owner') {
     return null;
   }
 

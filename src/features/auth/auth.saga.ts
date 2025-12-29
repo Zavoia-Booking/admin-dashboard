@@ -28,6 +28,7 @@ import { select } from "redux-saga/effects";
 import type { RootState } from "../../app/providers/store";
 import { refreshSession } from "../../shared/lib/http";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOwnerPayload }): Generator<any, void, any> {
   try {
@@ -64,17 +65,7 @@ function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOw
       return;
     }
     
-    let message = "Registration failed";
-    
-    if (error?.response?.data?.message) {
-      // Handle array of messages or single message
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
+    const message = getErrorMessage(error);
     
     yield put(registerOwnerRequestAction.failure({ message }));
   } finally {
@@ -153,17 +144,7 @@ function* handleLogin(action: { type: string; payload: { email: string, password
       return;
     }
     
-    let message = "Login failed";
-    
-    if (error?.response?.data?.message) {
-      // Handle array of messages or single message
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
+    const message = getErrorMessage(error);
     
     yield put(loginAction.failure({ message }));
   } finally {
@@ -216,16 +197,7 @@ function* handleResetPassword(action: { type: string; payload: { token: string, 
     yield call(resetPasswordApi, action.payload);
     yield put(resetPasswordAction.success());
   } catch (error: any) {
-    // Extract error message from API response
-    let message = "Reset password failed";
-    if (error?.response?.data?.message) {
-      // If message is an array (like ["SYSTEM.E07"]), join them
-      message = Array.isArray(error.response.data.message) 
-        ? error.response.data.message.join(", ")
-        : error.response.data.message;
-    } else if (error?.message) {
-      message = error.message;
-    }
+    const message = getErrorMessage(error);
     yield put(resetPasswordAction.failure({ message }));
   }
 }
@@ -255,38 +227,20 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
     
+    // Use isNewUser from backend response to determine if this is a registration
     yield put(googleLoginAction.success({ 
       accessToken: response.accessToken, 
       csrfToken: response.csrfToken ?? null, 
-      user: response.user 
-    }));
+      user: response.user,
+      isNewUser: response.isNewUser ?? false
+    } as any));
 
     // Ensure latest user data (including Google linkage fields) after login
     yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
-    let message = "Google login failed";
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
     const details = error?.response?.data?.details;
-        
-    if (error?.response?.data?.message) {
-      // Handle array of messages or single message
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
-    
-    // Handle account not found during login - set flag for banner display
-    if (code === 'account_not_found') {
-      try { 
-        sessionStorage.setItem('googleLoginNoAccount', 'true');
-      } catch { /* empty */ }
-      yield put(googleLoginAction.failure({ message: 'account_not_found' }));
-      return;
-    }
     
     // Handle business selection required (300 status)
     if (statusCode === 300 && code === 'business_selection_required') {
@@ -312,13 +266,24 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     
     // Handle existing account with unlinked Google
     if (code === 'account_exists_unlinked_google') {
-      try { sessionStorage.setItem('linkContext', 'register'); } catch { /* empty */ }
+      try { sessionStorage.setItem('linkContext', 'login'); } catch { /* empty */ }
       yield put(clearAuthErrorAction()); // Clear error so error handler doesn't redirect
       yield put(openAccountLinkingModal({ suggestedNext: details?.suggestedNext, txId: details?.tx_id }));
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
+    
+    // Handle pending team member invitation
+    if (statusCode === 403 && code === 'pending_invitation_requires_acceptance') {
+      yield put(googleLoginAction.failure({ 
+        message: 'pending_invitation_requires_acceptance',
+        invitationDetails: details
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
 
+    const message = getErrorMessage(error);
     yield put(googleLoginAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
@@ -350,28 +315,31 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     // Store user
     yield put(setAuthUserAction({ user: response.user }));
     
+    // Use isNewUser from backend response to determine if this is a registration
     yield put(googleRegisterAction.success({ 
       accessToken: response.accessToken, 
       csrfToken: response.csrfToken ?? null, 
-      user: response.user 
-    }));
+      user: response.user,
+      isNewUser: response.isNewUser ?? true
+    } as any));
 
     // Ensure latest user data (including Google linkage fields) after registration
     yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
-    let message = "Google registration failed";
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
     const details = error?.response?.data?.details;
     
-    if (error?.response?.data?.message) {
-      // Handle array of messages or single message
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
+    // Handle business selection required (300 status) - can happen when existing user logs in via register page
+    if (statusCode === 300 && code === 'business_selection_required') {
+      const details = error.response.data.details;
+      yield put(googleRegisterAction.failure({ 
+        message: 'business_selection_required',
+        selectionToken: details.selectionToken,
+        businesses: details.businesses
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
     }
     
     // Handle account needs business owner account (409 status)
@@ -392,7 +360,18 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
+    
+    // Handle pending team member invitation
+    if (statusCode === 403 && code === 'pending_invitation_requires_acceptance') {
+      yield put(googleRegisterAction.failure({ 
+        message: 'pending_invitation_requires_acceptance',
+        invitationDetails: details
+      } as any));
+      yield put(setAuthLoadingAction({ isLoading: false }));
+      return;
+    }
 
+    const message = getErrorMessage(error);
     yield put(googleRegisterAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
@@ -482,7 +461,7 @@ function* handleUnlinkGoogle(action: ReturnType<typeof unlinkGoogleAction.reques
     const { toast } = yield import('sonner');
     toast.success('Google account has been unlinked from your account.');
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Failed to unlink Google account';
+    const message = getErrorMessage(error);
     yield put(unlinkGoogleAction.failure({ message }));
     
     // Show error message
@@ -582,16 +561,7 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
     // Ensure latest user data
     yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
-    let message = "Business selection failed";
-    
-    if (error?.response?.data?.message) {
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
+    const message = getErrorMessage(error);
     yield put(selectBusinessAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
@@ -610,17 +580,7 @@ function* handleSendBusinessLinkEmail(action: ReturnType<typeof sendBusinessLink
       toast.success('Email sent! Please check your inbox to complete the account linking.');
     } catch {}
   } catch (error: any) {
-    let message = "Failed to send linking email";
-    
-    if (error?.response?.data?.message) {
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
-    
+    const message = getErrorMessage(error);
     yield put(sendBusinessLinkEmailAction.failure({ message }));
   }
 }
@@ -635,17 +595,7 @@ function* handleCheckTeamInvitation(action: ReturnType<typeof checkTeamInvitatio
     // Don't auto-login for 'accepted' status - user will be redirected to login page
     // If status is 'needs_registration', the UI will show the registration form
   } catch (error: any) {
-    let message = "Invalid or expired invitation";
-    
-    if (error?.response?.data?.message) {
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
-    
+    const message = getErrorMessage(error);
     yield put(checkTeamInvitationAction.failure({ message }));
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
@@ -661,17 +611,7 @@ function* handleCompleteTeamInvitation(action: ReturnType<typeof completeTeamInv
     // User will be redirected to login page with success message
     yield put(completeTeamInvitationAction.success(response));
   } catch (error: any) {
-    let message = "Failed to complete registration";
-    
-    if (error?.response?.data?.message) {
-      const backendMessage = error.response.data.message;
-      message = Array.isArray(backendMessage) ? backendMessage[0] : backendMessage;
-    } else if (error?.response?.data?.error) {
-      message = error.response.data.error;
-    } else if (error?.message) {
-      message = error.message;
-    }
-    
+    const message = getErrorMessage(error);
     yield put(completeTeamInvitationAction.failure({ message }));
   } finally {
     yield put(setMemberRegistrationLoadingAction({ isLoading: false }));

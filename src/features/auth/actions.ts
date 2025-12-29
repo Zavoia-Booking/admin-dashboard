@@ -138,7 +138,7 @@ export const sendBusinessLinkEmailAction = createAsyncAction(
   'auth/SEND_BUSINESS_LINK_EMAIL_REQUEST',
   'auth/SEND_BUSINESS_LINK_EMAIL_SUCCESS',
   'auth/SEND_BUSINESS_LINK_EMAIL_FAILURE',
-)<{ email: string }, { message: string }, { message: string }>();
+)<{ email: string; tx_id?: string }, { message: string }, { message: string }>();
 
 export const closeAccountLinkingRequiredModal = createAction(
   'auth/CLOSE_ACCOUNT_LINKING_REQUIRED_MODAL',

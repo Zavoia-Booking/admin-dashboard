@@ -15,6 +15,7 @@ export type AuthUser = {
   businessId: number | null;
   emailVerified?: boolean;
   wizardCompleted?: boolean;
+  hasPassword?: boolean;
   googleSub?: string | null;
   provider?: string;
   registeredVia?: string;
@@ -52,6 +53,7 @@ export type AuthResponse = {
   user: AuthUser;
   csrfToken: string;
   refreshToken?: string; // Returned for native apps
+  isNewUser?: boolean; // Returned by unified Google OAuth endpoint
 };
 
 export enum AuthStatusEnum {
@@ -81,6 +83,7 @@ export type AccountLinkingDetails = {
     customer: boolean;
     teamMember: boolean;
   };
+  tx_id?: string;
 };
 
 export interface AuthState {

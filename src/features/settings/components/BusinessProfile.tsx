@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera } from 'lucide-react';
+import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Check, Lock } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -13,6 +13,8 @@ import GoogleAccountManager from './GoogleAccountManager';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
 import { getCurrentBusinessSelector, getBusinessUpdatingSelector } from '../../business/selectors';
 import { fetchCurrentUserAction } from '../../auth/actions';
+import { setPasswordApi } from '../../auth/api';
+import { translateMessageCode } from '../../../shared/utils/error';
 
 interface BusinessFormData {
   businessName: string;
@@ -51,9 +53,15 @@ const BusinessProfile: React.FC = () => {
   const currentBusiness = useSelector(getCurrentBusinessSelector);
   const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<BusinessFormData>(initialFormData);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  
+  // Password setup state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
 
   // Fetch business data on mount
   useEffect(() => {
@@ -140,6 +148,50 @@ const BusinessProfile: React.FC = () => {
     };
     
     dispatch(updateBusinessAction.request(updateData));
+  };
+
+  const handleSetPasswordClick = () => {
+    // Small delay to allow modal to close first, then focus and scroll to the password input
+    setTimeout(() => {
+      passwordInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Focus after scroll starts
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 300);
+    }, 100);
+  };
+
+  const handleSetPassword = async () => {
+    if (!newPassword.trim()) {
+      toast.error('Please enter a password');
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    setIsSettingPassword(true);
+    try {
+      await setPasswordApi({ password: newPassword });
+      toast.success('Password set successfully! You can now unlink your Google account.');
+      setNewPassword('');
+      setConfirmPassword('');
+      // Refresh user data to update hasPassword
+      dispatch(fetchCurrentUserAction.request());
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Failed to set password';
+      const translatedMessage = Array.isArray(message) 
+        ? translateMessageCode(message[0]) 
+        : translateMessageCode(message);
+      toast.error(translatedMessage);
+    } finally {
+      setIsSettingPassword(false);
+    }
   };
 
   return (
@@ -324,7 +376,78 @@ const BusinessProfile: React.FC = () => {
             className="mb-6"
           />
           
-          <GoogleAccountManager />
+          <div className="space-y-6">
+            <GoogleAccountManager onSetPasswordClick={handleSetPasswordClick} />
+            
+            {/* Password Section - always visible */}
+            <div className="pt-4 border-t border-border">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div className="space-y-1 flex-1 min-w-0 mb-4">
+                  <Label className="text-sm font-medium text-foreground">
+                    Change Password
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Update your account password
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-6">
+                <div className="flex-1 min-w-[280px]">
+                  <TextField
+                    id="new-password"
+                    label="New Password"
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={setNewPassword}
+                    type="password"
+                    icon={Lock}
+                    disabled={isSettingPassword}
+                    inputRef={passwordInputRef}
+                  />
+                </div>
+                <div className="flex-1 min-w-[280px]">
+                  <TextField
+                    id="confirm-password"
+                    label="Confirm Password"
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    type="password"
+                    icon={Lock}
+                    disabled={isSettingPassword}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSetPassword();
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              
+              <div className="pt-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleSetPassword}
+                  disabled={!newPassword.trim() || !confirmPassword.trim() || isSettingPassword}
+                >
+                  {isSettingPassword ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Change Password
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Save Button */}

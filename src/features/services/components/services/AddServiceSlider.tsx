@@ -20,11 +20,7 @@ import { TextareaField } from "../../../../shared/components/forms/fields/Textar
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { Pill } from "../../../../shared/components/ui/pill";
 import { CategorySection } from "./CategorySection";
-import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
-import {
-  getCurrencyDisplay,
-  priceFromStorage,
-} from "../../../../shared/utils/currency";
+import { getCurrencyDisplay } from "../../../../shared/utils/currency";
 import { getAllLocationsSelector } from "../../../locations/selectors";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { listLocationsAction } from "../../../locations/actions";
@@ -95,7 +91,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     defaultValues: initialFormData,
     mode: "onChange",
   });
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
     Category[]
   >([]);
@@ -275,7 +270,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     // This prevents resetting state when component remounts with isOpen already true
     if (isOpen && actuallyChanged && !prevIsOpen) {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       justOpenedRef.current = true;
       // Clear the flag after a brief delay to allow effects to run
       setTimeout(() => {
@@ -309,7 +303,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
       // Success - close form
       // Reset isSubmitting immediately to prevent effect from running again
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       onClose();
     }
   }, [isServicesLoading, isSubmitting, servicesError, onClose, isOpen]);
@@ -317,15 +310,7 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
   // no per-form location state when All locations
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isServicesLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmCreate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isServicesLoading) {
       return;
     }
@@ -373,7 +358,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
     };
     setIsSubmitting(true);
     dispatch(createServicesAction.request(payload));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -746,26 +730,6 @@ const AddServiceSlider: React.FC<AddServiceSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmCreate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title={text("addService.confirmDialog.title")}
-        description={text("addService.confirmDialog.description", {
-          name: getValues("name"),
-          price: priceFromStorage(
-            getValues("price") || 0,
-            businessCurrency
-          ).toFixed(2),
-          duration: getValues("duration"),
-        })}
-        confirmTitle={text("addService.confirmDialog.confirm")}
-        cancelTitle={text("addService.confirmDialog.cancel")}
-        showCloseButton={true}
-      />
     </>
   );
 };

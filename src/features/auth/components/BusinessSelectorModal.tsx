@@ -13,6 +13,15 @@ import { Button } from "../../../shared/components/ui/button";
 import { Building2, ChevronRight } from "lucide-react";
 import { Spinner } from "../../../shared/components/ui/spinner";
 
+const formatRole = (role: string): string => {
+  const roleMap: Record<string, string> = {
+    owner: "Business Owner",
+    team_member: "Team Member",
+    admin: "Admin",
+  };
+  return roleMap[role] || role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 export default function BusinessSelectorModal() {
   const dispatch = useDispatch();
   const businessSelection = useSelector((s: RootState) => s.auth.businessSelectionRequired);
@@ -68,8 +77,8 @@ export default function BusinessSelectorModal() {
                   </div>
                   <div className="text-left">
                     <div className="font-semibold">{business.name}</div>
-                    <div className="text-xs text-muted-foreground capitalize">
-                      {business.role}
+                    <div className="text-xs text-muted-foreground">
+                      {formatRole(business.role)}
                     </div>
                   </div>
                 </div>

@@ -5,7 +5,6 @@ import { useTranslation } from "react-i18next";
 import { Package, AlertCircle, Calculator, DollarSign, Percent, TrendingDown, TrendingUp, Settings2 } from "lucide-react";
 import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
 import { FormFooter } from "../../../../shared/components/forms/FormFooter";
-import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
@@ -59,7 +58,6 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
   const bundlesError = useSelector(getBundlesErrorSelector);
   const isBundlesLoading = useSelector(getBundlesLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isManageServicesOpen, setIsManageServicesOpen] = useState(false);
   const prevLoadingRef = useRef(isBundlesLoading);
 
@@ -266,15 +264,7 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
     !!serviceIdsError;
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isBundlesLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmCreate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isBundlesLoading) {
       return;
     }
@@ -296,7 +286,6 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
     }
 
     dispatch(createBundleAction.request(payload));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -907,22 +896,6 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmCreate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title={text("bundles.addBundle.confirmDialog.title")}
-        description={text("bundles.addBundle.confirmDialog.description", {
-          name: watch("name"),
-          serviceCount: serviceIds?.length || 0,
-        })}
-        confirmTitle={text("bundles.addBundle.confirmDialog.confirm")}
-        cancelTitle={text("bundles.addBundle.confirmDialog.cancel")}
-        showCloseButton={true}
-      />
     </>
   );
 };

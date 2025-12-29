@@ -147,7 +147,7 @@
     },
     "manageTeamMemberDrawer": {
       "title": "Manage Services for {{name}}",
-      "titleSubtitle": "Enable services and set custom rates for this location.",
+      "titleSubtitle": "Enable services and set custom rates for this team member.",
       "description": "Configure services and pricing for this team member at this location.",
       "badge": {
         "custom": "Custom"

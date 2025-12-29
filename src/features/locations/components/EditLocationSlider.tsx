@@ -14,7 +14,6 @@ import TimezoneField from '../../../shared/components/common/TimezoneField';
 import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
-import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
 import { MapDialog } from '../../../shared/components/map';
 import { locationIqGeocode } from '../../../shared/lib/locationiq';
@@ -112,7 +111,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const isRemote = watch('isRemote') ?? false;
   const currentWorkingHours = watch('workingHours') as WorkingHours || defaultWorkingHours;
   const open247 = watch('open247') ?? false;
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Get business contact info (if available from user/business)
   const businessEmail = currentUser?.email || "";
@@ -449,7 +447,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       setShowDeleteDialog(false);
       setDeleteResponse(null);
       setHasAttemptedDelete(false);
@@ -496,13 +493,11 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       // Check if pin confirmation is needed
       if (updateResponse?.needsPinConfirmation) {
         // Show unclosable dialog instead of closing
-        setShowConfirmDialog(false);
         setShowPinConfirmationDialog(true);
         setIsSubmitting(false);
       } else {
         // Success - close form and reset
         // Don't set isSubmitting to false here - let it stay true until slider closes
-        setShowConfirmDialog(false);
         onClose();
       }
     }
@@ -579,15 +574,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     (!formState.isDirty && !pinWasModified);
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isLocationLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmUpdate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isLocationLoading || !location) {
       return;
     }
@@ -614,7 +601,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     
     setIsSubmitting(true);
     dispatch(updateLocationAction.request({ location: payload }));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -999,19 +985,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmUpdate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title="Update Location"
-        description={`Are you sure you want to update the location "${watch('name') || 'Untitled'}"?`}
-        confirmTitle="Update Location"
-        cancelTitle="Cancel"
-        showCloseButton={true}
-      />
 
       {/* Delete Confirmation Dialog */}
       {location && (

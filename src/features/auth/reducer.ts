@@ -244,6 +244,8 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(googleLoginAction.success): {
       const { accessToken, csrfToken, user } = action.payload;
+      // Use isNewUser from backend response to determine if this is a registration
+      const isNewUser = (action.payload as any).isNewUser ?? false;
       return {
         ...state,
         accessToken,
@@ -254,12 +256,14 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         status: AuthStatusEnum.AUTHENTICATED,
         error: null,
         businessId: user?.businessId?.toString() || null,
-        isRegistration: false, // Login, not registration
+        isRegistration: isNewUser,
       };
     }
 
     case getType(googleRegisterAction.success): {
       const { accessToken, csrfToken, user } = action.payload;
+      // Use isNewUser from backend response to determine if this is a registration
+      const isNewUser = (action.payload as any).isNewUser ?? true;
       return {
         ...state,
         accessToken,
@@ -270,7 +274,7 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         status: AuthStatusEnum.AUTHENTICATED,
         error: null,
         businessId: user?.businessId?.toString() || null,
-        isRegistration: true, // Registration
+        isRegistration: isNewUser,
       };
     }
 

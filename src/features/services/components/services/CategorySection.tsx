@@ -833,12 +833,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
                         setCreateError("");
                       }}
                       onKeyDown={handleCreateInputKeyDown}
-                      onBlur={() => {
-                        // If nothing was typed, leaving the field cancels create mode
-                        if (!createInputValue.trim()) {
-                          handleCancelCreating();
-                        }
-                      }}
+                      onBlur={handleSaveCreating}
                       placeholder={text("addService.form.category.placeholder")}
                       className={`h-6 !px-2 max-h-6 border-0 bg-transparent dark:bg-transparent text-sm font-medium focus-visible:ring-0 focus-visible:ring-offset-0 outline-none shadow-none truncate ${
                         createError ? "text-destructive" : ""

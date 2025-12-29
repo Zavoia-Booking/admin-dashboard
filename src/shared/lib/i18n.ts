@@ -17,6 +17,8 @@ import enAssignments from '../../locales/en/assignments.json';
 import roAssignments from '../../locales/ro/assignments.json';
 import enCommon from '../../locales/en/common.json';
 import roCommon from '../../locales/ro/common.json';
+import enMessages from '../../locales/en/messages.json';
+import roMessages from '../../locales/ro/messages.json';
 
 const resources = {
   en: {
@@ -27,6 +29,7 @@ const resources = {
     customers: enCustomers,
     assignments: enAssignments,
     common: enCommon,
+    messages: enMessages,
   },
   ro: {
     services: roServices,
@@ -36,6 +39,7 @@ const resources = {
     customers: roCustomers,
     assignments: roAssignments,
     common: roCommon,
+    messages: roMessages,
   },
 };
 

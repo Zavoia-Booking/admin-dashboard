@@ -1,21 +1,21 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Users, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { MapPin, Users, Loader2, AlertCircle, CheckCircle2, Plus } from 'lucide-react';
 import { Label } from '../../../shared/components/ui/label';
 import { Button } from '../../../shared/components/ui/button';
+import { Badge } from '../../../shared/components/ui/badge';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { TextField } from '../../../shared/components/forms/fields/TextField';
 import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
 import { Pill } from '../../../shared/components/ui/pill';
-import { MultiSelect } from '../../../shared/components/common/MultiSelect';
+import { ManageServicesSheet } from '../../../shared/components/common/ManageServicesSheet';
 import AddressComposer from '../../../shared/components/address/AddressComposer';
 import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
 import TimezoneField from '../../../shared/components/common/TimezoneField';
 import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
-import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { MapDialog } from '../../../shared/components/map';
 import { locationIqGeocode } from '../../../shared/lib/locationiq';
 import { createLocationAction } from '../actions';
@@ -68,6 +68,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(true);
   const [isAddressValid, setIsAddressValid] = useState(true);
+  const [isServicesSheetOpen, setIsServicesSheetOpen] = useState(false);
   const [addressComposerKey, setAddressComposerKey] = useState(0);
   const prevIsRemoteRef = useRef<boolean>(false);
   const justOpenedRef = useRef(false);
@@ -101,7 +102,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const isRemote = watch('isRemote');
   const currentWorkingHours = watch('workingHours') as WorkingHours;
   const open247 = !!watch('open247');
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   // Get business contact info (if available from user/business)
   const businessEmail = currentUser?.email || "";
@@ -365,7 +365,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       setAddressComposerKey(prev => prev + 1); // Force AddressComposer to remount with fresh state
       justOpenedRef.current = true;
       // Clear the flag after a brief delay to allow effects to run
@@ -435,7 +434,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
       // Success - close form and reset
       // Don't set isSubmitting to false here - let it stay true until slider closes
-      setShowConfirmDialog(false);
       onClose();
     }
   }, [isLocationLoading, isSubmitting, locationError, onClose]);
@@ -544,15 +542,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const isFormDisabled = hasValidationErrors || !areRequiredFieldsFilled;
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isLocationLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmCreate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isLocationLoading) {
       return;
     }
@@ -576,7 +566,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     };
     setIsSubmitting(true);
     dispatch(createLocationAction.request({ location: payload }));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -828,49 +817,43 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
 
                   {/* Services Section */}
                   <div className="space-y-5">
-                    <div className="space-y-1">
-                      <h3 className="text-lg font-semibold text-foreground-1">
-                        Services
-                      </h3>
-                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                        Select which services are available at this location. All services are selected by default.
-                      </p>
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                      <div className="space-y-1 flex-1">
+                        <h3 className="text-lg font-semibold text-foreground-1">
+                          Services
+                        </h3>
+                        <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                          Select which services are available at this location. All services are selected by default.
+                        </p>
+                      </div>
+
+                      {/* Stats badges */}
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {allServices.length > 0 && (
+                          <Badge variant="muted" className="rounded-full px-3 py-1 flex items-center gap-1.5 cursor-default select-none">
+                            <span className="font-semibold text-neutral-900 dark:text-foreground-1">{(watch('serviceIds') || []).length}</span>
+                            <span className="text-neutral-900 dark:text-foreground-1">/ {allServices.length} enabled</span>
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
-                    <div className="max-w-md">
+                    <div>
                       {allServices.length === 0 ? (
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
                           No services available yet.
                         </p>
                       ) : (
-                        <MultiSelect
-                          value={(watch('serviceIds') || []).map(String)}
-                          onChange={(newSelectedIds) => {
-                            const serviceIds = watch('serviceIds') || [];
-                            // Find newly selected items and toggle them
-                            const currentIds = new Set(serviceIds.map(String));
-                            const newIds = [...serviceIds];
-
-                            newSelectedIds.forEach((id) => {
-                              if (!currentIds.has(String(id))) {
-                                newIds.push(Number(id));
-                              }
-                            });
-
-                            // Find removed items
-                            const finalIds = newIds.filter(id =>
-                              newSelectedIds.includes(String(id))
-                            );
-
-                            setValue('serviceIds', finalIds, { shouldDirty: true });
-                          }}
-                          options={allServices.map(service => ({
-                            id: String(service.id),
-                            name: service.name,
-                          }))}
-                          placeholder="+ Add Services"
-                          searchPlaceholder="Search services..."
-                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          rounded="full"
+                          onClick={() => setIsServicesSheetOpen(true)}
+                          className="!px-6 border-border-strong text-foreground-1 group"
+                        >
+                          <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
+                          <span>Manage Services</span>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -967,19 +950,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         </form>
       </BaseSlider>
 
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmCreate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title="Create Location"
-        description={`Are you sure you want to create the location "${watch('name') || 'Untitled'}"?`}
-        confirmTitle="Create Location"
-        cancelTitle="Cancel"
-        showCloseButton={true}
-      />
-
       {/* Map Pin Verification Dialog */}
       {isMapOpen && (() => {
         const hasValidCoords = initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0;
@@ -1043,6 +1013,28 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
           />
         );
       })()}
+
+      {/* Services Selection Modal */}
+      <ManageServicesSheet
+        isOpen={isServicesSheetOpen}
+        onClose={() => setIsServicesSheetOpen(false)}
+        allServices={allServices.map(service => ({
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          duration: service.duration,
+          category: service.category,
+          createdAt: service.createdAt,
+          updatedAt: service.updatedAt,
+        }))}
+        initialSelectedIds={watch('serviceIds') || []}
+        onSave={(selectedIds) => {
+          setValue('serviceIds', selectedIds, { shouldDirty: true });
+        }}
+        title="Select Services"
+        subtitle="Choose which services are available at this location"
+        expandAllCategories
+      />
     </>
   );
 };
