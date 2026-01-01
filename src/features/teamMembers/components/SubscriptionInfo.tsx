@@ -64,7 +64,7 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
         <Button 
           onClick={() => {
             onClose();
-            navigate('/settings?open=billing');
+            navigate('/settings?tab=billing');
           }}
           variant="outline"
           className="w-full"
@@ -86,7 +86,7 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
         <Button 
           onClick={() => {
             onClose();
-            navigate('/settings?open=billing');
+            navigate('/settings?tab=billing');
           }}
           className="w-full mt-2 bg-red-600 hover:bg-red-700"
         >

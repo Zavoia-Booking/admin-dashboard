@@ -1,6 +1,7 @@
 import { takeLatest, call, put } from 'redux-saga/effects';
 import { fetchCurrentBusinessAction, updateBusinessAction } from './actions';
 import { getCurrentBusinessApi, updateBusinessApi } from './api';
+import { fetchCurrentUserAction } from '../auth/actions';
 import type { Business } from './types';
 import type { ActionType } from 'typesafe-actions';
 import { toast } from 'sonner';
@@ -20,8 +21,9 @@ function* handleUpdateBusiness(action: ActionType<typeof updateBusinessAction.re
     const response: { message: string } = yield call(updateBusinessApi, action.payload);
     yield put(updateBusinessAction.success({ message: response.message }));
     toast.success('Business information updated successfully');
-    // Refresh the business data
+    // Refresh the business data and current user (for updated business phone/email)
     yield put(fetchCurrentBusinessAction.request());
+    yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
     const message = error?.response?.data?.message || error?.message || 'Failed to update business';
     yield put(updateBusinessAction.failure({ message }));

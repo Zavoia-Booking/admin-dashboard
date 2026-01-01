@@ -24,7 +24,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: 'Back to Billing',
-              onClick: () => navigate('/settings?open=billing'),
+              onClick: () => navigate('/settings?tab=billing'),
               variant: 'outline' as const,
               icon: ArrowLeft,
             },
@@ -45,7 +45,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: 'Back to Billing',
-              onClick: () => navigate('/settings?open=billing'),
+              onClick: () => navigate('/settings?tab=billing'),
               variant: 'outline' as const,
               icon: ArrowLeft,
             },
@@ -66,7 +66,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
                 label: 'Back to billing',
-                onClick: () => navigate('/settings?open=billing'),
+                onClick: () => navigate('/settings?tab=billing'),
                 variant: 'outline' as const,
                 icon: ArrowLeft,
               },
@@ -87,7 +87,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: 'Go to Billing',
-              onClick: () => navigate('/settings?open=billing'),
+              onClick: () => navigate('/settings?tab=billing'),
               variant: 'outline' as const,
               icon: CreditCard,
             },

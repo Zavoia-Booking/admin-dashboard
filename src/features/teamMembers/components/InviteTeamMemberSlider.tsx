@@ -160,7 +160,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     }
 
     if (!isInviteAllowed) {
-      navigate('/settings?open=billing');
+      navigate('/settings?tab=billing');
       return;
     };
 

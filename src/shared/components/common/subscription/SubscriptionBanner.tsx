@@ -29,7 +29,7 @@ const SubscriptionBanner: React.FC<SubscriptionBannerProps> = ({ user }) => {
   };
 
   const handleUpgrade = () => {
-    navigate('/settings?open=billing');
+    navigate('/settings?tab=billing');
   };
 
   const formatDate = (dateString: string | null) => {

@@ -24,7 +24,7 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({
   children,
   fallback,
   showBanner = false,
-  redirectTo = '/settings?open=billing'
+  redirectTo = '/settings?tab=billing'
 }) => {
   const currentUser = useSelector(selectCurrentUser);
   const navigate = useNavigate();
