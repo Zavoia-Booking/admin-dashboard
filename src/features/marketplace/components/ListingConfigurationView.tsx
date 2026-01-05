@@ -271,7 +271,6 @@ export function ListingConfigurationView({
                 checked={isVisible}
                 onCheckedChange={onToggleVisibility}
                 disabled={isUpdatingVisibility}
-                className="cursor-pointer"
               />
             </div>
           </CardContent>
@@ -304,7 +303,6 @@ export function ListingConfigurationView({
                 <Switch
                   checked={useBusinessName}
                   onCheckedChange={setUseBusinessName}
-                  className="cursor-pointer"
                 />
               </div>
             </div>
@@ -337,7 +335,6 @@ export function ListingConfigurationView({
                 <Switch
                   checked={useBusinessEmail}
                   onCheckedChange={setUseBusinessEmail}
-                  className="cursor-pointer"
                 />
               </div>
             </div>
@@ -371,7 +368,6 @@ export function ListingConfigurationView({
                 <Switch
                   checked={useBusinessDescription}
                   onCheckedChange={setUseBusinessDescription}
-                  className="cursor-pointer"
                 />
               </div>
             </div>
@@ -404,7 +400,6 @@ export function ListingConfigurationView({
               id="allowOnlineBooking"
               checked={onlineBooking}
               onCheckedChange={setOnlineBooking}
-              className="cursor-pointer"
             />
           </div>
         </CardContent>
@@ -662,7 +657,7 @@ export function ListingConfigurationView({
                                       });
                                     }
                                   }}
-                                  className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none cursor-pointer"
+                                  className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none"
                                 >
                                   <Checkbox
                                     checked={
@@ -701,7 +696,7 @@ export function ListingConfigurationView({
                                             handleToggle();
                                           }
                                         }}
-                                        className="w-full flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none cursor-pointer"
+                                        className="w-full flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none"
                                       >
                                         <div className="flex items-center gap-2 min-w-0">
                                           <Checkbox
@@ -835,7 +830,7 @@ export function ListingConfigurationView({
   ];
 
   return (
-    <div>
+    <div className="cursor-default">
       {/* Responsive Tabs */}
       <ResponsiveTabs
         items={tabItems}

@@ -1,0 +1,47 @@
+{
+  "marketing": {
+    "hero": {
+      "title": "Get Discovered. Get Booked.",
+      "subtitle": "Put <bold>{{businessName}}</bold> in front of ready-to-book clients instantly. We’ve prepared your services for discovery—no ads, no hassle.",
+      "cta": "List My Business",
+      "timeEstimate": "Takes less than 2 minutes",
+      "locationsReady_one": "{{count}} Location Visible",
+      "locationsReady_other": "{{count}} Locations Visible",
+      "instantActivation": "Instant Activation"
+    },
+    "features": {
+      "catalog": {
+        "title": "YOUR TERMS",
+        "description": "Launch with confidence. You're in control of your growth.",
+        "commission": "0% Commission",
+        "commission_helper": "You keep 100%",
+        "locations_active_one": "{{count}} Location Active",
+        "locations_active_other": "{{count}} Locations Active",
+        "locations_active_helper": "Ready to accept bookings",
+        "no_setup": "No Setup Cost",
+        "no_setup_helper": "Start risk-free today"
+      },
+      "preview": {
+        "header": "Marketplace Profile",
+        "text": "This is your marketplace control center. Once listed, you'll be able to manage your public profile, portfolio, and booking settings right from this page."
+      }
+    },
+    "benefits": {
+      "bookings": {
+        "title": "24/7 Bookings",
+        "description": "Stop chasing DMs. Clients view availability and book services while you sleep. No missed opportunities."
+      },
+      "reach": {
+        "title": "Growth",
+        "description": "We put you on the map. Clients find and book your services instantly."
+      },
+      "revenue": {
+        "title": "Fill Empty Slots Automatically",
+        "description_one": "We handle the admin - confirmations and reminders are sent automatically so you never miss a payout. Fill empty slots at your {{count}} location.",
+        "description_other": "We handle the admin - confirmations and reminders are sent automatically so you never miss a payout. Fill empty slots at your {{count}} locations."
+      },
+      "liveStats": "Live Stats",
+      "active": "ACTIVE"
+    }
+  }
+}

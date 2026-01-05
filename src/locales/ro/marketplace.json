@@ -1,0 +1,50 @@
+{
+  "marketing": {
+    "hero": {
+      "title": "Fii Descoperit. Fii Rezervat.",
+      "subtitle": "Pune <bold>{{businessName}}</bold> în fața clienților gata să rezerve instantaneu. Am pregătit serviciile tale pentru a fi descoperite — fără reclame, fără bătăi de cap.",
+      "cta": "Listează Afacerea",
+      "timeEstimate": "Durează mai puțin de 2 minute",
+      "locationsReady_one": "{{count}} Locație Vizibilă",
+      "locationsReady_few": "{{count}} Locații Vizibile",
+      "locationsReady_other": "{{count}} de Locații Vizibile",
+      "instantActivation": "Activare Instantanee"
+    },
+    "features": {
+      "catalog": {
+        "title": "TERMENII TăI",
+        "description": "Lansează cu încredere. Ești în controlul creșterii tale.",
+        "commission": "0% Comision",
+        "commission_helper": "Păstrezi 100%",
+        "locations_active_one": "{{count}} Locație Activă",
+        "locations_active_few": "{{count}} Locații Active",
+        "locations_active_other": "{{count}} de Locații Active",
+        "locations_active_helper": "Pregătit pentru rezervări",
+        "no_setup": "Fără Costuri de Configurare",
+        "no_setup_helper": "Începe fără riscuri astăzi"
+      },
+      "preview": {
+        "header": "Profil Marketplace",
+        "text": "Acesta este centrul tău de control în marketplace. Odată listat, vei putea gestiona profilul public, galeria și setările de rezervare direct de pe această pagină."
+      }
+    },
+    "benefits": {
+      "bookings": {
+        "title": "Rezervări 24/7",
+        "description": "Nu mai urmări mesaje pe DM. Clienții văd disponibilitatea și rezervă servicii în timp ce dormi. Nicio oportunitate ratată."
+      },
+      "reach": {
+        "title": "Creștere",
+        "description": "Te punem pe hartă. Clienții te găsesc și te rezervă instantaneu."
+      },
+      "revenue": {
+        "title": "Ocupă Sloturile Goale Automat",
+        "description_one": "Noi ne ocupăm de administrare - confirmările și mementourile sunt trimise automat, astfel încât să nu ratezi nicio plată. Ocupă sloturile goale la locația ta ({{count}}).",
+        "description_few": "Noi ne ocupăm de administrare - confirmările și mementourile sunt trimise automat, astfel încât să nu ratezi nicio plată. Ocupă sloturile goale la locațiile tale ({{count}}).",
+        "description_other": "Noi ne ocupăm de administrare - confirmările și mementourile sunt trimise automat, astfel încât să nu ratezi nicio plată. Ocupă sloturile goale la locațiile tale ({{count}})."
+      },
+      "liveStats": "Statistici Live",
+      "active": "ACTIV"
+    }
+  }
+}

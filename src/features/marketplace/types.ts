@@ -1,10 +1,8 @@
-// Business data from API response
-export interface Business {
-  id: number;
-  name: string;
-  email: string;
-  description: string;
-}
+import type { Business as GlobalBusiness } from "../business/types";
+import type { TeamMember as GlobalTeamMember } from "../../shared/types/team-member";
+
+// Business data from API response - using the global business type
+export type Business = GlobalBusiness;
 
 // Marketplace listing model with customizable details
 export interface MarketplaceListing {
@@ -23,6 +21,10 @@ export interface MarketplaceListing {
   useBusinessName?: boolean; // Use business name or custom
   useBusinessEmail?: boolean; // Use business email or custom
   useBusinessDescription?: boolean; // Use business description or custom
+  // Effective values calculated by backend
+  effectiveName?: string;
+  effectiveEmail?: string;
+  effectiveDescription?: string;
 }
 
 export interface Location {
@@ -75,13 +77,7 @@ export interface Service {
   category: Category;
 }
 
-export interface TeamMember {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-}
+export type TeamMember = GlobalTeamMember;
 
 export interface Industry {
   id: number;

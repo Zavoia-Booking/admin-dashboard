@@ -145,7 +145,7 @@ export function MarketplaceImagesSection({
 
           {/* Add New Portfolio Images (upload / drag & drop) */}
           <div
-            className="relative flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/40 bg-muted/30 px-4 py-6 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+            className="relative flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-muted-foreground/40 bg-muted/30 px-4 py-6 text-center hover:border-primary/50 hover:bg-muted/50 transition-colors"
             onClick={() => portfolioInputRef.current?.click()}
             onDrop={handlePortfolioDrop}
             onDragOver={handlePortfolioDragOver}

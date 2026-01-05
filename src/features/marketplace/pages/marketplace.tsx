@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
-import { Spinner } from '../../../shared/components/ui/spinner';
 import { fetchMarketplaceListingAction, publishMarketplaceListingAction, updateMarketplaceVisibilityAction } from '../actions';
+import { fetchCurrentBusinessAction } from '../../business/actions';
 import type { PortfolioImage } from '../components/MarketplaceImagesSection';
 import type { PublishMarketplaceListingRequest } from '../types';
 import { 
@@ -20,12 +20,23 @@ import {
   selectMarketplacePublishing,
   selectMarketplaceUpdatingVisibility,
 } from '../selectors';
+import { getCurrentBusinessSelector } from '../../business/selectors';
 import { NotListedYetView } from '../components/NotListedYetView';
 import { ListingConfigurationView } from '../components/ListingConfigurationView';
+import { MarketplaceSkeleton } from '../components/MarketplaceSkeleton';
+import { ListingConfigurationSkeleton } from '../components/ListingConfigurationSkeleton';
 
 export default function MarketplacePage() {
-  const dispatch = useDispatch();
-  const business = useSelector(selectMarketplaceBusiness);
+  const dispatch = useDispatch();  
+  const marketplaceBusiness = useSelector(selectMarketplaceBusiness);
+  const globalBusiness = useSelector(getCurrentBusinessSelector);
+  
+  // Use global business as base, then override with marketplace-specific data if available.
+  // This ensures the logo and other global details are present even if the marketplace API 
+  // returns a partial business object.
+  const business = marketplaceBusiness && globalBusiness 
+    ? { ...globalBusiness, ...marketplaceBusiness, logo: marketplaceBusiness.logo || globalBusiness.logo }
+    : (marketplaceBusiness || globalBusiness);
   const listing = useSelector(selectMarketplaceListing);
   const isLoading = useSelector(selectMarketplaceLoading);
   const locations = useSelector(selectMarketplaceLocations);
@@ -43,6 +54,7 @@ export default function MarketplacePage() {
 
   useEffect(() => {
     dispatch(fetchMarketplaceListingAction.request());
+    dispatch(fetchCurrentBusinessAction.request());
   }, [dispatch]);
 
   // Close configuration view when listing is successfully published
@@ -127,9 +139,11 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <AppLayout>
-        <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-          <Spinner size="lg" />
-        </div>
+        {listing && !listing.isListed ? (
+          <MarketplaceSkeleton />
+        ) : (
+          <ListingConfigurationSkeleton />
+        )}
       </AppLayout>
     );
   }
@@ -172,7 +186,14 @@ export default function MarketplacePage() {
   if (listing && !listing.isListed) {
     return (
       <AppLayout>
-        <NotListedYetView onStartListing={handleStartListing} />
+        <NotListedYetView 
+          onStartListing={handleStartListing}
+          business={business}
+          listing={listing}
+          locations={locations}
+          services={services}
+          teamMembers={teamMembers}
+        />
       </AppLayout>
     );
   }
@@ -180,7 +201,7 @@ export default function MarketplacePage() {
   // Fallback (should not reach here if listing data is loaded)
   return (
     <AppLayout>
-      <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)]">
+      <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)] cursor-default">
         <p className="text-muted-foreground">No listing data available</p>
       </div>
     </AppLayout>
