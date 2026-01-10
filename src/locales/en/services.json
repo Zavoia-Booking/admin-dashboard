@@ -1,0 +1,535 @@
+{
+  "page": {
+    "title": "Services",
+    "subtitle": "Manage your services and bundles",
+    "tabs": {
+      "allServices": "All Services",
+      "bundles": "Bundles",
+      "promotions": "Promotions"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "avgPrice": "Avg Price",
+      "bookings": "Bookings",
+      "helperTotalPrefix": "You currently have",
+      "helperTotalSuffix": "in your list",
+      "helperTotalServiceOne": "service",
+      "helperTotalServiceOther": "services"
+    },
+    "emptyState": {
+      "noServices": "You haven't created any services yet",
+      "noServicesDescription": "Create your first service to start offering it to your customers.",
+      "noResults": "No services found matching your filters.",
+      "noResultsDescription": "Try adjusting your search or filters to find what you're looking for.",
+      "clearFilters": "Clear filters"
+    },
+    "service": {
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "metadata": {
+        "location": "location",
+        "locations": "locations",
+        "teamMember": "team member",
+        "teamMembers": "team members"
+      }
+    },
+    "actions": {
+      "addService": "Add service"
+    }
+  },
+  "addService": {
+    "title": "Add New Service",
+    "subtitle": "Create a new service for your business. Fill in the details below to get started",
+    "sections": {
+      "serviceInfo": "Service Information",
+      "serviceInfoDescription": "Provide the essential information that identifies and describes your service",
+      "pricingDuration": "Pricing & Duration",
+      "pricingDurationDescription": "Set the default price and duration",
+      "category": "Category",
+      "categoryDescription": "Assign this service to a category so you can organize and filter it later",
+      "locations": "Locations",
+      "locationsDescription": "Select the locations where this service is available",
+      "teamMembers": "Team Members",
+      "teamMembersDescription": "Select the team members who can provide this service",
+      "settings": "Service Settings"
+    },
+    "form": {
+      "name": {
+        "label": "Service Name",
+        "placeholder": "Enter service name..."
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe what this service includes..."
+      },
+      "price": {
+        "label": "Price",
+        "placeholder": "0.00",
+        "helpText": "Base price in {{currency}}"
+      },
+      "duration": {
+        "label": "Duration",
+        "placeholder": "60",
+        "helperText": "minutes"
+      },
+      "currency": {
+        "label": "Currency",
+        "info": "Account currency:",
+        "infoLink": "Settings",
+        "editText": "edit in"
+      },
+      "pricingNote": {
+        "text": "Default for all staff. You can set custom prices and durations per team member in",
+        "link": "Assignments"
+      },
+      "locations": {
+        "emptyMessage": "No locations found.",
+        "helperTextNone": "Not available at any location",
+        "helperTextOne": "Available at 1 selected location",
+        "helperTextSome": "Available at {{count}} selected locations"
+      },
+      "teamMembers": {
+        "emptyMessage": "No team members found.",
+        "helperTextNone": "Not available to any team member",
+        "helperTextOne": "Available to 1 selected member",
+        "helperTextSome": "Available to {{count}} selected members"
+      },
+      "category": {
+        "label": "Category Name",
+        "placeholder": "Category name",
+        "helperText": "Leave empty to create service without category",
+        "selectLabel": "Select one",
+        "selectHelperText": "Each service can be assigned to one category",
+        "manageCategoriesLink": "Manage Categories",
+        "managePopoverTitle": "Categories",
+        "managePopoverDescription": "Manage the categories your services use so everything stays organized and consistent.",
+        "managePopoverHelperText": "You can remove a category only if it doesn’t have any services assigned to it.",
+        "manageConfirmTitle": "Apply category changes?",
+        "manageConfirmDescription": "These changes will update the category list used across your services. You can always come back and edit more categories later.",
+        "manageConfirmConfirm": "Apply changes",
+        "manageConfirmCancel": "Cancel",
+        "manageApplySuccess": "Categories updated successfully.",
+        "manageApplyError": "Failed to update categories. Please try again.",
+        "manageFooterClear": "Clear changes",
+        "manageFooterApply": "Apply",
+        "createNew": "Create new category",
+        "backToSelect": "Back to categories",
+        "newCategoryLabel": "New category",
+        "newCategoryFieldLabel": "Category name",
+        "cancel": "Cancel",
+        "save": "Save",
+        "shuffleColor": "Randomize color",
+        "showMore": "Show {{count}} more",
+        "showLess": "Show less",
+        "remove": "Remove category",
+        "limitHelperText": {
+          "text": "Category limit reached ({{max}})."
+        },
+        "validation": {
+          "sectionError": "Select a category or create a new one",
+          "nameRequired": "Enter a category name",
+          "nameExists": "A category with this name already exists",
+          "limitReached": "You've reached the limit of 25 categories. Remove one to create a new category."
+        }
+      },
+      "categoryColor": {
+        "label": "Category Color",
+        "helperText": "Color is automatically generated based on the category name"
+      },
+      "durationChips": {
+        "15": "15m",
+        "30": "30m",
+        "45": "45m",
+        "60": "60m",
+        "120": "120m"
+      },
+      "preview": "This service will show as:",
+      "status": {
+        "label": "Service Status",
+        "activeDescription": "Service is available for booking",
+        "inactiveDescription": "Service is hidden from clients"
+      },
+      "validation": {
+        "name": {
+          "required": "Please enter a service name",
+          "minLength": "Enter at least 2 characters",
+          "maxLength": "Maximum 70 characters allowed",
+          "invalidChars": "Please remove special characters (only - ' & . ( ) allowed)"
+        },
+        "description": {
+          "maxLength": "Maximum {{max}} characters allowed",
+          "invalidChars": "Special characters < > aren't allowed"
+        },
+        "price": {
+          "required": "Price is required",
+          "min": "Price must be 0 or greater"
+        },
+        "duration": {
+          "required": "Duration is required",
+          "min": "Duration must be at least 1 minute"
+        },
+        "category": {
+          "required": "Please select or create a category"
+        }
+      }
+    },
+    "location": {
+      "currentLocation": "Assigning to current location: {{locationName}}. Switch location in the header to apply to another location.",
+      "allLocations": "This service will be created across all business locations. Switch to a specific location in the header to create it only there."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Service"
+    },
+    "confirmDialog": {
+      "title": "Create New Service",
+      "description": "Are you sure you want to create \"{{name}}\" with a price of ${{price}} and duration of {{duration}} minutes?",
+      "cancel": "Cancel",
+      "confirm": "Create Service"
+    }
+  },
+  "editService": {
+    "title": "Edit Service",
+    "subtitle": "Update service information, pricing, and availability",
+    "sections": {
+      "serviceInfo": "Service Information",
+      "pricingDuration": "Pricing & Duration",
+      "settings": "Service Settings"
+    },
+    "form": {
+      "name": {
+        "label": "Service Name",
+        "placeholder": "Enter service name..."
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Describe the service..."
+      },
+      "price": {
+        "label": "Price ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Duration (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Service Status",
+        "activeDescription": "Service is available for booking",
+        "inactiveDescription": "Service is hidden from clients"
+      }
+    },
+    "location": {
+      "currentLocation": "Updating for current location: {{locationName}}. Switch location in the header to edit this service in another location.",
+      "allLocations": "This update will apply across all business locations. Switch to a specific location in the header to target only that location."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "update": "Update Service"
+    },
+    "confirmDialog": {
+      "title": "Update Service",
+      "description": "Are you sure you want to update the service \"{{name}}\"? This will modify the service in your catalog.",
+      "cancel": "Cancel",
+      "confirm": "Update Service"
+    }
+  },
+  "deleteService": {
+    "title": "Delete \"{{serviceName}}\"?",
+    "description": "This action is permanent and cannot be undone.",
+    "confirm": "Delete",
+    "cancel": "Cancel"
+  },
+  "toggleService": {
+    "title": "Update status",
+    "description": "Are you sure you want to change status to the service \"{{serviceName}}\".",
+    "confirm": "Toggle",
+    "cancel": "Cancel"
+  },
+  "bundles": {
+    "comingSoon": "Bundles Coming Soon",
+    "description": "Bundle management will be available here soon. Create service packages and offer them as bundles to your customers.",
+    "filters": {
+      "searchPlaceholder": "Search bundles...",
+      "addBundle": "Add Bundle",
+      "addFilter": "Filters",
+      "showFiltersAria": "Show filters",
+      "byPrice": "By price",
+      "byServiceCount": "By service count",
+      "byPriceType": "By price type",
+      "minPriceLabel": "Min price",
+      "maxPriceLabel": "Max price",
+      "minPricePlaceholder": "0.00",
+      "maxPricePlaceholder": "∞",
+      "minServiceCountLabel": "Min services",
+      "maxServiceCountLabel": "Max services",
+      "minServiceCountPlaceholder": "0",
+      "maxServiceCountPlaceholder": "∞",
+      "priceTypes": {
+        "sum": "Sum of services",
+        "fixed": "Fixed price",
+        "discount": "Discount"
+      },
+      "clearAll": "Clear all filters",
+      "apply": "Apply"
+    },
+    "sort": {
+      "trigger": "Sort",
+      "priceAsc": "Price: low → high",
+      "priceDesc": "Price: high → low",
+      "serviceCountAsc": "Services: few → many",
+      "serviceCountDesc": "Services: many → few",
+      "createdAtDesc": "Newest first",
+      "createdAtAsc": "Oldest first",
+      "updatedAtDesc": "Recently updated",
+      "updatedAtAsc": "Least recent",
+      "groupPrice": "Price",
+      "groupServiceCount": "Service count",
+      "groupCreatedAt": "Date created",
+      "groupUpdatedAt": "Last updated"
+    },
+    "stats": {
+      "helperTotalPrefix": "You currently have",
+      "helperTotalSuffix": "in your list",
+      "helperTotalBundleOne": "bundle",
+      "helperTotalBundleOther": "bundles"
+    },
+    "badges": {
+      "priceMin": "Price min",
+      "priceMax": "Price max",
+      "serviceCountMin": "Services min",
+      "serviceCountMax": "Services max"
+    },
+    "emptyState": {
+      "noBundles": "No bundles yet",
+      "noBundlesDescription": "Create your first bundle to offer service packages to your customers.",
+      "noResults": "No bundles found",
+      "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    },
+    "addBundle": {
+      "title": "Create Bundle",
+      "subtitle": "Combine multiple services into a bundle",
+      "sections": {
+        "bundleInfo": "Bundle Information",
+        "bundleInfoDescription": "Give your bundle a name and description",
+        "pricing": "Pricing",
+        "pricingDescription": "Choose how the bundle price is calculated",
+        "services": "Services",
+        "servicesDescription": "Select the services to include in this bundle"
+      },
+      "form": {
+        "name": {
+          "label": "Bundle Name",
+          "placeholder": "e.g., Complete Care Package"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Describe what's included in this bundle..."
+        },
+        "priceType": {
+          "sum": "Sum of service prices",
+          "sumDescription": "Automatically calculate the total by adding all service prices together",
+          "fixed": "Fixed price",
+          "fixedDescription": "Set a single fixed price for the entire bundle, regardless of individual service prices",
+          "discount": "Discount percentage",
+          "discountDescription": "Apply a percentage discount to the sum of all service prices"
+        },
+        "fixedPrice": {
+          "label": "Fixed Price",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Discount Percentage",
+          "placeholder": "0",
+          "help": "Enter a percentage between 0 and 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Service Total",
+        "originalPrice": "Original Price",
+        "finalPrice": "Final Bundle Price",
+        "savings": "Customer Savings",
+        "increase": "Price Increase",
+        "service": "service",
+        "services": "services"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "create": "Create Bundle"
+      },
+      "noServices": "No services available. Create services first before creating bundles.",
+      "manageServices": "Manage services",
+      "bundleLabel": "this bundle",
+      "validation": {
+        "servicesMinimum": "At least 2 services must be selected for a bundle"
+      },
+      "confirmDialog": {
+        "title": "Create Bundle?",
+        "description": "Are you sure you want to create the bundle \"{{name}}\" with {{serviceCount}} service(s)?",
+        "confirm": "Create Bundle",
+        "cancel": "Cancel"
+      }
+    },
+    "editBundle": {
+      "title": "Edit Bundle",
+      "subtitle": "Update bundle information and services",
+      "sections": {
+        "bundleInfo": "Bundle Information",
+        "bundleInfoDescription": "Update your bundle name and description",
+        "pricing": "Pricing",
+        "pricingDescription": "Choose how the bundle price is calculated",
+        "services": "Services",
+        "servicesDescription": "Update the services included in this bundle"
+      },
+      "form": {
+        "name": {
+          "label": "Bundle Name",
+          "placeholder": "e.g., Complete Care Package"
+        },
+        "description": {
+          "label": "Description",
+          "placeholder": "Describe what's included in this bundle..."
+        },
+        "priceType": {
+          "sum": "Sum of service prices",
+          "sumDescription": "Automatically calculate the total by adding all service prices together",
+          "fixed": "Fixed price",
+          "fixedDescription": "Set a single fixed price for the entire bundle, regardless of individual service prices",
+          "discount": "Discount percentage",
+          "discountDescription": "Apply a percentage discount to the sum of all service prices"
+        },
+        "fixedPrice": {
+          "label": "Fixed Price",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Discount Percentage",
+          "placeholder": "0",
+          "help": "Enter a percentage between 0 and 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Service Total",
+        "originalPrice": "Original Price",
+        "finalPrice": "Final Bundle Price",
+        "savings": "Customer Savings",
+        "increase": "Price Increase",
+        "service": "service",
+        "services": "services"
+      },
+      "buttons": {
+        "cancel": "Cancel",
+        "update": "Update Bundle"
+      },
+      "noServices": "No services available. Create services first before editing bundles.",
+      "manageServices": "Manage services",
+      "bundleLabel": "this bundle",
+      "validation": {
+        "nameRequired": "Bundle name is required",
+        "nameMinLength": "Bundle name must be at least 2 characters",
+        "nameMaxLength": "Bundle name must not exceed 100 characters",
+        "descriptionMaxLength": "Description must not exceed 500 characters",
+        "fixedPriceRequired": "Fixed price is required",
+        "fixedPriceMin": "Fixed price must be greater than or equal to 0",
+        "discountRequired": "Discount percentage is required",
+        "discountMin": "Discount percentage must be at least 0",
+        "discountMax": "Discount percentage must not exceed 100",
+        "servicesRequired": "At least one service must be selected",
+        "servicesMinimum": "At least 2 services must be selected for a bundle"
+      },
+      "confirmDialog": {
+        "title": "Update Bundle?",
+        "description": "Are you sure you want to update the bundle \"{{name}}\" with {{serviceCount}} service(s)?",
+        "confirm": "Update Bundle",
+        "cancel": "Cancel"
+      },
+      "removeBundle": {
+        "title": "Remove Bundle",
+        "description": "This will permanently remove this bundle from your bundles list. This action cannot be undone.",
+        "button": "Remove Bundle",
+        "removing": "Removing..."
+      },
+      "deleteDialog": {
+        "title": "Remove Bundle?",
+        "description": "Are you sure you want to remove the bundle \"{{name}}\"? This action cannot be undone.",
+        "confirm": "Remove Bundle",
+        "cancel": "Cancel"
+      }
+    },
+    "priceType": {
+      "sum": "Sum",
+      "fixed": "Fixed",
+      "discount": "Discount"
+    },
+    "priceTypeCategory": {
+      "sum": "Sum of services",
+      "fixed": "Fixed price",
+      "discount": "Discount"
+    },
+    "actions": {
+      "edit": "Edit Bundle"
+    },
+    "service": "service",
+    "services": "services",
+    "loading": "Loading bundles..."
+  },
+  "promotions": {
+    "comingSoon": "Promotions Coming Soon",
+    "description": "Promotion management will be available here soon. Create discounts, special offers, and promotional campaigns for your services."
+  },
+  "filters": {
+    "searchPlaceholder": "Search services...",
+    "addFilter": "Filters",
+    "byPrice": "By price",
+    "byDuration": "By duration",
+    "byCategory": "By category",
+    "clearAll": "Clear all filters",
+    "apply": "Apply",
+    "noCategories": "No categories available yet.",
+    "minPriceLabel": "Min price",
+    "maxPriceLabel": "Max price",
+    "minPricePlaceholder": "0.00",
+    "maxPricePlaceholder": "∞",
+    "minDurationLabel": "Min duration (min)",
+    "maxDurationLabel": "Max duration (min)",
+    "minDurationPlaceholder": "0",
+    "maxDurationPlaceholder": "∞",
+    "showFiltersAria": "Show filters"
+  },
+  "sort": {
+    "trigger": "Sort",
+    "nameAsc": "Name (A-Z)",
+    "nameDesc": "Name (Z-A)",
+    "priceAsc": "Low → high",
+    "priceDesc": "High → low",
+    "durationAsc": "Short → long",
+    "durationDesc": "Long → short",
+    "createdAtDesc": "Newest first",
+    "createdAtAsc": "Oldest first",
+    "updatedAtDesc": "Recently updated",
+    "updatedAtAsc": "Least recent",
+    "groupName": "Name",
+    "groupPrice": "Price",
+    "groupDuration": "Duration",
+    "groupCreatedAt": "Date created",
+    "groupUpdatedAt": "Last updated"
+  },
+  "manageServices": {
+    "title": "Manage services for",
+    "uncategorized": "Uncategorized",
+    "durationUnit": "min",
+    "clear": "Clear",
+    "apply": "Apply",
+    "saveChanges": "Save changes",
+    "close": "Close",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All"
+  }
+}

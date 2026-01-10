@@ -1,107 +1,111 @@
-import { useState } from 'react';
-import { UserRole } from '@/types/auth';
+import {
+  useEffect,
+  useLayoutEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  wizardLoadDraftAction,
+  wizardSaveAction,
+  wizardUpdateDataAction,
+} from "../../features/setupWizard/actions";
+import type { NewLocationPayload } from "../../features/locations/types";
+import type { BusinessInfo } from "../types/generalType";
+import type { InviteTeamMemberPayload } from "../../features/teamMembers/types";
+import { getWizardDataSelector } from "../../features/setupWizard/selectors";
+import type { RootState } from "../../app/providers/store";
+import { isE164 } from "../utils/validation";
+import { useWizardStepHydration } from "./useWizardStepHydration";
 
 export interface WizardData {
   // Step 1: Business Info
-  businessName: string;
-  industry: string;
-  description: string;
-  logo?: File;
-  
-  // Step 2: Location
-  isRemote: boolean;
-  address: string;
-  city: string;
-  
-  // Step 3: Services
-  services: Array<{
-    id: string;
-    name: string;
-    price: number;
-    duration: number;
-  }>;
-  
-  // Step 4: Schedule
-  schedule: Array<{
-    day: string;
-    open: string;
-    close: string;
-    isClosed: boolean;
-  }>;
-  bufferTime: number;
-  
-  // Step 5: Team
-  teamMembers: Array<{
-    email: string;
-    role: UserRole;
-  }>;
-  worksSolo: boolean;
-  
-  // Step 6: Template
-  selectedTemplate: string;
-  
-  // Step 7: Launch
-  isLaunched: boolean;
-}
+  businessInfo: BusinessInfo;
+  useAccountEmail?: boolean; // Toggle state for using account email as business email
 
-const initialData: WizardData = {
-  businessName: '',
-  industry: '',
-  description: '',
-  isRemote: false,
-  address: '',
-  city: '',
-  services: [],
-  schedule: [
-    { day: 'Monday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Tuesday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Wednesday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Thursday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Friday', open: '09:00', close: '17:00', isClosed: false },
-    { day: 'Saturday', open: '09:00', close: '17:00', isClosed: true },
-    { day: 'Sunday', open: '09:00', close: '17:00', isClosed: true },
-  ],
-  bufferTime: 15,
-  teamMembers: [],
-  worksSolo: true,
-  selectedTemplate: '',
-  isLaunched: false,
-};
+  // Step 2: Location
+  location: NewLocationPayload;
+  useBusinessContact?: boolean; // Toggle state for using business contact as location contact
+
+  // Step 3: Team
+  teamMembers: InviteTeamMemberPayload[];
+  worksSolo: boolean;
+  currentStep?: number;
+}
 
 export const useSetupWizard = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [data, setData] = useState<WizardData>(initialData);
+  const reducerData = useSelector(getWizardDataSelector);
   const [isLoading, setSaving] = useState(false);
+  const dispatch = useDispatch();
+  const saveResolverRef = useRef<(() => void) | null>(null);
+  const isLoadingState = useSelector(
+    (state: RootState) => state.setupWizard.isLoading
+  );
 
-  const totalSteps = 7;
+  const totalSteps = 3;
+  const hasRequestedDraft = useRef(false);
 
-  const updateData = (newData: Partial<WizardData>) => {
-    setData(prev => ({ ...prev, ...newData }));
-  };
+  // Request draft load on mount using useLayoutEffect to ensure it runs before paint
+  useLayoutEffect(() => {
+    if (!hasRequestedDraft.current) {
+      hasRequestedDraft.current = true;
+      // Dispatch sets isLoading: true in reducer before hydration effect runs
+      dispatch(wizardLoadDraftAction.request());
+    }
+  }, [dispatch]);
+
+  // Use dedicated hydration hook to manage step restoration
+  const hydratedFromDraft = useWizardStepHydration({
+    draftData: reducerData,
+    isLoading: isLoadingState,
+    totalSteps,
+    onStepHydrated: useCallback((step: number) => {
+      setCurrentStep(step);
+    }, []),
+    hasRequestedDraft: hasRequestedDraft.current,
+  });
+
+  // Listen for save completion
+  useEffect(() => {
+    if (!isLoadingState && saveResolverRef.current) {
+      saveResolverRef.current();
+      saveResolverRef.current = null;
+    }
+  }, [isLoadingState]);
+
+  const updateData = useCallback(
+    (newData: Partial<WizardData>) => {
+      // Update both local state and Redux to keep them in sync
+      dispatch(wizardUpdateDataAction(newData));
+    },
+    [dispatch]
+  );
 
   const scrollToWizardContent = () => {
-    // Scroll to the wizard content area instead of the window top
-    const wizardContent = document.querySelector('[data-wizard-content]');
-    if (wizardContent) {
-      wizardContent.scrollIntoView({ block: 'start' });
-    } else {
-      // Fallback: scroll to a reasonable position below sticky elements
-      window.scrollTo({ top: 200 });
-    }
+    // Wait for React to render new step, then scroll to top
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 0);
   };
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
-      setCurrentStep(prev => prev + 1);
-      // Scroll to wizard content when navigating to next step
+      setCurrentStep((prev) => {
+        const next = prev + 1;
+        return next;
+      });
       scrollToWizardContent();
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(prev => prev - 1);
-      // Scroll to wizard content when navigating to previous step
+      setCurrentStep((prev) => {
+        const next = prev - 1;
+        return next;
+      });
       scrollToWizardContent();
     }
   };
@@ -109,30 +113,61 @@ export const useSetupWizard = () => {
   const goToStep = (step: number) => {
     if (step >= 1 && step <= totalSteps) {
       setCurrentStep(step);
-      // Scroll to wizard content when navigating directly to a step
       scrollToWizardContent();
     }
   };
 
-  const saveAndFinishLater = async () => {
+  const saveAndFinishLater = async (additionalData?: Partial<WizardData>) => {
     setSaving(true);
-    // Simulate save
-    setTimeout(() => {
+    try {
+      // Wait for save to complete
+      await new Promise<void>((resolve) => {
+        saveResolverRef.current = resolve;
+        // Merge current form data with Redux data
+        const dataToSave = additionalData
+          ? { ...reducerData, ...additionalData, currentStep }
+          : { ...(reducerData as any), currentStep };
+        dispatch(wizardSaveAction.request(dataToSave as any));
+      });
+    } finally {
       setSaving(false);
-      // In real app, navigate to dashboard with saved state
-    }, 1000);
+    }
   };
 
   const getProgress = () => {
     return Math.round((currentStep / totalSteps) * 100);
   };
 
-  const canProceed = (step: number) => {
+  const canProceed = (step: number): boolean => {
     switch (step) {
-      case 1:
-        return data.businessName.trim() !== '' && data.industry !== '';
+      case 1: {
+        const hasName = reducerData.businessInfo?.name?.trim() !== "";
+        const hasIndustry =
+          Number.isInteger((reducerData.businessInfo as any)?.industryId) &&
+          (reducerData.businessInfo as any).industryId > 0;
+        const hasValidPhone = !!(
+          reducerData.businessInfo?.phone &&
+          isE164(reducerData.businessInfo.phone)
+        );
+        return hasName && hasIndustry && hasValidPhone;
+      }
       case 2:
-        return data.isRemote || (data.address.trim() !== '' && data.city.trim() !== '');
+        if (reducerData.location.isRemote) {
+          const hasContact =
+            (reducerData.location.email?.trim() ?? "") !== "" ||
+            reducerData.location.phone?.trim() !== "";
+          return (
+            reducerData.location.name?.trim() !== "" &&
+            reducerData.location.timezone?.trim() !== "" &&
+            hasContact
+          );
+        }
+        return (
+          reducerData.location.name?.trim() !== "" &&
+          reducerData.location.address?.trim() !== "" &&
+          (reducerData.location.email?.trim() ?? "") !== "" &&
+          reducerData.location.phone?.trim() !== ""
+        );
       default:
         return true; // Other steps are optional
     }
@@ -141,8 +176,9 @@ export const useSetupWizard = () => {
   return {
     currentStep,
     totalSteps,
-    data,
+    data: reducerData,
     isLoading,
+    hydratedFromDraft,
     updateData,
     nextStep,
     prevStep,
@@ -151,4 +187,4 @@ export const useSetupWizard = () => {
     getProgress,
     canProceed,
   };
-}; 
+};

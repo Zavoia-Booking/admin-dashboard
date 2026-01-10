@@ -1,9 +1,0 @@
-export { default as SetupWizard } from './SetupWizard';
-export { default as WizardLayout } from './WizardLayout';
-export { default as Step1BusinessInfo } from './Step1BusinessInfo';
-export { default as Step2Location } from './Step2Location';
-export { default as Step3Services } from './Step3Services';
-export { default as Step4Schedule } from './Step4Schedule';
-export { default as Step5Team } from './Step5Team';
-export { default as Step6Template } from './Step6Template';
-export { default as Step7Launch } from './Step7Launch'; 

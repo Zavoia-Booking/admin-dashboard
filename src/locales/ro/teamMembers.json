@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Membri echipă",
+    "subtitle": "Gestionează membrii echipei tale",
+    "actions": {
+      "inviteMember": "Invită membru"
+    },
+    "emptyState": {
+      "noTeamMembers": "Nu ai invitat încă niciun membru al echipei",
+      "noTeamMembersDescription": "Invită primul tău membru al echipei pentru a începe să construiești echipa ta.",
+      "noResults": "Nu s-au găsit membri ai echipei care să corespundă căutării tale.",
+      "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
+    }
+  },
+  "filters": {
+    "searchPlaceholder": "Caută membri după nume sau email..."
+  }
+}
+

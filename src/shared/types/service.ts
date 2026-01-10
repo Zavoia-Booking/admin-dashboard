@@ -5,14 +5,16 @@ export interface StaffAssignment {
 }
 
 export interface Service {
-  id: string;
+  id: number;
   name: string;
   price: number;
-  duration: number; // in minutes
+  duration: number;
   description: string;
-  status: 'enabled' | 'disabled';
   createdAt: string;
-  category?: string;
-  bookings?: number;
-  staff: StaffAssignment[];
+  updatedAt: string;
+  locations?: Array<{ id: number; name: string }>;
+  teamMembers?: Array<{ id: number; firstName: string; lastName: string }>;
+  category?: { id: number; name: string; color?: string } | null;
+  locationsCount?: number;
+  teamMembersCount?: number;
 }

@@ -1,0 +1,532 @@
+{
+  "page": {
+    "title": "Servicii",
+    "subtitle": "Gestionați serviciile și pachetele dvs",
+    "tabs": {
+      "allServices": "Toate Serviciile",
+      "bundles": "Pachete",
+      "promotions": "Promoții"
+    },
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "avgPrice": "Preț Mediu",
+      "bookings": "Rezervări",
+      "helperTotalPrefix": "Ai în prezent",
+      "helperTotalSuffix": "în listă",
+      "helperTotalServiceOne": "serviciu",
+      "helperTotalServiceOther": "servicii"
+    },
+    "emptyState": {
+      "noServices": "Nu ai creat încă niciun serviciu",
+      "noServicesDescription": "Creează primul tău serviciu pentru a începe să-l oferi clienților tăi.",
+      "noResults": "Nu au fost găsite servicii care să corespundă filtrelor.",
+      "noResultsDescription": "Încercați să ajustați căutarea sau filtrele pentru a găsi ceea ce căutați.",
+      "clearFilters": "Șterge filtrele"
+    },
+    "service": {
+      "status": {
+        "active": "Activ",
+        "inactive": "Inactiv"
+      },
+      "actions": {
+        "edit": "Editează",
+        "delete": "Șterge"
+      },
+      "metadata": {
+        "location": "locație",
+        "locations": "locații",
+        "teamMember": "membru echipă",
+        "teamMembers": "membri echipă"
+      }
+    },
+    "actions": {
+      "addService": "Adaugă serviciu"
+    }
+  },
+  "addService": {
+    "title": "Adaugă Serviciu Nou",
+    "subtitle": "Creați un serviciu nou pentru afacerea dvs. Completați detaliile de mai jos pentru a începe",
+    "sections": {
+      "serviceInfo": "Informații Serviciu",
+      "serviceInfoDescription": "Furnizați informațiile esențiale care identifică și descriu serviciul dvs",
+      "pricingDuration": "Preț și Durată",
+      "pricingDurationDescription": "Setează prețul și durata implicită",
+      "category": "Categorie",
+      "categoryDescription": "Atribuie acest serviciu unei categorii pentru a-l organiza și filtra ulterior",
+      "locations": "Locații",
+      "locationsDescription": "Implicit, serviciul este disponibil în toate locațiile. Selectați locații specifice pentru a-l face disponibil doar acolo.",
+      "teamMembers": "Membri Echipă",
+      "teamMembersDescription": "Implicit, serviciul este disponibil pentru toți membrii echipei. Selectați membri specifici pentru a-l face disponibil doar pentru ei.",
+      "settings": "Setări Serviciu"
+    },
+    "form": {
+      "name": {
+        "label": "Numele Serviciului",
+        "placeholder": "Introduceți numele serviciului..."
+      },
+      "description": {
+        "label": "Descriere",
+        "placeholder": "Descrieți ce include acest serviciu..."
+      },
+      "price": {
+        "label": "Preț",
+        "placeholder": "0.00",
+        "helpText": "Preț de bază în {{currency}}"
+      },
+      "duration": {
+        "label": "Durată",
+        "placeholder": "60",
+        "helperText": "minute"
+      },
+      "currency": {
+        "label": "Monedă",
+        "info": "Moneda contului:",
+        "infoLink": "Setări",
+        "editText": "editează în"
+      },
+      "pricingNote": {
+        "text": "Implicit pentru toți angajații. Poți seta prețuri și durate personalizate per membru al echipei în",
+        "link": "Atribuiri"
+      },
+      "locations": {
+        "emptyMessage": "Nu s-au găsit locații.",
+        "helperTextNone": "Nu este disponibil în nicio locație",
+        "helperTextOne": "Disponibil în 1 locație selectată",
+        "helperTextSome": "Disponibil în {{count}} locații selectate"
+      },
+      "teamMembers": {
+        "emptyMessage": "Nu s-au găsit membri ai echipei.",
+        "helperTextNone": "Nu este disponibil pentru niciun membru al echipei",
+        "helperTextOne": "Disponibil pentru 1 membru selectat",
+        "helperTextSome": "Disponibil pentru {{count}} membri selectați"
+      },
+      "category": {
+        "label": "Numele Categoriei",
+        "placeholder": "Numele categoriei",
+        "helperText": "Lăsați gol pentru a crea serviciul fără categorie",
+        "selectLabel": "Selectează una",
+        "selectHelperText": "Fiecare serviciu poate fi atribuit unei singure categorii",
+        "manageCategoriesLink": "Administrare Categorii",
+        "managePopoverTitle": "Categorii",
+        "managePopoverDescription": "Gestionează categoriile folosite de serviciile tale, astfel încât totul să rămână organizat.",
+        "managePopoverHelperText": "Poți șterge o categorie doar dacă nu are niciun serviciu atribuit.",
+        "manageConfirmTitle": "Aplici modificările la categorii?",
+        "manageConfirmDescription": "Aceste modificări vor actualiza lista de categorii folosită în serviciile tale. Poți reveni oricând la lista inițială din această pagină.",
+        "manageConfirmConfirm": "Aplică modificările",
+        "manageConfirmCancel": "Anulează",
+        "manageApplySuccess": "Categoriile au fost actualizate cu succes.",
+        "manageApplyError": "Actualizarea categoriilor a eșuat. Încearcă din nou.",
+        "manageFooterClear": "Șterge modificările",
+        "manageFooterApply": "Aplică",
+        "createNew": "Creează categorie nouă",
+        "backToSelect": "Înapoi la categorii",
+        "newCategoryLabel": "Categorie nouă",
+        "newCategoryFieldLabel": "Numele categoriei",
+        "cancel": "Anulează",
+        "save": "Salvează",
+        "shuffleColor": "Schimbă culoarea",
+        "showMore": "Afișează încă {{count}}",
+        "showLess": "Afișează mai puține",
+        "remove": "Elimină categoria",
+        "limitHelperText": {
+          "text": "Limită de categorii atinsă ({{max}})."
+        },
+        "validation": {
+          "sectionError": "Selectează o categorie sau creează una nouă",
+          "nameRequired": "Introdu un nume pentru categorie",
+          "nameExists": "Există deja o categorie cu acest nume",
+          "limitReached": "Ați atins limita de 25 categorii. Eliminați una pentru a crea o categorie nouă."
+        }
+      },
+      "categoryColor": {
+        "label": "Culoarea Categoriei",
+        "helperText": "Culoarea este generată automat pe baza numelui categoriei"
+      },
+      "durationChips": {
+        "15": "15m",
+        "30": "30m",
+        "45": "45m",
+        "60": "60m",
+        "120": "120m"
+      },
+      "preview": "Acest serviciu va apărea ca:",
+      "status": {
+        "label": "Status Serviciu",
+        "activeDescription": "Serviciul este disponibil pentru rezervare",
+        "inactiveDescription": "Serviciul este ascuns pentru clienți"
+      },
+      "validation": {
+        "name": {
+          "required": "Vă rugăm să introduceți un nume de serviciu",
+          "minLength": "Introduceți cel puțin 2 caractere",
+          "maxLength": "Sunt permise maximum 70 de caractere",
+          "invalidChars": "Vă rugăm să eliminați caracterele speciale (sunt permise doar - ' & . ( ))"
+        },
+        "description": {
+          "maxLength": "Sunt permise maximum {{max}} caractere",
+          "invalidChars": "Caracterele speciale < > nu sunt permise"
+        },
+        "price": {
+          "required": "Prețul este obligatoriu",
+          "min": "Prețul trebuie să fie 0 sau mai mare"
+        },
+        "duration": {
+          "required": "Durata este obligatorie",
+          "min": "Durata trebuie să fie de cel puțin 1 minut"
+        }
+      }
+    },
+    "location": {
+      "currentLocation": "Atribuire la locația curentă: {{locationName}}. Schimbați locația în antet pentru a o aplica la o altă locație.",
+      "allLocations": "Acest serviciu va fi creat în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a-l crea doar acolo."
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "create": "Creează Serviciu"
+    },
+    "confirmDialog": {
+      "title": "Creează Serviciu Nou",
+      "description": "Sunteți sigur că doriți să creați \"{{name}}\" cu un preț de ${{price}} și o durată de {{duration}} minute?",
+      "cancel": "Anulează",
+      "confirm": "Creează Serviciu"
+    }
+  },
+  "editService": {
+    "title": "Editează Serviciu",
+    "subtitle": "Actualizați informațiile, prețurile și disponibilitatea serviciului",
+    "sections": {
+      "serviceInfo": "Informații Serviciu",
+      "pricingDuration": "Preț și Durată",
+      "settings": "Setări Serviciu"
+    },
+    "form": {
+      "name": {
+        "label": "Numele Serviciului",
+        "placeholder": "Introduceți numele serviciului..."
+      },
+      "description": {
+        "label": "Descriere",
+        "placeholder": "Descrieți serviciul..."
+      },
+      "price": {
+        "label": "Preț ($)",
+        "placeholder": "0.00"
+      },
+      "duration": {
+        "label": "Durată (min)",
+        "placeholder": "30"
+      },
+      "status": {
+        "label": "Status Serviciu",
+        "activeDescription": "Serviciul este disponibil pentru rezervare",
+        "inactiveDescription": "Serviciul este ascuns pentru clienți"
+      }
+    },
+    "location": {
+      "currentLocation": "Actualizare pentru locația curentă: {{locationName}}. Schimbați locația în antet pentru a edita acest serviciu în altă locație.",
+      "allLocations": "Această actualizare se va aplica în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a ținti doar acea locație."
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "update": "Actualizează Serviciu"
+    },
+    "confirmDialog": {
+      "title": "Actualizează Serviciu",
+      "description": "Sunteți sigur că doriți să actualizați serviciul \"{{name}}\"? Aceasta va modifica serviciul în catalogul dvs.",
+      "cancel": "Anulează",
+      "confirm": "Actualizează Serviciu"
+    }
+  },
+  "deleteService": {
+    "title": "Șterge \"{{serviceName}}\"?",
+    "description": "Această acțiune este permanentă și nu poate fi anulată.",
+    "confirm": "Șterge",
+    "cancel": "Anulează"
+  },
+  "toggleService": {
+    "title": "Actualizează status",
+    "description": "Sunteți sigur că doriți să schimbați statusul serviciului \"{{serviceName}}\"?",
+    "confirm": "Comută",
+    "cancel": "Anulează"
+  },
+  "bundles": {
+    "comingSoon": "Pachete în Curând",
+    "description": "Gestionarea pachetelor va fi disponibilă aici în curând. Creați pachete de servicii și oferiți-le ca pachete clienților dvs.",
+    "filters": {
+      "searchPlaceholder": "Caută pachete...",
+      "addBundle": "Adaugă Pachet",
+      "addFilter": "Filtre",
+      "showFiltersAria": "Afișează filtrele",
+      "byPrice": "După preț",
+      "byServiceCount": "După număr servicii",
+      "byPriceType": "După tip preț",
+      "minPriceLabel": "Preț minim",
+      "maxPriceLabel": "Preț maxim",
+      "minPricePlaceholder": "0.00",
+      "maxPricePlaceholder": "∞",
+      "minServiceCountLabel": "Min servicii",
+      "maxServiceCountLabel": "Max servicii",
+      "minServiceCountPlaceholder": "0",
+      "maxServiceCountPlaceholder": "∞",
+      "priceTypes": {
+        "sum": "Sumă servicii",
+        "fixed": "Preț fix",
+        "discount": "Reducere"
+      },
+      "clearAll": "Șterge toate filtrele",
+      "apply": "Aplică"
+    },
+    "sort": {
+      "trigger": "Sortare",
+      "priceAsc": "Preț: mic → mare",
+      "priceDesc": "Preț: mare → mic",
+      "serviceCountAsc": "Servicii: puține → multe",
+      "serviceCountDesc": "Servicii: multe → puține",
+      "createdAtDesc": "Cele mai noi",
+      "createdAtAsc": "Cele mai vechi",
+      "updatedAtDesc": "Actualizate recent",
+      "updatedAtAsc": "Mai puțin recente",
+      "groupPrice": "Preț",
+      "groupServiceCount": "Număr servicii",
+      "groupCreatedAt": "Dată creare",
+      "groupUpdatedAt": "Ultima actualizare"
+    },
+    "stats": {
+      "helperTotalPrefix": "Ai în prezent",
+      "helperTotalSuffix": "în listă",
+      "helperTotalBundleOne": "pachet",
+      "helperTotalBundleOther": "pachete"
+    },
+    "badges": {
+      "priceMin": "Preț min",
+      "priceMax": "Preț max",
+      "serviceCountMin": "Servicii min",
+      "serviceCountMax": "Servicii max"
+    },
+    "emptyState": {
+      "noBundles": "Niciun pachet încă",
+      "noBundlesDescription": "Creați primul dvs. pachet pentru a oferi pachete de servicii clienților dvs.",
+      "noResults": "Nu s-au găsit pachete",
+      "noResultsDescription": "Încercați să ajustați căutarea pentru a găsi ceea ce căutați."
+    },
+    "addBundle": {
+      "title": "Creează Pachet",
+      "subtitle": "Combină mai multe servicii într-un pachet",
+      "sections": {
+        "bundleInfo": "Informații Pachet",
+        "bundleInfoDescription": "Dă un nume și o descriere pachetului tău",
+        "pricing": "Preț",
+        "pricingDescription": "Alege cum se calculează prețul pachetului",
+        "services": "Servicii",
+        "servicesDescription": "Selectează serviciile de inclus în acest pachet"
+      },
+      "form": {
+        "name": {
+          "label": "Nume Pachet",
+          "placeholder": "ex., Pachet Îngrijire Completă"
+        },
+        "description": {
+          "label": "Descriere",
+          "placeholder": "Descrie ce este inclus în acest pachet..."
+        },
+        "priceType": {
+          "sum": "Suma prețurilor serviciilor",
+          "sumDescription": "Calculează automat totalul adunând toate prețurile serviciilor",
+          "fixed": "Preț fix",
+          "fixedDescription": "Stabilește un preț fix unic pentru întregul pachet, indiferent de prețurile individuale ale serviciilor",
+          "discount": "Procent de reducere",
+          "discountDescription": "Aplică un procent de reducere la suma tuturor prețurilor serviciilor"
+        },
+        "fixedPrice": {
+          "label": "Preț Fix",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Procent Reducere",
+          "placeholder": "0",
+          "help": "Introdu un procent între 0 și 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Total Servicii",
+        "originalPrice": "Preț Original",
+        "finalPrice": "Preț Final Pachet",
+        "savings": "Economii Clienți",
+        "increase": "Creștere Preț",
+        "service": "serviciu",
+        "services": "servicii"
+      },
+      "buttons": {
+        "cancel": "Anulează",
+        "create": "Creează Pachet"
+      },
+      "noServices": "Nu sunt servicii disponibile. Creează servicii mai întâi înainte de a crea pachete.",
+      "manageServices": "Gestionează servicii",
+      "bundleLabel": "acest pachet",
+      "validation": {
+        "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
+      },
+      "confirmDialog": {
+        "title": "Creează Pachet?",
+        "description": "Ești sigur că vrei să creezi pachetul \"{{name}}\" cu {{serviceCount}} serviciu(i)?",
+        "confirm": "Creează Pachet",
+        "cancel": "Anulează"
+      }
+    },
+    "editBundle": {
+      "title": "Editează Pachet",
+      "subtitle": "Actualizează informațiile și serviciile pachetului",
+      "sections": {
+        "bundleInfo": "Informații Pachet",
+        "bundleInfoDescription": "Actualizează numele și descrierea pachetului",
+        "pricing": "Preț",
+        "pricingDescription": "Alege cum se calculează prețul pachetului",
+        "services": "Servicii",
+        "servicesDescription": "Actualizează serviciile incluse în acest pachet"
+      },
+      "form": {
+        "name": {
+          "label": "Nume Pachet",
+          "placeholder": "ex., Pachet Îngrijire Completă"
+        },
+        "description": {
+          "label": "Descriere",
+          "placeholder": "Descrie ce este inclus în acest pachet..."
+        },
+        "priceType": {
+          "sum": "Suma prețurilor serviciilor",
+          "sumDescription": "Calculează automat totalul adunând toate prețurile serviciilor",
+          "fixed": "Preț fix",
+          "fixedDescription": "Stabilește un preț fix unic pentru întregul pachet, indiferent de prețurile individuale ale serviciilor",
+          "discount": "Procent de reducere",
+          "discountDescription": "Aplică un procent de reducere la suma tuturor prețurilor serviciilor"
+        },
+        "fixedPrice": {
+          "label": "Preț Fix",
+          "placeholder": "0.00"
+        },
+        "discountPercentage": {
+          "label": "Procent Reducere",
+          "placeholder": "0",
+          "help": "Introdu un procent între 0 și 100"
+        }
+      },
+      "pricing": {
+        "sumOfServices": "Total Servicii",
+        "originalPrice": "Preț Original",
+        "finalPrice": "Preț Final Pachet",
+        "savings": "Economii Clienți",
+        "increase": "Creștere Preț",
+        "service": "serviciu",
+        "services": "servicii"
+      },
+      "buttons": {
+        "cancel": "Anulează",
+        "update": "Actualizează Pachet"
+      },
+      "noServices": "Nu sunt servicii disponibile. Creează servicii mai întâi înainte de a edita pachete.",
+      "manageServices": "Gestionează servicii",
+      "bundleLabel": "acest pachet",
+      "validation": {
+        "nameRequired": "Numele pachetului este obligatoriu",
+        "nameMinLength": "Numele pachetului trebuie să aibă cel puțin 2 caractere",
+        "nameMaxLength": "Numele pachetului nu trebuie să depășească 100 de caractere",
+        "descriptionMaxLength": "Descrierea nu trebuie să depășească 500 de caractere",
+        "fixedPriceRequired": "Prețul fix este obligatoriu",
+        "fixedPriceMin": "Prețul fix trebuie să fie mai mare sau egal cu 0",
+        "discountRequired": "Procentul de reducere este obligatoriu",
+        "discountMin": "Procentul de reducere trebuie să fie cel puțin 0",
+        "discountMax": "Procentul de reducere nu trebuie să depășească 100",
+        "servicesRequired": "Cel puțin un serviciu trebuie selectat",
+        "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
+      },
+      "confirmDialog": {
+        "title": "Actualizezi Pachetul?",
+        "description": "Ești sigur că vrei să actualizezi pachetul \"{{name}}\" cu {{serviceCount}} serviciu(i)?",
+        "confirm": "Actualizează Pachet",
+        "cancel": "Anulează"
+      },
+      "removeBundle": {
+        "title": "Șterge Pachet",
+        "description": "Acest lucru va șterge permanent acest pachet din lista de pachete. Această acțiune nu poate fi anulată.",
+        "button": "Șterge Pachet",
+        "removing": "Se șterge..."
+      },
+      "deleteDialog": {
+        "title": "Ștergi Pachetul?",
+        "description": "Ești sigur că vrei să ștergi pachetul \"{{name}}\"? Această acțiune nu poate fi anulată.",
+        "confirm": "Șterge Pachet",
+        "cancel": "Anulează"
+      }
+    },
+    "priceType": {
+      "sum": "Sumă",
+      "fixed": "Fix",
+      "discount": "Reducere"
+    },
+    "priceTypeCategory": {
+      "sum": "Sumă servicii",
+      "fixed": "Preț fix",
+      "discount": "Reducere"
+    },
+    "actions": {
+      "edit": "Editează Pachet"
+    },
+    "service": "serviciu",
+    "services": "servicii",
+    "loading": "Se încarcă pachetele..."
+  },
+  "promotions": {
+    "comingSoon": "Promoții în Curând",
+    "description": "Gestionarea promoțiilor va fi disponibilă aici în curând. Creați reduceri, oferte speciale și campanii promoționale pentru serviciile dvs."
+  },
+  "filters": {
+    "searchPlaceholder": "Caută servicii...",
+    "addFilter": "Filtre",
+    "byPrice": "După preț",
+    "byDuration": "După durată",
+    "byCategory": "După categorie",
+    "clearAll": "Șterge toate filtrele",
+    "apply": "Aplică",
+    "noCategories": "Nu există încă nicio categorie.",
+    "minPriceLabel": "Preț minim",
+    "maxPriceLabel": "Preț maxim",
+    "minPricePlaceholder": "0.00",
+    "maxPricePlaceholder": "∞",
+    "minDurationLabel": "Durată minimă (min)",
+    "maxDurationLabel": "Durată maximă (min)",
+    "minDurationPlaceholder": "0",
+    "maxDurationPlaceholder": "∞",
+    "showFiltersAria": "Afișează filtrele"
+  },
+  "sort": {
+    "trigger": "Sortare",
+    "nameAsc": "Nume (A-Z)",
+    "nameDesc": "Nume (Z-A)",
+    "priceAsc": "Mic → mare",
+    "priceDesc": "Mare → mic",
+    "durationAsc": "Scurtă → lungă",
+    "durationDesc": "Lungă → scurtă",
+    "createdAtDesc": "Cele mai noi",
+    "createdAtAsc": "Cele mai vechi",
+    "updatedAtDesc": "Actualizate recent",
+    "updatedAtAsc": "Mai puțin recente",
+    "groupName": "Nume",
+    "groupPrice": "Preț",
+    "groupDuration": "Durată",
+    "groupCreatedAt": "Dată creare",
+    "groupUpdatedAt": "Ultima actualizare"
+  },
+  "manageServices": {
+    "title": "Gestionează servicii pentru",
+    "uncategorized": "Fără categorie",
+    "durationUnit": "min",
+    "clear": "Șterge",
+    "apply": "Aplică",
+    "saveChanges": "Salvează modificările",
+    "close": "Închide",
+    "selectAll": "Selectează tot",
+    "deselectAll": "Deselectează tot"
+  }
+}

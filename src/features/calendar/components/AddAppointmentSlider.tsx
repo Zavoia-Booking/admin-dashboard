@@ -11,8 +11,10 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/compone
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import { mockLocations } from '../../../mocks/locations.mock';
-import { mockTeamMembers } from '../../../mocks/team-members.mock';
+import { useDispatch } from "react-redux";
+import { createCalendarAppointmentAction } from "../actions.ts";
+import type { LocationType } from "../../../shared/types/location.ts";
+import type { TeamMember } from "../../../shared/types/team-member.ts";
 
 interface AddAppointmentSliderProps {
   isOpen: boolean;
@@ -61,48 +63,17 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [teamOpen, setTeamOpen] = useState(false);
   const [hourOpen, setHourOpen] = useState(false);
   const [minuteOpen, setMinuteOpen] = useState(false);
+  const dispatch = useDispatch();
+
+  const clients: Array<any> = [];
+  const locations: Array<LocationType> = [];
+  const teamMembers: Array<TeamMember> = [];
 
   React.useEffect(() => {
     if (!isOpen) {
       setFormData(initialFormData);
     }
   }, [isOpen]);
-
-  // Mock data
-  const mockClients = [
-    { 
-      id: '1', 
-      firstName: 'John', 
-      lastName: 'Doe', 
-      email: 'john.doe@email.com', 
-      phone: '+1 (555) 123-4567',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150'
-    },
-    { 
-      id: '2', 
-      firstName: 'Jane', 
-      lastName: 'Smith', 
-      email: 'jane.smith@email.com', 
-      phone: '+1 (555) 987-6543',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b388?w=150'
-    },
-    { 
-      id: '3', 
-      firstName: 'Mike', 
-      lastName: 'Johnson', 
-      email: 'mike.johnson@email.com', 
-      phone: '+1 (555) 456-7890',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150'
-    },
-    { 
-      id: '4', 
-      firstName: 'Sarah', 
-      lastName: 'Williams', 
-      email: 'sarah.williams@email.com', 
-      phone: '+1 (555) 234-5678',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150'
-    }
-  ];
 
   const services = [
     'Haircut & Style',
@@ -116,21 +87,33 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     'Scissor Cut'
   ];
 
-  // Helper functions
-  const selectedClient = mockClients.find(client => client.id === formData.clientId);
-  const selectedLocation = mockLocations.find(location => location.id === formData.location);
-  const selectedTeamMembers = mockTeamMembers.filter(member => formData.teamMembers.includes(member.id));
+  const selectedClient = clients.find((client: any) => client.id === formData.clientId);
+  const selectedLocation = locations.find(location => `${location.id}` === formData.location);
+  const selectedTeamMembers = teamMembers.filter(member => formData.teamMembers.includes(`${member.id}`));
 
   // Extract hour and minute from formData.time
   const hour = formData.time ? formData.time.split(':')[0] : '00';
   const minute = formData.time ? formData.time.split(':')[1] : '00';
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = (event: any) => {
+    event.preventDefault();
     // Handle form submission here
     console.log('New appointment:', formData);
-    onClose();
-    setFormData(initialFormData);
+
+    const payload = {
+      name:'test_name',
+      email: 'test@test.com',
+      phone: '+1 (555) 123-4567',
+      staffUserIds: [2],
+      scheduledAt:'2025-09-17',
+      serviceId: 1,
+      locationId: 1,
+    }
+
+    dispatch(createCalendarAppointmentAction.request(payload))
+
+    // onClose();
+    // setFormData(initialFormData);
   };
 
   return (
@@ -193,7 +176,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           <CommandList>
                             <CommandEmpty>No clients found.</CommandEmpty>
                             <CommandGroup>
-                              {mockClients.map((client) => (
+                              {clients.map((client) => (
                                 <CommandItem
                                   key={client.id}
                                   value={`${client.firstName} ${client.lastName} ${client.email} ${client.phone}`}
@@ -628,19 +611,19 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             <CommandList>
                               <CommandEmpty>No locations found.</CommandEmpty>
                               <CommandGroup>
-                                {mockLocations.map((location) => (
+                                {locations.map((location) => (
                                   <CommandItem
                                     key={location.id}
                                     value={location.name}
                                     onSelect={() => {
-                                      setFormData(prev => ({ ...prev, location: location.id }));
+                                      setFormData((prev: any) => ({ ...prev, location: location.id }));
                                       setLocationOpen(false);
                                     }}
                                   >
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        formData.location === location.id ? "opacity-100" : "opacity-0"
+                                        formData.location === `${location.id}` ? "opacity-100" : "opacity-0"
                                       )}
                                     />
                                     {location.name}
@@ -669,7 +652,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                                 onClick={() => {
                                   setFormData(prev => ({ 
                                     ...prev, 
-                                    teamMembers: prev.teamMembers.filter(id => id !== member.id) 
+                                    teamMembers: prev.teamMembers.filter(id => +id !== member.id)
                                   }));
                                 }}
                                 className="h-6 w-6 p-0 ml-1 hover:bg-destructive/20 hover:text-destructive rounded-full flex items-center justify-center"
@@ -701,21 +684,21 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             <CommandList>
                               <CommandEmpty>No team members found.</CommandEmpty>
                               <CommandGroup>
-                                {mockTeamMembers.map((member) => (
+                                {teamMembers.map((member) => (
                                   <CommandItem
                                     key={member.id}
                                     value={member.firstName + ' ' + member.lastName}
                                     onSelect={() => {
-                                      const isSelected = formData.teamMembers.includes(member.id);
+                                      const isSelected = formData.teamMembers.includes(`${member.id}`);
                                       if (isSelected) {
                                         setFormData(prev => ({ 
                                           ...prev, 
-                                          teamMembers: prev.teamMembers.filter(id => id !== member.id) 
+                                          teamMembers: prev.teamMembers.filter(id => +id !== member.id)
                                         }));
                                       } else {
-                                        setFormData(prev => ({ 
+                                        setFormData((prev) => ({
                                           ...prev, 
-                                          teamMembers: [...prev.teamMembers, member.id] 
+                                          teamMembers: [...prev.teamMembers, `${member.id}`]
                                         }));
                                       }
                                     }}
@@ -730,7 +713,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                                     <Check
                                       className={cn(
                                         "ml-auto h-4 w-4",
-                                        formData.teamMembers.includes(member.id) ? "opacity-100" : "opacity-0"
+                                        formData.teamMembers.includes(`${member.id}`) ? "opacity-100" : "opacity-0"
                                       )}
                                     />
                                   </CommandItem>

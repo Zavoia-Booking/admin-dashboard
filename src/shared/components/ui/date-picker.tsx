@@ -16,7 +16,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
   value, 
   onChange, 
   className,
-  placeholder = "Select date",
   viewMode = 'day'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -107,7 +106,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
       return date.toDateString() === value.toDateString();
     } else if (viewMode === 'week') {
       const selectedWeekStart = getWeekStart(value);
-      const selectedWeekEnd = getWeekEnd(value);
       const dateWeekStart = getWeekStart(date);
       return dateWeekStart.toDateString() === selectedWeekStart.toDateString();
     } else if (viewMode === 'month') {

@@ -1,33 +1,27 @@
-import { createAction } from "@reduxjs/toolkit";
+import { createAsyncAction, createAction } from "typesafe-actions";
+import type { WizardData } from "../../shared/hooks/useSetupWizard";
 
-export type WizardDataPayload = Partial<{
-  businessName: string;
-  industry: string;
-  description: string;
-  isRemote: boolean;
-  address: string;
-  city: string;
-  services: Array<{ id: string; name: string; price: number; duration: number }>;
-  schedule: Array<{ day: string; open: string; close: string; isClosed: boolean }>;
-  bufferTime: number;
-  teamMembers: Array<{ email: string; role: string }>;
-  worksSolo: boolean;
-  selectedTemplate: string;
-  isLaunched: boolean;
-}>;
+export const wizardSaveAction = createAsyncAction(
+  'wizard/SAVE_REQUEST',
+  'wizard/SAVE_SUCCESS',
+  'wizard/SAVE_FAILURE',
+)<Partial<WizardData>, void, { message: string }>();
 
-export const wizardInit = createAction('WIZARD/INIT');
-export const wizardSetStep = createAction<number>('WIZARD/SET_STEP');
-export const wizardNext = createAction('WIZARD/NEXT');
-export const wizardPrev = createAction('WIZARD/PREV');
-export const wizardUpdateData = createAction<WizardDataPayload>('WIZARD/UPDATE_DATA');
+export const wizardCompleteAction = createAsyncAction(
+  'wizard/COMPLETE_REQUEST',
+  'wizard/COMPLETE_SUCCESS',
+  'wizard/COMPLETE_FAILURE',
+)<WizardData, void, { message: string }>();
 
-export const wizardSaveRequest = createAction('WIZARD/SAVE/REQUEST');
-export const wizardSaveSuccess = createAction('WIZARD/SAVE/SUCCESS');
-export const wizardSaveFailure = createAction<string>('WIZARD/SAVE/FAILURE');
+export const wizardLoadDraftAction = createAsyncAction(
+  'wizard/LOAD_DRAFT_REQUEST',
+  'wizard/LOAD_DRAFT_SUCCESS',
+  'wizard/LOAD_DRAFT_FAILURE',
+)<void, Partial<WizardData>, { message: string }>();
 
-export const wizardCompleteRequest = createAction('WIZARD/COMPLETE/REQUEST');
-export const wizardCompleteSuccess = createAction('WIZARD/COMPLETE/SUCCESS');
-export const wizardCompleteFailure = createAction<string>('WIZARD/COMPLETE/FAILURE');
+export const wizardUpdateDataAction = createAction('wizard/UPDATE_DATA')<Partial<WizardData>>();
 
+// Logo buffer actions - stores File object for logo upload
+export const setLogoBufferAction = createAction('wizard/SET_LOGO_BUFFER')<File | null>();
+export const clearLogoBufferAction = createAction('wizard/CLEAR_LOGO_BUFFER')();
 

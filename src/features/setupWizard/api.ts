@@ -1,15 +1,22 @@
-import config from "../../app/config/env";
+import { apiClient } from "../../shared/lib/http";
+import type { WizardData } from "../../shared/hooks/useSetupWizard";
 
-export const saveWizardProgress = async (data: any) => {
-  // Placeholder for backend endpoint. For now, simulate success.
-  // await fetch(`${config.API_URL}/wizard/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-  return Promise.resolve({ ok: true });
+export type CompleteWizardResponse = {
+  accessToken: string;
+  refreshToken?: string;
+  csrfToken?: string | null;
+};
+
+export const completeWizardApi = async (payload: WizardData): Promise<CompleteWizardResponse> => {
+  const { data } = await apiClient().post<CompleteWizardResponse>(`/wizard/complete`, { wizardData: payload });
+  return data;
 }
 
-export const completeWizard = async (data: any) => {
-  // Placeholder for backend endpoint. For now, simulate success.
-  // await fetch(`${config.API_URL}/wizard/complete`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-  return Promise.resolve({ ok: true });
+export const saveWizardDraftApi = async (payload: Partial<WizardData>): Promise<void> => {
+  await apiClient().post(`/wizard/save-draft`, { wizardData: payload });
 }
 
-
+export const getWizardDraftApi = async (): Promise<{ wizardData: Partial<WizardData> }> => {
+  const { data } = await apiClient().get<{ wizardData: Partial<WizardData> }>(`/wizard/draft`);
+  return data;
+}

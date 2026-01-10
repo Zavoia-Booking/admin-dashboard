@@ -1,0 +1,43 @@
+{
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "assignments": "Assignments",
+    "teamMembers": "Team Members",
+    "services": "Services",
+    "locations": "Locations",
+    "customers": "Customers",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "settings": "Settings",
+    "logOut": "Log Out",
+    "subItems": {
+      "assignments": {
+        "teamMembers": "Team Members",
+        "services": "Services",
+        "locations": "Locations"
+      },
+      "services": {
+        "allServices": "All Services",
+        "bundles": "Bundles",
+        "promotions": "Promotions"
+      },
+      "settings": {
+        "profile": "Profile",
+        "billing": "Billing & Subscription",
+        "advanced": "Advanced Settings"
+      },
+      "marketplace": {
+        "profile": "Profile",
+        "portfolio": "Portfolio",
+        "promotions": "Promotions",
+        "bookingSettings": "Booking Settings"
+      }
+    }
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light"
+  }
+}
+

@@ -1,5 +1,3 @@
-"use client"
-
 import {
   BadgeCheck,
   Bell,
@@ -13,7 +11,9 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-} from "./ui/avatar"
+} from "../ui/avatar"
+import { useDispatch } from "react-redux"
+import { logoutRequestAction } from "../../../features/auth/actions"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,13 +22,13 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu"
+} from "../ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
-} from "./ui/sidebar"
+} from "../ui/sidebar"
+import { useIsMobile } from "../../hooks/use-mobile"
 
 export function NavUser({
   user,
@@ -39,12 +39,11 @@ export function NavUser({
     avatar: string
   }
 }) {
-  const { isMobile } = useSidebar()
+  const isMobile = useIsMobile()
+  const dispatch = useDispatch()
 
-  const handleLogout = async () => {
-    // Simplified - logout handles redirect internally
-    // TODO
-    // await authStore.logout()
+  const handleLogout = () => {
+    dispatch(logoutRequestAction.request())
   }
 
   return (

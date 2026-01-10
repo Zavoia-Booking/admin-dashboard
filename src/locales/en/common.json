@@ -1,0 +1,60 @@
+{
+  "deleteConfirmDialog": {
+    "loading": {
+      "title": "Checking dependencies",
+      "description": "Verifying if this {{resourceType}} can be deleted..."
+    },
+    "canDelete": {
+      "title": "Delete \"{{resourceName}}\"?",
+      "description": "This will permanently remove this {{resourceType}} from your list. You cannot undo this action.",
+      "cancel": "Cancel",
+      "delete": "Delete {{resourceType}}",
+      "deleting": "Deleting..."
+    },
+    "cannotDelete": {
+      "title": "{{resourceType}} is currently in use",
+      "descriptionPrefix": "You cannot delete",
+      "descriptionSuffix": "because it is currently assigned to:",
+      "footer": "Please unassign the {{resourceType}} from these items before deleting.",
+      "manageAssignments": "Manage Assignments",
+      "cancel": "Cancel",
+      "visibleInMarketplace": "Visible in the Marketplace"
+    },
+    "dependencies": {
+      "user": "user",
+      "users": "users",
+      "activeTeamMember": "active team member",
+      "activeTeamMembers": "active team members",
+      "pendingTeamMemberInvitation": "pending team member invitation",
+      "pendingTeamMemberInvitations": "pending team member invitations",
+      "service": "service",
+      "services": "services",
+      "appointment": "appointment",
+      "appointments": "appointments",
+      "location": "location",
+      "locations": "locations",
+      "teamMember": "team member",
+      "teamMembers": "team members",
+      "cancelInvitationHint": "Cancel the invitation{{plural}} before removing this {{resourceType}}"
+    },
+    "resourceTypes": {
+      "location": "location",
+      "locations": "locations",
+      "service": "service",
+      "services": "services",
+      "team_member": "team member",
+      "team_members": "team members",
+      "bundle": "bundle",
+      "bundles": "bundles",
+      "resource": "resource",
+      "resources": "resources",
+      "locationTitle": "Location",
+      "serviceTitle": "Service",
+      "team_memberTitle": "Team member",
+      "bundleTitle": "Bundle",
+      "resourceTitle": "Resource"
+    },
+    "close": "Close"
+  }
+}
+

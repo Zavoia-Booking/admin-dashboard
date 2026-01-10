@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Team Members",
+    "subtitle": "Manage your team members",
+    "actions": {
+      "inviteMember": "Invite Member"
+    },
+    "emptyState": {
+      "noTeamMembers": "You haven't invited any team members yet",
+      "noTeamMembersDescription": "Invite your first team member to start building your team.",
+      "noResults": "No team members found matching your search.",
+      "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    }
+  },
+  "filters": {
+    "searchPlaceholder": "Search team members by name or email..."
+  }
+}
+

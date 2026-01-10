@@ -4,7 +4,32 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <meta name="description" content="Admin dashboard for managing your Zavoia business" />
+    
+    <title>Zavoia Admin Dashboard</title>
+    <script>
+      // Initialize theme from localStorage immediately to prevent flash
+      // This must run synchronously in <head> before any rendering
+      (function() {
+        try {
+          const theme = localStorage.getItem('theme');
+          
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            // Set inline style to prevent white flash
+            document.documentElement.style.backgroundColor = 'oklch(18% 0.003 248)';
+            document.body.style.backgroundColor = 'oklch(18% 0.003 248)';
+          } else {
+            // Default to light theme if no preference or theme is 'light'
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.backgroundColor = 'oklch(97.5% 0.003 248)';
+            document.body.style.backgroundColor = 'oklch(97.5% 0.003 248)';
+          }
+        } catch (e) {
+          // Silently fail if localStorage is not available
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

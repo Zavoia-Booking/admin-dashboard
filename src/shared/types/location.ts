@@ -15,13 +15,19 @@ export interface WorkingHours {
 }
 
 export interface LocationType {
-  id: string;
+  id: number;
   name: string;
   address: string;
   email: string;
-  phoneNumber: string;
+  phone: string;
   description: string;
   workingHours: WorkingHours;
-  status: 'active' | 'inactive';
   createdAt: string;
-} 
+  timezone: string;
+  isRemote: boolean;
+  open247?: boolean;
+  isVisibleInMarketplace?: boolean;
+  servicesCount?: number;
+  teamMembersCount?: number;
+  mapPinConfirmed?: boolean;
+}

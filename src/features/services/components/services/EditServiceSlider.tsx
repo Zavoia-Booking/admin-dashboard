@@ -1,0 +1,877 @@
+import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useForm, useController } from "react-hook-form";
+import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import {
+  Clock,
+  ClipboardPlus,
+  Layers2,
+  ArrowUpRight,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { Label } from "../../../../shared/components/ui/label";
+import { Input } from "../../../../shared/components/ui/input";
+import { Button } from "../../../../shared/components/ui/button";
+import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
+import { FormFooter } from "../../../../shared/components/forms/FormFooter";
+import { TextField } from "../../../../shared/components/forms/fields/TextField";
+import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
+import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
+import { CategorySection } from "./CategorySection";
+import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
+import { AssignmentsCard } from "../../../../shared/components/common/AssignmentsCard";
+import type { DeleteResponse } from "../../../../shared/types/delete-response";
+import {
+  getCurrencyDisplay,
+  priceToStorage,
+} from "../../../../shared/utils/currency";
+import { selectCurrentUser } from "../../../auth/selectors";
+import { editServicesAction, deleteServicesAction } from "../../actions.ts";
+import type { EditServicePayload } from "../../types.ts";
+import {
+  getEditFormSelector,
+  getServicesErrorSelector,
+  getServicesLoadingSelector,
+  getServicesDeletingSelector,
+  getServicesDeleteResponseSelector,
+} from "../../selectors.ts";
+import type { Category } from "./CategorySection";
+import { toast } from "sonner";
+import type { Service } from "../../../../shared/types/service";
+import { ServiceFormSkeleton } from "./ServiceFormSkeleton";
+
+interface EditServiceSliderProps {
+  isOpen: boolean;
+  onClose: () => void;
+  service: Service | null;
+  categories: Category[];
+}
+
+interface EditServiceFormData {
+  id: number;
+  name: string;
+  price: number;
+  duration: number;
+  description: string;
+  categoryId?: number | null;
+  categoryName?: string;
+  categoryColor?: string;
+}
+
+const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
+  isOpen,
+  onClose,
+  service: serviceProp,
+  categories: initialCategories,
+}) => {
+  
+  const text = useTranslation("services").t;
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
+  const businessCurrency = currentUser?.business?.businessCurrency || "eur";
+  const editForm = useSelector(getEditFormSelector);
+  const servicesError = useSelector(getServicesErrorSelector);
+  const isServicesLoading = useSelector(getServicesLoadingSelector);
+  const isDeleting = useSelector(getServicesDeletingSelector);
+  const deleteResponseFromState = useSelector(getServicesDeleteResponseSelector);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const justOpenedRef = useRef(false);
+  
+  // Wrap onClose to ensure it's stable
+  const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
+  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
+
+  // Use service from Redux state (fetched via getServiceById) or fallback to prop
+  const service = editForm.item || serviceProp;
+  
+
+  // Convert decimal price from backend to cents for form
+  const getPriceInCents = (decimalPrice: number | undefined): number => {
+    if (!decimalPrice) return 0;
+    return priceToStorage(decimalPrice, businessCurrency);
+  };
+
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    reset,
+    getValues,
+    trigger,
+    formState,
+  } = useForm<EditServiceFormData>({
+    defaultValues: {
+      id: service?.id ?? 0,
+      name: service?.name ?? "",
+      price: getPriceInCents(service?.price),
+      duration: service?.duration ?? 60,
+      description: service?.description ?? "",
+      categoryId: service?.category?.id ?? null,
+      categoryName: undefined,
+      categoryColor: undefined,
+    },
+    mode: "onChange",
+  });
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
+    Category[]
+  >([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+
+  const categoryId = watch("categoryId");
+  const categoryName = watch("categoryName");
+  const categoryColor = watch("categoryColor");
+
+  // Validation helpers with translations
+  const validateServiceName = (value: string): string | true => {
+    const v = (value ?? "").trim();
+    if (!v) return text("addService.form.validation.name.required");
+    if (v.length < 2) return text("addService.form.validation.name.minLength");
+    if (v.length > 70) return text("addService.form.validation.name.maxLength");
+    const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+    if (!NAME_PATTERN.test(v)) {
+      return text("addService.form.validation.name.invalidChars");
+    }
+    return true;
+  };
+
+  const validateServiceDescription = (value: string): string | true => {
+    if (!value || value.trim().length === 0) return true; // Optional field
+    const v = value.trim();
+    if (v.length > 500)
+      return text("addService.form.validation.description.maxLength");
+    if (/<script|<iframe|javascript:|onclick|onerror|onload/i.test(v)) {
+      return text("addService.form.validation.description.invalidChars");
+    }
+    return true;
+  };
+
+  // Controlled fields with validation
+  const { field: nameField, fieldState: nameState } = useController<
+    EditServiceFormData,
+    "name"
+  >({
+    name: "name",
+    control,
+    rules: {
+      validate: validateServiceName,
+    },
+  });
+
+  const { field: priceField } = useController<EditServiceFormData, "price">({
+    name: "price",
+    control,
+    rules: {
+      required: text("addService.form.validation.price.required"),
+      min: {
+        value: 0,
+        message: text("addService.form.validation.price.min"),
+      },
+    },
+  });
+
+  const { field: durationField, fieldState: durationState } = useController<
+    EditServiceFormData,
+    "duration"
+  >({
+    name: "duration",
+    control,
+    rules: {
+      required: text("addService.form.validation.duration.required"),
+      min: {
+        value: 1,
+        message: text("addService.form.validation.duration.min"),
+      },
+    },
+  });
+
+  const { field: descriptionField, fieldState: descriptionState } =
+    useController<EditServiceFormData, "description">({
+      name: "description",
+      control,
+      rules: {
+        validate: validateServiceDescription,
+      },
+    });
+
+  // Validate category requirement (either categoryId or categoryName must be set)
+  const categoryError =
+    (formState.isSubmitted || formState.touchedFields.categoryId) &&
+    !categoryId &&
+    (!categoryName || !categoryName.trim())
+      ? text("addService.form.validation.category.required")
+      : undefined;
+
+  // Check if category is set (required field)
+  const isCategorySet =
+    (categoryId !== null && categoryId !== undefined) ||
+    (categoryName && categoryName.trim().length > 0);
+
+  // Check if required fields are filled
+  const nameValue = watch("name");
+  const priceValue = watch("price");
+  const durationValue = watch("duration");
+  const areRequiredFieldsFilled =
+    nameValue &&
+    nameValue.trim().length > 0 &&
+    priceValue !== undefined &&
+    priceValue !== null &&
+    durationValue !== undefined &&
+    durationValue !== null &&
+    durationValue > 0;
+
+  // Reset categories state when slider closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCategories(initialCategories);
+    }
+  }, [isOpen, initialCategories]);
+
+  // Populate form with service data when opened
+  useEffect(() => {
+    if (service && isOpen) {
+      const serviceCategoryId = service.category?.id ?? null;
+      reset({
+        id: service.id,
+        name: service.name,
+        price: getPriceInCents(service.price),
+        duration: service.duration,
+        description: service.description,
+        categoryId: serviceCategoryId,
+        categoryName: undefined,
+        categoryColor: undefined,
+      });
+      // Explicitly set categoryId to ensure it's properly tracked
+      if (serviceCategoryId !== null) {
+        setValue("categoryId", serviceCategoryId, { shouldDirty: false });
+      }
+      setNewlyCreatedCategories([]);
+    }
+  }, [service, isOpen, reset, setValue, businessCurrency]);
+
+  // Reset form when slider closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsCategoriesLoading(false);
+      setNewlyCreatedCategories([]);
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
+      // Reset delete state when closing
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+    }
+  }, [isOpen]);
+
+  // Track isOpen changes with previous value
+  const prevIsOpenRef = useRef(isOpen);
+  
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    const prevIsOpen = prevIsOpenRef.current;
+    const actuallyChanged = prevIsOpen !== isOpen;
+    
+    // Only reset state if isOpen actually changed from false to true
+    // This prevents resetting state when component remounts with isOpen already true
+    if (isOpen && actuallyChanged && !prevIsOpen) {
+      setIsSubmitting(false);
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+    }
+    
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Memoize callback to prevent infinite loops
+  const handleNewlyCreatedCategoriesChange = useCallback(
+    (newCategories: Category[]) => {
+      setNewlyCreatedCategories(newCategories);
+    },
+    []
+  );
+
+  // Show skeleton while loading
+  const isLoading = isCategoriesLoading || !service;
+
+  // Form should be disabled if:
+  // - There are validation errors
+  // - Required fields are empty
+  // - Form is loading (showing skeleton)
+  // - No changes were made to the form
+  const isFormDisabled =
+    !formState.isValid ||
+    !isCategorySet ||
+    !areRequiredFieldsFilled ||
+    isLoading ||
+    !formState.isDirty;
+
+  // Watch for errors and show toast, reset submitting state
+  useEffect(() => {
+    if (servicesError && !isServicesLoading && isSubmitting) {
+      toast.error(String(servicesError));
+      setIsSubmitting(false);
+    }
+  }, [servicesError, isServicesLoading, isSubmitting]);
+
+  // Watch for success and close form
+  useEffect(() => {
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    // Also don't close if slider is already closed (prevents multiple calls)
+    if (!isServicesLoading && isSubmitting && !servicesError && !justOpenedRef.current && isOpen) {
+      // Success - close form
+      // Reset isSubmitting immediately to prevent effect from running again
+      setIsSubmitting(false);
+      handleClose();
+    }
+  }, [isServicesLoading, isSubmitting, servicesError, handleClose, isOpen]);
+
+  const onSubmit = () => {
+    // Prevent double submission
+    if (isSubmitting || isServicesLoading) {
+      return;
+    }
+
+    const {
+      id,
+      name,
+      price,
+      duration,
+      description,
+      categoryId,
+    } = getValues();
+
+    // Separate selected category from other new categories
+    const selectedCategory = newlyCreatedCategories.find(
+      (cat) => cat.id === categoryId
+    );
+    const isSelectedNew = !!selectedCategory;
+    const otherNewCategories = newlyCreatedCategories.filter(
+      (cat) => cat.id !== categoryId
+    );
+
+    const payload: EditServicePayload = {
+      id,
+      name,
+      description,
+      duration,
+      price_amount_minor: price ?? 0,
+      category:
+        categoryId && !isSelectedNew
+          ? { categoryId } // Existing category
+          : selectedCategory
+          ? {
+              categoryName: selectedCategory.name,
+              categoryColor: selectedCategory.color!,
+            }
+          : undefined,
+      additionalCategories:
+        otherNewCategories.length > 0
+          ? otherNewCategories.map((cat) => ({
+              name: cat.name,
+              color: cat.color!,
+            }))
+          : undefined,
+    };
+    setIsSubmitting(true);
+    dispatch(editServicesAction.request(payload));
+    // Don't close form here - wait for success/error response
+  };
+
+  const handleCancel = () => {
+    handleClose();
+  };
+
+  // Handle delete response from Redux state
+  useEffect(() => {
+    if (deleteResponseFromState && hasAttemptedDelete && !isDeleting) {
+      if (deleteResponseFromState.canDelete === false) {
+        // Cannot delete - update dialog to show blocking info
+        setDeleteResponse(deleteResponseFromState as DeleteResponse);
+      } else {
+        // Successfully deleted - close dialog
+        setShowDeleteDialog(false);
+        setDeleteResponse(null);
+        setHasAttemptedDelete(false);
+        handleClose();
+      }
+    }
+  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, handleClose]);
+
+  const handleDeleteClick = () => {
+    // Show confirmation dialog first with optimistic state
+    setDeleteResponse({
+      canDelete: true,
+      message: '',
+    });
+    setShowDeleteDialog(true);
+    setHasAttemptedDelete(false);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteResponse?.canDelete || !service) return;
+    // User confirmed - now make the backend call
+    setHasAttemptedDelete(true);
+    dispatch(deleteServicesAction.request({ serviceId: service.id }));
+  };
+
+  const handleCloseDeleteDialog = (open: boolean) => {
+    if (!open) {
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+    }
+  };
+
+  // NEVER unmount when slider is open - this prevents the slider from reopening after submission
+  // If service is null but slider is open, show skeleton instead of unmounting
+  if (!service && !isOpen) {
+    return null;
+  }
+  
+  // If service is temporarily null but slider is open, show skeleton to prevent unmount
+  if (!service && isOpen) {
+    return (
+      <BaseSlider
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={text("editService.title")}
+        subtitle={text("editService.subtitle")}
+        icon={ClipboardPlus}
+        iconColor="text-foreground-1"
+        contentClassName="bg-surface scrollbar-hide"
+      >
+        <ServiceFormSkeleton />
+      </BaseSlider>
+    );
+  }
+
+  return (
+    <>
+      <BaseSlider
+        isOpen={isOpen}
+        onClose={handleClose}
+        title={text("editService.title")}
+        subtitle={text("editService.subtitle")}
+        icon={ClipboardPlus}
+        iconColor="text-foreground-1"
+        contentClassName="bg-surface scrollbar-hide"
+        footer={
+          <FormFooter
+            onCancel={handleCancel}
+            formId="edit-service-form"
+            cancelLabel={text("editService.buttons.cancel")}
+            submitLabel={text("editService.buttons.update")}
+            disabled={isFormDisabled || isSubmitting || isServicesLoading}
+            isLoading={isSubmitting || isServicesLoading}
+          />
+        }
+      >
+        <form
+          id="edit-service-form"
+          onSubmit={(e) => {
+            // Prevent form submission if already submitting or loading
+            if (isFormDisabled || isSubmitting || isServicesLoading) {
+              e.preventDefault();
+              e.stopPropagation();
+              return;
+            }
+            handleSubmit(onSubmit)(e);
+          }}
+          className="h-full flex flex-col cursor-default"
+        >
+          <div className="flex-1 overflow-y-auto p-1 py-6 md:p-6 pt-0 md:pt-0 bg-surface">
+            {isLoading ? (
+              <ServiceFormSkeleton />
+            ) : (
+              <div className="max-w-2xl mx-auto space-y-8 cursor-default">
+                {/* Essential Fields */}
+                <div className="space-y-0 mb-0">
+                  {/* Service Information Section */}
+                  <div className="space-y-5">
+                    <div className="space-y-1">
+                      <h3 className="text-lg font-semibold text-foreground-1">
+                        {text("addService.sections.serviceInfo")}
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        {text("addService.sections.serviceInfoDescription")}
+                      </p>
+                    </div>
+
+                    <div className="space-y-5">
+                      <TextField
+                        value={nameField.value || ""}
+                        onChange={nameField.onChange}
+                        error={nameState.error?.message}
+                        label={text("addService.form.name.label")}
+                        placeholder={text("addService.form.name.placeholder")}
+                        required
+                        id="name"
+                        maxLength={70}
+                        icon={Layers2}
+                      />
+
+                      <TextareaField
+                        value={descriptionField.value || ""}
+                        onChange={descriptionField.onChange}
+                        error={descriptionState.error?.message}
+                        label={text("addService.form.description.label")}
+                        placeholder={text(
+                          "addService.form.description.placeholder"
+                        )}
+                        id="description"
+                        rows={4}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-end gap-2 mb-6 pt-4">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
+
+                  {/* Pricing & Duration Section */}
+                  <div className="space-y-4">
+                    <div className="space-y-1 mb-4">
+                      <h3 className="text-lg font-semibold text-foreground-1">
+                        {text("addService.sections.pricingDuration")}
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        {text("addService.sections.pricingDurationDescription")}
+                      </p>
+                    </div>
+
+                    {/* Currency helper text - inline, no box */}
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                      {text("addService.form.currency.info")}{" "}
+                      <span className="font-medium">
+                        {getCurrencyDisplay(businessCurrency).symbol}
+                      </span>{" "}
+                      (
+                      <span
+                        onClick={() => navigate("/settings")}
+                        className="inline-flex items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+                      >
+                        {text("addService.form.currency.editText")}{" "}
+                        {text("addService.form.currency.infoLink")}
+                        <ArrowUpRight
+                          className="h-3 w-3 text-primary"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      ).
+                    </p>
+
+                    {/* Price & Duration on same row */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {/* Price Input */}
+                      <div className="space-y-2">
+                        <PriceField
+                          value={priceField.value || 0}
+                          onChange={priceField.onChange}
+                          label={text("addService.form.price.label")}
+                          placeholder="0.00"
+                          required
+                          id="price"
+                          min={0}
+                          step={0.01}
+                          icon={getCurrencyDisplay(businessCurrency).icon}
+                          symbol={getCurrencyDisplay(businessCurrency).symbol}
+                          iconPosition="left"
+                          decimalPlaces={2}
+                          currency={businessCurrency}
+                          storageFormat="cents"
+                        />
+                      </div>
+
+                      {/* Duration Input */}
+                      <div className="space-y-2">
+                        <div className="space-y-2 mb-1">
+                          <Label
+                            htmlFor="duration"
+                            className="text-base font-medium"
+                          >
+                            {text("addService.form.duration.label")} *
+                          </Label>
+                          <div className="relative">
+                            {/* Clock icon on left */}
+                            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+                            </div>
+                            <Input
+                              id="duration"
+                              type="text"
+                              inputMode="numeric"
+                              placeholder={text(
+                                "addService.form.duration.placeholder"
+                              )}
+                              value={durationField.value || ""}
+                              onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>
+                              ) => {
+                                const inputValue = e.target.value;
+                                // Only allow digits
+                                if (
+                                  inputValue === "" ||
+                                  /^\d+$/.test(inputValue)
+                                ) {
+                                  const numValue =
+                                    inputValue === ""
+                                      ? ""
+                                      : parseInt(inputValue, 10);
+                                  durationField.onChange(numValue);
+                                }
+                              }}
+                              className="!pl-10 !pr-20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                              aria-invalid={!!durationState.error?.message}
+                            />
+                            {/* "minutes" suffix */}
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <span className="text-sm text-foreground-3 dark:text-foreground-2">
+                                {text("addService.form.duration.helperText")}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="h-5">
+                            {durationState.error?.message && (
+                              <p
+                                className="flex items-center gap-1.5 text-xs text-destructive"
+                                role="alert"
+                                aria-live="polite"
+                              >
+                                <AlertCircle className="h-3.5 w-3.5" />
+                                <span>{durationState.error.message}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {/* Duration chips - directly under Duration field */}
+                        <div className="flex items-center gap-2 pl-0">
+                          {[15, 30, 45, 60, 120].map((minutes) => (
+                            <button
+                              key={minutes}
+                              type="button"
+                              onClick={async () => {
+                                setValue("duration", minutes, {
+                                  shouldValidate: true,
+                                  shouldDirty: true,
+                                });
+                                await trigger("duration");
+                              }}
+                              className={`flex-1 cursor-pointer px-2.5 py-1 text-xs font-medium rounded-md transition-colors duration-200 text-center focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0 ${
+                                durationField.value === minutes
+                                  ? "bg-primary text-white"
+                                  : "bg-surface hover:bg-surface-hover text-foreground-3 dark:text-foreground-2 border border-border"
+                              }`}
+                            >
+                              {text(`addService.form.durationChips.${minutes}`)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Helper text - inline, no box */}
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                      {text("addService.form.pricingNote.text")}{" "}
+                      <span
+                        onClick={() => navigate("/assignments")}
+                        className="inline-flex pl-0.5 items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
+                      >
+                        {text("addService.form.pricingNote.link")}
+                        <ArrowUpRight
+                          className="h-3 w-3 text-primary"
+                          aria-hidden="true"
+                        />
+                      </span>
+                      .
+                    </p>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex items-end gap-2 mb-6 pt-8">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
+
+                  {/* Category Section */}
+                  <CategorySection
+                    key={isOpen ? "open" : "closed"}
+                    categoryId={categoryId}
+                    categoryName={categoryName}
+                    categoryColor={categoryColor}
+                    onCategoryIdChange={(value: number | null) => {
+                      setValue("categoryId", value, {
+                        shouldTouch: true,
+                        shouldDirty: true,
+                      });
+                      // Clear category name when selecting existing category
+                      if (value) {
+                        setValue("categoryName", "", { shouldDirty: true });
+                        setValue("categoryColor", "", { shouldDirty: true });
+                      }
+                    }}
+                    onCategoryNameChange={(value: string) => {
+                      setValue("categoryName", value, {
+                        shouldTouch: true,
+                        shouldDirty: true,
+                      });
+                      // Clear categoryId when creating new category
+                      if (value) {
+                        setValue("categoryId", null, { shouldDirty: true });
+                      }
+                    }}
+                    onCategoryColorChange={(value: string) =>
+                      setValue("categoryColor", value, {
+                        shouldTouch: true,
+                        shouldDirty: true,
+                      })
+                    }
+                    existingCategories={categories}
+                    required
+                    error={categoryError}
+                    onNewCategoryCreated={(newCategory) => {
+                      // Add the new category to the local categories list
+                      // The category will be created on backend when service is saved
+                      // For now, we just update the form state
+                      setValue("categoryId", newCategory.id, {
+                        shouldDirty: true,
+                      });
+                      setValue("categoryName", newCategory.name, {
+                        shouldDirty: true,
+                      });
+                      setValue("categoryColor", newCategory.color || "", {
+                        shouldDirty: true,
+                      });
+                    }}
+                    onCategoryRemoved={(removedCategoryId) => {
+                      // If the removed category was selected, clear the selection
+                      if (categoryId === removedCategoryId) {
+                        setValue("categoryId", null, { shouldDirty: true });
+                        setValue("categoryName", "", { shouldDirty: true });
+                        setValue("categoryColor", "", { shouldDirty: true });
+                      }
+                    }}
+                    onNewlyCreatedCategoriesChange={
+                      handleNewlyCreatedCategoriesChange
+                    }
+                  />
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-end gap-2 mb-6 pt-4">
+                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                </div>
+
+                {/* Assignments Section */}
+                <div className="space-y-5">
+                  <div className="space-y-1">
+                    <h3 className="text-lg font-semibold text-foreground-1">
+                      Assignments
+                    </h3>
+                  </div>
+
+                  <AssignmentsCard
+                    stats={[
+                      { label: 'Team Members', value: service.teamMembersCount || 0 },
+                      { label: 'Locations', value: service.locationsCount || 0 },
+                    ]}
+                    description="Manage which team members and locations can offer this service. View and modify all assignments in the dedicated Assignments section."
+                    buttonLabel="Go to Assignments"
+                    onButtonClick={() => {
+                      navigate('/assignments');
+                    }}
+                  />
+                </div>
+
+                {/* Divider */}
+                <div className="flex items-end gap-2 mb-6 pt-4">
+                  <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                </div>
+
+                {/* Remove Service */}
+                <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-medium text-foreground-1">
+                      Remove Service
+                    </h3>
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                      This will permanently remove this service from your service list. This action cannot be undone.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3 items-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      rounded="full"
+                      onClick={handleDeleteClick}
+                      className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Removing...
+                        </>
+                      ) : (
+                        'Remove Service'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </form>
+      </BaseSlider>
+
+      {/* Delete Confirmation Dialog */}
+      {service && (
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={handleCloseDeleteDialog}
+          resourceType="service"
+          resourceName={service.name}
+          deleteResponse={deleteResponse}
+          onConfirm={handleConfirmDelete}
+          isLoading={isDeleting}
+          className="z-[80]"
+          overlayClassName="z-[80]"
+          secondaryActions={[
+            ...(deleteResponse?.isVisibleInMarketplace
+              ? [{
+                label: 'Go to Marketplace',
+                onClick: () => {
+                  handleCloseDeleteDialog(false);
+                  navigate('/marketplace');
+                }
+              }]
+              : []),
+            {
+              label: 'Go to Assignments',
+              onClick: () => {
+                handleCloseDeleteDialog(false);
+                navigate('/assignments');
+              }
+            },
+          ]}
+        />
+      )}
+    </>
+  );
+};
+
+export default EditServiceSlider;

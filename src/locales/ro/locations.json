@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Locații",
+    "subtitle": "Gestionează locațiile afacerii tale",
+    "actions": {
+      "addLocation": "Adaugă locație"
+    },
+    "emptyState": {
+      "noLocations": "Nu ai creat încă nicio locație",
+      "noLocationsDescription": "Creează prima ta locație pentru a începe să gestionezi locațiile afacerii tale.",
+      "noResults": "Nu s-au găsit locații care să corespundă căutării tale.",
+      "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
+    }
+  },
+  "filters": {
+    "searchPlaceholder": "Caută locații după nume, adresă sau email..."
+  }
+}
+

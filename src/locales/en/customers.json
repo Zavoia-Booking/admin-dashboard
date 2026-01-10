@@ -1,0 +1,19 @@
+{
+  "page": {
+    "title": "Customers",
+    "subtitle": "Manage your customers",
+    "actions": {
+      "addCustomer": "Add Customer"
+    },
+    "emptyState": {
+      "noCustomers": "You haven't added any customers yet",
+      "noCustomersDescription": "Add your first customer to start managing your customer base.",
+      "noResults": "No customers found matching your search.",
+      "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    }
+  },
+  "filters": {
+    "searchPlaceholder": "Search customers by name or email..."
+  }
+}
+

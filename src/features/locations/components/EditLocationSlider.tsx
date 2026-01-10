@@ -1,122 +1,639 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Phone, Mail, AlertCircle, Users } from 'lucide-react';
-import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
-import { Input } from '../../../shared/components/ui/input';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Label } from '../../../shared/components/ui/label';
-import { Textarea } from '../../../shared/components/ui/textarea';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import InviteTeamMemberSlider from '../../teamMembers/components/InviteTeamMemberSlider';
+import { Button } from '../../../shared/components/ui/button';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  email: string;
-  phoneNumber: string;
-  description: string;
-  workingHours: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
+import { FormFooter } from '../../../shared/components/forms/FormFooter';
+import { TextField } from '../../../shared/components/forms/fields/TextField';
+import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
+import AddressComposer from '../../../shared/components/address/AddressComposer';
+import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
+import TimezoneField from '../../../shared/components/common/TimezoneField';
+import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
+import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
+import Open247Toggle from '../../../shared/components/common/Open247Toggle';
+import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
+import { MapDialog } from '../../../shared/components/map';
+import { locationIqGeocode } from '../../../shared/lib/locationiq';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../shared/components/ui/alert-dialog';
+import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
+import type { DeleteResponse } from '../../../shared/types/delete-response';
+import { updateLocationAction, deleteLocationAction } from '../actions';
+import type { EditLocationType } from '../types';
+import type { LocationType, WorkingHours } from '../../../shared/types/location';
+import { useForm, useController } from 'react-hook-form';
+import { defaultWorkingHours } from '../constants';
+import { selectCurrentUser } from '../../auth/selectors';
+import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
+import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector, getUpdateResponseSelector } from '../selectors';
+import { toast } from 'sonner';
+import { mapLocationForEdit } from '../utils';
 
 interface EditLocationSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (locationData: Location) => void;
-  location: Location | null;
+  location: LocationType | null;
 }
-
-const mockTeamMembers = [
-  {
-    id: '1',
-    firstName: 'Emma',
-    lastName: 'Thompson',
-    email: 'emma@salon.com',
-    phone: '+1 (555) 123-4567',
-    role: 'Senior Stylist',
-    status: 'active',
-    createdAt: '2024-01-15T10:30:00Z',
-    location: 'Downtown Salon',
-  },
-  {
-    id: '2',
-    firstName: 'Alex',
-    lastName: 'Rodriguez',
-    email: 'alex@wellness.com',
-    phone: '+1 (555) 234-5678',
-    role: 'Massage Therapist',
-    status: 'active',
-    createdAt: '2024-02-01T15:45:00Z',
-    location: 'Westside Branch',
-  },
-  {
-    id: '3',
-    firstName: 'David',
-    lastName: 'Kim',
-    email: 'david@barbershop.com',
-    phone: '+1 (555) 456-7890',
-    role: 'Barber',
-    status: 'active',
-    createdAt: '2024-01-20T09:15:00Z',
-    location: 'Mall Location',
-  },
-];
 
 const EditLocationSlider: React.FC<EditLocationSliderProps> = ({ 
   isOpen, 
-  onClose, 
-  onUpdate, 
+  onClose,
   location 
 }) => {
-  const [formData, setFormData] = useState<Location | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [isInviteSliderOpen, setIsInviteSliderOpen] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const currentUser = useSelector(selectCurrentUser);
+  const locationError = useSelector(getLocationErrorSelector);
+  const isLocationLoading = useSelector(getLocationLoadingSelector);
+  const isDeleting = useSelector(getIsDeletingSelector);
+  const deleteResponseFromState = useSelector(getDeleteResponseSelector);
+  const updateResponse = useSelector(getUpdateResponseSelector);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPinConfirmationDialog, setShowPinConfirmationDialog] = useState(false);
+  const [useBusinessContact, setUseBusinessContact] = useState<boolean>(false);
+  const [isAddressValid, setIsAddressValid] = useState(true);
+  const [addressComposerKey, setAddressComposerKey] = useState(0);
+  const prevIsRemoteRef = useRef<boolean>(false);
+  const originalEmailRef = useRef<string>("");
+  const originalPhoneRef = useRef<string>("");
+  const justOpenedRef = useRef(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
+  const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
 
+  // Map pin confirmation state
+  const [isPinConfirmed, setIsPinConfirmed] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [adjustedCoordinates, setAdjustedCoordinates] = useState<[number, number] | null>(null);
+  const [initialMapCenter, setInitialMapCenter] = useState<[number, number]>([0, 0]);
+  const [searchedAddressData, setSearchedAddressData] = useState<any>(null);
+  const [isGeocodingAddress, setIsGeocodingAddress] = useState(false);
+  const [pinWasModified, setPinWasModified] = useState(false); // Track if pin was just modified
+  const mapInstanceRef = useRef<any>(null);
+  const isConfirmingFromMap = useRef(false);
+  const originalAddressRef = useRef<string>("");
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    watch,
+    setValue,
+    resetField,
+    trigger,
+    formState,
+  } = useForm<EditLocationType>({
+    defaultValues: location ? {
+      ...mapLocationForEdit(location),
+      workingHours: location.workingHours || defaultWorkingHours,
+      open247: location.open247 || false,
+      addressComponents: (location as any).addressComponents,
+      addressManualMode: (location as any).addressManualMode,
+      mapPinConfirmed: location.mapPinConfirmed || false,
+    } : {
+      isRemote: false,
+      open247: false,
+      workingHours: defaultWorkingHours,
+      mapPinConfirmed: false,
+    },
+    mode: "onChange",
+  });
+
+  const isRemote = watch('isRemote') ?? false;
+  const currentWorkingHours = watch('workingHours') as WorkingHours || defaultWorkingHours;
+  const open247 = watch('open247') ?? false;
+
+  // Get business contact info (if available from user/business)
+  const businessEmail = currentUser?.email || "";
+  const businessPhone = currentUser?.business?.phone || "";
+
+  const applyWorkingHours = (next: WorkingHours) => {
+    setValue('workingHours', next, { shouldDirty: true });
+  };
+
+  // Controlled fields with validation
+  const { field: nameField, fieldState: nameState } = useController<EditLocationType, "name">({
+    name: "name",
+    control,
+    rules: {
+      validate: (value) => {
+        const error = validateLocationName(value);
+        return error === null ? true : error;
+      },
+    },
+  });
+
+  const { field: addressField } = useController<EditLocationType, "address">({
+    name: "address",
+    control,
+    rules: {
+      validate: (value) => {
+        if (isRemote) return true; // Address not required for remote locations
+        if (!value || value.trim().length === 0) {
+          return "Address is required";
+        }
+        return true;
+      },
+    },
+  });
+
+  const { field: emailField, fieldState: emailState } = useController<EditLocationType, "email">({
+    name: "email",
+    control,
+    rules: {
+      validate: (value) => {
+        // Always validate - whether using business contact or location-specific contact
+        const error = requiredEmailError("Email", value);
+        return error === null ? true : error;
+      },
+    },
+  });
+
+  const { field: phoneField, fieldState: phoneState } = useController<EditLocationType, "phone">({
+    name: "phone",
+    control,
+    rules: {
+      validate: {
+        required: (value) =>
+          (!!value && value.trim().length > 0) ||
+          "Phone number is required",
+        format: (value) =>
+          !value ||
+          isE164(value) ||
+          "Enter a valid phone number",
+      },
+    },
+  });
+
+  const { field: descriptionField, fieldState: descriptionState } = useController<EditLocationType, "description">({
+    name: "description",
+    control,
+    rules: {
+      validate: (value) => {
+        if (!value || !value.trim()) return true; // Optional field
+        const error = validateDescription(value, 500);
+        return error === null ? true : error;
+      },
+    },
+  });
+
+  // Map handlers
+  const handleMarkerDrag = (coordinates: [number, number]) => {
+    setAdjustedCoordinates(coordinates);
+  };
+
+  const handleMapClick = (coordinates: [number, number]) => {
+    setAdjustedCoordinates(coordinates);
+  };
+
+  const handleSearchSelect = (coordinates: [number, number], suggestion: any) => {
+    setAdjustedCoordinates(coordinates);
+    setSearchedAddressData({
+      ...suggestion,
+      coordinates: coordinates
+    });
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo({
+        center: coordinates,
+        zoom: 16,
+        essential: true
+      });
+    }
+  };
+
+  const handleMapLoad = (map: any) => {
+    mapInstanceRef.current = map;
+  };
+
+  const handleVerifyPinClick = async () => {
+    const addressComponents = watch('addressComponents') as any;
+    const address = watch('address') as string;
+    
+    const hasCoordinates = addressComponents?.latitude != null && addressComponents?.longitude != null;
+    const hasAddress = address && address.trim().length > 0;
+
+    if (!hasAddress) {
+      toast.error('Please enter a valid address first');
+      return;
+    }
+    
+    if (hasCoordinates) {
+      setInitialMapCenter([
+        addressComponents.longitude,
+        addressComponents.latitude
+      ]);
+      setAdjustedCoordinates(null);
+      setSearchedAddressData(null);
+      setIsMapOpen(true);
+    } else {
+      setIsGeocodingAddress(true);
+      try {
+        const geocodeResult = await locationIqGeocode(address);
+        
+        if (geocodeResult) {
+          const geocodedCoords: [number, number] = [
+            Number(geocodeResult.lon),
+            Number(geocodeResult.lat)
+          ];
+          
+          setInitialMapCenter(geocodedCoords);
+          setAdjustedCoordinates(geocodedCoords);
+          setIsMapOpen(true);
+        } else {
+          toast.error('Could not find location on map. Please search for the correct address in the map.');
+          setInitialMapCenter([0, 0]);
+          setIsMapOpen(true);
+        }
+      } catch (error) {
+        console.error('Geocoding error:', error);
+        toast.error('Could not geocode address. Please adjust the pin manually.');
+        setInitialMapCenter([0, 0]);
+        setIsMapOpen(true);
+      } finally {
+        setIsGeocodingAddress(false);
+      }
+    }
+  };
+
+  const handleConfirmPin = () => {
+    const addressComponents = watch('addressComponents') as any;
+    const currentAddress = watch('address') as string;
+    
+    isConfirmingFromMap.current = true;
+    
+    let finalCoordinates: [number, number];
+    
+    // CASE 1: User searched for a new address in the map
+    if (searchedAddressData) {
+      const displayName = searchedAddressData.displayName || currentAddress;
+      finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
+      
+      if (!finalCoordinates) {
+        toast.error('Please select a location on the map');
+        return;
+      }
+      
+      setValue('address', displayName, { shouldDirty: true, shouldTouch: true });
+      setValue('addressComponents', {
+        street: searchedAddressData.address || '',
+        streetNumber: searchedAddressData.streetNumber || '',
+        city: searchedAddressData.city || '',
+        postalCode: searchedAddressData.postalCode || '',
+        country: searchedAddressData.country || '',
+        latitude: finalCoordinates[1],
+        longitude: finalCoordinates[0],
+      } as any, { shouldDirty: true, shouldTouch: true });
+      
+      setValue('addressManualMode', false, { shouldDirty: true });
+      setAddressComposerKey(prev => prev + 1);
+    } 
+    // CASE 2: User only moved the pin
+    else if (adjustedCoordinates) {
+      setValue('addressComponents', {
+        ...addressComponents,
+        latitude: adjustedCoordinates[1],
+        longitude: adjustedCoordinates[0],
+      } as any, { shouldDirty: true, shouldTouch: true });
+    } 
+    // CASE 3: User just clicked confirm without changes
+    else {
+      let finalLat = addressComponents?.latitude;
+      let finalLng = addressComponents?.longitude;
+      
+      if ((!finalLat || !finalLng) && initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0) {
+        finalLng = initialMapCenter[0];
+        finalLat = initialMapCenter[1];
+      }
+      
+      if (!finalLat || !finalLng) {
+        toast.error('Please select a location on the map or search for an address');
+        return;
+      }
+      
+      setValue('addressComponents', {
+        ...addressComponents,
+        latitude: finalLat,
+        longitude: finalLng,
+      } as any, { shouldDirty: true, shouldTouch: true });
+    }
+
+    // Set mapPinConfirmed at the top level (not in addressComponents)
+    setValue('mapPinConfirmed' as any, true, { shouldDirty: true, shouldTouch: true });
+    setIsPinConfirmed(true);
+    setPinWasModified(true); // Mark that pin was modified in this session
+    setIsMapOpen(false);
+    setAdjustedCoordinates(null);
+    setSearchedAddressData(null);
+    setInitialMapCenter([0, 0]);
+    mapInstanceRef.current = null;
+
+    setTimeout(() => {
+      isConfirmingFromMap.current = false;
+    }, 100);
+
+    toast.success('Location pin confirmed');
+  };
+
+  const { field: timezoneField, fieldState: timezoneState } = useController<EditLocationType, "timezone">({
+    name: "timezone",
+    control,
+    rules: {
+      validate: (value) => {
+        // Only require timezone when location is remote
+        if (!isRemote) return true; // Skip validation for physical locations
+        if (!value || value.trim().length === 0) {
+          return "Timezone is required";
+        }
+        return true;
+      },
+    },
+  });
+
+  // Initialize form with location data when slider opens
   useEffect(() => {
     if (location && isOpen) {
-      setFormData({ ...location });
+      const mapped = mapLocationForEdit(location);
+      
+      // Store original contact values for restoration when toggling OFF
+      originalEmailRef.current = location.email || "";
+      originalPhoneRef.current = location.phone || "";
+      
+      // Determine if current email/phone matches business contact
+      const emailMatchesBusiness = location.email === businessEmail;
+      const phoneMatchesBusiness = location.phone === businessPhone;
+      const shouldUseBusinessContact = emailMatchesBusiness && phoneMatchesBusiness && !!businessEmail && !!businessPhone;
+      
+      setUseBusinessContact(shouldUseBusinessContact);
+      prevIsRemoteRef.current = location.isRemote;
+      
+      // Always reset to server data when opening to ensure we don't keep unsaved changes
+      reset({
+        ...mapped,
+        workingHours: location.workingHours || defaultWorkingHours,
+        open247: location.open247 || false,
+        addressComponents: (location as any).addressComponents,
+        addressManualMode: (location as any).addressManualMode,
+      });
+      
+      // Force AddressComposer to remount with fresh data
+      setAddressComposerKey(prev => prev + 1);
     }
-  }, [location, isOpen]);
+  }, [location, isOpen, reset, businessEmail, businessPhone]);
 
-  React.useEffect(() => {
+  // Reset when slider closes
+  useEffect(() => {
     if (!isOpen) {
-      const timer = setTimeout(() => setFormData(null), 300);
-      return () => clearTimeout(timer);
+      setIsAddressValid(true);
+      setAddressComposerKey(0);
+      setPinWasModified(false); // Reset pin modified flag
+      // Do NOT reset isSubmitting here - keep it true during closing animation
+      // to prevent button from being re-enabled
+      // Reset delete state when closing
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
     }
   }, [isOpen]);
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmUpdate = () => {
-    if (formData) {
-      onUpdate(formData);
-      setShowConfirmDialog(false);
-      onClose();
+  // Initialize pin confirmation status from server data (top-level mapPinConfirmed)
+  useEffect(() => {
+    if (location && isOpen) {
+      // Read from top-level mapPinConfirmed field from server
+      const isPinCurrentlyConfirmed = (location as any).mapPinConfirmed === true;
+      setIsPinConfirmed(isPinCurrentlyConfirmed);
+      originalAddressRef.current = location.address || "";
     }
+  }, [location, isOpen]);
+
+  // Track pin confirmation status changes from form (top-level field)
+  useEffect(() => {
+    const currentMapPinConfirmed = watch('mapPinConfirmed' as any);
+    if (currentMapPinConfirmed !== undefined) {
+      setIsPinConfirmed(currentMapPinConfirmed);
+    }
+  }, [watch('mapPinConfirmed' as any)]);
+
+  // Reset pin confirmation when address changes (user-initiated only)
+  useEffect(() => {
+    const addressValue = watch('address');
+    
+    if (!isConfirmingFromMap.current && originalAddressRef.current && addressValue !== originalAddressRef.current) {
+      setIsPinConfirmed(false);
+      setValue('mapPinConfirmed' as any, false);
+    }
+  }, [watch('address')]);
+
+  // Reset map state when slider closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsMapOpen(false);
+      setAdjustedCoordinates(null);
+      setSearchedAddressData(null);
+      setInitialMapCenter([0, 0]);
+      mapInstanceRef.current = null;
+    }
+  }, [isOpen]);
+
+  // When slider opens, reset submission state for a fresh form
+  useEffect(() => {
+    if (isOpen) {
+      setIsSubmitting(false);
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+      setPinWasModified(false); // Reset pin modified flag
+      justOpenedRef.current = true;
+      // Clear the flag after a brief delay to allow effects to run
+      setTimeout(() => {
+        justOpenedRef.current = false;
+      }, 0);
+    }
+  }, [isOpen]);
+
+  // Handle delete response from Redux state
+  useEffect(() => {
+    if (deleteResponseFromState && hasAttemptedDelete && !isDeleting) {
+      if (deleteResponseFromState.canDelete === false) {
+        // Cannot delete - update dialog to show blocking info
+        setDeleteResponse(deleteResponseFromState as DeleteResponse);
+      } else {
+        // Successfully deleted - close dialog
+        setShowDeleteDialog(false);
+        setDeleteResponse(null);
+        setHasAttemptedDelete(false);
+        onClose();
+      }
+    }
+  }, [deleteResponseFromState, hasAttemptedDelete, isDeleting, onClose]);
+
+  // Watch for errors and show toast
+  useEffect(() => {
+    if (locationError && isSubmitting) {
+      toast.error("We couldn't update the location", {
+        description: "Please check your information and try again.",
+        icon: undefined,
+      });
+      setIsSubmitting(false);
+    }
+  }, [locationError, isSubmitting]);
+
+  // Watch for success and check for pin confirmation requirement
+  useEffect(() => {
+    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
+    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
+      // Check if pin confirmation is needed
+      if (updateResponse?.needsPinConfirmation) {
+        // Show unclosable dialog instead of closing
+        setShowPinConfirmationDialog(true);
+        setIsSubmitting(false);
+      } else {
+        // Success - close form and reset
+        // Don't set isSubmitting to false here - let it stay true until slider closes
+        onClose();
+      }
+    }
+  }, [isLocationLoading, isSubmitting, locationError, onClose, updateResponse]);
+
+  // Re-validate timezone when isRemote changes
+  useEffect(() => {
+    trigger("timezone");
+  }, [isRemote, trigger]);
+
+  // Remount address composer when toggling to physical location
+  useEffect(() => {
+    const prev = prevIsRemoteRef.current;
+    if (prev && !isRemote) {
+      setAddressComposerKey((k) => k + 1);
+    }
+    prevIsRemoteRef.current = isRemote;
+  }, [isRemote]);
+
+  const handleContactToggleChange = useCallback(
+    (checked: boolean) => {
+      setUseBusinessContact(checked);
+      if (checked) {
+        // Inherit from business info
+        setValue("email", businessEmail, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+        setValue("phone", businessPhone, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      } else {
+        // Restore original location-specific contact values
+        setValue("email", originalEmailRef.current, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+        setValue("phone", originalPhoneRef.current, {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+    },
+    [setValue, businessEmail, businessPhone]
+  );
+
+  // Check if required fields are filled
+  const nameValue = watch("name");
+  const addressValue = watch("address");
+  const emailValue = watch("email");
+  const phoneValue = watch("phone");
+  const timezoneValue = watch("timezone");
+  
+  const areRequiredFieldsFilled =
+    nameValue &&
+    nameValue.trim().length > 0 &&
+    (isRemote || (addressValue && addressValue.trim().length > 0)) &&
+    emailValue &&
+    emailValue.trim().length > 0 &&
+    phoneValue &&
+    phoneValue.trim().length > 0 &&
+    (isRemote ? (timezoneValue && timezoneValue.trim().length > 0) : true) &&
+    (isRemote || isAddressValid) &&
+    (isRemote || isPinConfirmed); // Require pin confirmation for physical locations
+
+  // Form should be disabled if:
+  // - formState is not valid (has validation errors)
+  // - Required fields are empty
+  // - No changes were made to the form (not dirty) AND pin was not modified
+  const isFormDisabled =
+    !formState.isValid ||
+    !areRequiredFieldsFilled ||
+    (!formState.isDirty && !pinWasModified);
+
+  const onSubmit = () => {
+    // Prevent double submission
+    if (isSubmitting || isLocationLoading || !location) {
+      return;
+    }
+    
+    const formData = watch();
+    const addressComponents = formData.addressComponents as any;
+    
+    // mapPinConfirmed is at top level in formData
+    const payload = {
+      ...formData,
+      id: location.id, // Ensure we use the original location id
+      useBusinessContact, // Include the toggle state
+      mapPinConfirmed: (formData as any).mapPinConfirmed ?? false, // Read from top level
+      addressComponents: addressComponents ? {
+        street: addressComponents.street,
+        streetNumber: addressComponents.streetNumber,
+        city: addressComponents.city,
+        postalCode: addressComponents.postalCode,
+        country: addressComponents.country,
+        latitude: addressComponents.latitude,
+        longitude: addressComponents.longitude,
+      } : undefined,
+    } as EditLocationType;
+    
+    setIsSubmitting(true);
+    dispatch(updateLocationAction.request({ location: payload }));
+    // Don't close form here - wait for success/error response
   };
 
   const handleCancel = () => {
     onClose();
   };
 
-  if (!formData) return null;
+  const handleDeleteClick = () => {
+    // Show confirmation dialog first with optimistic state
+    setDeleteResponse({
+      canDelete: true,
+      message: '',
+    });
+    setShowDeleteDialog(true);
+    setHasAttemptedDelete(false);
+  };
 
-  function capitalize(str: string) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
+  const handleConfirmDelete = () => {
+    if (!deleteResponse?.canDelete || !location) return;
+    // User confirmed - now make the backend call
+    setHasAttemptedDelete(true);
+    dispatch(deleteLocationAction.request({ id: location.id }));
+  };
+
+  const handleCloseDeleteDialog = (open: boolean) => {
+    if (!open) {
+      setShowDeleteDialog(false);
+      setDeleteResponse(null);
+      setHasAttemptedDelete(false);
+    }
+  };
+
+  if (!location) return null;
 
   return (
     <>
@@ -124,184 +641,482 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         title="Edit Location"
-        contentClassName="bg-muted/50 scrollbar-hide"
+        subtitle="Update location information"
+        icon={MapPin}
+        iconColor="text-foreground-1"
+        contentClassName="bg-surface scrollbar-hide"
         footer={
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleCancel}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="edit-location-form"
-              className="flex-1"
-            >
-              Update Location
-            </Button>
-          </div>
+          <FormFooter
+            onCancel={handleCancel}
+            formId="edit-location-form"
+            cancelLabel="Cancel"
+            submitLabel="Update Location"
+            disabled={isFormDisabled || isSubmitting || isLocationLoading}
+            isLoading={isSubmitting || isLocationLoading}
+          />
         }
       >
-        <form id="edit-location-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-            <CardContent className="space-y-8">
-              {/* Location Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <MapPin className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Location Information</h3>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium text-foreground">Location Name</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Enter location name..."
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
+        <form
+          id="edit-location-form"
+          onSubmit={handleSubmit(onSubmit)}
+          className="h-full flex flex-col cursor-default"
+        >
+          <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+            <div className="max-w-2xl mx-auto space-y-6 cursor-default">
+              {/* Remote Location Toggle - First */}
+              <RemoteLocationToggle
+                id="edit-location-isRemote"
+                isRemote={isRemote}
+                onChange={(checked) => {
+                  setValue('isRemote', checked, { shouldDirty: true });
+                  // Clear description and address when toggling between remote/physical
+                  if (checked !== location.isRemote) {
+                    resetField("description", { defaultValue: location.description || "" });
+                    resetField("address", { defaultValue: location.address || "" });
+                    resetField("addressComponents", { defaultValue: undefined });
+                  }
+                }}
+              />
+
+              {/* Physical Location */}
+              {!isRemote && (
+                <div className="space-y-4">
+                  <TextField
+                    id="edit-location-name"
+                    value={nameField.value || ""}
+                    onChange={nameField.onChange}
+                    error={nameState.error?.message}
+                    label="Location Name"
+                    placeholder="e.g. Downtown Office"
                     required
+                    maxLength={70}
+                    icon={MapPin}
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address" className="text-sm font-medium text-foreground">Address</Label>
-                  <Textarea
-                    id="address"
-                    placeholder="Enter full address..."
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    rows={3}
-                    className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description" className="text-sm font-medium text-foreground">Description</Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe the location..."
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={3}
-                    className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                  />
-                </div>
-                {/* Team Members Assigned Section */}
-                <div className="space-y-2 mt-6">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <Users className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Assigned Team Members</h3>
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="ml-auto"
-                      onClick={() => setIsInviteSliderOpen(true)}
-                    >
-                      Invite Member
-                    </Button>
-                  </div>
+
                   <div className="space-y-2">
-                    {mockTeamMembers.filter(m => m.location === formData.name).length > 0 ? (
-                      mockTeamMembers.filter(m => m.location === formData.name).map(member => (
-                        <div key={member.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border/50">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                              <Users className="h-4 w-4 text-primary" />
-                            </div>
-                            <div>
-                              <div className="font-medium text-sm">{member.firstName} {member.lastName}</div>
-                              <div className="text-xs text-muted-foreground">{member.email} &middot; {member.role}</div>
-                            </div>
-                          </div>
+                    <Label
+                      htmlFor="location.address"
+                      className="text-base font-medium"
+                    >
+                      Address *
+                    </Label>
+                    <AddressComposer
+                      key={addressComposerKey}
+                      value={addressField.value || ""}
+                      onChange={(next) =>
+                        setValue("address", next, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                      addressComponents={watch("addressComponents")}
+                      onAddressComponentsChange={(components) =>
+                        setValue("addressComponents", components, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                      manualMode={watch("addressManualMode")}
+                      onManualModeChange={(isManual) =>
+                        setValue("addressManualMode", isManual, {
+                          shouldDirty: true,
+                          shouldTouch: true,
+                        })
+                      }
+                      onValidityChange={(isValid) => setIsAddressValid(isValid)}
+                      preserveInitialData={true}
+                    />
+                    
+                    {/* Map Pin Verification Indicator */}
+                    {isAddressValid && addressValue && addressValue.trim().length > 0 && (
+                      <div className={`flex items-start gap-2 p-3 rounded-lg border ${
+                        isPinConfirmed 
+                          ? 'bg-success-bg/50 border-success-border' 
+                          : 'bg-warning-bg/50 border-warning-border'
+                      }`}>
+                        <div className="flex-shrink-0">
+                          {isPinConfirmed ? (
+                            <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
+                          ) : (
+                            <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
+                          )}
                         </div>
-                      ))
-                    ) : (
-                      <div className="p-4 bg-muted/20 rounded-lg border border-dashed border-border/50 text-center">
-                        <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <p className="text-sm text-muted-foreground">No team members assigned to this location</p>
+                        <div className="flex-1 min-w-0">
+                          <h4 className={`text-sm font-medium ${
+                            isPinConfirmed ? 'text-success' : 'text-warning'
+                          }`}>
+                            {isPinConfirmed ? 'Location pin confirmed' : 'Location pin verification required'}
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {isPinConfirmed 
+                              ? 'Your location pin has been verified on the map.'
+                              : 'Please confirm the exact location of your pin on the map.'}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant={isPinConfirmed ? "outline" : "default"}
+                          size="sm"
+                          rounded="full"
+                          onClick={handleVerifyPinClick}
+                          disabled={isGeocodingAddress}
+                          className="flex-shrink-0"
+                        >
+                          {isGeocodingAddress ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              Loading...
+                            </>
+                          ) : (
+                            <>
+                              <MapPin className="h-4 w-4 mr-2" />
+                              {isPinConfirmed ? 'Move Pin' : 'Verify Pin on Map'}
+                            </>
+                          )}
+                        </Button>
                       </div>
                     )}
                   </div>
+
+                  {/* Contact Information Toggle */}
+                  <ContactInformationToggle
+                    id="edit-location-contact-toggle"
+                    useInheritedContact={useBusinessContact}
+                    onToggleChange={handleContactToggleChange}
+                    inheritedEmail={businessEmail}
+                    inheritedPhone={businessPhone}
+                    inheritedLabel="your business"
+                    localEmail={emailField.value || ""}
+                    localPhone={phoneField.value || ""}
+                    onEmailChange={(email) => {
+                      emailField.onChange(email);
+                    }}
+                    onPhoneChange={(phone) => {
+                      const sanitized = sanitizePhoneToE164Draft(phone || "");
+                      phoneField.onChange(sanitized);
+                    }}
+                    emailError={emailState.error?.message}
+                    phoneError={phoneState.error?.message}
+                    title="Contact information"
+                    emailLabel="Location Email *"
+                    phoneLabel="Location Phone *"
+                    helperTextOn="Your business contact info will be used for this location."
+                    helperTextOff="Provide different contact details for this location."
+                  />
+
+                  <div className="pt-4">
+                    <TextareaField
+                      id="edit-location-description"
+                      value={descriptionField.value || ""}
+                      onChange={descriptionField.onChange}
+                      error={descriptionState.error?.message}
+                      label="Description"
+                      placeholder="Describe this location (e.g. Main office with parking)"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-4 pt-4">
+                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Open247Toggle
+                      id="edit-location-open247"
+                      open247={open247}
+                      onChange={(checked) => {
+                        setValue('open247', checked, { shouldDirty: true });
+                      }}
+                    />
+                    <div
+                      className={open247 ? "opacity-50 pointer-events-none" : ""}
+                    >
+                      <WorkingHoursEditor
+                        value={currentWorkingHours}
+                        onChange={applyWorkingHours}
+                      />
+                    </div>
+                  </div>
                 </div>
+              )}
+
+              {/* Remote Location */}
+              {isRemote && (
+                <div className="space-y-4">
+                  <TextField
+                    id="edit-location-name-remote"
+                    value={nameField.value || ""}
+                    onChange={nameField.onChange}
+                    error={nameState.error?.message}
+                    label="Online Location Name"
+                    placeholder="e.g. Online Sessions"
+                    required
+                    maxLength={70}
+                    icon={MapPin}
+                    isRemote
+                  />
+
+                  <TimezoneField
+                    value={timezoneField.value || ""}
+                    onChange={(tz) => timezoneField.onChange(tz)}
+                    error={timezoneState.error?.message}
+                    required
+                  />
+
+                  {/* Contact Information Toggle */}
+                  <ContactInformationToggle
+                    id="edit-location-contact-toggle-remote"
+                    useInheritedContact={useBusinessContact}
+                    onToggleChange={handleContactToggleChange}
+                    inheritedEmail={businessEmail}
+                    inheritedPhone={businessPhone}
+                    inheritedLabel="your business"
+                    localEmail={emailField.value || ""}
+                    localPhone={phoneField.value || ""}
+                    onEmailChange={(email) => {
+                      emailField.onChange(email);
+                    }}
+                    onPhoneChange={(phone) => {
+                      const sanitized = sanitizePhoneToE164Draft(phone || "");
+                      phoneField.onChange(sanitized);
+                    }}
+                    emailError={emailState.error?.message}
+                    phoneError={phoneState.error?.message}
+                    title="Contact information"
+                    emailLabel="Location Email *"
+                    phoneLabel="Location Phone *"
+                    helperTextOn="Business contact info will be used for this location."
+                    helperTextOff="Provide different contact details for this location."
+                  />
+
+                  <div className="pt-4">
+                    <TextareaField
+                      id="edit-location-description-remote"
+                      value={descriptionField.value || ""}
+                      onChange={descriptionField.onChange}
+                      error={descriptionState.error?.message}
+                      label="Description"
+                      placeholder="Describe this location (e.g. Link to Zoom, Google Meet, etc.)"
+                      rows={4}
+                    />
+                  </div>
+
+                  <div className="space-y-2 pt-4">
+                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Open247Toggle
+                      id="edit-location-open247-remote"
+                      open247={open247}
+                      onChange={(checked) => {
+                        setValue('open247', checked, { shouldDirty: true });
+                      }}
+                    />
+                    <div
+                      className={open247 ? "opacity-50 pointer-events-none" : ""}
+                    >
+                      <WorkingHoursEditor
+                        value={currentWorkingHours}
+                        onChange={applyWorkingHours}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
               </div>
 
-              {/* Contact Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Phone className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Contact Information</h3>
+              {/* Assignments Section */}
+              <div className="space-y-5">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-semibold text-foreground-1">
+                    Assignments
+                  </h3>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-foreground">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter email address..."
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
-                  />
+
+                <AssignmentsCard
+                  stats={[
+                    { label: 'Services', value: location.servicesCount || 0 },
+                    { label: 'Team Members', value: location.teamMembersCount || 0 },
+                  ]}
+                  description="Manage which services and team members are assigned to this location. View and modify all assignments in the dedicated Assignments section."
+                  buttonLabel="Go to Assignments"
+                  onButtonClick={() => {
+                    navigate(`/assignments?tab=locations&locationId=${location.id}`);
+                  }}
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+              </div>
+
+              {/* Remove Location */}
+              <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
+                <div className="space-y-1">
+                  <h3 className="text-base font-medium text-foreground-1">
+                    Remove Location
+                  </h3>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    This will permanently remove this location from your locations list. This action cannot be undone.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="text-sm font-medium text-foreground">Phone Number</Label>
-                  <Input
-                    id="phoneNumber"
-                    type="tel"
-                    placeholder="Enter phone number..."
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base"
-                    required
-                  />
+
+                <div className="flex flex-col gap-3 items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={handleDeleteClick}
+                    className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Removing...
+                      </>
+                    ) : (
+                      'Remove Location'
+                    )}
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </form>
       </BaseSlider>
 
-      {/* Confirmation Dialog */}
-      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
+      {/* Delete Confirmation Dialog */}
+      {location && (
+        <DeleteConfirmDialog
+          open={showDeleteDialog}
+          onOpenChange={handleCloseDeleteDialog}
+          resourceType="location"
+          resourceName={location.name}
+          deleteResponse={deleteResponse}
+          onConfirm={handleConfirmDelete}
+          isLoading={isDeleting}
+          className="z-[80]"
+          overlayClassName="z-[80]"
+          secondaryActions={[
+            ...(deleteResponse?.isVisibleInMarketplace
+              ? [{
+                label: 'Go to Marketplace',
+                onClick: () => {
+                  handleCloseDeleteDialog(false);
+                  navigate('/marketplace');
+                }
+              }]
+              : []),
+            {
+              label: 'Go to Assignments',
+              onClick: () => {
+                handleCloseDeleteDialog(false);
+                navigate(`/assignments?tab=locations&locationId=${location.id}`);
+              }
+            },
+          ]}
+        />
+      )}
+
+      {/* Pin Confirmation Required Dialog - Cannot be dismissed */}
+      <AlertDialog open={showPinConfirmationDialog} onOpenChange={() => {}}>
+        <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-primary" />
-              Update Location
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {`Are you sure you want to update the location "{formData.name}"? This will save all changes.`}
-            </AlertDialogDescription>
+            <div className="flex items-start gap-3">
+              <div className="shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/30 p-2">
+                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <AlertDialogTitle className="text-left">Pin Verification Required</AlertDialogTitle>
+              </div>
+            </div>
           </AlertDialogHeader>
+          <AlertDialogDescription className="text-left">
+            This location is currently listed in the marketplace. Since you modified the address, 
+            you need to verify that the pin location is still displayed in the right place on the map.
+          </AlertDialogDescription>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmUpdate}>
-              Update Location
-            </AlertDialogAction>
+            <Button
+              onClick={() => {
+                setShowPinConfirmationDialog(false);
+                onClose();
+                navigate('/marketplace');
+              }}
+              rounded="full"
+              className="w-full sm:w-auto"
+            >
+              Go to Marketplace
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Invite Team Member Slider */}
-      <InviteTeamMemberSlider
-        isOpen={isInviteSliderOpen}
-        onClose={() => setIsInviteSliderOpen(false)}
-        onInvite={() => setIsInviteSliderOpen(false)}
-        locations={[
-          { id: formData.id, name: formData.name }
-        ]}
-      />
+      {/* Map Pin Verification Dialog */}
+      {isMapOpen && (() => {
+        const hasValidCoords = initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0;
+        
+        return (
+          <MapDialog
+            isOpen={isMapOpen}
+            onClose={() => {
+              setIsMapOpen(false);
+              setAdjustedCoordinates(null);
+              setSearchedAddressData(null);
+              setInitialMapCenter([0, 0]);
+              mapInstanceRef.current = null;
+            }}
+            title="Verify Location Pin"
+            description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
+            apiKey={import.meta.env.VITE_MAPTILER_API_KEY || ''}
+            center={initialMapCenter}
+            zoom={hasValidCoords ? 16 : 2}
+            marker={hasValidCoords ? {
+              coordinates: adjustedCoordinates || initialMapCenter,
+              color: '#3b82f6',
+              draggable: true,
+            } : undefined}
+            onMarkerDragEnd={handleMarkerDrag}
+            onMapClick={handleMapClick}
+            onMapLoad={handleMapLoad}
+            clickToPlace={true}
+            showSearch={true}
+            onSearchSelect={handleSearchSelect}
+            showAddressWarning={true}
+            showControls
+            mapHeight="500px"
+            className="z-[70]"
+            overlayClassName="z-[70]"
+            footerActions={
+              <>
+                <Button
+                  variant="outline"
+                  rounded="full"
+                  onClick={() => {
+                    setIsMapOpen(false);
+                    setAdjustedCoordinates(null);
+                    setSearchedAddressData(null);
+                    setInitialMapCenter([0, 0]);
+                    mapInstanceRef.current = null;
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleConfirmPin}
+                  className="gap-2"
+                  rounded="full"
+                >
+                  <MapPin className="h-4 w-4" />
+                  Confirm Location
+                </Button>
+              </>
+            }
+          />
+        );
+      })()}
     </>
   );
 };
 
-export default EditLocationSlider; 
+export default EditLocationSlider;

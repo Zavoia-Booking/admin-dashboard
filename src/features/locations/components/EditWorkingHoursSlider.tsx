@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { useForm } from 'react-hook-form';
 import { Clock, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
@@ -6,81 +8,44 @@ import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-
-interface Location {
-  id: string;
-  name: string;
-  address: string;
-  email: string;
-  phoneNumber: string;
-  description: string;
-  workingHours: {
-    monday: { open: string; close: string; isOpen: boolean };
-    tuesday: { open: string; close: string; isOpen: boolean };
-    wednesday: { open: string; close: string; isOpen: boolean };
-    thursday: { open: string; close: string; isOpen: boolean };
-    friday: { open: string; close: string; isOpen: boolean };
-    saturday: { open: string; close: string; isOpen: boolean };
-    sunday: { open: string; close: string; isOpen: boolean };
-  };
-  status: 'active' | 'inactive';
-  createdAt: string;
-}
+import type { LocationType } from '../../../shared/types/location';
+import type { EditLocationWorkingHours } from '../types';
+import { capitalize } from '../utils';
+import { defaultWorkingHours } from '../constants';
+import { updateLocationAction } from '../actions';
 
 interface EditWorkingHoursSliderProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpdate: (locationData: Location) => void;
-  location: Location | null;
-}
-
-const defaultWorkingHours = {
-  monday: { open: '09:00', close: '17:00', isOpen: true },
-  tuesday: { open: '09:00', close: '17:00', isOpen: true },
-  wednesday: { open: '09:00', close: '17:00', isOpen: true },
-  thursday: { open: '09:00', close: '17:00', isOpen: true },
-  friday: { open: '09:00', close: '17:00', isOpen: true },
-  saturday: { open: '10:00', close: '15:00', isOpen: true },
-  sunday: { open: '10:00', close: '15:00', isOpen: false },
-};
-
-function capitalize(str: string) {
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  location: LocationType | null;
 }
 
 const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({ 
   isOpen, 
   onClose, 
-  onUpdate, 
   location 
 }) => {
-  const [formData, setFormData] = useState<Location | null>(null);
+  const dispatch = useDispatch();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const { handleSubmit, reset, watch } = useForm<EditLocationWorkingHours>();
 
   useEffect(() => {
     if (location && isOpen) {
-      setFormData({ ...location });
+      reset({ id: location.id, workingHours: location.workingHours });
     }
-  }, [location, isOpen]);
+  }, [location, isOpen, reset]);
 
-  React.useEffect(() => {
-    if (!isOpen) {
-      const timer = setTimeout(() => setFormData(null), 300);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+  if (!location) return null;
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const onSubmit = () => {
     setShowConfirmDialog(true);
   };
 
   const handleConfirmUpdate = () => {
-    if (formData) {
-      onUpdate(formData);
-      setShowConfirmDialog(false);
-      onClose();
-    }
+    const updates = watch();
+    dispatch(updateLocationAction.request({ location: updates }));
+    setShowConfirmDialog(false);
+    onClose();
   };
 
   const handleCancel = () => {
@@ -88,20 +53,19 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
   };
 
   const updateWorkingHours = (day: keyof typeof defaultWorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
-    if (!formData) return;
-    setFormData({
-      ...formData,
+    const current = watch();
+    const next: EditLocationWorkingHours = {
+      ...current,
       workingHours: {
-        ...formData.workingHours,
+        ...current.workingHours,
         [day]: {
-          ...formData.workingHours[day],
-          [field]: value,
+          ...current.workingHours[day],
+          [field]: value as any,
         },
       },
-    });
+    } as EditLocationWorkingHours;
+    reset(next);
   };
-
-  if (!formData) return null;
 
   return (
     <>
@@ -130,7 +94,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
           </div>
         }
       >
-        <form id="edit-working-hours-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+        <form id="edit-working-hours-form" onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto">
           <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
             <CardContent className="space-y-6">
               {/* Working Hours Section */}
@@ -142,7 +106,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                   <h3 className="text-base font-semibold text-foreground">Working Hours</h3>
                 </div>
                 <div className="space-y-3">
-                  {Object.entries(formData.workingHours).map(([day, hours]) => (
+                  {Object.entries(watch().workingHours || location.workingHours).map(([day, hours]) => (
                     <div key={day} className="bg-white rounded-xl shadow-xs p-4 flex flex-col gap-2 border">
                       <div className="flex items-center justify-between mb-2">
                         <span className="font-semibold text-base">{capitalize(day)}</span>
@@ -214,7 +178,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
               Update Working Hours
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to update the working hours for "{formData.name}"? This will save all changes.`}
+              {`Are you sure you want to update the working hours for ${location.name}? This will save all changes.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

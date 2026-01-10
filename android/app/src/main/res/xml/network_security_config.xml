@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow cleartext (HTTP) traffic for development -->
+    <!-- Remove or restrict this for production builds -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- Specific domains that allow cleartext (more secure approach) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Local development IPs -->
+        <domain includeSubdomains="true">192.168.1.142</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">localhost</domain>
+        <!-- Add your WSL IP if different -->
+    </domain-config>
+</network-security-config>
+

@@ -4,3 +4,10 @@ declare module '*.svg' {
   export default src;
 }
 
+// Eruda debug console
+declare module 'eruda' {
+  const eruda: {
+    init: () => void;
+  };
+  export default eruda;
+}

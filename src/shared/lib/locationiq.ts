@@ -1,0 +1,100 @@
+const BASE_URL = 'https://api.locationiq.com/v1';
+let warnedNoToken = false;
+
+type CacheEntry = { data: any[]; ts: number };
+const CACHE = new Map<string, CacheEntry>();
+const TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getToken(): string | undefined {
+  // Vite env
+  return (import.meta as any).env?.VITE_LOCATIONIQ_TOKEN;
+}
+
+// Normalize Romanian diacritics for better search results
+function normalizeDiacritics(text: string): string {
+  const diacriticsMap: Record<string, string> = {
+    'ă': 'a', 'Ă': 'A',
+    'â': 'a', 'Â': 'A',
+    'î': 'i', 'Î': 'I',
+    'ș': 's', 'Ș': 'S',
+    'ț': 't', 'Ț': 'T',
+  };
+  return text.replace(/[ăâîșțĂÂÎȘȚ]/g, char => diacriticsMap[char] || char);
+}
+
+/**
+ * Forward geocoding: Convert address string to coordinates
+ */
+export async function locationIqGeocode(address: string): Promise<{ lat: number; lon: number; display_name: string; address: any } | null> {
+  const token = getToken();
+  if (!token) {
+    console.warn('[LocationIQ] Missing VITE_LOCATIONIQ_TOKEN. Geocoding disabled.');
+    return null;
+  }
+
+  const url = new URL(`${BASE_URL}/search`);
+  url.searchParams.set('key', token);
+  url.searchParams.set('q', normalizeDiacritics(address));
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('addressdetails', '1');
+  url.searchParams.set('limit', '1');
+
+  try {
+    const res = await fetch(url.toString());
+    if (res.status === 404 || !res.ok) return null;
+    const json = await res.json();
+    if (json && json.length > 0) {
+      return json[0]; // Return first result
+    }
+    return null;
+  } catch (error) {
+    console.error('[LocationIQ] Geocoding error:', error);
+    return null;
+  }
+}
+
+export async function locationIqAutocomplete(params: {
+  query: string;
+  limit?: number;
+  countryCodes?: string[]; // e.g. ['ro']
+}): Promise<any[]> {
+  const token = getToken();
+  if (!token) {
+    if (!warnedNoToken && typeof window !== 'undefined') {
+      warnedNoToken = true;
+      console.warn('[LocationIQ] Missing VITE_LOCATIONIQ_TOKEN. Autocomplete will be disabled.');
+    }
+    return [];
+  }
+
+  // Build cache key
+  const key = `auto:${(params.query || '').trim().toLowerCase()}|${params.limit ?? 5}|${(params.countryCodes || []).join(',')}`;
+  const now = Date.now();
+  const hit = CACHE.get(key);
+  if (hit && now - hit.ts < TTL_MS) {
+    return hit.data;
+  }
+
+  const url = new URL(`${BASE_URL}/autocomplete`);
+  url.searchParams.set('key', token);
+  // Normalize diacritics to improve search results (e.g., "Garlei" finds "Gârlei")
+  url.searchParams.set('q', normalizeDiacritics(params.query));
+  url.searchParams.set('limit', String(params.limit ?? 5));
+  url.searchParams.set('autocomplete', '1');
+  if (params.countryCodes?.length) {
+    url.searchParams.set('countrycodes', params.countryCodes.join(','));
+  }
+
+  const res = await fetch(url.toString());
+  // 404 means no results found, which is valid (not an error)
+  if (res.status === 404) {
+    CACHE.set(key, { data: [], ts: now });
+    return [];
+  }
+  if (!res.ok) return [];
+  const json = await res.json();
+  CACHE.set(key, { data: json, ts: now });
+  return json;
+}
+
+
