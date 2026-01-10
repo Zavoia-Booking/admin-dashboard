@@ -6,7 +6,7 @@ import { AppointmentViewMode, AppointmentViewType, type CalendarFilters, type Ca
 import type { Appointment } from "../../shared/types/calendar.ts";
 import { getDefaultCalendarFilters } from "./utils.ts";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: CalendarViewState = {
     appointments: [],

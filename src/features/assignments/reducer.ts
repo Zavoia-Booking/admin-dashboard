@@ -4,7 +4,7 @@ import { logoutRequestAction } from "../auth/actions";
 import type { AssignmentsState } from "./types";
 import { type Reducer } from "redux";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: AssignmentsState = {
   selectedLocationId: null,

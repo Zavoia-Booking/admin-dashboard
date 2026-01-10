@@ -46,7 +46,6 @@ export function LocationServicesSection({
   
   // Determine scenarios
   const hasNoServicesCreated = allServices.length === 0;
-  const hasServicesButNotAssigned = allServices.length > 0 && assignedServices.length === 0;
 
   // Get enabled service IDs for the ManageServicesSheet
   const enabledServiceIds = useMemo(

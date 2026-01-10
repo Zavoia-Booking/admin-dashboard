@@ -4,7 +4,7 @@ import * as actions from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: BundlesState = {
   bundles: [],

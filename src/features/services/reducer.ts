@@ -7,7 +7,7 @@ import type { Service } from "../../shared/types/service.ts";
 import { getDefaultServiceFilters } from "./utils.ts";
 import { toggleAddFormAction } from "./actions";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: ServicesState = {
   services: [],

@@ -830,7 +830,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                       {/* Stats badges */}
                       <div className="flex items-center gap-2 flex-wrap">
                         {allServices.length > 0 && (
-                          <Badge variant="muted" className="rounded-full px-3 py-1 flex items-center gap-1.5 cursor-default select-none">
+                          <Badge variant="filter" className="rounded-full px-3 py-1 flex items-center gap-1.5 cursor-default select-none">
                             <span className="font-semibold text-neutral-900 dark:text-foreground-1">{(watch('serviceIds') || []).length}</span>
                             <span className="text-neutral-900 dark:text-foreground-1">/ {allServices.length} enabled</span>
                           </Badge>

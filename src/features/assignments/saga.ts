@@ -6,7 +6,6 @@ import {
   updateStaffServicesAction,
   updateLocationTeamMembersAction,
   updateLocationAssignmentsAction,
-  updateTeamMemberStatsAction,
 } from "./actions";
 import {
   fetchLocationFullAssignmentRequest,
