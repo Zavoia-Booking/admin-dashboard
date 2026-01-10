@@ -94,7 +94,7 @@ export const CompanyLogo = React.memo(function CompanyLogo({
   }, []);
 
   const shouldShowDefaultLogo = !logoUrl || imageError;
-  const displayName = companyName || "Bookaroo";
+  const displayName = companyName || "Zavoia";
 
   // Show skeleton while loading
   if (isLoading) {
@@ -133,7 +133,7 @@ export const CompanyLogo = React.memo(function CompanyLogo({
       </div>
 
       {/* Company name - hidden when sidebar is collapsed */}
-      {/* Shows "Bookaroo" if /me is done but wizard not completed (no company name) */}
+      {/* Shows "Zavoia" if /me is done but wizard not completed (no company name) */}
       <div className="flex-1 min-w-0 overflow-hidden group-data-[collapsible=icon]:hidden">
         <Tooltip>
           <TooltipTrigger asChild>

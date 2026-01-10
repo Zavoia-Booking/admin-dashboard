@@ -1,5 +1,6 @@
 import { getType } from "typesafe-actions";
 import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction } from "./actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import type { InviteTeamMemberResponse } from "./types";
 
@@ -39,6 +40,10 @@ const initialState: TeamMembersState = {
 
 export default function teamMembersReducer(state: TeamMembersState = initialState, action: any) {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(inviteTeamMemberAction.request):
       return { ...state, isInviting: true, inviteResponse: null, error: null };
 

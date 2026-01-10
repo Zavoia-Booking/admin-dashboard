@@ -4,7 +4,7 @@ import { isNativeApp } from '../../app/config/env';
 // Re-export isNativeApp for convenience
 export { isNativeApp };
 
-const REFRESH_TOKEN_KEY = 'bookaroo_refresh_token';
+const REFRESH_TOKEN_KEY = 'zavoia_refresh_token';
 
 /**
  * Token storage for native apps using Capacitor Preferences.

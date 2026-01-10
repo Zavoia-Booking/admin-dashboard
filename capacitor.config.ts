@@ -10,8 +10,8 @@ const isProduction = process.env.NODE_ENV === 'production';
 const useHttpScheme = process.env.CAPACITOR_USE_HTTP === 'true';
 
 const config: CapacitorConfig = {
-  appId: 'com.bookaroo.admin',
-  appName: 'Bookaroo Admin',
+  appId: 'com.zavoia.admin',
+  appName: 'Zavoia Admin',
   webDir: 'dist',
 
   server: {

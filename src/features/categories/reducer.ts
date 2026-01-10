@@ -1,9 +1,8 @@
 import type { CategoriesState } from "./types";
-import { type ActionType, getType } from "typesafe-actions";
+import { getType } from "typesafe-actions";
 import * as actions from "./actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
-
-type Actions = ActionType<typeof actions>;
 
 const initialState: CategoriesState = {
   categories: [],
@@ -13,9 +12,13 @@ const initialState: CategoriesState = {
 
 export const CategoriesReducer: Reducer<CategoriesState, any> = (
   state: CategoriesState = initialState,
-  action: Actions
+  action: any
 ): CategoriesState => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(actions.listCategoriesAction.request):
       return {
         ...state,

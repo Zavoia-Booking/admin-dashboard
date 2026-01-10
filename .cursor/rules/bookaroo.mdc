@@ -1,5 +1,5 @@
 # PROJECT SUMMARY
-Bookaroo Admin Dashboard - React SaaS for appointment booking businesses. Built with Vite + React 19 + TypeScript + Redux Saga + TailwindCSS + Capacitor (mobile), PWA. Features: auth, calendar, services, team members, locations, marketplace, customers, bundles, categories, settings, business setup wizard.
+Zavoia Admin Dashboard - React SaaS for appointment booking businesses. Built with Vite + React 19 + TypeScript + Redux Saga + TailwindCSS + Capacitor (mobile), PWA. Features: auth, calendar, services, team members, locations, marketplace, customers, bundles, categories, settings, business setup wizard.
 
 # ARCHITECTURE PATTERNS
 

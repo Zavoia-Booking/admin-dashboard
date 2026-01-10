@@ -1,6 +1,7 @@
 import * as actions from "./actions";
 import type { LocationState } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 
 type Actions = ActionType<typeof actions>;
@@ -17,6 +18,10 @@ const initialState: LocationState = {
 
 export const LocationsReducer: Reducer<LocationState, any> = (state: LocationState = initialState, action: Actions) => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(actions.fetchLocationByIdAction.request):
       return { ...state, isLoading: true, error: null };
 

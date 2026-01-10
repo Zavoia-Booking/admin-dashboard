@@ -1,5 +1,6 @@
 import { type ActionType, getType } from "typesafe-actions";
 import * as actions from "./actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { AssignmentsState } from "./types";
 import { type Reducer } from "redux";
 
@@ -19,6 +20,10 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
   action: Actions
 ): AssignmentsState => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     // Location selection
     case getType(actions.selectLocationAction):
       return { 

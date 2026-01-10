@@ -25,7 +25,7 @@ VITE_API_PROXY_TARGET=http://localhost:3000
 
 ### `.env.production` (Web Production)
 ```env
-VITE_API_URL=https://api.bookaroo.com
+VITE_API_URL=https://api.zavoia.com
 ```
 
 ### `.env.mobile` (Mobile Development)
@@ -39,7 +39,7 @@ VITE_API_URL=http://10.0.2.2:3000
 
 ### `.env.mobile-prod` (Mobile Production)
 ```env
-VITE_API_URL=https://api.bookaroo.com
+VITE_API_URL=https://api.zavoia.com
 ```
 
 ---
@@ -90,7 +90,7 @@ yarn preview
 yarn android
 
 # 2. Open in Android Studio (Windows)
-#    File → Open → C:\projects\bookaroo-android
+#    File → Open → C:\projects\zavoia-android
 
 # 3. Click Run ▶️
 ```
@@ -205,5 +205,5 @@ yarn android:sync:full
 
 ### Gradle Errors in Android Studio
 
-Make sure you opened the project from `C:\projects\bookaroo-android`, not from the WSL path.
+Make sure you opened the project from `C:\projects\zavoia-android`, not from the WSL path.
 

@@ -1,6 +1,7 @@
 import * as actions from "./actions";
 import type { MarketplaceState } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 
 type Actions = ActionType<typeof actions>;
@@ -29,6 +30,10 @@ const initialState: MarketplaceState = {
 
 export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: MarketplaceState = initialState, action: Actions) => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(actions.fetchMarketplaceListingAction.request):
       return { ...state, isLoading: true, error: null };
 

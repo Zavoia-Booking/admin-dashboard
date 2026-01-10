@@ -1,6 +1,7 @@
 import type { BundlesState } from "./types.ts";
 import { type ActionType, getType } from "typesafe-actions";
 import * as actions from "./actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 
 type Actions = ActionType<typeof actions>;
@@ -19,6 +20,10 @@ export const BundlesReducer: Reducer<BundlesState, any> = (
   action: Actions
 ): BundlesState => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(actions.listBundlesAction.request):
     case getType(actions.createBundleAction.request):
     case getType(actions.updateBundleAction.request):
