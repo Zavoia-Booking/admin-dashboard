@@ -30,13 +30,15 @@ export const resetPasswordApi = async (payload: { token: string, password: strin
     });
 }
 
+// Google OAuth login - for existing users
 export const googleLoginApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
-    const { data } = await apiClient().post<AuthResponse>('/auth/google/code/login', payload);
+    const { data } = await apiClient().post<AuthResponse>('/auth/google', { ...payload, intent: 'login' });
     return data;
 };
 
+// Google OAuth register - for creating a new business owner account
 export const googleRegisterApi = async (payload: { code: string, redirectUri: string }): Promise<AuthResponse> => {
-    const { data } = await apiClient().post<AuthResponse>('/auth/google/code/register', payload);
+    const { data } = await apiClient().post<AuthResponse>('/auth/google', { ...payload, intent: 'register_business_owner' });
     return data;
 };
 
@@ -65,7 +67,7 @@ export const selectBusinessApi = async (payload: { selectionToken: string; busin
     return data;
 };
 
-export const sendBusinessLinkEmailApi = async (payload: { email: string }): Promise<{ message: string }> => {
+export const sendBusinessLinkEmailApi = async (payload: { email: string; tx_id?: string }): Promise<{ message: string }> => {
     const { data} = await apiClient().post<{ message: string }>(`/auth/send-business-link-email`, payload);
     return data;
 };
@@ -79,5 +81,10 @@ export const checkTeamInvitationApi = async (token: string): Promise<CheckTeamIn
 
 export const completeTeamInvitationApi = async (payload: CompleteTeamInvitationPayload): Promise<CompleteTeamInvitationResponse> => {
     const { data } = await apiClient().post<CompleteTeamInvitationResponse>(`/auth/complete-team-invitation`, payload);
+    return data;
+};
+
+export const setPasswordApi = async (payload: { password: string }): Promise<{ message: string }> => {
+    const { data } = await apiClient().post<{ message: string }>(`/auth/set-password`, payload);
     return data;
 };

@@ -20,7 +20,6 @@ import { TextField } from "../../../../shared/components/forms/fields/TextField"
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { CategorySection } from "./CategorySection";
-import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
 import { AssignmentsCard } from "../../../../shared/components/common/AssignmentsCard";
 import type { DeleteResponse } from "../../../../shared/types/delete-response";
@@ -121,7 +120,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     },
     mode: "onChange",
   });
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [newlyCreatedCategories, setNewlyCreatedCategories] = useState<
     Category[]
@@ -285,7 +283,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     // This prevents resetting state when component remounts with isOpen already true
     if (isOpen && actuallyChanged && !prevIsOpen) {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       setShowDeleteDialog(false);
       setDeleteResponse(null);
       setHasAttemptedDelete(false);
@@ -338,21 +335,12 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
       // Success - close form
       // Reset isSubmitting immediately to prevent effect from running again
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       handleClose();
     }
   }, [isServicesLoading, isSubmitting, servicesError, handleClose, isOpen]);
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isServicesLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmUpdate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isServicesLoading) {
       return;
     }
@@ -400,7 +388,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
     };
     setIsSubmitting(true);
     dispatch(editServicesAction.request(payload));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -850,21 +837,6 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmUpdate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title={text("editService.confirmDialog.title")}
-        description={text("editService.confirmDialog.description", {
-          name: getValues("name"),
-        })}
-        confirmTitle={text("editService.confirmDialog.confirm")}
-        cancelTitle={text("editService.confirmDialog.cancel")}
-        showCloseButton={true}
-      />
 
       {/* Delete Confirmation Dialog */}
       {service && (

@@ -5,6 +5,7 @@ import { googleLoginAction, googleRegisterAction, linkGoogleByCodeAction } from 
 import { refreshSession } from "../../../shared/lib/http";
 import type { RootState } from "../../../app/providers/store";
 import { Spinner } from "../../../shared/components/ui/spinner";
+import { selectCurrentUser, selectAccountLinkingRequired } from "../selectors";
 
 export default function GoogleOAuthCallback() {
   const dispatch = useDispatch();
@@ -15,6 +16,8 @@ export default function GoogleOAuthCallback() {
   const isLoading = useSelector((s: RootState) => s.auth.isLoading);
   const businessSelection = useSelector((s: RootState) => s.auth.businessSelectionRequired);
   const isAccountLinkingModalOpen = useSelector((s: RootState) => (s as any).auth.isAccountLinkingModalOpen);
+  const accountLinkingRequired = useSelector(selectAccountLinkingRequired);
+  const user = useSelector(selectCurrentUser);
   
   // Use sessionStorage to track if we've processed the OAuth code (persists across remounts)
   const hasProcessedCodeRef = useRef(false);
@@ -89,9 +92,9 @@ export default function GoogleOAuthCallback() {
     }
     
     // Only redirect once when authentication completes successfully
-    if (isAuthenticated && !isLoading) {
+    // Also wait for user object to be populated to check wizardCompleted
+    if (isAuthenticated && !isLoading && user) {
       const mode = sessionStorage.getItem('oauthMode');
-      const context = sessionStorage.getItem('oauthContext');
 
       // Linking flow handles redirect in saga
       if (mode === 'link') return;
@@ -108,16 +111,17 @@ export default function GoogleOAuthCallback() {
         sessionStorage.removeItem('oauthCodeProcessed'); // Clear for next OAuth flow
       } catch {}
 
-      // Use React Router navigate for smooth SPA navigation (no page reload)
-      if (context === 'register') {
+      // Redirect based on role and wizard completion status
+      // Only business owners need to complete the wizard, team members go straight to dashboard
+      if (user.role === 'owner' && !user.wizardCompleted) {
+        // New business owner needs to complete setup wizard
         navigate('/welcome', { replace: true });
-        return;
+      } else {
+        // Team members or owners with completed wizard go to dashboard
+        navigate('/dashboard', { replace: true });
       }
-
-      // login context: always redirect to dashboard
-      navigate('/dashboard', { replace: true });
     }
-  }, [isAuthenticated, isLoading, navigate, businessSelection, isAccountLinkingModalOpen]);
+  }, [isAuthenticated, isLoading, navigate, businessSelection, isAccountLinkingModalOpen, user]);
 
   // Handle authentication errors - redirect back to appropriate page
   useEffect(() => {
@@ -137,13 +141,17 @@ export default function GoogleOAuthCallback() {
       if (isAccountLinkingModalOpen) {
         return;
       }
+      // Don't redirect if AccountLinkingRequiredModal is open (handles send email errors)
+      if (accountLinkingRequired) {
+        return;
+      }
 
       const fallback = context === 'register' ? '/register' : '/login';
       try { sessionStorage.removeItem('oauthContext'); } catch {}
 
       navigate(fallback, { replace: true });
     }
-  }, [authError, isLoading, navigate, isAccountLinkingModalOpen]);
+  }, [authError, isLoading, navigate, isAccountLinkingModalOpen, accountLinkingRequired]);
 
   return (
     <div className="min-h-screen flex items-center justify-center">

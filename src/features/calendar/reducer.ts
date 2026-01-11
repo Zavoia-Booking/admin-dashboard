@@ -1,11 +1,12 @@
 import * as actions from "./actions";
 import { type ActionType, getType } from "typesafe-actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 import { AppointmentViewMode, AppointmentViewType, type CalendarFilters, type CalendarViewState } from "./types.ts";
 import type { Appointment } from "../../shared/types/calendar.ts";
 import { getDefaultCalendarFilters } from "./utils.ts";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: CalendarViewState = {
     appointments: [],
@@ -76,6 +77,10 @@ export const handleSetAppointment = (state: CalendarViewState, payload:Array<App
 }
 export const CalendarReducer: Reducer<CalendarViewState, any> = (state: CalendarViewState = initialState, action: Actions) => {
     switch (action.type) {
+        // Reset state on logout to prevent stale data across accounts
+        case getType(logoutRequestAction.success):
+            return { ...initialState };
+
         case getType(actions.toggleAddForm):
             return handleOpenAddForm(state, action.payload);
         case getType(actions.toggleEditFormAction):

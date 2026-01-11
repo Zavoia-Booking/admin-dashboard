@@ -17,6 +17,9 @@ export interface TextFieldProps {
   disabled?: boolean;
   icon?: React.ComponentType<{ className?: string }>; // optional override icon
   autoFocus?: boolean;
+  type?: 'text' | 'password' | 'email';
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const TextField: React.FC<TextFieldProps> = ({
@@ -33,6 +36,9 @@ export const TextField: React.FC<TextFieldProps> = ({
   disabled = false,
   icon,
   autoFocus = false,
+  type = "text",
+  onKeyDown,
+  inputRef,
 }) => {
   const Icon = icon ?? (isRemote ? Monitor : MapPin);
   const displayLabel =
@@ -45,14 +51,16 @@ export const TextField: React.FC<TextFieldProps> = ({
       </Label>
       <div className="relative">
         <Input
+          ref={inputRef}
           id={id}
-          type="text"
+          type={type}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          maxLength={maxLength}
+          maxLength={type === 'password' ? undefined : maxLength}
           disabled={disabled}
           autoFocus={autoFocus}
+          onKeyDown={onKeyDown}
           className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error
               ? "border-destructive bg-error-bg focus-visible:ring-error"

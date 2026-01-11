@@ -2,10 +2,8 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Clock,
-  Edit2,
   AlertCircle,
   ChevronRight,
-  Settings2,
   ArrowRight,
 } from "lucide-react";
 import { Badge } from "../../../../shared/components/ui/badge";

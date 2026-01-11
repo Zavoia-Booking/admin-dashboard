@@ -1,5 +1,6 @@
 import { getType } from 'typesafe-actions';
 import { fetchCurrentBusinessAction, updateBusinessAction } from './actions';
+import { logoutRequestAction } from '../auth/actions';
 import type { BusinessState } from './types';
 
 const initialState: BusinessState = {
@@ -15,6 +16,10 @@ export default function businessReducer(
   action: any
 ): BusinessState {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(fetchCurrentBusinessAction.request):
       return { ...state, isLoading: true, error: null };
     

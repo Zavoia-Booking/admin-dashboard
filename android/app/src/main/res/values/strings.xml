@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Bookaroo Admin</string>
-    <string name="title_activity_main">Bookaroo Admin</string>
-    <string name="package_name">com.bookaroo.admin</string>
-    <string name="custom_url_scheme">com.bookaroo.admin</string>
+    <string name="app_name">Zavoia Admin</string>
+    <string name="title_activity_main">Zavoia Admin</string>
+    <string name="package_name">com.zavoia.admin</string>
+    <string name="custom_url_scheme">com.zavoia.admin</string>
 </resources>

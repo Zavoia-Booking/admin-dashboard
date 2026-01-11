@@ -1,12 +1,13 @@
 import type { ServiceFilterState, ServicesState } from "./types.ts";
 import { type ActionType, getType } from "typesafe-actions";
 import * as actions from "./actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 import type { Service } from "../../shared/types/service.ts";
 import { getDefaultServiceFilters } from "./utils.ts";
 import { toggleAddFormAction } from "./actions";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: ServicesState = {
   services: [],
@@ -69,6 +70,10 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
   action: Actions
 ): ServicesState => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(actions.getServicesAction.request):
     case getType(actions.createServicesAction.request):
     case getType(actions.editServicesAction.request):

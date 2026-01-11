@@ -1,4 +1,4 @@
-# Cloudflare Tunnel Configuration for Bookaroo Admin Dashboard
+# Cloudflare Tunnel Configuration for zavoia Admin Dashboard
 # 
 # Setup Instructions:
 # 1. Install cloudflared: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
@@ -6,7 +6,7 @@
 # 3. Create tunnel: cloudflared tunnel create dashboard-dev
 # 4. Copy the tunnel ID and credentials file path
 # 5. Update this file with your tunnel ID and credentials path
-# 6. Run: cloudflared tunnel run bookaroo-admin-dev
+# 6. Run: cloudflared tunnel run zavoia-admin-dev
 
 # Replace <TUNNEL_ID> with your actual tunnel ID from step 3
 tunnel: a07c89ca-a14b-4345-9adf-921dc76142fc
@@ -17,7 +17,7 @@ credentials-file: /home/andreiroot/.cloudflared/a07c89ca-a14b-4345-9adf-921dc761
 # Ingress rules - routes traffic to your local services
 ingress:
   # Frontend - Admin Dashboard
-  - hostname: bookaroo-admin-dev.sefii-internetului.com
+  - hostname: zavoia-admin-dev.sefii-internetului.com
     service: https://localhost:4173
     originRequest:
       noTLSVerify: true  # Allow self-signed certificates in development

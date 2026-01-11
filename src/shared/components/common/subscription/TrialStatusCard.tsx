@@ -50,7 +50,7 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
     if (onUpgrade) {
       onUpgrade();
     } else {
-      navigate("/settings?open=billing");
+      navigate("/settings?tab=billing");
     }
   };
 

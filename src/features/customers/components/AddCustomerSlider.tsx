@@ -7,7 +7,6 @@ import { TextField } from '../../../shared/components/forms/fields/TextField';
 import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
-import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { addCustomerAction } from '../actions';
 import type { AddCustomerPayload } from '../types';
 import { useForm, useController } from 'react-hook-form';
@@ -40,7 +39,6 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
   const customerError = useSelector(getCustomersErrorSelector);
   const isCustomerLoading = useSelector(getCustomersLoadingSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const justOpenedRef = useRef(false);
 
   const {
@@ -119,7 +117,6 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       justOpenedRef.current = true;
       // Clear the flag after a brief delay to allow effects to run
       setTimeout(() => {
@@ -145,7 +142,6 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
     if (!isCustomerLoading && isSubmitting && !customerError && !justOpenedRef.current) {
       // Success - close form and reset
       // Don't set isSubmitting to false here - let it stay true until slider closes
-      setShowConfirmDialog(false);
       onClose();
     }
   }, [isCustomerLoading, isSubmitting, customerError, onClose]);
@@ -168,15 +164,7 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
   const isFormDisabled = hasValidationErrors || !areRequiredFieldsFilled;
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isCustomerLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmCreate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isCustomerLoading) {
       return;
     }
@@ -193,7 +181,6 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
     
     setIsSubmitting(true);
     dispatch(addCustomerAction.request(payload));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -371,19 +358,6 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmCreate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title="Add Customer"
-        description={`Are you sure you want to add ${watch('firstName') || 'this customer'}?`}
-        confirmTitle="Add Customer"
-        cancelTitle="Cancel"
-        showCloseButton={true}
-      />
     </>
   );
 };

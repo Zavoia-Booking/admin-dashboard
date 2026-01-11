@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
-import { X, ArrowRight, Info } from "lucide-react";
+import { X, ArrowRight } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -52,7 +52,6 @@ export function ManageTeamMemberDrawer({
   isOpen,
   onClose,
   teamMember,
-  locationName,
   services: initialServices,
   onSave,
   currency = "USD",

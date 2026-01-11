@@ -15,7 +15,7 @@ set -e
 
 # ============ CONFIGURATION ============
 # Change this to your preferred Windows location
-WINDOWS_PROJECT_NAME="bookaroo-android"
+WINDOWS_PROJECT_NAME="zavoia-android"
 WINDOWS_BASE_PATH="/mnt/c/projects"
 WINDOWS_ANDROID_PATH="$WINDOWS_BASE_PATH/$WINDOWS_PROJECT_NAME"
 # =======================================

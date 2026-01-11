@@ -1,9 +1,10 @@
 import * as actions from "./actions";
 import type { CustomerState } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 
-type Actions = ActionType<typeof actions>;
+type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
 const initialState: CustomerState = {
   isLoading: false,
@@ -21,6 +22,10 @@ export const CustomersReducer: Reducer<CustomerState, any> = (
   action: Actions
 ) => {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case getType(actions.fetchCustomerByIdAction.request):
       return { ...state, isFetchingCustomer: true, error: null, currentCustomer: null };
 

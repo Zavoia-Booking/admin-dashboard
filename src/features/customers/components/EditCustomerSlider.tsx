@@ -9,7 +9,6 @@ import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Button } from '../../../shared/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { fetchCustomerByIdAction, updateCustomerAction, removeCustomerAction, clearCurrentCustomerAction } from '../actions';
 import type { EditCustomerPayload } from '../types';
 import { useForm, useController } from 'react-hook-form';
@@ -45,7 +44,6 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   const isRemoving = useSelector(getIsRemovingCustomerSelector);
   const customer = useSelector(getCurrentCustomerSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
   const justOpenedRef = useRef(false);
   const prevIsRemovingRef = useRef(false);
@@ -156,7 +154,6 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);
-      setShowConfirmDialog(false);
       setShowRemoveDialog(false);
       justOpenedRef.current = true;
       prevIsRemovingRef.current = false;
@@ -184,7 +181,6 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     if (!isCustomerLoading && isSubmitting && !customerError && !justOpenedRef.current) {
       // Success - close form and reset
       // Don't set isSubmitting to false here - let it stay true until slider closes
-      setShowConfirmDialog(false);
       onClose();
     }
   }, [isCustomerLoading, isSubmitting, customerError, onClose]);
@@ -207,15 +203,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   const isFormDisabled = hasValidationErrors || !areRequiredFieldsFilled || !formState.isDirty;
 
   const onSubmit = () => {
-    // Prevent opening dialog if already submitting or loading
-    if (isSubmitting || isCustomerLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmUpdate = () => {
-    // Guard against double-clicks on Confirm button
+    // Prevent double submission
     if (isSubmitting || isCustomerLoading || !customer) {
       return;
     }
@@ -233,7 +221,6 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     
     setIsSubmitting(true);
     dispatch(updateCustomerAction.request(payload));
-    setShowConfirmDialog(false);
     // Don't close form here - wait for success/error response
   };
 
@@ -473,19 +460,6 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmUpdate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title="Update Customer"
-        description={`Are you sure you want to update ${watch('firstName') || 'this customer'}?`}
-        confirmTitle="Update Customer"
-        cancelTitle="Cancel"
-        showCloseButton={true}
-      />
 
       {/* Remove Confirmation Dialog */}
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>

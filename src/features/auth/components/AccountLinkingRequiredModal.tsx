@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { selectAccountLinkingRequired, selectAuthIsLoading } from "../selectors";
-import { sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal } from "../actions";
+import { selectAccountLinkingRequired, selectAuthIsLoading, selectAuthError } from "../selectors";
+import { sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, clearAuthErrorAction } from "../actions";
 import {
   Dialog,
   DialogContent,
@@ -14,16 +14,24 @@ import {
 import { Button } from "../../../shared/components/ui/button";
 import { Alert, AlertDescription } from "../../../shared/components/ui/alert";
 import { Spinner } from "../../../shared/components/ui/spinner";
-import { InfoIcon, Briefcase, Mail } from "lucide-react";
+import { InfoIcon, Briefcase, Mail, AlertTriangle } from "lucide-react";
 
 export default function AccountLinkingRequiredModal() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const accountLinking = useSelector(selectAccountLinkingRequired);
   const isLoading = useSelector(selectAuthIsLoading);
+  const authError = useSelector(selectAuthError);
   const isOpen = !!accountLinking;
   const wasLoadingRef = useRef(false);
   const wasOpenRef = useRef(false);
+
+  // Clear error when modal closes
+  useEffect(() => {
+    if (!isOpen && authError) {
+      dispatch(clearAuthErrorAction());
+    }
+  }, [isOpen, authError, dispatch]);
 
   // Track when modal was open and we started loading
   useEffect(() => {
@@ -45,7 +53,10 @@ export default function AccountLinkingRequiredModal() {
 
   const handleConfirm = () => {
     if (accountLinking?.email) {
-      dispatch(sendBusinessLinkEmailAction.request({ email: accountLinking.email }));
+      dispatch(sendBusinessLinkEmailAction.request({ 
+        email: accountLinking.email,
+        tx_id: accountLinking.tx_id 
+      }));
     }
   };
 
@@ -87,19 +98,28 @@ export default function AccountLinkingRequiredModal() {
             </AlertDescription>
           </Alert>
 
-          <div className="bg-muted p-4 rounded-lg space-y-2">
-            <div className="flex items-start gap-2">
-              <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="font-medium text-sm">What happens next?</p>
-                <ul className="text-sm text-muted-foreground space-y-1 mt-2 list-disc list-inside">
-                  <li>We'll send a confirmation email to <strong>{email}</strong></li>
-                  <li>Click the link in the email to complete the synchronization</li>
-                  <li>You'll be able to access both accounts with the same email</li>
-                </ul>
+          {authError ? (
+            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                {authError}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <div className="bg-muted p-4 rounded-lg space-y-2">
+              <div className="flex items-start gap-2">
+                <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
+                <div>
+                  <p className="font-medium text-sm">What happens next?</p>
+                  <ul className="text-sm text-muted-foreground space-y-1 mt-2 list-disc list-inside">
+                    <li>We'll send a confirmation email to <strong>{email}</strong></li>
+                    <li>Click the link in the email to complete the synchronization</li>
+                    <li>You'll be able to access both accounts with the same email</li>
+                  </ul>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter>

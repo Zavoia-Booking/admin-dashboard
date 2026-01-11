@@ -138,11 +138,11 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       const trimmedEmail = email.trim().toLowerCase();
       if (!trimmedEmail) return;
       
-      // Check maximum limit of 20 team members in wizard
-      if (localTeamMembers.length >= 20) {
+      // Check maximum limit of 10 team members in wizard
+      if (localTeamMembers.length >= 10) {
         setError("email", {
           type: "manual",
-          message: "You can invite up to 20 team members during setup",
+          message: "You can invite up to 10 team members during setup",
         });
         return;
       }

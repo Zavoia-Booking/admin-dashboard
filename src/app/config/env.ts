@@ -28,7 +28,7 @@ const getNativePlatform = (): 'android' | 'ios' | 'web' => {
  * Set VITE_API_URL in your .env files:
  *   - .env (or .env.local): For web dev, usually not needed (uses Vite proxy via /api)
  *   - .env.android: http://10.0.2.2:3000 (emulator) or http://YOUR_IP:3000 (device)
- *   - .env.production: https://api.bookaroo.com
+ *   - .env.production: https://api.zavoia.com
  */
 const getApiUrl = (): string => {
     // Use explicit env var if set (recommended)
@@ -40,7 +40,7 @@ const getApiUrl = (): string => {
     // WARNING: This won't work for native apps! Set VITE_API_URL for mobile builds.
     if (isNativeApp()) {
         console.error(
-            '[Bookaroo] Native app running without VITE_API_URL! ' +
+            '[Zavoia] Native app running without VITE_API_URL! ' +
             'Set VITE_API_URL in .env.android or .env.production'
         );
     }

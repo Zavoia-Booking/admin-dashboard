@@ -66,7 +66,7 @@ const BillingAndSubscription = () => {
   const isSubscriptionScheduledForCancellation = currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd;
 
   const handleManagePaymentMethodAndInvoices = () => {
-    const returnUrl = window.location.origin + '/settings?open=billing';
+    const returnUrl = window.location.origin + '/settings?tab=billing';
     dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
   };
 

@@ -1,4 +1,4 @@
-package com.bookaroo.admin;
+package com.zavoia.admin;
 
 import com.getcapacitor.BridgeActivity;
 

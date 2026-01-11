@@ -37,7 +37,7 @@ export const SubscriptionExpiredBanner: React.FC = () => {
           {/* Action Button */}
           <div className="pt-4">
             <Button
-              onClick={() => navigate('/settings?open=billing')}
+              onClick={() => navigate('/settings?tab=billing')}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-6 text-base"
               size="lg"
             >

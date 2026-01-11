@@ -2,6 +2,8 @@ import {
   wizardInit, wizardSetStep, wizardNext, wizardPrev, wizardUpdateData, wizardSaveRequest, wizardSaveSuccess,
   wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure
 } from "./actions";
+import { getType } from "typesafe-actions";
+import { logoutRequestAction } from "../auth/actions";
 
 type WizardState = {
   currentStep: number;
@@ -21,6 +23,10 @@ const initialState: WizardState = {
 
 export default function setupWizardReducer(state: WizardState = initialState, action: any) {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     case wizardInit.type: {
       return { ...initialState };
     }

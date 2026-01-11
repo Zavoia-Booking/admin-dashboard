@@ -28,7 +28,6 @@ interface AssignmentListPanelProps {
 }
 
 export function AssignmentListPanel({
-  title,
   items,
   selectedId,
   onSelect,

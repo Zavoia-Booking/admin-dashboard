@@ -17,7 +17,7 @@ export const RemoteLocationToggle: React.FC<RemoteLocationToggleProps> = ({
   isRemote,
   onChange,
   label = 'I offer remote/online services',
-  descriptionOn = "Meetings happen outside Bookaroo. Add your Zoom/Meet/Teams link or instructions, and choose the correct timezone so clients join at the right time.",
+  descriptionOn = "Meetings happen outside Zavoia. Add your Zoom/Meet/Teams link or instructions, and choose the correct timezone so clients join at the right time.",
   descriptionOff = 'Turn on if you take sessions via Zoom, Google Meet, Teams, etc.',
   className = '',
   id = 'isRemote',

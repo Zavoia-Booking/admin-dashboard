@@ -8,6 +8,7 @@ import { CheckCircle2, XCircle, AlertCircle, Link as LinkIcon } from "lucide-rea
 import { apiClient } from "../../../shared/lib/http";
 import { setTokensAction, setAuthUserAction } from "../actions";
 import type { AuthUser } from "../types";
+import { translateMessageCode } from "../../../shared/utils/error";
 
 type LinkBusinessAccountResponse = {
   message: string;
@@ -49,7 +50,7 @@ export default function LinkBusinessAccountPage() {
         dispatch(setAuthUserAction({ user: data.user }));
 
         setStatus('success');
-        setMessage(data.message || 'Your accounts have been successfully linked!');
+        setMessage(translateMessageCode(data.message) || 'Your accounts have been successfully linked!');
       } catch (error: any) {
         setStatus('error');
         
@@ -63,7 +64,7 @@ export default function LinkBusinessAccountPage() {
           errorMessage = error.message;
         }
         
-        setMessage(errorMessage);
+        setMessage(translateMessageCode(errorMessage));
       }
     };
 

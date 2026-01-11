@@ -8,6 +8,7 @@ import {
   clearSettingsErrorAction,
   clearCheckoutResponseAction,
 } from "./actions";
+import { logoutRequestAction } from "../auth/actions";
 import type { SettingsState } from "./types";
 
 const initialState: SettingsState = {
@@ -26,6 +27,10 @@ const initialState: SettingsState = {
 
 export default function settingsReducer(state: SettingsState = initialState, action: any) {
   switch (action.type) {
+    // Reset state on logout to prevent stale data across accounts
+    case getType(logoutRequestAction.success):
+      return { ...initialState };
+
     // Pricing Summary
     case getType(getSubscriptionSummaryAction.request):
       return {

@@ -36,7 +36,7 @@ export default function TrialBanner() {
           </div>
         </div>
         <Button 
-          onClick={() => navigate('/settings?open=billing')}
+          onClick={() => navigate('/settings?tab=billing')}
           className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
         >
           Upgrade Now

@@ -6,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { Package, AlertCircle, Calculator, DollarSign, Percent, TrendingDown, TrendingUp, Settings2, Loader2 } from "lucide-react";
 import { BaseSlider } from "../../../../shared/components/common/BaseSlider";
 import { FormFooter } from "../../../../shared/components/forms/FormFooter";
-import ConfirmDialog from "../../../../shared/components/common/ConfirmDialog";
 import { DeleteConfirmDialog } from "../../../../shared/components/common/DeleteConfirmDialog";
 import { TextField } from "../../../../shared/components/forms/fields/TextField";
 import { TextareaField } from "../../../../shared/components/forms/fields/TextareaField";
@@ -63,7 +62,6 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
   const deleteResponseFromState = useSelector(getBundlesDeleteResponseSelector);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [isManageServicesOpen, setIsManageServicesOpen] = useState(false);
   
   // Delete handling state
@@ -298,13 +296,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
     !!serviceIdsError;
 
   const onSubmit = () => {
-    if (isSubmitting || isBundlesLoading) {
-      return;
-    }
-    setShowConfirmDialog(true);
-  };
-
-  const handleConfirmUpdate = () => {
+    // Prevent double submission
     if (isSubmitting || isBundlesLoading || !effectiveBundle) {
       return;
     }
@@ -327,7 +319,6 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
     }
 
     dispatch(updateBundleAction.request(payload));
-    setShowConfirmDialog(false);
   };
 
   // Handle successful update
@@ -947,22 +938,6 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
           </div>
         </form>
       </BaseSlider>
-
-      {/* Confirmation Dialog */}
-      <ConfirmDialog
-        open={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={handleConfirmUpdate}
-        onCancel={() => setShowConfirmDialog(false)}
-        title={text("bundles.editBundle.confirmDialog.title")}
-        description={text("bundles.editBundle.confirmDialog.description", {
-          name: watch("name"),
-          serviceCount: serviceIds?.length || 0,
-        })}
-        confirmTitle={text("bundles.editBundle.confirmDialog.confirm")}
-        cancelTitle={text("bundles.editBundle.confirmDialog.cancel")}
-        showCloseButton={true}
-      />
 
       {/* Delete Confirmation Dialog */}
       {effectiveBundle && (

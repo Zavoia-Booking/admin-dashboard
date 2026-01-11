@@ -381,7 +381,9 @@ export default function TeamMembersPage() {
                             actions={actions}
                             thumbnail={thumbnail}
                             bottomActions={bottomActions}
-                            onClick={() => openProfileSlider(member)}
+                            onClick={() => {
+                              toast.info('This team member has not yet accepted their invitation.');
+                            }}
                           />
                         );
                       })}
