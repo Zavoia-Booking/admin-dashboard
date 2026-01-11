@@ -16,14 +16,17 @@ export interface MarketplaceListing {
   portfolioImages: string[] | null;
   marketplaceName?: string | null; // Custom name for marketplace
   marketplaceEmail?: string | null; // Public contact email
+  marketplacePhone?: string | null; // Public contact phone
   marketplaceDescription?: string | null; // Business description
   featuredImage?: string | null; // Featured image URL
   useBusinessName?: boolean; // Use business name or custom
   useBusinessEmail?: boolean; // Use business email or custom
+  useBusinessPhone?: boolean; // Use business phone or custom
   useBusinessDescription?: boolean; // Use business description or custom
   // Effective values calculated by backend
   effectiveName?: string;
   effectiveEmail?: string;
+  effectivePhone?: string;
   effectiveDescription?: string;
 }
 
@@ -82,23 +85,31 @@ export type TeamMember = GlobalTeamMember;
 export interface Industry {
   id: number;
   name: string;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
+  slug?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IndustryTag {
+  id: number;
+  name: string;
+  slug?: string;
+}
+
+// Location with assignments (read from actual assignment tables)
+export interface LocationWithAssignments extends Location {
+  services: Service[];
+  teamMembers: TeamMember[];
 }
 
 export interface MarketplaceListingResponse {
   business: Business;
   listing: MarketplaceListing;
-  locations: Location[];
-  services: Service[];
-  categories: Category[];
-  teamMembers: TeamMember[];
+  // Location-scoped catalog (read from actual assignment tables)
+  locationCatalog: LocationWithAssignments[];
   industries: Industry[];
-  listedLocations: number[];
-  listedServices: number[];
-  listedCategories: number[];
-  listedTeamMembers: number[];
+  industryTags: IndustryTag[];
+  selectedIndustryTags: IndustryTag[];
 }
 
 // Payload for publishing marketplace listing
@@ -109,6 +120,7 @@ export interface NewImageMeta {
 export interface PublishMarketplaceListingPayload {
   marketplaceName?: string;
   marketplaceEmail?: string;
+  marketplacePhone?: string;
   marketplaceDescription?: string;
   featuredImage?: string | null;
   portfolioImages?: string[];
@@ -116,13 +128,13 @@ export interface PublishMarketplaceListingPayload {
   showServices?: boolean;
   showLocations?: boolean;
   allowOnlineBooking?: boolean;
+  isVisible?: boolean;
   useBusinessName?: boolean;
   useBusinessEmail?: boolean;
+  useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
-  locationIds?: number[];
-  serviceIds?: number[];
-  categoryIds?: number[];
-  teamMemberIds?: number[];
+  industryTagIds?: number[];
+  // Note: Assignments are managed in the Assignments flow
   // Images diff payload for backend
   existingImageIds?: number[];
   newImagesMeta?: NewImageMeta[];
@@ -167,15 +179,11 @@ export interface MarketplaceState {
   error: string | null;
   business: Business | null;
   listing: MarketplaceListing | null;
-  locations: Location[];
-  services: Service[];
-  categories: Category[];
-  teamMembers: TeamMember[];
+  // Location-scoped catalog (read from actual assignment tables)
+  locationCatalog: LocationWithAssignments[];
   industries: Industry[];
-  listedLocations: number[];
-  listedServices: number[];
-  listedCategories: number[];
-  listedTeamMembers: number[];
+  industryTags: IndustryTag[];
+  selectedIndustryTags: IndustryTag[];
   isPublishing: boolean;
   isUpdatingVisibility: boolean;
   // Booking settings

@@ -15,6 +15,7 @@ export interface TextareaFieldProps {
   className?: string;
   showCharacterCount?: boolean;
   error?: string;
+  autoFocus?: boolean;
 }
 
 export const TextareaField: React.FC<TextareaFieldProps> = ({
@@ -29,6 +30,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
   className = "",
   showCharacterCount = true,
   error,
+  autoFocus = false,
 }) => {
   const currentLength = value?.length || 0;
   const isOverLimit = currentLength > maxLength;
@@ -58,6 +60,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         maxLength={maxLength}
+        autoFocus={autoFocus}
         className={`resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 h-28 sm:h-auto ${
           error
             ? "border-destructive bg-error-bg focus-visible:ring-error"

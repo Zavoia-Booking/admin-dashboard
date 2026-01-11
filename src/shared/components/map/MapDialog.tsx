@@ -211,9 +211,9 @@ export const MapDialog: React.FC<MapDialogProps> = ({
         >
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
-            {description && (
-              <DialogDescription>{description}</DialogDescription>
-            )}
+            <DialogDescription className={cn(!description && "sr-only")}>
+              {description || title}
+            </DialogDescription>
           </DialogHeader>
           
           {contentElement}

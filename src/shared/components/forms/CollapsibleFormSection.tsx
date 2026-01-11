@@ -8,7 +8,7 @@ import {
 } from '../ui/collapsible';
 
 export interface CollapsibleFormSectionProps {
-  icon: LucideIcon;
+  icon?: LucideIcon;
   title: string;
   description?: string;
   open: boolean;
@@ -38,9 +38,11 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
         <CollapsibleTrigger className="w-full">
           <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${iconBgColor}`}>
-                <Icon className={`h-5 w-5 ${iconColor}`} />
-              </div>
+              {Icon && (
+                <div className={`p-2 rounded-xl ${iconBgColor}`}>
+                  <Icon className={`h-5 w-5 ${iconColor}`} />
+                </div>
+              )}
               <div className="text-left">
                 <h3 className="text-base font-semibold text-foreground-1">{title}</h3>
                 {description && (

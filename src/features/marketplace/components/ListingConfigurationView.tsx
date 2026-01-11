@@ -1,97 +1,77 @@
-import { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../shared/components/ui/card';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../../../shared/components/ui/button';
-import { Switch } from '../../../shared/components/ui/switch';
-import { Input } from '../../../shared/components/ui/input';
-import { Textarea } from '../../../shared/components/ui/textarea';
-import { Label } from '../../../shared/components/ui/label';
-import { Pill } from '../../../shared/components/ui/pill';
-import { MultiSelect } from '../../../shared/components/common/MultiSelect';
-import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
-import { Checkbox } from '../../../shared/components/ui/checkbox';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
-import { Users, MapPin, FolderTree, Save, Eye, EyeOff, Store, Building2, User, Images, Megaphone, Settings } from 'lucide-react';
-import type { Location, Service, TeamMember, Category, Business } from '../types';
-import { MarketplaceImagesSection, type PortfolioImage } from './MarketplaceImagesSection';
-import { BookingSettingsTab } from './BookingSettingsTab';
+import { Save, AlertTriangle } from 'lucide-react';
+import { Card, CardContent } from '../../../shared/components/ui/card';
+import type { Location, Service, TeamMember, Business } from '../types';
+import { MarketplaceImagesSection } from './MarketplaceImagesSection';
+import { AdvancedSettingsSection, type AdvancedSettingsSectionRef } from './AdvancedSettingsSection';
+import { SectionDivider } from '../../../shared/components/common/SectionDivider';
+import { useMarketplaceForm } from '../hooks/useMarketplaceForm';
+import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 
-type MarketplaceTab = 'profile' | 'portfolio' | 'promotions' | 'booking-settings';
+// Profile Tab Components
+import { VisibilityToggleCard } from './profile/VisibilityToggleCard';
+import { BookingToggleCard } from './profile/BookingToggleCard';
+import { MarketplaceDetailsSection } from './profile/MarketplaceDetailsSection';
+import { LocationCatalogSection } from './profile/LocationCatalogSection';
+import IndustrySection from './profile/IndustrySection.tsx';
+
+type MarketplaceTab = 'profile' | 'portfolio' | 'promotions';
+
+interface LocationWithAssignments extends Location {
+  services: Service[];
+  teamMembers: TeamMember[];
+}
 
 interface ListingConfigurationViewProps {
   business: Business | null;
-  locations: Location[];
-  services: Service[];
-  categories: Category[];
-  teamMembers: TeamMember[];
-  listedLocations: number[];
-  listedServices: number[];
-  listedCategories: number[];
-  listedTeamMembers: number[];
+  locationsWithAssignments: LocationWithAssignments[];
   isPublishing: boolean;
   isVisible: boolean;
-  isUpdatingVisibility: boolean;
   isListed: boolean;
   marketplaceName?: string | null;
   marketplaceEmail?: string | null;
+  marketplacePhone?: string | null;
   marketplaceDescription?: string | null;
   useBusinessName?: boolean;
   useBusinessEmail?: boolean;
+  useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
   allowOnlineBooking: boolean;
   featuredImage?: string | null;
   portfolioImages?: string[] | null;
-  onSave: (data: {
-    locationIds: number[];
-    serviceIds: number[];
-    categoryIds: number[];
-    teamMemberIds: number[];
-    marketplaceName?: string;
-    marketplaceEmail?: string;
-    marketplaceDescription?: string;
-    useBusinessName: boolean;
-    useBusinessEmail: boolean;
-    useBusinessDescription: boolean;
-    allowOnlineBooking: boolean;
-    featuredImageId?: string | null;
-    portfolioImages?: PortfolioImage[];
-  }) => void;
-  onToggleVisibility: (isVisible: boolean) => void;
+  industries: any[];
+  industryTags: any[];
+  selectedIndustryTags: any[];
+  onSave: (data: any) => void;
+  onSaveBookingSettings: (data: any) => void;
 }
 
-export function ListingConfigurationView({
-  business,
-  locations: locationsFromProps,
-  services,
-  categories,
-  teamMembers,
-  listedLocations,
-  listedServices,
-  listedCategories,
-  listedTeamMembers,
-  isPublishing,
-  isVisible,
-  isUpdatingVisibility,
-  isListed,
-  marketplaceName,
-  marketplaceEmail,
-  marketplaceDescription,
-  useBusinessName: initialUseBusinessName,
-  useBusinessEmail: initialUseBusinessEmail,
-  useBusinessDescription: initialUseBusinessDescription,
-  allowOnlineBooking,
-  featuredImage,
-  portfolioImages,
-  onSave,
-  onToggleVisibility,
-}: ListingConfigurationViewProps) {
+export function ListingConfigurationView(props: ListingConfigurationViewProps) {
+  const {
+    business,
+    locationsWithAssignments,
+    isPublishing,
+    isListed,
+  } = props;
+
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const bookingSettingsRef = useRef<AdvancedSettingsSectionRef>(null);
+  const [bookingSettingsDirty, setBookingSettingsDirty] = useState(false);
+  
+  // State for unsaved changes confirmation dialog
+  const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
+  const pendingNavigationPathRef = useRef<string | null>(null);
+  const allowNavigationRef = useRef(false);
   
   // Get initial tab from URL or default to 'profile'
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get('tab') as MarketplaceTab | null;
-    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions' || tab === 'booking-settings')) {
+    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
       return tab;
     }
     return 'profile';
@@ -99,57 +79,117 @@ export function ListingConfigurationView({
 
   const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
 
-  // Sync with URL changes (for sidebar navigation)
+  // Sync with URL changes
   useEffect(() => {
     const tab = searchParams.get('tab') as MarketplaceTab | null;
-    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions' || tab === 'booking-settings')) {
+    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
       setActiveTab(tab);
+    } else if (tab === 'booking-settings') {
+      setActiveTab('profile');
+      navigate('/marketplace?tab=profile', { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
-  const [selectedLocationIds, setSelectedLocationIds] = useState<number[]>(listedLocations);
-  const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>(listedServices);
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState<number[]>(listedCategories);
-  const [selectedTeamMemberIds, setSelectedTeamMemberIds] = useState<number[]>(listedTeamMembers);
-  const [expandedCategoryIds, setExpandedCategoryIds] = useState<number[]>([]);
-  const [categorySearchTerms, setCategorySearchTerms] = useState<Record<number, string>>({});
-  const [categoryValidationErrors, setCategoryValidationErrors] = useState<number[]>([]);
-  
-  // Use locations directly from props
-  const locations = locationsFromProps;
-  
-  // Toggle states (default to true if undefined)
-  const [useBusinessName, setUseBusinessName] = useState<boolean>(initialUseBusinessName ?? true);
-  const [useBusinessEmail, setUseBusinessEmail] = useState<boolean>(initialUseBusinessEmail ?? true);
-  const [useBusinessDescription, setUseBusinessDescription] = useState<boolean>(initialUseBusinessDescription ?? true);
-  
-  // Marketplace-specific values
-  const [name, setName] = useState<string>(marketplaceName || business?.name || '');
-  const [email, setEmail] = useState<string>(marketplaceEmail || business?.email || '');
-  const [description, setDescription] = useState<string>(marketplaceDescription || business?.description || '');
-  
-  const [onlineBooking, setOnlineBooking] = useState<boolean>(allowOnlineBooking);
-  const [featuredImageId, setFeaturedImageId] = useState<string | null>(null);
-  const [portfolio, setPortfolio] = useState<PortfolioImage[]>([]);
+  // Check booking settings dirty state periodically
+  useEffect(() => {
+    const checkBookingDirty = () => {
+      const isDirty = bookingSettingsRef.current?.isDirty() ?? false;
+      setBookingSettingsDirty(isDirty);
+    };
 
-  // Initialize portfolio from existing images (convert URLs to PortfolioImage format)
-  useState(() => {
-    if (portfolioImages && portfolioImages.length > 0) {
-      const existingImages: PortfolioImage[] = portfolioImages.map((url, index) => ({
-        tempId: `existing-${index}`,
-        url,
-      }));
-      setPortfolio(existingImages);
+    // Check immediately
+    checkBookingDirty();
+
+    // Check every 500ms to detect changes in booking settings
+    const interval = setInterval(checkBookingDirty, 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const form = useMarketplaceForm({
+    business: props.business,
+    marketplaceName: props.marketplaceName,
+    marketplaceEmail: props.marketplaceEmail,
+    marketplacePhone: props.marketplacePhone,
+    marketplaceDescription: props.marketplaceDescription,
+    useBusinessName: props.useBusinessName ?? true,
+    useBusinessEmail: props.useBusinessEmail ?? true,
+    useBusinessPhone: props.useBusinessPhone ?? true,
+    useBusinessDescription: props.useBusinessDescription ?? true,
+    allowOnlineBooking: props.allowOnlineBooking,
+    isVisible: props.isVisible,
+    featuredImage: props.featuredImage,
+    portfolioImages: props.portfolioImages,
+    selectedIndustryTags: props.selectedIndustryTags,
+    onSave: props.onSave,
+  });
+
+  // Combined dirty state
+  const isCombinedDirty = form.isDirty || bookingSettingsDirty;
+
+  // Warn before closing browser tab/window with unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isCombinedDirty) {
+        e.preventDefault();
+        // Modern browsers ignore custom messages and show their own
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isCombinedDirty]);
+
+  // Custom navigation guard - intercept clicks on navigation links
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (!isCombinedDirty || allowNavigationRef.current) {
+        return;
+      }
+
+      const target = e.target as HTMLElement;
+      const link = target.closest('a[href]') as HTMLAnchorElement | null;
       
-      // Set featured if it exists
-      if (featuredImage) {
-        const featuredIndex = portfolioImages.indexOf(featuredImage);
-        if (featuredIndex !== -1) {
-          setFeaturedImageId(`existing-${featuredIndex}`);
+      if (link && link.href) {
+        const url = new URL(link.href);
+        const currentPath = location.pathname + location.search;
+        const targetPath = url.pathname + url.search;
+
+        // Only block if navigating away from marketplace
+        if (targetPath !== currentPath && !targetPath.startsWith('/marketplace')) {
+          e.preventDefault();
+          e.stopPropagation();
+          pendingNavigationPathRef.current = targetPath;
+          setShowUnsavedDialog(true);
         }
       }
+    };
+
+    document.addEventListener('click', handleClick, true);
+    return () => document.removeEventListener('click', handleClick, true);
+  }, [isCombinedDirty, location]);
+
+  // Dialog handlers
+  const handleConfirmLeave = () => {
+    setShowUnsavedDialog(false);
+    allowNavigationRef.current = true;
+    
+    if (pendingNavigationPathRef.current) {
+      navigate(pendingNavigationPathRef.current);
+      pendingNavigationPathRef.current = null;
     }
-  });
+
+    // Reset flag after navigation
+    setTimeout(() => {
+      allowNavigationRef.current = false;
+    }, 100);
+  };
+
+  const handleCancelLeave = () => {
+    setShowUnsavedDialog(false);
+    pendingNavigationPathRef.current = null;
+  };
 
   const handleTabChange = (tabId: string) => {
     const tab = tabId as MarketplaceTab;
@@ -157,686 +197,198 @@ export function ListingConfigurationView({
     navigate(`/marketplace?tab=${tab}`, { replace: true });
   };
 
-  const toggleLocation = (id: number) => {
-    setSelectedLocationIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleService = (id: number) => {
-    setSelectedServiceIds(prev => {
-      const isSelected = prev.includes(id);
-      const next = isSelected ? prev.filter(x => x !== id) : [...prev, id];
-
-      // When selecting a service, clear validation error for its category if it becomes valid
-      const service = services.find(s => s.id === id);
-      const categoryId = service?.categoryId ?? service?.category?.id;
-
-      if (categoryId && !isSelected) {
-        const categoryServices = services.filter(
-          (svc) => svc.categoryId === categoryId || svc.category?.id === categoryId
-        );
-        const hasSelected = categoryServices.some((svc) => next.includes(svc.id));
-
-        if (hasSelected) {
-          setCategoryValidationErrors((prevErrors) =>
-            prevErrors.filter((cid) => cid !== categoryId)
-          );
-        }
-      }
-
-      return next;
-    });
-  };
-
-  const toggleCategory = (id: number) => {
-    setSelectedCategoryIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const toggleTeamMember = (id: number) => {
-    setSelectedTeamMemberIds(prev =>
-      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
-    );
-  };
-
-  const handleSave = () => {
-    // Validate that each selected category has at least one selected service
-    const invalidCategoryIds = selectedCategoryIds.filter((categoryId) => {
-      const categoryServices = services.filter(
-        (service) =>
-          service.categoryId === categoryId || service.category?.id === categoryId
-      );
-      if (categoryServices.length === 0) return true;
-      return !categoryServices.some((service) => selectedServiceIds.includes(service.id));
-    });
-
-    if (invalidCategoryIds.length > 0) {
-      setCategoryValidationErrors(invalidCategoryIds);
-      // Expand invalid categories so the user sees the message
-      setExpandedCategoryIds((prev) =>
-        Array.from(new Set([...prev, ...invalidCategoryIds]))
-      );
-      return;
+  // Combined save handler
+  const handleCombinedSave = () => {
+    // Save marketplace listing
+    form.handleSave();
+    
+    // Save booking settings if they're dirty
+    if (bookingSettingsDirty && bookingSettingsRef.current) {
+      const bookingSettings = bookingSettingsRef.current.getCurrentSettings();
+      props.onSaveBookingSettings(bookingSettings);
     }
-
-    // Clear previous errors on successful validation
-    if (categoryValidationErrors.length > 0) {
-      setCategoryValidationErrors([]);
-    }
-    onSave({
-      locationIds: selectedLocationIds,
-      serviceIds: selectedServiceIds,
-      categoryIds: selectedCategoryIds,
-      teamMemberIds: selectedTeamMemberIds,
-      marketplaceName: useBusinessName ? business?.name : name,
-      marketplaceEmail: useBusinessEmail ? business?.email : email,
-      marketplaceDescription: useBusinessDescription ? business?.description : description,
-      useBusinessName,
-      useBusinessEmail,
-      useBusinessDescription,
-      allowOnlineBooking: onlineBooking,
-      featuredImageId,
-      portfolioImages: portfolio,
-    });
   };
-
-  // Profile Tab Content
-  const ProfileTabContent = () => (
-    <div className="space-y-6">
-      {/* Visibility Toggle Card - Only show when already listed */}
-      {isListed && (
-        <Card className={isVisible ? "border-green-500/50 bg-green-500/5 dark:bg-green-500/10" : "border-orange-500/50 bg-orange-500/5 dark:bg-orange-500/10"}>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {isVisible ? (
-                  <Eye className="h-5 w-5 text-green-600 dark:text-green-500" />
-                ) : (
-                  <EyeOff className="h-5 w-5 text-orange-600 dark:text-orange-500" />
-                )}
-                <div>
-                  <h3 className="font-semibold text-base text-foreground">
-                    {isVisible ? 'Listing is Visible' : 'Listing is Hidden'}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {isVisible 
-                      ? 'Your business is visible to users in the marketplace' 
-                      : 'Your business is hidden from the marketplace'}
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={isVisible}
-                onCheckedChange={onToggleVisibility}
-                disabled={isUpdatingVisibility}
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Marketplace Details Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Store className="h-5 w-5" />
-            Marketplace Details
-          </CardTitle>
-          <CardDescription>
-            Customize how your business appears in the marketplace
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Business Name */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="marketplaceName">Business Name</Label>
-                <p className="text-xs text-muted-foreground">
-                  {useBusinessName ? 'Using your business name' : 'Custom marketplace name'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={useBusinessName}
-                  onCheckedChange={setUseBusinessName}
-                />
-              </div>
-            </div>
-            {useBusinessName ? (
-              <div className="p-3 rounded-md bg-muted/50 border">
-                <p className="text-sm font-medium">{business?.name || 'N/A'}</p>
-                <p className="text-xs text-muted-foreground mt-1">From your business profile</p>
-              </div>
-            ) : (
-              <Input
-                id="marketplaceName"
-                placeholder="Enter custom marketplace name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            )}
-          </div>
-
-          {/* Business Email */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="marketplaceEmail">Contact Email</Label>
-                <p className="text-xs text-muted-foreground">
-                  {useBusinessEmail ? 'Using your business email' : 'Custom marketplace email'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={useBusinessEmail}
-                  onCheckedChange={setUseBusinessEmail}
-                />
-              </div>
-            </div>
-            {useBusinessEmail ? (
-              <div className="p-3 rounded-md bg-muted/50 border">
-                <p className="text-sm font-medium">{business?.email || 'N/A'}</p>
-                <p className="text-xs text-muted-foreground mt-1">From your business profile</p>
-              </div>
-            ) : (
-              <Input
-                id="marketplaceEmail"
-                type="email"
-                placeholder="contact@yourbusiness.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            )}
-          </div>
-
-          {/* Business Description */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="marketplaceDescription">Description</Label>
-                <p className="text-xs text-muted-foreground">
-                  {useBusinessDescription ? 'Using your business description' : 'Custom marketplace description'}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-muted-foreground" />
-                <Switch
-                  checked={useBusinessDescription}
-                  onCheckedChange={setUseBusinessDescription}
-                />
-              </div>
-            </div>
-            {useBusinessDescription ? (
-              <div className="p-3 rounded-md bg-muted/50 border min-h-[100px]">
-                <p className="text-sm">{business?.description || 'N/A'}</p>
-                <p className="text-xs text-muted-foreground mt-2">From your business profile</p>
-              </div>
-            ) : (
-              <Textarea
-                id="marketplaceDescription"
-                placeholder="Describe your business and services..."
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={4}
-              />
-            )}
-          </div>
-
-          <div className="flex items-center justify-between pt-4 border-t">
-            <div className="space-y-0.5">
-              <Label htmlFor="allowOnlineBooking" className="text-base">
-                Allow Online Booking
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Let customers book appointments directly from the marketplace
-              </p>
-            </div>
-            <Switch
-              id="allowOnlineBooking"
-              checked={onlineBooking}
-              onCheckedChange={setOnlineBooking}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Team Members Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Team Members
-          </CardTitle>
-          <CardDescription>
-            Select team members to feature on your marketplace profile
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {teamMembers.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No team members available</p>
-          ) : (
-            <div className="flex flex-wrap gap-2 sm:gap-3">
-              {teamMembers.map((member) => (
-                <Pill
-                  key={member.id}
-                  selected={selectedTeamMemberIds.includes(member.id)}
-                  icon={Users}
-                  className="w-auto justify-start items-start transition-none active:scale-100"
-                  showCheckmark={true}
-                  onClick={() => toggleTeamMember(member.id)}
-                >
-                  <div className="flex flex-col text-left">
-                    <div className="flex items-center">
-                      {member.firstName} {member.lastName}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {member.email}
-                    </div>
-                  </div>
-                </Pill>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Locations Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Locations
-          </CardTitle>
-          <CardDescription>
-            Select locations to display on your marketplace profile
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {locations.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No locations available</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                {locations.map((location) => (
-                  <div key={location.id} className="relative">
-                    <Pill
-                      selected={selectedLocationIds.includes(location.id)}
-                      icon={MapPin}
-                      className="w-auto justify-start items-start transition-none active:scale-100"
-                      showCheckmark={true}
-                      onClick={() => toggleLocation(location.id)}
-                    >
-                      <div className="flex flex-col text-left">
-                        <div className="flex items-center gap-2">
-                          {location.name}
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {location.address}
-                        </div>
-                      </div>
-                    </Pill>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Categories Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FolderTree className="h-5 w-5" />
-            Service Categories
-          </CardTitle>
-          <CardDescription>
-            Select service categories to display on your marketplace profile
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No categories available</p>
-          ) : (
-            <div className="space-y-4">
-              <div className="max-w-md">
-                <MultiSelect
-                  value={selectedCategoryIds.map(String)}
-                  onChange={(newSelectedIds) => {
-                    const currentIds = new Set(selectedCategoryIds.map(String));
-                    
-                    // Toggle newly selected categories
-                    newSelectedIds.forEach((id) => {
-                      if (!currentIds.has(String(id))) {
-                        toggleCategory(Number(id));
-                      }
-                    });
-
-                    // Toggle deselected categories
-                    selectedCategoryIds.forEach((id) => {
-                      if (!newSelectedIds.includes(String(id))) {
-                        toggleCategory(Number(id));
-                      }
-                    });
-                  }}
-                  options={categories.map((category) => ({
-                    id: String(category.id),
-                    name: category.name,
-                    subtitle: category.description || undefined,
-                  }))}
-                  placeholder="+ Add Categories"
-                  searchPlaceholder="Search categories..."
-                />
-              </div>
-
-              {selectedCategoryIds.length > 0 && (
-                <div className="mt-2 space-y-3">
-                  {categories
-                    .filter((category) => selectedCategoryIds.includes(category.id))
-                    .map((category) => {
-                      const allCategoryServices = services.filter(
-                        (service) =>
-                          service.categoryId === category.id ||
-                          service.category?.id === category.id
-                      );
-                      const selectedCount = allCategoryServices.filter((service) =>
-                        selectedServiceIds.includes(service.id)
-                      ).length;
-                      const totalCount = allCategoryServices.length;
-                      const searchTerm = categorySearchTerms[category.id] || '';
-
-                      const filteredServices = allCategoryServices.filter((service) =>
-                        service.name.toLowerCase().includes(searchTerm.toLowerCase())
-                      );
-
-                      return (
-                        <CollapsibleFormSection
-                          key={category.id}
-                          icon={FolderTree}
-                          title={category.name}
-                          description={
-                            totalCount > 0
-                              ? `${selectedCount} of ${totalCount} services selected`
-                              : 'No services in this category'
-                          }
-                          open={expandedCategoryIds.includes(category.id)}
-                          onOpenChange={(open) => {
-                            setExpandedCategoryIds((prev) =>
-                              open
-                                ? [...prev, category.id]
-                                : prev.filter((id) => id !== category.id)
-                            );
-                          }}
-                          className="bg-muted/40 px-3 py-2 rounded-lg"
-                        >
-                          {totalCount === 0 ? (
-                            <div className="py-3 space-y-1 text-xs">
-                              <div className="text-muted-foreground">
-                                No services belong to this category yet.
-                              </div>
-                              {categoryValidationErrors.includes(category.id) && (
-                                <div className="text-destructive">
-                                  You cannot publish this category until it has at least one service.
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="max-h-64 overflow-y-auto pr-1">
-                              <div className="sticky top-0 z-10 bg-muted/60 pt-1 pb-2 space-y-2">
-                                {categoryValidationErrors.includes(category.id) && (
-                                  <div className="text-xs text-destructive">
-                                    Remove this category, or select at least one service to publish.
-                                  </div>
-                                )}
-                                <Input
-                                  value={searchTerm}
-                                  onChange={(e) =>
-                                    setCategorySearchTerms((prev) => ({
-                                      ...prev,
-                                      [category.id]: e.target.value,
-                                    }))
-                                  }
-                                  placeholder="Search services in this category..."
-                                  className="h-8 text-xs"
-                                />
-
-                                <div
-                                  role="button"
-                                  tabIndex={0}
-                                  onClick={() => {
-                                    const allSelected =
-                                      totalCount > 0 &&
-                                      allCategoryServices.every((service) =>
-                                        selectedServiceIds.includes(service.id)
-                                      );
-
-                                    setSelectedServiceIds((prev) => {
-                                      const categoryServiceIds = allCategoryServices.map(
-                                        (service) => service.id
-                                      );
-
-                                      if (allSelected) {
-                                        // Unselect all services in this category
-                                        return prev.filter(
-                                          (id) => !categoryServiceIds.includes(id)
-                                        );
-                                      }
-
-                                      // Select all services in this category
-                                      const merged = new Set([...prev, ...categoryServiceIds]);
-                                      return Array.from(merged);
-                                    });
-                                  }}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                      e.preventDefault();
-                                      const allSelected =
-                                        totalCount > 0 &&
-                                        allCategoryServices.every((service) =>
-                                          selectedServiceIds.includes(service.id)
-                                        );
-
-                                      setSelectedServiceIds((prev) => {
-                                        const categoryServiceIds = allCategoryServices.map(
-                                          (service) => service.id
-                                        );
-
-                                        if (allSelected) {
-                                          return prev.filter(
-                                            (id) => !categoryServiceIds.includes(id)
-                                          );
-                                        }
-
-                                        const merged = new Set([...prev, ...categoryServiceIds]);
-                                        return Array.from(merged);
-                                      });
-                                    }
-                                  }}
-                                  className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none"
-                                >
-                                  <Checkbox
-                                    checked={
-                                      totalCount > 0 &&
-                                      allCategoryServices.every((service) =>
-                                        selectedServiceIds.includes(service.id)
-                                      )
-                                    }
-                                    className="h-3.5 w-3.5 !min-h-0 !min-w-0"
-                                  />
-                                  <span className="text-xs font-medium">
-                                    All services in this category
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-2 space-y-1 pb-2">
-                                {filteredServices.length === 0 ? (
-                                  <div className="py-2 text-xs text-muted-foreground">
-                                    No services match your search.
-                                  </div>
-                                ) : (
-                                  filteredServices.map((service) => {
-                                    const checked = selectedServiceIds.includes(service.id);
-                                    const handleToggle = () => toggleService(service.id);
-
-                                    return (
-                                      <div
-                                        key={service.id}
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={handleToggle}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            handleToggle();
-                                          }
-                                        }}
-                                        className="w-full flex items-center justify-between gap-3 rounded-md px-2 py-1.5 text-left hover:bg-background/60 focus:outline-none"
-                                      >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          <Checkbox
-                                            checked={checked}
-                                            onCheckedChange={handleToggle}
-                                            className="h-3.5 w-3.5 !min-h-0 !min-w-0"
-                                          />
-                                          <span className="text-sm font-medium truncate">
-                                            {service.name}
-                                          </span>
-                                        </div>
-                                        <span className="text-[11px] text-muted-foreground shrink-0">
-                                          {(service.price_amount_minor / 100).toFixed(2)} •{' '}
-                                          {service.duration} min
-                                        </span>
-                                      </div>
-                                    );
-                                  })
-                                )}
-                              </div>
-                            </div>
-                          )}
-                        </CollapsibleFormSection>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Save Button */}
-      <div className="flex justify-end gap-3">
-        <Button 
-          onClick={handleSave} 
-          size="lg" 
-          className="gap-2"
-          disabled={isPublishing}
-        >
-          <Save className="h-4 w-4" />
-          {isPublishing ? 'Publishing...' : 'Save & Publish Listing'}
-        </Button>
-      </div>
-    </div>
-  );
-
-  // Portfolio Tab Content
-  const PortfolioTabContent = () => (
-    <div className="space-y-6">
-      <MarketplaceImagesSection
-        featuredImageId={featuredImageId}
-        portfolioImages={portfolio}
-        onFeaturedImageChange={setFeaturedImageId}
-        onPortfolioImagesChange={setPortfolio}
-      />
-
-      {/* Save Button */}
-      <div className="flex justify-end gap-3">
-        <Button 
-          onClick={handleSave} 
-          size="lg" 
-          className="gap-2"
-          disabled={isPublishing}
-        >
-          <Save className="h-4 w-4" />
-          {isPublishing ? 'Publishing...' : 'Save & Publish Listing'}
-        </Button>
-      </div>
-    </div>
-  );
-
-  // Promotions Tab Content
-  const PromotionsTabContent = () => (
-    <div className="flex flex-col items-center justify-center py-20 text-center gap-6">
-      {/* Illustration */}
-      <div className="relative w-full max-w-md h-44 text-left">
-        {/* Subtle background glow */}
-        <div className="absolute inset-0 -top-4 -bottom-4 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-2xl opacity-50 dark:opacity-40" />
-        
-        {/* back cards with better shadows */}
-        <div className="absolute inset-x-10 top-2 h-28 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-lg opacity-70 rotate-[-14deg] blur-[0.5px]" />
-        <div className="absolute inset-x-6 top-10 h-30 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-xl opacity-85 rotate-[10deg] blur-[0.5px]" />
-
-        {/* front card */}
-        <div className="absolute inset-x-2 top-6 h-32 rounded-2xl bg-surface dark:bg-neutral-900 border border-border shadow-xl overflow-hidden">
-          <div className="h-full w-full px-5 py-4 flex flex-col items-center justify-center gap-3">
-            <Megaphone className="h-10 w-10 text-muted-foreground" />
-            <div className="h-3 w-32 rounded bg-neutral-300 dark:bg-neutral-800" />
-          </div>
-        </div>
-      </div>
-
-      {/* Copy */}
-      <div className="space-y-2 max-w-md px-4">
-        <h3 className="text-lg font-semibold text-foreground-1">
-          Promotions Coming Soon
-        </h3>
-        <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-          Create discounts, special offers, and promotional campaigns to attract more customers from the marketplace.
-        </p>
-      </div>
-    </div>
-  );
 
   const tabItems: ResponsiveTabItem[] = [
     {
       id: 'profile',
       label: 'Profile',
-      icon: User,
-      content: <ProfileTabContent />,
+      content: (
+        <div className="max-w-5xl">
+          <Card className="border-none pt-0 sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-card overflow-hidden">
+            <CardContent className="p-0 sm:p-4 space-y-10">
+              {/* Visibility & Booking Section */}
+              <div className="px-0 space-y-6">
+                <SectionDivider title="Visibility & Appointments" className='mt-4 uppercase tracking-wider text-foreground-2' />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {isListed && (
+                    <VisibilityToggleCard 
+                      isVisible={form.isVisible}
+                      onToggleVisibility={form.setIsVisible}
+                      isUpdatingVisibility={isPublishing}
+                    />
+                  )}
+                  <BookingToggleCard 
+                    onlineBooking={form.onlineBooking}
+                    setOnlineBooking={form.setOnlineBooking}
+                  />
+                </div>
+              </div>
+
+              {/* Marketplace Details Section */}
+              <MarketplaceDetailsSection 
+                business={business}
+                useBusinessName={form.useBusinessName}
+                setUseBusinessName={form.setUseBusinessName}
+                name={form.name}
+                setName={form.setName}
+                useBusinessEmail={form.useBusinessEmail}
+                setUseBusinessEmail={form.setUseBusinessEmail}
+                email={form.email}
+                setEmail={form.setEmail}
+                useBusinessPhone={form.useBusinessPhone}
+                setUseBusinessPhone={form.setUseBusinessPhone}
+                phone={form.phone}
+                setPhone={form.setPhone}
+                useBusinessDescription={form.useBusinessDescription}
+                setUseBusinessDescription={form.setUseBusinessDescription}
+                description={form.description}
+                setDescription={form.setDescription}
+                nameError={form.nameError || undefined}
+                emailError={form.emailError || undefined}
+                phoneError={form.phoneError || undefined}
+                descriptionError={form.descriptionError || undefined}
+              />
+
+              {/* Industry & Tags Section */}
+              <IndustrySection 
+                industries={props.industries}
+                industryTags={props.industryTags}
+                selectedTags={form.selectedIndustryTags}
+                onTagsChange={form.setSelectedIndustryTags}
+                error={form.industryTagsError || undefined}
+              />
+
+              {/* Location Catalog Section */}
+              <LocationCatalogSection 
+                locations={locationsWithAssignments}
+              />
+
+              <div className="pt-4">
+                <SectionDivider title="Configuration" />
+                <AdvancedSettingsSection ref={bookingSettingsRef} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ),
     },
     {
       id: 'portfolio',
       label: 'Portfolio',
-      icon: Images,
-      content: <PortfolioTabContent />,
+      content: (
+        <div className="space-y-6">
+          <MarketplaceImagesSection
+            featuredImageId={form.featuredImageId}
+            portfolioImages={form.portfolio}
+            onFeaturedImageChange={form.setFeaturedImageId}
+            onPortfolioImagesChange={form.setPortfolio}
+          />
+        </div>
+      ),
     },
     {
       id: 'promotions',
       label: 'Promotions',
-      icon: Megaphone,
-      content: <PromotionsTabContent />,
-    },
-    {
-      id: 'booking-settings',
-      label: 'Booking Settings',
-      icon: Settings,
-      content: <BookingSettingsTab />,
+      content: (
+        <div className="flex flex-col items-start justify-start py-10 text-left gap-6">
+          {/* Illustration */}
+          <div className="relative w-full max-w-md h-44 text-left">
+            {/* Subtle background glow */}
+            <div className="absolute inset-0 -top-4 -bottom-4 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-2xl opacity-50 dark:opacity-40" />
+            
+            {/* back cards with better shadows */}
+            <div className="absolute inset-x-10 top-2 h-28 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-lg opacity-70 rotate-[-14deg] blur-[0.5px]" />
+            <div className="absolute inset-x-6 top-10 h-30 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-xl opacity-85 rotate-[10deg] blur-[0.5px]" />
+
+            {/* front card */}
+            <div className="absolute inset-x-2 top-6 h-32 rounded-2xl bg-surface dark:bg-neutral-900 border border-border shadow-xl overflow-hidden">
+              <div className="h-full w-full px-5 py-4 flex flex-col items-center justify-center gap-3">
+                <div className="h-3 w-32 rounded bg-neutral-300 dark:bg-neutral-800" />
+              </div>
+            </div>
+          </div>
+
+          {/* Copy */}
+          <div className="space-y-2 max-w-md px-4">
+            <h3 className="text-lg font-semibold text-foreground-1">
+              Promotions Coming Soon
+            </h3>
+            <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+              Create discounts, special offers, and promotional campaigns to attract more customers from the marketplace.
+            </p>
+          </div>
+        </div>
+      ),
     },
   ];
 
+  // Dynamic button text based on listing state
+  const buttonText = isListed ? 'Save Changes' : 'Publish';
+  const buttonLoadingText = isPublishing ? (isListed ? 'Saving...' : 'Publishing...') : buttonText;
+
+  const SaveButton = (
+    <Button 
+      onClick={handleCombinedSave} 
+      className="group btn-primary !min-h-0 !h-11 !px-6 -mt-4 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold text-sm flex items-center gap-2 !w-52 sm:w-auto"
+      disabled={isPublishing || !isCombinedDirty || form.hasValidationErrors}
+    >
+      {isPublishing ? (
+        <>
+          <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+          <span>{buttonLoadingText}</span>
+        </>
+      ) : (
+        <>
+          <Save className="h-4 w-4" />
+          <span>{buttonText}</span>
+        </>
+      )}
+    </Button>
+  );
+
   return (
-    <div className="cursor-default">
-      {/* Responsive Tabs */}
-      <ResponsiveTabs
-        items={tabItems}
-        value={activeTab}
-        onValueChange={handleTabChange}
+    <>
+      <div className="cursor-default">
+        {/* Responsive Tabs */}
+        <ResponsiveTabs
+          items={tabItems}
+          value={activeTab}
+          onValueChange={handleTabChange}
+          rightContent={SaveButton}
+          stickyHeader={true}
+        />
+      </div>
+
+      {/* Unsaved Changes Confirmation Dialog */}
+      <ConfirmDialog
+        open={showUnsavedDialog}
+        onConfirm={handleConfirmLeave}
+        onCancel={handleCancelLeave}
+        onOpenChange={setShowUnsavedDialog}
+        title="Unsaved Changes"
+        description="You have unsaved changes that will be lost if you leave. Are you sure you want to continue?"
+        confirmTitle="Leave"
+        cancelTitle="Cancel"
+        variant="destructive"
+        icon={AlertTriangle}
+        iconBgColor="transparent"
+        iconColor="text-destructive"
+        showCloseButton
+        footerClassName=""
+        cancelClassName="w-44"
+        confirmClassName="w-32"
       />
-    </div>
+    </>
   );
 }

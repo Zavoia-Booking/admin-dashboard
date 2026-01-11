@@ -20,6 +20,9 @@ interface ResponsiveTabsProps {
   className?: string;
   tabsClassName?: string;
   contentClassName?: string;
+  headerClassName?: string;
+  rightContent?: React.ReactNode;
+  stickyHeader?: boolean;
 }
 
 export function ResponsiveTabs({
@@ -30,6 +33,9 @@ export function ResponsiveTabs({
   className,
   tabsClassName,
   contentClassName,
+  headerClassName,
+  rightContent,
+  stickyHeader = false,
 }: ResponsiveTabsProps) {
   const [internalValue, setInternalValue] = React.useState(
     defaultValue || items[0]?.id || ""
@@ -72,76 +78,86 @@ export function ResponsiveTabs({
 
 
   return (
-    <div className={cn("space-y-6", className)}>
-      {/* Tabs */}
+    <div className={cn("space-y-6 bg-transparent top-0 left-0 right-0 absolute max-w-256", className)}>
+      {/* Tabs Header */}
       <div
         className={cn(
-          "mb-4 w-full",
-          !isMobile && "border-b border-border-strong"
+          "w-full h-[61px] pt-4 pl-4 pr-4 transition-all duration-300",
+          stickyHeader && "sticky top-0 z-40 bg-transparent backdrop-blur-sm",
+          !isMobile && "border-b border-border-strong",
+          headerClassName
         )}
       >
-        <div
-          ref={tabsListRef}
-          className={cn(
-            "relative flex w-full items-stretch",
-            isMobile ? "gap-1 rounded-full bg-muted p-1" : "gap-4",
-            tabsClassName
-          )}
-        >
-          {items.map((item) => {
-            const isActive = value === item.id;
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-0">
+          <div
+            ref={tabsListRef}
+            className={cn(
+              "relative flex items-stretch",
+              isMobile ? "w-full gap-1 rounded-full bg-muted p-1" : "gap-4",
+              tabsClassName
+            )}
+          >
+            {items.map((item) => {
+              const isActive = value === item.id;
 
-            return (
-              <button
-                key={item.id}
-                data-tab-id={item.id}
-                onClick={() => setValue(item.id)}
-                className={cn(
-                  "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors",
-                  isMobile
-                    ? "flex-1 rounded-full px-1.5 py-1.5"
-                    : "flex-none rounded-none px-4 py-2 text-sm",
-                  isActive
-                    ? "text-foreground cursor-default"
-                    : "text-foreground-2 hover:text-foreground cursor-pointer"
-                )}
-              >
-                <div className="flex items-center gap-2">
-                  {/* {Icon && !isMobile && <Icon className="h-4 w-4" />} */}
-                  <span className="text-sm md:text-lg ">
-                    {isMobile && item.mobileLabel ? item.mobileLabel : item.label}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={item.id}
+                  data-tab-id={item.id}
+                  onClick={() => setValue(item.id)}
+                  className={cn(
+                    "relative z-10 flex items-center !pt-0 justify-center gap-2 text-xs font-medium transition-colors",
+                    isMobile
+                      ? "flex-1 rounded-full px-1.5 py-1.5"
+                      : "flex-none rounded-none px-4 py-2 text-sm",
+                    isActive
+                      ? "text-foreground cursor-default"
+                      : "text-foreground-2 hover:text-foreground cursor-pointer"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    {/* {Icon && !isMobile && <Icon className="h-4 w-4" />} */}
+                    <span className="text-sm md:text-lg ">
+                      {isMobile && item.mobileLabel ? item.mobileLabel : item.label}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
 
-          {/* Animated mobile pill indicator */}
-          {isMobile && indicatorStyle && (
-            <span
-              className="pointer-events-none absolute inset-y-1 block rounded-full bg-sidebar shadow-sm transition-all duration-300 ease-out"
-              style={{
-                width: `${Math.max(0, indicatorStyle.width - 2)}px`,
-                transform: `translateX(${indicatorStyle.left - 3}px)`,
-              }}
-            />
-          )}
+            {/* Animated mobile pill indicator */}
+            {isMobile && indicatorStyle && (
+              <span
+                className="pointer-events-none absolute inset-y-1 block rounded-full bg-sidebar shadow-sm transition-all duration-300 ease-out"
+                style={{
+                  width: `${Math.max(0, indicatorStyle.width - 2)}px`,
+                  transform: `translateX(${indicatorStyle.left - 3}px)`,
+                }}
+              />
+            )}
 
-          {/* Animated underline indicator on desktop */}
-          {!isMobile && indicatorStyle && (
-            <span
-              className="pointer-events-none absolute -bottom-[1px] h-0.5 rounded-full bg-primary transition-all duration-300 ease-out"
-              style={{
-                width: `${indicatorStyle.width}px`,
-                transform: `translateX(${indicatorStyle.left}px)`,
-              }}
-            />
+            {/* Animated underline indicator on desktop */}
+            {!isMobile && indicatorStyle && (
+              <span
+                className="pointer-events-none absolute -bottom-[1px] h-0.5 rounded-full bg-primary transition-all duration-300 ease-out"
+                style={{
+                  width: `${indicatorStyle.width}px`,
+                  transform: `translateX(${indicatorStyle.left}px)`,
+                }}
+              />
+            )}
+          </div>
+
+          {rightContent && (
+            <div className="w-full sm:w-auto flex justify-end items-center">
+              {rightContent}
+            </div>
           )}
         </div>
       </div>
 
       {/* Tab Content - Keep all tabs mounted but hidden to prevent remounting */}
-      <div className={cn("outline-none", contentClassName)}>
+      <div className={cn("outline-none pl-4", contentClassName)}>
         {items.map((item) => {
           const isActive = value === item.id;
           return (

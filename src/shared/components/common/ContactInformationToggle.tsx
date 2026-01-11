@@ -3,6 +3,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Switch } from '../ui/switch';
 import { Mail, Phone, AlertCircle } from 'lucide-react';
+import { Badge } from '../ui/badge';
 
 export interface ContactInformationToggleProps {
   // Toggle state
@@ -38,6 +39,7 @@ export interface ContactInformationToggleProps {
   // Optional helper text overrides (used to tailor copy)
   helperTextOn?: string;
   helperTextOff?: string;
+  autoFocusOnToggle?: boolean;
 }
 
 export const ContactInformationToggle: React.FC<ContactInformationToggleProps> = ({
@@ -61,6 +63,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
   phoneLabel = '',
   helperTextOn,
   helperTextOff,
+  autoFocusOnToggle = false,
 }) => {
   const inheritedWhat = showEmail && showPhone
     ? 'email and phone number'
@@ -110,7 +113,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
       )}
 
       {!useInheritedContact && (
-        <div className="mt-4 pt-4 border-t border-border">
+        <div className="mt-4 pt-4 border-t border-border relative">
           <div className={`grid grid-cols-1 ${showEmail && showPhone ? 'md:grid-cols-2' : ''} gap-4`}>
             {/* Email Field */}
             {showEmail && (
@@ -127,6 +130,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                     placeholder="e.g. contact@yourbusiness.com"
                     value={localEmail}
                     onChange={(e) => onEmailChange(e.target.value)}
+                    autoFocus={autoFocusOnToggle}
                     className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                       emailError
                         ? 'border-destructive bg-error-bg focus-visible:ring-error'
@@ -184,6 +188,18 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="absolute -bottom-1 right-0 pointer-events-none">
+            <Badge
+              variant="secondary"
+              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+            >
+              <div className="h-2 w-2 rounded-full bg-purple-500" />
+              <span className="text-neutral-900 dark:text-foreground-1">
+                Custom
+              </span>
+            </Badge>
           </div>
         </div>
       )}

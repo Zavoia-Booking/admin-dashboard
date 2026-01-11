@@ -29,7 +29,7 @@ function Switch({
     <SwitchPrimitive.Root
       data-slot="switch"
       className={cn(
-        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-border-strong focus-visible:border-focus focus-visible:ring-focus/50 dark:data-[state=unchecked]:bg-surface-hover inline-flex !h-5 !w-9 !min-h-0 !min-w-0 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50",
+        "peer data-[state=checked]:bg-primary data-[state=unchecked]:bg-border-strong focus-visible:border-focus focus-visible:ring-focus/50 dark:data-[state=unchecked]:bg-surface-hover inline-flex !h-5 !w-9 !min-h-0 !min-w-0 shrink-0 items-center rounded-full border border-transparent shadow-xs transition-all outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
         className
       )}
       onKeyDown={handleKeyDown}

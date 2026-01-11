@@ -1,24 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
-import { fetchMarketplaceListingAction, publishMarketplaceListingAction, updateMarketplaceVisibilityAction } from '../actions';
+import { 
+  fetchMarketplaceListingAction, 
+  publishMarketplaceListingAction, 
+  updateBookingSettingsAction
+} from '../actions';
 import { fetchCurrentBusinessAction } from '../../business/actions';
 import type { PortfolioImage } from '../components/MarketplaceImagesSection';
-import type { PublishMarketplaceListingRequest } from '../types';
+import type { PublishMarketplaceListingRequest, UpdateBookingSettingsPayload } from '../types';
 import { 
   selectMarketplaceBusiness,
   selectMarketplaceListing, 
   selectMarketplaceLoading,
-  selectMarketplaceLocations,
-  selectMarketplaceServices,
-  selectMarketplaceCategories,
-  selectMarketplaceTeamMembers,
-  selectListedLocations,
-  selectListedServices,
-  selectListedCategories,
-  selectListedTeamMembers,
+  selectLocationCatalog,
   selectMarketplacePublishing,
-  selectMarketplaceUpdatingVisibility,
+  selectBookingSettingsSaving,
+  selectMarketplaceIndustries,
+  selectMarketplaceIndustryTags,
+  selectMarketplaceSelectedIndustryTags,
 } from '../selectors';
 import { getCurrentBusinessSelector } from '../../business/selectors';
 import { NotListedYetView } from '../components/NotListedYetView';
@@ -27,7 +28,8 @@ import { MarketplaceSkeleton } from '../components/MarketplaceSkeleton';
 import { ListingConfigurationSkeleton } from '../components/ListingConfigurationSkeleton';
 
 export default function MarketplacePage() {
-  const dispatch = useDispatch();  
+  const dispatch = useDispatch();
+  const location = useLocation();
   const marketplaceBusiness = useSelector(selectMarketplaceBusiness);
   const globalBusiness = useSelector(getCurrentBusinessSelector);
   
@@ -39,23 +41,20 @@ export default function MarketplacePage() {
     : (marketplaceBusiness || globalBusiness);
   const listing = useSelector(selectMarketplaceListing);
   const isLoading = useSelector(selectMarketplaceLoading);
-  const locations = useSelector(selectMarketplaceLocations);
-  const services = useSelector(selectMarketplaceServices);
-  const categories = useSelector(selectMarketplaceCategories);
-  const teamMembers = useSelector(selectMarketplaceTeamMembers);
-  const listedLocations = useSelector(selectListedLocations);
-  const listedServices = useSelector(selectListedServices);
-  const listedCategories = useSelector(selectListedCategories);
-  const listedTeamMembers = useSelector(selectListedTeamMembers);
+  const locationCatalog = useSelector(selectLocationCatalog);
   const isPublishing = useSelector(selectMarketplacePublishing);
-  const isUpdatingVisibility = useSelector(selectMarketplaceUpdatingVisibility);
+  const isSavingBookingSettings = useSelector(selectBookingSettingsSaving);
+  const industries = useSelector(selectMarketplaceIndustries);
+  const industryTags = useSelector(selectMarketplaceIndustryTags);
+  const selectedIndustryTags = useSelector(selectMarketplaceSelectedIndustryTags);
   
   const [showConfiguration, setShowConfiguration] = useState(false);
 
+  // Fetch marketplace data on mount and when navigating back to this page
   useEffect(() => {
     dispatch(fetchMarketplaceListingAction.request());
     dispatch(fetchCurrentBusinessAction.request());
-  }, [dispatch]);
+  }, [dispatch, location.pathname]); // Refetch when pathname changes
 
   // Close configuration view when listing is successfully published
   useEffect(() => {
@@ -69,19 +68,19 @@ export default function MarketplacePage() {
   };
 
   const handleSaveConfiguration = (data: {
-    locationIds: number[];
-    serviceIds: number[];
-    categoryIds: number[];
-    teamMemberIds: number[];
     marketplaceName?: string;
     marketplaceEmail?: string;
+    marketplacePhone?: string;
     marketplaceDescription?: string;
     useBusinessName: boolean;
     useBusinessEmail: boolean;
+    useBusinessPhone: boolean;
     useBusinessDescription: boolean;
     allowOnlineBooking: boolean;
     featuredImageId?: string | null;
     portfolioImages?: PortfolioImage[];
+    isVisible: boolean;
+    industryTagIds?: number[];
   }) => {
     const portfolioImages = data.portfolioImages || [];
 
@@ -107,23 +106,23 @@ export default function MarketplacePage() {
 
     const request: PublishMarketplaceListingRequest = {
       payload: {
-        locationIds: data.locationIds,
-        serviceIds: data.serviceIds,
-        categoryIds: data.categoryIds,
-        teamMemberIds: data.teamMemberIds,
         marketplaceName: data.marketplaceName,
         marketplaceEmail: data.marketplaceEmail,
+        marketplacePhone: data.marketplacePhone,
         marketplaceDescription: data.marketplaceDescription,
         useBusinessName: data.useBusinessName,
         useBusinessEmail: data.useBusinessEmail,
+        useBusinessPhone: data.useBusinessPhone,
         useBusinessDescription: data.useBusinessDescription,
         showTeamMembers: true,
         showServices: true,
         showLocations: true,
         allowOnlineBooking: data.allowOnlineBooking,
+        isVisible: data.isVisible,
         existingImageIds,
         newImagesMeta: newImagesMeta.length > 0 ? newImagesMeta : undefined,
         featuredImageKey,
+        industryTagIds: data.industryTagIds,
       },
       newImageFiles: Object.keys(newImageFiles).length > 0 ? newImageFiles : undefined,
     };
@@ -131,8 +130,8 @@ export default function MarketplacePage() {
     dispatch(publishMarketplaceListingAction.request(request as any));
   };
 
-  const handleToggleVisibility = (isVisible: boolean) => {
-    dispatch(updateMarketplaceVisibilityAction.request({ isVisible }));
+  const handleSaveBookingSettings = (data: UpdateBookingSettingsPayload) => {
+    dispatch(updateBookingSettingsAction.request(data));
   };
 
   // Show loading state
@@ -154,29 +153,26 @@ export default function MarketplacePage() {
       <AppLayout>
         <ListingConfigurationView
           business={business}
-          locations={locations}
-          services={services}
-          categories={categories}
-          teamMembers={teamMembers}
-          listedLocations={listedLocations}
-          listedServices={listedServices}
-          listedCategories={listedCategories}
-          listedTeamMembers={listedTeamMembers}
-          isPublishing={isPublishing}
+          locationsWithAssignments={locationCatalog}
+          isPublishing={isPublishing || isSavingBookingSettings}
           isVisible={listing.isVisible}
-          isUpdatingVisibility={isUpdatingVisibility}
           isListed={listing.isListed}
           marketplaceName={listing.marketplaceName}
           marketplaceEmail={listing.marketplaceEmail}
+          marketplacePhone={listing.marketplacePhone}
           marketplaceDescription={listing.marketplaceDescription}
           useBusinessName={listing.useBusinessName}
           useBusinessEmail={listing.useBusinessEmail}
+          useBusinessPhone={listing.useBusinessPhone}
           useBusinessDescription={listing.useBusinessDescription}
           allowOnlineBooking={listing.allowOnlineBooking}
           featuredImage={listing.featuredImage}
           portfolioImages={listing.portfolioImages}
+          industries={industries}
+          industryTags={industryTags}
+          selectedIndustryTags={selectedIndustryTags}
           onSave={handleSaveConfiguration}
-          onToggleVisibility={handleToggleVisibility}
+          onSaveBookingSettings={handleSaveBookingSettings}
         />
       </AppLayout>
     );
@@ -190,9 +186,9 @@ export default function MarketplacePage() {
           onStartListing={handleStartListing}
           business={business}
           listing={listing}
-          locations={locations}
-          services={services}
-          teamMembers={teamMembers}
+          locations={locationCatalog}
+          services={locationCatalog.flatMap(loc => loc.services)}
+          teamMembers={locationCatalog.flatMap(loc => loc.teamMembers)}
         />
       </AppLayout>
     );

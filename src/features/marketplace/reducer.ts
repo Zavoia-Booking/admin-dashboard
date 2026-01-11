@@ -10,15 +10,10 @@ const initialState: MarketplaceState = {
   error: null,
   business: null,
   listing: null,
-  locations: [],
-  services: [],
-  categories: [],
-  teamMembers: [],
+  locationCatalog: [],
   industries: [],
-  listedLocations: [],
-  listedServices: [],
-  listedCategories: [],
-  listedTeamMembers: [],
+  industryTags: [],
+  selectedIndustryTags: [],
   isPublishing: false,
   isUpdatingVisibility: false,
   // Booking settings
@@ -38,24 +33,10 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         isLoading: false,
         business: action.payload.business,
         listing: action.payload.listing,
-        locations: action.payload.locations,
-        services: action.payload.services,
-        categories: action.payload.categories,
-        teamMembers: action.payload.teamMembers,
-        industries: action.payload.industries,
-        // Normalize listed entities (API returns objects with `id`)
-        listedLocations: Array.isArray(action.payload.listedLocations)
-          ? action.payload.listedLocations.map((item: any) => item.id)
-          : [],
-        listedServices: Array.isArray(action.payload.listedServices)
-          ? action.payload.listedServices.map((item: any) => item.id)
-          : [],
-        listedCategories: Array.isArray(action.payload.listedCategories)
-          ? action.payload.listedCategories.map((item: any) => item.id)
-          : [],
-        listedTeamMembers: Array.isArray(action.payload.listedTeamMembers)
-          ? action.payload.listedTeamMembers.map((item: any) => item.id)
-          : [],
+        locationCatalog: action.payload.locationCatalog || [],
+        industries: action.payload.industries || [],
+        industryTags: action.payload.industryTags || [],
+        selectedIndustryTags: action.payload.selectedIndustryTags || [],
         error: null,
       };
 
