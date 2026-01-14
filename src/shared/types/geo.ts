@@ -1,5 +1,5 @@
 export interface AddressSuggestion {
-  id: string; // provider-specific id (e.g., LocationIQ place_id as string)
+  id: string; // provider-specific id (e.g., MapTiler feature id)
   displayName: string; // human readable, formatted
   address: string; // street name only (without house number)
   streetNumber?: string; // house/building number

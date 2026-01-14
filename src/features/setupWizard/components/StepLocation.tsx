@@ -17,7 +17,7 @@ import Open247Toggle from "../../../shared/components/common/Open247Toggle";
 import { Label } from "../../../shared/components/ui/label";
 import { Button } from "../../../shared/components/ui/button";
 import { MapDialog } from "../../../shared/components/map";
-import { locationIqGeocode } from "../../../shared/lib/locationiq";
+import { maptilerGeocode } from "../../../shared/lib/maptiler";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import type { WorkingHours } from "../../../shared/types/location";
@@ -224,7 +224,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         // Location doesn't have coordinates - geocode the address first
         setIsGeocodingAddress(true);
         try {
-          const geocodeResult = await locationIqGeocode(address);
+          const geocodeResult = await maptilerGeocode(address);
           
           if (geocodeResult) {
             // Successfully geocoded - use these coordinates as initial position
@@ -804,7 +804,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               }}
               title="Verify Location Pin"
               description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
-              apiKey={import.meta.env.VITE_MAPTILER_API_KEY || ''}
+              accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
               center={initialMapCenter}
               zoom={hasValidCoords ? 16 : 2}
               marker={hasValidCoords ? {

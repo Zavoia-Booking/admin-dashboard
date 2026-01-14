@@ -16,7 +16,7 @@ import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEd
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
 import { MapDialog } from '../../../shared/components/map';
-import { locationIqGeocode } from '../../../shared/lib/locationiq';
+import { maptilerGeocode } from '../../../shared/lib/maptiler';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -237,7 +237,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     } else {
       setIsGeocodingAddress(true);
       try {
-        const geocodeResult = await locationIqGeocode(address);
+        const geocodeResult = await maptilerGeocode(address);
         
         if (geocodeResult) {
           const geocodedCoords: [number, number] = [
@@ -1068,7 +1068,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
             }}
             title="Verify Location Pin"
             description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
-            apiKey={import.meta.env.VITE_MAPTILER_API_KEY || ''}
+            accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
             center={initialMapCenter}
             zoom={hasValidCoords ? 16 : 2}
             marker={hasValidCoords ? {

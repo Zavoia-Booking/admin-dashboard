@@ -3,9 +3,6 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "engines": {
-    "node": "24.x"
-  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -54,7 +51,7 @@
     "i18next": "^25.6.0",
     "i18next-browser-languagedetector": "^8.2.0",
     "lucide-react": "^0.542.0",
-    "maplibre-gl": "^5.13.0",
+    "mapbox-gl": "^3.9.4",
     "react": "^19.1.1",
     "react-datepicker": "^8.7.0",
     "react-dom": "^19.1.1",
@@ -73,6 +70,7 @@
     "@eslint/js": "^9.33.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
+    "@types/mapbox-gl": "^3.4.1",
     "@vitejs/plugin-react-swc": "^4.0.0",
     "cross-env": "^7.0.3",
     "eruda": "^3.4.1",

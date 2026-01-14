@@ -17,14 +17,17 @@ import {
   DrawerTitle,
 } from '../ui/drawer';
 import { MapView } from './MapView';
-import type { MapViewProps } from './MapView';
 import AddressAutocomplete from '../address/AddressAutocomplete';
 import type { AddressAutocompleteChange } from '../../types/geo';
 import { AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useIsMobile } from '../../hooks/use-mobile';
 
-export interface MapDialogProps extends Omit<MapViewProps, 'height' | 'width' | 'onMarkerDragEnd' | 'onMapClick'> {
+export interface MapDialogProps {
+  /**
+   * Mapbox access token
+   */
+  accessToken: string;
   /**
    * Whether the dialog is open
    */
@@ -42,9 +45,29 @@ export interface MapDialogProps extends Omit<MapViewProps, 'height' | 'width' | 
    */
   description?: string;
   /**
+   * Initial center coordinates [longitude, latitude]
+   */
+  center?: [number, number];
+  /**
+   * Initial zoom level (0-22)
+   */
+  zoom?: number;
+  /**
+   * Map style - Mapbox style URL or preset name
+   */
+  style?: string;
+  /**
    * Height of the map in the dialog
    */
   mapHeight?: string;
+  /**
+   * Optional marker to display on the map
+   */
+  marker?: {
+    coordinates: [number, number];
+    color?: string;
+    draggable?: boolean;
+  };
   /**
    * Optional footer actions to display below the map
    */
@@ -57,6 +80,19 @@ export interface MapDialogProps extends Omit<MapViewProps, 'height' | 'width' | 
    * Callback when map is clicked (for click-to-place)
    */
   onMapClick?: (coordinates: [number, number]) => void;
+  /**
+   * Allow clicking on the map to move the marker
+   */
+  clickToPlace?: boolean;
+  /**
+   * Whether to show navigation controls (zoom, rotate)
+   */
+  showControls?: boolean;
+  /**
+   * Callback when map is loaded
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onMapLoad?: (map: any) => void;
   /**
    * Show search bar for address autocomplete
    */
@@ -89,7 +125,7 @@ export interface MapDialogProps extends Omit<MapViewProps, 'height' | 'width' | 
  *   onClose={() => setIsMapOpen(false)}
  *   title="Location Map"
  *   description="View the location on the map"
- *   apiKey="your-maptiler-api-key"
+ *   accessToken="your-mapbox-access-token"
  *   center={[-0.1276, 51.5074]}
  *   zoom={14}
  *   marker={{ coordinates: [-0.1276, 51.5074] }}

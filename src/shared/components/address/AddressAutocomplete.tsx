@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { locationIqAutocomplete } from '../../lib/locationiq';
+import { maptilerAutocomplete } from '../../lib/maptiler';
 import type { AddressAutocompleteChange, AddressSuggestion } from '../../types/geo';
 import { Input } from '../ui/input';
 
@@ -70,7 +70,7 @@ export default function AddressAutocomplete({
     const ctrl = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const raw = await locationIqAutocomplete({ query, limit, countryCodes });
+        const raw = await maptilerAutocomplete({ query, limit, countryCodes });
         const seen = new Set<string>();
         const mapped: AddressSuggestion[] = [];
         (raw || []).forEach((r: any) => {
@@ -81,9 +81,8 @@ export default function AddressAutocomplete({
           if (seen.has(key)) return;
           seen.add(key);
           
-          // LocationIQ provides:
-          // - 'name': can be building name (if 'road' exists) OR the road itself (if no 'road')
-          //   BUT if 'name' looks like a pure number and no 'road', it's likely a house number
+          // MapTiler provides:
+          // - 'name': place/building name
           // - 'house_number': street number (e.g., "3")
           // - 'road': street name
           const hasRoad = !!r.address?.road;
