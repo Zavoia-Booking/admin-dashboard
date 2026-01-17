@@ -13,13 +13,20 @@ import {
   type SortOption,
   type SortGroup,
 } from "../../../../shared/components/common/SortSelect";
-import { Popover, PopoverContent, PopoverTrigger } from "../../../../shared/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../../shared/components/ui/popover";
 import { Input } from "../../../../shared/components/ui/input";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { getServicesFilterSelector } from "../../selectors";
 import { getCurrencyDisplay } from "../../../../shared/utils/currency";
-import { getColorHex, getReadableTextColor } from "../../../../shared/utils/color";
+import {
+  getColorHex,
+  getReadableTextColor,
+} from "../../../../shared/utils/color";
 import {
   ArrowDown01,
   ArrowUp01,
@@ -58,7 +65,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
   isApplyingCategories = false,
 }) => {
   const text = useTranslation("services").t;
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const MAX_VISIBLE_CATEGORIES = 6;
@@ -66,7 +73,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
   const [localFilters, setLocalFilters] = useState<ServiceFilterState>(
     appliedFilters || getDefaultServiceFilters()
   );
-    const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
   const [showManageCategories, setShowManageCategories] = useState(false);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [manageCategoryId, setManageCategoryId] = useState<number | null>(null);
@@ -100,7 +107,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
   const getTextColor = (bgColor: string): string =>
     getReadableTextColor(bgColor);
 
-    const handleClearFilters = useCallback(() => {
+  const handleClearFilters = useCallback(() => {
     const reset = getDefaultServiceFilters();
     setLocalFilters(reset);
     setShowFilters(false);
@@ -111,20 +118,15 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
   const handleApplyFilters = useCallback(
     (nextFilters: ServiceFilterState) => {
       setLocalFilters(nextFilters);
-        setShowFilters(false);
+      setShowFilters(false);
       dispatch(setServiceFilterAction.request(nextFilters));
     },
     [dispatch]
   );
 
   const getActiveFilterCount = useCallback(() => {
-    const {
-      priceMin,
-      priceMax,
-            durationMin,
-            durationMax,
-      categoryIds,
-    } = appliedFilters;
+    const { priceMin, priceMax, durationMin, durationMax, categoryIds } =
+      appliedFilters;
 
     // Treat empty string and "0" as "no price filter" to stay in sync with
     // selector + badges behavior.
@@ -187,17 +189,17 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
 
   const currentSortValue = `${localFilters.sortField}_${localFilters.sortDirection}`;
 
-    return (
-        <>
+  return (
+    <>
       <div className="flex flex-col gap-2">
-            <div className="flex gap-2 items-center">
+        <div className="flex gap-2 items-center">
           <SearchInput
             className="flex-1"
             placeholder={text("filters.searchPlaceholder")}
-                        value={localFilters.searchTerm}
+            value={localFilters.searchTerm}
             onChange={(value) => {
               setLocalFilters((prevState) => ({
-                                    ...prevState,
+                ...prevState,
                 searchTerm: value,
               }));
             }}
@@ -292,235 +294,245 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                   Filter services by price, duration, and category
                 </DrawerDescription>
                 <div className="p-4 overflow-y-auto max-h-[80vh] space-y-4">
-              {/* By Price */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {text("filters.byPrice")}
-                </div>
-                <div className="grid grid-cols-2 gap-3 max-h-17">
-                  <PriceField
-                    value={localFilters.priceMin}
-                    onChange={(val) =>
-                      setLocalFilters((prev) => ({
-                        ...prev,
-                        priceMin: String(val ?? ""),
-                      }))
-                    }
-                    label={text("filters.minPriceLabel")}
-                    placeholder={text("filters.minPricePlaceholder")}
-                    className="space-y-1"
-                    min={0}
-                    step={0.01}
-                    storageFormat="decimal"
-                    icon={getCurrencyDisplay(businessCurrency).icon}
-                    symbol={getCurrencyDisplay(businessCurrency).symbol}
-                    iconPosition="left"
-                    currency={businessCurrency}
-                    customLabelClassName="text-xs font-medium text-foreground-2"
-                  />
-                  <PriceField
-                    value={localFilters.priceMax}
-                    onChange={(val) =>
-                      setLocalFilters((prev) => ({
-                        ...prev,
-                        priceMax: String(val ?? ""),
-                      }))
-                    }
-                    label={text("filters.maxPriceLabel")}
-                    placeholder={text("filters.maxPricePlaceholder")}
-                    className="space-y-1"
-                    min={0}
-                    step={0.01}
-                    storageFormat="decimal"
-                    icon={getCurrencyDisplay(businessCurrency).icon}
-                    symbol={getCurrencyDisplay(businessCurrency).symbol}
-                    iconPosition="left"
-                    currency={businessCurrency}
-                    customLabelClassName="text-xs font-medium text-foreground-2"
-                  />
-                </div>
-              </div>
-
-              <div className="border-t border-border-subtle" />
-
-              {/* By Duration */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {text("filters.byDuration")}
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  {/* Min duration */}
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium text-foreground-2">
-                      {text("filters.minDurationLabel")}
-                    </span>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
-                      </div>
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={localFilters.durationMin}
-                        onChange={(e) => {
-                          const inputValue = e.target.value;
-                          if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                            setLocalFilters((prev) => ({
-                              ...prev,
-                              durationMin: inputValue,
-                            }));
-                          }
-                        }}
-                        placeholder={text("filters.minDurationPlaceholder")}
-                        className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                  {/* By Price */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {text("filters.byPrice")}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 max-h-17">
+                      <PriceField
+                        value={localFilters.priceMin}
+                        onChange={(val) =>
+                          setLocalFilters((prev) => ({
+                            ...prev,
+                            priceMin: String(val ?? ""),
+                          }))
+                        }
+                        label={text("filters.minPriceLabel")}
+                        placeholder={text("filters.minPricePlaceholder")}
+                        className="space-y-1"
+                        min={0}
+                        step={0.01}
+                        storageFormat="decimal"
+                        icon={getCurrencyDisplay(businessCurrency).icon}
+                        symbol={getCurrencyDisplay(businessCurrency).symbol}
+                        iconPosition="left"
+                        currency={businessCurrency}
+                        customLabelClassName="text-xs font-medium text-foreground-2"
+                      />
+                      <PriceField
+                        value={localFilters.priceMax}
+                        onChange={(val) =>
+                          setLocalFilters((prev) => ({
+                            ...prev,
+                            priceMax: String(val ?? ""),
+                          }))
+                        }
+                        label={text("filters.maxPriceLabel")}
+                        placeholder={text("filters.maxPricePlaceholder")}
+                        className="space-y-1"
+                        min={0}
+                        step={0.01}
+                        storageFormat="decimal"
+                        icon={getCurrencyDisplay(businessCurrency).icon}
+                        symbol={getCurrencyDisplay(businessCurrency).symbol}
+                        iconPosition="left"
+                        currency={businessCurrency}
+                        customLabelClassName="text-xs font-medium text-foreground-2"
                       />
                     </div>
                   </div>
 
-                  {/* Max duration */}
-                  <div className="space-y-1">
-                    <span className="text-xs font-medium text-foreground-2">
-                      {text("filters.maxDurationLabel")}
-                    </span>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+                  <div className="border-t border-border-subtle" />
+
+                  {/* By Duration */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {text("filters.byDuration")}
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {/* Min duration */}
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-foreground-2">
+                          {text("filters.minDurationLabel")}
+                        </span>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+                          </div>
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={localFilters.durationMin}
+                            onChange={(e) => {
+                              const inputValue = e.target.value;
+                              if (
+                                inputValue === "" ||
+                                /^\d+$/.test(inputValue)
+                              ) {
+                                setLocalFilters((prev) => ({
+                                  ...prev,
+                                  durationMin: inputValue,
+                                }));
+                              }
+                            }}
+                            placeholder={text("filters.minDurationPlaceholder")}
+                            className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                          />
+                        </div>
                       </div>
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={localFilters.durationMax}
-                        onChange={(e) => {
-                          const inputValue = e.target.value;
-                          if (inputValue === "" || /^\d+$/.test(inputValue)) {
-                            setLocalFilters((prev) => ({
-                              ...prev,
-                              durationMax: inputValue,
-                            }));
-                          }
-                        }}
-                        placeholder={text("filters.maxDurationPlaceholder")}
-                        className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
-                      />
+
+                      {/* Max duration */}
+                      <div className="space-y-1">
+                        <span className="text-xs font-medium text-foreground-2">
+                          {text("filters.maxDurationLabel")}
+                        </span>
+                        <div className="relative">
+                          <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <Clock className="h-4 w-4 text-foreground-3 dark:text-foreground-2" />
+                          </div>
+                          <Input
+                            type="text"
+                            inputMode="numeric"
+                            value={localFilters.durationMax}
+                            onChange={(e) => {
+                              const inputValue = e.target.value;
+                              if (
+                                inputValue === "" ||
+                                /^\d+$/.test(inputValue)
+                              ) {
+                                setLocalFilters((prev) => ({
+                                  ...prev,
+                                  durationMax: inputValue,
+                                }));
+                              }
+                            }}
+                            placeholder={text("filters.maxDurationPlaceholder")}
+                            className="h-9 w-full text-sm !pl-10 !pr-3 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <div className="border-t border-border-subtle" />
+                  <div className="border-t border-border-subtle" />
 
-              {/* By Category */}
-              <div className="space-y-2">
-                <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {text("filters.byCategory")}
-                </div>
-                {categories.length === 0 ? (
-                  <p className="text-xs text-foreground-3">
-                    {text("filters.noCategories")}
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {(
-                      showAllCategories
-                        ? categories
-                        : categories.slice(0, MAX_VISIBLE_CATEGORIES)
-                    ).map((category) => {
-                      const isSelected = Array.isArray(localFilters.categoryIds)
-                        ? localFilters.categoryIds.includes(category.id)
-                        : false;
-                      const bgColor = getDisplayColor(category);
-                      const textColor = getTextColor(bgColor);
+                  {/* By Category */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      {text("filters.byCategory")}
+                    </div>
+                    {categories.length === 0 ? (
+                      <p className="text-xs text-foreground-3">
+                        {text("filters.noCategories")}
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {(showAllCategories
+                          ? categories
+                          : categories.slice(0, MAX_VISIBLE_CATEGORIES)
+                        ).map((category) => {
+                          const isSelected = Array.isArray(
+                            localFilters.categoryIds
+                          )
+                            ? localFilters.categoryIds.includes(category.id)
+                            : false;
+                          const bgColor = getDisplayColor(category);
+                          const textColor = getTextColor(bgColor);
 
-                      return (
-                        <Button
-                          key={category.id}
-                          type="button"
-                          variant="outline"
-                          rounded="full"
-                          className={`h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium ${
-                            isSelected
-                              ? "border-neutral-500 text-neutral-900 dark:text-neutral-900 shadow-xs focus-visible:!border-neutral-500"
-                              : "border-border opacity-100"
-                          } hover:!border-border ${
-                            isSelected ? "hover:!border-neutral-500" : ""
-                          }`}
-                          onClick={() => {
-                            const currentIds = Array.isArray(
-                              localFilters.categoryIds
-                            )
-                              ? localFilters.categoryIds
-                              : [];
+                          return (
+                            <Button
+                              key={category.id}
+                              type="button"
+                              variant="outline"
+                              rounded="full"
+                              className={`h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium ${
+                                isSelected
+                                  ? "border-neutral-500 text-neutral-900 dark:text-neutral-900 shadow-xs focus-visible:!border-neutral-500"
+                                  : "border-border opacity-100"
+                              } hover:!border-border ${
+                                isSelected ? "hover:!border-neutral-500" : ""
+                              }`}
+                              onClick={() => {
+                                const currentIds = Array.isArray(
+                                  localFilters.categoryIds
+                                )
+                                  ? localFilters.categoryIds
+                                  : [];
 
-                            const nextCategoryIds = isSelected
-                              ? currentIds.filter((id) => id !== category.id)
-                              : [...currentIds, category.id];
+                                const nextCategoryIds = isSelected
+                                  ? currentIds.filter(
+                                      (id) => id !== category.id
+                                    )
+                                  : [...currentIds, category.id];
 
-                            const nextFilters: ServiceFilterState = {
-                              ...localFilters,
-                              categoryIds: nextCategoryIds,
-                            };
+                                const nextFilters: ServiceFilterState = {
+                                  ...localFilters,
+                                  categoryIds: nextCategoryIds,
+                                };
 
-                            setLocalFilters(nextFilters);
-                          }}
-                          style={{
-                            backgroundColor: bgColor,
-                            color: isSelected ? undefined : textColor,
-                          }}
-                        >
-                          {isSelected && (
-                            <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-400 dark:bg-success shadow-sm flex items-center justify-center">
-                              <svg
-                                className="h-3 w-3 text-foreground-inverse"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                                strokeWidth={3}
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M5 13l4 4L19 7"
-                                />
-                              </svg>
-                            </div>
+                                setLocalFilters(nextFilters);
+                              }}
+                              style={{
+                                backgroundColor: bgColor,
+                                color: isSelected ? undefined : textColor,
+                              }}
+                            >
+                              {isSelected && (
+                                <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-400 dark:bg-success shadow-sm flex items-center justify-center">
+                                  <svg
+                                    className="h-3 w-3 text-foreground-inverse"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                    stroke="currentColor"
+                                    strokeWidth={3}
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      d="M5 13l4 4L19 7"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
+                              <span className="truncate max-w-[130px]">
+                                {category.name}
+                              </span>
+                            </Button>
+                          );
+                        })}
+
+                        {categories.length > MAX_VISIBLE_CATEGORIES &&
+                          !showAllCategories && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              rounded="full"
+                              onClick={() => setShowAllCategories(true)}
+                              className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+                            >
+                              {text("addService.form.category.showMore", {
+                                count:
+                                  categories.length - MAX_VISIBLE_CATEGORIES,
+                              })}
+                            </Button>
                           )}
-                          <span className="truncate max-w-[130px]">
-                            {category.name}
-                          </span>
-                        </Button>
-                      );
-                    })}
 
-                    {categories.length > MAX_VISIBLE_CATEGORIES &&
-                      !showAllCategories && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          rounded="full"
-                          onClick={() => setShowAllCategories(true)}
-                          className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
-                        >
-                          {text("addService.form.category.showMore", {
-                            count: categories.length - MAX_VISIBLE_CATEGORIES,
-                          })}
-                        </Button>
-                      )}
-
-                    {categories.length > MAX_VISIBLE_CATEGORIES &&
-                      showAllCategories && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          rounded="full"
-                          onClick={() => setShowAllCategories(false)}
-                          className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
-                        >
-                          {text("addService.form.category.showLess")}
-                        </Button>
-                      )}
+                        {categories.length > MAX_VISIBLE_CATEGORIES &&
+                          showAllCategories && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              rounded="full"
+                              onClick={() => setShowAllCategories(false)}
+                              className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+                            >
+                              {text("addService.form.category.showLess")}
+                            </Button>
+                          )}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
                   <DrawerFooter className="px-0 pt-4">
                     <div className="flex justify-end gap-2 w-full">
@@ -556,7 +568,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
             <Popover open={showFilters} onOpenChange={setShowFilters}>
               <PopoverTrigger asChild>
                 <button
-                    className={`
+                  className={`
                             relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border
                             transition-[colors,box-shadow,background-color,color] duration-200 ease-out cursor-pointer
                             ${
@@ -572,12 +584,12 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                     {text("filters.addFilter")}
                   </span>
                   {getActiveFilterCount() > 0 && (
-                            <span
-                                className="absolute -top-1 -right-1 bg-primary text-white dark:text-white text-xs font-bold rounded-full
+                    <span
+                      className="absolute -top-1 -right-1 bg-primary text-white dark:text-white text-xs font-bold rounded-full
                                      px-1.5 py-0.5 min-w-[20px] flex items-center justify-center shadow"
                     >
-                                {getActiveFilterCount()}
-                             </span>
+                      {getActiveFilterCount()}
+                    </span>
                   )}
                 </button>
               </PopoverTrigger>
@@ -714,12 +726,13 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {(
-                        showAllCategories
-                          ? categories
-                          : categories.slice(0, MAX_VISIBLE_CATEGORIES)
+                      {(showAllCategories
+                        ? categories
+                        : categories.slice(0, MAX_VISIBLE_CATEGORIES)
                       ).map((category) => {
-                        const isSelected = Array.isArray(localFilters.categoryIds)
+                        const isSelected = Array.isArray(
+                          localFilters.categoryIds
+                        )
                           ? localFilters.categoryIds.includes(category.id)
                           : false;
                         const bgColor = getDisplayColor(category);
@@ -829,7 +842,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                   >
                     {text("filters.clearAll")}
                   </Button>
-                <Button
+                  <Button
                     size="sm"
                     rounded="full"
                     className="group inline-flex items-center gap-1.5 px-6 py-2 !min-w-40 justify-center font-semibold cursor-pointer transition-transform active:scale-95"
@@ -907,17 +920,28 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                     }}
                     onNewlyCreatedCategoriesChange={(newCategories) => {
                       // Ensure parent also gets the full up-to-date list of categories
-                      const existingById = new Map(categories.map((c) => [c.id, c]));
+                      const existingById = new Map(
+                        categories.map((c) => [c.id, c])
+                      );
                       newCategories.forEach((cat) => {
-                        existingById.set(cat.id, { ...existingById.get(cat.id), ...cat });
+                        existingById.set(cat.id, {
+                          ...existingById.get(cat.id),
+                          ...cat,
+                        });
                       });
                       onCategoriesChange?.(Array.from(existingById.values()));
                     }}
                     required={false}
                     error={undefined}
-                    customTitle={text("addService.form.category.managePopoverTitle")}
-                    customSubtitle={text("addService.form.category.managePopoverDescription")}
-                    customHelperText={text("addService.form.category.managePopoverHelperText")}
+                    customTitle={text(
+                      "addService.form.category.managePopoverTitle"
+                    )}
+                    customSubtitle={text(
+                      "addService.form.category.managePopoverDescription"
+                    )}
+                    customHelperText={text(
+                      "addService.form.category.managePopoverHelperText"
+                    )}
                     helperPlacement="footer"
                     showSelectLabel={false}
                     enableInlineEdit
@@ -931,7 +955,9 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                         rounded="full"
                         className="group inline-flex items-center gap-1.5 px-4 py-2 font-medium cursor-pointer transition-transform active:scale-95"
                         disabled={!hasCategoryChanges}
-                        onClick={() => hasCategoryChanges && onResetCategories?.()}
+                        onClick={() =>
+                          hasCategoryChanges && onResetCategories?.()
+                        }
                       >
                         {text("addService.form.category.manageFooterClear")}
                       </Button>
@@ -940,7 +966,9 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                         rounded="full"
                         className="group inline-flex items-center gap-1.5 px-6 py-2 !min-w-40 justify-center font-semibold cursor-pointer transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                         disabled={!hasCategoryChanges || isApplyingCategories}
-                        onClick={() => hasCategoryChanges && setShowManageConfirm(true)}
+                        onClick={() =>
+                          hasCategoryChanges && setShowManageConfirm(true)
+                        }
                       >
                         {text("addService.form.category.manageFooterApply")}
                       </Button>
@@ -999,17 +1027,28 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                   }}
                   onNewlyCreatedCategoriesChange={(newCategories) => {
                     // Ensure parent also gets the full up-to-date list of categories
-                    const existingById = new Map(categories.map((c) => [c.id, c]));
+                    const existingById = new Map(
+                      categories.map((c) => [c.id, c])
+                    );
                     newCategories.forEach((cat) => {
-                      existingById.set(cat.id, { ...existingById.get(cat.id), ...cat });
+                      existingById.set(cat.id, {
+                        ...existingById.get(cat.id),
+                        ...cat,
+                      });
                     });
                     onCategoriesChange?.(Array.from(existingById.values()));
                   }}
                   required={false}
                   error={undefined}
-                  customTitle={text("addService.form.category.managePopoverTitle")}
-                  customSubtitle={text("addService.form.category.managePopoverDescription")}
-                  customHelperText={text("addService.form.category.managePopoverHelperText")}
+                  customTitle={text(
+                    "addService.form.category.managePopoverTitle"
+                  )}
+                  customSubtitle={text(
+                    "addService.form.category.managePopoverDescription"
+                  )}
+                  customHelperText={text(
+                    "addService.form.category.managePopoverHelperText"
+                  )}
                   helperPlacement="footer"
                   showSelectLabel={false}
                   enableInlineEdit
@@ -1031,7 +1070,9 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                     rounded="full"
                     className="group inline-flex items-center gap-1.5 px-6 py-2 !min-w-40 justify-center font-semibold cursor-pointer transition-transform active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
                     disabled={!hasCategoryChanges || isApplyingCategories}
-                    onClick={() => hasCategoryChanges && setShowManageConfirm(true)}
+                    onClick={() =>
+                      hasCategoryChanges && setShowManageConfirm(true)
+                    }
                   >
                     {text("addService.form.category.manageFooterApply")}
                   </Button>

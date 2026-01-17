@@ -1,5 +1,5 @@
 import { createAsyncAction } from "typesafe-actions";
-import type { MarketplaceListingResponse, PublishMarketplaceListingRequest, BookingSettings, UpdateBookingSettingsPayload } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload } from "./types";
 
 export const fetchMarketplaceListingAction = createAsyncAction(
   'marketplace/FETCH_LISTING_REQUEST',
@@ -11,7 +11,7 @@ export const publishMarketplaceListingAction = createAsyncAction(
   'marketplace/PUBLISH_LISTING_REQUEST',
   'marketplace/PUBLISH_LISTING_SUCCESS',
   'marketplace/PUBLISH_LISTING_FAILURE',
-)<PublishMarketplaceListingRequest, void, { message: string }>();
+)<PublishMarketplaceListingPayload, void, { message: string }>();
 
 export const updateMarketplaceVisibilityAction = createAsyncAction(
   'marketplace/UPDATE_VISIBILITY_REQUEST',

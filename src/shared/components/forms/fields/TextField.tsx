@@ -16,6 +16,7 @@ export interface TextFieldProps {
   className?: string;
   disabled?: boolean;
   icon?: React.ComponentType<{ className?: string }>; // optional override icon
+  autoFocus?: boolean;
   type?: 'text' | 'password' | 'email';
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
@@ -34,6 +35,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   className = "",
   disabled = false,
   icon,
+  autoFocus = false,
   type = "text",
   onKeyDown,
   inputRef,
@@ -57,6 +59,7 @@ export const TextField: React.FC<TextFieldProps> = ({
           onChange={(e) => onChange(e.target.value)}
           maxLength={type === 'password' ? undefined : maxLength}
           disabled={disabled}
+          autoFocus={autoFocus}
           onKeyDown={onKeyDown}
           className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error

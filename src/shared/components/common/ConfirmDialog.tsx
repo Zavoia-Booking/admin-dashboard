@@ -27,6 +27,11 @@ export interface ConfirmDialogProps {
   iconBgColor?: string;
   iconColor?: string;
   variant?: "default" | "destructive";
+  className?: string;
+  headerClassName?: string;
+  footerClassName?: string;
+  cancelClassName?: string;
+  confirmClassName?: string;
 }
 
 const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
@@ -43,6 +48,11 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   iconBgColor = "bg-primary/10",
   iconColor = "text-primary",
   variant = "default",
+  className,
+  headerClassName,
+  footerClassName,
+  cancelClassName,
+  confirmClassName,
 }) => {
   const handleConfirm = () => {
     onConfirm();
@@ -62,7 +72,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange || handleCancel}>
-      <AlertDialogContent className="bg-surface border-border dark:border-border-subtle sm:max-w-lg cursor-default">
+      <AlertDialogContent className={cn("bg-surface border-border dark:border-border-subtle sm:max-w-lg cursor-default", className)}>
         {showCloseButton && (
           <button
             type="button"
@@ -81,37 +91,36 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <span className="sr-only">Close</span>
           </button>
         )}
-        <AlertDialogHeader className="space-y-4 text-left pr-6 cursor-default">
-          {Icon && (
-            <div
-              className={cn(
-                "inline-flex items-center justify-center w-12 h-12 rounded-xl",
-                iconBgColor,
-                iconColor.includes("text-") ? "" : iconColor,
-                "cursor-default"
-              )}
-            >
-              <Icon
+        <AlertDialogHeader className={cn("space-y-3 text-left pr-6 cursor-default", headerClassName)}>
+          <AlertDialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default flex items-center gap-3">
+            {Icon && (
+              <div
                 className={cn(
-                  "h-6 w-6",
-                  iconColor.includes("text-") ? iconColor : "text-primary"
+                  "inline-flex items-center justify-center rounded-xl",
+                  iconBgColor === "transparent" ? "" : "w-10 h-10",
+                  iconBgColor,
+                  iconColor.includes("text-") ? "" : iconColor,
+                  "cursor-default shrink-0"
                 )}
-              />
-            </div>
-          )}
-          <div className="space-y-2 cursor-default">
-            <AlertDialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default">
-              {title}
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm py-3 text-foreground-3 dark:text-foreground-2 cursor-default">
-              {description}
-            </AlertDialogDescription>
-          </div>
+              >
+                <Icon
+                  className={cn(
+                    "h-6 w-6",
+                    iconColor.includes("text-") ? iconColor : "text-primary"
+                  )}
+                />
+              </div>
+            )}
+            <span>{title}</span>
+          </AlertDialogTitle>
+          <AlertDialogDescription className={cn("text-sm py-1 text-foreground-3 dark:text-foreground-2 cursor-default", !description && "sr-only")}>
+            {description || title}
+          </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end">
+        <AlertDialogFooter className={cn("flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end", footerClassName)}>
           <AlertDialogCancel
             onClick={handleCancel}
-            className="rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer"
+            className={cn("rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer", cancelClassName)}
           >
             {cancelTitle || `Cancel`}
           </AlertDialogCancel>
@@ -121,7 +130,8 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               "rounded-full h-11 px-6 font-semibold cursor-pointer",
               isDestructive
                 ? "bg-destructive hover:bg-destructive/90 text-white"
-                : "bg-primary hover:bg-primary-hover text-white"
+                : "bg-primary hover:bg-primary-hover text-white",
+              confirmClassName
             )}
           >
             {confirmTitle || `Confirm`}

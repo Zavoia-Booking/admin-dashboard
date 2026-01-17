@@ -3,10 +3,12 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogPortal,
   DialogOverlay,
 } from "../ui/dialog";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { useState, useEffect } from "react";
 import { Loader2, AlertTriangle, XCircle, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -31,6 +33,15 @@ export function DeleteConfirmDialog({
   overlayClassName,
 }: DeleteConfirmDialogProps) {
   const { t } = useTranslation("common");
+
+  // Keep a local copy of the delete response to prevent loader flicker during close animation
+  const [localDeleteResponse, setLocalDeleteResponse] = useState(deleteResponse);
+
+  useEffect(() => {
+    if (open) {
+      setLocalDeleteResponse(deleteResponse);
+    }
+  }, [open, deleteResponse]);
 
   const getResourceLabel = (count: number, type: string) => {
     // Map resourceType to locale key (handle team_member -> team_member, etc.)
@@ -61,7 +72,7 @@ export function DeleteConfirmDialog({
   const resourceTitle = getResourceTitle(resourceType);
 
   // Show loading state if no response yet
-  const isCheckingDependencies = !deleteResponse;
+  const isCheckingDependencies = !localDeleteResponse;
 
   const {
     canDelete,
@@ -73,7 +84,7 @@ export function DeleteConfirmDialog({
     activeUsersCount,
     pendingUsersCount,
     isVisibleInMarketplace,
-  } = (deleteResponse || {}) as Partial<DeleteResponse>;
+  } = (localDeleteResponse || {}) as Partial<DeleteResponse>;
 
   // Build dynamic dependency list
   const dependencies: {
@@ -179,7 +190,22 @@ export function DeleteConfirmDialog({
             "bg-surface border-border dark:border-border-subtle data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg cursor-default",
             className
           )}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            // Focus the primary action button instead of the close X button
+            const target = e.currentTarget as HTMLElement;
+            if (target) {
+              const footer = target.querySelector('[data-slot="dialog-footer"]');
+              if (footer) {
+                const buttons = Array.from(footer.querySelectorAll('button'));
+                // Find the primary button (Confirm/Delete) which is typically the last one
+                const primaryButton = buttons.length > 1 ? buttons[buttons.length - 1] : buttons[0];
+                if (primaryButton instanceof HTMLElement) {
+                  primaryButton.focus();
+                }
+              }
+            }
+          }}
         >
           {isCheckingDependencies ? (
             // Loading state while checking dependencies
@@ -188,6 +214,12 @@ export function DeleteConfirmDialog({
                 <DialogTitle className="text-lg md:text-xl font-semibold text-foreground-1 cursor-default">
                   {t("deleteConfirmDialog.loading.title")}
                 </DialogTitle>
+                {/* Add a visually hidden description for accessibility during loading */}
+                <DialogDescription className="sr-only">
+                  {t("deleteConfirmDialog.loading.description", {
+                    resourceType: resourceLabelSingular,
+                  })}
+                </DialogDescription>
               </DialogHeader>
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
@@ -240,23 +272,23 @@ export function DeleteConfirmDialog({
               </DialogHeader>
 
               {/* Main question / explanation row */}
-              <div className="text-sm text-foreground-3 dark:text-foreground-2 cursor-default">
-                {canDelete ? (
-                  <p className="text-left">
-                    {t("deleteConfirmDialog.canDelete.description", {
+              <DialogDescription asChild className="text-sm text-foreground-3 dark:text-foreground-2 cursor-default">
+                <div className="text-left">
+                  {canDelete ? (
+                    t("deleteConfirmDialog.canDelete.description", {
                       resourceType: resourceLabelSingular,
-                    })}
-                  </p>
-                ) : (
-                  <p className="text-left">
-                    {t("deleteConfirmDialog.cannotDelete.descriptionPrefix")}{" "}
-                    <span className="font-semibold text-foreground-1">
-                      {resourceName}
-                    </span>{" "}
-                    {t("deleteConfirmDialog.cannotDelete.descriptionSuffix")}
-                  </p>
-                )}
-              </div>
+                    })
+                  ) : (
+                    <>
+                      {t("deleteConfirmDialog.cannotDelete.descriptionPrefix")}{" "}
+                      <span className="font-semibold text-foreground-1">
+                        {resourceName}
+                      </span>{" "}
+                      {t("deleteConfirmDialog.cannotDelete.descriptionSuffix")}
+                    </>
+                  )}
+                </div>
+              </DialogDescription>
 
               {!canDelete && dependencies.length > 0 && (
                 <>

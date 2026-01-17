@@ -15,6 +15,8 @@ export interface TextareaFieldProps {
   className?: string;
   showCharacterCount?: boolean;
   error?: string;
+  autoFocus?: boolean;
+  helperText?: string;
 }
 
 export const TextareaField: React.FC<TextareaFieldProps> = ({
@@ -29,26 +31,35 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
   className = "",
   showCharacterCount = true,
   error,
+  autoFocus = false,
+  helperText,
 }) => {
   const currentLength = value?.length || 0;
   const isOverLimit = currentLength > maxLength;
 
   return (
     <div className={`space-y-2 ${className}`}>
-      <div className="flex items-center justify-between">
-        <Label htmlFor={id} className="text-base font-medium">
-          {label} {required && "*"}
-        </Label>
-        {showCharacterCount && (
-          <span
-            className={`text-xs ${
-              isOverLimit
-                ? "text-error"
-                : "text-foreground-3 dark:text-foreground-2"
-            }`}
-          >
-            {currentLength}/{maxLength}
-          </span>
+      <div className="flex flex-col space-y-1.5">
+        <div className="flex items-center justify-between">
+          <Label htmlFor={id} className="text-base font-medium">
+            {label} {required && "*"}
+          </Label>
+          {showCharacterCount && (
+            <span
+              className={`text-xs ${
+                isOverLimit
+                  ? "text-error"
+                  : "text-foreground-3 dark:text-foreground-2"
+              }`}
+            >
+              {currentLength}/{maxLength}
+            </span>
+          )}
+        </div>
+        {helperText && (
+          <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+            {helperText}
+          </p>
         )}
       </div>
       <Textarea
@@ -58,6 +69,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
         onChange={(e) => onChange(e.target.value)}
         rows={rows}
         maxLength={maxLength}
+        autoFocus={autoFocus}
         className={`resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 h-28 sm:h-auto ${
           error
             ? "border-destructive bg-error-bg focus-visible:ring-error"

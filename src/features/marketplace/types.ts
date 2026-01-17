@@ -1,9 +1,14 @@
-// Business data from API response
-export interface Business {
-  id: number;
-  name: string;
-  email: string;
-  description: string;
+import type { Business as GlobalBusiness } from "../business/types";
+import type { TeamMember as GlobalTeamMember } from "../../shared/types/team-member";
+
+// Business data from API response - using the global business type
+export type Business = GlobalBusiness;
+
+export interface PortfolioImageData {
+  url: string;
+  key: string;
+  originalName?: string;
+  size?: number;
 }
 
 // Marketplace listing model with customizable details
@@ -15,14 +20,21 @@ export interface MarketplaceListing {
   showServices: boolean;
   showLocations: boolean;
   allowOnlineBooking: boolean;
-  portfolioImages: string[] | null;
+  portfolioImages: PortfolioImageData[] | null;
   marketplaceName?: string | null; // Custom name for marketplace
   marketplaceEmail?: string | null; // Public contact email
+  marketplacePhone?: string | null; // Public contact phone
   marketplaceDescription?: string | null; // Business description
   featuredImage?: string | null; // Featured image URL
   useBusinessName?: boolean; // Use business name or custom
   useBusinessEmail?: boolean; // Use business email or custom
+  useBusinessPhone?: boolean; // Use business phone or custom
   useBusinessDescription?: boolean; // Use business description or custom
+  // Effective values calculated by backend
+  effectiveName?: string;
+  effectiveEmail?: string;
+  effectivePhone?: string;
+  effectiveDescription?: string;
 }
 
 export interface Location {
@@ -75,67 +87,56 @@ export interface Service {
   category: Category;
 }
 
-export interface TeamMember {
-  id: number;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-}
+export type TeamMember = GlobalTeamMember;
 
 export interface Industry {
   id: number;
   name: string;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
+  slug?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface IndustryTag {
+  id: number;
+  name: string;
+  slug?: string;
+}
+
+// Location with assignments (read from actual assignment tables)
+export interface LocationWithAssignments extends Location {
+  services: Service[];
+  teamMembers: TeamMember[];
 }
 
 export interface MarketplaceListingResponse {
   business: Business;
   listing: MarketplaceListing;
-  locations: Location[];
-  services: Service[];
-  categories: Category[];
-  teamMembers: TeamMember[];
+  // Location-scoped catalog (read from actual assignment tables)
+  locationCatalog: LocationWithAssignments[];
   industries: Industry[];
-  listedLocations: number[];
-  listedServices: number[];
-  listedCategories: number[];
-  listedTeamMembers: number[];
+  industryTags: IndustryTag[];
+  selectedIndustryTags: IndustryTag[];
 }
 
 // Payload for publishing marketplace listing
-export interface NewImageMeta {
-  tempId: string;
-}
-
 export interface PublishMarketplaceListingPayload {
   marketplaceName?: string;
   marketplaceEmail?: string;
+  marketplacePhone?: string;
   marketplaceDescription?: string;
-  featuredImage?: string | null;
-  portfolioImages?: string[];
   showTeamMembers?: boolean;
   showServices?: boolean;
   showLocations?: boolean;
   allowOnlineBooking?: boolean;
+  isVisible?: boolean;
   useBusinessName?: boolean;
   useBusinessEmail?: boolean;
+  useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
-  locationIds?: number[];
-  serviceIds?: number[];
-  categoryIds?: number[];
-  teamMemberIds?: number[];
-  // Images diff payload for backend
-  existingImageIds?: number[];
-  newImagesMeta?: NewImageMeta[];
-  featuredImageKey?: number | string;
-}
-
-export interface PublishMarketplaceListingRequest {
-  payload: PublishMarketplaceListingPayload;
-  newImageFiles?: Record<string, File>;
+  industryTagIds?: number[];
+  // Note: Assignments are managed in the Assignments flow
+  // Note: Portfolio images AND featured image are saved immediately on change, not on Save
 }
 
 // Booking settings for marketplace
@@ -149,15 +150,8 @@ export interface BookingSettings {
   allowCustomerCancellation: boolean;
   allowCustomerReschedule: boolean;
   autoConfirmBookings: boolean;
-  requireCustomerAccount: boolean;
-  requirePhoneNumber: boolean;
   allowStaffSelection: boolean;
   showAnyStaffOption: boolean;
-  maxActiveBookingsPerCustomer: number | null;
-  maxBookingsPerDay: number | null;
-  showPrices: boolean;
-  showDurations: boolean;
-  showStaffImages: boolean;
   cancellationPolicyMessage: string | null;
   bookingConfirmationMessage: string | null;
 }
@@ -171,15 +165,11 @@ export interface MarketplaceState {
   error: string | null;
   business: Business | null;
   listing: MarketplaceListing | null;
-  locations: Location[];
-  services: Service[];
-  categories: Category[];
-  teamMembers: TeamMember[];
+  // Location-scoped catalog (read from actual assignment tables)
+  locationCatalog: LocationWithAssignments[];
   industries: Industry[];
-  listedLocations: number[];
-  listedServices: number[];
-  listedCategories: number[];
-  listedTeamMembers: number[];
+  industryTags: IndustryTag[];
+  selectedIndustryTags: IndustryTag[];
   isPublishing: boolean;
   isUpdatingVisibility: boolean;
   // Booking settings

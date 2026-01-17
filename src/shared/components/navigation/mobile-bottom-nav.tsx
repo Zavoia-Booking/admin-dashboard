@@ -137,7 +137,7 @@ export function MobileBottomNav() {
       <div
         ref={drawerRef}
         className={cn(
-          'mobile-nav-drawer fixed left-0 right-0 z-40 bg-surface border-t border-border shadow-lg overflow-hidden',
+          'mobile-nav-drawer fixed left-0 right-0 z-50 bg-surface border-t border-border shadow-lg overflow-hidden',
           !isDragging && 'transition-transform duration-300 ease-out',
           isOpen ? 'translate-y-0' : 'translate-y-full',
           'bottom-[72px] max-h-[calc(100vh-72px)]'
@@ -197,7 +197,7 @@ export function MobileBottomNav() {
       {/* Backdrop overlay */}
       <div
         className={cn(
-          'fixed inset-0 bg-black/30 z-30 backdrop-blur-sm transition-opacity duration-300',
+          'fixed inset-0 bg-black/30 z-40 backdrop-blur-sm transition-opacity duration-300',
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
         onClick={() => setIsOpen(false)}
