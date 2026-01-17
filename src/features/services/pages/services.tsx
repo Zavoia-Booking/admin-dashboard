@@ -70,6 +70,7 @@ export default function ServicesPage() {
               items={tabItems}
               value={activeTab}
               onValueChange={handleTabChange}
+              stickyHeader={true}
             />
           </div>
         </AccessGuard>

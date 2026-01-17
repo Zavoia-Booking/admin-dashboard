@@ -1,9 +1,10 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { SectionDivider } from "../../../../shared/components/common/SectionDivider";
-import { BadgeCheck, Tag, ArrowUpRight } from "lucide-react";
+import { BadgeCheck, Tag, ArrowUpRight, Info } from "lucide-react";
 import { Pill } from "../../../../shared/components/ui/pill.tsx";
 import type { Industry, IndustryTag } from "../../types";
+import { useTranslation, Trans } from "react-i18next";
 
 interface IndustrySectionProps {
   industries: Industry[];
@@ -21,6 +22,8 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
   error,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation("marketplace");
+  
   const toggleTag = (tag: IndustryTag) => {
     const isSelected = selectedTags.some((t) => t.id === tag.id);
     if (isSelected) {
@@ -32,35 +35,44 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
 
   const businessIndustry = industries[0];
 
+  const SettingsLink = ({ children }: { children?: React.ReactNode }) => (
+    <span
+      onClick={() => navigate("/settings")}
+      className="inline-flex items-center gap-0.5 cursor-pointer font-semibold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary"
+    >
+      {children}
+      <ArrowUpRight
+        className="h-4 w-4 text-primary"
+        aria-hidden="true"
+      />
+    </span>
+  );
+
   return (
     <div className="space-y-6">
       <SectionDivider
-        title="Industry & Tags"
+        title={t("industry.title")}
         className="uppercase tracking-wider text-foreground-2"
       />
 
-      <div className="group relative rounded-2xl p-4 border transition-all duration-300 bg-surface-active dark:bg-neutral-900 border-border flex flex-col gap-4">
+      <div className="group relative rounded-2xl p-4 border transition-all duration-300 bg-white dark:bg-surface border-border flex flex-col gap-4">
         <div className="space-y-1">
           <h3 className="text-base font-medium text-foreground-1">
-            Primary Industry
+            {t("industry.primaryIndustry.label")}
           </h3>
           <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-            This is the primary industry your business is listed under, ensuring
-            you appear in the right search results. If you need to update it,
-            you can do so in your{" "}
-            <span
-              onClick={() => navigate("/settings")}
-              className="inline-flex items-center gap-0.5 cursor-pointer font-semibold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary"
-            >
-              Settings
-              <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
-            </span>
-            .
+            <Trans
+              t={t}
+              i18nKey="industry.primaryIndustry.description"
+              components={{
+                settingsLink: <SettingsLink />,
+              }}
+            />
           </p>
         </div>
 
         {businessIndustry && (
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface border border-border w-fit shadow-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-surface border border-border w-fit shadow-sm">
             <BadgeCheck className="h-4 w-4 text-green-400" />
             <span className="text-sm font-semibold text-foreground-1 capitalize">
               {businessIndustry.name}
@@ -71,12 +83,10 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
         <div className="pt-4 border-t border-border space-y-4">
           <div className="space-y-1">
             <h3 className="text-base font-medium text-foreground-1">
-              Marketplace Tags
+              {t("industry.tags.label")}
             </h3>
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-              Customers often filter their searches by category. Select the tags
-              that best describe your services to ensure you're easily
-              discoverable by the right audience.
+              {t("industry.tags.description")}
             </p>
           </div>
 
@@ -97,6 +107,23 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
               );
             })}
           </div>
+
+          {selectedTags.length === 0 && (
+            <div className="flex items-start gap-2 pt-1">
+              <div className="relative flex h-4 w-4 shrink-0 mt-0.5">
+                {selectedTags.length === 0 && (
+                  <span
+                    className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-20"
+                    style={{ animationDuration: "3s" }}
+                  ></span>
+                )}
+                <Info className="relative inline-flex h-4 w-4 text-primary" />
+              </div>
+              <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                {t("industry.tags.addAtLeastOne")}
+              </p>
+            </div>
+          )}
 
           {error && (
             <p className="text-xs font-medium text-destructive mt-2 animate-in fade-in slide-in-from-top-1">

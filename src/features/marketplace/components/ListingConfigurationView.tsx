@@ -1,29 +1,35 @@
-import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Button } from '../../../shared/components/ui/button';
-import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
-import { Save, AlertTriangle } from 'lucide-react';
-import { Card, CardContent } from '../../../shared/components/ui/card';
-import type { Location, Service, TeamMember, Business } from '../types';
-import { MarketplaceImagesSection } from './MarketplaceImagesSection';
-import { AdvancedSettingsSection, type AdvancedSettingsSectionRef } from './AdvancedSettingsSection';
-import { SectionDivider } from '../../../shared/components/common/SectionDivider';
-import { useMarketplaceForm } from '../hooks/useMarketplaceForm';
-import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
+import { useState, useEffect, useRef } from "react";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { Button } from "../../../shared/components/ui/button";
+import {
+  ResponsiveTabs,
+  type ResponsiveTabItem,
+} from "../../../shared/components/ui/responsive-tabs";
+import { Save, AlertTriangle, ArrowRight } from "lucide-react";
+import { Card, CardContent } from "../../../shared/components/ui/card";
+import type {
+  Business,
+  LocationWithAssignments,
+  PortfolioImageData,
+} from "../types";
+import { MarketplaceImagesSection } from "./MarketplaceImagesSection";
+import {
+  AdvancedSettingsSection,
+  type AdvancedSettingsSectionRef,
+} from "./AdvancedSettingsSection";
+import { SectionDivider } from "../../../shared/components/common/SectionDivider";
+import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
+import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
+import { useTranslation } from "react-i18next";
 
 // Profile Tab Components
-import { VisibilityToggleCard } from './profile/VisibilityToggleCard';
-import { BookingToggleCard } from './profile/BookingToggleCard';
-import { MarketplaceDetailsSection } from './profile/MarketplaceDetailsSection';
-import { LocationCatalogSection } from './profile/LocationCatalogSection';
-import IndustrySection from './profile/IndustrySection.tsx';
+import { VisibilityToggleCard } from "./profile/VisibilityToggleCard";
+import { BookingToggleCard } from "./profile/BookingToggleCard";
+import { MarketplaceDetailsSection } from "./profile/MarketplaceDetailsSection";
+import { LocationCatalogSection } from "./profile/LocationCatalogSection";
+import IndustrySection from "./profile/IndustrySection.tsx";
 
-type MarketplaceTab = 'profile' | 'portfolio' | 'promotions';
-
-interface LocationWithAssignments extends Location {
-  services: Service[];
-  teamMembers: TeamMember[];
-}
+type MarketplaceTab = "profile" | "portfolio" | "promotions";
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -41,7 +47,7 @@ interface ListingConfigurationViewProps {
   useBusinessDescription?: boolean;
   allowOnlineBooking: boolean;
   featuredImage?: string | null;
-  portfolioImages?: string[] | null;
+  portfolioImages?: PortfolioImageData[] | null;
   industries: any[];
   industryTags: any[];
   selectedIndustryTags: any[];
@@ -50,58 +56,70 @@ interface ListingConfigurationViewProps {
 }
 
 export function ListingConfigurationView(props: ListingConfigurationViewProps) {
-  const {
-    business,
-    locationsWithAssignments,
-    isPublishing,
-    isListed,
-  } = props;
+  const { business, locationsWithAssignments, isPublishing, isListed } = props;
+  const { t } = useTranslation("marketplace");
 
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const bookingSettingsRef = useRef<AdvancedSettingsSectionRef>(null);
   const [bookingSettingsDirty, setBookingSettingsDirty] = useState(false);
-  
+  const [bookingSettingsHasErrors, setBookingSettingsHasErrors] =
+    useState(false);
+
+
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const pendingNavigationPathRef = useRef<string | null>(null);
   const allowNavigationRef = useRef(false);
-  
+
   // Get initial tab from URL or default to 'profile'
   const getInitialTab = (): MarketplaceTab => {
-    const tab = searchParams.get('tab') as MarketplaceTab | null;
-    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
+    const tab = searchParams.get("tab") as MarketplaceTab | null;
+    if (
+      tab &&
+      (tab === "profile" || tab === "portfolio" || tab === "promotions")
+    ) {
       return tab;
     }
-    return 'profile';
+    return "profile";
   };
 
   const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
 
+  // Should we show the global save/publish button?
+  // We hide it on the portfolio tab if the listing is already published (isListed = true)
+  // because portfolio changes are instant. We keep it if it's the initial "Publish" flow.
+  const showSaveButton = activeTab !== "portfolio" || !isListed;
+
   // Sync with URL changes
   useEffect(() => {
-    const tab = searchParams.get('tab') as MarketplaceTab | null;
-    if (tab && (tab === 'profile' || tab === 'portfolio' || tab === 'promotions')) {
+    const tab = searchParams.get("tab") as MarketplaceTab | null;
+    if (
+      tab &&
+      (tab === "profile" || tab === "portfolio" || tab === "promotions")
+    ) {
       setActiveTab(tab);
-    } else if (tab === 'booking-settings') {
-      setActiveTab('profile');
-      navigate('/marketplace?tab=profile', { replace: true });
+    } else if (tab === "booking-settings") {
+      setActiveTab("profile");
+      navigate("/marketplace?tab=profile", { replace: true });
     }
   }, [searchParams, navigate]);
 
-  // Check booking settings dirty state periodically
+  // Check booking settings dirty state and errors periodically
   useEffect(() => {
-    const checkBookingDirty = () => {
+    const checkBookingState = () => {
       const isDirty = bookingSettingsRef.current?.isDirty() ?? false;
+      const hasErrors = bookingSettingsRef.current?.hasErrors() ?? false;
       setBookingSettingsDirty(isDirty);
+      setBookingSettingsHasErrors(hasErrors);
     };
 
     // Check immediately
-    checkBookingDirty();
+    checkBookingState();
 
     // Check every 500ms to detect changes in booking settings
-    const interval = setInterval(checkBookingDirty, 500);
+    const interval = setInterval(checkBookingState, 500);
 
     return () => clearInterval(interval);
   }, []);
@@ -133,12 +151,12 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       if (isCombinedDirty) {
         e.preventDefault();
         // Modern browsers ignore custom messages and show their own
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
 
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isCombinedDirty]);
 
   // Custom navigation guard - intercept clicks on navigation links
@@ -149,15 +167,18 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       }
 
       const target = e.target as HTMLElement;
-      const link = target.closest('a[href]') as HTMLAnchorElement | null;
-      
+      const link = target.closest("a[href]") as HTMLAnchorElement | null;
+
       if (link && link.href) {
         const url = new URL(link.href);
         const currentPath = location.pathname + location.search;
         const targetPath = url.pathname + url.search;
 
         // Only block if navigating away from marketplace
-        if (targetPath !== currentPath && !targetPath.startsWith('/marketplace')) {
+        if (
+          targetPath !== currentPath &&
+          !targetPath.startsWith("/marketplace")
+        ) {
           e.preventDefault();
           e.stopPropagation();
           pendingNavigationPathRef.current = targetPath;
@@ -166,15 +187,15 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       }
     };
 
-    document.addEventListener('click', handleClick, true);
-    return () => document.removeEventListener('click', handleClick, true);
+    document.addEventListener("click", handleClick, true);
+    return () => document.removeEventListener("click", handleClick, true);
   }, [isCombinedDirty, location]);
 
   // Dialog handlers
   const handleConfirmLeave = () => {
     setShowUnsavedDialog(false);
     allowNavigationRef.current = true;
-    
+
     if (pendingNavigationPathRef.current) {
       navigate(pendingNavigationPathRef.current);
       pendingNavigationPathRef.current = null;
@@ -201,7 +222,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const handleCombinedSave = () => {
     // Save marketplace listing
     form.handleSave();
-    
+
     // Save booking settings if they're dirty
     if (bookingSettingsDirty && bookingSettingsRef.current) {
       const bookingSettings = bookingSettingsRef.current.getCurrentSettings();
@@ -211,24 +232,26 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   const tabItems: ResponsiveTabItem[] = [
     {
-      id: 'profile',
-      label: 'Profile',
+      id: "profile",
+      label: t("configuration.tabs.profile"),
+      showBadge: form.selectedIndustryTags.length === 0,
       content: (
-        <div className="max-w-5xl">
-          <Card className="border-none pt-0 sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-card overflow-hidden">
+        <div className="max-w-5xl mb-0 md:mb-8">
+          <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-white dark:sm:bg-surface overflow-hidden">
             <CardContent className="p-0 sm:p-4 space-y-10">
               {/* Visibility & Booking Section */}
               <div className="px-0 space-y-6">
-                <SectionDivider title="Visibility & Appointments" className='mt-4 uppercase tracking-wider text-foreground-2' />
+                <SectionDivider
+                  title={t("configuration.sections.visibilityAndAppointments")}
+                  className="mt-4 uppercase tracking-wider text-foreground-2"
+                />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {isListed && (
-                    <VisibilityToggleCard 
-                      isVisible={form.isVisible}
-                      onToggleVisibility={form.setIsVisible}
-                      isUpdatingVisibility={isPublishing}
-                    />
-                  )}
-                  <BookingToggleCard 
+                  <VisibilityToggleCard
+                    isVisible={form.isVisible}
+                    onToggleVisibility={form.setIsVisible}
+                    isUpdatingVisibility={isPublishing}
+                  />
+                  <BookingToggleCard
                     onlineBooking={form.onlineBooking}
                     setOnlineBooking={form.setOnlineBooking}
                   />
@@ -236,7 +259,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               </div>
 
               {/* Marketplace Details Section */}
-              <MarketplaceDetailsSection 
+              <MarketplaceDetailsSection
                 business={business}
                 useBusinessName={form.useBusinessName}
                 setUseBusinessName={form.setUseBusinessName}
@@ -261,7 +284,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               />
 
               {/* Industry & Tags Section */}
-              <IndustrySection 
+              <IndustrySection
                 industries={props.industries}
                 industryTags={props.industryTags}
                 selectedTags={form.selectedIndustryTags}
@@ -270,12 +293,13 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               />
 
               {/* Location Catalog Section */}
-              <LocationCatalogSection 
-                locations={locationsWithAssignments}
-              />
+              <LocationCatalogSection locations={locationsWithAssignments} />
 
               <div className="pt-4">
-                <SectionDivider title="Configuration" />
+                <SectionDivider
+                  title={t("configuration.sections.preferences")}
+                  className="mt-4 uppercase tracking-wider text-foreground-2"
+                />
                 <AdvancedSettingsSection ref={bookingSettingsRef} />
               </div>
             </CardContent>
@@ -284,8 +308,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       ),
     },
     {
-      id: 'portfolio',
-      label: 'Portfolio',
+      id: "portfolio",
+      label: t("configuration.tabs.portfolio"),
+      showBadge: form.portfolio.length === 0,
       content: (
         <div className="space-y-6">
           <MarketplaceImagesSection
@@ -298,15 +323,15 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       ),
     },
     {
-      id: 'promotions',
-      label: 'Promotions',
+      id: "promotions",
+      label: t("configuration.tabs.promotions"),
       content: (
-        <div className="flex flex-col items-start justify-start py-10 text-left gap-6">
+        <div className="flex flex-col items-center justify-start py-10 text-center gap-12">
           {/* Illustration */}
-          <div className="relative w-full max-w-md h-44 text-left">
+          <div className="relative w-full mt-12 max-w-md h-44 text-left">
             {/* Subtle background glow */}
             <div className="absolute inset-0 -top-4 -bottom-4 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-2xl opacity-50 dark:opacity-40" />
-            
+
             {/* back cards with better shadows */}
             <div className="absolute inset-x-10 top-2 h-28 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-lg opacity-70 rotate-[-14deg] blur-[0.5px]" />
             <div className="absolute inset-x-6 top-10 h-30 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-xl opacity-85 rotate-[10deg] blur-[0.5px]" />
@@ -314,7 +339,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             {/* front card */}
             <div className="absolute inset-x-2 top-6 h-32 rounded-2xl bg-surface dark:bg-neutral-900 border border-border shadow-xl overflow-hidden">
               <div className="h-full w-full px-5 py-4 flex flex-col items-center justify-center gap-3">
-                <div className="h-3 w-32 rounded bg-neutral-300 dark:bg-neutral-800" />
+                <div className="h-3 w-42 rounded bg-neutral-300 dark:bg-neutral-800" />
+                <div className="h-3 w-28 rounded bg-neutral-300 dark:bg-neutral-800" />
+                <div className="h-3 w-18 rounded bg-neutral-300 dark:bg-neutral-800" />
               </div>
             </div>
           </div>
@@ -322,10 +349,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           {/* Copy */}
           <div className="space-y-2 max-w-md px-4">
             <h3 className="text-lg font-semibold text-foreground-1">
-              Promotions Coming Soon
+              {t("configuration.promotions.comingSoon")}
             </h3>
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-              Create discounts, special offers, and promotional campaigns to attract more customers from the marketplace.
+              {t("configuration.promotions.description")}
             </p>
           </div>
         </div>
@@ -334,24 +361,38 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   ];
 
   // Dynamic button text based on listing state
-  const buttonText = isListed ? 'Save Changes' : 'Publish';
-  const buttonLoadingText = isPublishing ? (isListed ? 'Saving...' : 'Publishing...') : buttonText;
+  const buttonText = isListed ? t("configuration.buttons.saveChanges") : t("configuration.buttons.publish");
+  const buttonLoadingText = isPublishing
+    ? isListed
+      ? t("configuration.buttons.saving")
+      : t("configuration.buttons.publishing")
+    : buttonText;
 
   const SaveButton = (
-    <Button 
-      onClick={handleCombinedSave} 
-      className="group btn-primary !min-h-0 !h-11 !px-6 -mt-4 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold text-sm flex items-center gap-2 !w-52 sm:w-auto"
-      disabled={isPublishing || !isCombinedDirty || form.hasValidationErrors}
+    <Button
+      onClick={handleCombinedSave}
+      className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto !min-w-34 md:!w-52 md:sm:w-auto"
+      disabled={
+        isPublishing ||
+        !isCombinedDirty ||
+        form.hasValidationErrors ||
+        bookingSettingsHasErrors ||
+        form.portfolio.length === 0 ||
+        form.selectedIndustryTags.length === 0
+      }
     >
       {isPublishing ? (
         <>
-          <div className="h-4 w-4 rounded-full border-2 border-white/30 border-t-white animate-spin"></div>
+          <div className="rounded-full border-2 border-white/30 border-t-white animate-spin h-3 md:h-4 w-3 md:w-4"></div>
           <span>{buttonLoadingText}</span>
         </>
       ) : (
         <>
-          <Save className="h-4 w-4" />
           <span>{buttonText}</span>
+          {!isListed && (
+            <ArrowRight className="inline h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+          )}
+          {isListed && <Save className="hidden md:inline h-4 w-4" />}
         </>
       )}
     </Button>
@@ -365,7 +406,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           items={tabItems}
           value={activeTab}
           onValueChange={handleTabChange}
-          rightContent={SaveButton}
+          rightContent={showSaveButton ? SaveButton : undefined}
           stickyHeader={true}
         />
       </div>
@@ -376,18 +417,18 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         onConfirm={handleConfirmLeave}
         onCancel={handleCancelLeave}
         onOpenChange={setShowUnsavedDialog}
-        title="Unsaved Changes"
-        description="You have unsaved changes that will be lost if you leave. Are you sure you want to continue?"
-        confirmTitle="Leave"
-        cancelTitle="Cancel"
+        title={t("configuration.unsavedChanges.title")}
+        description={t("configuration.unsavedChanges.description")}
+        confirmTitle={t("configuration.unsavedChanges.leave")}
+        cancelTitle={t("configuration.unsavedChanges.cancel")}
         variant="destructive"
         icon={AlertTriangle}
         iconBgColor="transparent"
         iconColor="text-destructive"
         showCloseButton
         footerClassName=""
-        cancelClassName="w-44"
-        confirmClassName="w-32"
+        cancelClassName="w-auto md:w-44"
+        confirmClassName="w-auto md:w-32"
       />
     </>
   );

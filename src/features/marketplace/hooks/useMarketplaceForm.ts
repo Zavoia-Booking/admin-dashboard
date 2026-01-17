@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { Business } from '../types';
+import type { Business, PortfolioImageData } from '../types';
 import { useProfileDetails } from './useProfileDetails';
 import { usePortfolioManagement } from './usePortfolioManagement';
 
@@ -16,7 +16,7 @@ interface UseMarketplaceFormProps {
   allowOnlineBooking: boolean;
   isVisible: boolean;
   featuredImage?: string | null;
-  portfolioImages?: string[] | null;
+  portfolioImages?: PortfolioImageData[] | null;
   selectedIndustryTags: { id: number; name: string }[];
   onSave: (data: any) => void;
 }
@@ -75,6 +75,7 @@ export function useMarketplaceForm({
     }
 
     // Compose data from all hooks
+    // Note: portfolioImages AND featured image are saved immediately on change, not here
     onSave({
       marketplaceName: profile.useBusinessName ? (business?.name || '') : profile.name,
       marketplaceEmail: profile.useBusinessEmail ? (business?.email || '') : profile.email,
@@ -86,13 +87,10 @@ export function useMarketplaceForm({
       useBusinessDescription: profile.useBusinessDescription,
       allowOnlineBooking: profile.onlineBooking,
       isVisible: profile.isVisible,
-      featuredImageId: portfolio.featuredImageId,
-      portfolioImages: portfolio.portfolio,
       industryTagIds: profile.selectedIndustryTags.map(tag => tag.id),
     });
   }, [
     profile,
-    portfolio,
     business,
     onSave,
   ]);

@@ -8,6 +8,7 @@ import { TextField } from "../../../../shared/components/forms/fields/TextField"
 import TextareaField from "../../../../shared/components/forms/fields/TextareaField";
 import { cn } from "../../../../shared/lib/utils";
 import { Badge } from "../../../../shared/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 interface MarketplaceDetailsSectionProps {
   business: Business | null;
@@ -61,11 +62,12 @@ export const MarketplaceDetailsSection: React.FC<
   const [focusName, setFocusName] = useState(false);
   const [focusContact, setFocusContact] = useState(false);
   const [focusDescription, setFocusDescription] = useState(false);
+  const { t } = useTranslation("marketplace");
 
   return (
     <div className="space-y-6">
       <SectionDivider
-        title="Marketplace Details"
+        title={t("details.title")}
         className="uppercase tracking-wider text-foreground-2"
       />
 
@@ -74,18 +76,18 @@ export const MarketplaceDetailsSection: React.FC<
         className={cn(
           "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
           useBusinessName
-            ? "border-info-300 bg-info-100"
-            : "bg-surface-active dark:bg-neutral-900 border-border"
+            ? "border-info-300 bg-info-100 dark:bg-surface-hover/30 dark:border-border-strong"
+            : "bg-surface-active dark:bg-surface border-border"
         )}
       >
         <div className="flex items-center justify-between">
           <h3
             className={cn(
               "text-base font-medium cursor-pointer",
-              useBusinessName ? "text-neutral-900" : "text-foreground-1"
+              useBusinessName ? "text-neutral-900 dark:text-foreground-1" : "text-foreground-1"
             )}
           >
-            Business Name
+            {t("details.businessName.label")}
           </h3>
           <Switch
             checked={useBusinessName}
@@ -100,19 +102,19 @@ export const MarketplaceDetailsSection: React.FC<
           className={cn(
             "text-sm",
             useBusinessName
-              ? "text-neutral-900"
+              ? "text-neutral-900 dark:text-foreground-2"
               : "text-foreground-3 dark:text-foreground-2"
           )}
         >
           {useBusinessName
-            ? "Sync your marketplace listing with your primary business name. This ensures brand consistency for customers browsing your services."
-            : "Set a distinct brand identity for this listing. Use this to differentiate your marketplace presence from your global business profile."}
+            ? t("details.businessName.useBusinessDescription")
+            : t("details.businessName.customDescription")}
         </p>
 
         {useBusinessName ? (
           <div className="text-sm pt-4 border-t border-info-200">
-            <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit">
-              <Building2 className="h-4 w-4 text-neutral-900" />
+            <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
+              <Building2 className="h-4 w-4 text-neutral-900 dark:text-foreground-1" />
               {business?.name || "N/A"}
             </span>
           </div>
@@ -120,8 +122,8 @@ export const MarketplaceDetailsSection: React.FC<
           <div className="mt-4 pt-2 border-t border-border">
             <TextField
               id="marketplace-name-field"
-              label="Listing Business Name"
-              placeholder="e.g. Sarah's Salon & Spa"
+              label={t("details.businessName.customLabel")}
+              placeholder={t("details.businessName.placeholder")}
               value={name}
               onChange={(v) => {
                 setName(v);
@@ -144,7 +146,7 @@ export const MarketplaceDetailsSection: React.FC<
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
               <span className="text-neutral-900 dark:text-foreground-1">
-                Custom
+                {t("details.businessName.custom")}
               </span>
             </Badge>
           </div>
@@ -161,7 +163,7 @@ export const MarketplaceDetailsSection: React.FC<
         }}
         inheritedEmail={business?.email || ""}
         inheritedPhone={business?.phone || ""}
-        inheritedLabel="your business profile"
+        inheritedLabel={t("details.contact.inheritedLabel")}
         localEmail={email}
         onEmailChange={(v) => {
           setEmail(v);
@@ -173,11 +175,11 @@ export const MarketplaceDetailsSection: React.FC<
         phoneError={phoneError}
         showPhone={true}
         showEmail={true}
-        title="Contact Information"
-        emailLabel="Listing Email"
-        phoneLabel="Listing Phone"
-        helperTextOn="Use your main business contact details for public inquiries. Leads and questions will be routed to your primary communication channels."
-        helperTextOff="Provide dedicated contact info for marketplace visitors. Perfect for tracking leads or separating marketplace inquiries from regular business."
+        title={t("details.contact.title")}
+        emailLabel={t("details.contact.emailLabel")}
+        phoneLabel={t("details.contact.phoneLabel")}
+        helperTextOn={t("details.contact.helperTextOn")}
+        helperTextOff={t("details.contact.helperTextOff")}
         className="!rounded-2xl"
         autoFocusOnToggle={focusContact}
       />
@@ -187,13 +189,13 @@ export const MarketplaceDetailsSection: React.FC<
         className={cn(
           "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
           useBusinessDescription
-            ? "bg-surface dark:bg-neutral-900 border-border"
-            : "border-border-strong bg-surface-active dark:bg-neutral-900/60 shadow-sm"
+            ? "bg-white dark:bg-surface border-border"
+            : "border-border-strong bg-surface-active dark:bg-surface shadow-sm"
         )}
       >
         <div className="flex items-center justify-between">
           <h3 className="text-base font-medium text-foreground-1 cursor-pointer">
-            Description
+            {t("details.description.label")}
           </h3>
           <Switch
             checked={useBusinessDescription}
@@ -213,8 +215,8 @@ export const MarketplaceDetailsSection: React.FC<
           )}
         >
           {useBusinessDescription
-            ? "Display your standard business overview to marketplace users. This pulls the description directly from your global profile settings."
-            : "Craft a specialized pitch for marketplace browsing. Tailor your message to highlight specific benefits that convert browsing users into bookings."}
+            ? t("details.description.useBusinessDescription")
+            : t("details.description.customDescription")}
         </p>
 
         <div className="relative">
@@ -223,19 +225,17 @@ export const MarketplaceDetailsSection: React.FC<
               className={cn(
                 "p-4 rounded-xl border transition-colors min-h-[100px] flex items-center",
                 business?.description
-                  ? "bg-muted/30 border-border hover:border-border-strong"
-                  : "bg-muted/10 border-dashed border-border-strong/30"
+                  ? "bg-muted/30 dark:bg-neutral-900 border-border hover:border-border-strong"
+                  : "bg-muted/10 dark:bg-muted/5 border-dashed border-border-strong/30"
               )}
             >
               {business?.description ? (
-                <p className="text-sm text-foreground-2 leading-relaxed">
+                <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed">
                   {business.description}
                 </p>
               ) : (
-                <p className="text-sm text-foreground-3 italic w-full text-left">
-                  No profile description found to sync. You can maintain brand consistency
-                  by updating your business settings, or craft a specialized pitch
-                  for marketplace browsing by switching to custom mode.
+                <p className="text-sm text-foreground-3 dark:text-foreground-2 italic w-full text-left">
+                  {t("details.description.noDescription")}
                 </p>
               )}
             </div>
@@ -243,7 +243,7 @@ export const MarketplaceDetailsSection: React.FC<
             <TextareaField
               id="marketplaceDescription"
               label=""
-              placeholder="Describe your business and services..."
+              placeholder={t("details.description.placeholder")}
               value={description}
               onChange={(v) => {
                 setDescription(v);
@@ -266,7 +266,7 @@ export const MarketplaceDetailsSection: React.FC<
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
               <span className="text-neutral-900 dark:text-foreground-1">
-                Custom
+                {t("details.description.custom")}
               </span>
             </Badge>
           </div>

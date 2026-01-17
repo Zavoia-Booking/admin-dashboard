@@ -121,10 +121,6 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
         title: t("sidebar.subItems.marketplace.promotions"),
         url: "/marketplace?tab=promotions",
       },
-      {
-        title: t("sidebar.subItems.marketplace.bookingSettings"),
-        url: "/marketplace?tab=booking-settings",
-      },
     ],
   },
   {

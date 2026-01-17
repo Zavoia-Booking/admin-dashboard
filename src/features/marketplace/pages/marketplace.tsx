@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
+import { useTranslation } from 'react-i18next';
 import { 
   fetchMarketplaceListingAction, 
   publishMarketplaceListingAction, 
   updateBookingSettingsAction
 } from '../actions';
 import { fetchCurrentBusinessAction } from '../../business/actions';
-import type { PortfolioImage } from '../components/MarketplaceImagesSection';
-import type { PublishMarketplaceListingRequest, UpdateBookingSettingsPayload } from '../types';
+import type { PublishMarketplaceListingPayload, UpdateBookingSettingsPayload } from '../types';
 import { 
   selectMarketplaceBusiness,
   selectMarketplaceListing, 
@@ -30,6 +30,7 @@ import { ListingConfigurationSkeleton } from '../components/ListingConfiguration
 export default function MarketplacePage() {
   const dispatch = useDispatch();
   const location = useLocation();
+  const { t } = useTranslation("marketplace");
   const marketplaceBusiness = useSelector(selectMarketplaceBusiness);
   const globalBusiness = useSelector(getCurrentBusinessSelector);
   
@@ -77,57 +78,29 @@ export default function MarketplacePage() {
     useBusinessPhone: boolean;
     useBusinessDescription: boolean;
     allowOnlineBooking: boolean;
-    featuredImageId?: string | null;
-    portfolioImages?: PortfolioImage[];
     isVisible: boolean;
     industryTagIds?: number[];
   }) => {
-    const portfolioImages = data.portfolioImages || [];
-
-    // Separate existing images (no file) from new uploads (have file)
-    const newImages = portfolioImages.filter(img => img.file);
-
-    // For now, treat existing as empty (will be wired properly when backend returns IDs)
-    const existingImageIds: number[] = [];
-    
-    const newImagesMeta = newImages.map(img => ({
-      tempId: img.tempId,
-    }));
-
-    // Build file map for new images
-    const newImageFiles: Record<string, File> = {};
-    newImages.forEach(img => {
-      if (img.file) {
-        newImageFiles[img.tempId] = img.file;
-      }
-    });
-
-    const featuredImageKey = data.featuredImageId || undefined;
-
-    const request: PublishMarketplaceListingRequest = {
-      payload: {
-        marketplaceName: data.marketplaceName,
-        marketplaceEmail: data.marketplaceEmail,
-        marketplacePhone: data.marketplacePhone,
-        marketplaceDescription: data.marketplaceDescription,
-        useBusinessName: data.useBusinessName,
-        useBusinessEmail: data.useBusinessEmail,
-        useBusinessPhone: data.useBusinessPhone,
-        useBusinessDescription: data.useBusinessDescription,
-        showTeamMembers: true,
-        showServices: true,
-        showLocations: true,
-        allowOnlineBooking: data.allowOnlineBooking,
-        isVisible: data.isVisible,
-        existingImageIds,
-        newImagesMeta: newImagesMeta.length > 0 ? newImagesMeta : undefined,
-        featuredImageKey,
-        industryTagIds: data.industryTagIds,
-      },
-      newImageFiles: Object.keys(newImageFiles).length > 0 ? newImageFiles : undefined,
+    // Note: portfolioImages AND featured image are saved immediately on upload/delete/select,
+    // not in the save payload anymore
+    const payload: PublishMarketplaceListingPayload = {
+      marketplaceName: data.marketplaceName,
+      marketplaceEmail: data.marketplaceEmail,
+      marketplacePhone: data.marketplacePhone,
+      marketplaceDescription: data.marketplaceDescription,
+      useBusinessName: data.useBusinessName,
+      useBusinessEmail: data.useBusinessEmail,
+      useBusinessPhone: data.useBusinessPhone,
+      useBusinessDescription: data.useBusinessDescription,
+      showTeamMembers: true,
+      showServices: true,
+      showLocations: true,
+      allowOnlineBooking: data.allowOnlineBooking,
+      isVisible: data.isVisible,
+      industryTagIds: data.industryTagIds,
     };
 
-    dispatch(publishMarketplaceListingAction.request(request as any));
+    dispatch(publishMarketplaceListingAction.request(payload));
   };
 
   const handleSaveBookingSettings = (data: UpdateBookingSettingsPayload) => {
@@ -198,7 +171,7 @@ export default function MarketplacePage() {
   return (
     <AppLayout>
       <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)] cursor-default">
-        <p className="text-muted-foreground">No listing data available</p>
+        <p className="text-muted-foreground">{t("page.noListingData")}</p>
       </div>
     </AppLayout>
   );

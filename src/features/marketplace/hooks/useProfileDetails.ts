@@ -180,11 +180,6 @@ export function useProfileDetails({
       return true;
     }
 
-    // If using business contact for both, no validation errors matter
-    if (useBusinessEmail && useBusinessPhone) {
-      return false;
-    }
-    
     // If using custom email, check if there's an error
     if (!useBusinessEmail && emailError) {
       return true;

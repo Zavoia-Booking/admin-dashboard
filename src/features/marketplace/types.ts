@@ -4,6 +4,13 @@ import type { TeamMember as GlobalTeamMember } from "../../shared/types/team-mem
 // Business data from API response - using the global business type
 export type Business = GlobalBusiness;
 
+export interface PortfolioImageData {
+  url: string;
+  key: string;
+  originalName?: string;
+  size?: number;
+}
+
 // Marketplace listing model with customizable details
 export interface MarketplaceListing {
   businessId: number;
@@ -13,7 +20,7 @@ export interface MarketplaceListing {
   showServices: boolean;
   showLocations: boolean;
   allowOnlineBooking: boolean;
-  portfolioImages: string[] | null;
+  portfolioImages: PortfolioImageData[] | null;
   marketplaceName?: string | null; // Custom name for marketplace
   marketplaceEmail?: string | null; // Public contact email
   marketplacePhone?: string | null; // Public contact phone
@@ -113,17 +120,11 @@ export interface MarketplaceListingResponse {
 }
 
 // Payload for publishing marketplace listing
-export interface NewImageMeta {
-  tempId: string;
-}
-
 export interface PublishMarketplaceListingPayload {
   marketplaceName?: string;
   marketplaceEmail?: string;
   marketplacePhone?: string;
   marketplaceDescription?: string;
-  featuredImage?: string | null;
-  portfolioImages?: string[];
   showTeamMembers?: boolean;
   showServices?: boolean;
   showLocations?: boolean;
@@ -135,15 +136,7 @@ export interface PublishMarketplaceListingPayload {
   useBusinessDescription?: boolean;
   industryTagIds?: number[];
   // Note: Assignments are managed in the Assignments flow
-  // Images diff payload for backend
-  existingImageIds?: number[];
-  newImagesMeta?: NewImageMeta[];
-  featuredImageKey?: number | string;
-}
-
-export interface PublishMarketplaceListingRequest {
-  payload: PublishMarketplaceListingPayload;
-  newImageFiles?: Record<string, File>;
+  // Note: Portfolio images AND featured image are saved immediately on change, not on Save
 }
 
 // Booking settings for marketplace
@@ -157,15 +150,8 @@ export interface BookingSettings {
   allowCustomerCancellation: boolean;
   allowCustomerReschedule: boolean;
   autoConfirmBookings: boolean;
-  requireCustomerAccount: boolean;
-  requirePhoneNumber: boolean;
   allowStaffSelection: boolean;
   showAnyStaffOption: boolean;
-  maxActiveBookingsPerCustomer: number | null;
-  maxBookingsPerDay: number | null;
-  showPrices: boolean;
-  showDurations: boolean;
-  showStaffImages: boolean;
   cancellationPolicyMessage: string | null;
   bookingConfirmationMessage: string | null;
 }

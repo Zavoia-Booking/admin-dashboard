@@ -528,6 +528,54 @@
     mix-blend-mode: normal;
   }
 
+  /* Mobile: Smaller blobs to match desktop proportions on smaller screens */
+  @media (max-width: 767px) {
+    body::before {
+      background: 
+        /* Large primary blob - top left corner (scaled down ~65%) */
+        radial-gradient(circle 140px at -8% -8%, var(--color-primary-500) 0%, oklch(67% 0.21 36 / 0.15) 25%, oklch(67% 0.21 36 / 0.08) 45%, oklch(67% 0.21 36 / 0.02) 70%, transparent 100%),
+        /* Medium primary blob - center left */
+        radial-gradient(circle 180px at 12% 45%, var(--color-primary-500) 0%, oklch(67% 0.21 36 / 0.12) 28%, oklch(67% 0.21 36 / 0.06) 50%, oklch(67% 0.21 36 / 0.01) 75%, transparent 100%),
+        /* Medium primary blob - center right for depth */
+        radial-gradient(circle 200px at 78% 38%, var(--color-primary-500) 0%, oklch(67% 0.21 36 / 0.14) 30%, oklch(67% 0.21 36 / 0.07) 52%, oklch(67% 0.21 36 / 0.02) 75%, transparent 100%),
+        /* Small primary accent - bottom center */
+        radial-gradient(circle 150px at 50% 95%, var(--color-primary-500) 0%, oklch(67% 0.21 36 / 0.10) 30%, oklch(67% 0.21 36 / 0.04) 60%, transparent 100%);
+      filter: blur(80px);
+    }
+
+    body::after {
+      background: 
+        /* Large info blob - bottom right (scaled down ~65%) */
+        radial-gradient(circle 200px at 105% 105%, var(--color-info-100) 0%, oklch(96.5% 0.02 259 / 0.25) 30%, oklch(96.5% 0.02 259 / 0.12) 55%, oklch(96.5% 0.02 259 / 0.04) 80%, transparent 100%),
+        /* Medium info blob - top right */
+        radial-gradient(circle 100px at 88% 8%, var(--color-info-100) 0%, oklch(96.5% 0.02 259 / 0.20) 28%, oklch(96.5% 0.02 259 / 0.10) 50%, oklch(96.5% 0.02 259 / 0.03) 75%, transparent 100%),
+        /* Small info accent - center */
+        radial-gradient(circle 80px at 45% 55%, var(--color-info-100) 0%, oklch(96.5% 0.02 259 / 0.15) 32%, oklch(96.5% 0.02 259 / 0.07) 58%, transparent 100%),
+        /* Subtle info accent - bottom left */
+        radial-gradient(circle 100px at 15% 88%, var(--color-info-100) 0%, oklch(96.5% 0.02 259 / 0.18) 30%, oklch(96.5% 0.02 259 / 0.08) 55%, transparent 100%);
+      filter: blur(80px);
+    }
+
+    /* Dark mode mobile blobs */
+    .dark body::before {
+      background: 
+        radial-gradient(circle 160px at -8% -8%, oklch(55% 0.18 36) 0%, oklch(55% 0.18 36 / 0.25) 25%, oklch(55% 0.18 36 / 0.12) 45%, oklch(55% 0.18 36 / 0.04) 70%, transparent 100%),
+        radial-gradient(circle 120px at 12% 45%, oklch(55% 0.18 36) 0%, oklch(55% 0.18 36 / 0.20) 28%, oklch(55% 0.18 36 / 0.10) 50%, oklch(55% 0.18 36 / 0.03) 75%, transparent 100%),
+        radial-gradient(circle 140px at 78% 38%, oklch(55% 0.18 36) 0%, oklch(55% 0.18 36 / 0.22) 30%, oklch(55% 0.18 36 / 0.11) 52%, oklch(55% 0.18 36 / 0.04) 75%, transparent 100%),
+        radial-gradient(circle 90px at 50% 95%, oklch(55% 0.18 36) 0%, oklch(55% 0.18 36 / 0.18) 30%, oklch(55% 0.18 36 / 0.08) 60%, transparent 100%);
+      filter: blur(80px);
+    }
+
+    .dark body::after {
+      background: 
+        radial-gradient(circle 200px at 105% 105%, oklch(40% 0.08 259) 0%, oklch(40% 0.08 259 / 0.30) 30%, oklch(40% 0.08 259 / 0.15) 55%, oklch(40% 0.08 259 / 0.06) 80%, transparent 100%),
+        radial-gradient(circle 100px at 88% 8%, oklch(40% 0.08 259) 0%, oklch(40% 0.08 259 / 0.25) 28%, oklch(40% 0.08 259 / 0.12) 50%, oklch(40% 0.08 259 / 0.05) 75%, transparent 100%),
+        radial-gradient(circle 80px at 45% 55%, oklch(40% 0.08 259) 0%, oklch(40% 0.08 259 / 0.20) 32%, oklch(40% 0.08 259 / 0.10) 58%, transparent 100%),
+        radial-gradient(circle 100px at 15% 88%, oklch(40% 0.08 259) 0%, oklch(40% 0.08 259 / 0.22) 30%, oklch(40% 0.08 259 / 0.11) 55%, transparent 100%);
+      filter: blur(80px);
+    }
+  }
+
   /* Remove shadows on focus to avoid visual conflict with focus rings */
   /* *:focus-visible {
     box-shadow: none !important;
