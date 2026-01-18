@@ -1,7 +1,8 @@
 import { call, put, takeLatest, select, delay, all } from "redux-saga/effects";
-import { refreshSession } from "../../shared/lib/http";
+import { refreshSession, readCookie, CSRF_COOKIE_NAME } from "../../shared/lib/http";
 import { hydrateSessionAction, setTokensAction } from "./actions";
 import type { RootState } from "../../app/providers/store";
+import { isNativeApp } from "../../app/config/env";
 // no-op
 
 
@@ -20,6 +21,19 @@ function* hydrateSessionWorker(): Generator<any, void, any> {
       // Set status to UNAUTHENTICATED so UI doesn't stay in loading state
       // Team invitation page handles its own authentication flow
       yield put(hydrateSessionAction.failure({ message: "Skipped hydration on public invitation page" }));
+      return;
+    }
+
+    // Skip hydrate if no CSRF token is available (user never logged in or session cleared)
+    // This prevents "CSRF invalid" errors when accessing through Cloudflare Zero Trust
+    // before having a valid app session
+    const csrfInRedux: string | null = yield select((s: RootState) => s.auth.csrfToken);
+    const csrfInCookie = readCookie(CSRF_COOKIE_NAME);
+    const hasCsrf = !!(csrfInRedux || csrfInCookie);
+    
+    // For web apps, require CSRF token. Native apps don't use CSRF.
+    if (!isNativeApp() && !hasCsrf) {
+      yield put(hydrateSessionAction.failure({ message: "No session to hydrate" }));
       return;
     }
 
