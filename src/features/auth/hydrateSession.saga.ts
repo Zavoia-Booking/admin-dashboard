@@ -33,7 +33,8 @@ function* hydrateSessionWorker(): Generator<any, void, any> {
     
     // For web apps, require CSRF token. Native apps don't use CSRF.
     if (!isNativeApp() && !hasCsrf) {
-      yield put(hydrateSessionAction.failure({ message: "No session to hydrate" }));
+      // Use "Skipped" in message to prevent error toast (see reducer)
+      yield put(hydrateSessionAction.failure({ message: "Skipped hydration - no active session" }));
       return;
     }
 
