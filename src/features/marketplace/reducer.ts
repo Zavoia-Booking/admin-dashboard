@@ -1,25 +1,19 @@
 import * as actions from "./actions";
 import type { MarketplaceState } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
-import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 
-type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
+type Actions = ActionType<typeof actions>;
 
 const initialState: MarketplaceState = {
   isLoading: false,
   error: null,
   business: null,
   listing: null,
-  locations: [],
-  services: [],
-  categories: [],
-  teamMembers: [],
+  locationCatalog: [],
   industries: [],
-  listedLocations: [],
-  listedServices: [],
-  listedCategories: [],
-  listedTeamMembers: [],
+  industryTags: [],
+  selectedIndustryTags: [],
   isPublishing: false,
   isUpdatingVisibility: false,
   // Booking settings
@@ -30,10 +24,6 @@ const initialState: MarketplaceState = {
 
 export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: MarketplaceState = initialState, action: Actions) => {
   switch (action.type) {
-    // Reset state on logout to prevent stale data across accounts
-    case getType(logoutRequestAction.success):
-      return { ...initialState };
-
     case getType(actions.fetchMarketplaceListingAction.request):
       return { ...state, isLoading: true, error: null };
 
@@ -43,24 +33,10 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         isLoading: false,
         business: action.payload.business,
         listing: action.payload.listing,
-        locations: action.payload.locations,
-        services: action.payload.services,
-        categories: action.payload.categories,
-        teamMembers: action.payload.teamMembers,
-        industries: action.payload.industries,
-        // Normalize listed entities (API returns objects with `id`)
-        listedLocations: Array.isArray(action.payload.listedLocations)
-          ? action.payload.listedLocations.map((item: any) => item.id)
-          : [],
-        listedServices: Array.isArray(action.payload.listedServices)
-          ? action.payload.listedServices.map((item: any) => item.id)
-          : [],
-        listedCategories: Array.isArray(action.payload.listedCategories)
-          ? action.payload.listedCategories.map((item: any) => item.id)
-          : [],
-        listedTeamMembers: Array.isArray(action.payload.listedTeamMembers)
-          ? action.payload.listedTeamMembers.map((item: any) => item.id)
-          : [],
+        locationCatalog: action.payload.locationCatalog || [],
+        industries: action.payload.industries || [],
+        industryTags: action.payload.industryTags || [],
+        selectedIndustryTags: action.payload.selectedIndustryTags || [],
         error: null,
       };
 

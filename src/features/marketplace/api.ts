@@ -1,4 +1,4 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingRequest, BookingSettings, UpdateBookingSettingsPayload } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const getMarketplaceListingApi = async (): Promise<MarketplaceListingResponse> => {
@@ -6,19 +6,28 @@ export const getMarketplaceListingApi = async (): Promise<MarketplaceListingResp
   return data;
 }
 
-export const publishMarketplaceListingApi = async (req: PublishMarketplaceListingRequest): Promise<void> => {
+export const uploadMarketplaceImageApi = async (file: File): Promise<{
+  url: string;
+  key: string;
+}> => {
   const formData = new FormData();
-  formData.append('metadata', JSON.stringify(req.payload));
-
-  if (req.newImageFiles) {
-    Object.entries(req.newImageFiles).forEach(([tempId, file]) => {
-      formData.append(`newImages[${tempId}]`, file);
-    });
-  }
-
-  await apiClient().post('/marketplace-listing/publish', formData, {
+  formData.append('file', file);
+  const { data } = await apiClient().post('/marketplace-listing/upload-image', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
+  return data;
+};
+
+export const deleteMarketplaceImageApi = async (key: string): Promise<void> => {
+  await apiClient().delete(`/marketplace-listing/delete-image/${encodeURIComponent(key)}`);
+};
+
+export const updateMarketplaceFeaturedImageApi = async (url: string): Promise<void> => {
+  await apiClient().post('/marketplace-listing/update-featured-image', { url });
+};
+
+export const publishMarketplaceListingApi = async (payload: PublishMarketplaceListingPayload): Promise<void> => {
+  await apiClient().post('/marketplace-listing/publish', payload);
 }
 
 export const updateMarketplaceVisibilityApi = async (isVisible: boolean): Promise<{ isVisible: boolean }> => {

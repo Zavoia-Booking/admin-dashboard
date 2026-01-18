@@ -640,7 +640,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Edit Location"
+        title={location ? `Edit ${location.name}` : "Edit Location"}
         subtitle="Update location information"
         icon={MapPin}
         iconColor="text-foreground-1"

@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { listLocationsAction } from '../actions';
 import { selectCurrentUser } from '../../auth/selectors';
 import { Plus, MapPin, Phone, Mail, Edit, Users, Briefcase } from "lucide-react";
@@ -21,6 +22,7 @@ import { EmptyState } from '../../../shared/components/common/EmptyState';
 export default function LocationsPage() {
   const dispatch = useDispatch();
   const text = useTranslation("locations").t;
+  const [searchParams] = useSearchParams();
 
   const allLocations: LocationType[] = useSelector(getAllLocationsSelector);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
@@ -31,12 +33,30 @@ export default function LocationsPage() {
   const [editingLocation, setEditingLocation] = useState<LocationType | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Track if we've already handled the deep link to avoid re-opening
+  const hasHandledDeepLink = useRef(false);
+
   useEffect(() => {
     if (user?.businessId) {
       dispatch(listLocationsAction.request());
 
     }
   }, [dispatch, user]);
+
+  // Handle deep linking to edit a location
+  useEffect(() => {
+    if (!isLocationsLoading && allLocations.length > 0 && !hasHandledDeepLink.current) {
+      const locationId = searchParams.get('locationId');
+      if (locationId) {
+        const location = allLocations.find(l => l.id === parseInt(locationId, 10));
+        if (location) {
+          setEditingLocation(location);
+          setIsEditSliderOpen(true);
+          hasHandledDeepLink.current = true;
+        }
+      }
+    }
+  }, [allLocations, isLocationsLoading, searchParams]);
 
   const openEditSlider = (location: LocationType) => {
     setEditingLocation(location);

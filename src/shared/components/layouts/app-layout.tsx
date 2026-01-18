@@ -32,7 +32,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         <SidebarInset>
           <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-20' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
             <div className="w-full bg-transparent max-w-full md:max-w-220">
-            <div className="sticky top-0 z-20 md:hidden">
+            <div className="sticky top-0 z-30 md:hidden">
               <Breadcrumbs items={breadcrumbs} />
             </div>
             <div className="px-2 py-4 md:px-4">

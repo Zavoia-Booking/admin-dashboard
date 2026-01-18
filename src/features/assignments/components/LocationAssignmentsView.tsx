@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { MapPin, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
@@ -46,6 +46,7 @@ export function LocationAssignmentsView() {
   const { t } = useTranslation("assignments");
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const teamMembersSectionRef = useRef<HTMLDivElement>(null);
 
@@ -61,7 +62,9 @@ export function LocationAssignmentsView() {
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
 
-
+  // Track navigation to reset auto-selection state
+  const lastLocationKeyRef = useRef<string | null>(null);
+  const lastLocationIdFromUrlRef = useRef<string | null>(null);
 
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
@@ -99,6 +102,21 @@ export function LocationAssignmentsView() {
     dispatch(listLocationsAction.request());
   }, [dispatch]);
 
+  // Reset hasAutoSelected when navigating to the page or when locationId in URL changes
+  useEffect(() => {
+    const locationIdFromUrl = searchParams.get("locationId");
+    const currentLocationKey = location.key;
+    const locationIdChanged = locationIdFromUrl !== lastLocationIdFromUrlRef.current;
+    const navigationChanged = currentLocationKey !== lastLocationKeyRef.current;
+
+    if (navigationChanged || locationIdChanged) {
+      // Reset auto-selection state when navigating to page or URL locationId changes
+      setHasAutoSelected(false);
+      lastLocationKeyRef.current = currentLocationKey;
+      lastLocationIdFromUrlRef.current = locationIdFromUrl;
+    }
+  }, [location.key, searchParams]);
+
   // Auto-select location from URL
   useEffect(() => {
     const locationIdFromUrl = searchParams.get("locationId");
@@ -108,12 +126,23 @@ export function LocationAssignmentsView() {
         (l: LocationType) => l.id === locationId
       );
       if (locationExists && !isNaN(locationId)) {
-        dispatch(selectLocationAction(locationId));
-        dispatch(fetchLocationFullAssignmentAction.request({ locationId }));
-        setHasAutoSelected(true);
+        // Only auto-select if the current selection doesn't match
+        // This ensures we respect URL locationId even if something else was selected
+        if (selectedLocationId !== locationId) {
+          // Use a small delay to ensure this runs after any clearing from AssignmentsPage
+          const timeoutId = setTimeout(() => {
+            dispatch(selectLocationAction(locationId));
+            dispatch(fetchLocationFullAssignmentAction.request({ locationId }));
+            setHasAutoSelected(true);
+          }, 0);
+          return () => clearTimeout(timeoutId);
+        } else {
+          // Already selected correctly, just mark as auto-selected to prevent re-running
+          setHasAutoSelected(true);
+        }
       }
     }
-  }, [searchParams, allLocations, hasAutoSelected, dispatch]);
+  }, [searchParams, allLocations, hasAutoSelected, selectedLocationId, dispatch]);
 
   // Auto-select first location when page loads (if no locationId in URL and no selection)
   useEffect(() => {
@@ -125,12 +154,16 @@ export function LocationAssignmentsView() {
       allLocations.length > 0 &&
       selectedLocationId === null
     ) {
-      const firstLocation = allLocations[0];
-      if (firstLocation) {
-        dispatch(selectLocationAction(firstLocation.id));
-        dispatch(fetchLocationFullAssignmentAction.request({ locationId: firstLocation.id }));
-        setHasAutoSelected(true);
-      }
+      // Use a small delay to ensure this runs after any clearing from AssignmentsPage
+      const timeoutId = setTimeout(() => {
+        const firstLocation = allLocations[0];
+        if (firstLocation) {
+          dispatch(selectLocationAction(firstLocation.id));
+          dispatch(fetchLocationFullAssignmentAction.request({ locationId: firstLocation.id }));
+          setHasAutoSelected(true);
+        }
+      }, 0);
+      return () => clearTimeout(timeoutId);
     }
   }, [searchParams, allLocations, hasAutoSelected, isLocationsLoading, selectedLocationId, dispatch]);
 
