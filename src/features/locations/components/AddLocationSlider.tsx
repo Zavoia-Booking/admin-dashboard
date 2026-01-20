@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Users, Loader2, AlertCircle, CheckCircle2, Plus } from 'lucide-react';
+import { MapPin, Users, Plus } from 'lucide-react';
+import { PinVerificationIndicator } from '../../../shared/components/common/PinVerificationIndicator';
 import { Label } from '../../../shared/components/ui/label';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';
@@ -663,52 +664,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     
                     {/* Map Pin Verification Indicator */}
                     {isAddressValid && addressValue && addressValue.trim().length > 0 && (
-                      <div className={`flex items-start gap-2 p-3 rounded-lg border ${
-                        isPinConfirmed 
-                          ? 'bg-success-bg/50 border-success-border' 
-                          : 'bg-warning-bg/50 border-warning-border'
-                      }`}>
-                        <div className="flex-shrink-0">
-                          {isPinConfirmed ? (
-                            <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`text-sm font-medium ${
-                            isPinConfirmed ? 'text-success' : 'text-warning'
-                          }`}>
-                            {isPinConfirmed ? 'Location pin confirmed' : 'Location pin verification required'}
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {isPinConfirmed 
-                              ? 'Your location pin has been verified on the map.'
-                              : 'Please confirm the exact location of your pin on the map.'}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant={isPinConfirmed ? "outline" : "default"}
-                          size="sm"
-                          rounded="full"
-                          onClick={handleVerifyPinClick}
-                          disabled={isGeocodingAddress}
-                          className="flex-shrink-0"
-                        >
-                          {isGeocodingAddress ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="h-4 w-4 mr-2" />
-                              {isPinConfirmed ? 'Move Pin' : 'Verify Pin on Map'}
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <PinVerificationIndicator
+                        isPinConfirmed={isPinConfirmed}
+                        isGeocodingAddress={isGeocodingAddress}
+                        onVerifyClick={handleVerifyPinClick}
+                      />
                     )}
                   </div>
 

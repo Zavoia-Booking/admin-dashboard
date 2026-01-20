@@ -28,7 +28,8 @@ import { useFieldDraftValidation } from "../../../shared/hooks/useDraftValidatio
 import type { RootState } from "../../../app/providers/store";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
-import { MapPin, CheckCircle2, AlertCircle } from "lucide-react";
+import { MapPin } from "lucide-react";
+import { PinVerificationIndicator } from "../../../shared/components/common/PinVerificationIndicator";
 
 const StepLocation = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
@@ -613,48 +614,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
 
               {/* Pin Verification Indicator */}
               {isAddressValid && watch("location.address" satisfies WizardFieldPath) && (
-                <div className={`rounded-lg border p-4 ${isPinConfirmed ? 'bg-success-bg border-success-border' : 'bg-warning-bg border-warning-border'}`}>
-                  <div className="flex items-start gap-3">
-                    <div className="shrink-0 mt-0.5">
-                      {isPinConfirmed ? (
-                        <CheckCircle2 className="h-5 w-5 text-success" />
-                      ) : (
-                        <AlertCircle className="h-5 w-5 text-warning" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium ${isPinConfirmed ? 'text-success' : 'text-warning'}`}>
-                        {isPinConfirmed ? 'Location pin confirmed' : 'Location pin verification required'}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {isPinConfirmed 
-                          ? 'Your location pin has been verified on the map.' 
-                          : 'Please verify your location pin on the map to continue.'}
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        rounded="full"
-                        size="sm"
-                        className="mt-3 gap-2"
-                        onClick={handleVerifyPinClick}
-                        disabled={isGeocodingAddress}
-                      >
-                        {isGeocodingAddress ? (
-                          <>
-                            <span className="animate-spin">⏳</span>
-                            Loading map...
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4" />
-                            {isPinConfirmed ? 'Move Pin' : 'Verify Pin on Map'}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+                <PinVerificationIndicator
+                  isPinConfirmed={isPinConfirmed}
+                  isGeocodingAddress={isGeocodingAddress}
+                  onVerifyClick={handleVerifyPinClick}
+                />
               )}
 
               {/* Contact Information Toggle */}
@@ -820,7 +784,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               onSearchSelect={handleSearchSelect}
               showAddressWarning={true}
               showControls
-              mapHeight="500px"
               className="z-[100]"
               overlayClassName="z-[100]"
               footerActions={

@@ -30,18 +30,55 @@ export async function maptilerGeocode(address: string): Promise<{ lat: number; l
       const feature = json.features[0];
       const [lng, lat] = feature.geometry.coordinates;
       const props = feature.properties || {};
+      const context = feature.context || [];
+      
+      // Extract context information
+      const cityCtx = context.find((c: any) => 
+        (c.id?.startsWith('municipality.') || c.id?.startsWith('region.')) &&
+        c.place_designation === 'city'
+      ) || context.find((c: any) => 
+        c.id?.startsWith('municipality.') || c.id?.startsWith('region.')
+      );
+      const postcodeCtx = context.find((c: any) => c.id?.startsWith('postal_code.'));
+      const countryCtx = context.find((c: any) => c.id?.startsWith('country.'));
+      const neighborhoodCtx = context.find((c: any) => 
+        c.id?.startsWith('place.') && 
+        (c.place_designation === 'suburb' || c.place_designation === 'neighbourhood' || c.place_designation === 'quarter')
+      );
+      const countyCtx = context.find((c: any) => 
+        c.id?.startsWith('region.') && c.place_designation === 'county'
+      );
+      
+      const placeType = feature.place_type?.[0] || '';
+      const isAddress = placeType === 'address';
+      const isStreet = props.kind === 'street' || isAddress;
+      
+      // Build full address with neighborhood and county if available
+      let fullAddress = feature.place_name || feature.text || address;
+      if ((neighborhoodCtx?.text || countyCtx?.text) && !fullAddress.includes(neighborhoodCtx?.text || '') && !fullAddress.includes(countyCtx?.text || '')) {
+        // Insert neighborhood and county between street and city if not already in place_name
+        const parts = [];
+        if (feature.text) parts.push(feature.text);
+        if (feature.address) parts[parts.length - 1] = `${parts[parts.length - 1]} ${feature.address}`;
+        if (neighborhoodCtx?.text) parts.push(neighborhoodCtx.text);
+        if (cityCtx?.text) parts.push(cityCtx.text);
+        if (countyCtx?.text) parts.push(countyCtx.text);
+        if (postcodeCtx?.text) parts.push(postcodeCtx.text);
+        if (countryCtx?.text) parts.push(countryCtx.text);
+        if (parts.length > 0) fullAddress = parts.join(', ');
+      }
       
       return {
         lat,
         lon: lng,
-        display_name: feature.place_name || props.name || address,
+        display_name: fullAddress,
         address: {
-          road: props.street || props.name,
-          house_number: props.housenumber,
-          city: props.city || props.municipality,
-          postcode: props.postcode,
-          country: props.country,
-          state: props.region,
+          road: isStreet ? feature.text : '',
+          house_number: feature.address || '',
+          city: cityCtx?.text || '',
+          postcode: postcodeCtx?.text || '',
+          country: countryCtx?.text || props.country_code?.toUpperCase() || '',
+          state: context.find((c: any) => c.id?.startsWith('region.'))?.text || '',
         }
       };
     }
@@ -105,23 +142,62 @@ export async function maptilerAutocomplete(params: {
       const props = feature.properties || {};
       const context = feature.context || [];
       
-      // Extract context information (city, region, country)
-      const cityCtx = context.find((c: any) => c.id?.startsWith('place.') || c.id?.startsWith('municipality.'));
-      const postcodeCtx = context.find((c: any) => c.id?.startsWith('postcode.'));
+      // Extract context information from the context array
+      // MapTiler uses context for hierarchical location data
+      const cityCtx = context.find((c: any) => 
+        (c.id?.startsWith('municipality.') || c.id?.startsWith('region.')) &&
+        c.place_designation === 'city'
+      ) || context.find((c: any) => 
+        c.id?.startsWith('municipality.') || c.id?.startsWith('region.')
+      );
+      const postcodeCtx = context.find((c: any) => c.id?.startsWith('postal_code.'));
       const countryCtx = context.find((c: any) => c.id?.startsWith('country.'));
+      const neighborhoodCtx = context.find((c: any) => 
+        c.id?.startsWith('place.') && 
+        (c.place_designation === 'suburb' || c.place_designation === 'neighbourhood' || c.place_designation === 'quarter')
+      );
+      const countyCtx = context.find((c: any) => 
+        c.id?.startsWith('region.') && c.place_designation === 'county'
+      );
+      
+      // MapTiler response structure:
+      // - feature.text = short name (street name, place name, etc.)
+      // - feature.address = house number (string) - only for street addresses
+      // - feature.place_name = full formatted address
+      // - context[] = hierarchical location data (city, region, country)
+      // - place_type[] = type of place (e.g., ["address"], ["place"], ["region"])
+      
+      const placeType = feature.place_type?.[0] || '';
+      const isAddress = placeType === 'address';
+      const isStreet = props.kind === 'street' || isAddress;
+      
+      // Build full address with neighborhood and county if available
+      let fullAddress = feature.place_name || feature.text;
+      if ((neighborhoodCtx?.text || countyCtx?.text) && !fullAddress.includes(neighborhoodCtx?.text || '') && !fullAddress.includes(countyCtx?.text || '')) {
+        // Insert neighborhood and county between street and city if not already in place_name
+        const parts = [];
+        if (feature.text) parts.push(feature.text);
+        if (feature.address) parts[parts.length - 1] = `${parts[parts.length - 1]} ${feature.address}`;
+        if (neighborhoodCtx?.text) parts.push(neighborhoodCtx.text);
+        if (cityCtx?.text) parts.push(cityCtx.text);
+        if (countyCtx?.text) parts.push(countyCtx.text);
+        if (postcodeCtx?.text) parts.push(postcodeCtx.text);
+        if (countryCtx?.text) parts.push(countryCtx.text);
+        if (parts.length > 0) fullAddress = parts.join(', ');
+      }
       
       return {
         place_id: feature.id,
         lat,
         lon: lng,
-        display_name: feature.place_name || props.name,
+        display_name: fullAddress,
         address: {
-          name: props.name,
-          house_number: props.housenumber || props.address,
-          road: props.street,
-          city: props.city || props.municipality || cityCtx?.text,
-          postcode: props.postcode || postcodeCtx?.text,
-          country: props.country || countryCtx?.text,
+          name: isAddress ? '' : feature.text,  // Empty for actual addresses, use text for places
+          house_number: feature.address || '',  // House number if available
+          road: isStreet ? feature.text : '',  // Street name for street/address types
+          city: cityCtx?.text || '',
+          postcode: postcodeCtx?.text || '',
+          country: countryCtx?.text || props.country_code?.toUpperCase() || '',
         }
       };
     });

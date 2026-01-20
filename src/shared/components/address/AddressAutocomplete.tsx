@@ -23,7 +23,7 @@ export default function AddressAutocomplete({
   placeholder = 'Start typing an address...',
   debounceMs = 500,
   countryCodes = DEFAULT_COUNTRY_CODES,
-  limit = 5,
+  limit = 8,
   disabled,
   className,
   autoFocus = false,

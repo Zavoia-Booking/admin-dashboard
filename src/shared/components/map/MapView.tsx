@@ -83,7 +83,7 @@ export const MapView: React.FC<MapViewProps> = ({
   center = [0, 0],
   zoom = 9,
   style = 'streets-v12',
-  height = '400px',
+  height = '280px',
   width = '100%',
   marker,
   showControls = true,
@@ -217,8 +217,9 @@ export const MapView: React.FC<MapViewProps> = ({
   return (
     <div
       ref={mapContainer}
-      className={`rounded-lg overflow-hidden ${className}`}
+      className={`rounded-lg overflow-hidden focus:outline-none focus-visible:outline-none border-0 outline-none [&_canvas]:outline-none [&_canvas]:border-0 ${className}`}
       style={{ height, width }}
+      tabIndex={-1}
     />
   );
 };
