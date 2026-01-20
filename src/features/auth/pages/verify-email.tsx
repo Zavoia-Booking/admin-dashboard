@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import axios from 'axios';
+import config from '../../../app/config/env';
 
 interface VerifyEmailResponse {
   message: string;
@@ -34,8 +35,7 @@ export default function VerifyEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3000";
-        const response = await axios.get<VerifyEmailResponse>(`${API_BASE_URL}/auth/verify-email`, {
+        const response = await axios.get<VerifyEmailResponse>(`${config.API_URL}/auth/verify-email`, {
           params: { token }
         });
 
