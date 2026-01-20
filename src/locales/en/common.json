@@ -17,7 +17,7 @@
       "descriptionSuffix": "because it is currently assigned to:",
       "footer": "Please unassign the {{resourceType}} from these items before deleting.",
       "manageAssignments": "Manage Assignments",
-      "cancel": "Cancel",
+      "cancel": "Cancel"
     },
     "dependencies": {
       "user": "user",

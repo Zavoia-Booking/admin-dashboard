@@ -17,7 +17,7 @@
       "descriptionSuffix": "deoarece este folosit în prezent de:",
       "footer": "Te rugăm să elimini aceste asocieri înainte de a șterge {{resourceType}}.",
       "manageAssignments": "Vezi asocierile",
-      "cancel": "Anulează",
+      "cancel": "Anulează"
     },
     "dependencies": {
       "user": "utilizator",
