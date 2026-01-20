@@ -951,17 +951,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
           isLoading={isDeleting}
           className="z-[80]"
           overlayClassName="z-[80]"
-          secondaryActions={[
-            ...(deleteResponse?.isVisibleInMarketplace
-              ? [{
-                label: 'Go to Marketplace',
-                onClick: () => {
-                  handleCloseDeleteDialog(false);
-                  navigate('/marketplace');
-                }
-              }]
-              : [])
-          ]}
+          secondaryActions={[]}
         />
       )}
     </>
