@@ -111,7 +111,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
       // Use the full displayName which already contains the complete address
       const fullAddress = s.displayName ?? c.address;
       // Hydrate exact components; display value is handled in UI, but keep street free in manual mode
-      // Reset errors since data from LocationIQ is trusted
+      // Reset errors since data from MapTiler is trusted
       hydrateFromComponents(streetName, number, s.city ?? '', s.postalCode ?? '', s.country ?? '', fullAddress, true);
       lastSelectedRef.current = { s: streetName, n: number, c: s.city ?? '', p: s.postalCode ?? '', co: s.country ?? '', display: fullAddress };
       setManualEdited(false);
@@ -473,6 +473,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
             key={searchKey}
             value={addressSelected ? '' : value} 
             onChange={handleAutocompleteChange}
+            limit={8}
             autoFocus={shouldAutoFocus}
           />
           <div className="mt-2 text-sm text-muted-foreground mb-6">Type to search. If you can't find it, switch to Manual.</div>

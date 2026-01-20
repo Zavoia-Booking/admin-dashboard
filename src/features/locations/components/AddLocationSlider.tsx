@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Users, Loader2, AlertCircle, CheckCircle2, Plus } from 'lucide-react';
+import { MapPin, Users, Plus } from 'lucide-react';
+import { PinVerificationIndicator } from '../../../shared/components/common/PinVerificationIndicator';
 import { Label } from '../../../shared/components/ui/label';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';
@@ -17,7 +18,7 @@ import ContactInformationToggle from '../../../shared/components/common/ContactI
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import { MapDialog } from '../../../shared/components/map';
-import { locationIqGeocode } from '../../../shared/lib/locationiq';
+import { maptilerGeocode } from '../../../shared/lib/maptiler';
 import { createLocationAction } from '../actions';
 import type { NewLocationPayload } from '../types';
 import type { WorkingHours } from '../../../shared/types/location';
@@ -162,7 +163,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     } else {
       setIsGeocodingAddress(true);
       try {
-        const geocodeResult = await locationIqGeocode(address);
+        const geocodeResult = await maptilerGeocode(address);
         
         if (geocodeResult) {
           const geocodedCoords: [number, number] = [
@@ -663,52 +664,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     
                     {/* Map Pin Verification Indicator */}
                     {isAddressValid && addressValue && addressValue.trim().length > 0 && (
-                      <div className={`flex items-start gap-2 p-3 rounded-lg border ${
-                        isPinConfirmed 
-                          ? 'bg-success-bg/50 border-success-border' 
-                          : 'bg-warning-bg/50 border-warning-border'
-                      }`}>
-                        <div className="flex-shrink-0">
-                          {isPinConfirmed ? (
-                            <CheckCircle2 className="h-5 w-5 text-success mt-0.5" />
-                          ) : (
-                            <AlertCircle className="h-5 w-5 text-warning mt-0.5" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className={`text-sm font-medium ${
-                            isPinConfirmed ? 'text-success' : 'text-warning'
-                          }`}>
-                            {isPinConfirmed ? 'Location pin confirmed' : 'Location pin verification required'}
-                          </h4>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {isPinConfirmed 
-                              ? 'Your location pin has been verified on the map.'
-                              : 'Please confirm the exact location of your pin on the map.'}
-                          </p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant={isPinConfirmed ? "outline" : "default"}
-                          size="sm"
-                          rounded="full"
-                          onClick={handleVerifyPinClick}
-                          disabled={isGeocodingAddress}
-                          className="flex-shrink-0"
-                        >
-                          {isGeocodingAddress ? (
-                            <>
-                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                              Loading...
-                            </>
-                          ) : (
-                            <>
-                              <MapPin className="h-4 w-4 mr-2" />
-                              {isPinConfirmed ? 'Move Pin' : 'Verify Pin on Map'}
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      <PinVerificationIndicator
+                        isPinConfirmed={isPinConfirmed}
+                        isGeocodingAddress={isGeocodingAddress}
+                        onVerifyClick={handleVerifyPinClick}
+                      />
                     )}
                   </div>
 
@@ -966,7 +926,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
             }}
             title="Verify Location Pin"
             description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
-            apiKey={import.meta.env.VITE_MAPTILER_API_KEY || ''}
+            accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
             center={initialMapCenter}
             zoom={hasValidCoords ? 16 : 2}
             marker={hasValidCoords ? {

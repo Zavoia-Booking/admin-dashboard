@@ -3,7 +3,9 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { MapPin, Hash, Building2, Flag, Locate, AlertCircle, HelpCircle, Navigation } from 'lucide-react';
+import { Button } from '../ui/button';
+import { MapPin, Hash, Building2, Flag, Locate, AlertCircle, HelpCircle, Navigation, ChevronRight } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 type Props = {
   streetBase: string; // Full address display for locked mode
@@ -58,13 +60,23 @@ const AddressManualFields: React.FC<Props> = ({
         <div className="flex items-center justify-between">
           <Label className="text-base font-medium text-foreground-1">{isLocked ? 'Selected Address' : 'Street *'}</Label>
           {isLocked && streetBase && (
-            <button
+            <Button
+              variant="ghost"
+              rounded="full"
+              size="sm"
               type="button"
-              className="text-xs font-medium text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 transition-colors cursor-pointer"
               onClick={onChangeAddressClick}
+              className={cn(
+                "shrink-0 !min-h-0 h-7 !px-3 border border-border mb-2 flex items-center gap-1 w-fit",
+                "border-border-strong text-primary bg-info-100/20 dark:bg-muted-foreground/10 dark:text-primary",
+                "hover:border-border-strong hover:text-primary dark:hover:text-primary hover:bg-info-100/20 dark:hover:bg-muted-foreground/10"
+              )}
             >
-              Change address
-            </button>
+              <span className="text-xs text-foreground-1">
+                Change address
+              </span>
+              <ChevronRight className="h-3 w-3 pt-0.5 translate-x-0.5" />
+            </Button>
           )}
         </div>
         {isLocked && streetBase ? (

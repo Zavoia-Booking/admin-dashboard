@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import maplibregl from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import mapboxgl from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
 
 export interface MapViewProps {
   /**
-   * MapTiler API key
+   * Mapbox access token
    */
-  apiKey: string;
+  accessToken: string;
   /**
    * Initial center coordinates [longitude, latitude]
    */
@@ -16,8 +16,8 @@ export interface MapViewProps {
    */
   zoom?: number;
   /**
-   * Map style - MapTiler style URL or custom style
-   * Examples: 'streets-v2', 'satellite', 'hybrid', 'topo-v2', 'winter-v2'
+   * Map style - Mapbox style URL or preset name
+   * Examples: 'streets-v12', 'satellite-v9', 'satellite-streets-v12', 'outdoors-v12', 'light-v11', 'dark-v11'
    */
   style?: string;
   /**
@@ -55,7 +55,8 @@ export interface MapViewProps {
   /**
    * Callback when map is loaded
    */
-  onMapLoad?: (map: maplibregl.Map) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onMapLoad?: (map: any) => void;
   /**
    * Additional CSS classes for the container
    */
@@ -63,26 +64,26 @@ export interface MapViewProps {
 }
 
 /**
- * Reusable Map component using MapLibre GL JS with MapTiler tiles
+ * Reusable Map component using Mapbox GL JS
  * 
  * @example
  * ```tsx
  * <MapView
- *   apiKey="your-maptiler-api-key"
+ *   accessToken="your-mapbox-access-token"
  *   center={[-0.1276, 51.5074]} // London
  *   zoom={12}
- *   style="streets-v2"
+ *   style="streets-v12"
  *   marker={{ coordinates: [-0.1276, 51.5074], color: '#FF0000' }}
  *   showControls
  * />
  * ```
  */
 export const MapView: React.FC<MapViewProps> = ({
-  apiKey,
+  accessToken,
   center = [0, 0],
   zoom = 9,
-  style = 'streets-v2',
-  height = '400px',
+  style = 'streets-v12',
+  height = '280px',
   width = '100%',
   marker,
   showControls = true,
@@ -93,13 +94,13 @@ export const MapView: React.FC<MapViewProps> = ({
   className = '',
 }) => {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+  const markerRef = useRef<mapboxgl.Marker | null>(null);
   const initializedRef = useRef(false);
   
   // Capture initial values - these should not change after first render
   const initialValuesRef = useRef({
-    apiKey,
+    accessToken,
     center,
     zoom,
     style,
@@ -113,15 +114,18 @@ export const MapView: React.FC<MapViewProps> = ({
   useEffect(() => {
     if (!mapContainer.current || initializedRef.current) return;
 
-    const { apiKey: initApiKey, center: initCenter, zoom: initZoom, style: initStyle, showControls: initShowControls, onMapLoad: initOnMapLoad, clickToPlace: initClickToPlace, onMapClick: initOnMapClick } = initialValuesRef.current;
+    const { accessToken: initToken, center: initCenter, zoom: initZoom, style: initStyle, showControls: initShowControls, onMapLoad: initOnMapLoad, clickToPlace: initClickToPlace, onMapClick: initOnMapClick } = initialValuesRef.current;
 
-    // Build MapTiler style URL
-    const styleUrl = initStyle.startsWith('http') 
+    // Set Mapbox access token
+    mapboxgl.accessToken = initToken;
+
+    // Build Mapbox style URL
+    const styleUrl = initStyle.startsWith('mapbox://') || initStyle.startsWith('http') 
       ? initStyle 
-      : `https://api.maptiler.com/maps/${initStyle}/style.json?key=${initApiKey}`;
+      : `mapbox://styles/mapbox/${initStyle}`;
 
     // Initialize map
-    map.current = new maplibregl.Map({
+    map.current = new mapboxgl.Map({
       container: mapContainer.current,
       style: styleUrl,
       center: initCenter,
@@ -133,7 +137,7 @@ export const MapView: React.FC<MapViewProps> = ({
     // Add navigation controls
     if (initShowControls) {
       map.current.addControl(
-        new maplibregl.NavigationControl({
+        new mapboxgl.NavigationControl({
           visualizePitch: true,
         }),
         'top-right'
@@ -185,7 +189,7 @@ export const MapView: React.FC<MapViewProps> = ({
     }
 
     // Add new marker
-    markerRef.current = new maplibregl.Marker({
+    markerRef.current = new mapboxgl.Marker({
       color: marker.color || '#FF0000',
       draggable: marker.draggable || false,
     })
@@ -213,9 +217,9 @@ export const MapView: React.FC<MapViewProps> = ({
   return (
     <div
       ref={mapContainer}
-      className={`rounded-lg overflow-hidden ${className}`}
+      className={`rounded-lg overflow-hidden focus:outline-none focus-visible:outline-none border-0 outline-none [&_canvas]:outline-none [&_canvas]:border-0 ${className}`}
       style={{ height, width }}
+      tabIndex={-1}
     />
   );
 };
-
