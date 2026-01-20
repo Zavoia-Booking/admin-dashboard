@@ -83,7 +83,6 @@ export function DeleteConfirmDialog({
     teamMembersCount,
     activeUsersCount,
     pendingUsersCount,
-    isVisibleInMarketplace,
   } = (localDeleteResponse || {}) as Partial<DeleteResponse>;
 
   // Build dynamic dependency list
@@ -325,19 +324,6 @@ export function DeleteConfirmDialog({
                           </span>
                         </Badge>
                       ))}
-                      {isVisibleInMarketplace && (
-                        <Badge
-                          variant="secondary"
-                          className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-info/20 dark:bg-info/60 border border-border dark:border-border-subtle"
-                        >
-                          <div className="h-2 w-2 rounded-full bg-info" />
-                          <span className="text-neutral-900 dark:text-foreground-1">
-                            {t(
-                              "deleteConfirmDialog.cannotDelete.visibleInMarketplace"
-                            )}
-                          </span>
-                        </Badge>
-                      )}
                     </div>
                     {dependencies.some((dep) => dep.isPending) && (
                       <div className="mt-3 space-y-1">

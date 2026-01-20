@@ -18,7 +18,6 @@
       "footer": "Te rugăm să elimini aceste asocieri înainte de a șterge {{resourceType}}.",
       "manageAssignments": "Vezi asocierile",
       "cancel": "Anulează",
-      "visibleInMarketplace": "Vizibil în Marketplace"
     },
     "dependencies": {
       "user": "utilizator",

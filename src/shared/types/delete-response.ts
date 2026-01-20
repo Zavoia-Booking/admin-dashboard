@@ -9,7 +9,6 @@ export interface DeleteResponse {
   teamMembersCount?: number;
   activeUsersCount?: number;
   pendingUsersCount?: number;
-  isVisibleInMarketplace?: boolean;
 }
 
 export type ResourceType = 'location' | 'service' | 'team_member' | 'bundle';

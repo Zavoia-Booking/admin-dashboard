@@ -35,7 +35,7 @@ import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
 import { selectCurrentUser } from '../../auth/selectors';
 import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
-import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector, getUpdateResponseSelector } from '../selectors';
+import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector } from '../selectors';
 import { toast } from 'sonner';
 import { mapLocationForEdit } from '../utils';
 
@@ -57,9 +57,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const isLocationLoading = useSelector(getLocationLoadingSelector);
   const isDeleting = useSelector(getIsDeletingSelector);
   const deleteResponseFromState = useSelector(getDeleteResponseSelector);
-  const updateResponse = useSelector(getUpdateResponseSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPinConfirmationDialog, setShowPinConfirmationDialog] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(false);
   const [isAddressValid, setIsAddressValid] = useState(true);
   const [addressComposerKey, setAddressComposerKey] = useState(0);
@@ -486,23 +484,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       setIsSubmitting(false);
     }
   }, [locationError, isSubmitting]);
-
-  // Watch for success and check for pin confirmation requirement
-  useEffect(() => {
-    // Don't close if slider just opened (prevents race condition with isSubmitting reset)
-    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
-      // Check if pin confirmation is needed
-      if (updateResponse?.needsPinConfirmation) {
-        // Show unclosable dialog instead of closing
-        setShowPinConfirmationDialog(true);
-        setIsSubmitting(false);
-      } else {
-        // Success - close form and reset
-        // Don't set isSubmitting to false here - let it stay true until slider closes
-        onClose();
-      }
-    }
-  }, [isLocationLoading, isSubmitting, locationError, onClose, updateResponse]);
 
   // Re-validate timezone when isRemote changes
   useEffect(() => {
@@ -959,15 +940,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           className="z-[80]"
           overlayClassName="z-[80]"
           secondaryActions={[
-            ...(deleteResponse?.isVisibleInMarketplace
-              ? [{
-                label: 'Go to Marketplace',
-                onClick: () => {
-                  handleCloseDeleteDialog(false);
-                  navigate('/marketplace');
-                }
-              }]
-              : []),
             {
               label: 'Go to Assignments',
               onClick: () => {
@@ -978,39 +950,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           ]}
         />
       )}
-
-      {/* Pin Confirmation Required Dialog - Cannot be dismissed */}
-      <AlertDialog open={showPinConfirmationDialog} onOpenChange={() => { }}>
-        <AlertDialogContent className="max-w-md">
-          <AlertDialogHeader>
-            <div className="flex items-start gap-3">
-              <div className="shrink-0 rounded-full bg-blue-100 dark:bg-blue-900/30 p-2">
-                <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="flex-1">
-                <AlertDialogTitle className="text-left">Pin Verification Required</AlertDialogTitle>
-              </div>
-            </div>
-          </AlertDialogHeader>
-          <AlertDialogDescription className="text-left">
-            This location is currently listed in the marketplace. Since you modified the address,
-            you need to verify that the pin location is still displayed in the right place on the map.
-          </AlertDialogDescription>
-          <AlertDialogFooter>
-            <Button
-              onClick={() => {
-                setShowPinConfirmationDialog(false);
-                onClose();
-                navigate('/marketplace');
-              }}
-              rounded="full"
-              className="w-full sm:w-auto"
-            >
-              Go to Marketplace
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Map Pin Verification Dialog */}
       {isMapOpen && (() => {

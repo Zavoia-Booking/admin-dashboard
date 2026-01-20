@@ -18,7 +18,6 @@
       "footer": "Please unassign the {{resourceType}} from these items before deleting.",
       "manageAssignments": "Manage Assignments",
       "cancel": "Cancel",
-      "visibleInMarketplace": "Visible in the Marketplace"
     },
     "dependencies": {
       "user": "user",

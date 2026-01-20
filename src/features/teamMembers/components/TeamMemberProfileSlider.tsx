@@ -354,15 +354,6 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
           className="z-[80]"
           overlayClassName="z-[80]"
           secondaryActions={[
-            ...(deleteResponse?.isVisibleInMarketplace
-              ? [{
-                label: 'Go to Marketplace',
-                onClick: () => {
-                  handleCloseDialog(false);
-                  navigate('/marketplace');
-                }
-              }]
-              : []),
             {
               label: 'Go to Assignments',
               onClick: () => {
