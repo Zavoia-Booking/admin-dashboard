@@ -25,13 +25,17 @@ export function FullScreenImageCarousel({
 }: FullScreenImageCarouselProps) {
   const { t } = useTranslation("marketplace");
   const [index, setIndex] = useState(initialIndex);
-  const [lastNavDirection, setLastNavDirection] = useState<"next" | "prev" | null>(null);
+  const [lastNavDirection, setLastNavDirection] = useState<
+    "next" | "prev" | null
+  >(null);
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
 
   // Keep index in sync when opening / initialIndex changes
   useEffect(() => {
     if (!open) return;
-    setIndex(Math.min(Math.max(0, initialIndex), Math.max(0, images.length - 1)));
+    setIndex(
+      Math.min(Math.max(0, initialIndex), Math.max(0, images.length - 1)),
+    );
     setLastNavDirection(null);
   }, [open, initialIndex, images.length]);
 
@@ -54,7 +58,7 @@ export function FullScreenImageCarousel({
   const goPrev = useCallback(() => {
     setLastNavDirection("prev");
     setIndex((i) =>
-      images.length === 0 ? 0 : (i - 1 + images.length) % images.length
+      images.length === 0 ? 0 : (i - 1 + images.length) % images.length,
     );
   }, [images.length]);
 
@@ -82,7 +86,7 @@ export function FullScreenImageCarousel({
       if (!t) return;
       touchStartRef.current = { x: t.clientX, y: t.clientY };
     },
-    [hasMultiple]
+    [hasMultiple],
   );
 
   const handleTouchEnd = useCallback(
@@ -110,7 +114,7 @@ export function FullScreenImageCarousel({
         goPrev();
       }
     },
-    [goNext, goPrev, hasMultiple]
+    [goNext, goPrev, hasMultiple],
   );
 
   const handleKeyDown = useCallback(
@@ -124,7 +128,7 @@ export function FullScreenImageCarousel({
         goNext();
       }
     },
-    [goNext, goPrev]
+    [goNext, goPrev],
   );
 
   // Keyboard navigation
@@ -147,7 +151,7 @@ export function FullScreenImageCarousel({
           className={cn(
             "fixed inset-0 z-50",
             "px-4 py-4 sm:px-28 sm:py-8",
-            "outline-none"
+            "outline-none",
           )}
           aria-describedby={undefined}
         >
@@ -164,7 +168,10 @@ export function FullScreenImageCarousel({
             onClick={handleClose}
           >
             {/* Top bar (counter left, close right) */}
-            <div className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3" onClick={(e) => e.stopPropagation()}>
+            <div
+              className="absolute top-4 left-4 right-4 z-20 flex items-center justify-between gap-3"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="text-white/80 text-sm font-semibold tracking-widest uppercase">
                 {counter}
               </div>
@@ -181,7 +188,6 @@ export function FullScreenImageCarousel({
               </Button>
             </div>
 
-
             {currentUrl ? (
               <img
                 key={`${index}-${lastNavDirection ?? "init"}`}
@@ -195,9 +201,9 @@ export function FullScreenImageCarousel({
                         "animate-in fade-in-0 duration-250 ease-out",
                         lastNavDirection === "next"
                           ? "slide-in-from-right-80"
-                          : "slide-in-from-left-80"
+                          : "slide-in-from-left-80",
                       )
-                    : "animate-in fade-in-0 duration-150 ease-out"
+                    : "animate-in fade-in-0 duration-150 ease-out",
                 )}
                 draggable={false}
                 onClick={(e) => e.stopPropagation()}
@@ -214,9 +220,12 @@ export function FullScreenImageCarousel({
                 "absolute left-4 top-1/2 -translate-y-1/2",
                 "!min-h-0 !h-11 !w-11",
                 "backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white",
-                !canPrev && "opacity-30 pointer-events-none"
+                !canPrev && "opacity-30 pointer-events-none",
               )}
-              onClick={(e) => { e.stopPropagation(); handlePrevClick(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrevClick();
+              }}
               title={t("carousel.previous")}
             >
               <ChevronLeft className="h-6 w-6" />
@@ -231,9 +240,12 @@ export function FullScreenImageCarousel({
                 "absolute right-4 top-1/2 -translate-y-1/2",
                 "!min-h-0 !h-11 !w-11",
                 "backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white",
-                !canNext && "opacity-30 pointer-events-none"
+                !canNext && "opacity-30 pointer-events-none",
               )}
-              onClick={(e) => { e.stopPropagation(); handleNextClick(); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNextClick();
+              }}
               title={t("carousel.next")}
             >
               <ChevronRight className="h-6 w-6" />
@@ -244,4 +256,3 @@ export function FullScreenImageCarousel({
     </Dialog>
   );
 }
-

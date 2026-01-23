@@ -37,7 +37,7 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
       <div className={`space-y-4 ${className}`}>
-        <CollapsibleTrigger className="w-full cursor-pointer mb-0">
+        <CollapsibleTrigger className="w-full cursor-pointer mb-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:ring-offset-0 rounded-md focus-visible:border transition-colors">
           <div className="flex items-center justify-between gap-3 pb-2">
             <div className="flex items-center gap-3">
               {Icon && (

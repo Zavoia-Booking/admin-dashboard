@@ -18,7 +18,7 @@ export interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   onOpenChange?: (open: boolean) => void;
-  cancelTitle?: string;
+  cancelTitle?: string | null;
   confirmTitle?: string;
   title: string;
   description: string | React.ReactNode;
@@ -118,12 +118,14 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className={cn("flex-col-reverse sm:flex-row gap-2 sm:gap-2 sm:justify-end", footerClassName)}>
-          <AlertDialogCancel
-            onClick={handleCancel}
-            className={cn("rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer", cancelClassName)}
-          >
-            {cancelTitle || `Cancel`}
-          </AlertDialogCancel>
+          {cancelTitle !== null && (
+            <AlertDialogCancel
+              onClick={handleCancel}
+              className={cn("rounded-full h-11 px-6 border-border bg-surface-hover hover:bg-surface-active text-foreground-1 font-medium cursor-pointer", cancelClassName)}
+            >
+              {cancelTitle || `Cancel`}
+            </AlertDialogCancel>
+          )}
           <AlertDialogAction
             onClick={handleConfirm}
             className={cn(

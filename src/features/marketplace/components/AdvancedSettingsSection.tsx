@@ -9,8 +9,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { Label } from "../../../shared/components/ui/label";
 import { CollapsibleFormSection } from "../../../shared/components/forms/CollapsibleFormSection";
 import { Switch } from "../../../shared/components/ui/switch";
+import { Pill } from "../../../shared/components/ui/pill";
+import { Tag, Info } from "lucide-react";
 import { DurationInput } from "../../../shared/components/forms/fields/DurationInput";
-import { TextareaField } from "../../../shared/components/forms/fields/TextareaField";
 import { validateDescription } from "../../../shared/utils/validation";
 import type { UpdateBookingSettingsPayload } from "../types";
 import { SectionDivider } from "../../../shared/components/common/SectionDivider";
@@ -29,7 +30,7 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
     const dispatch = useDispatch();
     const bookingSettings = useSelector(selectBookingSettings);
     const hasFetchedRef = useRef(false);
-    const [isOpen, setIsOpen] = useState(false);
+    const [isOpen, setIsOpen] = useState(true);
     const { t } = useTranslation("marketplace");
 
     // Local state for form
@@ -45,9 +46,15 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
         autoConfirmBookings: true,
         allowStaffSelection: true,
         showAnyStaffOption: true,
+        allowStaffCancelWithoutConfirmation: false,
+        allowStaffRescheduleWithoutConfirmation: false,
+        allowStaffBlockCalendarWithoutConfirmation: false,
+        staffBlockCalendarTypes: [],
+        emailEnabled: true,
+        smsEnabled: false,
         cancellationPolicyMessage: null,
-        bookingConfirmationMessage: null,
-      })
+        bookingReminderMessage: null,
+      }),
     );
 
     const [formErrors, setFormErrors] = useState<
@@ -64,34 +71,50 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
       if (
         formData.minAdvanceBookingMinutes >= formData.maxAdvanceBookingMinutes
       ) {
-        errors.minAdvanceBookingMinutes =
-          t("advancedSettings.validation.minAdvanceBooking");
-        errors.maxAdvanceBookingMinutes =
-          t("advancedSettings.validation.maxAdvanceBooking");
+        errors.minAdvanceBookingMinutes = t(
+          "advancedSettings.validation.minAdvanceBooking",
+        );
+        errors.maxAdvanceBookingMinutes = t(
+          "advancedSettings.validation.maxAdvanceBooking",
+        );
       }
 
       const cancellationError = validateDescription(
         formData.cancellationPolicyMessage ?? "",
-        1000
+        1000,
       );
       if (cancellationError) {
         errors.cancellationPolicyMessage = cancellationError;
       }
 
-      const confirmationError = validateDescription(
-        formData.bookingConfirmationMessage ?? "",
-        1000
+      const reminderError = validateDescription(
+        formData.bookingReminderMessage ?? "",
+        1000,
       );
-      if (confirmationError) {
-        errors.bookingConfirmationMessage = confirmationError;
+      if (reminderError) {
+        errors.bookingReminderMessage = reminderError;
+      }
+
+      // Validate block calendar types - if blocking is enabled, at least one type must be selected
+      if (
+        formData.allowStaffBlockCalendarWithoutConfirmation &&
+        (!formData.staffBlockCalendarTypes ||
+          formData.staffBlockCalendarTypes.length === 0)
+      ) {
+        errors.staffBlockCalendarTypes = t(
+          "advancedSettings.validation.blockTypesRequired",
+        );
       }
 
       setFormErrors(errors);
     }, [
       formData.cancellationPolicyMessage,
-      formData.bookingConfirmationMessage,
+      formData.bookingReminderMessage,
       formData.minAdvanceBookingMinutes,
       formData.maxAdvanceBookingMinutes,
+      formData.allowStaffBlockCalendarWithoutConfirmation,
+      formData.staffBlockCalendarTypes,
+      t,
     ]);
 
     // Fetch booking settings on mount (only once per component lifetime)
@@ -121,10 +144,20 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
           autoConfirmBookings: bookingSettings.autoConfirmBookings ?? true,
           allowStaffSelection: bookingSettings.allowStaffSelection ?? true,
           showAnyStaffOption: bookingSettings.showAnyStaffOption ?? true,
+          allowStaffCancelWithoutConfirmation:
+            bookingSettings.allowStaffCancelWithoutConfirmation ?? false,
+          allowStaffRescheduleWithoutConfirmation:
+            bookingSettings.allowStaffRescheduleWithoutConfirmation ?? false,
+          allowStaffBlockCalendarWithoutConfirmation:
+            bookingSettings.allowStaffBlockCalendarWithoutConfirmation ?? false,
+          staffBlockCalendarTypes:
+            bookingSettings.staffBlockCalendarTypes ?? [],
+          emailEnabled: bookingSettings.emailEnabled ?? true,
+          smsEnabled: bookingSettings.smsEnabled ?? false,
           cancellationPolicyMessage:
             bookingSettings.cancellationPolicyMessage ?? null,
-          bookingConfirmationMessage:
-            bookingSettings.bookingConfirmationMessage ?? null,
+          bookingReminderMessage:
+            bookingSettings.bookingReminderMessage ?? null,
         });
       }
     }, [bookingSettings]);
@@ -132,7 +165,7 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
     // Update field helper
     const updateField = <K extends keyof UpdateBookingSettingsPayload>(
       field: K,
-      value: UpdateBookingSettingsPayload[K]
+      value: UpdateBookingSettingsPayload[K],
     ) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     };
@@ -162,10 +195,22 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
               autoConfirmBookings: bookingSettings.autoConfirmBookings ?? true,
               allowStaffSelection: bookingSettings.allowStaffSelection ?? true,
               showAnyStaffOption: bookingSettings.showAnyStaffOption ?? true,
+              allowStaffCancelWithoutConfirmation:
+                bookingSettings.allowStaffCancelWithoutConfirmation ?? false,
+              allowStaffRescheduleWithoutConfirmation:
+                bookingSettings.allowStaffRescheduleWithoutConfirmation ??
+                false,
+              allowStaffBlockCalendarWithoutConfirmation:
+                bookingSettings.allowStaffBlockCalendarWithoutConfirmation ??
+                false,
+              staffBlockCalendarTypes:
+                bookingSettings.staffBlockCalendarTypes ?? [],
+              emailEnabled: bookingSettings.emailEnabled ?? true,
+              smsEnabled: bookingSettings.smsEnabled ?? false,
               cancellationPolicyMessage:
                 bookingSettings.cancellationPolicyMessage ?? null,
-              bookingConfirmationMessage:
-                bookingSettings.bookingConfirmationMessage ?? null,
+              bookingReminderMessage:
+                bookingSettings.bookingReminderMessage ?? null,
             })
           );
         },
@@ -173,7 +218,7 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
           return Object.keys(formErrors).length > 0;
         },
       }),
-      [formData, bookingSettings, formErrors]
+      [formData, bookingSettings, formErrors],
     );
 
     // Helper to convert minutes to human-readable format
@@ -220,7 +265,9 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                   <DurationInput
                     id="minAdvanceBooking"
                     label={t("advancedSettings.timing.minAdvanceBooking.label")}
-                    helpText={t("advancedSettings.timing.minAdvanceBooking.helpText")}
+                    helpText={t(
+                      "advancedSettings.timing.minAdvanceBooking.helpText",
+                    )}
                     value={formData.minAdvanceBookingMinutes}
                     onChange={(val) =>
                       updateField("minAdvanceBookingMinutes", val)
@@ -234,7 +281,9 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                   <DurationInput
                     id="maxAdvanceBooking"
                     label={t("advancedSettings.timing.maxAdvanceBooking.label")}
-                    helpText={t("advancedSettings.timing.maxAdvanceBooking.helpText")}
+                    helpText={t(
+                      "advancedSettings.timing.maxAdvanceBooking.helpText",
+                    )}
                     value={formData.maxAdvanceBookingMinutes}
                     onChange={(val) =>
                       updateField("maxAdvanceBookingMinutes", val)
@@ -242,7 +291,9 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                     quickActions={[0, 10080, 43200, 86400, "other"]}
                     unit="days"
                     getChipLabel={(mins) =>
-                      mins === 0 ? t("advancedSettings.timing.none") : `${Math.round(mins / 1440)}d`
+                      mins === 0
+                        ? t("advancedSettings.timing.none")
+                        : `${Math.round(mins / 1440)}d`
                     }
                     error={formErrors.maxAdvanceBookingMinutes}
                   />
@@ -256,7 +307,11 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                     value={formData.bufferTimeMinutes}
                     onChange={(val) => updateField("bufferTimeMinutes", val)}
                     quickActions={[0, 5, 15, 30, "other"]}
-                    getChipLabel={(mins) => (mins === 0 ? t("advancedSettings.timing.none") : `${mins}m`)}
+                    getChipLabel={(mins) =>
+                      mins === 0
+                        ? t("advancedSettings.timing.none")
+                        : `${mins}m`
+                    }
                     compactLayout={false}
                     className="md:border-r md:border-border md:pr-8"
                   />
@@ -277,7 +332,9 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                   </h3>
                   <div className="flex items-start gap-1.5 text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
                     <span>
-                      {t("advancedSettings.policy.cancellationPolicy.description")}
+                      {t(
+                        "advancedSettings.policy.cancellationPolicy.description",
+                      )}
                     </span>
                   </div>
                 </div>
@@ -285,8 +342,12 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                 <div className="space-y-4 grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                   <DurationInput
                     id="cancellationWindow"
-                    label={t("advancedSettings.policy.cancellationWindow.label")}
-                    helpText={t("advancedSettings.policy.cancellationWindow.helpText")}
+                    label={t(
+                      "advancedSettings.policy.cancellationWindow.label",
+                    )}
+                    helpText={t(
+                      "advancedSettings.policy.cancellationWindow.helpText",
+                    )}
                     value={formData.cancellationWindowMinutes}
                     onChange={(val) =>
                       updateField("cancellationWindowMinutes", val)
@@ -306,11 +367,15 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                             className="font-semibold text-sm cursor-pointer text-foreground-1"
                             htmlFor="allowCustomerCancellation"
                           >
-                            {t("advancedSettings.policy.allowCancellation.label")}
+                            {t(
+                              "advancedSettings.policy.allowCancellation.label",
+                            )}
                           </Label>
                         </div>
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                          {t("advancedSettings.policy.allowCancellation.description")}
+                          {t(
+                            "advancedSettings.policy.allowCancellation.description",
+                          )}
                         </p>
                       </div>
                       <Switch
@@ -329,11 +394,15 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                             className="font-semibold text-sm cursor-pointer text-foreground-1"
                             htmlFor="allowCustomerReschedule"
                           >
-                            {t("advancedSettings.policy.allowRescheduling.label")}
+                            {t(
+                              "advancedSettings.policy.allowRescheduling.label",
+                            )}
                           </Label>
                         </div>
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                          {t("advancedSettings.policy.allowRescheduling.description")}
+                          {t(
+                            "advancedSettings.policy.allowRescheduling.description",
+                          )}
                         </p>
                       </div>
                       <Switch
@@ -359,10 +428,14 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                 <div className="relative space-y-4">
                   <div className="space-y-1.5">
                     <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
-                      {t("advancedSettings.confirmation.bookingConfirmation.title")}
+                      {t(
+                        "advancedSettings.confirmation.bookingConfirmation.title",
+                      )}
                     </h3>
                     <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                      {t("advancedSettings.confirmation.bookingConfirmation.description")}
+                      {t(
+                        "advancedSettings.confirmation.bookingConfirmation.description",
+                      )}
                     </p>
                   </div>
 
@@ -372,12 +445,18 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                         className="text-sm font-semibold cursor-pointer text-foreground-1"
                         htmlFor="autoConfirmBookings"
                       >
-                        {t("advancedSettings.confirmation.bookingApproval.label")}
+                        {t(
+                          "advancedSettings.confirmation.bookingApproval.label",
+                        )}
                       </Label>
                       <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
                         {formData.autoConfirmBookings
-                          ? t("advancedSettings.confirmation.bookingApproval.autoConfirm")
-                          : t("advancedSettings.confirmation.bookingApproval.manualConfirm")}
+                          ? t(
+                              "advancedSettings.confirmation.bookingApproval.autoConfirm",
+                            )
+                          : t(
+                              "advancedSettings.confirmation.bookingApproval.manualConfirm",
+                            )}
                       </p>
                     </div>
                     <Switch
@@ -399,7 +478,9 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                       {t("advancedSettings.confirmation.staffSelection.title")}
                     </h3>
                     <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                      {t("advancedSettings.confirmation.staffSelection.description")}
+                      {t(
+                        "advancedSettings.confirmation.staffSelection.description",
+                      )}
                     </p>
                   </div>
 
@@ -410,10 +491,14 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                           className="text-sm font-medium cursor-pointer"
                           htmlFor="allowStaffSelection"
                         >
-                          {t("advancedSettings.confirmation.allowStaffSelection.label")}
+                          {t(
+                            "advancedSettings.confirmation.allowStaffSelection.label",
+                          )}
                         </Label>
                         <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
-                          {t("advancedSettings.confirmation.allowStaffSelection.description")}
+                          {t(
+                            "advancedSettings.confirmation.allowStaffSelection.description",
+                          )}
                         </p>
                       </div>
                       <Switch
@@ -430,10 +515,14 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                           className="text-sm font-medium cursor-pointer"
                           htmlFor="showAnyStaffOption"
                         >
-                          {t("advancedSettings.confirmation.showAnyStaffOption.label")}
+                          {t(
+                            "advancedSettings.confirmation.showAnyStaffOption.label",
+                          )}
                         </Label>
                         <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
-                          {t("advancedSettings.confirmation.showAnyStaffOption.description")}
+                          {t(
+                            "advancedSettings.confirmation.showAnyStaffOption.description",
+                          )}
                         </p>
                       </div>
                       <Switch
@@ -447,13 +536,279 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                   </div>
                 </div>
               </div>
+
+              {/* Calendar Settings */}
+              <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 dark:bg-purple-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+                <div className="relative space-y-4">
+                  <div className="space-y-1.5">
+                    <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
+                      {t(
+                        "advancedSettings.confirmation.calendarSettings.title",
+                      )}
+                    </h3>
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                      {t(
+                        "advancedSettings.confirmation.calendarSettings.description",
+                      )}
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/20 hover:border-border-strong">
+                      <div className="space-y-1">
+                        <Label
+                          className="text-sm font-medium cursor-pointer"
+                          htmlFor="allowStaffCancelWithoutConfirmation"
+                        >
+                          {t(
+                            "advancedSettings.confirmation.calendarSettings.allowCancel.label",
+                          )}
+                        </Label>
+                        <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
+                          {t(
+                            "advancedSettings.confirmation.calendarSettings.allowCancel.description",
+                          )}
+                        </p>
+                      </div>
+                      <Switch
+                        id="allowStaffCancelWithoutConfirmation"
+                        checked={formData.allowStaffCancelWithoutConfirmation}
+                        onCheckedChange={(checked) =>
+                          updateField(
+                            "allowStaffCancelWithoutConfirmation",
+                            checked,
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl border border-border bg-muted/20 hover:border-border-strong">
+                      <div className="space-y-1">
+                        <Label
+                          className="text-sm font-medium cursor-pointer"
+                          htmlFor="allowStaffRescheduleWithoutConfirmation"
+                        >
+                          {t(
+                            "advancedSettings.confirmation.calendarSettings.allowReschedule.label",
+                          )}
+                        </Label>
+                        <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
+                          {t(
+                            "advancedSettings.confirmation.calendarSettings.allowReschedule.description",
+                          )}
+                        </p>
+                      </div>
+                      <Switch
+                        id="allowStaffRescheduleWithoutConfirmation"
+                        checked={
+                          formData.allowStaffRescheduleWithoutConfirmation
+                        }
+                        onCheckedChange={(checked) =>
+                          updateField(
+                            "allowStaffRescheduleWithoutConfirmation",
+                            checked,
+                          )
+                        }
+                      />
+                    </div>
+
+                    <div className="space-y-3 p-3 rounded-xl border border-border bg-muted/20">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-1">
+                          <Label
+                            className="text-sm font-medium cursor-pointer"
+                            htmlFor="allowStaffBlockCalendarWithoutConfirmation"
+                          >
+                            {t(
+                              "advancedSettings.confirmation.calendarSettings.allowBlock.label",
+                            )}
+                          </Label>
+                          <p className="text-[11px] text-foreground-3 dark:text-foreground-2">
+                            {t(
+                              "advancedSettings.confirmation.calendarSettings.allowBlock.description",
+                            )}
+                          </p>
+                        </div>
+                        <Switch
+                          id="allowStaffBlockCalendarWithoutConfirmation"
+                          checked={
+                            formData.allowStaffBlockCalendarWithoutConfirmation
+                          }
+                          onCheckedChange={(checked) =>
+                            updateField(
+                              "allowStaffBlockCalendarWithoutConfirmation",
+                              checked,
+                            )
+                          }
+                        />
+                      </div>
+
+                      {formData.allowStaffBlockCalendarWithoutConfirmation && (
+                        <div className="pt-3 border-t border-border space-y-4">
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-medium text-foreground-1">
+                              {t(
+                                "advancedSettings.confirmation.calendarSettings.blockTypes.label",
+                              )}
+                            </h3>
+                            <p className="text-[11px] text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                              {t(
+                                "advancedSettings.confirmation.calendarSettings.blockTypes.description",
+                              )}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap gap-2 sm:gap-3">
+                            {["holidays", "timeOff", "sickDays"].map((type) => {
+                              const isSelected =
+                                formData.staffBlockCalendarTypes.includes(type);
+                              return (
+                                <Pill
+                                  key={type}
+                                  selected={isSelected}
+                                  icon={Tag}
+                                  className="w-auto justify-start items-center transition-none active:scale-100 min-h-0 py-2.5 px-4"
+                                  showCheckmark={true}
+                                  onClick={() => {
+                                    const currentTypes =
+                                      formData.staffBlockCalendarTypes || [];
+                                    if (isSelected) {
+                                      updateField(
+                                        "staffBlockCalendarTypes",
+                                        currentTypes.filter((t) => t !== type),
+                                      );
+                                    } else {
+                                      updateField("staffBlockCalendarTypes", [
+                                        ...currentTypes,
+                                        type,
+                                      ]);
+                                    }
+                                  }}
+                                >
+                                  <span className="text-sm font-medium">
+                                    {t(
+                                      `advancedSettings.confirmation.calendarSettings.blockTypes.${type}`,
+                                    )}
+                                  </span>
+                                </Pill>
+                              );
+                            })}
+                          </div>
+
+                          {formData.staffBlockCalendarTypes.length === 0 && (
+                            <div className="flex items-start gap-2 pt-1">
+                              <div className="relative flex h-4 w-4 shrink-0 mt-0.5">
+                                <span
+                                  className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-20"
+                                  style={{ animationDuration: "3s" }}
+                                ></span>
+                                <Info className="relative inline-flex h-4 w-4 text-primary" />
+                              </div>
+                              <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                                {t(
+                                  "advancedSettings.validation.blockTypesRequired",
+                                )}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Custom Messages */}
+          {/* Communication & Messages */}
           <div className="space-y-4">
             <SectionDivider title={t("advancedSettings.messaging.title")} />
+
+            {/* Communication Methods */}
             <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="relative p-3 md:p-4 space-y-6">
+                <div className="space-y-1.5 px-1">
+                  <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
+                    {t("advancedSettings.messaging.communicationMethods.title")}
+                  </h3>
+                  <div className="flex items-start gap-1.5 text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    <span>
+                      {t(
+                        "advancedSettings.messaging.communicationMethods.description",
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 md:p-4 rounded-xl border border-border bg-muted/20 hover:border-border-strong transition-colors">
+                    <div className="space-y-1">
+                      <Label
+                        className="font-semibold text-sm cursor-pointer text-foreground-1"
+                        htmlFor="emailEnabled"
+                      >
+                        {t(
+                          "advancedSettings.messaging.communicationMethods.email.label",
+                        )}
+                      </Label>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                        {t(
+                          "advancedSettings.messaging.communicationMethods.email.description",
+                        )}
+                      </p>
+                    </div>
+                    <Switch
+                      id="emailEnabled"
+                      checked={formData.emailEnabled}
+                      onCheckedChange={(checked) =>
+                        updateField("emailEnabled", checked)
+                      }
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 md:p-4 rounded-xl border border-border bg-muted/20 hover:border-border-strong transition-colors">
+                    <div className="space-y-1">
+                      <Label
+                        className="font-semibold text-sm cursor-pointer text-foreground-1"
+                        htmlFor="smsEnabled"
+                      >
+                        {t(
+                          "advancedSettings.messaging.communicationMethods.sms.label",
+                        )}
+                      </Label>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                        {t(
+                          "advancedSettings.messaging.communicationMethods.sms.description",
+                        )}
+                      </p>
+                    </div>
+                    <Switch
+                      id="smsEnabled"
+                      checked={formData.smsEnabled}
+                      onCheckedChange={(checked) =>
+                        updateField("smsEnabled", checked)
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="px-1 pt-2 border-t border-border">
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-info-600 dark:text-info-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                      {t(
+                        "advancedSettings.messaging.communicationMethods.pushNotificationHelper",
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Custom Messages */}
+            {/* Commented out - will be moved to another flow later */}
+            {/* <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 dark:bg-indigo-500/20 rounded-full -translate-y-16 translate-x-16 group-hover:scale-110 transition-transform duration-700"></div>
               <div className="relative p-3 md:p-4 space-y-8">
                 <div className="space-y-1.5 px-1">
@@ -484,27 +839,27 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
                   />
 
                   <TextareaField
-                    id="confirmationMessage"
-                    label={t("advancedSettings.messaging.confirmationMessage.label")}
-                    helperText={t("advancedSettings.messaging.confirmationMessage.helperText")}
-                    placeholder={t("advancedSettings.messaging.confirmationMessage.placeholder")}
-                    value={formData.bookingConfirmationMessage ?? ""}
+                    id="reminderMessage"
+                    label={t("advancedSettings.messaging.reminderMessage.label")}
+                    helperText={t("advancedSettings.messaging.reminderMessage.helperText")}
+                    placeholder={t("advancedSettings.messaging.reminderMessage.placeholder")}
+                    value={formData.bookingReminderMessage ?? ""}
                     onChange={(val) =>
-                      updateField("bookingConfirmationMessage", val || null)
+                      updateField("bookingReminderMessage", val || null)
                     }
                     rows={6}
                     maxLength={1000}
                     className="bg-white/50 dark:bg-transparent"
-                    error={formErrors.bookingConfirmationMessage}
+                    error={formErrors.bookingReminderMessage}
                   />
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </CollapsibleFormSection>
     );
-  }
+  },
 );
 
 AdvancedSettingsSection.displayName = "AdvancedSettingsSection";

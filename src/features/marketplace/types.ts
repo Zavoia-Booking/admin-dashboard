@@ -152,8 +152,14 @@ export interface BookingSettings {
   autoConfirmBookings: boolean;
   allowStaffSelection: boolean;
   showAnyStaffOption: boolean;
+  allowStaffCancelWithoutConfirmation: boolean;
+  allowStaffRescheduleWithoutConfirmation: boolean;
+  allowStaffBlockCalendarWithoutConfirmation: boolean;
+  staffBlockCalendarTypes: string[];
+  emailEnabled: boolean;
+  smsEnabled: boolean;
   cancellationPolicyMessage: string | null;
-  bookingConfirmationMessage: string | null;
+  bookingReminderMessage: string | null;
 }
 
 // Payload for updating booking settings (omit businessId as it's not editable)

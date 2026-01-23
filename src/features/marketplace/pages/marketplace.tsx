@@ -1,18 +1,21 @@
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useLocation } from 'react-router-dom';
-import { AppLayout } from '../../../shared/components/layouts/app-layout';
-import { useTranslation } from 'react-i18next';
-import { 
-  fetchMarketplaceListingAction, 
-  publishMarketplaceListingAction, 
-  updateBookingSettingsAction
-} from '../actions';
-import { fetchCurrentBusinessAction } from '../../business/actions';
-import type { PublishMarketplaceListingPayload, UpdateBookingSettingsPayload } from '../types';
-import { 
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation } from "react-router-dom";
+import { AppLayout } from "../../../shared/components/layouts/app-layout";
+import { useTranslation } from "react-i18next";
+import {
+  fetchMarketplaceListingAction,
+  publishMarketplaceListingAction,
+  updateBookingSettingsAction,
+} from "../actions";
+import { fetchCurrentBusinessAction } from "../../business/actions";
+import type {
+  PublishMarketplaceListingPayload,
+  UpdateBookingSettingsPayload,
+} from "../types";
+import {
   selectMarketplaceBusiness,
-  selectMarketplaceListing, 
+  selectMarketplaceListing,
   selectMarketplaceLoading,
   selectLocationCatalog,
   selectMarketplacePublishing,
@@ -20,12 +23,12 @@ import {
   selectMarketplaceIndustries,
   selectMarketplaceIndustryTags,
   selectMarketplaceSelectedIndustryTags,
-} from '../selectors';
-import { getCurrentBusinessSelector } from '../../business/selectors';
-import { NotListedYetView } from '../components/NotListedYetView';
-import { ListingConfigurationView } from '../components/ListingConfigurationView';
-import { MarketplaceSkeleton } from '../components/MarketplaceSkeleton';
-import { ListingConfigurationSkeleton } from '../components/ListingConfigurationSkeleton';
+} from "../selectors";
+import { getCurrentBusinessSelector } from "../../business/selectors";
+import { NotListedYetView } from "../components/NotListedYetView";
+import { ListingConfigurationView } from "../components/ListingConfigurationView";
+import { MarketplaceSkeleton } from "../components/MarketplaceSkeleton";
+import { ListingConfigurationSkeleton } from "../components/ListingConfigurationSkeleton";
 
 export default function MarketplacePage() {
   const dispatch = useDispatch();
@@ -33,13 +36,18 @@ export default function MarketplacePage() {
   const { t } = useTranslation("marketplace");
   const marketplaceBusiness = useSelector(selectMarketplaceBusiness);
   const globalBusiness = useSelector(getCurrentBusinessSelector);
-  
+
   // Use global business as base, then override with marketplace-specific data if available.
-  // This ensures the logo and other global details are present even if the marketplace API 
+  // This ensures the logo and other global details are present even if the marketplace API
   // returns a partial business object.
-  const business = marketplaceBusiness && globalBusiness 
-    ? { ...globalBusiness, ...marketplaceBusiness, logo: marketplaceBusiness.logo || globalBusiness.logo }
-    : (marketplaceBusiness || globalBusiness);
+  const business =
+    marketplaceBusiness && globalBusiness
+      ? {
+          ...globalBusiness,
+          ...marketplaceBusiness,
+          logo: marketplaceBusiness.logo || globalBusiness.logo,
+        }
+      : marketplaceBusiness || globalBusiness;
   const listing = useSelector(selectMarketplaceListing);
   const isLoading = useSelector(selectMarketplaceLoading);
   const locationCatalog = useSelector(selectLocationCatalog);
@@ -47,8 +55,10 @@ export default function MarketplacePage() {
   const isSavingBookingSettings = useSelector(selectBookingSettingsSaving);
   const industries = useSelector(selectMarketplaceIndustries);
   const industryTags = useSelector(selectMarketplaceIndustryTags);
-  const selectedIndustryTags = useSelector(selectMarketplaceSelectedIndustryTags);
-  
+  const selectedIndustryTags = useSelector(
+    selectMarketplaceSelectedIndustryTags,
+  );
+
   const [showConfiguration, setShowConfiguration] = useState(false);
 
   // Fetch marketplace data on mount and when navigating back to this page
@@ -155,13 +165,13 @@ export default function MarketplacePage() {
   if (listing && !listing.isListed) {
     return (
       <AppLayout>
-        <NotListedYetView 
+        <NotListedYetView
           onStartListing={handleStartListing}
           business={business}
           listing={listing}
           locations={locationCatalog}
-          services={locationCatalog.flatMap(loc => loc.services)}
-          teamMembers={locationCatalog.flatMap(loc => loc.teamMembers)}
+          services={locationCatalog.flatMap((loc) => loc.services)}
+          teamMembers={locationCatalog.flatMap((loc) => loc.teamMembers)}
         />
       </AppLayout>
     );
@@ -176,5 +186,3 @@ export default function MarketplacePage() {
     </AppLayout>
   );
 }
-
-
