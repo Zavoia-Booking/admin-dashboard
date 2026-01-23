@@ -69,6 +69,11 @@
       "description": "You have unsaved changes that will be lost if you leave. Are you sure you want to continue?",
       "leave": "Leave",
       "cancel": "Cancel"
+    },
+    "congratulations": {
+      "title": "Welcome to the Marketplace!",
+      "description": "You're all set to start receiving bookings.\n\nYou're now visible in the marketplace. Customers can discover and book your services starting today.\n\nLet's keep building momentum!",
+      "continue": "Continue"
     }
   },
   "visibility": {
@@ -242,10 +247,46 @@
       "showAnyStaffOption": {
         "label": "Show \"Any Staff\" option",
         "description": "Display a default option allowing customers to be matched with any available team member."
+      },
+      "calendarSettings": {
+        "title": "Team Availability Controls",
+        "description": "Set what team members are allowed to do with appointments and their calendar—without requiring approval from the business owner.",
+        "allowCancel": {
+          "label": "Allow Cancel Without Approval",
+          "description": "Team members can cancel appointments without approval from the business owner."
+        },
+        "allowReschedule": {
+          "label": "Allow Reschedule Without Approval",
+          "description": "Team members can reschedule appointments without approval from the business owner."
+        },
+        "allowBlock": {
+          "label": "Allow Calendar Blocking Without Approval",
+          "description": "Team members can block time on their calendar without approval from the business owner."
+        },
+        "blockTypes": {
+          "label": "Reasons for Blocking Time",
+          "description": "Select which reasons team members can use to block off time on their calendar.",
+          "holidays": "Holidays",
+          "timeOff": "Time Off",
+          "sickDays": "Sick Days"
+        }
       }
     },
     "messaging": {
-      "title": "Messaging",
+      "title": "Customer Notifications",
+      "communicationMethods": {
+        "title": "Communication Preferences",
+        "description": "Choose how customers get their appointment updates and reminders.",
+        "email": {
+          "label": "Email",
+          "description": "Send confirmations, reminders, and updates via email."
+        },
+        "sms": {
+          "label": "SMS",
+          "description": "Send confirmations and reminders by text message."
+        },
+        "pushNotificationHelper": "Push notifications are also sent automatically if customers use the mobile app."
+      },
       "customMessages": {
         "title": "Custom Messages",
         "description": "Add custom messages customers will see after booking or when reviewing cancellation policies."
@@ -255,15 +296,16 @@
         "helperText": "Shown when customers view or request to cancel an appointment.",
         "placeholder": "Enter your cancellation policy..."
       },
-      "confirmationMessage": {
-        "label": "Confirmation Message",
-        "helperText": "Displayed after a customer successfully books an appointment.",
-        "placeholder": "Enter your confirmation message..."
+      "reminderMessage": {
+        "label": "Reminder Message",
+        "helperText": "Sent to customers as a reminder before their appointment.",
+        "placeholder": "Enter your reminder message..."
       }
     },
     "validation": {
       "minAdvanceBooking": "Must be less than max advance booking",
-      "maxAdvanceBooking": "Must be greater than min advance booking"
+      "maxAdvanceBooking": "Must be greater than min advance booking",
+      "blockTypesRequired": "Please select at least one blocking reason."
     }
   },
   "carousel": {

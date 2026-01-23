@@ -69,22 +69,27 @@
       "description": "Ai modificări nesalvate care se vor pierde dacă pleci. Ești sigur că vrei să continui?",
       "leave": "Părăsește",
       "cancel": "Anulează"
+    },
+    "congratulations": {
+      "title": "Bun venit în Marketplace!",
+      "description": "Ești gata să începi să primești rezervări.\n\nEști acum vizibil în marketplace. Clienții te pot descoperi și rezerva serviciile tale începând de astăzi.\n\nSă continuăm să construim momentul!",
+      "continue": "Continuă"
     }
   },
   "visibility": {
     "public": "Listarea este Publică",
     "private": "Listarea este Privată",
-    "publicDescription": "Afacerea ta este live și vizibilă pentru oricine navighează în marketplace.",
+    "publicDescription": "Afacerea ta este activă și vizibilă pentru toți cei care navighează în marketplace.",
     "privateDescription": "Afacerea ta este ascunsă. Clienții nu pot găsi sau rezerva serviciile tale prin marketplace.",
-    "active": "Activ",
-    "hidden": "Ascuns"
+    "active": "ACTIV",
+    "hidden": "ASCUNS"
   },
   "booking": {
     "title": "Programări Online",
     "enabledDescription": "Clienții pot găsi și rezerva serviciile tale direct din profilul tău de marketplace.",
-    "disabledDescription": "Rezervarea este dezactivată. Clienții îți pot vedea profilul dar nu pot rezerva serviciile tale încă.",
-    "enabled": "Activat",
-    "disabled": "Dezactivat"
+    "disabledDescription": "Programările sunt dezactivate. Clienții îți pot vedea profilul, dar nu pot rezerva serviciile tale încă.",
+    "enabled": "ACTIVAT",
+    "disabled": "DEZACTIVAT"
   },
   "details": {
     "title": "Detalii Marketplace",
@@ -108,8 +113,8 @@
       "label": "Descriere",
       "useBusinessDescription": "Prezintă o privire de ansamblu a afacerii pentru utilizatorii marketplace. Această informație este preluată automat din setările profilului tău global.",
       "customDescription": "Spune-le oamenilor cu ce te ocupi și de ce ar trebui să te rezerve. Păstrează totul simplu, clar și concentrat pe ceea ce te face grozav.",
-      "placeholder": "Ce oferi, și de ce ar trebui oamenii să te aleagă?",
-      "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările afacerii—sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
+      "placeholder": "Ce oferi și de ce ar trebui oamenii să te aleagă?",
+      "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările afacerii — sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
       "custom": "Personalizat"
     }
   },
@@ -117,19 +122,19 @@
     "title": "Industrie & Etichete",
     "primaryIndustry": {
       "label": "Industrie Principală",
-      "description": "Aceasta definește industria principală a afacerii tale pentru a asigura că apari în rezultatele de căutare relevante. Pentru a schimba, mergi la <settingsLink>Setări</settingsLink>.",
+      "description": "Aceasta este industria principală a afacerii tale. Te ajută să apari în rezultatele de căutare relevante. Pentru modificări, accesează <settingsLink>Setări</settingsLink>.",
       "settingsLink": "Setări"
     },
     "tags": {
       "label": "Etichete Marketplace",
-      "description": "Etichetele ajută clienții potriviți să te găsească. Alege-le pe cele care descriu cel mai bine serviciile tale.",
+      "description": "Etichetele îi ajută pe clienți să te găsească mai ușor. Alege-le pe cele care descriu cel mai bine serviciile tale.",
       "addAtLeastOne": "Adaugă cel puțin 1 etichetă pentru a fi live."
     }
   },
   "locationCatalog": {
-    "title": "Prezentare Generală Catalog",
+    "title": "Locații & Echipă",
     "noLocations": "Nicio locație disponibilă. Te rugăm adaugă o locație mai întâi.",
-    "description": "Verifică ce servicii și membri de echipă sunt activi la fiecare locație. Pentru a face modificări, folosește secțiunea <assignmentsLink>Alocări</assignmentsLink>.",
+    "description": "Vezi ce servicii și membri ai echipei sunt activi în fiecare locație. Pentru modificări, accesează secțiunea <assignmentsLink>Alocări</assignmentsLink>.",
     "assignmentsLink": "Alocări",
     "editLocation": "Editează locația",
     "manageAssignments": "Gestionează alocările",
@@ -138,7 +143,7 @@
     "noServices": "Niciun serviciu încă",
     "teamMember_one": "Membru Echipă",
     "teamMember_other": "Membri Echipă",
-    "noTeamMembers": "Niciun membru de echipă încă",
+    "noTeamMembers": "Niciun membru adăugat",
     "remoteAvailable": "Remote Disponibil"
   },
   "portfolio": {
@@ -180,44 +185,44 @@
   },
   "advancedSettings": {
     "title": "Setări Avansate",
-    "description": "Ajustează fin cum funcționează rezervările, anulările și intervalele de timp pentru afacerea ta.",
+    "description": "Ajustează în detaliu modul în care funcționează rezervările, anulările și programările în calendar.",
     "timing": {
       "title": "Timp & Intervale",
       "bookingWindows": {
         "title": "Ferestre de Rezervare",
-        "description": "Setează cât de curând și cât de departe în avans pot clienții să rezerve serviciile tale."
+        "description": "Alege cât de devreme sau cât de târziu pot clienții să facă o programare."
       },
       "minAdvanceBooking": {
         "label": "Rezervare Minimă în Avans",
-        "helpText": "Clienții trebuie să rezerve cu cel puțin atâtea minute înainte de programare."
+        "helpText": "Clienții trebuie să facă o programare cu cel puțin atâtea minute înainte."
       },
       "maxAdvanceBooking": {
         "label": "Rezervare Maximă în Avans",
-        "helpText": "Clienții pot rezerva programări cu până la atâtea zile în avans."
+        "helpText": "Clienții pot face o programare cu până la atâtea zile înainte."
       },
       "bufferTime": {
         "label": "Timp Tampon Între Programări",
-        "helpText": "Adaugă o pauză după fiecare programare pentru a preveni rezervările consecutive."
+        "helpText": "Adaugă o pauză între programări pentru a evita rezervările una după alta."
       },
       "none": "Niciunul"
     },
     "policy": {
       "title": "Politică & Modificări",
       "cancellationPolicy": {
-        "title": "Politica de Anulare",
-        "description": "Decide dacă și când pot clienții să anuleze sau să reprogrameze programările."
+        "title": "Politică de Anulare și Reprogramare",
+        "description": "Stabilește dacă și când clienții pot anula sau reprograma programările."
       },
       "cancellationWindow": {
-        "label": "Fereastra de Anulare",
-        "helpText": "Notificare minimă necesară pentru anulări sau reprogramări."
+        "label": "Fereastră de notificare",
+        "helpText": "Timpul minim necesar înainte ca o programare să poată fi anulată sau reprogramată."
       },
       "allowCancellation": {
         "label": "Permite Anularea",
-        "description": "Lasă clienții să își anuleze programările."
+        "description": "Clienții pot anula singuri programările."
       },
       "allowRescheduling": {
         "label": "Permite Reprogramarea",
-        "description": "Lasă clienții să își reprogrameze programările."
+        "description": "Clienții pot schimba data sau ora programărilor."
       }
     },
     "confirmation": {
@@ -233,19 +238,55 @@
       },
       "staffSelection": {
         "title": "Setări Selecție Personal",
-        "description": "Configurează cum membrii personalului sunt prezentați și selectați în timpul rezervării."
+        "description": "Configurează cum sunt prezentați membrii echipei și cum pot fi selectați în timpul rezervării."
       },
       "allowStaffSelection": {
         "label": "Permite Selecție Personal",
-        "description": "Lasă clienții să aleagă un membru de echipă specific în timpul rezervării."
+        "description": "Lasă clienții să aleagă un membru specific al echipei la rezervare."
       },
       "showAnyStaffOption": {
-        "label": "Arată opțiunea \"Oricare Personal\"",
-        "description": "Afișează o opțiune implicită permițând clienților să fie potriviți cu orice membru de echipă disponibil."
+        "label": "Afișează opțiunea \"Oricare Membru din Echipă\"",
+        "description": "Adaugă o opțiune implicită care le permite clienților să rezerve cu orice membru disponibil."
+      },
+      "calendarSettings": {
+        "title": "Control Disponibilitate Echipa",
+        "description": "Stabilește ce pot face membrii echipei în legătură cu programările și calendarul lor — fără să îți ceară aprobarea.",
+        "allowCancel": {
+          "label": "Permite Anulare Fără Aprobarea Ta",
+          "description": "Membrii echipei pot anula programări fără să îți ceară aprobarea."
+        },
+        "allowReschedule": {
+          "label": "Permite Reprogramare Fără Aprobarea Ta",
+          "description": "Membrii echipei pot reprograma programări fără aprobare."
+        },
+        "allowBlock": {
+          "label": "Permite Blocare Calendar Fără Aprobarea Ta",
+          "description": "Membrii echipei își pot bloca timpul în calendar fără aprobare."
+        },
+        "blockTypes": {
+          "label": "Motive pentru Blocarea Timpului",
+          "description": "Selectează ce motive pot alege membrii echipei când își blochează timpul în calendar.",
+          "holidays": "Sărbători",
+          "timeOff": "Concediu",
+          "sickDays": "Concediu medical"
+        }
       }
     },
     "messaging": {
-      "title": "Mesagerie",
+      "title": "Notificări Clienți",
+      "communicationMethods": {
+        "title": "Preferințe de Comunicare",
+        "description": "Alege cum primesc clienții actualizările și reamintirile pentru programări.",
+        "email": {
+          "label": "Email",
+          "description": "Trimite confirmări, reamintiri și actualizări prin email."
+        },
+        "sms": {
+          "label": "SMS",
+          "description": "Trimite confirmări și reamintiri prin mesaj text."
+        },
+        "pushNotificationHelper": "Notificările push sunt trimise automat dacă clienții folosesc aplicația mobilă."
+      },
       "customMessages": {
         "title": "Mesaje Personalizate",
         "description": "Adaugă mesaje personalizate pe care clienții le vor vedea după rezervare sau când revizuiesc politicile de anulare."
@@ -255,15 +296,16 @@
         "helperText": "Arătat când clienții vizualizează sau solicită să anuleze o programare.",
         "placeholder": "Introdu politica ta de anulare..."
       },
-      "confirmationMessage": {
-        "label": "Mesaj de Confirmare",
-        "helperText": "Afișat după ce un client rezervă cu succes o programare.",
-        "placeholder": "Introdu mesajul tău de confirmare..."
+      "reminderMessage": {
+        "label": "Mesaj de Reamintire",
+        "helperText": "Trimis clienților ca reamintire înainte de programarea lor.",
+        "placeholder": "Introdu mesajul tău de reamintire..."
       }
     },
     "validation": {
       "minAdvanceBooking": "Trebuie să fie mai mic decât rezervarea maximă în avans",
-      "maxAdvanceBooking": "Trebuie să fie mai mare decât rezervarea minimă în avans"
+      "maxAdvanceBooking": "Trebuie să fie mai mare decât rezervarea minimă în avans",
+      "blockTypesRequired": "Te rugăm să selectezi cel puțin un motiv de blocare."
     }
   },
   "carousel": {

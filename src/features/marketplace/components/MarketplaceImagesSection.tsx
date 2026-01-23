@@ -1,8 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import {
-  Card,
-  CardContent,
-} from "../../../shared/components/ui/card";
+import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
@@ -70,7 +67,7 @@ function getBentoGridClass(index: number): string {
     // Let the grid's auto-rows drive height on mobile; keep md behavior unchanged.
     "aspect-auto",
     mobileClasses[index] ?? "col-span-1 row-span-1",
-    desktopClasses[index] ?? ""
+    desktopClasses[index] ?? "",
   );
 }
 
@@ -79,14 +76,17 @@ interface ImageSkeletonProps {
   className?: string;
 }
 
-function ImageSkeleton({ variant = "thumbnail", className }: ImageSkeletonProps) {
+function ImageSkeleton({
+  variant = "thumbnail",
+  className,
+}: ImageSkeletonProps) {
   const isFeatured = variant === "featured";
   return (
     <div
       className={cn(
         "relative overflow-hidden w-full h-full",
         isFeatured && "h-125",
-        className
+        className,
       )}
     >
       <Skeleton className="absolute inset-0 w-full h-full rounded-none bg-muted/70 dark:bg-neutral-800/60" />
@@ -98,7 +98,9 @@ interface MarketplaceImagesSectionProps {
   featuredImageId?: string | null;
   portfolioImages?: PortfolioImage[];
   onFeaturedImageChange: (tempId: string | null) => void;
-  onPortfolioImagesChange: (images: PortfolioImage[] | ((prev: PortfolioImage[]) => PortfolioImage[])) => void;
+  onPortfolioImagesChange: (
+    images: PortfolioImage[] | ((prev: PortfolioImage[]) => PortfolioImage[]),
+  ) => void;
 }
 
 export function MarketplaceImagesSection({
@@ -137,7 +139,7 @@ export function MarketplaceImagesSection({
     if ((!featured || !featuredExists) && images.length > 0) {
       // Find the first image that is not currently uploading or having an error
       const firstValidImage = images.find(
-        (img) => !img.isUploading && !img.uploadError
+        (img) => !img.isUploading && !img.uploadError,
       );
       if (firstValidImage) {
         onFeaturedImageChange(firstValidImage.tempId);
@@ -191,7 +193,7 @@ export function MarketplaceImagesSection({
         t("portfolio.errors.unsupportedFormat", {
           extension: extension.toUpperCase(),
           formats: formatAllowedTypes(),
-        })
+        }),
       );
       return false;
     }
@@ -200,15 +202,13 @@ export function MarketplaceImagesSection({
       toast.error(
         t("portfolio.errors.unsupportedFormatGeneric", {
           formats: formatAllowedTypes(),
-        })
+        }),
       );
       return false;
     }
 
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-      toast.error(
-        t("portfolio.errors.fileSizeExceeds", { size: MAX_SIZE_MB })
-      );
+      toast.error(t("portfolio.errors.fileSizeExceeds", { size: MAX_SIZE_MB }));
       return false;
     }
 
@@ -234,18 +234,17 @@ export function MarketplaceImagesSection({
                 isUploading: false,
                 uploadError: undefined,
               }
-            : img
-        )
+            : img,
+        ),
       );
-      
     } catch (error) {
       console.error(`[Portfolio] Upload failed for ${file.name}:`, error);
       onPortfolioImagesChange((currentImages) =>
         currentImages.map((img) =>
           img.tempId === tempId
             ? { ...img, isUploading: false, uploadError: "Upload failed" }
-            : img
-        )
+            : img,
+        ),
       );
       toast.error(t("portfolio.errors.uploadFailed", { name: file.name }));
     }
@@ -257,7 +256,7 @@ export function MarketplaceImagesSection({
     const remainingSlots = MAX_PORTFOLIO_IMAGES - images.length;
     if (remainingSlots <= 0) {
       toast.error(
-        t("portfolio.errors.maxImages", { count: MAX_PORTFOLIO_IMAGES })
+        t("portfolio.errors.maxImages", { count: MAX_PORTFOLIO_IMAGES }),
       );
       return;
     }
@@ -267,7 +266,7 @@ export function MarketplaceImagesSection({
     // Check for duplicates within already uploaded images or currently uploading ones
     const newFilesToProcess = filesToProcess.filter((file) => {
       const isDuplicate = images.some(
-        (img) => img.originalName === file.name && img.size === file.size
+        (img) => img.originalName === file.name && img.size === file.size,
       );
       if (isDuplicate) {
         toast.info(t("portfolio.errors.duplicateImage", { name: file.name }));
@@ -282,7 +281,7 @@ export function MarketplaceImagesSection({
       newFilesToProcess.map(async (file) => ({
         file,
         isValid: await validateFile(file),
-      }))
+      })),
     );
 
     const validFiles = validationResults
@@ -308,7 +307,7 @@ export function MarketplaceImagesSection({
   };
 
   const handlePortfolioFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     handlePortfolioFiles(event.target.files);
     event.target.value = "";
@@ -352,30 +351,30 @@ export function MarketplaceImagesSection({
       // Set deleting state
       onPortfolioImagesChange((currentImages) =>
         currentImages.map((img) =>
-          img.tempId === tempId ? { ...img, isDeleting: true } : img
-        )
+          img.tempId === tempId ? { ...img, isDeleting: true } : img,
+        ),
       );
 
       try {
         await deleteMarketplaceImageApi(imageToRemove.key);
         // Success - remove from local state
         onPortfolioImagesChange((currentImages) =>
-          currentImages.filter((img) => img.tempId !== tempId)
+          currentImages.filter((img) => img.tempId !== tempId),
         );
       } catch (error) {
         console.error("Delete failed:", error);
         // Reset deleting state
         onPortfolioImagesChange((currentImages) =>
           currentImages.map((img) =>
-            img.tempId === tempId ? { ...img, isDeleting: false } : img
-          )
+            img.tempId === tempId ? { ...img, isDeleting: false } : img,
+          ),
         );
         toast.error(t("portfolio.errors.deleteFailed"));
       }
     } else {
       // Image not yet uploaded (still uploading or failed) - just remove from local state
       onPortfolioImagesChange((currentImages) =>
-        currentImages.filter((img) => img.tempId !== tempId)
+        currentImages.filter((img) => img.tempId !== tempId),
       );
     }
   };
@@ -385,7 +384,7 @@ export function MarketplaceImagesSection({
     if (!image || !image.url || image.isUploading || image.uploadError) return;
 
     // Don't allow setting featured if URL is still a blob (not uploaded to server yet)
-    if (image.url.startsWith('blob:')) {
+    if (image.url.startsWith("blob:")) {
       toast.info(t("portfolio.errors.waitForUpload"));
       return;
     }
@@ -393,8 +392,8 @@ export function MarketplaceImagesSection({
     // Set loading state
     onPortfolioImagesChange((currentImages) =>
       currentImages.map((img) =>
-        img.tempId === tempId ? { ...img, isSettingFeatured: true } : img
-      )
+        img.tempId === tempId ? { ...img, isSettingFeatured: true } : img,
+      ),
     );
 
     try {
@@ -407,8 +406,8 @@ export function MarketplaceImagesSection({
       // Clear loading state
       onPortfolioImagesChange((currentImages) =>
         currentImages.map((img) =>
-          img.tempId === tempId ? { ...img, isSettingFeatured: false } : img
-        )
+          img.tempId === tempId ? { ...img, isSettingFeatured: false } : img,
+        ),
       );
     }
   };
@@ -455,11 +454,19 @@ export function MarketplaceImagesSection({
               {images.length > 0 && (
                 <div className="space-y-3 mb-3" key="featured-image-section">
                   {(() => {
-                    const featuredImg = images.find(img => img.tempId === featured);
-                    
+                    const featuredImg = images.find(
+                      (img) => img.tempId === featured,
+                    );
+
                     // Show skeleton while transitioning between featured images
                     if (!featuredImg) {
-                      return <ImageSkeleton key="featured-container" variant="featured" className="rounded-2xl border" />;
+                      return (
+                        <ImageSkeleton
+                          key="featured-container"
+                          variant="featured"
+                          className="rounded-2xl border"
+                        />
+                      );
                     }
 
                     return (
@@ -479,14 +486,17 @@ export function MarketplaceImagesSection({
                               'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3EImage%3C/text%3E%3C/svg%3E';
                           }}
                         />
-                        
+
                         {/* Hover overlay (match gallery tiles) */}
-                        {!featuredImg.isUploading && !featuredImg.isDeleting && !featuredImg.uploadError && (
-                          <div className="absolute inset-0 bg-black/40 hidden md:block md:opacity-0 md:group-hover/featured:opacity-100 z-[5] transition-all duration-300 pointer-events-none" />
-                        )}
+                        {!featuredImg.isUploading &&
+                          !featuredImg.isDeleting &&
+                          !featuredImg.uploadError && (
+                            <div className="absolute inset-0 bg-black/40 hidden md:block md:opacity-0 md:group-hover/featured:opacity-100 z-[5] transition-all duration-300 pointer-events-none" />
+                          )}
 
                         {/* Status Overlays for Featured */}
-                        {(featuredImg.isUploading || featuredImg.isDeleting) && (
+                        {(featuredImg.isUploading ||
+                          featuredImg.isDeleting) && (
                           <div className="absolute inset-0 z-10">
                             <ImageSkeleton variant="featured" />
                           </div>
@@ -503,29 +513,35 @@ export function MarketplaceImagesSection({
                         </div>
 
                         {/* Actions for Featured */}
-                        {!featuredImg.isUploading && !featuredImg.isDeleting && !featuredImg.uploadError && (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="secondary"
-                            rounded="full"
-                            className={cn(
-                              "absolute top-4 right-4 z-20 h-10 w-10 rounded-full",
-                              "shadow-xl active:scale-95 transition-all duration-200",
-                              // Match grid tile X button + darker background
-                              "backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white",
-                              "opacity-100 md:opacity-0 md:group-hover/featured:opacity-100"
-                            )}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleRemovePortfolioImage(featuredImg.tempId);
-                            }}
-                            disabled={images.length === 1}
-                            title={images.length === 1 ? t("portfolio.minimumRequired") : t("portfolio.removeImage")}
-                          >
-                            <X className="h-5 w-5" />
-                          </Button>
-                        )}
+                        {!featuredImg.isUploading &&
+                          !featuredImg.isDeleting &&
+                          !featuredImg.uploadError && (
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="secondary"
+                              rounded="full"
+                              className={cn(
+                                "absolute top-4 right-4 z-20 h-10 w-10 rounded-full",
+                                "shadow-xl active:scale-95 transition-all duration-200",
+                                // Match grid tile X button + darker background
+                                "backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white",
+                                "opacity-100 md:opacity-0 md:group-hover/featured:opacity-100",
+                              )}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemovePortfolioImage(featuredImg.tempId);
+                              }}
+                              disabled={images.length === 1}
+                              title={
+                                images.length === 1
+                                  ? t("portfolio.minimumRequired")
+                                  : t("portfolio.removeImage")
+                              }
+                            >
+                              <X className="h-5 w-5" />
+                            </Button>
+                          )}
                       </div>
                     );
                   })()}
@@ -534,10 +550,13 @@ export function MarketplaceImagesSection({
 
               {/* Gallery Grid */}
               <div className="space-y-4">
-                <div className={cn(
-                  "grid gap-4 grid-cols-2 md:grid-cols-5 auto-rows-[184px] md:auto-rows-[180px]",
-                  images.length === 0 && "min-h-58 md:min-h-78 grid-rows-1 grid-cols-1 md:max-w-1/2 mt-8 md:mb-14"
-                )}>
+                <div
+                  className={cn(
+                    "grid gap-4 grid-cols-2 md:grid-cols-5 auto-rows-[184px] md:auto-rows-[180px]",
+                    images.length === 0 &&
+                      "min-h-58 md:min-h-78 grid-rows-1 grid-cols-1 md:max-w-1/2 mt-8 md:mb-14",
+                  )}
+                >
                   {images.map((image, index) => {
                     const isFeatured = featured === image.tempId;
                     return (
@@ -545,16 +564,24 @@ export function MarketplaceImagesSection({
                         key={image.tempId}
                         className={cn(
                           "group relative overflow-hidden rounded-2xl border bg-surface dark:bg-neutral-900 shadow-sm transition-all duration-300",
-                          getBentoGridClass(index)
+                          getBentoGridClass(index),
                         )}
                       >
                         <div
                           className={cn(
                             "relative w-full h-full overflow-hidden rounded-2xl bg-muted",
-                            !image.isUploading && !image.isDeleting && !image.uploadError && "cursor-pointer"
+                            !image.isUploading &&
+                              !image.isDeleting &&
+                              !image.uploadError &&
+                              "cursor-pointer",
                           )}
                           onClick={() => {
-                            if (image.isUploading || image.isDeleting || image.uploadError) return;
+                            if (
+                              image.isUploading ||
+                              image.isDeleting ||
+                              image.uploadError
+                            )
+                              return;
                             openCarouselByTempId(image.tempId);
                           }}
                           role="button"
@@ -562,7 +589,10 @@ export function MarketplaceImagesSection({
                           {/* Status Overlays */}
                           {(image.isUploading || image.isDeleting) && (
                             <div className="absolute inset-0 z-10">
-                              <ImageSkeleton variant="thumbnail" className="rounded-2xl" />
+                              <ImageSkeleton
+                                variant="thumbnail"
+                                className="rounded-2xl"
+                              />
                             </div>
                           )}
 
@@ -608,67 +638,73 @@ export function MarketplaceImagesSection({
                               </Badge>
                             </div>
                           )}
-                          
+
                           {/* Hover Actions Overlay */}
-                          {!image.isUploading && !image.isDeleting && !image.uploadError && (
-                            <div className="absolute inset-0 bg-transparent md:bg-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 z-20">
-                              {!isFeatured && (
+                          {!image.isUploading &&
+                            !image.isDeleting &&
+                            !image.uploadError && (
+                              <div className="absolute inset-0 bg-transparent md:bg-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 z-20">
+                                {!isFeatured && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="secondary"
+                                    rounded="full"
+                                    className={cn(
+                                      "group/cover absolute bottom-2 left-2 !min-h-0 !h-8 px-3",
+                                      "shadow-xl active:scale-95",
+                                      "!bg-black/35 hover:!bg-black/45 !text-white",
+                                      "border border-white/15 hover:border-white/25",
+                                      "backdrop-blur-md",
+                                      "focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-0",
+                                    )}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSetFeatured(image.tempId);
+                                    }}
+                                    disabled={image.isSettingFeatured}
+                                    title={t("portfolio.setAsMainCover")}
+                                  >
+                                    {image.isSettingFeatured ? (
+                                      <>
+                                        <Spinner size="sm" color="white" />
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Star className="!h-3 !w-3 md:!h-3.5 md:!w-3.5" />
+                                        <span className="text-xs md:text-[11px] font-semibold leading-none">
+                                          {t("portfolio.setCover")}
+                                        </span>
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
                                 <Button
                                   type="button"
-                                  size="sm"
+                                  size="icon"
                                   variant="secondary"
                                   rounded="full"
                                   className={cn(
-                                    "group/cover absolute bottom-2 left-2 !min-h-0 !h-8 px-3",
-                                    "shadow-xl active:scale-95",
-                                    "!bg-black/35 hover:!bg-black/45 !text-white",
-                                    "border border-white/15 hover:border-white/25",
-                                    "backdrop-blur-md",
-                                    "focus-visible:ring-2 focus-visible:ring-white/30 focus-visible:ring-offset-0"
+                                    "absolute top-2 right-2 !min-h-8 !min-w-8 ",
+                                    "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
+                                    // Darker background for better contrast over images
+                                    "bg-black/60 hover:bg-black/70 border border-white/15 text-white",
                                   )}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleSetFeatured(image.tempId);
+                                    handleRemovePortfolioImage(image.tempId);
                                   }}
-                                  disabled={image.isSettingFeatured}
-                                  title={t("portfolio.setAsMainCover")}
+                                  disabled={images.length === 1}
+                                  title={
+                                    images.length === 1
+                                      ? t("portfolio.minimumRequired")
+                                      : t("portfolio.removeImage")
+                                  }
                                 >
-                                  {image.isSettingFeatured ? (
-                                    <>
-                                      <Spinner size="sm" color="white" />
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Star className="!h-3 !w-3 md:!h-3.5 md:!w-3.5" />
-                                      <span className="text-xs md:text-[11px] font-semibold leading-none">
-                                        {t("portfolio.setCover")}
-                                      </span>
-                                    </>
-                                  )}
+                                  <X className="!h-3.5 !w-3.5" />
                                 </Button>
-                              )}
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="secondary"
-                                rounded="full"
-                                className={cn(
-                                  "absolute top-2 right-2 !min-h-8 !min-w-8 ",
-                                  "shadow-xl active:scale-95 transition-all duration-200 backdrop-blur-md",
-                                  // Darker background for better contrast over images
-                                  "bg-black/60 hover:bg-black/70 border border-white/15 text-white"
-                                )}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemovePortfolioImage(image.tempId);
-                                }}
-                                disabled={images.length === 1}
-                                title={images.length === 1 ? t("portfolio.minimumRequired") : t("portfolio.removeImage")}
-                              >
-                                <X className="!h-3.5 !w-3.5" />
-                              </Button>
-                            </div>
-                          )}
+                              </div>
+                            )}
                         </div>
                       </div>
                     );
@@ -679,7 +715,9 @@ export function MarketplaceImagesSection({
                     <div
                       className={cn(
                         "group relative cursor-pointer mt-1.5 transition-all duration-300",
-                        images.length === 0 ? "col-span-2 md:col-span-5 aspect-video md:aspect-auto" : getBentoGridClass(images.length)
+                        images.length === 0
+                          ? "col-span-2 md:col-span-5 aspect-video md:aspect-auto"
+                          : getBentoGridClass(images.length),
                       )}
                       onClick={() => portfolioInputRef.current?.click()}
                       onDrop={handlePortfolioDrop}
@@ -698,44 +736,68 @@ export function MarketplaceImagesSection({
 
                       {/* Stacked Cards Illustration */}
                       <div className="absolute inset-0">
-                        <div className={cn(
-                          "absolute inset-0 rounded-2xl border-2 border-dashed border-border bg-surface dark:bg-neutral-900/40 md:bg-neutral-100/40 md:dark:bg-neutral-800/20 transition-all duration-500",
-                          images.length === 0 
-                            ? "rotate-[4deg] translate-y-3 translate-x-2 md:rotate-[2deg] md:translate-y-2 md:translate-x-2 md:group-hover:rotate-[4deg] md:group-hover:translate-y-3" 
-                            : "rotate-[8deg] translate-y-2 translate-x-3 md:rotate-[4deg] md:translate-y-2 md:translate-x-1.5 md:group-hover:rotate-[8deg] md:group-hover:translate-y-2 md:group-hover:translate-x-3"
-                        )}></div>
-                        <div className={cn(
-                          "absolute inset-0 rounded-2xl border-2 border-dashed border-border bg-surface dark:bg-neutral-900/55 md:bg-neutral-100/60 md:dark:bg-neutral-800/40 transition-all duration-500",
-                          images.length === 0 
-                            ? "rotate-[-3deg] -translate-y-2 -translate-x-1 md:rotate-[-1deg] md:-translate-y-1 md:-translate-x-1 md:group-hover:rotate-[-3deg] md:group-hover:-translate-y-2" 
-                            : "rotate-[-6deg] -translate-y-1 -translate-x-2 md:rotate-[-2deg] md:-translate-y-1 md:-translate-x-1 md:group-hover:rotate-[-6deg] md:group-hover:-translate-y-1 md:group-hover:-translate-x-2"
-                        )}></div>
-                        
-                        <div className={`absolute inset-0 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ${
-                          dragActive 
-                            ? "border-primary bg-primary/10 shadow-[0_0_40px_rgba(var(--primary),0.3)] ring-2 ring-primary/20 scale-[0.98]" 
-                            : "border-primary/50 bg-surface-hover dark:bg-neutral-900 shadow-xl md:border-muted-foreground/20 md:bg-surface md:shadow-lg md:group-hover:border-primary/50 md:group-hover:shadow-xl md:group-hover:bg-surface-hover"
-                        }`}>
+                        <div
+                          className={cn(
+                            "absolute inset-0 rounded-2xl border-2 border-dashed border-border bg-surface dark:bg-neutral-900/40 md:bg-neutral-100/40 md:dark:bg-neutral-800/20 transition-all duration-500",
+                            images.length === 0
+                              ? "rotate-[4deg] translate-y-3 translate-x-2 md:rotate-[2deg] md:translate-y-2 md:translate-x-2 md:group-hover:rotate-[4deg] md:group-hover:translate-y-3"
+                              : "rotate-[8deg] translate-y-2 translate-x-3 md:rotate-[4deg] md:translate-y-2 md:translate-x-1.5 md:group-hover:rotate-[8deg] md:group-hover:translate-y-2 md:group-hover:translate-x-3",
+                          )}
+                        ></div>
+                        <div
+                          className={cn(
+                            "absolute inset-0 rounded-2xl border-2 border-dashed border-border bg-surface dark:bg-neutral-900/55 md:bg-neutral-100/60 md:dark:bg-neutral-800/40 transition-all duration-500",
+                            images.length === 0
+                              ? "rotate-[-3deg] -translate-y-2 -translate-x-1 md:rotate-[-1deg] md:-translate-y-1 md:-translate-x-1 md:group-hover:rotate-[-3deg] md:group-hover:-translate-y-2"
+                              : "rotate-[-6deg] -translate-y-1 -translate-x-2 md:rotate-[-2deg] md:-translate-y-1 md:-translate-x-1 md:group-hover:rotate-[-6deg] md:group-hover:-translate-y-1 md:group-hover:-translate-x-2",
+                          )}
+                        ></div>
+
+                        <div
+                          className={`absolute inset-0 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden transition-all duration-300 ${
+                            dragActive
+                              ? "border-primary bg-primary/10 shadow-[0_0_40px_rgba(var(--primary),0.3)] ring-2 ring-primary/20 scale-[0.98]"
+                              : "border-primary/50 bg-surface-hover dark:bg-neutral-900 shadow-xl md:border-muted-foreground/20 md:bg-surface md:shadow-lg md:group-hover:border-primary/50 md:group-hover:shadow-xl md:group-hover:bg-surface-hover"
+                          }`}
+                        >
                           <div className="relative flex flex-col items-center gap-4 z-10 text-center px-6">
-                            <div className={cn(
-                              "flex items-center justify-center rounded-full bg-background border shadow-sm transition-all duration-300",
-                              images.length === 0 ? "h-18 w-18" : "h-12 w-12",
-                              dragActive ? 'border-primary text-primary scale-110 shadow-primary/20' : 'text-primary border-primary/50 md:text-muted-foreground md:group-hover:text-primary md:group-hover:border-primary/50'
-                            )}>
-                              <UploadCloud className={images.length === 0 ? "h-8 w-8" : "h-6 w-6"} />
+                            <div
+                              className={cn(
+                                "flex items-center justify-center rounded-full bg-background border shadow-sm transition-all duration-300",
+                                images.length === 0 ? "h-18 w-18" : "h-12 w-12",
+                                dragActive
+                                  ? "border-primary text-primary scale-110 shadow-primary/20"
+                                  : "text-primary border-primary/50 md:text-muted-foreground md:group-hover:text-primary md:group-hover:border-primary/50",
+                              )}
+                            >
+                              <UploadCloud
+                                className={
+                                  images.length === 0 ? "h-8 w-8" : "h-6 w-6"
+                                }
+                              />
                             </div>
                             <div className="space-y-2">
-                              <p className={cn(
-                                "font-bold text-foreground-1 tracking-tight transition-all duration-300",
-                                images.length === 0 ? "text-lg" : "text-sm"
-                              )}>
-                                {dragActive ? t("portfolio.dropToUpload") : t("portfolio.uploadPhotos")}
+                              <p
+                                className={cn(
+                                  "font-bold text-foreground-1 tracking-tight transition-all duration-300",
+                                  images.length === 0 ? "text-lg" : "text-sm",
+                                )}
+                              >
+                                {dragActive
+                                  ? t("portfolio.dropToUpload")
+                                  : t("portfolio.uploadPhotos")}
                               </p>
-                              <p className={cn(
-                                "font-medium text-foreground-3 dark:text-foreground-2 transition-all duration-300",
-                                images.length === 0 ? "text-sm" : "text-[10px]"
-                              )}>
-                                {dragActive ? t("portfolio.releaseNow") : t("portfolio.dragAndDrop")}
+                              <p
+                                className={cn(
+                                  "font-medium text-foreground-3 dark:text-foreground-2 transition-all duration-300",
+                                  images.length === 0
+                                    ? "text-sm"
+                                    : "text-[10px]",
+                                )}
+                              >
+                                {dragActive
+                                  ? t("portfolio.releaseNow")
+                                  : t("portfolio.dragAndDrop")}
                               </p>
                             </div>
                           </div>
@@ -755,13 +817,15 @@ export function MarketplaceImagesSection({
                         {t("portfolio.professionalGallery")}
                       </p>
                       <p className="text-[11px] text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                        {t("portfolio.uploadDescription", { count: MAX_PORTFOLIO_IMAGES })}
+                        {t("portfolio.uploadDescription", {
+                          count: MAX_PORTFOLIO_IMAGES,
+                        })}
                       </p>
                     </div>
                   </div>
 
                   <div className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-surface md:bg-muted/50 border border-border-strong md:border-border text-[11px] font-medium text-foreground-2 dark:text-foreground-1 shrink-0">
-                      {images.length}/{MAX_PORTFOLIO_IMAGES}
+                    {images.length}/{MAX_PORTFOLIO_IMAGES}
                     <span>{t("portfolio.images")}</span>
                   </div>
                 </div>

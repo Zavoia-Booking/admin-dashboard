@@ -38,6 +38,7 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
   const SettingsLink = ({ children }: { children?: React.ReactNode }) => (
     <span
       onClick={() => navigate("/settings")}
+      data-navigate-to="/settings"
       className="inline-flex items-center gap-0.5 cursor-pointer font-semibold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary"
     >
       {children}

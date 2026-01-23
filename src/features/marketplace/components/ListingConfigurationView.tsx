@@ -67,7 +67,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const [bookingSettingsHasErrors, setBookingSettingsHasErrors] =
     useState(false);
 
-
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
   const pendingNavigationPathRef = useRef<string | null>(null);
@@ -167,12 +166,96 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       }
 
       const target = e.target as HTMLElement;
-      const link = target.closest("a[href]") as HTMLAnchorElement | null;
+      let targetPath: string | null = null;
 
+      // Check for anchor tags with href
+      const link = target.closest("a[href]") as HTMLAnchorElement | null;
       if (link && link.href) {
-        const url = new URL(link.href);
+        try {
+          const url = new URL(link.href);
+          targetPath = url.pathname + url.search;
+        } catch {
+          // Invalid URL, ignore
+        }
+      } else {
+        // Check for elements that might trigger navigation via onClick
+        // Look for clickable elements (spans, divs with cursor-pointer) that might call navigate()
+        const clickableElement = target.closest(
+          "span.cursor-pointer, div.cursor-pointer, [role='button']",
+        ) as HTMLElement | null;
+
+        // Check for elements with data-navigate or data-navigate-to attribute
+        const dataNavigateElement = target.closest(
+          "[data-navigate], [data-navigate-to]",
+        ) as HTMLElement | null;
+
+        if (dataNavigateElement) {
+          targetPath =
+            dataNavigateElement.getAttribute("data-navigate") ||
+            dataNavigateElement.getAttribute("data-navigate-to");
+        } else if (clickableElement) {
+          // For elements that might navigate via onClick, we need to intercept
+          // Check if this looks like a navigation link (has ArrowUpRight icon, specific classes, etc.)
+          const hasNavigationPattern =
+            clickableElement.querySelector("svg") || // Has an icon (like ArrowUpRight)
+            clickableElement.classList.contains("font-semibold") || // Styled like a link
+            clickableElement.textContent
+              ?.trim()
+              .toLowerCase()
+              .includes("assignments") ||
+            clickableElement.textContent
+              ?.trim()
+              .toLowerCase()
+              .includes("settings");
+
+          if (hasNavigationPattern) {
+            // Try to infer the navigation path from the element's content or context
+            const text =
+              clickableElement.textContent?.trim().toLowerCase() || "";
+            let inferredPath: string | null = null;
+
+            if (
+              text.includes("assignments") ||
+              clickableElement.closest('[data-navigate-to="/assignments"]')
+            ) {
+              inferredPath = "/assignments";
+            } else if (
+              text.includes("settings") ||
+              clickableElement.closest('[data-navigate-to="/settings"]')
+            ) {
+              inferredPath = "/settings";
+            } else if (text.includes("location")) {
+              // For location links, try to get locationId from parent context
+              const locationCard =
+                clickableElement.closest("[data-location-id]");
+              if (locationCard) {
+                const locationId =
+                  locationCard.getAttribute("data-location-id");
+                inferredPath = `/locations?locationId=${locationId}`;
+              } else {
+                inferredPath = "/locations";
+              }
+            }
+
+            if (inferredPath) {
+              const currentPath = location.pathname + location.search;
+              if (
+                inferredPath !== currentPath &&
+                !inferredPath.startsWith("/marketplace")
+              ) {
+                e.preventDefault();
+                e.stopPropagation();
+                pendingNavigationPathRef.current = inferredPath;
+                setShowUnsavedDialog(true);
+                return;
+              }
+            }
+          }
+        }
+      }
+
+      if (targetPath) {
         const currentPath = location.pathname + location.search;
-        const targetPath = url.pathname + url.search;
 
         // Only block if navigating away from marketplace
         if (
@@ -361,7 +444,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   ];
 
   // Dynamic button text based on listing state
-  const buttonText = isListed ? t("configuration.buttons.saveChanges") : t("configuration.buttons.publish");
+  const buttonText = isListed
+    ? t("configuration.buttons.saveChanges")
+    : t("configuration.buttons.publish");
   const buttonLoadingText = isPublishing
     ? isListed
       ? t("configuration.buttons.saving")

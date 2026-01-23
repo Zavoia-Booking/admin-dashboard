@@ -28,6 +28,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
   const AssignmentsLink = ({ children }: { children?: React.ReactNode }) => (
     <span
       onClick={() => navigate("/assignments")}
+      data-navigate-to="/assignments"
       className="inline-flex items-center gap-0.5 cursor-pointer font-semibold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary"
     >
       {children}
@@ -78,6 +79,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
           return (
             <div
               key={location.id}
+              data-location-id={location.id}
               className="group relative rounded-2xl p-4 border border-border bg-white dark:bg-surface hover:border-border-strong hover:shadow-md overflow-hidden"
             >
               {/* Top Section: Identity */}
@@ -98,6 +100,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                       variant="ghost"
                       rounded="full"
                       size="sm"
+                      data-navigate-to={`/locations?locationId=${location.id}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(`/locations?locationId=${location.id}`);
@@ -118,6 +121,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                       variant="ghost"
                       rounded="full"
                       size="sm"
+                      data-navigate-to={`/assignments?locationId=${location.id}`}
                       onClick={() => handleManageAssignments(location.id)}
                       className={cn(
                         "shrink-0 !min-h-0 h-7 !px-3 border border-border flex items-center gap-1 w-fit",
@@ -137,6 +141,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                     variant="ghost"
                     rounded="full"
                     size="sm"
+                    data-navigate-to={`/locations?locationId=${location.id}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       navigate(`/locations?locationId=${location.id}`);
@@ -156,6 +161,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                     variant="ghost"
                     rounded="full"
                     size="sm"
+                    data-navigate-to={`/assignments?locationId=${location.id}`}
                     onClick={() => handleManageAssignments(location.id)}
                     className="shrink-0 !min-h-0 h-7 !px-5 !py-4 border border-border group-hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10 dark:group-hover:bg-muted-foreground/10 flex items-center gap-1"
                   >
