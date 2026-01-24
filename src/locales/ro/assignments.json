@@ -78,6 +78,62 @@
         "description": "Adăugați servicii pentru a le face disponibile la această locație."
       }
     },
+    "locationBundles": {
+      "title": "Pachete oferite la această locație",
+      "description": {
+        "controlBundles": "Gestionați disponibilitatea pachetelor la această locație. Pachetele nu pot fi personalizate pe locație."
+      },
+      "stats": {
+        "active": "Activate"
+      },
+      "buttons": {
+        "manageBundles": "Selectează Pachete",
+        "createFirstBundle": "Creează Primul Tău Pachet",
+        "showMore": "Afișează încă {{count}}",
+        "showLess": "Afișează mai puțin",
+        "clear": "Șterge",
+        "apply": "Aplică",
+        "saveChanges": "Salvează modificările"
+      },
+      "sheet": {
+        "title": "Selectează Pachete pentru {{locationName}}",
+        "subtitle": "Selectează ce pachete pot rezerva clienții la această locație"
+      },
+      "emptyState": {
+        "title": "Niciun pachet adăugat",
+        "description": "Selectați pachete pentru a le face disponibile la această locație.",
+        "noBundlesCreated": {
+          "title": "Niciun pachet creat încă",
+          "description": "Creați primul dvs. pachet pentru a începe. Odată creat, îl puteți atribui acestei locații."
+        },
+        "noResults": "Nu s-au găsit pachete",
+        "noResultsDescription": "Încercați să ajustați căutarea pentru a găsi ceea ce căutați."
+      },
+      "searchPlaceholder": "Căutare pachete...",
+      "selectAll": "Selectează tot",
+      "deselectAll": "Deselectează tot",
+      "sort": {
+        "trigger": "Sortare",
+        "nameAsc": "Nume: A → Z",
+        "nameDesc": "Nume: Z → A",
+        "priceAsc": "Preț: mic → mare",
+        "priceDesc": "Preț: mare → mic",
+        "serviceCountAsc": "Servicii: puține → multe",
+        "serviceCountDesc": "Servicii: multe → puține",
+        "groupName": "Nume",
+        "groupPrice": "Preț",
+        "groupServiceCount": "Număr servicii"
+      },
+      "priceType": {
+        "sum": "Sumă",
+        "fixed": "Fix",
+        "discount": "reducere"
+      },
+      "serviceCount": {
+        "one": "serviciu",
+        "other": "servicii"
+      }
+    },
     "locationTeamMembers": {
       "title": "Membri ai echipei la această locație",
       "description": {
@@ -188,10 +244,12 @@
       "teamMemberAssignFailed": "Nu s-a putut adăuga {{memberName}} la această locație",
       "teamMemberRemoveFailed": "Nu s-a putut elimina {{memberName}} de la această locație",
       "locationServicesUpdated": "Serviciile locației au fost actualizate cu succes",
+      "locationBundlesUpdated": "Pachetele locației au fost actualizate cu succes",
       "locationAssignmentsUpdated": "Atribuirile locației au fost actualizate cu succes",
       "teamMembersUpdated": "Membrii echipei au fost actualizați cu succes",
       "staffServicesUpdated": "Serviciile echipei au fost actualizate cu succes",
       "failedToUpdateLocationServices": "Nu s-au putut actualiza serviciile locației",
+      "failedToUpdateLocationBundles": "Nu s-au putut actualiza pachetele locației",
       "failedToUpdateLocationAssignments": "Nu s-au putut actualiza atribuirile locației",
       "failedToUpdateTeamMembers": "Nu s-au putut actualiza membrii echipei",
       "failedToUpdateStaffServices": "Nu s-au putut actualiza serviciile echipei",

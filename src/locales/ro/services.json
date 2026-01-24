@@ -312,31 +312,31 @@
     },
     "addBundle": {
       "title": "Creează Pachet",
-      "subtitle": "Combină mai multe servicii într-un pachet",
+      "subtitle": "Oferă mai multă valoare clienților tăi prin combinarea serviciilor.",
       "sections": {
         "bundleInfo": "Informații Pachet",
-        "bundleInfoDescription": "Dă un nume și o descriere pachetului tău",
+        "bundleInfoDescription": "Descrie pachetul pentru clienți. Un nume și o descriere clară îl vor face să iasă în evidență.",
         "pricing": "Preț",
-        "pricingDescription": "Alege cum se calculează prețul pachetului",
+        "pricingDescription": "Alege metoda de calcul pentru prețul pachetului",
         "services": "Servicii",
-        "servicesDescription": "Selectează serviciile de inclus în acest pachet"
+        "servicesDescription": "Alege serviciile incluse în acest pachet. Clienții le vor rezerva împreună."
       },
       "form": {
         "name": {
           "label": "Nume Pachet",
-          "placeholder": "ex., Pachet Îngrijire Completă"
+          "placeholder": "ex., Pachet Starter, Pachet Premium"
         },
         "description": {
           "label": "Descriere",
-          "placeholder": "Descrie ce este inclus în acest pachet..."
+          "placeholder": "Explică ce conține pachetul și de ce este o alegere bună pentru clienți."
         },
         "priceType": {
           "sum": "Suma prețurilor serviciilor",
-          "sumDescription": "Calculează automat totalul adunând toate prețurile serviciilor",
+          "sumDescription": "Prețul final este suma prețurilor serviciilor incluse",
           "fixed": "Preț fix",
-          "fixedDescription": "Stabilește un preț fix unic pentru întregul pachet, indiferent de prețurile individuale ale serviciilor",
+          "fixedDescription": "Setează un preț fix pentru întregul pachet, indiferent de prețurile serviciilor",
           "discount": "Procent de reducere",
-          "discountDescription": "Aplică un procent de reducere la suma tuturor prețurilor serviciilor"
+          "discountDescription": "Aplică un procent de reducere la prețul total al serviciilor"
         },
         "fixedPrice": {
           "label": "Preț Fix",
@@ -345,14 +345,14 @@
         "discountPercentage": {
           "label": "Procent Reducere",
           "placeholder": "0",
-          "help": "Introdu un procent între 0 și 100"
+          "help": "Introdu reducerea dorită (între 0 și 100%)"
         }
       },
       "pricing": {
         "sumOfServices": "Total Servicii",
         "originalPrice": "Preț Original",
         "finalPrice": "Preț Final Pachet",
-        "savings": "Economii Clienți",
+        "savings": "Economii pentru client",
         "increase": "Creștere Preț",
         "service": "serviciu",
         "services": "servicii"
@@ -362,7 +362,7 @@
         "create": "Creează Pachet"
       },
       "noServices": "Nu sunt servicii disponibile. Creează servicii mai întâi înainte de a crea pachete.",
-      "manageServices": "Gestionează servicii",
+      "manageServices": "Selectează servicii",
       "bundleLabel": "acest pachet",
       "validation": {
         "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
@@ -379,28 +379,28 @@
       "subtitle": "Actualizează informațiile și serviciile pachetului",
       "sections": {
         "bundleInfo": "Informații Pachet",
-        "bundleInfoDescription": "Actualizează numele și descrierea pachetului",
+        "bundleInfoDescription": "Descrie pachetul pentru clienți. Un nume și o descriere clară îl vor face să iasă în evidență.",
         "pricing": "Preț",
-        "pricingDescription": "Alege cum se calculează prețul pachetului",
+        "pricingDescription": "Alege metoda de calcul pentru prețul pachetului",
         "services": "Servicii",
-        "servicesDescription": "Actualizează serviciile incluse în acest pachet"
+        "servicesDescription": "Alege serviciile incluse în acest pachet. Clienții le vor rezerva împreună."
       },
       "form": {
         "name": {
           "label": "Nume Pachet",
-          "placeholder": "ex., Pachet Îngrijire Completă"
+          "placeholder": "ex., Pachet Starter, Pachet Premium"
         },
         "description": {
           "label": "Descriere",
-          "placeholder": "Descrie ce este inclus în acest pachet..."
+          "placeholder": "Explică ce conține pachetul și de ce este o alegere bună pentru clienți."
         },
         "priceType": {
           "sum": "Suma prețurilor serviciilor",
-          "sumDescription": "Calculează automat totalul adunând toate prețurile serviciilor",
+          "sumDescription": "Prețul final este suma prețurilor serviciilor incluse",
           "fixed": "Preț fix",
-          "fixedDescription": "Stabilește un preț fix unic pentru întregul pachet, indiferent de prețurile individuale ale serviciilor",
+          "fixedDescription": "Setează un preț fix pentru întregul pachet, indiferent de prețurile serviciilor",
           "discount": "Procent de reducere",
-          "discountDescription": "Aplică un procent de reducere la suma tuturor prețurilor serviciilor"
+          "discountDescription": "Aplică un procent de reducere la prețul total al serviciilor"
         },
         "fixedPrice": {
           "label": "Preț Fix",
@@ -409,14 +409,14 @@
         "discountPercentage": {
           "label": "Procent Reducere",
           "placeholder": "0",
-          "help": "Introdu un procent între 0 și 100"
+          "help": "Introdu reducerea dorită (între 0 și 100%)"
         }
       },
       "pricing": {
         "sumOfServices": "Total Servicii",
         "originalPrice": "Preț Original",
         "finalPrice": "Preț Final Pachet",
-        "savings": "Economii Clienți",
+        "savings": "Economii pentru client",
         "increase": "Creștere Preț",
         "service": "serviciu",
         "services": "servicii"
@@ -426,7 +426,7 @@
         "update": "Actualizează Pachet"
       },
       "noServices": "Nu sunt servicii disponibile. Creează servicii mai întâi înainte de a edita pachete.",
-      "manageServices": "Gestionează servicii",
+      "manageServices": "Selectează servicii",
       "bundleLabel": "acest pachet",
       "validation": {
         "nameRequired": "Numele pachetului este obligatoriu",
@@ -449,7 +449,7 @@
       },
       "removeBundle": {
         "title": "Șterge Pachet",
-        "description": "Acest lucru va șterge permanent acest pachet din lista de pachete. Această acțiune nu poate fi anulată.",
+        "description": "Șterge permanent acest pachet din lista ta. Această acțiune nu poate fi anulată.",
         "button": "Șterge Pachet",
         "removing": "Se șterge..."
       },

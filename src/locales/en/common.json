@@ -6,9 +6,9 @@
     },
     "canDelete": {
       "title": "Delete \"{{resourceName}}\"?",
-      "description": "This will permanently remove this {{resourceType}} from your list. You cannot undo this action.",
+      "description": "This bundle will be permanently deleted. You can't undo this action.",
       "cancel": "Cancel",
-      "delete": "Delete {{resourceType}}",
+      "delete": "Delete Bundle",
       "deleting": "Deleting..."
     },
     "cannotDelete": {

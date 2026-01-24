@@ -11,6 +11,7 @@ import {
   type ListItem,
 } from "./common/AssignmentListPanel";
 import { LocationServicesSection } from "./common/LocationServicesSection";
+import { LocationBundlesSection } from "./common/LocationBundlesSection";
 import { LocationTeamMembersSection } from "./common/LocationTeamMembersSection";
 import { ManageTeamMemberDrawer } from "./common/ManageTeamMemberDrawer";
 import { DashedDivider } from "../../../shared/components/common/DashedDivider";
@@ -20,6 +21,7 @@ import {
   selectLocationAction,
   fetchLocationFullAssignmentAction,
   updateLocationServicesAction,
+  updateLocationBundlesAction,
   updateStaffServicesAction,
   fetchStaffServicesAtLocationAction,
   updateLocationAssignmentsAction,
@@ -75,11 +77,10 @@ export function LocationAssignmentsView() {
   >(null);
   const [forceLoading, setForceLoading] = useState(false);
   const [savingTeamMemberIds, setSavingTeamMemberIds] = useState<Set<number>>(
-    new Set()
+    new Set(),
   );
   // Track teamMembers state when saving starts - only clear when it changes from this
   const teamMembersWhenSavingStartedRef = useRef<number[] | null>(null);
-
 
   // Filter locations by search
   const filteredLocations = useMemo(() => {
@@ -92,7 +93,7 @@ export function LocationAssignmentsView() {
       const name = (location.name || "").toLowerCase();
       const address = (location.address || "").toLowerCase();
       return tokens.every(
-        (token) => name.includes(token) || address.includes(token)
+        (token) => name.includes(token) || address.includes(token),
       );
     });
   }, [allLocations, searchTerm]);
@@ -106,7 +107,8 @@ export function LocationAssignmentsView() {
   useEffect(() => {
     const locationIdFromUrl = searchParams.get("locationId");
     const currentLocationKey = location.key;
-    const locationIdChanged = locationIdFromUrl !== lastLocationIdFromUrlRef.current;
+    const locationIdChanged =
+      locationIdFromUrl !== lastLocationIdFromUrlRef.current;
     const navigationChanged = currentLocationKey !== lastLocationKeyRef.current;
 
     if (navigationChanged || locationIdChanged) {
@@ -123,7 +125,7 @@ export function LocationAssignmentsView() {
     if (locationIdFromUrl && !hasAutoSelected && allLocations.length > 0) {
       const locationId = parseInt(locationIdFromUrl, 10);
       const locationExists = allLocations.some(
-        (l: LocationType) => l.id === locationId
+        (l: LocationType) => l.id === locationId,
       );
       if (locationExists && !isNaN(locationId)) {
         // Only auto-select if the current selection doesn't match
@@ -142,7 +144,13 @@ export function LocationAssignmentsView() {
         }
       }
     }
-  }, [searchParams, allLocations, hasAutoSelected, selectedLocationId, dispatch]);
+  }, [
+    searchParams,
+    allLocations,
+    hasAutoSelected,
+    selectedLocationId,
+    dispatch,
+  ]);
 
   // Auto-select first location when page loads (if no locationId in URL and no selection)
   useEffect(() => {
@@ -159,14 +167,24 @@ export function LocationAssignmentsView() {
         const firstLocation = allLocations[0];
         if (firstLocation) {
           dispatch(selectLocationAction(firstLocation.id));
-          dispatch(fetchLocationFullAssignmentAction.request({ locationId: firstLocation.id }));
+          dispatch(
+            fetchLocationFullAssignmentAction.request({
+              locationId: firstLocation.id,
+            }),
+          );
           setHasAutoSelected(true);
         }
       }, 0);
       return () => clearTimeout(timeoutId);
     }
-  }, [searchParams, allLocations, hasAutoSelected, isLocationsLoading, selectedLocationId, dispatch]);
-
+  }, [
+    searchParams,
+    allLocations,
+    hasAutoSelected,
+    isLocationsLoading,
+    selectedLocationId,
+    dispatch,
+  ]);
 
   // Consolidated save completion handler
   useEffect(() => {
@@ -183,13 +201,20 @@ export function LocationAssignmentsView() {
   // Clear savingTeamMemberIds when /full call completes after team member toggle
   // Wait for both: save operation to complete AND teamMembers to change from when saving started
   useEffect(() => {
-    if (selectedLocation && savingTeamMemberIds.size > 0 && teamMembersWhenSavingStartedRef.current !== null) {
-      const currentMemberIds = selectedLocation.teamMembers.map((m) => m.userId).sort();
+    if (
+      selectedLocation &&
+      savingTeamMemberIds.size > 0 &&
+      teamMembersWhenSavingStartedRef.current !== null
+    ) {
+      const currentMemberIds = selectedLocation.teamMembers
+        .map((m) => m.userId)
+        .sort();
       const membersWhenStarted = teamMembersWhenSavingStartedRef.current;
-      
+
       const saveOperationDone = saveOperation !== "teamMembers";
-      const teamMembersChanged = JSON.stringify(currentMemberIds) !== JSON.stringify(membersWhenStarted);
-      
+      const teamMembersChanged =
+        JSON.stringify(currentMemberIds) !== JSON.stringify(membersWhenStarted);
+
       if (saveOperationDone && teamMembersChanged) {
         // Both calls have completed - clear saving state
         setSavingTeamMemberIds(new Set());
@@ -219,7 +244,7 @@ export function LocationAssignmentsView() {
       dispatch(fetchCurrentUserAction.request());
       dispatch(fetchLocationFullAssignmentAction.request({ locationId }));
     },
-    [dispatch, selectedLocationId]
+    [dispatch, selectedLocationId],
   );
 
   // Save single service override to backend
@@ -227,7 +252,7 @@ export function LocationAssignmentsView() {
     (
       serviceId: number,
       customPrice: number | null,
-      customDuration: number | null
+      customDuration: number | null,
     ) => {
       if (!selectedLocationId || !selectedLocation) return;
 
@@ -248,10 +273,10 @@ export function LocationAssignmentsView() {
         updateLocationServicesAction.request({
           locationId: selectedLocationId,
           services: servicesPayload,
-        })
+        }),
       );
     },
-    [dispatch, selectedLocationId, selectedLocation]
+    [dispatch, selectedLocationId, selectedLocation],
   );
 
   // Save services list directly to backend
@@ -268,7 +293,9 @@ export function LocationAssignmentsView() {
 
       const enabledServices = serviceIds.map((id) => {
         // Check if we have existing service data (for preserving overrides)
-        const existingService = selectedLocation.services.find((s) => s.serviceId === id);
+        const existingService = selectedLocation.services.find(
+          (s) => s.serviceId === id,
+        );
         return {
           serviceId: id,
           isEnabled: true,
@@ -291,17 +318,52 @@ export function LocationAssignmentsView() {
         updateLocationServicesAction.request({
           locationId: selectedLocationId,
           services: [...enabledServices, ...disabledServices],
-        })
+        }),
       );
     },
-    [dispatch, selectedLocationId, selectedLocation]
+    [dispatch, selectedLocationId, selectedLocation],
+  );
+
+  // Save bundles list directly to backend
+  const handleSaveLocationBundles = useCallback(
+    (bundleIds: number[]) => {
+      if (!selectedLocationId || !selectedLocation) return;
+
+      // Show skeleton immediately
+      setForceLoading(true);
+      setSaveOperation("services"); // Use same operation type for now
+
+      // Build bundles payload
+      const enabledSet = new Set(bundleIds);
+
+      const enabledBundles = bundleIds.map((id) => ({
+        bundleId: id,
+        isEnabled: true,
+      }));
+
+      // Disable bundles that were removed
+      const disabledBundles = (selectedLocation.bundles || [])
+        .filter((b) => !enabledSet.has(b.bundleId))
+        .map((b) => ({
+          bundleId: b.bundleId,
+          isEnabled: false,
+        }));
+
+      dispatch(
+        updateLocationBundlesAction.request({
+          locationId: selectedLocationId,
+          bundles: [...enabledBundles, ...disabledBundles],
+        }),
+      );
+    },
+    [dispatch, selectedLocationId, selectedLocation],
   );
 
   // Save team member toggle directly to backend
   const handleSaveTeamMemberToggle = useCallback(
     (userId: number, enabled: boolean) => {
       if (!selectedLocationId || !selectedLocation) return;
-      
+
       // If any switch is already saving, ignore (all switches are disabled in UI)
       // Check both state and saveOperation to catch rapid clicks
       if (savingTeamMemberIds.size > 0 || saveOperation === "teamMembers") {
@@ -309,7 +371,9 @@ export function LocationAssignmentsView() {
       }
 
       // Calculate new member IDs from current Redux state
-      const currentMemberIds = selectedLocation.teamMembers.map((m) => m.userId);
+      const currentMemberIds = selectedLocation.teamMembers.map(
+        (m) => m.userId,
+      );
       const newMemberIds = enabled
         ? [...currentMemberIds, userId]
         : currentMemberIds.filter((id) => id !== userId);
@@ -320,7 +384,9 @@ export function LocationAssignmentsView() {
         // Track the current teamMembers state when saving starts
         if (newSet.size === 1) {
           // First member being saved - capture the current state
-          teamMembersWhenSavingStartedRef.current = selectedLocation.teamMembers.map((m) => m.userId).sort();
+          teamMembersWhenSavingStartedRef.current = selectedLocation.teamMembers
+            .map((m) => m.userId)
+            .sort();
         }
         return newSet;
       });
@@ -335,10 +401,16 @@ export function LocationAssignmentsView() {
             userId,
             enabled,
           },
-        })
+        }),
       );
     },
-    [dispatch, selectedLocationId, selectedLocation, savingTeamMemberIds, saveOperation]
+    [
+      dispatch,
+      selectedLocationId,
+      selectedLocation,
+      savingTeamMemberIds,
+      saveOperation,
+    ],
   );
 
   const handleManageMember = useCallback(
@@ -348,11 +420,11 @@ export function LocationAssignmentsView() {
         fetchStaffServicesAtLocationAction.request({
           locationId: selectedLocationId,
           userId,
-        })
+        }),
       );
       setManagingMemberId(userId);
     },
-    [dispatch, selectedLocationId]
+    [dispatch, selectedLocationId],
   );
 
   const handleSaveStaffServices = useCallback(
@@ -372,11 +444,11 @@ export function LocationAssignmentsView() {
             customPrice: s.customPrice,
             customDuration: s.customDuration,
           })),
-        })
+        }),
       );
       // Note: Drawer closes via useEffect when isSaving becomes false
     },
-    [dispatch, selectedLocationId, managingMemberId]
+    [dispatch, selectedLocationId, managingMemberId],
   );
 
   // Handler for when staff overrides modal starts saving - show skeleton immediately
@@ -388,7 +460,7 @@ export function LocationAssignmentsView() {
   const managingMember = useMemo(() => {
     if (!managingMemberId || !selectedLocation) return null;
     return selectedLocation.teamMembers.find(
-      (m) => m.userId === managingMemberId
+      (m) => m.userId === managingMemberId,
     );
   }, [managingMemberId, selectedLocation]);
 
@@ -412,7 +484,7 @@ export function LocationAssignmentsView() {
           "focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
           isSelected
             ? "border-border-strong bg-white dark:bg-surface shadow-xs"
-            : "border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]"
+            : "border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]",
         )}
       >
         {/* Selection indicator */}
@@ -422,7 +494,7 @@ export function LocationAssignmentsView() {
               "h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center",
               isSelected
                 ? "border-primary bg-primary"
-                : "border-border-strong group-hover:border-primary"
+                : "border-border-strong group-hover:border-primary",
             )}
           >
             {isSelected && (
@@ -458,7 +530,7 @@ export function LocationAssignmentsView() {
         </div>
       </button>
     ),
-    [handleSelectLocation, searchTerm]
+    [handleSelectLocation, searchTerm],
   );
 
   // Empty state for locations list
@@ -533,6 +605,48 @@ export function LocationAssignmentsView() {
                     <Skeleton className="h-3 w-16" />
                     <Skeleton className="h-9 w-full" />
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Divider */}
+        <div className="border-t border-dashed border-border mt-2 pt-2" />
+
+        {/* Bundles Section Skeleton */}
+        <div className="space-y-4">
+          {/* Bundles Header */}
+          <div className="space-y-1.5 py-2">
+            <Skeleton className="h-6 w-64" />
+            <div className="flex items-start gap-1.5">
+              <Skeleton className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 rounded" />
+              <Skeleton className="h-3.5 w-80" />
+            </div>
+          </div>
+
+          {/* Bundles Stats and Button */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Skeleton className="h-7 w-24 rounded-full" />
+            </div>
+            <div className="flex-shrink-0 md:ml-auto">
+              <Skeleton className="h-9 w-40 rounded-full" />
+            </div>
+          </div>
+
+          {/* Bundles List */}
+          <div className="space-y-2">
+            {[1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-lg border border-border bg-white dark:bg-surface p-3"
+              >
+                <div className="flex items-center gap-3">
+                  <Skeleton className="h-5 w-32 flex-1" />
+                  <Skeleton className="h-5 w-16 rounded-full flex-shrink-0" />
+                  <Skeleton className="h-4 w-20 flex-shrink-0" />
+                  <Skeleton className="h-5 w-16 flex-shrink-0" />
                 </div>
               </div>
             ))}
@@ -683,7 +797,27 @@ export function LocationAssignmentsView() {
                 onSaveStart={handleOverridesSaveStart}
               />
 
-              <DashedDivider className="mb-1 md:mb-4" marginTop="mt-2" paddingTop="pt-2" />
+              <DashedDivider
+                className="mb-1 md:mb-4"
+                marginTop="mt-2"
+                paddingTop="pt-2"
+              />
+
+              {/* Bundles Section */}
+              <LocationBundlesSection
+                locationName={selectedLocation.name}
+                bundles={selectedLocation.bundles || []}
+                allBundles={selectedLocation.allBundles || []}
+                onSaveBundles={handleSaveLocationBundles}
+                currency={businessCurrency}
+                locationId={selectedLocationId || undefined}
+              />
+
+              <DashedDivider
+                className="mb-1 md:mb-4"
+                marginTop="mt-2"
+                paddingTop="pt-2"
+              />
 
               {/* Team Members Section */}
               <div ref={teamMembersSectionRef}>
@@ -693,7 +827,9 @@ export function LocationAssignmentsView() {
                   allTeamMembers={selectedLocation.allTeamMembers}
                   onManageMember={handleManageMember}
                   onSaveTeamMemberToggle={handleSaveTeamMemberToggle}
-                  enabledMemberIds={selectedLocation.teamMembers.map((m) => m.userId)}
+                  enabledMemberIds={selectedLocation.teamMembers.map(
+                    (m) => m.userId,
+                  )}
                   savingMemberIds={savingTeamMemberIds}
                   isSaving={saveOperation === "teamMembers" && isSaving}
                 />

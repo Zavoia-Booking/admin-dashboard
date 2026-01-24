@@ -315,31 +315,31 @@
     },
     "addBundle": {
       "title": "Create Bundle",
-      "subtitle": "Combine multiple services into a bundle",
+      "subtitle": "Offer customers more value by grouping services together.",
       "sections": {
         "bundleInfo": "Bundle Information",
-        "bundleInfoDescription": "Give your bundle a name and description",
+        "bundleInfoDescription": "Tell customers what this bundle is all about. A great name and description help it stand out.",
         "pricing": "Pricing",
         "pricingDescription": "Choose how the bundle price is calculated",
         "services": "Services",
-        "servicesDescription": "Select the services to include in this bundle"
+        "servicesDescription": "Pick the services that are part of this bundle. Customers will book them together."
       },
       "form": {
         "name": {
           "label": "Bundle Name",
-          "placeholder": "e.g., Complete Care Package"
+          "placeholder": "e.g., Starter Pack, Complete Care Package"
         },
         "description": {
           "label": "Description",
-          "placeholder": "Describe what's included in this bundle..."
+          "placeholder": "Let customers know what they're getting and why it's a great deal."
         },
         "priceType": {
           "sum": "Sum of service prices",
-          "sumDescription": "Automatically calculate the total by adding all service prices together",
+          "sumDescription": "Total is based on the combined price of selected services",
           "fixed": "Fixed price",
-          "fixedDescription": "Set a single fixed price for the entire bundle, regardless of individual service prices",
+          "fixedDescription": "Charge a flat price for the bundle, ignoring individual service prices",
           "discount": "Discount percentage",
-          "discountDescription": "Apply a percentage discount to the sum of all service prices"
+          "discountDescription": "Offer a discount by applying a percentage off the total price"
         },
         "fixedPrice": {
           "label": "Fixed Price",
@@ -348,7 +348,7 @@
         "discountPercentage": {
           "label": "Discount Percentage",
           "placeholder": "0",
-          "help": "Enter a percentage between 0 and 100"
+          "help": "Enter the discount you want to offer (between 0 and 100%)"
         }
       },
       "pricing": {
@@ -365,7 +365,7 @@
         "create": "Create Bundle"
       },
       "noServices": "No services available. Create services first before creating bundles.",
-      "manageServices": "Manage services",
+      "manageServices": "Select Services",
       "bundleLabel": "this bundle",
       "validation": {
         "servicesMinimum": "At least 2 services must be selected for a bundle"
@@ -382,28 +382,28 @@
       "subtitle": "Update bundle information and services",
       "sections": {
         "bundleInfo": "Bundle Information",
-        "bundleInfoDescription": "Update your bundle name and description",
+        "bundleInfoDescription": "Tell customers what this bundle is all about. A great name and description help it stand out.",
         "pricing": "Pricing",
         "pricingDescription": "Choose how the bundle price is calculated",
         "services": "Services",
-        "servicesDescription": "Update the services included in this bundle"
+        "servicesDescription": "Pick the services that are part of this bundle. Customers will book them together."
       },
       "form": {
         "name": {
           "label": "Bundle Name",
-          "placeholder": "e.g., Complete Care Package"
+          "placeholder": "e.g., Starter Pack, Complete Care Package"
         },
         "description": {
           "label": "Description",
-          "placeholder": "Describe what's included in this bundle..."
+          "placeholder": "Let customers know what they're getting and why it's a great deal."
         },
         "priceType": {
           "sum": "Sum of service prices",
-          "sumDescription": "Automatically calculate the total by adding all service prices together",
+          "sumDescription": "Total is based on the combined price of selected services",
           "fixed": "Fixed price",
-          "fixedDescription": "Set a single fixed price for the entire bundle, regardless of individual service prices",
+          "fixedDescription": "Charge a flat price for the bundle, ignoring individual service prices",
           "discount": "Discount percentage",
-          "discountDescription": "Apply a percentage discount to the sum of all service prices"
+          "discountDescription": "Offer a discount by applying a percentage off the total price"
         },
         "fixedPrice": {
           "label": "Fixed Price",
@@ -412,7 +412,7 @@
         "discountPercentage": {
           "label": "Discount Percentage",
           "placeholder": "0",
-          "help": "Enter a percentage between 0 and 100"
+          "help": "Enter the discount you want to offer (between 0 and 100%)"
         }
       },
       "pricing": {
@@ -429,7 +429,7 @@
         "update": "Update Bundle"
       },
       "noServices": "No services available. Create services first before editing bundles.",
-      "manageServices": "Manage services",
+      "manageServices": "Select Services",
       "bundleLabel": "this bundle",
       "validation": {
         "nameRequired": "Bundle name is required",
@@ -451,9 +451,9 @@
         "cancel": "Cancel"
       },
       "removeBundle": {
-        "title": "Remove Bundle",
-        "description": "This will permanently remove this bundle from your bundles list. This action cannot be undone.",
-        "button": "Remove Bundle",
+        "title": "Delete Bundle",
+        "description": "Permanently delete this bundle from your list. This action cannot be undone.",
+        "button": "Delete Bundle",
         "removing": "Removing..."
       },
       "deleteDialog": {

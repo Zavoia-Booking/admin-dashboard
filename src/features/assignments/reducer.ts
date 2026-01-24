@@ -4,7 +4,9 @@ import { logoutRequestAction } from "../auth/actions";
 import type { AssignmentsState } from "./types";
 import { type Reducer } from "redux";
 
-type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
+type Actions =
+  | ActionType<typeof actions>
+  | ActionType<typeof logoutRequestAction>;
 
 const initialState: AssignmentsState = {
   selectedLocationId: null,
@@ -17,7 +19,7 @@ const initialState: AssignmentsState = {
 
 export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
   state: AssignmentsState = initialState,
-  action: Actions
+  action: Actions,
 ): AssignmentsState => {
   switch (action.type) {
     // Reset state on logout to prevent stale data across accounts
@@ -26,24 +28,26 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
 
     // Location selection
     case getType(actions.selectLocationAction):
-      return { 
-        ...state, 
+      return {
+        ...state,
         selectedLocationId: action.payload,
-        selectedLocationFullAssignment: action.payload === null ? null : state.selectedLocationFullAssignment,
+        selectedLocationFullAssignment:
+          action.payload === null ? null : state.selectedLocationFullAssignment,
         staffServices: action.payload === null ? [] : state.staffServices,
       };
 
     // Fetch full location assignment
     case getType(actions.fetchLocationFullAssignmentAction.request): {
       const payload = action.payload;
-      const skipLoading = typeof payload === 'object' && payload.skipLoading === true;
+      const skipLoading =
+        typeof payload === "object" && payload.skipLoading === true;
       return { ...state, isLoading: skipLoading ? false : true };
     }
     case getType(actions.fetchLocationFullAssignmentAction.success):
-      return { 
-        ...state, 
+      return {
+        ...state,
         selectedLocationFullAssignment: action.payload,
-        isLoading: false 
+        isLoading: false,
       };
     case getType(actions.fetchLocationFullAssignmentAction.failure):
       return { ...state, isLoading: false };
@@ -55,14 +59,21 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
     case getType(actions.updateLocationServicesAction.failure):
       return { ...state, isSaving: false };
 
+    // Update location bundles
+    case getType(actions.updateLocationBundlesAction.request):
+      return { ...state, isSaving: true };
+    case getType(actions.updateLocationBundlesAction.success):
+    case getType(actions.updateLocationBundlesAction.failure):
+      return { ...state, isSaving: false };
+
     // Fetch staff services at location
     case getType(actions.fetchStaffServicesAtLocationAction.request):
       return { ...state, isStaffServicesLoading: true, staffServices: [] };
     case getType(actions.fetchStaffServicesAtLocationAction.success):
-      return { 
-        ...state, 
+      return {
+        ...state,
         staffServices: action.payload.services,
-        isStaffServicesLoading: false 
+        isStaffServicesLoading: false,
       };
     case getType(actions.fetchStaffServicesAtLocationAction.failure):
       return { ...state, isStaffServicesLoading: false };
@@ -77,21 +88,23 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
       if (!state.selectedLocationFullAssignment) {
         return { ...state, isSaving: false };
       }
-      
-      const enabledCount = payload.services.filter(s => s.canPerform).length;
+
+      const enabledCount = payload.services.filter((s) => s.canPerform).length;
       const overridesCount = payload.services.filter(
-        s => s.canPerform && (s.customPrice !== null || s.customDuration !== null)
+        (s) =>
+          s.canPerform && (s.customPrice !== null || s.customDuration !== null),
       ).length;
-      
+
       return {
         ...state,
         isSaving: false,
         selectedLocationFullAssignment: {
           ...state.selectedLocationFullAssignment,
-          teamMembers: state.selectedLocationFullAssignment.teamMembers.map(member =>
-            member.userId === payload.userId
-              ? { ...member, servicesEnabled: enabledCount, overridesCount }
-              : member
+          teamMembers: state.selectedLocationFullAssignment.teamMembers.map(
+            (member) =>
+              member.userId === payload.userId
+                ? { ...member, servicesEnabled: enabledCount, overridesCount }
+                : member,
           ),
         },
       };
@@ -119,24 +132,31 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
         return state;
       }
       const { userId, servicesEnabled, overridesCount } = action.payload;
-      const existingMember = state.selectedLocationFullAssignment.teamMembers.find(m => m.userId === userId);
-      
+      const existingMember =
+        state.selectedLocationFullAssignment.teamMembers.find(
+          (m) => m.userId === userId,
+        );
+
       if (existingMember) {
         // Update existing member stats
         return {
           ...state,
           selectedLocationFullAssignment: {
             ...state.selectedLocationFullAssignment,
-            teamMembers: state.selectedLocationFullAssignment.teamMembers.map(member =>
-              member.userId === userId
-                ? { ...member, servicesEnabled, overridesCount }
-                : member
+            teamMembers: state.selectedLocationFullAssignment.teamMembers.map(
+              (member) =>
+                member.userId === userId
+                  ? { ...member, servicesEnabled, overridesCount }
+                  : member,
             ),
           },
         };
       } else {
         // Member not in teamMembers array yet - find them in allTeamMembers and add with stats
-        const allMember = state.selectedLocationFullAssignment.allTeamMembers.find(m => m.userId === userId);
+        const allMember =
+          state.selectedLocationFullAssignment.allTeamMembers.find(
+            (m) => m.userId === userId,
+          );
         if (allMember) {
           return {
             ...state,
@@ -155,7 +175,7 @@ export const AssignmentsReducer: Reducer<AssignmentsState, any> = (
         }
       }
       return state;
-      
+
     default:
       return state;
   }
