@@ -6,9 +6,9 @@
     },
     "canDelete": {
       "title": "Ștergi \"{{resourceName}}\"?",
-      "description": "Aceasta va elimina permanent acest {{resourceType}} din lista ta. Nu poți anula această acțiune.",
+      "description": "Acest pachet va fi șters permanent. Nu poți anula această acțiune.",
       "cancel": "Anulează",
-      "delete": "Șterge {{resourceType}}",
+      "delete": "Șterge Pachet",
       "deleting": "Se șterge..."
     },
     "cannotDelete": {

@@ -83,6 +83,62 @@
         }
       }
     },
+    "locationBundles": {
+      "title": "Bundles offered at this location",
+      "description": {
+        "controlBundles": "Manage bundle availability at this location. Bundles cannot be customized per location."
+      },
+      "stats": {
+        "active": "Enabled"
+      },
+      "buttons": {
+        "manageBundles": "Select Bundles",
+        "createFirstBundle": "Create Your First Bundle",
+        "showMore": "Show {{count}} more",
+        "showLess": "Show less",
+        "clear": "Clear",
+        "apply": "Apply",
+        "saveChanges": "Save Changes"
+      },
+      "sheet": {
+        "title": "Select Bundles for {{locationName}}",
+        "subtitle": "Select which bundles customers can book at this location"
+      },
+      "emptyState": {
+        "title": "No bundles assigned to this location yet",
+        "description": "Select bundles to make them available at this location.",
+        "noBundlesCreated": {
+          "title": "No bundles created yet",
+          "description": "Create your first bundle to get started. Once created, you can assign it to this location."
+        },
+        "noResults": "No bundles found",
+        "noResultsDescription": "Try adjusting your search to find what you're looking for."
+      },
+      "searchPlaceholder": "Search bundles...",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "sort": {
+        "trigger": "Sort",
+        "nameAsc": "Name: A → Z",
+        "nameDesc": "Name: Z → A",
+        "priceAsc": "Price: low → high",
+        "priceDesc": "Price: high → low",
+        "serviceCountAsc": "Services: few → many",
+        "serviceCountDesc": "Services: many → few",
+        "groupName": "Name",
+        "groupPrice": "Price",
+        "groupServiceCount": "Service count"
+      },
+      "priceType": {
+        "sum": "Sum",
+        "fixed": "Fixed",
+        "discount": "discount"
+      },
+      "serviceCount": {
+        "one": "service",
+        "other": "services"
+      }
+    },
     "locationTeamMembers": {
       "title": "Team members at this location",
       "description": {
@@ -196,10 +252,12 @@
       "teamMemberAssignFailed": "Failed to assign {{memberName}} to this location",
       "teamMemberRemoveFailed": "Failed to remove {{memberName}} from this location",
       "locationServicesUpdated": "Location services updated successfully",
+      "locationBundlesUpdated": "Location bundles updated successfully",
       "locationAssignmentsUpdated": "Location assignments updated successfully",
       "teamMembersUpdated": "Team members updated successfully",
       "staffServicesUpdated": "Staff services updated successfully",
       "failedToUpdateLocationServices": "Failed to update location services",
+      "failedToUpdateLocationBundles": "Failed to update location bundles",
       "failedToUpdateLocationAssignments": "Failed to update location assignments",
       "failedToUpdateTeamMembers": "Failed to update team members",
       "failedToUpdateStaffServices": "Failed to update staff services",

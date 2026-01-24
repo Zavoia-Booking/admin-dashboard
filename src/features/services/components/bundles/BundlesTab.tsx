@@ -2,7 +2,16 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Package, Plus, Edit, Layers2, Calculator, Percent, DollarSign, Clock } from "lucide-react";
+import {
+  Package,
+  Plus,
+  PlusCircle,
+  Edit,
+  Layers2,
+  Percent,
+  Tag,
+  Clock,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { BundleFilters } from "./BundleFilters";
 import { EmptyState } from "../../../../shared/components/common/EmptyState";
@@ -16,10 +25,15 @@ import {
 import { ItemCard } from "../../../../shared/components/common/ItemCard";
 import type { ItemCardBadge } from "../../../../shared/components/common/ItemCard";
 import { highlightMatches as highlight } from "../../../../shared/utils/highlight";
-import { priceFromStorage } from "../../../../shared/utils/currency";
+import {
+  priceFromStorage,
+} from "../../../../shared/utils/currency";
 import { selectCurrentUser } from "../../../auth/selectors";
 import type { Bundle } from "../../../bundles/types";
-import { type BundleFilterState, getDefaultBundleFilters } from "../../../bundles/types";
+import {
+  type BundleFilterState,
+  getDefaultBundleFilters,
+} from "../../../bundles/types";
 
 interface BundlesTabProps {
   isActive?: boolean;
@@ -32,8 +46,10 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
   const isLoading = useSelector(getBundlesLoadingSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-  
-  const [filters, setFilters] = useState<BundleFilterState>(getDefaultBundleFilters());
+
+  const [filters, setFilters] = useState<BundleFilterState>(
+    getDefaultBundleFilters(),
+  );
   const [isAddBundleSliderOpen, setIsAddBundleSliderOpen] = useState(false);
   const [isEditBundleSliderOpen, setIsEditBundleSliderOpen] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
@@ -54,7 +70,9 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
       const searchLower = filters.searchTerm.toLowerCase();
       result = result.filter((bundle) => {
         const nameMatch = bundle.name?.toLowerCase().includes(searchLower);
-        const descriptionMatch = bundle.description?.toLowerCase().includes(searchLower);
+        const descriptionMatch = bundle.description
+          ?.toLowerCase()
+          .includes(searchLower);
         return nameMatch || descriptionMatch;
       });
     }
@@ -64,13 +82,19 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
     const priceMax = parseFloat(filters.priceMax);
     if (!isNaN(priceMin) && priceMin > 0) {
       result = result.filter((bundle) => {
-        const priceInCurrency = priceFromStorage(bundle.calculatedPriceAmountMinor, businessCurrency);
+        const priceInCurrency = priceFromStorage(
+          bundle.calculatedPriceAmountMinor,
+          businessCurrency,
+        );
         return priceInCurrency >= priceMin;
       });
     }
     if (!isNaN(priceMax) && priceMax > 0) {
       result = result.filter((bundle) => {
-        const priceInCurrency = priceFromStorage(bundle.calculatedPriceAmountMinor, businessCurrency);
+        const priceInCurrency = priceFromStorage(
+          bundle.calculatedPriceAmountMinor,
+          businessCurrency,
+        );
         return priceInCurrency <= priceMax;
       });
     }
@@ -79,15 +103,21 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
     const serviceCountMin = parseInt(filters.serviceCountMin);
     const serviceCountMax = parseInt(filters.serviceCountMax);
     if (!isNaN(serviceCountMin) && serviceCountMin > 0) {
-      result = result.filter((bundle) => bundle.services.length >= serviceCountMin);
+      result = result.filter(
+        (bundle) => bundle.services.length >= serviceCountMin,
+      );
     }
     if (!isNaN(serviceCountMax) && serviceCountMax > 0) {
-      result = result.filter((bundle) => bundle.services.length <= serviceCountMax);
+      result = result.filter(
+        (bundle) => bundle.services.length <= serviceCountMax,
+      );
     }
 
     // Price type filter
     if (filters.priceTypes.length > 0) {
-      result = result.filter((bundle) => filters.priceTypes.includes(bundle.priceType));
+      result = result.filter((bundle) =>
+        filters.priceTypes.includes(bundle.priceType),
+      );
     }
 
     // Sorting
@@ -97,13 +127,24 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
 
       switch (sortField) {
         case "price":
-          return (a.calculatedPriceAmountMinor - b.calculatedPriceAmountMinor) * multiplier;
+          return (
+            (a.calculatedPriceAmountMinor - b.calculatedPriceAmountMinor) *
+            multiplier
+          );
         case "serviceCount":
           return (a.services.length - b.services.length) * multiplier;
         case "createdAt":
-          return (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) * multiplier;
+          return (
+            (new Date(a.createdAt).getTime() -
+              new Date(b.createdAt).getTime()) *
+            multiplier
+          );
         case "updatedAt":
-          return (new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime()) * multiplier;
+          return (
+            (new Date(a.updatedAt).getTime() -
+              new Date(b.updatedAt).getTime()) *
+            multiplier
+          );
         default:
           return 0;
       }
@@ -146,7 +187,10 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
 
   // Calculate total duration from all services in bundle
   const getTotalDuration = (bundle: Bundle): number => {
-    return bundle.services.reduce((total, service) => total + (service.duration || 0), 0);
+    return bundle.services.reduce(
+      (total, service) => total + (service.duration || 0),
+      0,
+    );
   };
 
   // Format price based on price type
@@ -163,13 +207,13 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
         return {
           name: t("bundles.priceTypeCategory.sum"),
           color: "#dbeafe", // Light blue (blue-100) - works with black text
-          icon: Calculator,
+          icon: PlusCircle,
         };
       case "fixed":
         return {
           name: t("bundles.priceTypeCategory.fixed"),
           color: "#d1fae5", // Light green (green-100) - works with black text
-          icon: DollarSign,
+          icon: Tag,
         };
       case "discount":
         return {
@@ -177,7 +221,9 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
             <span className="flex items-center gap-0.5">
               <Percent className="h-3 w-3" />
               <span>{bundle.discountPercentage}</span>
-              <span className="ml-1">{t("bundles.priceTypeCategory.discount")}</span>
+              <span className="ml-1">
+                {t("bundles.priceTypeCategory.discount")}
+              </span>
             </span>
           ),
           color: "#fed7aa", // Light amber/orange (orange-200) - works with black text
@@ -190,19 +236,22 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
   // Check if filters are active
   const hasActiveFilters = useMemo(() => {
     const hasSearch = filters.searchTerm.trim().length > 0;
-    const hasPriceFilter = 
+    const hasPriceFilter =
       (filters.priceMin !== "" && filters.priceMin !== "0") ||
       (filters.priceMax !== "" && filters.priceMax !== "0");
-    const hasServiceCountFilter = 
+    const hasServiceCountFilter =
       filters.serviceCountMin !== "" || filters.serviceCountMax !== "";
     const hasPriceTypeFilter = filters.priceTypes.length > 0;
-    
-    return hasSearch || hasPriceFilter || hasServiceCountFilter || hasPriceTypeFilter;
+
+    return (
+      hasSearch || hasPriceFilter || hasServiceCountFilter || hasPriceTypeFilter
+    );
   }, [filters]);
 
   const isEmptyState = filteredBundles.length === 0;
   const hasNoBundlesAtAll = bundles.length === 0;
-  const isFilteredEmpty = isEmptyState && !hasNoBundlesAtAll && hasActiveFilters;
+  const isFilteredEmpty =
+    isEmptyState && !hasNoBundlesAtAll && hasActiveFilters;
 
   return (
     <div className="space-y-6">
@@ -232,7 +281,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                   {t(
                     filteredBundles.length === 1
                       ? "bundles.stats.helperTotalBundleOne"
-                      : "bundles.stats.helperTotalBundleOther"
+                      : "bundles.stats.helperTotalBundleOther",
                   )}
                 </span>{" "}
                 {t("bundles.stats.helperTotalSuffix")}
@@ -244,18 +293,26 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
           {/* Main Content */}
           {filteredBundles.length === 0 ? (
             <EmptyState
-              title={isFilteredEmpty
-                ? t("bundles.emptyState.noResults")
-                : t("bundles.emptyState.noBundles")}
-              description={isFilteredEmpty
-                ? t("bundles.emptyState.noResultsDescription")
-                : t("bundles.emptyState.noBundlesDescription")}
+              title={
+                isFilteredEmpty
+                  ? t("bundles.emptyState.noResults")
+                  : t("bundles.emptyState.noBundles")
+              }
+              description={
+                isFilteredEmpty
+                  ? t("bundles.emptyState.noResultsDescription")
+                  : t("bundles.emptyState.noBundlesDescription")
+              }
               icon={Package}
-              actionButton={!hasActiveFilters ? {
-                label: t("bundles.filters.addBundle"),
-                onClick: handleAddBundle,
-                icon: Plus,
-              } : undefined}
+              actionButton={
+                !hasActiveFilters
+                  ? {
+                      label: t("bundles.filters.addBundle"),
+                      onClick: handleAddBundle,
+                      icon: Plus,
+                    }
+                  : undefined
+              }
             />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -265,7 +322,10 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                 // Build badges for service count
                 const badges: ItemCardBadge[] = [
                   {
-                    label: serviceCount === 1 ? t("bundles.service") : t("bundles.services"),
+                    label:
+                      serviceCount === 1
+                        ? t("bundles.service")
+                        : t("bundles.services"),
                     count: serviceCount,
                     icon: Layers2,
                   },
@@ -287,6 +347,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                       },
                     ]}
                     price={formatBundlePrice(bundle)}
+                    currency={businessCurrency}
                     actions={[
                       {
                         icon: Edit,

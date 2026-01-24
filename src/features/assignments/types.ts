@@ -3,19 +3,32 @@ export type LocationService = {
   serviceId: number;
   serviceName: string;
   category?: { id: number; name: string; color?: string } | null;
-  
+
   // Default from service (global)
   defaultPrice: number; // cents
   defaultDisplayPrice: number; // decimal
   defaultDuration: number; // minutes
-  
+
   // Location overrides (null = inherited from service default)
   customPrice: number | null; // cents
   customDuration: number | null; // minutes
-  
+
   // Staff info
   staffCount: number; // how many team members can perform
   staffWithOverrides: number; // how many have custom pricing
+};
+
+// Bundle assigned to a location
+export type LocationBundle = {
+  bundleId: number;
+  bundleName: string;
+  priceType: "sum" | "fixed" | "discount";
+  fixedPriceAmountMinor: number | null;
+  discountPercentage: number | null;
+  calculatedPriceAmountMinor: number; // cents
+  calculatedDisplayPrice: number; // decimal
+  serviceCount: number; // how many services in the bundle
+  serviceIds: number[]; // IDs of services in the bundle
 };
 
 // Staff service assignment at location level
@@ -24,16 +37,16 @@ export type StaffService = {
   serviceName: string;
   canPerform: boolean;
   category?: { id: number; name: string; color?: string } | null;
-  
+
   // Inherited from location (what the staff inherits)
   inheritedPrice: number; // cents
   inheritedDisplayPrice: number; // decimal
   inheritedDuration: number; // minutes
-  
+
   // Staff overrides (null = inherited from location)
   customPrice: number | null; // cents
   customDuration: number | null; // minutes
-  
+
   isCustom: boolean; // true if has any override
 };
 
@@ -54,7 +67,7 @@ export type LocationFullAssignment = {
   id: number;
   name: string;
   address: string;
-  
+
   // All available services (from business) - for "Manage Services" drawer
   allServices: Array<{
     serviceId: number;
@@ -62,15 +75,32 @@ export type LocationFullAssignment = {
     price_amount_minor: number;
     displayPrice: number;
     duration: number;
+    createdAt?: string;
+    updatedAt?: string;
     category?: { id: number; name: string; color?: string } | null;
   }>;
-  
+
   // Services assigned to this location (only assigned ones)
   services: LocationService[];
-  
+
+  // All available bundles (from business) - for "Manage Bundles" drawer
+  allBundles: Array<{
+    bundleId: number;
+    bundleName: string;
+    priceType: "sum" | "fixed" | "discount";
+    fixedPriceAmountMinor: number | null;
+    discountPercentage: number | null;
+    calculatedPriceAmountMinor: number;
+    displayPrice: number;
+    serviceCount: number;
+  }>;
+
+  // Bundles assigned to this location (only assigned ones)
+  bundles: LocationBundle[];
+
   // Team members at this location with summary info
   teamMembers: LocationTeamMember[];
-  
+
   // All available team members (from business)
   allTeamMembers: Array<{
     userId: number;
@@ -126,6 +156,15 @@ export type UpdateLocationServicesPayload = {
   }>;
 };
 
+// Payload for updating location bundles
+export type UpdateLocationBundlesPayload = {
+  locationId: number;
+  bundles: Array<{
+    bundleId: number;
+    isEnabled: boolean;
+  }>;
+};
+
 // Payload for updating staff services at location
 export type UpdateStaffServicesPayload = {
   locationId: number;
@@ -153,7 +192,7 @@ export type UpdateLocationTeamMembersPayload = {
   userIds: number[]; // List of user IDs to assign to this location
 };
 
-// Unified payload for updating location assignments (services and team members)
+// Unified payload for updating location assignments (services, bundles, and team members)
 export type UpdateLocationAssignmentsPayload = {
   locationId: number;
   services?: Array<{
@@ -161,6 +200,10 @@ export type UpdateLocationAssignmentsPayload = {
     isEnabled: boolean;
     customPrice?: number | null;
     customDuration?: number | null;
+  }>;
+  bundles?: Array<{
+    bundleId: number;
+    isEnabled: boolean;
   }>;
   userIds?: number[];
   // Metadata for team member toggles (for better toast messages)

@@ -74,6 +74,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
       <div className="grid grid-cols-1 gap-4">
         {locations.map((location) => {
           const serviceCount = location.services?.length || 0;
+          const bundleCount = location.bundles?.length || 0;
           const teamMemberCount = location.teamMembers?.length || 0;
 
           return (
@@ -201,6 +202,35 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                     </>
                   ) : (
                     <span>{t("locationCatalog.noServices")}</span>
+                  )}
+                </Badge>
+
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
+                    bundleCount > 0
+                      ? "bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800"
+                      : "bg-muted/30 dark:bg-muted/20 border-border text-foreground-3"
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "h-2 w-2 rounded-full",
+                      bundleCount > 0 ? "bg-amber-500" : "bg-neutral-400"
+                    )}
+                  />
+                  {bundleCount > 0 ? (
+                    <>
+                      <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                        {bundleCount}
+                      </span>
+                      <span className="text-neutral-900 dark:text-foreground-1">
+                        {t("locationCatalog.bundle", { count: bundleCount })}
+                      </span>
+                    </>
+                  ) : (
+                    <span>{t("locationCatalog.noBundles")}</span>
                   )}
                 </Badge>
 

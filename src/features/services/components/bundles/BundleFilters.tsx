@@ -1,6 +1,6 @@
 import { type FC, useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Filter, Plus } from "lucide-react";
+import { Filter, Plus, PlusCircle } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button";
 import { SearchInput } from "../../../../shared/components/common/SearchInput";
 import {
@@ -8,7 +8,11 @@ import {
   type SortOption,
   type SortGroup,
 } from "../../../../shared/components/common/SortSelect";
-import { Popover, PopoverContent, PopoverTrigger } from "../../../../shared/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../../../../shared/components/ui/popover";
 import { Input } from "../../../../shared/components/ui/input";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { useSelector } from "react-redux";
@@ -20,8 +24,7 @@ import {
   CalendarClock,
   History,
   Layers2,
-  Calculator,
-  DollarSign,
+  Tag,
   Percent,
 } from "lucide-react";
 import {
@@ -55,7 +58,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
   const text = useTranslation("services").t;
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-  
+
   const [localFilters, setLocalFilters] = useState<BundleFilterState>(filters);
   const [showFilters, setShowFilters] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -86,17 +89,12 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
       setShowFilters(false);
       onFiltersChange(nextFilters);
     },
-    [onFiltersChange]
+    [onFiltersChange],
   );
 
   const getActiveFilterCount = useCallback(() => {
-    const {
-      priceMin,
-      priceMax,
-      serviceCountMin,
-      serviceCountMax,
-      priceTypes,
-    } = filters;
+    const { priceMin, priceMax, serviceCountMin, serviceCountMax, priceTypes } =
+      filters;
 
     const hasPriceMin = priceMin !== "" && priceMin !== "0";
     const hasPriceMax = priceMax !== "" && priceMax !== "0";
@@ -113,13 +111,29 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
   }, [filters]);
 
   const priceOptions: SortOption[] = [
-    { value: "price_asc", label: text("bundles.sort.priceAsc"), icon: ArrowUp01 },
-    { value: "price_desc", label: text("bundles.sort.priceDesc"), icon: ArrowDown01 },
+    {
+      value: "price_asc",
+      label: text("bundles.sort.priceAsc"),
+      icon: ArrowUp01,
+    },
+    {
+      value: "price_desc",
+      label: text("bundles.sort.priceDesc"),
+      icon: ArrowDown01,
+    },
   ];
 
   const serviceCountOptions: SortOption[] = [
-    { value: "serviceCount_asc", label: text("bundles.sort.serviceCountAsc"), icon: Layers2 },
-    { value: "serviceCount_desc", label: text("bundles.sort.serviceCountDesc"), icon: Layers2 },
+    {
+      value: "serviceCount_asc",
+      label: text("bundles.sort.serviceCountAsc"),
+      icon: Layers2,
+    },
+    {
+      value: "serviceCount_desc",
+      label: text("bundles.sort.serviceCountDesc"),
+      icon: Layers2,
+    },
   ];
 
   const createdAtOptions: SortOption[] = [
@@ -150,7 +164,10 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
 
   const sortGroups: SortGroup[] = [
     { label: text("bundles.sort.groupPrice"), options: priceOptions },
-    { label: text("bundles.sort.groupServiceCount"), options: serviceCountOptions },
+    {
+      label: text("bundles.sort.groupServiceCount"),
+      options: serviceCountOptions,
+    },
     { label: text("bundles.sort.groupCreatedAt"), options: createdAtOptions },
     { label: text("bundles.sort.groupUpdatedAt"), options: updatedAtOptions },
   ];
@@ -181,9 +198,24 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
   };
 
   const priceTypeOptions = [
-    { value: BundlePriceType.SUM, label: text("bundles.filters.priceTypes.sum"), icon: Calculator, color: "#dbeafe" }, // Light blue
-    { value: BundlePriceType.FIXED, label: text("bundles.filters.priceTypes.fixed"), icon: DollarSign, color: "#d1fae5" }, // Light green
-    { value: BundlePriceType.DISCOUNT, label: text("bundles.filters.priceTypes.discount"), icon: Percent, color: "#fed7aa" }, // Light amber/orange
+    {
+      value: BundlePriceType.SUM,
+      label: text("bundles.filters.priceTypes.sum"),
+      icon: PlusCircle,
+      color: "#dbeafe",
+    }, // Light blue
+    {
+      value: BundlePriceType.FIXED,
+      label: text("bundles.filters.priceTypes.fixed"),
+      icon: Tag,
+      color: "#d1fae5",
+    }, // Light green
+    {
+      value: BundlePriceType.DISCOUNT,
+      label: text("bundles.filters.priceTypes.discount"),
+      icon: Percent,
+      color: "#fed7aa",
+    }, // Light amber/orange
   ];
 
   const renderFiltersContent = () => (

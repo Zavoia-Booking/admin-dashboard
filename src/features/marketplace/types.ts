@@ -103,9 +103,16 @@ export interface IndustryTag {
   slug?: string;
 }
 
+// Minimal bundle shape for marketplace catalog (from assignment tables)
+export interface MarketplaceBundle {
+  id: number;
+  name: string;
+}
+
 // Location with assignments (read from actual assignment tables)
 export interface LocationWithAssignments extends Location {
   services: Service[];
+  bundles?: MarketplaceBundle[];
   teamMembers: TeamMember[];
 }
 

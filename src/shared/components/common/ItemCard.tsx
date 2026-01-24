@@ -3,6 +3,7 @@ import { Badge } from "../ui/badge";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getReadableTextColor } from "../../utils/color";
+import { getCurrencyDisplay } from "../../utils/currency";
 
 export interface ItemCardMetadata {
   icon?: LucideIcon;
@@ -36,6 +37,7 @@ export interface ItemCardProps {
   badges?: ItemCardBadge[];
   metadata?: ItemCardMetadata[];
   price?: number | string;
+  currency?: string;
   actions?: ItemCardAction[];
   onClick?: () => void;
   className?: string;
@@ -51,6 +53,7 @@ export function ItemCard({
   badges = [],
   metadata = [],
   price,
+  currency,
   actions = [],
   onClick,
   className,
@@ -64,42 +67,40 @@ export function ItemCard({
     <div
       className={cn(
         "group rounded-xl border border-border dark:border-border bg-surface dark:bg-transparent overflow-hidden shadow-sm transition-all duration-300 flex flex-col",
-        onClick && "cursor-pointer hover:border-border-strong dark:hover:border-border hover:shadow-lg hover:-translate-y-0.5",
-        className
+        onClick &&
+          "cursor-pointer hover:border-border-strong dark:hover:border-border hover:shadow-lg hover:-translate-y-0.5",
+        className,
       )}
       onClick={onClick}
     >
-      <div className={cn("flex-1 flex flex-col", variant === "default" ? "px-4 py-3" : "px-4 py-3")}>
+      <div
+        className={cn(
+          "flex-1 flex flex-col",
+          variant === "default" ? "px-4 py-3" : "px-4 py-3",
+        )}
+      >
         {/* Header with Edit Button */}
         <div className={cn(variant === "default" ? "mb-5" : "mb-3")}>
           <div className="flex items-center justify-between gap-3">
             {/* Thumbnail/Avatar */}
-            {thumbnail && (
-              <div className="flex-shrink-0">
-                {thumbnail}
-              </div>
-            )}
+            {thumbnail && <div className="flex-shrink-0">{thumbnail}</div>}
             <div className="flex-1 min-w-0">
               <h3
                 className={cn(
                   "font-semibold text-foreground-1 line-clamp-1 truncate leading-tight",
-                  variant === "default" ? "text-lg" : "text-base"
+                  variant === "default" ? "text-lg" : "text-base",
                 )}
               >
                 {title}
               </h3>
-              {customContent && (
-                <div className="mt-1">
-                  {customContent}
-                </div>
-              )}
+              {customContent && <div className="mt-1">{customContent}</div>}
             </div>
             {/* Edit Button */}
             {actions.length > 0 && actions[0] && (
               <button
                 className={cn(
                   "flex items-center justify-center h-8 w-8 rounded-lg transition-all duration-200 flex-shrink-0 cursor-pointer",
-                  "text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 hover:bg-muted/50 dark:hover:bg-neutral-800 active:scale-95"
+                  "text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 hover:bg-muted/50 dark:hover:bg-neutral-800 active:scale-95",
                 )}
                 title={actions[0].label}
                 onClick={(e) => {
@@ -118,26 +119,40 @@ export function ItemCard({
 
         {/* Category and Badges */}
         {(category || badges.length > 0) && (
-          <div className={cn("flex flex-wrap items-center gap-2", variant === "default" ? "mb-6" : "mb-3")}>
+          <div
+            className={cn(
+              "flex flex-wrap items-center gap-2",
+              variant === "default" ? "mb-6" : "mb-3",
+            )}
+          >
             {category && (
               <Badge
                 variant="secondary"
                 className={cn(
                   "font-medium max-w-48",
                   variant === "default" ? "text-xs" : "text-[10px]",
-                  variant === "default" ? "h-8 py-2 px-3" : "h-2.5"
+                  variant === "default" ? "h-8 py-2 px-3" : "h-2.5",
                 )}
                 style={{
-                  backgroundColor: category.color ? `${category.color}` : undefined,
+                  backgroundColor: category.color
+                    ? `${category.color}`
+                    : undefined,
                   borderColor: category.color || undefined,
-                  color: category.color ? getReadableTextColor(category.color) : undefined,
+                  color: category.color
+                    ? getReadableTextColor(category.color)
+                    : undefined,
                 }}
               >
                 {category.icon && (
                   <category.icon
-                    className={cn("mr-1.5 flex-shrink-0", variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5")}
+                    className={cn(
+                      "mr-1.5 flex-shrink-0",
+                      variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5",
+                    )}
                     style={{
-                      color: category.color ? getReadableTextColor(category.color) : undefined,
+                      color: category.color
+                        ? getReadableTextColor(category.color)
+                        : undefined,
                     }}
                   />
                 )}
@@ -151,12 +166,15 @@ export function ItemCard({
                 className={cn(
                   "font-medium",
                   variant === "default" ? "text-xs" : "text-[10px]",
-                  variant === "default" ? "h-8 w-fit py-2 px-3" : "h-2.5 w-2.5"
+                  variant === "default" ? "h-8 w-fit py-2 px-3" : "h-2.5 w-2.5",
                 )}
               >
                 {badge.icon && (
                   <badge.icon
-                    className={cn("mr-1.5 flex-shrink-0", variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5")}
+                    className={cn(
+                      "mr-1.5 flex-shrink-0",
+                      variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5",
+                    )}
                   />
                 )}
                 {badge.count} {badge.label}
@@ -174,33 +192,60 @@ export function ItemCard({
                 <div
                   className={cn(
                     "flex items-center gap-2 text-foreground-2 dark:text-foreground-2",
-                    variant === "default" ? "text-sm" : "text-xs"
+                    variant === "default" ? "text-sm" : "text-xs",
                   )}
                 >
-                  {metadata[0].icon && (() => {
-                    const Icon = metadata[0].icon!;
-                    return (
-                      <Icon
-                        className={cn(
-                          "text-foreground-3 dark:text-foreground-2 flex-shrink-0",
-                          variant === "default" ? "h-4 w-4" : "h-3.5 w-3.5"
-                        )}
-                      />
-                    );
-                  })()}
+                  {metadata[0].icon &&
+                    (() => {
+                      const Icon = metadata[0].icon!;
+                      return (
+                        <Icon
+                          className={cn(
+                            "text-foreground-3 dark:text-foreground-2 flex-shrink-0",
+                            variant === "default" ? "h-4 w-4" : "h-3.5 w-3.5",
+                          )}
+                        />
+                      );
+                    })()}
                   <span className="font-medium">{metadata[0].value}</span>
                 </div>
               )}
-              {price !== undefined && (
-                <div
-                  className={cn(
-                    "font-bold text-foreground-1",
-                    variant === "default" ? "text-xl" : "text-lg"
-                  )}
-                >
-                  ${price}
-                </div>
-              )}
+              {price !== undefined &&
+                (() => {
+                  const currencyDisplay = currency
+                    ? getCurrencyDisplay(currency)
+                    : null;
+                  const CurrencyIcon = currencyDisplay?.icon;
+
+                  return (
+                    <div
+                      className={cn(
+                        "font-bold text-foreground-1 flex items-center gap-0.5",
+                        variant === "default" ? "text-xl" : "text-lg",
+                      )}
+                    >
+                      {CurrencyIcon ? (
+                        <>
+                          <CurrencyIcon
+                            className={
+                              variant === "default" ? "h-5 w-5" : "h-4 w-4"
+                            }
+                          />
+                          <span className="font-bold">{price}</span>
+                        </>
+                      ) : currencyDisplay?.symbol ? (
+                        <>
+                          <span className="font-bold">
+                            {currencyDisplay.symbol}
+                          </span>
+                          <span className="font-bold">{price}</span>
+                        </>
+                      ) : (
+                        <span className="font-bold">${price}</span>
+                      )}
+                    </div>
+                  );
+                })()}
             </div>
           )}
 
@@ -209,7 +254,7 @@ export function ItemCard({
             <div
               className={cn(
                 "flex flex-wrap items-center gap-3 text-foreground-3 dark:text-foreground-2 pt-3 border-t border-border-subtle",
-                variant === "default" ? "text-xs" : "text-[10px]"
+                variant === "default" ? "text-xs" : "text-[10px]",
               )}
             >
               {metadata.slice(1).map((item, index) => (
@@ -218,7 +263,7 @@ export function ItemCard({
                     <item.icon
                       className={cn(
                         "flex-shrink-0 text-foreground-3 dark:text-foreground-2",
-                        variant === "default" ? "h-3.5 w-3.5" : "h-3 w-3"
+                        variant === "default" ? "h-3.5 w-3.5" : "h-3 w-3",
                       )}
                     />
                   )}
@@ -229,14 +274,9 @@ export function ItemCard({
           )}
 
           {/* Bottom Actions */}
-          {bottomActions && (
-            <div className="pt-3">
-              {bottomActions}
-            </div>
-          )}
+          {bottomActions && <div className="pt-3">{bottomActions}</div>}
         </div>
       </div>
     </div>
   );
 }
-
