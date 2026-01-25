@@ -1,0 +1,63 @@
+{
+  "pageTitle": "Atribuirile mele",
+  "locationsPanel": {
+    "title": "Locații ({{count}}{{ofTotal}})",
+    "ofTotal": " din {{total}}",
+    "searchPlaceholder": "Caută locații..."
+  },
+  "services": {
+    "title": "Servicii atribuite ție",
+    "description": "Acestea sunt serviciile pe care le poți efectua la această locație cu tarifele tale actuale.",
+    "stats": {
+      "assigned": "Atribuite",
+      "customized": "Personalizate"
+    },
+    "defaultLabel": "Implicit",
+    "badge": {
+      "custom": "Tarife personalizate"
+    },
+    "buttons": {
+      "showMore": "Arată încă {{count}}",
+      "showLess": "Arată mai puțin"
+    },
+    "emptyState": {
+      "title": "Niciun serviciu atribuit",
+      "description": "Nu ai niciun serviciu atribuit la această locație încă. Contactează managerul pentru a primi servicii atribuite."
+    }
+  },
+  "bundles": {
+    "title": "Pachete pe care le poți efectua",
+    "description": "Aceste pachete includ cel puțin un serviciu la care ești atribuit la această locație.",
+    "stats": {
+      "assigned": "Disponibile"
+    },
+    "priceType": {
+      "sum": "Sumă",
+      "fixed": "Fix",
+      "discount": "Reducere"
+    },
+    "serviceCount": {
+      "one": "serviciu",
+      "other": "servicii"
+    },
+    "buttons": {
+      "showMore": "Arată încă {{count}}",
+      "showLess": "Arată mai puțin"
+    },
+    "emptyState": {
+      "title": "Niciun pachet nu include serviciile tale",
+      "description": "Vei vedea pachete aici când acestea includ cel puțin un serviciu pe care îl poți efectua la această locație."
+    }
+  },
+  "emptyState": {
+    "noLocations": {
+      "title": "Nicio locație atribuită",
+      "description": "Nu ești atribuit la nicio locație încă. Contactează managerul pentru a fi atribuit la locații."
+    },
+    "noLocationsMatchSearch": "Nicio locație nu corespunde căutării",
+    "selectLocation": {
+      "title": "Selectează o locație",
+      "description": "Alege o locație din listă pentru a vedea serviciile și pachetele tale atribuite."
+    }
+  }
+}
