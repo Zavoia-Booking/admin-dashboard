@@ -45,7 +45,7 @@ export function MyAssignmentServiceRow({
       {/* Zone 1: Identity & Context (Left Side) */}
       <div className="flex-1 min-w-0 space-y-1.5">
         {/* Row 1: Service Name */}
-        <div className="flex items-center justify-between mb-0 gap-2 md:gap-48 min-w-0 pt-4 md:pt-3">
+        <div className="flex items-center justify-between mb-0 gap-2 md:gap-48 min-w-0 pb-3 md:pb-3">
           <span className="font-medium text-sm text-foreground-1 truncate">
             {service.name}
           </span>
