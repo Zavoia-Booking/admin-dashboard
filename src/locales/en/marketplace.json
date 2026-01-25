@@ -153,6 +153,7 @@
     "visualIdentity": {
       "title": "Visual Identity",
       "description": "Showcase your business with high-quality images. Choose a featured photo to highlight your listing and attract more customers.",
+      "teamMemberDescription": "Showcase your best work and let your skills shine. Upload photos of your projects, techniques, and creative results to attract clients.",
       "addAtLeastOne": "Add at least 1 image to go live."
     },
     "altText": {

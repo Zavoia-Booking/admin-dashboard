@@ -1,4 +1,5 @@
 import type { AuthState } from "./types";
+import { UserRole } from "../../shared/types/auth";
 
 export const selectAuth = (s: { auth: AuthState }) => s.auth;
 export const selectAccessToken = (s: { auth: AuthState }) => s.auth.accessToken;
@@ -16,3 +17,8 @@ export const selectTeamInvitationData = (s: { auth: AuthState }) => s.auth.teamI
 export const selectTeamInvitationError = (s: { auth: AuthState }) => s.auth.teamInvitationError;
 export const selectMemberRegistrationError = (s: { auth: AuthState }) => s.auth.memberRegistrationError;
 export const selectIsMemberRegistrationLoading = (s: { auth: AuthState }) => s.auth.isMemberRegistrationLoading;
+
+// Role selectors
+export const selectUserRole = (s: { auth: AuthState }) => s.auth.user?.role as UserRole | undefined;
+export const selectIsOwner = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.OWNER;
+export const selectIsTeamMember = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.TEAM_MEMBER;

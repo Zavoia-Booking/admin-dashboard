@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { SearchInput } from "../../../shared/components/common/SearchInput";
+import { usePermissions } from "../../../shared/hooks/usePermissions";
 
 interface TeamMemberFiltersProps {
   searchTerm: string;
@@ -17,6 +18,7 @@ export const TeamMemberFilters: FC<TeamMemberFiltersProps> = ({
 }) => {
   const text = useTranslation("teamMembers").t;
   const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm);
+  const { canManage } = usePermissions();
 
   // Keep local search in sync with parent
   useEffect(() => {
@@ -37,16 +39,18 @@ export const TeamMemberFilters: FC<TeamMemberFiltersProps> = ({
             onSearchChange(value);
           }}
         />
-        <Button
-          type="button"
-          size="sm"
-          rounded="full"
-          className="h-9 !px-4 md:h-11 md:px-5 md:!min-w-52 md:px-6 font-semibold group active:scale-95 transition-transform shrink-0"
-          onClick={onAddClick}
-        >
-          <Plus className="h-4 w-4 md:h-5 md:w-5" />
-          <span className="">{text("page.actions.inviteMember")}</span>
-        </Button>
+        {canManage('team_members') && (
+          <Button
+            type="button"
+            size="sm"
+            rounded="full"
+            className="h-9 !px-4 md:h-11 md:px-5 md:!min-w-52 md:px-6 font-semibold group active:scale-95 transition-transform shrink-0"
+            onClick={onAddClick}
+          >
+            <Plus className="h-4 w-4 md:h-5 md:w-5" />
+            <span className="">{text("page.actions.inviteMember")}</span>
+          </Button>
+        )}
       </div>
     </div>
   );

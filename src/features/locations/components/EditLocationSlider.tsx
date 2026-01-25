@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Loader2, AlertCircle } from 'lucide-react';
+import { MapPin, Loader2 } from 'lucide-react';
 import { PinVerificationIndicator } from '../../../shared/components/common/PinVerificationIndicator';
 import { Label } from '../../../shared/components/ui/label';
 import { Button } from '../../../shared/components/ui/button';
@@ -18,14 +18,6 @@ import Open247Toggle from '../../../shared/components/common/Open247Toggle';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
 import { MapDialog } from '../../../shared/components/map';
 import { maptilerGeocode } from '../../../shared/lib/maptiler';
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '../../../shared/components/ui/alert-dialog';
 import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
 import { updateLocationAction, deleteLocationAction } from '../actions';

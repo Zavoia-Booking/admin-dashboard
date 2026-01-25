@@ -25,6 +25,12 @@ import SupportPage from './features/support/pages/support'
 import CustomersPage from './features/customers/pages/customers'
 import MarketplacePage from './features/marketplace/pages/marketplace'
 
+// Team Member Only Pages
+import MyAssignmentsPage from './features/team-member-pages/myAssignments/pages/my-assignments'
+import MyCustomersPage from './features/team-member-pages/myCustomers/pages/my-customers'
+import MyProfilePage from './features/team-member-pages/myProfile/pages/my-profile'
+import MySettingsPage from './features/team-member-pages/mySettings/pages/my-settings'
+
 function App() {
   return (
     <BrowserRouter>
@@ -52,6 +58,12 @@ function App() {
         <Route path="/marketplace" element={<ProtectedRoute element={<MarketplacePage />} />} />
         <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
         <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
+
+        {/* Team Member Only */}
+        <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
+        <Route path="/my-customers" element={<ProtectedRoute element={<MyCustomersPage />} />} />
+        <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
+        <Route path="/my-settings" element={<ProtectedRoute element={<MySettingsPage />} />} />
 
         {/* Info Pages */}
         <Route path="/info" element={<InfoPageComponent />} />

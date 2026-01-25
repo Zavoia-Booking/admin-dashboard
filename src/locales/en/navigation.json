@@ -11,6 +11,12 @@
     "support": "Support",
     "settings": "Settings",
     "logOut": "Log Out",
+    "teamMember": {
+      "assignments": "Assignments",
+      "customers": "Customers",
+      "profile": "Marketplace",
+      "settings": "Settings"
+    },
     "subItems": {
       "assignments": {
         "teamMembers": "Team Members",
@@ -32,6 +38,11 @@
         "portfolio": "Portfolio",
         "promotions": "Promotions",
         "bookingSettings": "Booking Settings"
+      },
+      "myProfile": {
+        "profile": "Profile",
+        "portfolio": "Portfolio",
+        "reviews": "Reviews"
       }
     }
   },
