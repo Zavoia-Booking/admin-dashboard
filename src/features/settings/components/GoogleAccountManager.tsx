@@ -13,9 +13,10 @@ import { useGoogleLogin } from '@react-oauth/google';
 interface GoogleAccountManagerProps {
   className?: string;
   onSetPasswordClick?: () => void;
+  returnUrl?: string;
 }
 
-const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, onSetPasswordClick }) => {
+const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, onSetPasswordClick, returnUrl = '/settings' }) => {
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const linkingLoading = useSelector((state: RootState) => (state as any).auth.linkingLoading) as boolean;
@@ -74,7 +75,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
   const handleLinkClick = () => {
     try {
       sessionStorage.setItem('oauthMode', 'link');
-      sessionStorage.setItem('oauthReturnTo', '/settings');
+      sessionStorage.setItem('oauthReturnTo', returnUrl);
     } catch {}
     loginWithGoogle();
   };

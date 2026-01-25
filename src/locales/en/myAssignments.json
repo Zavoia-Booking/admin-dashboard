@@ -1,0 +1,63 @@
+{
+  "pageTitle": "My Assignments",
+  "locationsPanel": {
+    "title": "Locations ({{count}}{{ofTotal}})",
+    "ofTotal": " of {{total}}",
+    "searchPlaceholder": "Search locations..."
+  },
+  "services": {
+    "title": "Services assigned to you",
+    "description": "These are the services you can perform at this location with your current rates.",
+    "stats": {
+      "assigned": "Assigned",
+      "customized": "Customized"
+    },
+    "defaultLabel": "Default",
+    "badge": {
+      "custom": "Custom rates"
+    },
+    "buttons": {
+      "showMore": "Show {{count}} more",
+      "showLess": "Show less"
+    },
+    "emptyState": {
+      "title": "No services assigned",
+      "description": "You don't have any services assigned at this location yet. Contact your manager to get services assigned."
+    }
+  },
+  "bundles": {
+    "title": "Bundles you can perform",
+    "description": "These bundles include at least one service you're assigned to at this location.",
+    "stats": {
+      "assigned": "Available"
+    },
+    "priceType": {
+      "sum": "Sum",
+      "fixed": "Fixed",
+      "discount": "Discount"
+    },
+    "serviceCount": {
+      "one": "service",
+      "other": "services"
+    },
+    "buttons": {
+      "showMore": "Show {{count}} more",
+      "showLess": "Show less"
+    },
+    "emptyState": {
+      "title": "No bundles include your services",
+      "description": "You'll see bundles here when they include at least one service you can perform at this location."
+    }
+  },
+  "emptyState": {
+    "noLocations": {
+      "title": "No locations assigned",
+      "description": "You're not assigned to any locations yet. Contact your manager to get assigned to locations."
+    },
+    "noLocationsMatchSearch": "No locations match your search",
+    "selectLocation": {
+      "title": "Select a location",
+      "description": "Choose a location from the list to view your assigned services and bundles."
+    }
+  }
+}

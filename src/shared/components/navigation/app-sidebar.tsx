@@ -12,6 +12,8 @@ import {
   MessageCircle,
   UserCircle,
   Store,
+  FolderKanban,
+  UserRoundCog,
 } from "lucide-react"
 import { useLocation } from "react-router-dom"
 import { useSelector, useDispatch } from "react-redux"
@@ -34,19 +36,23 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "../ui/sidebar"
-import { UserRole } from "../../types/auth"
+import { Permission } from "../../lib/permissions"
+import { usePermissions } from "../../hooks/usePermissions"
+
+interface NavSubItem {
+  title: string
+  url: string
+  requiredPermission?: Permission // Optional: if not set, inherits from parent
+}
 
 interface NavItem {
   title: string
   url: string
   icon?: LucideIcon
   isActive?: boolean
-  roles: UserRole[]
+  requiredPermission: Permission
   showSeparatorBefore?: boolean
-  items?: {
-    title: string
-    url: string
-  }[]
+  items?: NavSubItem[]
 }
 
 // Navigation items structure - titles will be translated in the component
@@ -55,31 +61,49 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     title: t("sidebar.dashboard"),
     url: "/dashboard",
     icon: LayoutDashboard,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_DASHBOARD,
   },
   {
     title: t("sidebar.calendar"),
     url: "/calendar",
     icon: Calendar,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_CALENDAR,
   },
+  // =========================================
+  // Team Member Only Routes
+  // =========================================
+  {
+    title: t("sidebar.teamMember.assignments"),
+    url: "/my-assignments",
+    icon: FolderKanban,
+    requiredPermission: Permission.ACCESS_MY_ASSIGNMENTS,
+  },
+  {
+    title: t("sidebar.teamMember.customers"),
+    url: "/my-customers",
+    icon: UserCircle,
+    requiredPermission: Permission.ACCESS_MY_CUSTOMERS,
+  },
+  // =========================================
+  // Owner Only Routes
+  // =========================================
   {
     title: t("sidebar.assignments"),
     url: "/assignments",
     icon: ClipboardList,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_ASSIGNMENTS,
   },
   {
     title: t("sidebar.teamMembers"),
     url: "/team-members",
     icon: Users,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_TEAM_MEMBERS,
   },
   {
     title: t("sidebar.services"),
     url: "/services",
     icon: Briefcase,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_SERVICES,
     items: [
       {
         title: t("sidebar.subItems.services.allServices"),
@@ -95,31 +119,59 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     title: t("sidebar.locations"),
     url: "/locations",
     icon: MapPin,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_LOCATIONS,
   },
   {
     title: t("sidebar.customers"),
     url: "/customers",
     icon: UserCircle,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_CUSTOMERS,
   },
   {
     title: t("sidebar.marketplace"),
     url: "/marketplace",
     icon: Store,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_MARKETPLACE,
     items: [
       {
         title: t("sidebar.subItems.marketplace.profile"),
         url: "/marketplace?tab=profile",
+        requiredPermission: Permission.ACCESS_MARKETPLACE_PROFILE,
       },
       {
         title: t("sidebar.subItems.marketplace.portfolio"),
         url: "/marketplace?tab=portfolio",
+        requiredPermission: Permission.ACCESS_MARKETPLACE_PORTFOLIO,
       },
       {
         title: t("sidebar.subItems.marketplace.promotions"),
         url: "/marketplace?tab=promotions",
+        requiredPermission: Permission.ACCESS_MARKETPLACE_PROMOTIONS,
+      },
+    ],
+  },
+  // Team Member Marketplace Profile (before Support)
+  {
+    title: t("sidebar.teamMember.profile"),
+    url: "/my-profile",
+    icon: UserRoundCog,
+    requiredPermission: Permission.ACCESS_MY_PROFILE,
+    showSeparatorBefore: true,
+    items: [
+      {
+        title: t("sidebar.subItems.myProfile.profile"),
+        url: "/my-profile?tab=profile",
+        requiredPermission: Permission.ACCESS_MY_PROFILE_INFO,
+      },
+      {
+        title: t("sidebar.subItems.myProfile.portfolio"),
+        url: "/my-profile?tab=portfolio",
+        requiredPermission: Permission.ACCESS_MY_PROFILE_PORTFOLIO,
+      },
+      {
+        title: t("sidebar.subItems.myProfile.reviews"),
+        url: "/my-profile?tab=reviews",
+        requiredPermission: Permission.ACCESS_MY_PROFILE_REVIEWS,
       },
     ],
   },
@@ -127,26 +179,36 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     title: t("sidebar.support"),
     url: "/support",
     icon: MessageCircle,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
-    showSeparatorBefore: true,
+    requiredPermission: Permission.ACCESS_SUPPORT,
   },
+  // Team Member Settings (after Support)
+  {
+    title: t("sidebar.teamMember.settings"),
+    url: "/my-settings",
+    icon: Settings2,
+    requiredPermission: Permission.ACCESS_MY_SETTINGS,
+  },
+  // Owner Settings
   {
     title: t("sidebar.settings"),
     url: "/settings",
     icon: Settings2,
-    roles: [UserRole.OWNER, UserRole.TEAM_MEMBER],
+    requiredPermission: Permission.ACCESS_SETTINGS,
     items: [
       {
         title: t("sidebar.subItems.settings.profile"),
         url: "/settings?tab=profile",
+        requiredPermission: Permission.ACCESS_SETTINGS_PROFILE,
       },
       {
         title: t("sidebar.subItems.settings.billing"),
         url: "/settings?tab=billing",
+        requiredPermission: Permission.ACCESS_SETTINGS_BILLING,
       },
       {
         title: t("sidebar.subItems.settings.advanced"),
         url: "/settings?tab=advanced",
+        requiredPermission: Permission.ACCESS_SETTINGS_ADVANCED,
       },
     ],
   },
@@ -159,9 +221,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useTranslation('navigation')
   const { state } = useSidebar()
   const dispatch = useDispatch()
+  const { hasPermission, user } = usePermissions()
   
   // Get user data from Redux store
-  const user = useSelector((state: RootState) => state.auth.user)
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading)
   
   // Get translated navigation items
@@ -193,25 +255,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     return true
   }
   
-  // Filter navigation items based on user's role
+  // Filter navigation items based on user's permissions
   const filteredNavItems = navItems
-    .filter(() => {
-      // Commented out for development - show all items without authentication
-      return true;
-      
-      // Always show dashboard as fallback
-      // if (item.url === "/dashboard") return true;
-      
-      // Show all items for admin role
-      // if (authStore.user?.role === UserRole.ADMIN) return true;
-      
-      // Otherwise, check if user has the required role
-      // return item.roles.includes(authStore.user?.role as UserRole)
+    .filter(item => {
+      // Check if user has the required permission for this nav item
+      return hasPermission(item.requiredPermission)
     })
-    .map(item => ({
-      ...item,
-      isActive: pathname === item.url || item.items?.some(subItem => isUrlActive(subItem.url)),
-    }))
+    .map(item => {
+      // Filter sub-items based on permissions
+      const filteredSubItems = item.items?.filter(subItem => {
+        // If sub-item has a specific permission, check it
+        // Otherwise, it inherits access from the parent item
+        if (subItem.requiredPermission) {
+          return hasPermission(subItem.requiredPermission)
+        }
+        return true
+      })
+
+      return {
+        ...item,
+        items: filteredSubItems,
+        isActive: pathname === item.url || filteredSubItems?.some(subItem => isUrlActive(subItem.url)),
+      }
+    })
 
   const handleLogout = () => {
     dispatch(logoutRequestAction.request())

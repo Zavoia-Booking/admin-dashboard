@@ -21,6 +21,8 @@ import enMarketplace from '../../locales/en/marketplace.json';
 import roMarketplace from '../../locales/ro/marketplace.json';
 import enMessages from '../../locales/en/messages.json';
 import roMessages from '../../locales/ro/messages.json';
+import enMyAssignments from '../../locales/en/myAssignments.json';
+import roMyAssignments from '../../locales/ro/myAssignments.json';
 
 const resources = {
   en: {
@@ -33,6 +35,7 @@ const resources = {
     common: enCommon,
     marketplace: enMarketplace,
     messages: enMessages,
+    myAssignments: enMyAssignments,
   },
   ro: {
     services: roServices,
@@ -44,6 +47,7 @@ const resources = {
     common: roCommon,
     marketplace: roMarketplace,
     messages: roMessages,
+    myAssignments: roMyAssignments,
   },
 };
 

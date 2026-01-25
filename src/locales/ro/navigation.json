@@ -11,6 +11,12 @@
     "support": "Suport",
     "settings": "Setări",
     "logOut": "Deconectare",
+    "teamMember": {
+      "assignments": "Atribuiri",
+      "customers": "Clienți",
+      "profile": "Marketplace",
+      "settings": "Setări"
+    },
     "subItems": {
       "assignments": {
         "teamMembers": "Membri echipă",
@@ -32,6 +38,11 @@
         "portfolio": "Portofoliu",
         "promotions": "Promoții",
         "bookingSettings": "Setări Rezervări"
+      },
+      "myProfile": {
+        "profile": "Profil",
+        "portfolio": "Portofoliu",
+        "reviews": "Recenzii"
       }
     }
   },
