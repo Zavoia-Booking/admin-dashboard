@@ -3,14 +3,12 @@ import {
   fetchMarketplaceListingAction, 
   publishMarketplaceListingAction, 
   updateMarketplaceVisibilityAction,
-  fetchBookingSettingsAction,
   updateBookingSettingsAction,
 } from "./actions";
 import { 
   getMarketplaceListingApi, 
   publishMarketplaceListingApi, 
   updateMarketplaceVisibilityApi,
-  getBookingSettingsApi,
   updateBookingSettingsApi,
 } from "./api";
 import type { MarketplaceListingResponse, BookingSettings } from "./types";
@@ -53,16 +51,6 @@ function* handleUpdateMarketplaceVisibility(action: ActionType<typeof updateMark
   }
 }
 
-function* handleFetchBookingSettings() {
-  try {
-    const response: BookingSettings = yield call(getBookingSettingsApi);
-    yield put(fetchBookingSettingsAction.success(response));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to fetch booking settings";
-    yield put(fetchBookingSettingsAction.failure({ message }));
-  }
-}
-
 function* handleUpdateBookingSettings(action: ActionType<typeof updateBookingSettingsAction.request>) {
   try {
     const response: BookingSettings = yield call(updateBookingSettingsApi, action.payload);
@@ -80,7 +68,6 @@ export function* marketplaceSaga(): Generator<any, void, any> {
     takeLatest(fetchMarketplaceListingAction.request, handleFetchMarketplaceListing),
     takeLatest(publishMarketplaceListingAction.request, handlePublishMarketplaceListing),
     takeLatest(updateMarketplaceVisibilityAction.request, handleUpdateMarketplaceVisibility),
-    takeLatest(fetchBookingSettingsAction.request, handleFetchBookingSettings),
     takeLatest(updateBookingSettingsAction.request, handleUpdateBookingSettings),
   ]);
 }

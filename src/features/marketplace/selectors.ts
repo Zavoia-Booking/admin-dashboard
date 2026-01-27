@@ -14,5 +14,4 @@ export const selectMarketplaceUpdatingVisibility = (state: RootState) => state.m
 
 // Booking Settings selectors
 export const selectBookingSettings = (state: RootState) => state.marketplace.bookingSettings;
-export const selectBookingSettingsLoading = (state: RootState) => state.marketplace.isLoadingBookingSettings;
 export const selectBookingSettingsSaving = (state: RootState) => state.marketplace.isSavingBookingSettings;
