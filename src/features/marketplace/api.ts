@@ -36,11 +36,6 @@ export const updateMarketplaceVisibilityApi = async (isVisible: boolean): Promis
 }
 
 // Booking Settings API
-export const getBookingSettingsApi = async (): Promise<BookingSettings> => {
-  const { data } = await apiClient().get<BookingSettings>('/marketplace-listing/booking-settings');
-  return data;
-}
-
 export const updateBookingSettingsApi = async (payload: UpdateBookingSettingsPayload): Promise<BookingSettings> => {
   const { data } = await apiClient().put<BookingSettings>('/marketplace-listing/booking-settings', payload);
   return data;

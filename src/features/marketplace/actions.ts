@@ -20,12 +20,6 @@ export const updateMarketplaceVisibilityAction = createAsyncAction(
 )<{ isVisible: boolean }, { isVisible: boolean }, { message: string }>();
 
 // Booking Settings Actions
-export const fetchBookingSettingsAction = createAsyncAction(
-  'marketplace/FETCH_BOOKING_SETTINGS_REQUEST',
-  'marketplace/FETCH_BOOKING_SETTINGS_SUCCESS',
-  'marketplace/FETCH_BOOKING_SETTINGS_FAILURE',
-)<void, BookingSettings, { message: string }>();
-
 export const updateBookingSettingsAction = createAsyncAction(
   'marketplace/UPDATE_BOOKING_SETTINGS_REQUEST',
   'marketplace/UPDATE_BOOKING_SETTINGS_SUCCESS',

@@ -18,7 +18,6 @@ const initialState: MarketplaceState = {
   isUpdatingVisibility: false,
   // Booking settings
   bookingSettings: null,
-  isLoadingBookingSettings: false,
   isSavingBookingSettings: false,
 };
 
@@ -37,6 +36,7 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         industries: action.payload.industries || [],
         industryTags: action.payload.industryTags || [],
         selectedIndustryTags: action.payload.selectedIndustryTags || [],
+        bookingSettings: action.payload.bookingSettings,
         error: null,
       };
 
@@ -67,15 +67,6 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       return { ...state, isUpdatingVisibility: false, error: action.payload.message };
 
     // Booking Settings
-    case getType(actions.fetchBookingSettingsAction.request):
-      return { ...state, isLoadingBookingSettings: true, error: null };
-
-    case getType(actions.fetchBookingSettingsAction.success):
-      return { ...state, isLoadingBookingSettings: false, bookingSettings: action.payload, error: null };
-
-    case getType(actions.fetchBookingSettingsAction.failure):
-      return { ...state, isLoadingBookingSettings: false, error: action.payload.message };
-
     case getType(actions.updateBookingSettingsAction.request):
       return { ...state, isSavingBookingSettings: true, error: null };
 
