@@ -1,151 +1,188 @@
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/components/ui/card"
-import { Button } from "../../../shared/components/ui/button"
-import { 
-  Users, 
-  Calendar, 
-  MapPin, 
-  TrendingUp, 
-  CheckCircle,
-  Plus,
-  ArrowRight
-} from "lucide-react"
+import { Card, CardContent } from "../../../shared/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../../shared/components/ui/select"
+import { MapPin, Loader2 } from "lucide-react"
+import {
+  TodayOverview,
+  AppointmentMetrics,
+  RevenueAnalytics,
+  ReviewsRatings
+} from "../components"
+import { fetchDashboardDataAction } from "../actions"
+import { listLocationsAction } from "../../locations/actions"
+import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors"
+import type { RootState } from "../../../app/providers/store"
 
 export default function DashboardPage() {
-  // Show regular dashboard for all other users
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { locationId } = useParams<{ locationId: string }>();
+  
+  // Dashboard data
+  const data = useSelector((state: RootState) => state.dashboard.data);
+  const isLoading = useSelector((state: RootState) => state.dashboard.isLoading);
+  const error = useSelector((state: RootState) => state.dashboard.error);
+
+  // Locations data
+  const locations = useSelector(getAllLocationsSelector);
+  const isLoadingLocations = useSelector(getLocationLoadingSelector);
+
+  // Fetch locations on mount
+  useEffect(() => {
+    dispatch(listLocationsAction.request());
+  }, [dispatch]);
+
+  // If no locationId in URL and locations are loaded, redirect to first location
+  useEffect(() => {
+    if (!locationId && locations.length > 0) {
+      navigate(`/dashboard/${locations[0].id}`, { replace: true });
+    }
+  }, [locationId, locations, navigate]);
+
+  // Fetch dashboard data when locationId changes
+  useEffect(() => {
+    if (locationId) {
+      dispatch(fetchDashboardDataAction.request({ locationId: parseInt(locationId, 10) }));
+    }
+  }, [dispatch, locationId]);
+
+  const handleLocationChange = (value: string) => {
+    navigate(`/dashboard/${value}`);
+  };
+
+  // Show loading while fetching locations or dashboard data
+  if (isLoadingLocations || isLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-error">{error}</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  // No locations available
+  if (locations.length === 0) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-foreground-3">No locations available. Please create a location first.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!data) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center h-64">
+          <p className="text-foreground-3">No dashboard data available</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
-      <div className="space-y-6">
-        {/* Welcome Section */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 text-white">
-          <h2 className="text-2xl font-bold mb-2">Welcome back!</h2>
-          <p className="text-blue-100 mb-4">Here&#39;s what&#39;s happening with your business today.</p>
-          <Button variant="secondary" size="sm" className="bg-white text-blue-600 hover:bg-gray-100">
-            <Plus className="mr-2 h-4 w-4" />
-            Add New Booking
-          </Button>
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div className="space-y-2">
+            {/* Location Selector */}
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-primary" />
+              <Select value={locationId} onValueChange={handleLocationChange}>
+                <SelectTrigger className="w-auto min-w-[200px] h-8 text-lg font-bold border-none shadow-none px-0 focus:ring-0">
+                  <SelectValue placeholder="Select a location" />
+                </SelectTrigger>
+                <SelectContent>
+                  {locations.map((location) => (
+                    <SelectItem key={location.id} value={String(location.id)}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-foreground-3">
+              Location Dashboard • {new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })}
+            </p>
+          </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Today&#39;s Bookings</p>
-                  <p className="text-2xl font-bold text-gray-900">12</p>
-                </div>
-                <div className="h-12 w-12 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
+        {/* All Sections */}
+        <div className="space-y-3">
+          {/* Today's Overview */}
+          <Card>
+            <CardContent className="py-2 px-3">
+              <TodayOverview
+                appointments={data.todayWidget.appointments}
+                revenue={data.todayWidget.revenue}
+                staffAvailable={data.todayWidget.staffAvailable}
+                staffLoadPercentage={data.todayWidget.staffLoadPercentage}
+              />
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Team Members</p>
-                  <p className="text-2xl font-bold text-gray-900">8</p>
-                </div>
-                <div className="h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                  <Users className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
+          {/* Appointment Metrics */}
+          <Card>
+            <CardContent className="py-2 px-3">
+              <AppointmentMetrics
+                weeklyAppointments={data.appointmentWidget.weeklyAppointments}
+                monthlyAppointments={data.appointmentWidget.monthlyAppointments}
+                weeklyLoadPercentage={data.appointmentWidget.weeklyLoadPercentage}
+                monthlyLoadPercentage={data.appointmentWidget.monthlyLoadPercentage}
+              />
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Active Locations</p>
-                  <p className="text-2xl font-bold text-gray-900">3</p>
-                </div>
-                <div className="h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
-                  <MapPin className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
+          {/* Revenue Analytics */}
+          <Card>
+            <CardContent className="py-2 px-3">
+              <RevenueAnalytics
+                revenueThisWeek={data.revenueWidget.revenueThisWeek}
+                revenueThisMonth={data.revenueWidget.revenueThisMonth}
+                weeklyLoadPercentage={data.revenueWidget.weeklyLoadPercentage}
+                monthlyLoadPercentage={data.revenueWidget.monthlyLoadPercentage}
+              />
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">$2.4k</p>
-                </div>
-                <div className="h-12 w-12 bg-orange-100 rounded-full flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
+          {/* Reviews & Ratings */}
+          <Card>
+            <CardContent className="py-2 px-3">
+              <ReviewsRatings
+                averageRating={data.reviewWidget.averageRating}
+                totalReviews={data.reviewWidget.totalReviews}
+                ratingDistribution={data.reviewWidget.ratingDistribution}
+              />
             </CardContent>
           </Card>
         </div>
-
-        {/* Recent Activity */}
-        <Card className="border-0 shadow-sm bg-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <CheckCircle className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">New booking confirmed</p>
-                <p className="text-xs text-gray-500">Sarah Johnson - Haircut at 2:00 PM</p>
-              </div>
-              <span className="text-xs text-gray-400">2 min ago</span>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-green-100 rounded-full flex items-center justify-center">
-                <Users className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">New team member added</p>
-                <p className="text-xs text-gray-500">Mike Wilson joined as Stylist</p>
-              </div>
-              <span className="text-xs text-gray-400">1 hour ago</span>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <div className="h-10 w-10 bg-purple-100 rounded-full flex items-center justify-center">
-                <MapPin className="h-5 w-5 text-purple-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-gray-900">Location updated</p>
-                <p className="text-xs text-gray-500">Downtown location hours changed</p>
-              </div>
-              <span className="text-xs text-gray-400">3 hours ago</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card className="border-0 shadow-sm bg-white">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold">Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button variant="outline" className="w-full justify-between h-12">
-              <span>View Today&#39;s Schedule</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" className="w-full justify-between h-12">
-              <span>Manage Team Members</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" className="w-full justify-between h-12">
-              <span>Update Services</span>
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </AppLayout>
   )
