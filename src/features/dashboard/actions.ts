@@ -1,33 +1,66 @@
-import { createAction } from "@reduxjs/toolkit";
+import { createAsyncAction } from "typesafe-actions";
 
-export type WizardDataPayload = Partial<{
-    businessName: string;
-    industry: string;
-    description: string;
-    isRemote: boolean;
-    address: string;
-    city: string;
-    services: Array<{ id: string; name: string; price: number; duration: number }>;
-    schedule: Array<{ day: string; open: string; close: string; isClosed: boolean }>;
-    bufferTime: number;
-    teamMembers: Array<{ email: string; role: string }>;
-    worksSolo: boolean;
-    selectedTemplate: string;
-    isLaunched: boolean;
-}>;
+// Dashboard data types for the API response
+export interface DashboardApiResponse {
+  location: {
+    name: string;
+    id: number;
+    isCurrentlyOpen: boolean;
+  };
+  todayWidget: {
+    appointments: number;
+    revenue: number;
+    staffAvailable: number;
+    staffLoadPercentage: number;
+    todayDistribution: {
+      pending: number;
+      confirmed: number;
+      completed: number;
+      no_show: number;
+      cancelled: number;
+    };
+  };
+  appointmentWidget: {
+    monthlyAppointments: number;
+    weeklyAppointments: number;
+    monthlyLoadPercentage: number;
+    weeklyLoadPercentage: number;
+    weeklyDistribution: {
+      pending: number;
+      confirmed: number;
+      completed: number;
+      no_show: number;
+      cancelled: number;
+    };
+    monthlyDistribution: {
+      pending: number;
+      confirmed: number;
+      completed: number;
+      no_show: number;
+      cancelled: number;
+    };
+  };
+  revenueWidget: {
+    revenueThisWeek: number;
+    revenueThisMonth: number;
+    monthlyLoadPercentage: number;
+    weeklyLoadPercentage: number;
+  };
+  reviewWidget: {
+    averageRating: number;
+    totalReviews: number;
+    ratingDistribution: {
+      "5": number;
+      "4": number;
+      "3": number;
+      "2": number;
+      "1": number;
+    };
+  };
+}
 
-export const wizardInit = createAction('WIZARD/INIT');
-export const wizardSetStep = createAction<number>('WIZARD/SET_STEP');
-export const wizardNext = createAction('WIZARD/NEXT');
-export const wizardPrev = createAction('WIZARD/PREV');
-export const wizardUpdateData = createAction<WizardDataPayload>('WIZARD/UPDATE_DATA');
-
-export const wizardSaveRequest = createAction('WIZARD/SAVE/REQUEST');
-export const wizardSaveSuccess = createAction('WIZARD/SAVE/SUCCESS');
-export const wizardSaveFailure = createAction<string>('WIZARD/SAVE/FAILURE');
-
-export const wizardCompleteRequest = createAction('WIZARD/COMPLETE/REQUEST');
-export const wizardCompleteSuccess = createAction('WIZARD/COMPLETE/SUCCESS');
-export const wizardCompleteFailure = createAction<string>('WIZARD/COMPLETE/FAILURE');
-
-
+export const fetchDashboardDataAction = createAsyncAction(
+  "DASHBOARD/FETCH_DATA_REQUEST",
+  "DASHBOARD/FETCH_DATA_SUCCESS",
+  "DASHBOARD/FETCH_DATA_FAILURE"
+)<{ locationId: number }, DashboardApiResponse, { message: string }>();

@@ -9,7 +9,7 @@ type Props = { element: ReactElement };
 /**
  * PublicRoute protects authentication pages (login, register) from authenticated users.
  * Uses AuthGate to ensure session is hydrated before checking authentication status.
- * If user is already authenticated, redirect them to /dashboard instead.
+ * If user is already authenticated, redirect them to /calendar instead.
  */
 export default function PublicRoute({ element }: Props) {
   const isAuthed = useSelector(selectIsAuthenticated);
@@ -22,7 +22,7 @@ export default function PublicRoute({ element }: Props) {
         isRegistration ?
           <Navigate to="/welcome" replace state={{ from: location }} />
           :
-          <Navigate to="/dashboard" replace state={{ from: location }} />
+          <Navigate to="/calendar" replace state={{ from: location }} />
         : element
       }
     </AuthGate>

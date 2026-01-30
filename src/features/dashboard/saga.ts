@@ -1,28 +1,20 @@
 import { takeLatest, call, put } from "redux-saga/effects";
-import { wizardSaveRequest, wizardSaveSuccess, wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure } from "./actions";
-import { saveWizardProgress, completeWizard } from "./api";
+import type { ActionType } from "typesafe-actions";
+import { fetchDashboardDataAction, type DashboardApiResponse } from "./actions";
+import { fetchDashboardData } from "./api";
 
-function* handleWizardSave() {
+function* handleFetchDashboardData(
+  action: ActionType<typeof fetchDashboardDataAction.request>
+): Generator<any, void, DashboardApiResponse> {
   try {
-    yield call(saveWizardProgress, {});
-    yield put(wizardSaveSuccess());
+    const data = yield call(fetchDashboardData, action.payload.locationId);
+    yield put(fetchDashboardDataAction.success(data));
   } catch (error: any) {
-    yield put(wizardSaveFailure(error?.message || 'Failed to save progress'));
+    const message = error?.response?.data?.error || error?.message || "Failed to fetch dashboard data";
+    yield put(fetchDashboardDataAction.failure({ message }));
   }
 }
 
-function* handleWizardComplete() {
-  try {
-    yield call(completeWizard, {});
-    yield put(wizardCompleteSuccess());
-  } catch (error: any) {
-    yield put(wizardCompleteFailure(error?.message || 'Failed to complete wizard'));
-  }
+export function* dashboardSaga() {
+  yield takeLatest(fetchDashboardDataAction.request, handleFetchDashboardData);
 }
-
-export function* setupWizardSaga() {
-  yield takeLatest(wizardSaveRequest.type, handleWizardSave);
-  yield takeLatest(wizardCompleteRequest.type, handleWizardComplete);
-}
-
-

@@ -14,7 +14,7 @@ type Props = {
    */
   requiredPermission?: Permission;
   /**
-   * Where to redirect if user lacks permission (default: /dashboard)
+   * Where to redirect if user lacks permission (default: /calendar)
    */
   unauthorizedRedirect?: string;
 };
@@ -36,7 +36,7 @@ type Props = {
 export default function ProtectedRoute({ 
   element, 
   requiredPermission,
-  unauthorizedRedirect = "/dashboard" 
+  unauthorizedRedirect = "/calendar" 
 }: Props) {
   const isAuthed = useSelector(selectIsAuthenticated);
   const location = useLocation();
@@ -56,7 +56,7 @@ export default function ProtectedRoute({
 
   // If there's a permission requirement and user lacks it, redirect
   if (permissionToCheck && user && !hasPermission(permissionToCheck)) {
-    // Redirect to dashboard (or custom redirect) with a message
+    // Redirect to calendar (or custom redirect) with a message
     return (
       <AuthGate>
         <Navigate 
