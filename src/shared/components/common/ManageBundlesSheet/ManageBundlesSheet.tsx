@@ -5,8 +5,6 @@ import {
   X,
   ArrowDown01,
   ArrowUp01,
-  CalendarClock,
-  History,
   ArrowUpAZ,
   ArrowDownAZ,
   ArrowRight,

@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef } from "react";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import {
   Package,
   AlertCircle,
@@ -69,7 +68,6 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const allServices = useSelector(getServicesListSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";

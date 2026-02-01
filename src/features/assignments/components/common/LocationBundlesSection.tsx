@@ -25,7 +25,6 @@ export function LocationBundlesSection({
   allBundles,
   onSaveBundles,
   currency = "USD",
-  locationId,
 }: LocationBundlesSectionProps) {
   const { t } = useTranslation("assignments");
   const navigate = useNavigate();

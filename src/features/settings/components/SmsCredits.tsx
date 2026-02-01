@@ -4,7 +4,6 @@ import {
   MessageSquare, 
   Loader2, 
   ChevronDown, 
-  ChevronUp, 
   History,
   Zap,
   TrendingUp,

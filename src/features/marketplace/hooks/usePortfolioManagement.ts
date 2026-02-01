@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import type { PortfolioImage } from '../components/MarketplaceImagesSection';
 import type { PortfolioImageData } from '../types';
 
