@@ -8,6 +8,7 @@ export type BusinessInfo = {
   phone: string;
   timezone: string;
   country: string;
+  countryCode?: string; // ISO 3166-1 alpha-2 country code (e.g., "ro", "de")
   stripeCurrency?: string; // Optional - backend defaults to 'eur'
   businessCurrency: string; // Required - for service pricing
   instagramUrl: string;

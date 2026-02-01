@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { MapPin, Users, Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { MapPin, Users, Plus, Info } from 'lucide-react';
 import { PinVerificationIndicator } from '../../../shared/components/common/PinVerificationIndicator';
 import { Label } from '../../../shared/components/ui/label';
 import { Button } from '../../../shared/components/ui/button';
@@ -61,11 +62,13 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   onClose
 }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation("locations");
   const currentUser = useSelector(selectCurrentUser);
   const locationError = useSelector(getLocationErrorSelector);
   const isLocationLoading = useSelector(getLocationLoadingSelector);
   const allTeamMembers = useSelector(selectTeamMembers);
   const allServices = useSelector(getServicesListSelector);
+  const businessCountryCode = currentUser?.business?.countryCode || null;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(true);
   const [isAddressValid, setIsAddressValid] = useState(true);
@@ -635,6 +638,14 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     >
                       Address *
                     </Label>
+                    {businessCountryCode && (
+                      <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                        <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                        <p className="text-xs text-blue-800 dark:text-blue-200">
+                          {t("address.countryRestrictionInfo", { countryCode: businessCountryCode.toUpperCase() })}
+                        </p>
+                      </div>
+                    )}
                     <AddressComposer
                       key={addressComposerKey}
                       value={addressField.value || ""}
@@ -660,6 +671,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                       }
                       onValidityChange={(isValid) => setIsAddressValid(isValid)}
                       alwaysClearOnSwitch={true}
+                      countryCodes={businessCountryCode ? [businessCountryCode] : undefined}
                     />
                     
                     {/* Map Pin Verification Indicator */}
@@ -945,6 +957,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
             mapHeight="500px"
             className="z-[70]"
             overlayClassName="z-[70]"
+            countryCodes={businessCountryCode ? [businessCountryCode] : undefined}
             footerActions={
               <>
                 <Button

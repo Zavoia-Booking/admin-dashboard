@@ -15,14 +15,12 @@ type Props = {
   autoFocus?: boolean;
 };
 
-const DEFAULT_COUNTRY_CODES = ['ro'];
-
 export default function AddressAutocomplete({
   value,
   onChange,
   placeholder = 'Start typing an address...',
   debounceMs = 500,
-  countryCodes = DEFAULT_COUNTRY_CODES,
+  countryCodes,
   limit = 8,
   disabled,
   className,

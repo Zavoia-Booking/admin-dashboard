@@ -113,6 +113,10 @@ export interface MapDialogProps {
    * Additional CSS classes for the dialog overlay
    */
   overlayClassName?: string;
+  /**
+   * ISO country codes to restrict address search (e.g., ['ro', 'de'])
+   */
+  countryCodes?: string[];
 }
 
 /**
@@ -145,6 +149,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   showAddressWarning = false,
   className,
   overlayClassName,
+  countryCodes,
   ...mapProps
 }) => {
   const [searchValue, setSearchValue] = useState('');
@@ -184,8 +189,8 @@ export const MapDialog: React.FC<MapDialogProps> = ({
         value={searchValue}
         onChange={handleAddressSelect}
         placeholder="Search for the correct address..."
-        countryCodes={['ro', 'gb', 'us', 'fr', 'de', 'it', 'es']}
         limit={8}
+        countryCodes={countryCodes}
       />
     </div>
   );

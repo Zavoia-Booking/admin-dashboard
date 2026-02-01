@@ -13,6 +13,7 @@ export interface Business {
   logo: string | null;
   timezone: string;
   country: string | null;
+  countryCode: string | null; // ISO 3166-1 alpha-2 country code (e.g., "ro", "de")
   stripeCurrency?: string;
   businessCurrency: string;
   instagramUrl: string | null;

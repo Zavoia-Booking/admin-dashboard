@@ -2,7 +2,12 @@ import { createAsyncAction, createAction } from "typesafe-actions";
 import type { 
   SubscriptionSummary, 
   CheckoutPayload, 
-  CheckoutResponse
+  CheckoutResponse,
+  BusinessSmsInfo,
+  SmsPackage,
+  SmsPurchase,
+  SmsCheckoutPayload,
+  SmsCheckoutResponse,
 } from "./types";
 
 // Pricing Summary Actions
@@ -44,3 +49,30 @@ export const cancelRemovalAction = createAsyncAction(
 // Clear Actions
 export const clearSettingsErrorAction = createAction('settings/CLEAR_ERROR')();
 export const clearCheckoutResponseAction = createAction('settings/CLEAR_CHECKOUT_RESPONSE')();
+
+// SMS Actions
+export const getSmsBalanceAction = createAsyncAction(
+  'settings/GET_SMS_BALANCE_REQUEST',
+  'settings/GET_SMS_BALANCE_SUCCESS',
+  'settings/GET_SMS_BALANCE_FAILURE',
+)<void, { balance: BusinessSmsInfo }, { message: string }>();
+
+export const getSmsPackagesAction = createAsyncAction(
+  'settings/GET_SMS_PACKAGES_REQUEST',
+  'settings/GET_SMS_PACKAGES_SUCCESS',
+  'settings/GET_SMS_PACKAGES_FAILURE',
+)<void, { packages: SmsPackage[] }, { message: string }>();
+
+export const createSmsCheckoutAction = createAsyncAction(
+  'settings/CREATE_SMS_CHECKOUT_REQUEST',
+  'settings/CREATE_SMS_CHECKOUT_SUCCESS',
+  'settings/CREATE_SMS_CHECKOUT_FAILURE',
+)<SmsCheckoutPayload, SmsCheckoutResponse, { message: string }>();
+
+export const getSmsPurchasesAction = createAsyncAction(
+  'settings/GET_SMS_PURCHASES_REQUEST',
+  'settings/GET_SMS_PURCHASES_SUCCESS',
+  'settings/GET_SMS_PURCHASES_FAILURE',
+)<{ limit?: number; cursor?: number } | void, { purchases: SmsPurchase[]; hasMore: boolean; nextCursor?: number }, { message: string }>();
+
+export const clearSmsErrorAction = createAction('settings/CLEAR_SMS_ERROR')();

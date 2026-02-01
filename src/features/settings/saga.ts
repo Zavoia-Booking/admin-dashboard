@@ -5,6 +5,10 @@ import {
   getCustomerPortalUrlAction,
   modifySubscriptionAction,
   cancelRemovalAction,
+  getSmsBalanceAction,
+  getSmsPackagesAction,
+  createSmsCheckoutAction,
+  getSmsPurchasesAction,
 } from "./actions";
 import {
   getSubscriptionSummary,
@@ -12,10 +16,18 @@ import {
   getCustomerPortalUrl,
   modifySubscription,
   cancelRemoval,
+  getSmsBalance,
+  getSmsPackages,
+  createSmsCheckout,
+  getSmsPurchases,
 } from "./api";
 import type {
   SubscriptionSummary,
   CheckoutResponse,
+  SmsBalanceResponse,
+  SmsPackagesResponse,
+  SmsCheckoutResponse,
+  SmsPurchasesResponse,
 } from "./types";
 import { fetchCurrentUserAction } from "../auth/actions";
 
@@ -94,6 +106,57 @@ function* handleCancelRemoval() {
   }
 }
 
+// SMS Saga Handlers
+function* handleGetSmsBalance() {
+  try {
+    const response: SmsBalanceResponse = yield call(getSmsBalance);
+    yield put(getSmsBalanceAction.success({ balance: response.data }));
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS balance';
+    yield put(getSmsBalanceAction.failure({ message }));
+  }
+}
+
+function* handleGetSmsPackages() {
+  try {
+    const response: SmsPackagesResponse = yield call(getSmsPackages);
+    yield put(getSmsPackagesAction.success({ packages: response.data }));
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS packages';
+    yield put(getSmsPackagesAction.failure({ message }));
+  }
+}
+
+function* handleCreateSmsCheckout(action: ReturnType<typeof createSmsCheckoutAction.request>) {
+  try {
+    const response: SmsCheckoutResponse = yield call(createSmsCheckout, action.payload);
+    yield put(createSmsCheckoutAction.success(response));
+    
+    // Redirect to Stripe Checkout
+    if (response.url) {
+      window.location.href = response.url;
+    }
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error?.message || 'Failed to create SMS checkout';
+    yield put(createSmsCheckoutAction.failure({ message }));
+  }
+}
+
+function* handleGetSmsPurchases(action: ReturnType<typeof getSmsPurchasesAction.request>) {
+  try {
+    const params = action.payload || {};
+    const response: SmsPurchasesResponse = yield call(getSmsPurchases, params);
+    yield put(getSmsPurchasesAction.success({ 
+      purchases: response.data, 
+      hasMore: response.hasMore,
+      nextCursor: response.nextCursor 
+    }));
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS purchases';
+    yield put(getSmsPurchasesAction.failure({ message }));
+  }
+}
+
 export function* settingsSaga() {
   yield all([
     takeLatest(getSubscriptionSummaryAction.request, handleGetSubscriptionSummary),
@@ -101,5 +164,10 @@ export function* settingsSaga() {
     takeLatest(getCustomerPortalUrlAction.request, handleGetCustomerPortalUrl),
     takeLatest(modifySubscriptionAction.request, handleModifySubscription),
     takeLatest(cancelRemovalAction.request, handleCancelRemoval),
+    // SMS Sagas
+    takeLatest(getSmsBalanceAction.request, handleGetSmsBalance),
+    takeLatest(getSmsPackagesAction.request, handleGetSmsPackages),
+    takeLatest(createSmsCheckoutAction.request, handleCreateSmsCheckout),
+    takeLatest(getSmsPurchasesAction.request, handleGetSmsPurchases),
   ]);
 }

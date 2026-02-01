@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { Crown, ExternalLink, Loader2, Users, Calendar, CheckCircle, TrendingUp } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
@@ -8,7 +8,7 @@ import { Progress } from '../../../shared/components/ui/progress';
 import { Separator } from '../../../shared/components/ui/separator';
 import { toast } from 'sonner';
 import { selectCurrentUser } from '../../auth/selectors';
-import { getSubscriptionSummaryAction, getCustomerPortalUrlAction, createCheckoutSessionAction, modifySubscriptionAction, cancelRemovalAction } from '../actions';
+import { getSubscriptionSummaryAction, getCustomerPortalUrlAction, createCheckoutSessionAction, modifySubscriptionAction, cancelRemovalAction, getSmsBalanceAction, getSmsPackagesAction } from '../actions';
 import { updateSeats } from '../api';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +21,7 @@ import {
   selectIsLoadingCancelRemoval
 } from '../selectors';
 import { loadStripe } from '@stripe/stripe-js';
+import SmsCredits from './SmsCredits';
 
 const BillingAndSubscription = () => {
   const dispatch = useDispatch();
@@ -58,9 +59,17 @@ const BillingAndSubscription = () => {
     }
   }, [currentUser?.entitlements?.status, subscriptionSummary?.paidSeats, subscriptionSummary?.currentTeamMembersCount]);
 
+  const hasFetched = useRef(false);
+  
   useEffect(() => {
-    dispatch(getSubscriptionSummaryAction.request());
-  }, []);
+    if (!hasFetched.current) {
+      hasFetched.current = true;
+      dispatch(getSubscriptionSummaryAction.request());
+      // Fetch SMS data alongside subscription summary
+      dispatch(getSmsBalanceAction.request());
+      dispatch(getSmsPackagesAction.request());
+    }
+  }, [dispatch]);
 
   const hasScheduledChange = !!(subscriptionSummary?.scheduled && subscriptionSummary.scheduled.scheduledSeats != null);
   const isSubscriptionScheduledForCancellation = currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd;
@@ -750,6 +759,10 @@ const BillingAndSubscription = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* SMS Credits Section */}
+          <Separator className="my-6" />
+          <SmsCredits />
         </>
       )}
     </div>

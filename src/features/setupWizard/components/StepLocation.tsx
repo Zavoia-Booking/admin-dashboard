@@ -28,11 +28,14 @@ import { useFieldDraftValidation } from "../../../shared/hooks/useDraftValidatio
 import type { RootState } from "../../../app/providers/store";
 import { useSelector } from "react-redux";
 import { toast } from "sonner";
-import { MapPin } from "lucide-react";
+import { MapPin, Info } from "lucide-react";
 import { PinVerificationIndicator } from "../../../shared/components/common/PinVerificationIndicator";
+import { useTranslation } from "react-i18next";
 
 const StepLocation = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
+    const { t } = useTranslation("locations");
+    
     // Initialize toggle state from draft data to avoid flash on load
     const [useBusinessContact, setUseBusinessContact] = useState<boolean>(() => {
       const draftToggleState = data.useBusinessContact;
@@ -73,6 +76,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
     const isRemote = watch("location.isRemote" satisfies WizardFieldPath) === true;
     const businessEmail = (watch("businessInfo.email" satisfies WizardFieldPath) as string) || "";
     const businessPhone = (watch("businessInfo.phone" satisfies WizardFieldPath) as string) || "";
+    const businessCountryCode = (watch("businessInfo.countryCode" satisfies WizardFieldPath) as string) || "";
     
     // Sync isPinConfirmed state with form data and ensure mapPinConfirmed field exists
     const addressComponents = watch("location.addressComponents" satisfies WizardFieldPath) as any;
@@ -583,6 +587,14 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 >
                   Address *
                 </Label>
+                {businessCountryCode && (
+                  <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-blue-800 dark:text-blue-200">
+                      {t("address.countryRestrictionInfo", { countryCode: businessCountryCode.toUpperCase() })}
+                    </p>
+                  </div>
+                )}
                 <AddressComposer
                   key={addressComposerKey}
                   value={watch("location.address" satisfies WizardFieldPath) as any}
@@ -609,6 +621,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                     })
                   }
                   onValidityChange={(isValid) => setIsAddressValid(isValid)}
+                  countryCodes={businessCountryCode ? [businessCountryCode] : undefined}
                 />
               </div>
 
@@ -786,6 +799,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
               showControls
               className="z-[100]"
               overlayClassName="z-[100]"
+              countryCodes={businessCountryCode ? [businessCountryCode] : undefined}
               footerActions={
                 <>
                   <Button

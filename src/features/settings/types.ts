@@ -69,4 +69,72 @@ export type SettingsState = {
     modifySubscription: boolean;
     cancelRemoval: boolean;
   };
+  // SMS State
+  smsBalance: BusinessSmsInfo | null;
+  smsPackages: SmsPackage[];
+  smsPurchases: SmsPurchase[];
+  smsPurchasesHasMore: boolean;
+  smsPurchasesNextCursor: number | null;
+  smsError: string | null;
+  smsIsLoading: {
+    balance: boolean;
+    packages: boolean;
+    checkout: boolean;
+    purchases: boolean;
+  };
+};
+
+// SMS Types
+export type SmsPackage = {
+  id: number;
+  uuid: string;
+  name: string;
+  regionPricingId: number;
+  smsCount: number;
+  priceMinor: number;
+  currency: string;
+  isActive: boolean;
+};
+
+export type BusinessSmsInfo = {
+  smsCredits: number;
+  smsTotalPurchased: number;
+  smsTotalUsed: number;
+};
+
+export type SmsPurchase = {
+  id: number;
+  businessId: number;
+  packageId: number;
+  smsQuantity: number;
+  totalAmountMinor: number;
+  currency: string;
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  stripeCheckoutSessionId: string | null;
+  stripePaymentIntentId: string | null;
+  createdAt: string;
+};
+
+export type SmsPackagesResponse = {
+  data: SmsPackage[];
+};
+
+export type SmsBalanceResponse = {
+  data: BusinessSmsInfo;
+};
+
+export type SmsPurchasesResponse = {
+  data: SmsPurchase[];
+  hasMore: boolean;
+  nextCursor?: number;
+};
+
+export type SmsCheckoutPayload = {
+  packageId: number;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export type SmsCheckoutResponse = {
+  url: string;
 };

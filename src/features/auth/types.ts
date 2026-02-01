@@ -26,6 +26,7 @@ export type AuthUser = {
     name: string;
     logo?: string | null;
     businessCurrency?: string;
+    countryCode?: string | null; // ISO 3166-1 alpha-2 country code (e.g., "ro", "de")
     phone?: string;
   };
   subscription?: {

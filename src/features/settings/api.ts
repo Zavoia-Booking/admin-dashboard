@@ -1,5 +1,16 @@
 import { apiClient } from '../../shared/lib/http';
-import type { SubscriptionSummary, CheckoutPayload, CheckoutResponse, UpdateSeatsPayload, UpdateSeatsResponse } from './types';
+import type { 
+  SubscriptionSummary, 
+  CheckoutPayload, 
+  CheckoutResponse, 
+  UpdateSeatsPayload, 
+  UpdateSeatsResponse,
+  SmsPackagesResponse,
+  SmsBalanceResponse,
+  SmsPurchasesResponse,
+  SmsCheckoutPayload,
+  SmsCheckoutResponse,
+} from './types';
 
 export const getSubscriptionSummary = async (): Promise<SubscriptionSummary> => {
   const response = await apiClient().get<SubscriptionSummary>('/billing/subscription-summary');
@@ -58,5 +69,33 @@ export interface UpdateBusinessInfoPayload {
 
 export const updateBusinessInfo = async (payload: UpdateBusinessInfoPayload): Promise<{ success: boolean }> => {
   const response = await apiClient().put<{ success: boolean }>('/business-info', payload);
+  return response.data;
+};
+
+// SMS API Functions
+export const getSmsPackages = async (): Promise<SmsPackagesResponse> => {
+  const response = await apiClient().get<SmsPackagesResponse>('/sms/packages');
+  return response.data;
+};
+
+export const getSmsBalance = async (): Promise<SmsBalanceResponse> => {
+  const response = await apiClient().get<SmsBalanceResponse>('/sms/balance');
+  return response.data;
+};
+
+export const createSmsCheckout = async (payload: SmsCheckoutPayload): Promise<SmsCheckoutResponse> => {
+  const response = await apiClient().post<SmsCheckoutResponse>('/sms/checkout', payload);
+  return response.data;
+};
+
+export const getSmsPurchases = async (params?: { limit?: number; cursor?: number }): Promise<SmsPurchasesResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.cursor) queryParams.append('cursor', params.cursor.toString());
+  
+  const queryString = queryParams.toString();
+  const url = queryString ? `/sms/purchases?${queryString}` : '/sms/purchases';
+  
+  const response = await apiClient().get<SmsPurchasesResponse>(url);
   return response.data;
 };

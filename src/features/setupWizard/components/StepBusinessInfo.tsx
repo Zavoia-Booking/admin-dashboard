@@ -14,6 +14,8 @@ import TextField from "../../../shared/components/forms/fields/TextField";
 import TextareaField from "../../../shared/components/forms/fields/TextareaField";
 import LogoUpload from "../../../shared/components/common/LogoUpload";
 import CurrencySelect from "../../../shared/components/common/CurrencySelect";
+import CountrySelect from "../../../shared/components/common/CountrySelect";
+import { TimezoneSelect } from "../../../shared/components/common/TimezoneSelect";
 import type { WizardData } from "../../../shared/hooks/useSetupWizard";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
@@ -141,6 +143,42 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         defaultValue: data.businessInfo?.businessCurrency || 'eur',
       });
 
+    // Controlled country code with validation (required field)
+    const { field: countryCodeField, fieldState: countryCodeState } =
+      useController<WizardData, "businessInfo.countryCode">({
+        name: "businessInfo.countryCode",
+        control,
+        rules: isWizardLoading
+          ? {}
+          : {
+              required: "Please select your country",
+              validate: (value) => {
+                if (!value || value.trim() === '') return "Please select your country";
+                // ISO 3166-1 alpha-2 codes are 2 lowercase letters
+                return /^[a-z]{2}$/i.test(value) || "Please select a valid country";
+              },
+            },
+        defaultValue: (data.businessInfo as any)?.countryCode || '',
+      });
+
+    // Controlled timezone with validation (required field)
+    const { field: timezoneField, fieldState: timezoneState } =
+      useController<WizardData, "businessInfo.timezone">({
+        name: "businessInfo.timezone",
+        control,
+        rules: isWizardLoading
+          ? {}
+          : {
+              required: "Please select your timezone",
+              validate: (value) => {
+                if (!value || value.trim() === '') return "Please select your timezone";
+                // IANA timezone format check (basic validation)
+                return value.includes('/') || value === 'UTC' || "Please select a valid timezone";
+              },
+            },
+        defaultValue: (data.businessInfo as any)?.timezone || '',
+      });
+
     // Controlled business description with validation (optional field)
     const { field: businessDescriptionField, fieldState: businessDescriptionState } =
       useController<WizardData, "businessInfo.description">({
@@ -182,6 +220,18 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
     });
     const currencyHasDraft = useFieldDraftValidation({
       fieldName: 'businessCurrency',
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+    const countryCodeHasDraft = useFieldDraftValidation({
+      fieldName: 'countryCode',
+      trigger,
+      data,
+      section: 'businessInfo',
+    });
+    const timezoneHasDraft = useFieldDraftValidation({
+      fieldName: 'timezone',
       trigger,
       data,
       section: 'businessInfo',
@@ -268,10 +318,12 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           Number.isInteger(selectedIndustryId) &&
           selectedIndustryId > 0 &&
           !!businessCurrencyField.value &&
+          !!countryCodeField.value &&
+          !!timezoneField.value &&
           Object.keys(errors).length === 0;
         onValidityChange(valid);
       }
-    }, [formIsValid, selectedIndustryId, businessCurrencyField.value, errors, onValidityChange]);
+    }, [formIsValid, selectedIndustryId, businessCurrencyField.value, countryCodeField.value, timezoneField.value, errors, onValidityChange]);
 
     useEffect(() => {
       dispatch(resetRegistrationFlag());
@@ -301,6 +353,8 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               ...current.businessInfo,
               email: effectiveEmail,
               businessCurrency: current.businessInfo?.businessCurrency || 'eur', // Ensure default
+              countryCode: (current.businessInfo as any)?.countryCode || '', // Include country code
+              timezone: (current.businessInfo as any)?.timezone || '', // Include timezone
             },
             useAccountEmail, // Include toggle state in saved data
           };
@@ -319,6 +373,18 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           // Additional validation for currency
           const businessCurrency = currentData.businessInfo?.businessCurrency;
           if (!businessCurrency) {
+            return false;
+          }
+
+          // Additional validation for country code
+          const countryCode = (currentData.businessInfo as any)?.countryCode;
+          if (!countryCode) {
+            return false;
+          }
+
+          // Additional validation for timezone
+          const timezone = (currentData.businessInfo as any)?.timezone;
+          if (!timezone) {
             return false;
           }
 
@@ -341,13 +407,25 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             return false;
           }
 
+          // Check country code selection
+          const countryCode = (currentData.businessInfo as any)?.countryCode;
+          if (!countryCode) {
+            return false;
+          }
+
+          // Check timezone selection
+          const timezone = (currentData.businessInfo as any)?.timezone;
+          if (!timezone) {
+            return false;
+          }
+
           // Check if there are any errors
           if (Object.keys(errors).length > 0) return false;
 
           return true;
         },
       }),
-      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail, businessCurrencyField.value]
+      [watch, trigger, errors, formIsValid, useAccountEmail, accountEmail, businessCurrencyField.value, countryCodeField.value, timezoneField.value]
     );
 
     useEffect(() => {
@@ -513,6 +591,36 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               value={(businessCurrencyField.value as string) || 'eur'}
               onChange={(value) => businessCurrencyField.onChange(value)}
               error={(businessCurrencyState.isTouched || businessCurrencyState.isDirty || currencyHasDraft) ? (businessCurrencyState.error?.message as string) : undefined}
+            />
+          </div>
+
+          <div className="space-y-2 pt-4">
+            <Label htmlFor="businessInfo.countryCode" className="text-base font-medium cursor-default">
+              Country *
+            </Label>
+            <p className="text-sm text-foreground-3 dark:text-foreground-2">
+              Select your business's country of operation.
+            </p>
+            <CountrySelect
+              id="businessInfo.countryCode"
+              value={(countryCodeField.value as string) || ''}
+              onChange={(value) => countryCodeField.onChange(value)}
+              error={(countryCodeState.isTouched || countryCodeState.isDirty || countryCodeHasDraft) ? (countryCodeState.error?.message as string) : undefined}
+            />
+          </div>
+
+          <div className="space-y-2 pt-4">
+            <Label htmlFor="businessInfo.timezone" className="text-base font-medium cursor-default">
+              Timezone *
+            </Label>
+            <p className="text-sm text-foreground-3 dark:text-foreground-2">
+              Select your business timezone for accurate appointment scheduling.
+            </p>
+            <TimezoneSelect
+              value={(timezoneField.value as string) || ''}
+              onChange={(value) => timezoneField.onChange(value)}
+              error={(timezoneState.isTouched || timezoneState.isDirty || timezoneHasDraft) ? (timezoneState.error?.message as string) : undefined}
+              countryCode={(countryCodeField.value as string) || undefined}
             />
           </div>
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import { AlertCircle, MapPin, Monitor } from "lucide-react";
@@ -31,7 +31,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   isRemote = false,
   required = false,
   maxLength = 70,
-  id = "location-name",
+  id: providedId,
   className = "",
   disabled = false,
   icon,
@@ -40,6 +40,8 @@ export const TextField: React.FC<TextFieldProps> = ({
   onKeyDown,
   inputRef,
 }) => {
+  const generatedId = useId();
+  const id = providedId ?? generatedId;
   const Icon = icon ?? (isRemote ? Monitor : MapPin);
   const displayLabel =
     isRemote && label === "Location Name" ? "Online Location Name" : label;

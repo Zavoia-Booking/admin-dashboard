@@ -34,9 +34,10 @@ type Props = {
   onManualModeChange?: (isManual: boolean) => void; // Callback to persist mode changes
   preserveInitialData?: boolean; // If true, original server data is preserved and not updated by user actions
   alwaysClearOnSwitch?: boolean; // If true, always clear everything when switching modes (for Add Location)
+  countryCodes?: string[]; // ISO country codes to restrict address search (e.g., ['ro', 'de'])
 };
 
-export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange, preserveInitialData = false, alwaysClearOnSwitch = false }: Props) {
+export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange, preserveInitialData = false, alwaysClearOnSwitch = false, countryCodes }: Props) {
   const [addressSelected, setAddressSelected] = useState(false);
   const lastSelectedRef = useRef<{ s: string; n: string; c: string; p: string; co: string; display: string } | null>(null);
   const [manualEdited, setManualEdited] = useState(false);
@@ -475,6 +476,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
             onChange={handleAutocompleteChange}
             limit={8}
             autoFocus={shouldAutoFocus}
+            countryCodes={countryCodes}
           />
           <div className="mt-2 text-sm text-muted-foreground mb-6">Type to search. If you can't find it, switch to Manual.</div>
         </>

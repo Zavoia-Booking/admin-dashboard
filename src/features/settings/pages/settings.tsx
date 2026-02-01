@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessProfile from '../components/BusinessProfile';
@@ -39,29 +39,49 @@ const SettingsPage = () => {
   const handleTabChange = (tabId: string) => {
     const tab = tabId as SettingsTab;
     setActiveTab(tab);
-    navigate(`/settings?tab=${tab}`);
+    // Use replace so tab switches don't pollute browser history
+    navigate(`/settings?tab=${tab}`, { replace: true });
   };
 
-  const tabItems: ResponsiveTabItem[] = [
+  // Render tab content only when active (lazy loading)
+  const renderTabContent = (tabId: SettingsTab) => {
+    if (activeTab !== tabId) return null;
+    
+    switch (tabId) {
+      case 'profile':
+        return <BusinessProfile />;
+      case 'billing':
+        return <BillingAndSubscription />;
+      case 'advanced':
+        return <AdvancedSettings />;
+      default:
+        return null;
+    }
+  };
+
+  const tabItems: ResponsiveTabItem[] = useMemo(() => [
     {
       id: 'profile',
       label: 'Profile',
+      mobileLabel: 'Profile',
       icon: User,
-      content: <BusinessProfile />,
+      content: renderTabContent('profile'),
     },
     {
       id: 'billing',
       label: 'Billing & Subscription',
+      mobileLabel: 'Billing',
       icon: CreditCard,
-      content: <BillingAndSubscription />,
+      content: renderTabContent('billing'),
     },
     {
       id: 'advanced',
       label: 'Advanced Settings',
+      mobileLabel: 'Advanced',
       icon: Settings,
-      content: <AdvancedSettings />,
+      content: renderTabContent('advanced'),
     },
-  ];
+  ], [activeTab]);
 
   return (
     <AppLayout>
@@ -70,6 +90,7 @@ const SettingsPage = () => {
           items={tabItems}
           value={activeTab}
           onValueChange={handleTabChange}
+          stickyHeader={true}
         />
       </div>
     </AppLayout>

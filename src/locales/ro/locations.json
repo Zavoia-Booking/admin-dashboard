@@ -14,6 +14,9 @@
   },
   "filters": {
     "searchPlaceholder": "Caută locații după nume, adresă sau email..."
+  },
+  "address": {
+    "countryRestrictionInfo": "Căutarea adreselor este limitată la țara afacerii tale ({{countryCode}}). Folosește modul Manual pentru adrese din afara acestei regiuni."
   }
 }
 

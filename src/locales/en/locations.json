@@ -14,6 +14,9 @@
   },
   "filters": {
     "searchPlaceholder": "Search locations by name, address, or email..."
+  },
+  "address": {
+    "countryRestrictionInfo": "Address search is limited to your business country ({{countryCode}})."
   }
 }
 

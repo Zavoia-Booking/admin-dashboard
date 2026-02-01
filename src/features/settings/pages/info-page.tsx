@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CheckCircle, CheckCircle2, XCircle, Users, CreditCard, ArrowLeft, Home } from 'lucide-react';
+import { CheckCircle, CheckCircle2, XCircle, Users, CreditCard, ArrowLeft, Home, MessageSquare } from 'lucide-react';
 import { InfoPage } from '../../../shared/components/common/InfoPage';
 
 const InfoPageComponent: React.FC = () => {
@@ -90,6 +90,27 @@ const InfoPageComponent: React.FC = () => {
               onClick: () => navigate('/settings?tab=billing'),
               variant: 'outline' as const,
               icon: CreditCard,
+            },
+          ],
+        };
+
+      case 'sms-purchase-success':
+        return {
+          title: 'SMS Credits Added!',
+          description: 'Your SMS credits have been added to your account and are ready to use.',
+          icon: MessageSquare,
+          iconColor: 'green' as const,
+          buttons: [
+            {
+              label: 'Go to Dashboard',
+              onClick: () => navigate('/dashboard'),
+              icon: Home,
+            },
+            {
+              label: 'Back to Billing',
+              onClick: () => navigate('/settings?tab=billing'),
+              variant: 'outline' as const,
+              icon: ArrowLeft,
             },
           ],
         };
