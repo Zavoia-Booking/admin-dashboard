@@ -3,9 +3,8 @@ import {
   useEffect,
   forwardRef,
   useImperativeHandle,
-  useRef,
 } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { Label } from "../../../shared/components/ui/label";
 import { CollapsibleFormSection } from "../../../shared/components/forms/CollapsibleFormSection";
 import { Switch } from "../../../shared/components/ui/switch";
@@ -15,7 +14,6 @@ import { DurationInput } from "../../../shared/components/forms/fields/DurationI
 import { validateDescription } from "../../../shared/utils/validation";
 import type { UpdateBookingSettingsPayload } from "../types";
 import { SectionDivider } from "../../../shared/components/common/SectionDivider";
-import { fetchBookingSettingsAction } from "../actions";
 import { selectBookingSettings } from "../selectors";
 import { useTranslation } from "react-i18next";
 
@@ -27,9 +25,7 @@ export interface AdvancedSettingsSectionRef {
 
 export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
   (_props, ref) => {
-    const dispatch = useDispatch();
     const bookingSettings = useSelector(selectBookingSettings);
-    const hasFetchedRef = useRef(false);
     const [isOpen, setIsOpen] = useState(true);
     const { t } = useTranslation("marketplace");
 
@@ -116,14 +112,6 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
       formData.staffBlockCalendarTypes,
       t,
     ]);
-
-    // Fetch booking settings on mount (only once per component lifetime)
-    useEffect(() => {
-      if (!hasFetchedRef.current) {
-        hasFetchedRef.current = true;
-        dispatch(fetchBookingSettingsAction.request());
-      }
-    }, [dispatch]);
 
     // Sync local state when Redux data changes
     useEffect(() => {

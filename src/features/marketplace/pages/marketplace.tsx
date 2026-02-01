@@ -8,7 +8,6 @@ import {
   publishMarketplaceListingAction,
   updateBookingSettingsAction,
 } from "../actions";
-import { fetchCurrentBusinessAction } from "../../business/actions";
 import type {
   PublishMarketplaceListingPayload,
   UpdateBookingSettingsPayload,
@@ -24,7 +23,6 @@ import {
   selectMarketplaceIndustryTags,
   selectMarketplaceSelectedIndustryTags,
 } from "../selectors";
-import { getCurrentBusinessSelector } from "../../business/selectors";
 import { NotListedYetView } from "../components/NotListedYetView";
 import { ListingConfigurationView } from "../components/ListingConfigurationView";
 import { MarketplaceSkeleton } from "../components/MarketplaceSkeleton";
@@ -34,20 +32,7 @@ export default function MarketplacePage() {
   const dispatch = useDispatch();
   const location = useLocation();
   const { t } = useTranslation("marketplace");
-  const marketplaceBusiness = useSelector(selectMarketplaceBusiness);
-  const globalBusiness = useSelector(getCurrentBusinessSelector);
-
-  // Use global business as base, then override with marketplace-specific data if available.
-  // This ensures the logo and other global details are present even if the marketplace API
-  // returns a partial business object.
-  const business =
-    marketplaceBusiness && globalBusiness
-      ? {
-          ...globalBusiness,
-          ...marketplaceBusiness,
-          logo: marketplaceBusiness.logo || globalBusiness.logo,
-        }
-      : marketplaceBusiness || globalBusiness;
+  const business = useSelector(selectMarketplaceBusiness);
   const listing = useSelector(selectMarketplaceListing);
   const isLoading = useSelector(selectMarketplaceLoading);
   const locationCatalog = useSelector(selectLocationCatalog);
@@ -64,7 +49,6 @@ export default function MarketplacePage() {
   // Fetch marketplace data on mount and when navigating back to this page
   useEffect(() => {
     dispatch(fetchMarketplaceListingAction.request());
-    dispatch(fetchCurrentBusinessAction.request());
   }, [dispatch, location.pathname]); // Refetch when pathname changes
 
   // Close configuration view when listing is successfully published

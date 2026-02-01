@@ -124,6 +124,7 @@ export interface MarketplaceListingResponse {
   industries: Industry[];
   industryTags: IndustryTag[];
   selectedIndustryTags: IndustryTag[];
+  bookingSettings: BookingSettings;
 }
 
 // Payload for publishing marketplace listing
@@ -187,7 +188,6 @@ export interface MarketplaceState {
   isUpdatingVisibility: boolean;
   // Booking settings
   bookingSettings: BookingSettings | null;
-  isLoadingBookingSettings: boolean;
   isSavingBookingSettings: boolean;
 }
 
