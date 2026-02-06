@@ -39,6 +39,8 @@ export function usePermissions() {
   // Convenience checks for common role patterns
   const isOwner = role === UserRole.OWNER;
   const isTeamMember = role === UserRole.TEAM_MEMBER;
+  const isDashboardUser = role === UserRole.DASHBOARD_USER;
+  const isLimitedAccess = (user as any)?.limitedAccess === true;
 
   /**
    * Check if user has a specific permission
@@ -127,6 +129,8 @@ export function usePermissions() {
     // Role checks
     isOwner,
     isTeamMember,
+    isDashboardUser,
+    isLimitedAccess,
 
     // Permission checks
     hasPermission,

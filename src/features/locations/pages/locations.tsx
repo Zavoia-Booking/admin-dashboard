@@ -71,7 +71,7 @@ export default function LocationsPage() {
   // Filter locations based on search and status
   const filteredLocations = allLocations.filter(location => {
     const matchesSearch = location.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      location.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (location.address ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
       location.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesSearch;
   });
@@ -102,24 +102,19 @@ export default function LocationsPage() {
                 {/* Locations Grid */}
                 <div className="grid grid-cols-1 gap-2">
                   {filteredLocations.map((location) => {
-                // Build metadata array (address, phone, email)
-                const metadata: ItemCardMetadata[] = [
-                  {
+                // Build metadata array (address when not remote, phone, email)
+                const metadata: ItemCardMetadata[] = [];
+                if (!location.isRemote && location.address) {
+                  metadata.push({
                     icon: MapPin,
                     label: "address",
                     value: location.address,
-                  },
-                  {
-                    icon: Phone,
-                    label: "phone",
-                    value: location.phone,
-                  },
-                  {
-                    icon: Mail,
-                    label: "email",
-                    value: location.email,
-                  },
-                ];
+                  });
+                }
+                metadata.push(
+                  { icon: Phone, label: "phone", value: location.phone },
+                  { icon: Mail, label: "email", value: location.email },
+                );
 
                 // Build badges array (services and team members)
                 const badges: ItemCardBadge[] = [];
@@ -141,6 +136,12 @@ export default function LocationsPage() {
                     icon: Users,
                   });
                 }
+                if (location.isRemote) {
+                  badges.push({
+                    label: "Remote location",
+                    variant: "info",
+                  });
+                }
 
                 return (
                   <ItemCard
@@ -149,6 +150,7 @@ export default function LocationsPage() {
                     customContent={<div className="text-foreground-2 line-clamp-2 mt-1">{location.description}</div>}
                     badges={badges}
                     metadata={metadata}
+                    metadataLayout={location.isRemote ? "secondaryOnly" : "default"}
                     actions={[
                       {
                         icon: Edit,

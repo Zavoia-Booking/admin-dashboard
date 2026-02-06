@@ -188,9 +188,24 @@ const TEAM_MEMBER_PERMISSIONS: Permission[] = [
   Permission.ACCESS_MY_SETTINGS,
 ];
 
+/**
+ * Dashboard user permissions - orphaned users with no business association.
+ * These are former team members who were removed from all businesses.
+ * They can only manage their profile, personal settings, and contact support.
+ */
+const DASHBOARD_USER_PERMISSIONS: Permission[] = [
+  Permission.ACCESS_SUPPORT,
+  Permission.ACCESS_MY_PROFILE,
+  Permission.ACCESS_MY_PROFILE_INFO,
+  Permission.ACCESS_MY_PROFILE_PORTFOLIO,
+  Permission.ACCESS_MY_PROFILE_REVIEWS,
+  Permission.ACCESS_MY_SETTINGS,
+];
+
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.OWNER]: OWNER_PERMISSIONS,
   [UserRole.TEAM_MEMBER]: TEAM_MEMBER_PERMISSIONS,
+  [UserRole.DASHBOARD_USER]: DASHBOARD_USER_PERMISSIONS,
 };
 
 // =============================================================================
@@ -317,6 +332,20 @@ export const SUB_ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/my-profile?tab=portfolio': Permission.ACCESS_MY_PROFILE_PORTFOLIO,
   '/my-profile?tab=reviews': Permission.ACCESS_MY_PROFILE_REVIEWS,
 };
+
+/**
+ * Returns the default "home" route for a given role.
+ * Used for redirects after login and when an unauthorized route is accessed.
+ * 
+ * - Owner / Team Member → /dashboard
+ * - Dashboard User → /my-profile (they have no business/dashboard access)
+ */
+export function getHomeRouteForRole(role?: string): string {
+  if (role === UserRole.DASHBOARD_USER) {
+    return '/my-profile';
+  }
+  return '/dashboard';
+}
 
 /**
  * Get required permission for a route path.

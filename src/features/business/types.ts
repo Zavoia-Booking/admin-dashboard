@@ -34,6 +34,7 @@ export interface UpdateBusinessDTO {
   businessCurrency?: string;
   instagramUrl?: string;
   facebookUrl?: string;
+  industryId?: number;
 }
 
 export interface BusinessState {

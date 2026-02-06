@@ -43,6 +43,10 @@
         "profile": "Profil",
         "portfolio": "Portofoliu",
         "reviews": "Recenzii"
+      },
+      "mySettings": {
+        "profile": "Profil",
+        "advanced": "Setări avansate"
       }
     }
   },

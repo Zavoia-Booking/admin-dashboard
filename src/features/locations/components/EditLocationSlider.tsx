@@ -32,6 +32,11 @@ import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSele
 import { toast } from 'sonner';
 import { mapLocationForEdit } from '../utils';
 
+// Fallback map center when geocoding fails – Bucharest [lng, lat]; user can move the pin
+const FALLBACK_MAP_CENTER: [number, number] = [26.1025, 44.4268];
+
+const isInvalidCenter = (c: [number, number]) => c[0] === 0 && c[1] === 0;
+
 interface EditLocationSliderProps {
   isOpen: boolean;
   onClose: () => void;
@@ -220,11 +225,12 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       return;
     }
 
-    if (hasCoordinates) {
-      setInitialMapCenter([
-        addressComponents.longitude,
-        addressComponents.latitude
-      ]);
+    const lng = Number(addressComponents?.longitude);
+    const lat = Number(addressComponents?.latitude);
+    const coordsAreValid = hasCoordinates && !(lng === 0 && lat === 0);
+
+    if (coordsAreValid) {
+      setInitialMapCenter([lng, lat]);
       setAdjustedCoordinates(null);
       setSearchedAddressData(null);
       setIsMapOpen(true);
@@ -244,13 +250,15 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           setIsMapOpen(true);
         } else {
           toast.error('Could not find location on map. Please search for the correct address in the map.');
-          setInitialMapCenter([0, 0]);
+          setInitialMapCenter(FALLBACK_MAP_CENTER);
+          setAdjustedCoordinates(FALLBACK_MAP_CENTER);
           setIsMapOpen(true);
         }
       } catch (error) {
         console.error('Geocoding error:', error);
         toast.error('Could not geocode address. Please adjust the pin manually.');
-        setInitialMapCenter([0, 0]);
+        setInitialMapCenter(FALLBACK_MAP_CENTER);
+        setAdjustedCoordinates(FALLBACK_MAP_CENTER);
         setIsMapOpen(true);
       } finally {
         setIsGeocodingAddress(false);
@@ -333,6 +341,9 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     setTimeout(() => {
       isConfirmingFromMap.current = false;
     }, 100);
+
+    // Re-run validation so formState.isValid updates and Update button can enable
+    void trigger();
 
     toast.success('Location pin confirmed');
   };
@@ -480,19 +491,43 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     }
   }, [locationError, isSubmitting]);
 
-  // Re-validate timezone when isRemote changes
+  // Watch for success and close slider
+  useEffect(() => {
+    if (!isLocationLoading && isSubmitting && !locationError && !justOpenedRef.current) {
+      onClose();
+    }
+  }, [isLocationLoading, isSubmitting, locationError, onClose]);
+
+  // Re-validate timezone and address when isRemote changes (rules depend on isRemote)
   useEffect(() => {
     trigger("timezone");
+    trigger("address");
   }, [isRemote, trigger]);
 
-  // Remount address composer when toggling to physical location
+  // When toggling to physical: remount address composer. When switching back to remote: clear address data.
   useEffect(() => {
     const prev = prevIsRemoteRef.current;
     if (prev && !isRemote) {
       setAddressComposerKey((k) => k + 1);
     }
+    if (!prev && isRemote) {
+      // Switching back to remote: clear address data so user must re-enter and confirm pin if they go physical again
+      setValue('address', '', { shouldDirty: true });
+      setValue('addressComponents', undefined as any, { shouldDirty: true });
+      setValue('addressManualMode', false, { shouldDirty: true });
+      setValue('mapPinConfirmed' as any, false, { shouldDirty: true });
+      setIsPinConfirmed(false);
+      setPinWasModified(false);
+      originalAddressRef.current = '';
+      setAddressComposerKey((k) => k + 1);
+      setAdjustedCoordinates(null);
+      setSearchedAddressData(null);
+      setInitialMapCenter([0, 0]);
+      mapInstanceRef.current = null;
+      void trigger('address');
+    }
     prevIsRemoteRef.current = isRemote;
-  }, [isRemote]);
+  }, [isRemote, setValue, trigger]);
 
   const handleContactToggleChange = useCallback(
     (checked: boolean) => {
@@ -541,14 +576,21 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     (isRemote || isAddressValid) &&
     (isRemote || isPinConfirmed); // Require pin confirmation for physical locations
 
+  // When remote: only count changes to remote-relevant fields (address/pin don't apply).
+  // When physical: count any form dirty or pin confirmation.
+  const REMOTE_RELEVANT_FIELDS = ['name', 'email', 'phone', 'timezone', 'description', 'workingHours', 'open247', 'isRemote'] as const;
+  const dirtyFieldsObj = formState.dirtyFields as Partial<Record<string, unknown>> | undefined;
+  const hasRemoteRelevantDirty = dirtyFieldsObj && REMOTE_RELEVANT_FIELDS.some((f) => dirtyFieldsObj[f]);
+  const hasRelevantChanges = isRemote ? hasRemoteRelevantDirty : (formState.isDirty || pinWasModified);
+
   // Form should be disabled if:
   // - formState is not valid (has validation errors)
   // - Required fields are empty
-  // - No changes were made to the form (not dirty) AND pin was not modified
+  // - No relevant changes (for remote: only remote-relevant fields; for physical: any dirty or pin)
   const isFormDisabled =
     !formState.isValid ||
     !areRequiredFieldsFilled ||
-    (!formState.isDirty && !pinWasModified);
+    !hasRelevantChanges;
 
   const onSubmit = () => {
     // Prevent double submission
@@ -955,9 +997,10 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         />
       )}
 
-      {/* Map Pin Verification Dialog */}
+      {/* Map Pin Verification Dialog – never pass [0,0] to map (ocean); use Bucharest fallback */}
       {isMapOpen && (() => {
-        const hasValidCoords = initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0;
+        const safeCenter: [number, number] = isInvalidCenter(initialMapCenter) ? FALLBACK_MAP_CENTER : initialMapCenter;
+        const hasValidCoords = !isInvalidCenter(safeCenter);
 
         return (
           <MapDialog
@@ -972,10 +1015,10 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
             title="Verify Location Pin"
             description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
             accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
-            center={initialMapCenter}
+            center={safeCenter}
             zoom={hasValidCoords ? 16 : 2}
             marker={hasValidCoords ? {
-              coordinates: adjustedCoordinates || initialMapCenter,
+              coordinates: adjustedCoordinates || safeCenter,
               color: '#3b82f6',
               draggable: true,
             } : undefined}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { selectCurrentUser } from '../../../features/auth/selectors';
 import { SubscriptionExpiredBanner } from '../common/subscription/SubscriptionExpiredBanner';
 import SubscriptionBanner from '../common/subscription/SubscriptionBanner';
+import { UserRole } from '../../types/auth';
 
 interface AccessGuardProps {
   children: React.ReactNode;
@@ -31,6 +32,12 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({
 
   // If no user data, allow access (will be handled by auth guards)
   if (!currentUser) {
+    return <>{children}</>;
+  }
+
+  // Dashboard users have no business/subscription — entitlement checks don't apply.
+  // Their page access is already controlled by the permission system.
+  if (currentUser.role === UserRole.DASHBOARD_USER) {
     return <>{children}</>;
   }
 
@@ -85,7 +92,9 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({
 export const useAccessControl = () => {
   const currentUser = useSelector(selectCurrentUser);
   
-  const isEntitled = currentUser?.entitlements?.entitled ?? false;
+  const isDashboardUser = currentUser?.role === UserRole.DASHBOARD_USER;
+  // Dashboard users bypass entitlement checks (no business/subscription)
+  const isEntitled = isDashboardUser ? true : (currentUser?.entitlements?.entitled ?? false);
   const status = currentUser?.entitlements?.status;
   const reason = currentUser?.entitlements?.reason;
   
@@ -96,6 +105,7 @@ export const useAccessControl = () => {
   
   return {
     isEntitled,
+    isDashboardUser,
     status,
     reason,
     isExpiredTrial,

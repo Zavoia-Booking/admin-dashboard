@@ -187,6 +187,16 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     url: "/my-settings",
     icon: Settings2,
     requiredPermission: Permission.ACCESS_MY_SETTINGS,
+    items: [
+      {
+        title: t("sidebar.subItems.mySettings.profile"),
+        url: "/my-settings?tab=profile",
+      },
+      {
+        title: t("sidebar.subItems.mySettings.advanced"),
+        url: "/my-settings?tab=advanced",
+      },
+    ],
   },
   // Owner Settings
   {
@@ -261,7 +271,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       // Check if user has the required permission for this nav item
       return hasPermission(item.requiredPermission)
     })
-    .map(item => {
+    .map((item, index) => {
       // Filter sub-items based on permissions
       const filteredSubItems = item.items?.filter(subItem => {
         // If sub-item has a specific permission, check it
@@ -274,6 +284,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
       return {
         ...item,
+        // Don't show separator on the first visible item (nothing above it to separate from)
+        showSeparatorBefore: index === 0 ? false : item.showSeparatorBefore,
         items: filteredSubItems,
         isActive: pathname === item.url || filteredSubItems?.some(subItem => isUrlActive(subItem.url)),
       }

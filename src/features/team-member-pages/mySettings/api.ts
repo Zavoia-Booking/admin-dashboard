@@ -68,3 +68,12 @@ export const uploadTeamMemberProfileImage = async (file: File): Promise<UploadPr
   );
   return response.data;
 };
+
+export interface LeaveOrganisationResponse {
+  message: string;
+}
+
+export const leaveOrganisationApi = async (): Promise<LeaveOrganisationResponse> => {
+  const response = await apiClient().post<LeaveOrganisationResponse>('/auth/account/leave-organisation');
+  return response.data;
+};

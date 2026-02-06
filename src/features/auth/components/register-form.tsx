@@ -244,11 +244,13 @@ export function RegisterForm() {
                 <PasswordStrength password={watch('password')} variant="panel" />
               </PopoverContent>
             </Popover>
-            {pwInteracted && (
-              <div className="mt-2">
+            <div className="mt-2 h-8">
+              {pwInteracted ? (
                 <PasswordStrength password={watch('password')} variant="bar" />
-              </div>
-            )}
+              ) : (
+                <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
+              )}
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-3 pt-4 md:pt-6 px-6 md:px-8 pb-4 md:pb-6">

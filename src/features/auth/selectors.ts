@@ -18,7 +18,11 @@ export const selectTeamInvitationError = (s: { auth: AuthState }) => s.auth.team
 export const selectMemberRegistrationError = (s: { auth: AuthState }) => s.auth.memberRegistrationError;
 export const selectIsMemberRegistrationLoading = (s: { auth: AuthState }) => s.auth.isMemberRegistrationLoading;
 
+export const selectAccountStatusPrompt = (s: { auth: AuthState }) => s.auth.accountStatusPrompt;
+
 // Role selectors
 export const selectUserRole = (s: { auth: AuthState }) => s.auth.user?.role as UserRole | undefined;
 export const selectIsOwner = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.OWNER;
 export const selectIsTeamMember = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.TEAM_MEMBER;
+export const selectIsDashboardUser = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.DASHBOARD_USER;
+export const selectIsLimitedAccess = (s: { auth: AuthState }) => s.auth.user?.limitedAccess === true;

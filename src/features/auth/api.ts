@@ -1,4 +1,4 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
@@ -86,5 +86,26 @@ export const completeTeamInvitationApi = async (payload: CompleteTeamInvitationP
 
 export const setPasswordApi = async (payload: { password: string }): Promise<{ message: string }> => {
     const { data } = await apiClient().post<{ message: string }>(`/auth/set-password`, payload);
+    return data;
+};
+
+// Account management APIs
+export const deactivateAccountApi = async (): Promise<AccountActionResponse> => {
+    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/deactivate`);
+    return data;
+};
+
+export const reactivateAccountApi = async (): Promise<AccountActionResponse> => {
+    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/reactivate`);
+    return data;
+};
+
+export const scheduleAccountDeletionApi = async (): Promise<AccountActionResponse> => {
+    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/delete`);
+    return data;
+};
+
+export const cancelAccountDeletionApi = async (): Promise<AccountActionResponse> => {
+    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/cancel-delete`);
     return data;
 };

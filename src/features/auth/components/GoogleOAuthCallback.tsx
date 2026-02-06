@@ -5,7 +5,7 @@ import { googleLoginAction, googleRegisterAction, linkGoogleByCodeAction } from 
 import { refreshSession } from "../../../shared/lib/http";
 import type { RootState } from "../../../app/providers/store";
 import { Spinner } from "../../../shared/components/ui/spinner";
-import { selectCurrentUser, selectAccountLinkingRequired } from "../selectors";
+import { selectCurrentUser, selectAccountLinkingRequired, selectAccountStatusPrompt } from "../selectors";
 
 export default function GoogleOAuthCallback() {
   const dispatch = useDispatch();
@@ -17,6 +17,7 @@ export default function GoogleOAuthCallback() {
   const businessSelection = useSelector((s: RootState) => s.auth.businessSelectionRequired);
   const isAccountLinkingModalOpen = useSelector((s: RootState) => (s as any).auth.isAccountLinkingModalOpen);
   const accountLinkingRequired = useSelector(selectAccountLinkingRequired);
+  const accountStatusPrompt = useSelector(selectAccountStatusPrompt);
   const user = useSelector(selectCurrentUser);
   
   // Use sessionStorage to track if we've processed the OAuth code (persists across remounts)
@@ -86,8 +87,8 @@ export default function GoogleOAuthCallback() {
   }, [dispatch, navigate, location.search]);
 
   useEffect(() => {
-    // Don't redirect if business selection or account linking is required (wait for modal)
-    if (businessSelection || isAccountLinkingModalOpen) {
+    // Don't redirect if business selection, account linking, or account status prompt is active (wait for modal/dialog)
+    if (businessSelection || isAccountLinkingModalOpen || accountStatusPrompt) {
       return;
     }
     
@@ -121,7 +122,7 @@ export default function GoogleOAuthCallback() {
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [isAuthenticated, isLoading, navigate, businessSelection, isAccountLinkingModalOpen, user]);
+  }, [isAuthenticated, isLoading, navigate, businessSelection, isAccountLinkingModalOpen, accountStatusPrompt, user]);
 
   // Handle authentication errors - redirect back to appropriate page
   useEffect(() => {
