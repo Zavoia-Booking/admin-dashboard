@@ -6,8 +6,13 @@ export const getCurrentBusinessApi = async (): Promise<{ business: Business }> =
   return data;
 };
 
-export const updateBusinessApi = async (updateData: UpdateBusinessDTO): Promise<{ message: string }> => {
-  const { data } = await apiClient().post<{ message: string }>('/business/update', updateData);
+export interface UpdateBusinessResponse {
+  message: string;
+  shouldRedirectToMarketplace?: boolean;
+}
+
+export const updateBusinessApi = async (updateData: UpdateBusinessDTO): Promise<UpdateBusinessResponse> => {
+  const { data } = await apiClient().post<UpdateBusinessResponse>('/business/update', updateData);
   return data;
 };
 

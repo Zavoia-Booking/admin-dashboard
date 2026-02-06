@@ -43,6 +43,10 @@
         "profile": "Profile",
         "portfolio": "Portfolio",
         "reviews": "Reviews"
+      },
+      "mySettings": {
+        "profile": "Profile",
+        "advanced": "Advanced Settings"
       }
     }
   },

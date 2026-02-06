@@ -464,72 +464,79 @@ export function LocationAssignmentsView() {
     );
   }, [managingMemberId, selectedLocation]);
 
-  // Transform locations for list panel
+  // Transform locations for list panel (no subtitle for remote locations with no address)
   const listItems: ListItem[] = useMemo(() => {
     return filteredLocations.map((location: LocationType) => ({
       id: location.id,
       title: location.name,
-      subtitle: location.address,
+      subtitle:
+        !location.isRemote && location.address
+          ? location.address
+          : undefined,
       badges: [],
     }));
   }, [filteredLocations]);
 
   // Custom render for location items
   const renderLocationItem = useCallback(
-    (item: ListItem, isSelected: boolean) => (
-      <button
-        onClick={() => handleSelectLocation(Number(item.id))}
-        className={cn(
-          "group relative cursor-pointer flex items-start gap-3 w-full px-2 py-3 pr-4 rounded-lg border text-left",
-          "focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-          isSelected
-            ? "border-border-strong bg-white dark:bg-surface shadow-xs"
-            : "border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]",
-        )}
-      >
-        {/* Selection indicator */}
-        <div className="flex-shrink-0 mt-2.5">
-          <div
-            className={cn(
-              "h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center",
-              isSelected
-                ? "border-primary bg-primary"
-                : "border-border-strong group-hover:border-primary",
-            )}
-          >
-            {isSelected && (
-              <svg
-                className="h-3.5 w-3.5 text-white"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={3}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-            )}
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 min-w-0 flex flex-col gap-1">
-          <div className="font-semibold text-sm text-foreground-1 truncate">
-            {searchTerm ? highlightMatches(item.title, searchTerm) : item.title}
-          </div>
-          {item.subtitle && (
-            <div className="text-xs text-muted-foreground truncate">
-              {searchTerm
-                ? highlightMatches(item.subtitle, searchTerm)
-                : item.subtitle}
-            </div>
+    (item: ListItem, isSelected: boolean) => {
+      const hasSubtitle = Boolean(item.subtitle);
+      return (
+        <button
+          onClick={() => handleSelectLocation(Number(item.id))}
+          className={cn(
+            "group relative cursor-pointer flex gap-3 w-full px-2 py-3 pr-4 rounded-lg border text-left",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+            hasSubtitle ? "items-start" : "items-center",
+            isSelected
+              ? "border-border-strong bg-white dark:bg-surface shadow-xs"
+              : "border-border bg-white dark:bg-surface hover:border-border-strong hover:bg-surface-hover active:scale-[0.99]",
           )}
-        </div>
-      </button>
-    ),
+        >
+          {/* Selection indicator - align with first line; no extra top when no subtitle */}
+          <div className={cn("flex-shrink-0", hasSubtitle && "mt-2.5")}>
+            <div
+              className={cn(
+                "h-4.5 w-4.5 rounded-full border-2 flex items-center justify-center",
+                isSelected
+                  ? "border-primary bg-primary"
+                  : "border-border-strong group-hover:border-primary",
+              )}
+            >
+              {isSelected && (
+                <svg
+                  className="h-3.5 w-3.5 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              )}
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 min-w-0 flex flex-col gap-1">
+            <div className="font-semibold text-sm text-foreground-1 truncate">
+              {searchTerm ? highlightMatches(item.title, searchTerm) : item.title}
+            </div>
+            {item.subtitle && (
+              <div className="text-xs text-muted-foreground truncate">
+                {searchTerm
+                  ? highlightMatches(item.subtitle, searchTerm)
+                  : item.subtitle}
+              </div>
+            )}
+          </div>
+        </button>
+      );
+    },
     [handleSelectLocation, searchTerm],
   );
 

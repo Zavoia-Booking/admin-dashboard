@@ -18,12 +18,18 @@ function* handleFetchCurrentBusiness(): Generator<any, void, any> {
 
 function* handleUpdateBusiness(action: ActionType<typeof updateBusinessAction.request>): Generator<any, void, any> {
   try {
-    const response: { message: string } = yield call(updateBusinessApi, action.payload);
-    yield put(updateBusinessAction.success({ message: response.message }));
+    const response = yield call(updateBusinessApi, action.payload);
+    yield put(updateBusinessAction.success({
+      message: response.message,
+      shouldRedirectToMarketplace: response.shouldRedirectToMarketplace,
+    }));
     toast.success('Business information updated successfully');
     // Refresh the business data and current user (for updated business phone/email)
     yield put(fetchCurrentBusinessAction.request());
     yield put(fetchCurrentUserAction.request());
+    if (response.shouldRedirectToMarketplace) {
+      window.location.href = '/marketplace?tab=profile#industry';
+    }
   } catch (error: any) {
     const message = error?.response?.data?.message || error?.message || 'Failed to update business';
     yield put(updateBusinessAction.failure({ message }));

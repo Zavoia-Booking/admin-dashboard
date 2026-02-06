@@ -5,6 +5,7 @@ import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
+import AccountStatusPromptDialog from './features/auth/components/AccountStatusPromptDialog'
 import { Spinner } from './shared/components/ui/spinner'
 
 // Lazy-loaded pages (each route becomes a separate chunk)
@@ -90,6 +91,7 @@ function App() {
       <AccountLinkingModal />
       <BusinessSelectorModal />
       <AccountLinkingRequiredModal />
+      <AccountStatusPromptDialog />
     </BrowserRouter>
   )
 }

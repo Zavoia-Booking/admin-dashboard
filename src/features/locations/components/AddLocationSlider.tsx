@@ -40,6 +40,16 @@ interface AddLocationSliderProps {
   onClose: () => void;
 }
 
+// Default timezone for new locations: use browser timezone so physical locations aren't saved as UTC
+const getDefaultTimezone = () => {
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return tz && typeof tz === 'string' ? tz : 'UTC';
+  } catch {
+    return 'UTC';
+  }
+};
+
 const defaultValues: NewLocationPayload = {
   isRemote: false,
   name: '',
@@ -48,7 +58,7 @@ const defaultValues: NewLocationPayload = {
   phone: '',
   description: '',
   workingHours: defaultWorkingHours,
-  timezone: 'UTC',
+  timezone: getDefaultTimezone(),
   open247: false,
   teamMemberIds: [],
   serviceIds: [],

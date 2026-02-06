@@ -1,5 +1,5 @@
 import * as actions from "./actions";
-import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal, setMemberRegistrationLoadingAction, checkTeamInvitationAction, completeTeamInvitationAction } from "./actions";
+import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal, setMemberRegistrationLoadingAction, checkTeamInvitationAction, completeTeamInvitationAction, showAccountStatusPromptAction, clearAccountStatusPromptAction } from "./actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -30,6 +30,7 @@ const initialState: AuthState = {
   teamInvitationStatus: null,
   teamInvitationData: null,
   teamInvitationError: null,
+  accountStatusPrompt: null,
 };
 
 export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialState, action: Actions) => {
@@ -459,6 +460,15 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(actions.resetPasswordAction.failure): {
       return { ...state, isLoading: false, error: action.payload.message };
+    }
+
+    // Account status prompt handlers
+    case getType(showAccountStatusPromptAction): {
+      return { ...state, accountStatusPrompt: { type: action.payload.type } };
+    }
+
+    case getType(clearAccountStatusPromptAction): {
+      return { ...state, accountStatusPrompt: null };
     }
 
     default:

@@ -26,8 +26,10 @@ export interface ItemCardAction {
 
 export interface ItemCardBadge {
   label: string;
-  count: number;
+  count?: number;
   icon?: LucideIcon;
+  /** 'info' uses info color (e.g. for "Remote location"); default is gray secondary */
+  variant?: "default" | "info";
 }
 
 export interface ItemCardProps {
@@ -44,6 +46,8 @@ export interface ItemCardProps {
   variant?: "default" | "compact";
   thumbnail?: React.ReactNode;
   bottomActions?: React.ReactNode;
+  /** When "secondaryOnly", skip the primary metadata row and show all metadata in the single row below */
+  metadataLayout?: "default" | "secondaryOnly";
 }
 
 export function ItemCard({
@@ -60,8 +64,11 @@ export function ItemCard({
   variant = "default",
   thumbnail,
   bottomActions,
+  metadataLayout = "default",
 }: ItemCardProps) {
-  const hasSecondaryMetadata = metadata.length > 0;
+  const showPrimaryRow = metadataLayout === "default" && (metadata.length > 0 || price !== undefined);
+  const secondaryItems = metadataLayout === "secondaryOnly" ? metadata : metadata.slice(1);
+  const hasSecondaryRow = metadataLayout === "secondaryOnly" ? metadata.length > 0 : metadata.length > 1;
 
   return (
     <div
@@ -162,9 +169,10 @@ export function ItemCard({
             {badges.map((badge, index) => (
               <Badge
                 key={index}
-                variant="secondary"
+                variant={badge.variant === "info" ? "default" : "secondary"}
                 className={cn(
                   "font-medium",
+                  badge.variant === "info" && "bg-info-bg text-info border border-info-border hover:bg-info-bg/80",
                   variant === "default" ? "text-xs" : "text-[10px]",
                   variant === "default" ? "h-8 w-fit py-2 px-3" : "h-2.5 w-2.5",
                 )}
@@ -177,7 +185,7 @@ export function ItemCard({
                     )}
                   />
                 )}
-                {badge.count} {badge.label}
+                {badge.count !== undefined ? `${badge.count} ${badge.label}` : badge.label}
               </Badge>
             ))}
           </div>
@@ -185,8 +193,8 @@ export function ItemCard({
 
         {/* Metadata */}
         <div className="mt-auto space-y-3">
-          {/* Primary metadata row (duration/price) */}
-          {(metadata.length > 0 || price !== undefined) && (
+          {/* Primary metadata row (duration/price) - skipped when metadataLayout is secondaryOnly */}
+          {showPrimaryRow && (
             <div className="flex items-center justify-between pb-1">
               {metadata.length > 0 && metadata[0] && (
                 <div
@@ -250,14 +258,14 @@ export function ItemCard({
           )}
 
           {/* Secondary metadata (locations, team members, etc.) */}
-          {hasSecondaryMetadata && metadata.length > 1 && (
+          {hasSecondaryRow && (
             <div
               className={cn(
                 "flex flex-wrap items-center gap-3 text-foreground-3 dark:text-foreground-2 pt-3 border-t border-border-subtle",
                 variant === "default" ? "text-xs" : "text-[10px]",
               )}
             >
-              {metadata.slice(1).map((item, index) => (
+              {secondaryItems.map((item, index) => (
                 <div key={index} className="flex items-center gap-1.5">
                   {item.icon && (
                     <item.icon

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Check, Lock } from 'lucide-react';
+import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Check, Lock, Info, LogOut } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -8,18 +8,26 @@ import CurrencySelect from '../../../shared/components/common/CurrencySelect';
 import FormSectionHeader from '../../../shared/components/forms/FormSectionHeader';
 import TextField from '../../../shared/components/forms/fields/TextField';
 import TextareaField from '../../../shared/components/forms/fields/TextareaField';
+import OptionSelect from '../../../shared/components/common/OptionSelect';
 import { uploadBusinessLogo } from '../api';
 import GoogleAccountManager from './GoogleAccountManager';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
-import { getCurrentBusinessSelector, getBusinessUpdatingSelector } from '../../business/selectors';
-import { fetchCurrentUserAction } from '../../auth/actions';
+import type { UpdateBusinessDTO } from '../../business/types';
+import { getCurrentBusinessSelector } from '../../business/selectors';
+import { fetchCurrentUserAction, logoutRequestAction } from '../../auth/actions';
 import { setPasswordApi } from '../../auth/api';
 import { translateMessageCode } from '../../../shared/utils/error';
+import { industryApi } from '../../../shared/api/industry.api';
+import type { Industry } from '../../../shared/types/industry';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
+
+const toTitleCase = (s: string) =>
+  s.replace(/\b\w/g, (c) => c.toUpperCase());
 
 interface BusinessFormData {
   businessName: string;
   description: string;
-  industry: string;
+  industryId: number | null;
   businessEmail: string;
   businessPhone: string;
   timeZone: string;
@@ -35,7 +43,7 @@ interface BusinessFormData {
 const initialFormData: BusinessFormData = {
   businessName: '',
   description: '',
-  industry: '',
+  industryId: null,
   businessEmail: '',
   businessPhone: '',
   timeZone: 'America/New_York',
@@ -48,14 +56,32 @@ const initialFormData: BusinessFormData = {
   logoKey: null,
 };
 
-const BusinessProfile: React.FC = () => {
+/** Fields that are sent in the business update payload - used for dirty check */
+const getUpdatePayloadSnapshot = (data: BusinessFormData) => ({
+  businessName: data.businessName,
+  description: data.description ?? '',
+  industryId: data.industryId,
+  businessEmail: data.businessEmail,
+  businessPhone: data.businessPhone,
+  businessCurrency: data.businessCurrency,
+  instagramUrl: data.instagramUrl,
+  facebookUrl: data.facebookUrl,
+});
+
+interface BusinessProfileProps {
+  onDirtyChange?: (dirty: boolean) => void;
+}
+
+const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const dispatch = useDispatch();
+  const isMobile = useIsMobile();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
-  const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   
   const [formData, setFormData] = useState<BusinessFormData>(initialFormData);
+  const [originalSnapshot, setOriginalSnapshot] = useState<ReturnType<typeof getUpdatePayloadSnapshot> | null>(null);
+  const [industries, setIndustries] = useState<Industry[]>([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   
   // Password setup state
@@ -68,13 +94,24 @@ const BusinessProfile: React.FC = () => {
     dispatch(fetchCurrentBusinessAction.request());
   }, [dispatch]);
 
-  // Populate form when business data is loaded
+  // Fetch industries on mount
+  useEffect(() => {
+    industryApi
+      .getAll()
+      .then(setIndustries)
+      .catch((err) => {
+        console.error('Failed to fetch industries:', err);
+        toast.error('Failed to load industries');
+      });
+  }, []);
+
+  // Populate form when business data is loaded (and set baseline for dirty check)
   useEffect(() => {
     if (currentBusiness) {
-      setFormData({
+      const data = {
         businessName: currentBusiness.name || '',
         description: currentBusiness.description || '',
-        industry: currentBusiness.industry?.name || '',
+        industryId: currentBusiness.industry?.id ?? null,
         businessEmail: currentBusiness.email || '',
         businessPhone: currentBusiness.phone || '',
         timeZone: currentBusiness.timezone || 'America/New_York',
@@ -85,9 +122,30 @@ const BusinessProfile: React.FC = () => {
         bookingSlug: currentBusiness.uuid || '',
         logo: currentBusiness.logo || null,
         logoKey: null,
-      });
+      };
+      setFormData(data);
+      setOriginalSnapshot(getUpdatePayloadSnapshot(data));
     }
   }, [currentBusiness]);
+
+  const isDirty = useMemo(() => {
+    if (originalSnapshot == null) return false;
+    const current = getUpdatePayloadSnapshot(formData);
+    return (
+      current.businessName !== originalSnapshot.businessName ||
+      current.description !== originalSnapshot.description ||
+      current.industryId !== originalSnapshot.industryId ||
+      current.businessEmail !== originalSnapshot.businessEmail ||
+      current.businessPhone !== originalSnapshot.businessPhone ||
+      current.businessCurrency !== originalSnapshot.businessCurrency ||
+      current.instagramUrl !== originalSnapshot.instagramUrl ||
+      current.facebookUrl !== originalSnapshot.facebookUrl
+    );
+  }, [formData, originalSnapshot]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -137,7 +195,7 @@ const BusinessProfile: React.FC = () => {
     if (e) e.preventDefault();
     
     // Prepare update data (logo is handled separately via upload endpoint)
-    const updateData = {
+    const updateData: UpdateBusinessDTO = {
       name: formData.businessName,
       description: formData.description,
       email: formData.businessEmail,
@@ -146,7 +204,9 @@ const BusinessProfile: React.FC = () => {
       instagramUrl: formData.instagramUrl,
       facebookUrl: formData.facebookUrl,
     };
-    
+    if (formData.industryId != null) {
+      updateData.industryId = formData.industryId;
+    }
     dispatch(updateBusinessAction.request(updateData));
   };
 
@@ -265,16 +325,43 @@ const BusinessProfile: React.FC = () => {
               </div>
               
               <div className="flex-1 min-w-[280px]">
-                <TextField
+                <OptionSelect
                   label="Industry"
-                  placeholder="e.g., Beauty & Wellness"
-                  value={formData.industry}
-                  onChange={(value) => setFormData(prev => ({ ...prev, industry: value }))}
-                  icon={Globe}
-                  disabled
+                  placeholder="Select industry"
+                  value={formData.industryId != null ? String(formData.industryId) : ''}
+                  onChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      industryId: value ? Number(value) : null,
+                    }))
+                  }
+                  options={industries.map((i) => ({ value: String(i.id), label: toTitleCase(i.name) }))}
                 />
               </div>
             </div>
+
+            {originalSnapshot != null && formData.industryId !== originalSnapshot.industryId && (
+              <div className="rounded-lg border border-info-border bg-info-bg dark:bg-info-bg/30 p-4 mt-1">
+                <div className="flex gap-2 mb-2">
+                  <Info className="h-4 w-4 text-info shrink-0 mt-0.5" aria-hidden />
+                  <span className="text-sm font-medium text-info">Changing your industry</span>
+                </div>
+                <ul className="space-y-2 text-sm text-foreground-2 leading-relaxed list-none pl-0">
+                  <li className="flex gap-2">
+                    <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
+                    <span>If you have an active marketplace listing, it will be temporarily set to invisible.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
+                    <span>After you save this change, go to your marketplace listing to update your industry categories and make it visible again.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
+                    <span>This keeps your business from showing in the wrong category and helps customers find you more easily.</span>
+                  </li>
+                </ul>
+              </div>
+            )}
 
             {/* Description */}
             <TextareaField
@@ -447,22 +534,21 @@ const BusinessProfile: React.FC = () => {
                 </Button>
               </div>
             </div>
+
+            {/* Log out - only on mobile; desktop has it in the sidebar */}
+            {isMobile && (
+              <div className="pt-4 mt-4 border-t border-border">
+                <button
+                  type="button"
+                  onClick={() => dispatch(logoutRequestAction.request())}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 active:bg-red-500/15 dark:hover:text-red-400 dark:hover:border-red-500/40"
+                >
+                  <LogOut className="h-4 w-4 shrink-0" />
+                  Log out
+                </button>
+              </div>
+            )}
           </div>
-        </div>
-        
-        {/* Save Button */}
-        <div className="flex justify-end gap-3 pt-4">
-          <Button 
-            type="button" 
-            variant="outline"
-            onClick={() => dispatch(fetchCurrentBusinessAction.request())}
-            disabled={isUpdating}
-          >
-            Reset Changes
-          </Button>
-          <Button type="submit" className="min-w-[140px]" disabled={isUpdating}>
-            {isUpdating ? 'Saving...' : 'Save Changes'}
-          </Button>
         </div>
       </div>
     </form>

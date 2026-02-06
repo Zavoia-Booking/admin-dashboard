@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { SectionDivider } from "../../../../shared/components/common/SectionDivider";
 import { BadgeCheck, Tag, ArrowUpRight, Info } from "lucide-react";
@@ -34,6 +34,13 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
   };
 
   const businessIndustry = industries[0];
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#industry" && sectionRef.current) {
+      sectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
 
   const SettingsLink = ({ children }: { children?: React.ReactNode }) => (
     <span
@@ -50,7 +57,7 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
   );
 
   return (
-    <div className="space-y-6">
+    <div id="industry" ref={sectionRef} className="space-y-6 scroll-mt-24">
       <SectionDivider
         title={t("industry.title")}
         className="uppercase tracking-wider text-foreground-2"

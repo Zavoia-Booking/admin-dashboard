@@ -11,6 +11,7 @@ import StepTeam from "../components/StepTeam";
 import StepLocation from "../components/StepLocation";
 import StepLaunch from "../components/StepLaunch";
 import { selectCurrentUser } from "../../auth/selectors";
+import { getHomeRouteForRole } from "../../../shared/lib/permissions";
 import { getCurrentBusinessSelector, getBusinessLoadingSelector } from "../../business/selectors";
 import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors";
 import { fetchCurrentBusinessAction } from "../../business/actions";
@@ -254,10 +255,10 @@ const SetupWizardPage: React.FC = () => {
     }
   }, [dispatch, user?.wizardCompleted]);
 
-  // Team members should never see the wizard - redirect to dashboard
+  // Non-owners should never see the wizard - redirect to their home route
   useEffect(() => {
     if (user && user.role !== 'owner') {
-      navigate('/dashboard', { replace: true });
+      navigate(getHomeRouteForRole(user.role), { replace: true });
     }
   }, [user, navigate]);
 

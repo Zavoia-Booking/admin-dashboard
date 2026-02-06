@@ -144,10 +144,14 @@ export const MapView: React.FC<MapViewProps> = ({
       );
     }
 
-    // Call onMapLoad callback
+    // Call onMapLoad callback and enforce our center/zoom (style JSON can override with its own center/zoom when it loads)
     map.current.on('load', () => {
-      if (map.current && initOnMapLoad) {
-        initOnMapLoad(map.current);
+      if (map.current) {
+        map.current.setCenter(initCenter);
+        map.current.setZoom(initZoom);
+        if (initOnMapLoad) {
+          initOnMapLoad(map.current);
+        }
       }
     });
 
@@ -179,31 +183,37 @@ export const MapView: React.FC<MapViewProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update marker separately
+  // Update marker separately – add when map is ready so marker shows when opening from geocode (async)
   useEffect(() => {
     if (!map.current || !marker) return;
 
-    // Remove existing marker if it exists
-    if (markerRef.current) {
-      markerRef.current.remove();
-    }
+    const addMarker = () => {
+      if (!map.current) return;
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+      markerRef.current = new mapboxgl.Marker({
+        color: marker.color || '#FF0000',
+        draggable: marker.draggable || false,
+      })
+        .setLngLat(marker.coordinates)
+        .addTo(map.current);
 
-    // Add new marker
-    markerRef.current = new mapboxgl.Marker({
-      color: marker.color || '#FF0000',
-      draggable: marker.draggable || false,
-    })
-      .setLngLat(marker.coordinates)
-      .addTo(map.current);
+      if (marker.draggable && onMarkerDragEnd) {
+        markerRef.current.on('dragend', () => {
+          if (markerRef.current) {
+            const lngLat = markerRef.current.getLngLat();
+            onMarkerDragEnd([lngLat.lng, lngLat.lat]);
+          }
+        });
+      }
+    };
 
-    // Add dragend event listener if marker is draggable
-    if (marker.draggable && onMarkerDragEnd) {
-      markerRef.current.on('dragend', () => {
-        if (markerRef.current) {
-          const lngLat = markerRef.current.getLngLat();
-          onMarkerDragEnd([lngLat.lng, lngLat.lat]);
-        }
-      });
+    if (map.current.isStyleLoaded && map.current.isStyleLoaded()) {
+      addMarker();
+    } else {
+      map.current.once('load', addMarker);
     }
 
     return () => {

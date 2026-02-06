@@ -3,7 +3,7 @@ import { useSelector } from "react-redux";
 import { selectIsAuthenticated } from "../selectors";
 import AuthGate from "./AuthGate";
 import { Navigate, useLocation } from "react-router-dom";
-import { Permission, getRoutePermission } from "../../../shared/lib/permissions";
+import { Permission, getRoutePermission, getHomeRouteForRole } from "../../../shared/lib/permissions";
 import { usePermissions } from "../../../shared/hooks/usePermissions";
 
 type Props = { 
@@ -14,7 +14,8 @@ type Props = {
    */
   requiredPermission?: Permission;
   /**
-   * Where to redirect if user lacks permission (default: /calendar)
+   * Where to redirect if user lacks permission.
+   * If not provided, uses the role-appropriate home route (e.g. /dashboard for owner, /my-profile for dashboard_user).
    */
   unauthorizedRedirect?: string;
 };
@@ -36,11 +37,11 @@ type Props = {
 export default function ProtectedRoute({ 
   element, 
   requiredPermission,
-  unauthorizedRedirect = "/calendar" 
+  unauthorizedRedirect,
 }: Props) {
   const isAuthed = useSelector(selectIsAuthenticated);
   const location = useLocation();
-  const { hasPermission, user } = usePermissions();
+  const { hasPermission, user, role } = usePermissions();
 
   // If not authenticated, show login
   if (!isAuthed) {
@@ -56,11 +57,13 @@ export default function ProtectedRoute({
 
   // If there's a permission requirement and user lacks it, redirect
   if (permissionToCheck && user && !hasPermission(permissionToCheck)) {
-    // Redirect to calendar (or custom redirect) with a message
+    // Use explicit redirect or fall back to the role-appropriate home route
+    const redirectTo = unauthorizedRedirect || getHomeRouteForRole(role);
+
     return (
       <AuthGate>
         <Navigate 
-          to={unauthorizedRedirect} 
+          to={redirectTo} 
           replace 
           state={{ 
             from: location,

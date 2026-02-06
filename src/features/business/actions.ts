@@ -11,6 +11,6 @@ export const updateBusinessAction = createAsyncAction(
   'business/UPDATE_BUSINESS_REQUEST',
   'business/UPDATE_BUSINESS_SUCCESS',
   'business/UPDATE_BUSINESS_FAILURE'
-)<UpdateBusinessDTO, { message: string }, { message: string }>();
+)<UpdateBusinessDTO, { message: string; shouldRedirectToMarketplace?: boolean }, { message: string }>();
 
 
