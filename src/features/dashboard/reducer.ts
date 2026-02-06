@@ -1,65 +1,35 @@
-import {
-  wizardInit, wizardSetStep, wizardNext, wizardPrev, wizardUpdateData, wizardSaveRequest, wizardSaveSuccess,
-  wizardSaveFailure, wizardCompleteRequest, wizardCompleteSuccess, wizardCompleteFailure
-} from "./actions";
 import { getType } from "typesafe-actions";
+import { fetchDashboardDataAction, type DashboardApiResponse } from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 
-type WizardState = {
-  currentStep: number;
-  totalSteps: number;
-  data: any;
+type DashboardState = {
+  data: DashboardApiResponse | null;
   isLoading: boolean;
   error: string | null;
 };
 
-const initialState: WizardState = {
-  currentStep: 1,
-  totalSteps: 7,
-  data: {},
+const initialState: DashboardState = {
+  data: null,
   isLoading: false,
   error: null,
 };
 
-export default function setupWizardReducer(state: WizardState = initialState, action: any) {
+export default function dashboardReducer(state: DashboardState = initialState, action: any): DashboardState {
   switch (action.type) {
     // Reset state on logout to prevent stale data across accounts
     case getType(logoutRequestAction.success):
       return { ...initialState };
 
-    case wizardInit.type: {
-      return { ...initialState };
-    }
-    case wizardSetStep.type: {
-      const next = Math.min(Math.max(action.payload, 1), state.totalSteps);
-      return { ...state, currentStep: next };
-    }
-    case wizardNext.type: {
-      const next = Math.min(state.currentStep + 1, state.totalSteps);
-      return { ...state, currentStep: next };
-    }
-    case wizardPrev.type: {
-      const prev = Math.max(state.currentStep - 1, 1);
-      return { ...state, currentStep: prev };
-    }
-    case wizardUpdateData.type: {
-      return { ...state, data: { ...state.data, ...action.payload } };
-    }
-    case wizardSaveRequest.type:
-    case wizardCompleteRequest.type: {
+    case getType(fetchDashboardDataAction.request):
       return { ...state, isLoading: true, error: null };
-    }
-    case wizardSaveSuccess.type:
-    case wizardCompleteSuccess.type: {
-      return { ...state, isLoading: false };
-    }
-    case wizardSaveFailure.type:
-    case wizardCompleteFailure.type: {
-      return { ...state, isLoading: false, error: action.payload };
-    }
+
+    case getType(fetchDashboardDataAction.success):
+      return { ...state, isLoading: false, data: action.payload, error: null };
+
+    case getType(fetchDashboardDataAction.failure):
+      return { ...state, isLoading: false, error: action.payload.message };
+
     default:
       return state;
   }
 }
-
-

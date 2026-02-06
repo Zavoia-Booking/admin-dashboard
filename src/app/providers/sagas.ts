@@ -14,6 +14,7 @@ import { marketplaceSaga } from "../../features/marketplace/saga";
 import { customersSaga } from "../../features/customers/saga";
 import { bundlesSaga } from "../../features/bundles/saga";
 import { categoriesSaga } from "../../features/categories/saga";
+import { dashboardSaga } from "../../features/dashboard/saga";
 
 export function* rootSaga() {
     yield all([
@@ -31,5 +32,6 @@ export function* rootSaga() {
         customersSaga(),
         bundlesSaga(),
         categoriesSaga(),
+        dashboardSaga(),
     ]);
 }

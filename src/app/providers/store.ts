@@ -15,6 +15,7 @@ import { MarketplaceReducer } from "../../features/marketplace/reducer";
 import { CustomersReducer } from "../../features/customers/reducer";
 import { BundlesReducer } from "../../features/bundles/reducer";
 import { CategoriesReducer } from "../../features/categories/reducer";
+import dashboardReducer from "../../features/dashboard/reducer";
 // --- create saga middleware ---
 const sagaMiddleware = createSagaMiddleware();
 
@@ -34,6 +35,7 @@ export const store = configureStore({
     customers: CustomersReducer,
     bundles: BundlesReducer,
     categories: CategoriesReducer,
+    dashboard: dashboardReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

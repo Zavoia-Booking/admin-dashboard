@@ -63,6 +63,7 @@ function App() {
 
           {/* Main */}
           <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
+          <Route path="/dashboard/:locationId" element={<ProtectedRoute element={<DashboardPage />} />} />
           <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
           <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
           <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
