@@ -1,16 +1,14 @@
-import type { Appointment } from "../../shared/types/calendar.ts";
+import type {
+    Appointment,
+    LocationContextData,
+    DaySummary,
+    DayDataResponse,
+    CalendarDayFilters,
+} from "../../shared/types/calendar.ts";
 
-export type CalendarViewState = {
-    appointments: Array<Appointment>,
-    addFormOpen: boolean,
-    editForm: {
-        open: boolean,
-        item: Appointment | null
-    },
-    viewType: AppointmentViewType,
-    viewMode: AppointmentViewMode,
-    filters: CalendarFilters,
-}
+// ─────────────────────────────────────────────────────────────
+// View Enums
+// ─────────────────────────────────────────────────────────────
 
 export enum AppointmentViewMode {
     WEEK = 'WEEK',
@@ -19,10 +17,19 @@ export enum AppointmentViewMode {
 }
 
 export enum AppointmentViewType {
-    LIST='LIST',
-    GRID='GRID',
+    LIST = 'LIST',
+    GRID = 'GRID',
 }
 
+// ─────────────────────────────────────────────────────────────
+// Filters
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Legacy filter type – kept for backward compatibility with existing
+ * components during migration. Will be removed once all views are
+ * migrated to the new calendar flow.
+ */
 export type CalendarFilters = {
     location: string,
     teamMember: string,
@@ -33,5 +40,50 @@ export type CalendarFilters = {
     phoneNumber: string,
     startDate: Date,
     endDate: Date,
-    selectedDate: Date
+    selectedDate: Date,
+}
+
+// ─────────────────────────────────────────────────────────────
+// Calendar State
+// ─────────────────────────────────────────────────────────────
+
+export type CalendarViewState = {
+    // --- Location-first design ---
+    selectedLocationId: number | null;
+    locationContext: LocationContextData | null;
+    locationContextLoading: boolean;
+
+    // --- Summary data (month/week overview, keyed by "YYYY-MM-DD") ---
+    summary: Record<string, DaySummary>;
+    summaryLoading: boolean;
+
+    // --- Day data (full day view) ---
+    dayData: DayDataResponse | null;
+    dayDataLoading: boolean;
+
+    // --- Day filters (for the calendar/day endpoint) ---
+    dayFilters: CalendarDayFilters;
+
+    // --- Selected appointment detail ---
+    selectedAppointment: Appointment | null;
+    selectedAppointmentLoading: boolean;
+
+    // --- UI drawers / forms ---
+    addFormOpen: boolean;
+    editForm: {
+        open: boolean;
+        item: Appointment | null;
+    };
+    blockFormOpen: boolean;
+
+    // --- View controls ---
+    viewType: AppointmentViewType;
+    viewMode: AppointmentViewMode;
+
+    // --- Date navigation ---
+    selectedDate: Date;
+
+    // --- Legacy (kept during migration, will be removed) ---
+    appointments: Array<Appointment>;
+    filters: CalendarFilters;
 }

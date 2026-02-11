@@ -63,9 +63,11 @@ export const getWeekDays = (currentWeekStart: Date) => {
 
 export const STATUS_LIST = [
     { value: 'all', label: 'All statuses' },
+    { value: 'confirmed', label: 'Confirmed' },
     { value: 'completed', label: 'Completed' },
     { value: 'pending', label: 'Pending' },
-    { value: 'no-show', label: 'No Show' }
+    { value: 'no_show', label: 'No Show' },
+    { value: 'cancelled', label: 'Cancelled' },
 ];
 
 
@@ -143,7 +145,7 @@ export const getViewItemList = (viewMode:AppointmentViewMode, currentWeekStart: 
 };
 
 
-export const geTabItemInfo = (viewMode: AppointmentViewMode, selectedDate:Date, item:Date) => {
+export const getTabItemInfo = (viewMode: AppointmentViewMode, selectedDate:Date, item:Date) => {
     let isSelected = false;
     let displayText = '';
     let subText = '';
@@ -236,6 +238,33 @@ export const getMonthRange = (selectedDate: Date): {startDate: Date, endDate: Da
     end.setHours(0, 0, 1, 0);
 
     return { startDate: start, endDate:end };
+}
+
+/**
+ * Given a selected date and view mode, returns the ISO date strings
+ * for the start and end of the visible range.
+ * Used by sagas to determine which date range to fetch from the API.
+ */
+export const getDateRangeForMode = (selectedDate: Date, viewMode: AppointmentViewMode): { startDate: string; endDate: string } => {
+    if (viewMode === AppointmentViewMode.DAY) {
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        return { startDate: dateStr, endDate: dateStr };
+    }
+
+    if (viewMode === AppointmentViewMode.WEEK) {
+        const { startDate, endDate } = getWeekRange(selectedDate);
+        return {
+            startDate: startDate.toISOString().split('T')[0],
+            endDate: endDate.toISOString().split('T')[0],
+        };
+    }
+
+    // MONTH
+    const { startDate, endDate } = getMonthRange(selectedDate);
+    return {
+        startDate: startDate.toISOString().split('T')[0],
+        endDate: endDate.toISOString().split('T')[0],
+    };
 }
 
 export const getFilterPayload = (filters: CalendarFilters): Record<string, number|string> => {

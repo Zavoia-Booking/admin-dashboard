@@ -3,13 +3,13 @@ import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCalendarAppointments, toggleAddForm, toggleEditFormAction } from "../actions.ts";
+import { toggleAddForm, toggleEditFormAction } from "../actions";
 import { AppointmentList } from "../components/AppointmentList.tsx";
 import {
   getAddFormSelector,
-  getCalendarAppointmentsSelector,
-  getEditFormSelector, getFiltersSelectedDate, getViewModeSelector,
-  getViewTypeSelector
+  getEditFormSelector,
+  getViewModeSelector,
+  getViewTypeSelector,
 } from "../selectors.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Filters } from "../components/Filters.tsx";
@@ -20,6 +20,8 @@ import { getServicesAction } from "../../services/actions.ts";
 import { listLocationsAction } from "../../locations/actions.ts";
 import { listTeamMembersAction } from "../../teamMembers/actions.ts";
 import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
+import { LocationSelector } from "../components/LocationSelector.tsx";
+import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -27,14 +29,12 @@ const Calendar = () => {
   const editForm = useSelector(getEditFormSelector);
   const viewType: AppointmentViewType = useSelector(getViewTypeSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
-  const appointments = useSelector(getCalendarAppointmentsSelector);
-  const selectedDate = useSelector(getFiltersSelectedDate);
 
   useEffect(() => {
-    // Fetch calendar data - AccessGuard will handle blocking if needed
-    dispatch(fetchCalendarAppointments.request())
-    dispatch(listTeamMembersAction.request())
+    // Fetch supporting data - locations needed for LocationSelector,
+    // team members + services for filters/forms
     dispatch(listLocationsAction.request())
+    dispatch(listTeamMembersAction.request())
     dispatch(getServicesAction.request())
   }, [dispatch]);
 
@@ -50,24 +50,20 @@ const Calendar = () => {
     <AppLayout>
       <BusinessSetupGate>
         <AccessGuard>
-          <Filters appointments={appointments}/>
+          {/* Location Selector - primary context for all calendar data */}
+          <LocationSelector />
+
+          <Filters />
           <DateTabs/>
 
           {/* List View Content */}
           {viewType === AppointmentViewType.LIST && (
-              <AppointmentList
-                  viewMode={viewMode}
-                  appointments={appointments}
-              />
+              <AppointmentList />
           )}
 
-          {/*/!* Grid View - Custom Day Timeline *!/*/}
+          {/* Grid View - Custom Day Timeline */}
           {viewType === AppointmentViewType.GRID && (
-              <AppointmentGrid
-                  viewMode={viewMode}
-                  selectedDate={selectedDate}
-                  appointments={appointments}
-              />
+              <AppointmentGrid viewMode={viewMode} />
           )}
 
           {/* Add Appointment Slider */}
@@ -80,6 +76,9 @@ const Calendar = () => {
             appointment={editForm.item}
             onClose={handleCloseEditForm}
           />
+
+          {/* Block Creation Drawer */}
+          <CreateBlockDrawer />
         </AccessGuard>
       </BusinessSetupGate>
     </AppLayout>

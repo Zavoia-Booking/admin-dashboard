@@ -1,756 +1,858 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Calendar, Clock, User, MapPin, Scissors, Check, ChevronsUpDown, X } from 'lucide-react';
+import {
+  Calendar, Clock, User, Scissors, Check, ChevronsUpDown,
+  Loader2, Phone, Footprints, ShieldCheck, StickyNote, UserPlus,
+} from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Label } from '../../../shared/components/ui/label';
+import { Input } from '../../../shared/components/ui/input';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
+import { Badge } from '../../../shared/components/ui/badge';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import { useDispatch } from "react-redux";
-import { createCalendarAppointmentAction } from "../actions.ts";
-import type { LocationType } from "../../../shared/types/location.ts";
-import type { TeamMember } from "../../../shared/types/team-member.ts";
+import { useDispatch, useSelector } from 'react-redux';
+import { adminCreateAppointment, toggleAddForm } from '../actions';
+import {
+  getSelectedLocationId,
+  getLocationStaff,
+  getLocationWorkingHours,
+  getLocationOpen247,
+  getBookingSettings,
+  getSelectedDate,
+} from '../selectors';
+import { listCustomersApi, addCustomerApi } from '../../customers/api';
+import { fetchLocationFullAssignmentRequest } from '../../assignments/api';
+import { toast } from 'sonner';
+import type { Customer } from '../../../shared/types/customer';
+import type { LocationService, LocationTeamMember } from '../../assignments/types';
+import type { CalendarStaffMember, AppointmentBookingSource } from '../../../shared/types/calendar';
+
+// ─────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────
 
 interface AddAppointmentSliderProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-interface AppointmentFormData {
-  clientId: string;
-  service: string;
-  date: string;
-  time: string;
-  location: string;
-  teamMembers: string[];
+interface FormState {
+  customerId: number | null;
+  customerDisplay: { firstName: string; lastName: string; email: string; phone: string } | null;
+  serviceId: number | null;
+  date: Date | null;
+  time: string; // "HH:mm"
+  staffUserId: number | null; // null = unassigned
   notes: string;
-  isRecurring?: boolean;
-  recurrencePattern?: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-  recurrenceInterval?: number; // Only for custom
-  recurrenceIntervalUnit?: 'days' | 'weeks' | 'months' | 'years'; // Only for custom
-  recurrenceDaysOfWeek?: string[]; // For weekly
-  recurrenceEndType?: 'after' | 'onDate';
-  recurrenceEndValue?: number | string;
+  bookingSource: AppointmentBookingSource;
 }
 
-const initialFormData: AppointmentFormData = {
-  clientId: '',
-  service: '',
-  date: '',
+const initialForm: FormState = {
+  customerId: null,
+  customerDisplay: null,
+  serviceId: null,
+  date: null,
   time: '',
-  location: '',
-  teamMembers: [],
+  staffUserId: null,
   notes: '',
-  isRecurring: false,
-  recurrencePattern: 'weekly',
-  recurrenceInterval: 1,
-  recurrenceIntervalUnit: 'days',
-  recurrenceDaysOfWeek: ['MO'],
-  recurrenceEndType: 'after',
-  recurrenceEndValue: 5,
+  bookingSource: 'admin' as AppointmentBookingSource,
 };
 
+// ─────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────
+
 const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onClose }) => {
-  const [formData, setFormData] = useState<AppointmentFormData>(initialFormData);
-  const [clientOpen, setClientOpen] = useState(false);
-  const [serviceOpen, setServiceOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
-  const [hourOpen, setHourOpen] = useState(false);
-  const [minuteOpen, setMinuteOpen] = useState(false);
   const dispatch = useDispatch();
 
-  const clients: Array<any> = [];
-  const locations: Array<LocationType> = [];
-  const teamMembers: Array<TeamMember> = [];
+  // Redux state
+  const selectedLocationId = useSelector(getSelectedLocationId);
+  const locationStaff = useSelector(getLocationStaff);
+  const workingHours = useSelector(getLocationWorkingHours);
+  const open247 = useSelector(getLocationOpen247);
+  const bookingSettings = useSelector(getBookingSettings);
+  const selectedDate = useSelector(getSelectedDate);
 
-  React.useEffect(() => {
-    if (!isOpen) {
-      setFormData(initialFormData);
+  // Form state
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Customer search state
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [customerResults, setCustomerResults] = useState<Customer[]>([]);
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCreate, setQuickCreate] = useState({ firstName: '', lastName: '', phone: '', email: '' });
+  const [quickCreateSubmitting, setQuickCreateSubmitting] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Services state (loaded from assignments API)
+  const [locationServices, setLocationServices] = useState<LocationService[]>([]);
+  const [locationTeamMembers, setLocationTeamMembers] = useState<LocationTeamMember[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [serviceOpen, setServiceOpen] = useState(false);
+
+  // Staff dropdown state
+  const [staffOpen, setStaffOpen] = useState(false);
+
+  // Time picker state
+  const [hourOpen, setHourOpen] = useState(false);
+
+  // ─────────────────────────────────────────────────────────────
+  // Reset form when slider opens/closes
+  // ─────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        ...initialForm,
+        date: selectedDate || new Date(),
+      });
+      setError(null);
+      setCustomerSearch('');
+      setCustomerResults([]);
+      setShowQuickCreate(false);
+      setQuickCreate({ firstName: '', lastName: '', phone: '', email: '' });
     }
-  }, [isOpen]);
+  }, [isOpen, selectedDate]);
 
-  const services = [
-    'Haircut & Style',
-    'Hair Wash & Blow Dry',
-    'Hair Color',
-    'Hair Highlights',
-    'Deep Conditioning',
-    'Beard Trim & Style',
-    'Hair & Beard Cut',
-    'Wedding Hair Style',
-    'Scissor Cut'
-  ];
+  // ─────────────────────────────────────────────────────────────
+  // Load services at location when form opens
+  // ─────────────────────────────────────────────────────────────
 
-  const selectedClient = clients.find((client: any) => client.id === formData.clientId);
-  const selectedLocation = locations.find(location => `${location.id}` === formData.location);
-  const selectedTeamMembers = teamMembers.filter(member => formData.teamMembers.includes(`${member.id}`));
+  useEffect(() => {
+    if (isOpen && selectedLocationId) {
+      setServicesLoading(true);
+      fetchLocationFullAssignmentRequest(selectedLocationId)
+        .then((data) => {
+          setLocationServices(data.services);
+          setLocationTeamMembers(data.teamMembers);
+        })
+        .catch(() => {
+          setLocationServices([]);
+          setLocationTeamMembers([]);
+        })
+        .finally(() => setServicesLoading(false));
+    }
+  }, [isOpen, selectedLocationId]);
 
-  // Extract hour and minute from formData.time
-  const hour = formData.time ? formData.time.split(':')[0] : '00';
-  const minute = formData.time ? formData.time.split(':')[1] : '00';
+  // ─────────────────────────────────────────────────────────────
+  // Customer search (debounced)
+  // ─────────────────────────────────────────────────────────────
 
-  const handleSubmit = (event: any) => {
-    event.preventDefault();
-    // Handle form submission here
-    console.log('New appointment:', formData);
+  const searchCustomers = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setCustomerResults([]);
+      return;
+    }
+    setCustomerLoading(true);
+    try {
+      const response = await listCustomersApi({
+        search: query, // Use global search instead of filters
+        filters: [],
+        pagination: { offset: 0, limit: 10 },
+      });
+      setCustomerResults(response.data);
+    } catch {
+      setCustomerResults([]);
+    } finally {
+      setCustomerLoading(false);
+    }
+  }, []);
 
-    const payload = {
-      name:'test_name',
-      email: 'test@test.com',
-      phone: '+1 (555) 123-4567',
-      staffUserIds: [2],
-      scheduledAt:'2025-09-17',
-      serviceId: 1,
-      locationId: 1,
+  const handleCustomerSearchChange = useCallback(
+    (value: string) => {
+      setCustomerSearch(value);
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+      searchTimerRef.current = setTimeout(() => searchCustomers(value), 300);
+    },
+    [searchCustomers],
+  );
+
+  const handleSelectCustomer = useCallback((customer: Customer) => {
+    setForm((prev) => ({
+      ...prev,
+      customerId: customer.id,
+      customerDisplay: {
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+        phone: customer.phone,
+      },
+    }));
+    setCustomerOpen(false);
+    setCustomerSearch('');
+  }, []);
+
+  const handleClearCustomer = useCallback(() => {
+    setForm((prev) => ({ ...prev, customerId: null, customerDisplay: null }));
+  }, []);
+
+  // Quick create customer
+  const handleQuickCreateCustomer = useCallback(async () => {
+    if (!quickCreate.firstName.trim()) return;
+    setQuickCreateSubmitting(true);
+    try {
+      const newCustomer = await addCustomerApi({
+        firstName: quickCreate.firstName.trim(),
+        lastName: quickCreate.lastName.trim() || undefined,
+        phone: quickCreate.phone.trim() || undefined,
+        email: quickCreate.email.trim() || undefined,
+      });
+      handleSelectCustomer(newCustomer);
+      setShowQuickCreate(false);
+      setQuickCreate({ firstName: '', lastName: '', phone: '', email: '' });
+      toast.success('Customer created');
+    } catch {
+      toast.error('Failed to create customer');
+    } finally {
+      setQuickCreateSubmitting(false);
+    }
+  }, [quickCreate, handleSelectCustomer]);
+
+  // ─────────────────────────────────────────────────────────────
+  // Derived data
+  // ─────────────────────────────────────────────────────────────
+
+  const selectedService = useMemo(
+    () => locationServices.find((s) => s.serviceId === form.serviceId) ?? null,
+    [locationServices, form.serviceId],
+  );
+
+  // Get the effective duration/price for the selected service
+  const serviceDuration = selectedService
+    ? selectedService.customDuration ?? selectedService.defaultDuration
+    : 0;
+  const servicePrice = selectedService
+    ? (selectedService.customPrice ?? selectedService.defaultPrice) / 100
+    : 0;
+
+  // Eligible staff: staff at this location who can perform the selected service
+  const eligibleStaff = useMemo<CalendarStaffMember[]>(() => {
+    if (!form.serviceId || locationTeamMembers.length === 0) return locationStaff;
+    // Find which team members have services enabled for the selected service
+    const eligibleUserIds = new Set(
+      locationTeamMembers
+        .filter((tm) => tm.servicesEnabled > 0) // has at least some services
+        .map((tm) => tm.userId),
+    );
+    // For now, show all location staff since we don't have per-service-per-staff data
+    // in the LocationTeamMember summary. The backend validates eligibility on create.
+    return locationStaff.filter((s) => eligibleUserIds.has(s.id) || eligibleUserIds.size === 0);
+  }, [form.serviceId, locationStaff, locationTeamMembers]);
+
+  // Working hours for the selected date
+  const dayWorkingHours = useMemo(() => {
+    if (!form.date || !workingHours || open247) return null;
+    const dayName = form.date
+      .toLocaleDateString('en-US', { weekday: 'long' })
+      .toLowerCase() as keyof typeof workingHours;
+    return workingHours[dayName] ?? null;
+  }, [form.date, workingHours, open247]);
+
+  const isClosedDay = dayWorkingHours ? !dayWorkingHours.isOpen : false;
+
+  // Generate time slots based on slotIntervalMinutes and working hours
+  const timeSlots = useMemo(() => {
+    const interval = bookingSettings?.slotIntervalMinutes ?? 15;
+    const slots: string[] = [];
+
+    let startMinute = 0;
+    let endMinute = 24 * 60;
+
+    if (dayWorkingHours && dayWorkingHours.isOpen) {
+      const [openH, openM] = dayWorkingHours.open.split(':').map(Number);
+      const [closeH, closeM] = dayWorkingHours.close.split(':').map(Number);
+      startMinute = openH * 60 + openM;
+      endMinute = closeH * 60 + closeM;
+    } else if (open247) {
+      startMinute = 0;
+      endMinute = 24 * 60;
     }
 
-    dispatch(createCalendarAppointmentAction.request(payload))
+    for (let m = startMinute; m < endMinute; m += interval) {
+      const hh = String(Math.floor(m / 60)).padStart(2, '0');
+      const mm = String(m % 60).padStart(2, '0');
+      slots.push(`${hh}:${mm}`);
+    }
 
-    // onClose();
-    // setFormData(initialFormData);
+    return slots;
+  }, [dayWorkingHours, open247, bookingSettings]);
+
+  // Format time for display
+  const formatSlotTime = (slot: string) => {
+    const [h, m] = slot.split(':').map(Number);
+    const date = new Date();
+    date.setHours(h, m, 0, 0);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // Submit
+  // ─────────────────────────────────────────────────────────────
+
+  const canSubmit =
+    form.serviceId !== null &&
+    form.date !== null &&
+    form.time !== '' &&
+    selectedLocationId !== null &&
+    !isClosedDay;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit || !selectedLocationId || !form.date) return;
+
+    setSubmitting(true);
+    setError(null);
+
+    // Build scheduledAt as timestamp (ms)
+    const [hours, minutes] = form.time.split(':').map(Number);
+    const scheduledDate = new Date(form.date);
+    scheduledDate.setHours(hours, minutes, 0, 0);
+
+    const payload = {
+      serviceId: form.serviceId!,
+      locationId: selectedLocationId,
+      customerId: form.customerId ?? undefined,
+      staffUserIds: form.staffUserId !== null ? [form.staffUserId] : undefined,
+      scheduledAt: scheduledDate.getTime(),
+      notes: form.notes.trim() || undefined,
+      bookingSource: form.bookingSource,
+    };
+
+    try {
+      dispatch(adminCreateAppointment.request(payload));
+      toast.success('Appointment created');
+      onClose();
+    } catch {
+      setError('Failed to create appointment');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // Booking sources
+  // ─────────────────────────────────────────────────────────────
+
+  const bookingSources: { value: AppointmentBookingSource; label: string; icon: React.ReactNode }[] = [
+    { value: 'admin' as AppointmentBookingSource, label: 'Admin', icon: <ShieldCheck className="h-4 w-4" /> },
+    { value: 'phone' as AppointmentBookingSource, label: 'Phone', icon: <Phone className="h-4 w-4" /> },
+    { value: 'walk_in' as AppointmentBookingSource, label: 'Walk-in', icon: <Footprints className="h-4 w-4" /> },
+  ];
+
+  // ─────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────
+
   return (
-    <>
-      <BaseSlider
-        isOpen={isOpen}
-        onClose={onClose}
-        title="New Appointment"
-        contentClassName="bg-muted/50 scrollbar-hide"
-        footer={
-          <div className="flex gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => { onClose(); setFormData(initialFormData); }}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              form="add-appointment-form"
-              className="flex-1"
-            >
-              Create Appointment
-            </Button>
+    <BaseSlider
+      isOpen={isOpen}
+      onClose={onClose}
+      title="New Appointment"
+      contentClassName="bg-muted/50 scrollbar-hide"
+      footer={
+        <div className="flex gap-3">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+            className="flex-1"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            form="add-appointment-form"
+            className="flex-1"
+            disabled={!canSubmit || submitting}
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              'Create Appointment'
+            )}
+          </Button>
+        </div>
+      }
+    >
+      <form id="add-appointment-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
+        {error && (
+          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+            {error}
           </div>
-        }
-      >
-        <form id="add-appointment-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
-          {/* Single Card with All Appointment Data */}
-          <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-            <CardContent className="space-y-8">
-              {/* Client Information Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Client Information</h3>
+        )}
+
+        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
+          <CardContent className="space-y-8">
+            {/* ── Client Section ── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <User className="h-5 w-5 text-primary" />
                 </div>
-                {!selectedClient ? (
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">Search Client</Label>
-                    <Popover open={clientOpen} onOpenChange={setClientOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={clientOpen}
-                          className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                        >
-                          Search by name, email or phone...
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[350px] p-0 z-[80]">
-                        <Command>
-                          <CommandInput placeholder="Search clients..." />
-                          <CommandList>
-                            <CommandEmpty>No clients found.</CommandEmpty>
-                            <CommandGroup>
-                              {clients.map((client) => (
-                                <CommandItem
-                                  key={client.id}
-                                  value={`${client.firstName} ${client.lastName} ${client.email} ${client.phone}`}
-                                  onSelect={() => {
-                                    setFormData(prev => ({ ...prev, clientId: client.id }));
-                                    setClientOpen(false);
-                                  }}
-                                  className="flex items-center gap-3 p-3"
-                                >
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarImage src={client.avatar} />
-                                    <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1">
-                                    <div className="font-medium">{client.firstName} {client.lastName}</div>
-                                    <div className="text-sm text-muted-foreground">{client.email}</div>
-                                    <div className="text-sm text-muted-foreground">{client.phone}</div>
-                                  </div>
-                                  <Check
-                                    className={cn(
-                                      "ml-auto h-4 w-4",
-                                      formData.clientId === client.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarImage src={selectedClient.avatar} />
-                      <AvatarFallback>{selectedClient.firstName[0]}{selectedClient.lastName[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-base truncate">{selectedClient.firstName} {selectedClient.lastName}</div>
-                      <div className="text-sm text-muted-foreground truncate">{selectedClient.email}</div>
-                      <div className="text-sm text-muted-foreground truncate">{selectedClient.phone}</div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setFormData(prev => ({ ...prev, clientId: '' }))}
-                      className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                    >
-                      Change
-                    </Button>
-                  </div>
-                )}
+                <h3 className="text-base font-semibold text-foreground">Client</h3>
+                <span className="text-xs text-muted-foreground">(optional)</span>
               </div>
 
-              {/* Service Details Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Scissors className="h-5 w-5 text-primary" />
+              {form.customerDisplay ? (
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    <AvatarFallback>
+                      {form.customerDisplay.firstName?.[0] ?? '?'}
+                      {form.customerDisplay.lastName?.[0] ?? ''}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base truncate">
+                      {form.customerDisplay.firstName} {form.customerDisplay.lastName}
+                    </div>
+                    {form.customerDisplay.email && (
+                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.email}</div>
+                    )}
+                    {form.customerDisplay.phone && (
+                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.phone}</div>
+                    )}
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Service Details</h3>
+                  <Button variant="ghost" size="sm" onClick={handleClearCustomer}>
+                    Change
+                  </Button>
                 </div>
+              ) : showQuickCreate ? (
+                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <UserPlus className="h-4 w-4" />
+                    Quick Create Customer
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      placeholder="First name *"
+                      value={quickCreate.firstName}
+                      onChange={(e) => setQuickCreate((p) => ({ ...p, firstName: e.target.value }))}
+                      className="h-10"
+                    />
+                    <Input
+                      placeholder="Last name"
+                      value={quickCreate.lastName}
+                      onChange={(e) => setQuickCreate((p) => ({ ...p, lastName: e.target.value }))}
+                      className="h-10"
+                    />
+                  </div>
+                  <Input
+                    placeholder="Phone"
+                    value={quickCreate.phone}
+                    onChange={(e) => setQuickCreate((p) => ({ ...p, phone: e.target.value }))}
+                    className="h-10"
+                  />
+                  <Input
+                    placeholder="Email"
+                    value={quickCreate.email}
+                    onChange={(e) => setQuickCreate((p) => ({ ...p, email: e.target.value }))}
+                    className="h-10"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowQuickCreate(false)}
+                      className="flex-1"
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={handleQuickCreateCustomer}
+                      disabled={!quickCreate.firstName.trim() || quickCreateSubmitting}
+                      className="flex-1"
+                    >
+                      {quickCreateSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Service</Label>
-                  <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
+                  <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
                         role="combobox"
-                        aria-expanded={serviceOpen}
                         className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
                       >
-                        {formData.service || "Select a service"}
+                        Search by name...
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-[350px] p-0 z-[80]">
-                      <Command>
-                        <CommandInput placeholder="Search services..." />
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="Search clients..."
+                          value={customerSearch}
+                          onValueChange={handleCustomerSearchChange}
+                        />
                         <CommandList>
-                          <CommandEmpty>No services found.</CommandEmpty>
+                          {customerLoading && (
+                            <div className="flex items-center justify-center py-4">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            </div>
+                          )}
+                          {!customerLoading && customerSearch.length >= 2 && customerResults.length === 0 && (
+                            <CommandEmpty>No customers found.</CommandEmpty>
+                          )}
+                          {customerResults.length > 0 && (
+                            <CommandGroup>
+                              {customerResults.map((customer) => (
+                                <CommandItem
+                                  key={customer.id}
+                                  value={`${customer.id}`}
+                                  onSelect={() => handleSelectCustomer(customer)}
+                                  className="flex items-center gap-3 p-3"
+                                >
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarFallback>
+                                      {customer.firstName[0]}
+                                      {customer.lastName?.[0] ?? ''}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1">
+                                    <div className="font-medium">{customer.firstName} {customer.lastName}</div>
+                                    {customer.email && <div className="text-sm text-muted-foreground">{customer.email}</div>}
+                                    {customer.phone && <div className="text-sm text-muted-foreground">{customer.phone}</div>}
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          )}
                           <CommandGroup>
-                            {services.map((service) => (
-                              <CommandItem
-                                key={service}
-                                value={service}
-                                onSelect={() => {
-                                  setFormData(prev => ({ ...prev, service }));
-                                  setServiceOpen(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.service === service ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {service}
-                              </CommandItem>
-                            ))}
+                            <CommandItem
+                              onSelect={() => {
+                                setCustomerOpen(false);
+                                setShowQuickCreate(true);
+                              }}
+                              className="flex items-center gap-2 p-3 text-primary"
+                            >
+                              <UserPlus className="h-4 w-4" />
+                              Add new customer
+                            </CommandItem>
                           </CommandGroup>
                         </CommandList>
                       </Command>
                     </PopoverContent>
                   </Popover>
                 </div>
-              </div>
+              )}
+            </div>
 
-              {/* Date & Time Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Calendar className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Date & Time</h3>
+            {/* ── Service Section ── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Scissors className="h-5 w-5 text-primary" />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date" className="text-sm font-medium text-foreground">Date</Label>
-                    <DatePicker
-                      id="date"
-                      selected={formData.date ? new Date(formData.date) : null}
-                      onChange={date => setFormData(prev => ({ ...prev, date: date ? date.toISOString().slice(0, 10) : '' }))}
-                      dateFormat="yyyy-MM-dd"
-                      className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
-                      placeholderText="Select date"
-                      popperClassName="z-[90]"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time" className="text-sm font-medium text-foreground">Time</Label>
-                    <div className="flex gap-2 items-center">
-                      {/* Hour Dropdown */}
-                      <Popover open={hourOpen} onOpenChange={setHourOpen}>
-                        <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setHourOpen(true)}>
-                            {hour}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                          {Array.from({ length: 24 }, (_, i) => {
-                            const val = String(i).padStart(2, '0');
+                <h3 className="text-base font-semibold text-foreground">Service</h3>
+              </div>
+              <div className="space-y-2">
+                <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                    >
+                      {servicesLoading ? (
+                        <span className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Loading services...
+                        </span>
+                      ) : selectedService ? (
+                        <span>{selectedService.serviceName}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Select a service</span>
+                      )}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0 z-[80]">
+                    <Command>
+                      <CommandInput placeholder="Search services..." />
+                      <CommandList>
+                        <CommandEmpty>No services at this location.</CommandEmpty>
+                        <CommandGroup>
+                          {locationServices.map((service) => {
+                            const price = (service.customPrice ?? service.defaultPrice) / 100;
+                            const duration = service.customDuration ?? service.defaultDuration;
                             return (
-                              <button
-                                key={val}
-                                className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${hour === val ? 'bg-primary/10' : ''}`}
-                                onClick={() => {
-                                  setFormData(prev => ({ ...prev, time: `${val}:${minute}` }));
-                                  setHourOpen(false);
+                              <CommandItem
+                                key={service.serviceId}
+                                value={service.serviceName}
+                                onSelect={() => {
+                                  setForm((prev) => ({
+                                    ...prev,
+                                    serviceId: service.serviceId,
+                                    // Reset staff if service changes
+                                    staffUserId: null,
+                                  }));
+                                  setServiceOpen(false);
                                 }}
+                                className="flex items-center gap-3 p-3"
                               >
-                                {val}
-                              </button>
+                                <Check
+                                  className={cn(
+                                    'h-4 w-4',
+                                    form.serviceId === service.serviceId ? 'opacity-100' : 'opacity-0',
+                                  )}
+                                />
+                                <div className="flex-1">
+                                  <div className="font-medium">{service.serviceName}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {duration} min &middot; ${price.toFixed(2)}
+                                    {service.category && (
+                                      <span className="ml-2 text-xs">{service.category.name}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </CommandItem>
                             );
                           })}
-                        </PopoverContent>
-                      </Popover>
-                      <span>:</span>
-                      {/* Minute Dropdown */}
-                      <Popover open={minuteOpen} onOpenChange={setMinuteOpen}>
-                        <PopoverTrigger asChild>
-                          <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setMinuteOpen(true)}>
-                            {minute}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                          {Array.from({ length: 60 }, (_, i) => {
-                            const val = String(i).padStart(2, '0');
-                            return (
-                              <button
-                                key={val}
-                                className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${minute === val ? 'bg-primary/10' : ''}`}
-                                onClick={() => {
-                                  setFormData(prev => ({ ...prev, time: `${hour}:${val}` }));
-                                  setMinuteOpen(false);
-                                }}
-                              >
-                                {val}
-                              </button>
-                            );
-                          })}
-                        </PopoverContent>
-                      </Popover>
-                    </div>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+
+                {selectedService && (
+                  <div className="flex gap-2 text-xs text-muted-foreground">
+                    <Badge variant="secondary" className="text-xs">{serviceDuration} min</Badge>
+                    <Badge variant="secondary" className="text-xs">${servicePrice.toFixed(2)}</Badge>
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* ── Date & Time Section ── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Calendar className="h-5 w-5 text-primary" />
                 </div>
+                <h3 className="text-base font-semibold text-foreground">Date & Time</h3>
               </div>
 
-              {/* Recurrence Section */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Clock className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Recurrence</h3>
+              {isClosedDay && (
+                <div className="p-3 rounded-lg bg-orange-100 text-orange-800 text-sm dark:bg-orange-900/20 dark:text-orange-400">
+                  Business is closed on this day. Please select another date.
                 </div>
-                <div className="flex items-center gap-3">
-                  <Label className="text-sm font-medium text-foreground">Repeat?</Label>
-                  <input
-                    type="checkbox"
-                    checked={!!formData.isRecurring}
-                    onChange={e => setFormData(prev => ({ ...prev, isRecurring: e.target.checked }))}
-                    className="h-5 w-5 accent-primary"
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Date</Label>
+                  <DatePicker
+                    selected={form.date}
+                    onChange={(date) => {
+                      setForm((prev) => ({ ...prev, date, time: '' }));
+                    }}
+                    dateFormat="yyyy-MM-dd"
+                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
+                    placeholderText="Select date"
+                    popperClassName="z-[90]"
                   />
                 </div>
-                {formData.isRecurring && (
-                  <>
-                    {formData.recurrencePattern === 'custom' ? (
-                      <div className="flex flex-col md:flex-row md:items-end gap-2 md:gap-4">
-                        <div>
-                          <Label className="text-sm">Pattern</Label>
-                          <select
-                            value={formData.recurrencePattern}
-                            onChange={e => {
-                              const pattern = e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-                              const update: Partial<AppointmentFormData> = { recurrencePattern: pattern };
-                              if (pattern === 'weekly') {
-                                // Default to the day of the week of the selected date
-                                const date = formData.date ? new Date(formData.date) : new Date();
-                                const dayIdx = date.getDay(); // 0=Sun, 1=Mon, ...
-                                const dayCodes = ['SU','MO','TU','WE','TH','FR','SA'];
-                                update.recurrenceDaysOfWeek = [dayCodes[dayIdx]];
-                              }
-                              if (pattern === 'custom') {
-                                update.recurrenceInterval = 1;
-                                update.recurrenceIntervalUnit = 'days';
-                              }
-                              setFormData(prev => ({
-                                ...prev,
-                                ...update
-                              }));
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">Time</Label>
+                  {timeSlots.length > 0 ? (
+                    <Popover open={hourOpen} onOpenChange={setHourOpen}>
+                      <PopoverTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full h-12 text-base justify-between font-normal bg-muted/50 border-0"
+                        >
+                          {form.time ? formatSlotTime(form.time) : 'Select time'}
+                          <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="p-0 w-44 max-h-60 overflow-y-auto z-[90]">
+                        {timeSlots.map((slot) => (
+                          <button
+                            key={slot}
+                            type="button"
+                            className={cn(
+                              'w-full text-left px-4 py-2 text-sm hover:bg-muted/50',
+                              form.time === slot ? 'bg-primary/10 font-medium' : '',
+                            )}
+                            onClick={() => {
+                              setForm((prev) => ({ ...prev, time: slot }));
+                              setHourOpen(false);
                             }}
-                            className="border rounded px-2 py-1 bg-muted/50"
                           >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="yearly">Yearly</option>
-                            <option value="custom">Custom</option>
-                          </select>
-                        </div>
-                        <div>
-                          <Label className="text-sm">Repeat every</Label>
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              min={1}
-                              value={formData.recurrenceInterval}
-                              onChange={e => setFormData(prev => ({ ...prev, recurrenceInterval: parseInt(e.target.value) || 1 }))}
-                              className="w-16 border rounded px-2 py-1 bg-muted/50"
-                            />
-                            <select
-                              value={formData.recurrenceIntervalUnit}
-                              onChange={e => setFormData(prev => ({ ...prev, recurrenceIntervalUnit: e.target.value as 'days' | 'weeks' | 'months' | 'years' }))}
-                              className="border rounded px-2 py-1 bg-muted/50"
-                            >
-                              <option value="days">days</option>
-                              <option value="weeks">weeks</option>
-                              <option value="months">months</option>
-                              <option value="years">years</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-2">
-                        <Label className="text-sm">Pattern</Label>
-                        <select
-                          value={formData.recurrencePattern}
-                          onChange={e => {
-                            const pattern = e.target.value as 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
-                            const update: Partial<AppointmentFormData> = { recurrencePattern: pattern };
-                            if (pattern === 'weekly') {
-                              // Default to the day of the week of the selected date
-                              const date = formData.date ? new Date(formData.date) : new Date();
-                              const dayIdx = date.getDay(); // 0=Sun, 1=Mon, ...
-                              const dayCodes = ['SU','MO','TU','WE','TH','FR','SA'];
-                              update.recurrenceDaysOfWeek = [dayCodes[dayIdx]];
-                            }
-                            if (pattern === 'custom') {
-                              update.recurrenceInterval = 1;
-                              update.recurrenceIntervalUnit = 'days';
-                            }
-                            setFormData(prev => ({
-                              ...prev,
-                              ...update
-                            }));
-                          }}
-                          className="border rounded px-2 py-1 bg-muted/50"
-                        >
-                          <option value="daily">Daily</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="monthly">Monthly</option>
-                          <option value="yearly">Yearly</option>
-                          <option value="custom">Custom</option>
-                        </select>
-                      </div>
-                    )}
-                    {/* Weekly: day selection */}
-                    {formData.recurrencePattern === 'weekly' && (
-                      <div className="col-span-2 flex flex-wrap gap-2 items-center">
-                        <Label className="text-sm mr-2">On</Label>
-                        {['MO','TU','WE','TH','FR','SA','SU'].map((day, idx) => (
-                          <label key={day} className="flex items-center gap-1 text-xs">
-                            <input
-                              type="checkbox"
-                              checked={formData.recurrenceDaysOfWeek?.includes(day)}
-                              onChange={e => {
-                                setFormData(prev => {
-                                  const days = prev.recurrenceDaysOfWeek || [];
-                                  return {
-                                    ...prev,
-                                    recurrenceDaysOfWeek: e.target.checked
-                                      ? [...days, day]
-                                      : days.filter(d => d !== day)
-                                  };
-                                });
-                              }}
-                              className="accent-primary"
-                            />
-                            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][idx]}
-                          </label>
+                            {formatSlotTime(slot)}
+                          </button>
                         ))}
-                      </div>
-                    )}
-                    {/* Monthly/yearly: info only */}
-                    {formData.recurrencePattern === 'monthly' && (
-                      <div className="col-span-2 text-xs text-muted-foreground">Repeats monthly on the same date.</div>
-                    )}
-                    {formData.recurrencePattern === 'yearly' && (
-                      <div className="col-span-2 text-xs text-muted-foreground">Repeats yearly on the same date.</div>
-                    )}
-                    {/* Ends and summary always below */}
-                    <div className="flex flex-col gap-2 mt-2">
-                      <Label className="text-sm">Ends</Label>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={formData.recurrenceEndType}
-                          onChange={e => setFormData(prev => ({ ...prev, recurrenceEndType: e.target.value as 'after' | 'onDate' }))}
-                          className="border rounded px-2 py-1 bg-muted/50"
-                        >
-                          <option value="after">After</option>
-                          <option value="onDate">On date</option>
-                        </select>
-                        {formData.recurrenceEndType === 'after' ? (
-                          <>
-                            <input
-                              type="number"
-                              min={1}
-                              value={typeof formData.recurrenceEndValue === 'number' ? formData.recurrenceEndValue : 5}
-                              onChange={e => setFormData(prev => ({ ...prev, recurrenceEndValue: parseInt(e.target.value) || 1 }))}
-                              className="w-16 border rounded px-2 py-1 bg-muted/50"
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <div className="h-12 flex items-center text-sm text-muted-foreground bg-muted/50 rounded-md px-3">
+                      {isClosedDay ? 'Closed' : 'Select a date first'}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {form.time && selectedService && (
+                <div className="text-xs text-muted-foreground">
+                  Appointment: {formatSlotTime(form.time)} &ndash;{' '}
+                  {(() => {
+                    const [h, m] = form.time.split(':').map(Number);
+                    const end = new Date();
+                    end.setHours(h, m + serviceDuration, 0, 0);
+                    return end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                  })()}{' '}
+                  ({serviceDuration} min)
+                </div>
+              )}
+            </div>
+
+            {/* ── Staff Section ── */}
+            {locationStaff.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <User className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">Staff Member</h3>
+                  <span className="text-xs text-muted-foreground">(optional)</span>
+                </div>
+                <Popover open={staffOpen} onOpenChange={setStaffOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                    >
+                      {form.staffUserId !== null
+                        ? (() => {
+                            const staff = locationStaff.find((s) => s.id === form.staffUserId);
+                            return staff ? `${staff.firstName} ${staff.lastName}` : 'Unknown';
+                          })()
+                        : 'Unassigned'}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[350px] p-0 z-[80]">
+                    <Command>
+                      <CommandInput placeholder="Search staff..." />
+                      <CommandList>
+                        <CommandGroup>
+                          {/* Unassigned option */}
+                          <CommandItem
+                            value="unassigned"
+                            onSelect={() => {
+                              setForm((prev) => ({ ...prev, staffUserId: null }));
+                              setStaffOpen(false);
+                            }}
+                            className="flex items-center gap-3 p-3"
+                          >
+                            <Check
+                              className={cn('h-4 w-4', form.staffUserId === null ? 'opacity-100' : 'opacity-0')}
                             />
-                            <span className="text-sm">occurrences</span>
-                          </>
-                        ) : (
-                          <input
-                            type="date"
-                            value={typeof formData.recurrenceEndValue === 'string' ? formData.recurrenceEndValue : ''}
-                            onChange={e => setFormData(prev => ({ ...prev, recurrenceEndValue: e.target.value }))}
-                            className="border rounded px-2 py-1 bg-muted/50"
-                          />
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-2 text-xs text-muted-foreground mt-2">
-                      {(() => {
-                        if (!formData.isRecurring) return '';
-                        let summary = 'This appointment will repeat ';
-                        switch (formData.recurrencePattern) {
-                          case 'daily':
-                            summary += 'daily';
-                            break;
-                          case 'weekly':
-                            summary += 'weekly';
-                            if (formData.recurrenceDaysOfWeek && formData.recurrenceDaysOfWeek.length > 0) {
-                              const dayNames = formData.recurrenceDaysOfWeek.map(d =>
-                                ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'][['MO','TU','WE','TH','FR','SA','SU'].indexOf(d)]
-                              );
-                              summary += ` on ${dayNames.join(', ')}`;
-                            }
-                            break;
-                          case 'monthly':
-                            summary += 'monthly on the same date';
-                            break;
-                          case 'yearly':
-                            summary += 'yearly on the same date';
-                            break;
-                          case 'custom':
-                            summary += `every ${formData.recurrenceInterval} ${formData.recurrenceIntervalUnit}`;
-                            break;
-                        }
-                        if (formData.recurrenceEndType === 'after') {
-                          summary += `, ${formData.recurrenceEndValue} times.`;
-                        } else if (formData.recurrenceEndType === 'onDate') {
-                          summary += `, until ${formData.recurrenceEndValue}.`;
-                        }
-                        return summary;
-                      })()}
-                    </div>
-                  </>
-                )}
-                </div>
+                            <Badge variant="outline" className="text-orange-600 border-orange-300">
+                              Unassigned
+                            </Badge>
+                          </CommandItem>
 
-                {/* Location & Team Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <MapPin className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Location & Team</h3>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">Location</Label>
-                      <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={locationOpen}
-                            className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                          >
-                            {selectedLocation?.name || "Select location"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[350px] p-0 z-[80]">
-                          <Command>
-                            <CommandInput placeholder="Search locations..." />
-                            <CommandList>
-                              <CommandEmpty>No locations found.</CommandEmpty>
-                              <CommandGroup>
-                                {locations.map((location) => (
-                                  <CommandItem
-                                    key={location.id}
-                                    value={location.name}
-                                    onSelect={() => {
-                                      setFormData((prev: any) => ({ ...prev, location: location.id }));
-                                      setLocationOpen(false);
-                                    }}
-                                  >
-                                    <Check
-                                      className={cn(
-                                        "mr-2 h-4 w-4",
-                                        formData.location === `${location.id}` ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                    {location.name}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-foreground">Team Members</Label>
-                      {/* Selected Team Members */}
-                      {selectedTeamMembers.length > 0 && (
-                        <div className="flex flex-wrap gap-2 p-2 bg-muted/30 rounded-lg">
-                          {selectedTeamMembers.map((member) => (
-                            <div key={member.id} className="flex items-center gap-1 bg-muted rounded-lg px-2 h-8 min-w-[0] shadow-none">
-                              <Avatar className="h-6 w-6 min-w-6">
-                                <AvatarFallback>{member.firstName[0]}{member.lastName[0]}</AvatarFallback>
+                          {eligibleStaff.map((staff) => (
+                            <CommandItem
+                              key={staff.id}
+                              value={`${staff.firstName} ${staff.lastName}`}
+                              onSelect={() => {
+                                setForm((prev) => ({ ...prev, staffUserId: staff.id }));
+                                setStaffOpen(false);
+                              }}
+                              className="flex items-center gap-3 p-3"
+                            >
+                              <Check
+                                className={cn('h-4 w-4', form.staffUserId === staff.id ? 'opacity-100' : 'opacity-0')}
+                              />
+                              <Avatar className="h-8 w-8">
+                                <AvatarImage src={staff.profileImage ?? undefined} />
+                                <AvatarFallback>
+                                  {staff.firstName[0]}
+                                  {staff.lastName[0]}
+                                </AvatarFallback>
                               </Avatar>
-                              <span className="text-sm font-medium leading-none truncate max-w-[5.5rem]">{member.firstName} {member.lastName}</span>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setFormData(prev => ({ 
-                                    ...prev, 
-                                    teamMembers: prev.teamMembers.filter(id => +id !== member.id)
-                                  }));
-                                }}
-                                className="h-6 w-6 p-0 ml-1 hover:bg-destructive/20 hover:text-destructive rounded-full flex items-center justify-center"
-                              >
-                                <X className="h-3 w-3" />
-                              </Button>
-                            </div>
+                              <div className="font-medium">
+                                {staff.firstName} {staff.lastName}
+                              </div>
+                            </CommandItem>
                           ))}
-                        </div>
-                      )}
-                      <Popover open={teamOpen} onOpenChange={setTeamOpen}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={teamOpen}
-                            className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                          >
-                            {selectedTeamMembers.length > 0 
-                              ? `${selectedTeamMembers.length} member${selectedTeamMembers.length > 1 ? 's' : ''} selected`
-                              : "Select team members"
-                            }
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[350px] p-0 z-[80]">
-                          <Command>
-                            <CommandInput placeholder="Search team members..." />
-                            <CommandList>
-                              <CommandEmpty>No team members found.</CommandEmpty>
-                              <CommandGroup>
-                                {teamMembers.map((member) => (
-                                  <CommandItem
-                                    key={member.id}
-                                    value={member.firstName + ' ' + member.lastName}
-                                    onSelect={() => {
-                                      const isSelected = formData.teamMembers.includes(`${member.id}`);
-                                      if (isSelected) {
-                                        setFormData(prev => ({ 
-                                          ...prev, 
-                                          teamMembers: prev.teamMembers.filter(id => +id !== member.id)
-                                        }));
-                                      } else {
-                                        setFormData((prev) => ({
-                                          ...prev, 
-                                          teamMembers: [...prev.teamMembers, `${member.id}`]
-                                        }));
-                                      }
-                                    }}
-                                    className="flex items-center gap-3 p-3"
-                                  >
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarFallback>{member.firstName[0]}{member.lastName[0]}</AvatarFallback>
-                                    </Avatar>
-                                    <div className="flex-1">
-                                      <div className="font-medium">{member.firstName} {member.lastName}</div>
-                                    </div>
-                                    <Check
-                                      className={cn(
-                                        "ml-auto h-4 w-4",
-                                        formData.teamMembers.includes(`${member.id}`) ? "opacity-100" : "opacity-0"
-                                      )}
-                                    />
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  </div>
-                </div>
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
 
-                {/* Notes Section */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                    <div className="p-2 rounded-xl bg-primary/10">
-                      <Clock className="h-5 w-5 text-primary" />
-                    </div>
-                    <h3 className="text-base font-semibold text-foreground">Additional Notes</h3>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground">Notes</Label>
-                    <Textarea
-                      placeholder="Add any special notes or requirements..."
-                      value={formData.notes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      rows={4}
-                      className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
-                    />
-                  </div>
+            {/* ── Booking Source Section ── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <ShieldCheck className="h-5 w-5 text-primary" />
                 </div>
-            </CardContent>
-          </Card>
-        </form>
-      </BaseSlider>
-    </>
+                <h3 className="text-base font-semibold text-foreground">Booking Source</h3>
+              </div>
+              <div className="flex gap-2">
+                {bookingSources.map((source) => (
+                  <button
+                    key={source.value}
+                    type="button"
+                    onClick={() => setForm((prev) => ({ ...prev, bookingSource: source.value }))}
+                    className={cn(
+                      'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+                      form.bookingSource === source.value
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background border-border hover:bg-muted',
+                    )}
+                  >
+                    {source.icon}
+                    {source.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Notes Section ── */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <StickyNote className="h-5 w-5 text-primary" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground">Notes</h3>
+              </div>
+              <Textarea
+                placeholder="Add any special notes or requirements..."
+                value={form.notes}
+                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                rows={3}
+                className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </form>
+    </BaseSlider>
   );
 };
 

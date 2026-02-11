@@ -1,21 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, MapPin, Scissors, Ban, CheckCircle2, UserX, Bell, Mail, MessageSquare } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Ban, CheckCircle2, UserX, Clock, User, Scissors, MapPin,
+  Calendar, Bell, Mail, MessageSquare, Loader2, Users, Tag,
+} from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
-import { Check, ChevronsUpDown, X } from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
+import { Badge } from '../../../shared/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../shared/components/ui/alert-dialog';
 import { Switch } from '../../../shared/components/ui/switch';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import { toast } from 'sonner';
+import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
-import type { Appointment } from "../../../shared/types/calendar.ts";
+import { useDispatch, useSelector } from 'react-redux';
+import { updateAppointmentStatus, toggleEditFormAction } from '../actions';
+import { getLocationStaff } from '../selectors';
+import { getStatusBadge, formatTime, formatTimeRange, getStaffDisplayNames, getBookingSourceLabel } from './utils';
+import { toast } from 'sonner';
+import type { Appointment } from '../../../shared/types/calendar';
+
+// ─────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────
 
 interface EditAppointmentSliderProps {
   isOpen: boolean;
@@ -23,804 +39,383 @@ interface EditAppointmentSliderProps {
   appointment: Appointment | null;
 }
 
-const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, onClose, appointment }) => {
-  const [formData, setFormData] = useState({
-    clientId: '',
-    service: '',
-    date: '',
-    time: '',
-    location: '',
-    teamMembers: [] as string[],
-    notes: ''
-  });
+// ─────────────────────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────────────────────
 
-  // UI state
-  const [clientOpen, setClientOpen] = useState(false);
-  const [serviceOpen, setServiceOpen] = useState(false);
-  const [locationOpen, setLocationOpen] = useState(false);
-  const [teamOpen, setTeamOpen] = useState(false);
-  const [shouldAnimate, setShouldAnimate] = useState(false);
-  const [hourOpen, setHourOpen] = useState(false);
-  const [minuteOpen, setMinuteOpen] = useState(false);
-  
-  // Quick action states
+const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, onClose, appointment }) => {
+  const dispatch = useDispatch();
+  const locationStaff = useSelector(getLocationStaff);
+  // bookingSettings available via getBookingSettings for Phase 2 permission checks
+  // (allowStaffCancelWithoutConfirmation, allowStaffRescheduleWithoutConfirmation)
+
+  // Cancel dialog state
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [notificationMethod, setNotificationMethod] = useState<'email' | 'sms' | 'both'>('both');
-  const [reminderMessage, setReminderMessage] = useState('');
-  const [confirmationDialog, setConfirmationDialog] = useState<{
+
+  // Confirmation dialog state (for complete / no-show)
+  const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
-    type: 'cancel' | 'complete' | 'no-show' | 'reminder' | null;
+    type: 'complete' | 'no-show' | null;
     title: string;
     description: string;
   }>({ open: false, type: null, title: '', description: '' });
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [showSeriesSlider, setShowSeriesSlider] = useState(false);
 
-  console.log(shouldAnimate);
-  // Swipe gesture handling
-  // const touchStartX = useRef<number>(0);
-  // const touchCurrentX = useRef<number>(0);
-  // const [isDragging, setIsDragging] = useState(false);
-  // const [dragOffset, setDragOffset] = useState(0);
-  // const isMouseDown = useRef<boolean>(false);
+  // Loading state for actions
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Populate form with appointment data when opened
+  // Reset state when slider closes
   useEffect(() => {
-    if (appointment && isOpen) {
-      // TODO
-      // // Find matching client
-      // const matchingClient = mockClients.find(client =>
-      //   `${client.firstName} ${client.lastName}` === appointment.client.name
-      // );
-      //
-      // setFormData({
-      //   clientId: matchingClient?.id || '',
-      //   service: appointment.service.name,
-      //   date: appointment.scheduledAt.toISOString(),
-      //   time: convertTo24Hour(appointment.endsAt),
-      //   location: `${appointment.location}`,
-      //   teamMembers: appointment.teamMembers.map((item) => `${item}`),
-      //   notes: ''
-      // });
-    }
-  }, [appointment, isOpen]);
-
-  // Handle animation timing
-  useEffect(() => {
-    if (isOpen) {
-      // Ensure component is in closed state first, then animate
-      setShouldAnimate(false);
-      const timer = setTimeout(() => setShouldAnimate(true), 10);
-      return () => clearTimeout(timer);
-    } else {
-      setShouldAnimate(false);
+    if (!isOpen) {
+      setCancelDialogOpen(false);
+      setCancelReason('');
+      setNotifyCustomer(true);
+      setNotificationMethod('both');
+      setConfirmDialog({ open: false, type: null, title: '', description: '' });
+      setActionLoading(null);
     }
   }, [isOpen]);
 
-  useEffect(() => {
-    if (showSeriesSlider) {
-      setShowSeriesSlider(false);
+  // ─────────────────────────────────────────────────────────────
+  // Derived data from appointment
+  // ─────────────────────────────────────────────────────────────
+
+  const customerName = useMemo(() => {
+    if (!appointment) return '';
+    if (appointment.customer) {
+      return `${appointment.customer.firstName ?? ''} ${appointment.customer.lastName ?? ''}`.trim();
     }
-  }, [showSeriesSlider]);
+    return 'Walk-in';
+  }, [appointment]);
 
-  // const handleStart = (clientX: number) => {
-  //   touchStartX.current = clientX;
-  //   touchCurrentX.current = clientX;
-  //   setIsDragging(true);
-  //   isMouseDown.current = true;
-  // };
+  const staffNames = useMemo(() => {
+    if (!appointment) return 'Unassigned';
+    const ids = appointment.teamMembers?.map((tm: any) => tm.id ?? tm) ?? [];
+    if (ids.length === 0) return 'Unassigned';
+    return getStaffDisplayNames(ids, locationStaff);
+  }, [appointment, locationStaff]);
 
-  // const handleMove = (clientX: number) => {
-  //   if (!isDragging && !isMouseDown.current) return;
-  //
-  //   touchCurrentX.current = clientX;
-  //   const diff = touchCurrentX.current - touchStartX.current;
-  //
-  //   // Only allow rightward swipes (positive diff)
-  //   if (diff > 0) {
-  //     setDragOffset(Math.min(diff, 300)); // Cap at 300px
-  //   }
-  // };
+  const isUnassigned = !appointment?.teamMembers || appointment.teamMembers.length === 0;
 
-  // const handleEnd = () => {
-  //   if (!isDragging && !isMouseDown.current) return;
-  //
-  //   const diff = touchCurrentX.current - touchStartX.current;
-  //
-  //   // If swiped more than 100px to the right, close the slider
-  //   if (diff > 100) {
-  //     onClose();
-  //   }
-  //
-  //   // Reset drag state
-  //   setIsDragging(false);
-  //   setDragOffset(0);
-  //   isMouseDown.current = false;
-  // };
-  // // Touch events
-  // const handleTouchStart = (e: React.TouchEvent) => {
-  //   const target = e.target as HTMLElement;
-  //   if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('[role="button"]')) {
-  //     return;
-  //   }
-  //   handleStart(e.touches[0].clientX);
-  // };
-  //
-  // const handleTouchMove = (e: React.TouchEvent) => {
-  //   if (!isDragging) return;
-  //   handleMove(e.touches[0].clientX);
-  // };
-  //
-  // const handleTouchEnd = (e: React.TouchEvent) => {
-  //   if (!isDragging) return;
-  //   handleEnd();
-  // };
-  //
-  // // Mouse events for desktop testing
-  // const handleMouseDown = (e: React.MouseEvent) => {
-  //   const target = e.target as HTMLElement;
-  //   if (target.tagName === 'INPUT' || target.tagName === 'BUTTON' || target.tagName === 'TEXTAREA' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('[role="button"]')) {
-  //     return;
-  //   }
-  //   handleStart(e.clientX);
-  // };
-  //
-  // const handleMouseMove = (e: React.MouseEvent) => {
-  //   if (!isDragging) return;
-  //   handleMove(e.clientX);
-  // };
-  //
-  // const handleMouseUp = (e: React.MouseEvent) => {
-  //   if (!isDragging) return;
-  //   handleEnd();
-  // };
-  //
+  // ─────────────────────────────────────────────────────────────
+  // Status Actions
+  // ─────────────────────────────────────────────────────────────
 
-  const services: any[] = [];
-  const clients: any[] = [];
-  const locations: any[] = [];
-  const teamMembers: any[] = [];
-
-
-  // Helper functions
-  const selectedClient = clients.find(client => client.id === formData.clientId);
-  const selectedLocation = locations.find(location => `${location.id}` === formData.location);
-  const selectedTeamMembers = teamMembers.filter(member => formData.teamMembers.includes(`${member.id}`));
-
-  // Quick action handlers
-  const handleQuickAction = (type: 'cancel' | 'complete' | 'no-show' | 'reminder') => {
-    if (type === 'cancel') {
-      setCancelModalOpen(true);
-      return;
-    }
-
-    const confirmationData = {
-      complete: {
-        title: 'Mark as Complete',
-        description: 'Mark this appointment as completed? This will update the appointment status.'
-      },
-      'no-show': {
-        title: 'Mark as No-Show',
-        description: 'Mark this appointment as no-show? The will update the appointment status.'
-      },
-      reminder: {
-        title: 'Send Reminder',
-        description: 'Send a reminder to the client about their upcoming appointment?'
-      }
-    };
-
-    setConfirmationDialog({
-      open: true,
-      type,
-      title: confirmationData[type].title,
-      description: confirmationData[type].description
-    });
-  };
-
-  // const handleReschedule = () => {
-  //   // Focus on the date input to open date picker
-  //   const dateInput = document.getElementById('date') as HTMLInputElement;
-  //   if (dateInput) {
-  //     dateInput.focus();
-  //     dateInput.showPicker?.();
-  //   }
-  // };
-
-  const executeAction = () => {
-    if (!confirmationDialog.type) return;
-
-    switch (confirmationDialog.type) {
-      case 'cancel':
-        console.log('Cancelling appointment with reason:', cancelReason, 'Notify customer:', notifyCustomer, 'Method:', notificationMethod);
-        setCancelReason('');
-        setNotifyCustomer(true);
-        setNotificationMethod('both');
-        onClose();
-        break;
-      case 'complete':
-        console.log('Marking appointment as completed');
-        onClose();
-        break;
-      case 'no-show':
-        console.log('Marking appointment as no-show');
-        onClose();
-        break;
-      case 'reminder':
-        console.log('Sending reminder to client');
-        break;
-    }
-    
-    setConfirmationDialog({ open: false, type: null, title: '', description: '' });
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    // Handle form submission here
-    console.log('Updated appointment:', formData);
+  const handleStatusChange = (status: string) => {
+    if (!appointment) return;
+    setActionLoading(status);
+    dispatch(
+      updateAppointmentStatus.request({
+        appointmentId: appointment.id,
+        status,
+      }),
+    );
+    toast.success(
+      status === 'cancelled'
+        ? 'Appointment cancelled'
+        : status === 'completed'
+        ? 'Appointment marked as completed'
+        : status === 'no_show'
+        ? 'Appointment marked as no-show'
+        : `Status updated to ${status}`,
+    );
+    setActionLoading(null);
     onClose();
   };
 
+  const handleCancelConfirm = () => {
+    handleStatusChange('cancelled');
+    setCancelDialogOpen(false);
+    setCancelReason('');
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmDialog.type) return;
+    const status = confirmDialog.type === 'complete' ? 'completed' : 'no_show';
+    handleStatusChange(status);
+    setConfirmDialog({ open: false, type: null, title: '', description: '' });
+  };
+
+  const openCompleteDialog = () => {
+    setConfirmDialog({
+      open: true,
+      type: 'complete',
+      title: 'Mark as Complete',
+      description: 'Mark this appointment as completed? This will update the appointment status.',
+    });
+  };
+
+  const openNoShowDialog = () => {
+    setConfirmDialog({
+      open: true,
+      type: 'no-show',
+      title: 'Mark as No-Show',
+      description: 'Mark this appointment as no-show? This will update the appointment status.',
+    });
+  };
+
+  // ─────────────────────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────────────────────
+
   if (!appointment) return null;
 
-  const hour = formData.time ? formData.time.split(':')[0] : '00';
-  const minute = formData.time ? formData.time.split(':')[1] : '00';
+  const isCancelled = appointment.status === 'cancelled';
+  const isCompleted = appointment.status === 'completed';
+  const isNoShow = appointment.status === 'no_show';
+  const isTerminal = isCancelled || isCompleted || isNoShow;
 
   return (
-    <BaseSlider
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Edit Appointment"
-      contentClassName="bg-muted/50 scrollbar-hide"
-      footer={
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
+    <>
+      <BaseSlider
+        isOpen={isOpen}
+        onClose={onClose}
+        title="Appointment Details"
+        contentClassName="bg-muted/50 scrollbar-hide"
+      >
+        {/* ── Quick Actions ── */}
+        {!isTerminal && (
+          <div className="py-3 bg-background/50">
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCancelDialogOpen(true)}
+                className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
+                disabled={actionLoading !== null}
+              >
+                <Ban className="h-3 w-3" />
+                Cancel
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openNoShowDialog}
+                className="flex items-center gap-1 text-xs border-orange-500/20 text-orange-600 hover:bg-orange-50"
+                disabled={actionLoading !== null}
+              >
+                <UserX className="h-3 w-3" />
+                No-Show
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={openCompleteDialog}
+                className="flex items-center gap-1 text-xs border-green-500/20 text-green-600 hover:bg-green-50"
+                disabled={actionLoading !== null}
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Complete
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Terminal status banner */}
+        {isTerminal && (
+          <div
+            className={cn(
+              'py-3 px-4 text-sm font-medium text-center rounded-lg mx-2 mb-3',
+              isCancelled && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+              isCompleted && 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+              isNoShow && 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+            )}
           >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="edit-appointment-form"
-            className="flex-1"
-          >
-            Update Appointment
-          </Button>
+            {isCancelled && 'This appointment has been cancelled'}
+            {isCompleted && 'This appointment has been completed'}
+            {isNoShow && 'This appointment was marked as no-show'}
+          </div>
+        )}
+
+        {/* ── Appointment Details ── */}
+        <div className="max-w-md mx-auto space-y-4">
+          {/* Status */}
+          <Card className="border-0 shadow-sm bg-card/70">
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Status</span>
+                {getStatusBadge(appointment.status)}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Customer */}
+          <Card className="border-0 shadow-sm bg-card/70">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Customer</h3>
+              </div>
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback>
+                    {customerName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold truncate">{customerName || 'Walk-in'}</div>
+                  {appointment.customer?.email && (
+                    <div className="text-sm text-muted-foreground truncate">{appointment.customer.email}</div>
+                  )}
+                  {appointment.customer?.phone && (
+                    <div className="text-sm text-muted-foreground truncate">{appointment.customer.phone}</div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Service */}
+          <Card className="border-0 shadow-sm bg-card/70">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Scissors className="h-4 w-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Service</h3>
+              </div>
+              <div className="space-y-1">
+                <div className="font-medium">{appointment.service?.name ?? 'Unknown service'}</div>
+                <div className="flex gap-2 text-sm text-muted-foreground">
+                  {appointment.service?.duration && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {appointment.service.duration} min
+                    </span>
+                  )}
+                  {appointment.price !== undefined && appointment.price !== null && (
+                    <span className="flex items-center gap-1">
+                      <Tag className="h-3 w-3" />${(appointment.price / 100).toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Date & Time */}
+          <Card className="border-0 shadow-sm bg-card/70">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Calendar className="h-4 w-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Date & Time</h3>
+              </div>
+              <div className="space-y-1">
+                <div className="font-medium">
+                  {new Date(appointment.scheduledAt).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </div>
+                <div className="text-sm text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatTimeRange(
+                    new Date(appointment.scheduledAt).toISOString(),
+                    new Date(appointment.endsAt).toISOString(),
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Staff */}
+          <Card className="border-0 shadow-sm bg-card/70">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Staff</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {isUnassigned ? (
+                  <Badge variant="outline" className="text-orange-600 border-orange-300">
+                    Unassigned
+                  </Badge>
+                ) : (
+                  <span className="font-medium">{staffNames}</span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Location */}
+          {appointment.location && (
+            <Card className="border-0 shadow-sm bg-card/70">
+              <CardContent className="py-4 space-y-3">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <MapPin className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Location</h3>
+                </div>
+                <div className="font-medium">{appointment.location.name}</div>
+                {appointment.location.address && (
+                  <div className="text-sm text-muted-foreground">{appointment.location.address}</div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Notes */}
+          {appointment.notes && (
+            <Card className="border-0 shadow-sm bg-card/70">
+              <CardContent className="py-4 space-y-3">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <Bell className="h-4 w-4 text-primary" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Notes</h3>
+                </div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{appointment.notes}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cancellation Reason */}
+          {isCancelled && appointment.cancellationReason && (
+            <Card className="border-0 shadow-sm bg-card/70">
+              <CardContent className="py-4 space-y-3">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-destructive/10">
+                    <Ban className="h-4 w-4 text-destructive" />
+                  </div>
+                  <h3 className="text-sm font-semibold text-foreground">Cancellation Reason</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">{appointment.cancellationReason}</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
-      }
-    >
-      {/* Quick Actions - restore original layout */}
-      <div className="py-3 bg-background/50">
-        <div className="grid grid-cols-3 gap-2 mb-3">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleQuickAction('cancel')}
-            className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
-          >
-            <Ban className="h-3 w-3" />
-            Cancel
-          </Button>
-          <Button
-          variant="outline"
-          size="sm"
-          onClick={() => handleQuickAction('reminder')}
-          className="flex items-center gap-1 text-xs border-blue-500/20 text-blue-600 hover:bg-blue-50"
-        >
-          <Bell className="h-3 w-3" />
-          Reminder
-        </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleQuickAction('no-show')}
-            className="flex items-center gap-1 text-xs border-orange-500/20 text-orange-600 hover:bg-orange-50"
-          >
-            <UserX className="h-3 w-3" />
-            No-Show
-          </Button>
-        </div>
-        <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handleQuickAction('complete')}
-            className="w-full flex items-center gap-1 text-xs border-green-500/20 text-green-600 hover:bg-green-50"
-          >
-            <CheckCircle2 className="h-3 w-3" />
-            Complete
-          </Button>
-      </div>
-      {/* Form Content */}
-      <form id="edit-appointment-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
-        {/* Single Card with All Appointment Data */}
-        <Card className="border-0 bg-card/70 backdrop-blur-sm transition-all duration-300">
-          <CardContent className="space-y-8">
-            {/* Client Information Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Client Information</h3>
-              </div>
-              {!selectedClient ? (
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium text-foreground">Search Client</Label>
-                  <Popover open={clientOpen} onOpenChange={setClientOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={clientOpen}
-                        className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                      >
-                        Search by name, email or phone...
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0 z-[80]">
-                      <Command>
-                        <CommandInput placeholder="Search clients..." />
-                        <CommandList>
-                          <CommandEmpty>No clients found.</CommandEmpty>
-                          <CommandGroup>
-                            {clients.map((client) => (
-                              <CommandItem
-                                key={client.id}
-                                value={`${client.firstName} ${client.lastName} ${client.email} ${client.phone}`}
-                                onSelect={() => {
-                                  setFormData(prev => ({ ...prev, clientId: client.id }));
-                                  setClientOpen(false);
-                                }}
-                                className="flex items-center gap-3 p-3"
-                              >
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={client.avatar} />
-                                  <AvatarFallback>{client.firstName[0]}{client.lastName[0]}</AvatarFallback>
-                                </Avatar>
-                                <div className="flex-1">
-                                  <div className="font-medium">{client.firstName} {client.lastName}</div>
-                                  <div className="text-sm text-muted-foreground">{client.email}</div>
-                                  <div className="text-sm text-muted-foreground">{client.phone}</div>
-                                </div>
-                                <Check
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    formData.clientId === client.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarImage src={selectedClient.avatar} />
-                    <AvatarFallback>{selectedClient.firstName[0]}{selectedClient.lastName[0]}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-base truncate">{selectedClient.firstName} {selectedClient.lastName}</div>
-                    <div className="text-sm text-muted-foreground truncate">{selectedClient.email}</div>
-                    <div className="text-sm text-muted-foreground truncate">{selectedClient.phone}</div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setFormData(prev => ({ ...prev, clientId: '' }))}
-                    className="text-muted-foreground hover:text-foreground flex-shrink-0"
-                  >
-                    Change
-                  </Button>
-                </div>
-              )}
-            </div>
+      </BaseSlider>
 
-            {/* Service Details Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Scissors className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Service Details</h3>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Service</Label>
-                <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={serviceOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {formData.service || "Select a service"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search services..." />
-                      <CommandList>
-                        <CommandEmpty>No services found.</CommandEmpty>
-                        <CommandGroup>
-                          {services.map((service) => (
-                            <CommandItem
-                              key={service}
-                              value={service}
-                              onSelect={() => {
-                                setFormData(prev => ({ ...prev, service }));
-                                setServiceOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.service === service ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {service}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Date & Time Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Date & Time</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="date" className="text-sm font-medium text-foreground">Date</Label>
-                  <DatePicker
-                    id="date"
-                    selected={formData.date ? new Date(formData.date) : null}
-                    onChange={date => setFormData(prev => ({ ...prev, date: date ? date.toISOString().slice(0, 10) : '' }))}
-                    dateFormat="yyyy-MM-dd"
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
-                    placeholderText="Select date"
-                    popperClassName="z-[90]"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="time" className="text-sm font-medium text-foreground">Time</Label>
-                  <div className="flex gap-2 items-center">
-                    {/* Hour Dropdown */}
-                    <Popover open={hourOpen} onOpenChange={setHourOpen}>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setHourOpen(true)}>
-                          {hour}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {Array.from({ length: 24 }, (_, i) => {
-                          const val = String(i).padStart(2, '0');
-                          return (
-                            <button
-                              key={val}
-                              className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${hour === val ? 'bg-primary/10' : ''}`}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, time: `${val}:${minute}` }));
-                                setHourOpen(false);
-                              }}
-                            >
-                              {val}
-                            </button>
-                          );
-                        })}
-                      </PopoverContent>
-                    </Popover>
-                    <span className="text-muted-foreground font-medium">:</span>
-                    {/* Minute Dropdown */}
-                    <Popover open={minuteOpen} onOpenChange={setMinuteOpen}>
-                      <PopoverTrigger asChild>
-                        <Button type="button" variant="outline" className="w-14 h-12 px-0 text-base justify-center font-normal bg-muted/50 border-0" onClick={() => setMinuteOpen(true)}>
-                          {minute}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-20 max-h-48 overflow-y-auto rounded-md shadow-lg bg-white z-[90] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {Array.from({ length: 60 }, (_, i) => {
-                          const val = String(i).padStart(2, '0');
-                          return (
-                            <button
-                              key={val}
-                              className={`w-full text-left px-4 py-2 text-base hover:bg-muted/50 focus:bg-muted/50 font-normal ${minute === val ? 'bg-primary/10' : ''}`}
-                              onClick={() => {
-                                setFormData(prev => ({ ...prev, time: `${hour}:${val}` }));
-                                setMinuteOpen(false);
-                              }}
-                            >
-                              {val}
-                            </button>
-                          );
-                        })}
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Location Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <MapPin className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Location</h3>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Select Location</Label>
-                <Popover open={locationOpen} onOpenChange={setLocationOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={locationOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {selectedLocation?.name || "Select location"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search locations..." />
-                      <CommandList>
-                        <CommandEmpty>No locations found.</CommandEmpty>
-                        <CommandGroup>
-                          {locations.map((location) => (
-                            <CommandItem
-                              key={location.id}
-                              value={location.name}
-                              onSelect={() => {
-                                setFormData((prev)  => ({ ...prev, location: `${location.id}` }));
-                                setLocationOpen(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  formData.location === `${location.id}` ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {location.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Team Members Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Team Members</h3>
-              </div>
-              
-              {selectedTeamMembers.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-2 bg-muted/30 rounded-lg">
-                  {selectedTeamMembers.map((member) => (
-                    <div key={member.id} className="flex items-center gap-1 bg-muted rounded-lg px-2 h-8 min-w-[0] shadow-none">
-                      <Avatar className="h-6 w-6 min-w-6">
-                        <AvatarFallback className="text-xs">{member.firstName.charAt(0) + member.lastName.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium leading-none truncate max-w-[5.5rem]">{member.firstName}</span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setFormData(prev => ({
-                            ...prev,
-                            teamMembers: prev.teamMembers.filter(id => id !== `${member.id}`)
-                          }));
-                        }}
-                        className="h-6 w-6 p-0 ml-1 hover:bg-destructive/20 hover:text-destructive rounded-full flex items-center justify-center"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-foreground">Team Members</Label>
-                <Popover open={teamOpen} onOpenChange={setTeamOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      aria-expanded={teamOpen}
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {selectedTeamMembers.length === 0 
-                        ? "Select team members" 
-                        : `${selectedTeamMembers.length} member${selectedTeamMembers.length > 1 ? 's' : ''} selected`
-                      }
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search team members..." />
-                      <CommandList>
-                        <CommandEmpty>No team members found.</CommandEmpty>
-                        <CommandGroup>
-                          {teamMembers.map((member) => (
-                            <CommandItem
-                              key={member.id}
-                              value={member.firstName + ' ' + member.lastName}
-                              onSelect={() => {
-                                const isSelected = formData.teamMembers.includes(`${member.id}`);
-                                setFormData((prev: any) => ({
-                                  ...prev,
-                                  teamMembers: isSelected
-                                    ? prev.teamMembers.filter((id: any) => id !== member.id)
-                                    : [...prev.teamMembers, member.id]
-                                }));
-                              }}
-                              className="flex items-center gap-3 p-3"
-                            >
-                              <Avatar className="h-8 w-8">
-                                <AvatarFallback className="text-xs">{member.firstName.charAt(0) + member.lastName.charAt(0)}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <div className="font-medium">{member.firstName} {member.lastName}</div>
-                              </div>
-                              <Check
-                                className={cn(
-                                  "ml-auto h-4 w-4",
-                                  formData.teamMembers.includes(`${member.id}`) ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-
-            {/* Notes Section */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Clock className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Additional Notes</h3>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="notes" className="text-sm font-medium text-foreground">Notes (optional)</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Add any special instructions or notes..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  className="border-0 bg-muted/50 focus:bg-background min-h-[100px] text-base resize-none"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
-      {/* Confirmation Dialog */}
-      <AlertDialog open={confirmationDialog.open} onOpenChange={(open) => 
-        setConfirmationDialog(prev => ({ ...prev, open }))
-      }>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirmationDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {confirmationDialog.type === 'reminder' ? (
-                <div className="space-y-4">
-                  <p>{confirmationDialog.description}</p>
-                  <div className="flex flex-col gap-3 p-2 bg-muted/30 rounded-lg">
-                    <p className="text-sm font-medium">Send reminder via:</p>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={notificationMethod === 'email' ? 'default' : 'outline'}
-                        size="sm"
-                        className={notificationMethod === 'email' ? 'bg-primary text-primary-foreground justify-center' : 'justify-center'}
-                        onClick={() => setNotificationMethod('email')}
-                        style={{ width: 90 }}
-                      >
-                        <Mail className="h-4 w-4 mr-1" /> Email
-                      </Button>
-                      <Button
-                        variant={notificationMethod === 'sms' ? 'default' : 'outline'}
-                        size="sm"
-                        className={notificationMethod === 'sms' ? 'bg-primary text-primary-foreground justify-center' : 'justify-center'}
-                        onClick={() => setNotificationMethod('sms')}
-                        style={{ width: 90 }}
-                      >
-                        <MessageSquare className="h-4 w-4 mr-1" /> SMS
-                      </Button>
-                      <Button
-                        variant={notificationMethod === 'both' ? 'default' : 'outline'}
-                        size="sm"
-                        className={notificationMethod === 'both' ? 'bg-primary text-primary-foreground justify-center' : 'justify-center'}
-                        onClick={() => setNotificationMethod('both')}
-                        style={{ width: 110 }}
-                      >
-                        <Mail className="h-4 w-4 mr-1" />
-                        <MessageSquare className="h-4 w-4 mr-1" /> Both
-                      </Button>
-                    </div>
-                    <div className="mt-4">
-                      <Label htmlFor="reminderMessage" className="text-sm font-medium">Optional message</Label>
-                      <Textarea
-                        id="reminderMessage"
-                        placeholder="Add a custom message to include with the reminder..."
-                        value={reminderMessage}
-                        onChange={e => setReminderMessage(e.target.value)}
-                        className="min-h-[60px] mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                confirmationDialog.description
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (confirmationDialog.type === 'reminder') {
-                  // Use notificationMethod and reminderMessage here
-                  console.log('Sending reminder:', { notificationMethod, reminderMessage });
-                  toast.success('Reminder sent successfully!');
-                  onClose();
-                  return;
-                }
-                executeAction();
-              }}
-              className={confirmationDialog.type === 'cancel' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
-            >
-              {confirmationDialog.type === 'cancel' ? 'Continue' : 'Confirm'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Cancel Modal */}
-      <AlertDialog open={cancelModalOpen} onOpenChange={setCancelModalOpen}>
+      {/* ── Cancel Dialog ── */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogDescription asChild>
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="cancelReason" className="text-base font-medium">Reason for cancellation</Label>
+                  <Label htmlFor="cancelReason" className="text-base font-medium">
+                    Reason for cancellation
+                  </Label>
                   <Textarea
                     id="cancelReason"
-                    placeholder="Enter reason for cancelling this appointment..."
+                    placeholder="Enter reason for cancelling..."
                     value={cancelReason}
                     onChange={(e) => setCancelReason(e.target.value)}
                     className="min-h-[80px] resize-none mt-2"
@@ -833,58 +428,40 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                         id="notify-customer"
                         checked={notifyCustomer}
                         onCheckedChange={setNotifyCustomer}
-                        className={`!h-5 !w-9 !min-h-0 !min-w-0`}
+                        className="!h-5 !w-9 !min-h-0 !min-w-0"
                       />
-                      <Label htmlFor="notify-customer" className="text-sm font-medium">Notify customer</Label>
+                      <Label htmlFor="notify-customer" className="text-sm font-medium">
+                        Notify customer
+                      </Label>
                     </div>
                   </div>
-                  
                   {notifyCustomer && (
                     <div className="space-y-3">
                       <Label className="text-sm font-medium">Notification method</Label>
                       <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setNotificationMethod('email')}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
-                            notificationMethod === 'email'
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background border-border hover:bg-muted"
-                          )}
-                        >
-                          <Mail className="h-3 w-3" />
-                          Email
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setNotificationMethod('sms')}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
-                            notificationMethod === 'sms'
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background border-border hover:bg-muted"
-                          )}
-                        >
-                          <MessageSquare className="h-3 w-3" />
-                          SMS
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setNotificationMethod('both')}
-                          className={cn(
-                            "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
-                            notificationMethod === 'both'
-                              ? "bg-primary text-primary-foreground border-primary"
-                              : "bg-background border-border hover:bg-muted"
-                          )}
-                        >
-                          <div className="flex gap-0.5">
-                            <Mail className="h-2.5 w-2.5" />
-                            <MessageSquare className="h-2.5 w-2.5" />
-                          </div>
-                          Both
-                        </button>
+                        {(['email', 'sms', 'both'] as const).map((method) => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setNotificationMethod(method)}
+                            className={cn(
+                              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors',
+                              notificationMethod === method
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'bg-background border-border hover:bg-muted',
+                            )}
+                          >
+                            {method === 'email' && <Mail className="h-3 w-3" />}
+                            {method === 'sms' && <MessageSquare className="h-3 w-3" />}
+                            {method === 'both' && (
+                              <div className="flex gap-0.5">
+                                <Mail className="h-2.5 w-2.5" />
+                                <MessageSquare className="h-2.5 w-2.5" />
+                              </div>
+                            )}
+                            {method.charAt(0).toUpperCase() + method.slice(1)}
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -893,23 +470,17 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setCancelReason('');
-              setNotifyCustomer(true);
-              setNotificationMethod('both');
-            }}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel
               onClick={() => {
-                setConfirmationDialog({
-                  open: true,
-                  type: 'cancel',
-                  title: 'Confirm Cancellation',
-                  description: `Are you sure you want to cancel this appointment?${cancelReason ? `\n\nReason: ${cancelReason}` : ''}${notifyCustomer ? `\n\nNotification: ${notificationMethod}` : '\n\nNo notification will be sent'}`
-                });
-                setCancelModalOpen(false);
+                setCancelReason('');
+                setNotifyCustomer(true);
+                setNotificationMethod('both');
               }}
+            >
+              Back
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Cancel Appointment
@@ -917,7 +488,24 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </BaseSlider>
+
+      {/* ── Complete / No-Show Confirmation Dialog ── */}
+      <AlertDialog
+        open={confirmDialog.open}
+        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmAction}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 };
 

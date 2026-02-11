@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo } from "react";
 import {
     CalendarDays,
     ChevronLeft,
@@ -7,86 +7,130 @@ import {
 import { Button } from "../../../shared/components/ui/button.tsx";
 import { useDispatch, useSelector } from "react-redux";
 import { AppointmentViewMode, type CalendarFilters } from "../types.ts";
-import { getFiltersSelector, getViewModeSelector } from "../selectors.ts";
+import { getFiltersSelector, getSelectedDate, getViewModeSelector } from "../selectors.ts";
 import {
-    geTabItemInfo,
+    getTabItemInfo,
     getMonthRange,
     getStartEndDate,
-    getStartOfTheWeek,
     getViewItemList,
-    getWeekRange
+    getWeekRange,
+    getWeekStart,
 } from "../utils.ts";
-import { setCalendarFilterAction, setViewModeAction } from "../actions.ts";
+import { setCalendarFilterAction, setSelectedDateAction, setViewModeAction } from "../actions.ts";
 
-export const DateTabs = () => {
+/**
+ * Dispatches both the new setSelectedDateAction (triggers new saga cascade)
+ * and the legacy setCalendarFilterAction (keeps legacy views working during migration).
+ */
+const useDateNavigation = () => {
     const dispatch = useDispatch();
-    const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
     const filters: CalendarFilters = useSelector(getFiltersSelector);
-    const [currentWeekStart] =  useState(getStartOfTheWeek());
 
-    const getViewItems = useCallback(() => {
-        return getViewItemList(viewMode, currentWeekStart);
-    }, [viewMode, currentWeekStart]);
+    const navigateToDate = useCallback((date: Date, mode: AppointmentViewMode) => {
+        // 1. Dispatch new action (triggers saga: summary + day data refetch)
+        dispatch(setSelectedDateAction(date));
 
-    const handleClickTabs = useCallback((mode: AppointmentViewMode) => {
-        let interval = getStartEndDate(filters.selectedDate);
-
+        // 2. Legacy compat: update old filters so existing list/grid views still work
+        let interval: { startDate: Date; endDate: Date };
         switch (mode) {
-            case AppointmentViewMode.DAY:
-                interval = getStartEndDate(filters.selectedDate)
-                break
             case AppointmentViewMode.WEEK:
-                interval = getWeekRange(filters.selectedDate)
-                break
+                interval = getWeekRange(date);
+                break;
             case AppointmentViewMode.MONTH:
-                interval = getMonthRange(filters.selectedDate)
-                break
+                interval = getMonthRange(date);
+                break;
+            case AppointmentViewMode.DAY:
+            default:
+                interval = getStartEndDate(date);
+                break;
         }
 
         dispatch(setCalendarFilterAction.request({
             ...filters,
+            selectedDate: date,
             startDate: interval.startDate,
-            endDate: interval.endDate
-        }))
+            endDate: interval.endDate,
+        }));
+    }, [dispatch, filters]);
 
-        dispatch(setViewModeAction(mode))
+    return navigateToDate;
+};
 
-    }, [dispatch, filters])
+export const DateTabs = () => {
+    const dispatch = useDispatch();
+    const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
+    const selectedDate: Date = useSelector(getSelectedDate);
+    const navigateToDate = useDateNavigation();
 
+    // Derive the week start from the selected date (not stuck at initial value)
+    const currentWeekStart = useMemo(() => getWeekStart(selectedDate), [selectedDate]);
+
+    const viewItems = useMemo(() => {
+        return getViewItemList(viewMode, currentWeekStart);
+    }, [viewMode, currentWeekStart]);
+
+    // --- View mode tabs (Day / Week / Month) ---
+    const handleClickTabs = useCallback((mode: AppointmentViewMode) => {
+        dispatch(setViewModeAction(mode));
+        navigateToDate(selectedDate, mode);
+    }, [dispatch, selectedDate, navigateToDate]);
+
+    // --- Today button ---
     const handleClickToday = useCallback(() => {
-        const selectedDate = new Date();
-        const { startDate, endDate } = getStartEndDate(selectedDate)
-        const newFilters: CalendarFilters = {
-            ...filters,
-            selectedDate,
-            endDate,
-            startDate
+        navigateToDate(new Date(), viewMode);
+    }, [viewMode, navigateToDate]);
+
+    // --- Prev / Next navigation ---
+    const goToPreviousSection = useCallback(() => {
+        const prev = new Date(selectedDate);
+
+        switch (viewMode) {
+            case AppointmentViewMode.DAY:
+                prev.setDate(prev.getDate() - 1);
+                break;
+            case AppointmentViewMode.WEEK:
+                prev.setDate(prev.getDate() - 7);
+                break;
+            case AppointmentViewMode.MONTH:
+                prev.setMonth(prev.getMonth() - 1);
+                break;
         }
 
-        dispatch(setCalendarFilterAction.request(newFilters))
-    }, [dispatch, filters])
-
-    const goToPreviousSection = useCallback(() => {
-        console.log(viewMode)
-        console.log('goToNextSection')
-    },[viewMode]);
+        navigateToDate(prev, viewMode);
+    }, [selectedDate, viewMode, navigateToDate]);
 
     const goToNextSection = useCallback(() => {
-        console.log('goToNextSection')
-    },[]);
+        const next = new Date(selectedDate);
 
+        switch (viewMode) {
+            case AppointmentViewMode.DAY:
+                next.setDate(next.getDate() + 1);
+                break;
+            case AppointmentViewMode.WEEK:
+                next.setDate(next.getDate() + 7);
+                break;
+            case AppointmentViewMode.MONTH:
+                next.setMonth(next.getMonth() + 1);
+                break;
+        }
+
+        navigateToDate(next, viewMode);
+    }, [selectedDate, viewMode, navigateToDate]);
+
+    // --- Click on a date card ---
     const handleClickCard = useCallback((item: Date) => {
         if (viewMode === AppointmentViewMode.DAY) {
-            const interval = getStartEndDate(item)
-            const newFilters = {
-                ...filters,
-                startDate: interval.startDate,
-                endDate: interval.endDate,
-                selectedDate: interval.startDate
-            }
-            dispatch(setCalendarFilterAction.request(newFilters))
+            navigateToDate(item, viewMode);
+        } else if (viewMode === AppointmentViewMode.WEEK) {
+            // Clicking a week card selects the start of that week and switches to day view
+            dispatch(setViewModeAction(AppointmentViewMode.WEEK));
+            navigateToDate(item, AppointmentViewMode.WEEK);
+        } else if (viewMode === AppointmentViewMode.MONTH) {
+            // Clicking a month card selects the first of that month
+            dispatch(setViewModeAction(AppointmentViewMode.MONTH));
+            navigateToDate(item, AppointmentViewMode.MONTH);
         }
-    }, [dispatch, viewMode, filters])
+    }, [dispatch, viewMode, navigateToDate]);
 
     return (<div>
         {/* View Mode Filter */}
@@ -96,9 +140,7 @@ export const DateTabs = () => {
                     {([AppointmentViewMode.DAY, AppointmentViewMode.WEEK, AppointmentViewMode.MONTH]).map((mode) => (
                         <button
                             key={mode}
-                            onClick={()=> {
-                                handleClickTabs(mode)
-                            }}
+                            onClick={() => handleClickTabs(mode)}
                             className={`
                     px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ease-out
                     ${(viewMode === mode)
@@ -114,9 +156,7 @@ export const DateTabs = () => {
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                        handleClickToday()
-                    }}
+                    onClick={handleClickToday}
                     className="flex items-center gap-2 text-xs"
                 >
                     <CalendarDays className="h-4 w-4"/>
@@ -125,7 +165,7 @@ export const DateTabs = () => {
             </div>
         </div>
 
-        {/*Date Navigation - visible for both list and grid views*/}
+        {/* Date Navigation - visible for both list and grid views */}
         <div className="mb-4 flex items-start">
             <button
                 onClick={goToPreviousSection}
@@ -137,8 +177,8 @@ export const DateTabs = () => {
             <div
                 className="flex items-center gap-2 flex-1 overflow-x-auto px-2 mx-2
                  [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                {getViewItems().map((item, index) => {
-                    const { isSelected, displayText, subText } = geTabItemInfo(viewMode, filters.selectedDate, item);
+                {viewItems.map((item, index) => {
+                    const { isSelected, displayText, subText } = getTabItemInfo(viewMode, selectedDate, item);
 
                     return (
                         <button

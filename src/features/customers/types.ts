@@ -49,6 +49,7 @@ export interface CustomerFilter {
 }
 
 export interface ListCustomersPayload {
+  search?: string;
   filters: CustomerFilter[];
   pagination: {
     offset: number;

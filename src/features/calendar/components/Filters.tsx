@@ -1,80 +1,60 @@
 import { type FC, useCallback, useState } from "react";
 import { FilterPanel } from "../../../shared/components/common/FilterPanel.tsx";
-import type { Appointment } from "../../../shared/types/calendar.ts";
 import { useDispatch, useSelector } from "react-redux";
 import {
     setCalendarFilterAction,
+    setDayFiltersAction,
     setViewTypeAction,
-    toggleAddForm
+    toggleAddForm,
+    toggleBlockFormAction,
 } from "../actions.ts";
 import { AppointmentViewType, type CalendarFilters } from "../types.ts";
-import { getFiltersSelector, getViewTypeSelector } from "../selectors.ts";
-import { getDefaultCalendarFilters, getStartEndDate, STATUS_LIST } from "../utils.ts";
+import { getDayFilters, getFiltersSelector, getViewTypeSelector } from "../selectors.ts";
+import { getDefaultCalendarFilters, STATUS_LIST } from "../utils.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
-import { Clipboard, Calendar as CalendarIcon, Filter, List } from 'lucide-react';
-import DatePicker from "../../../shared/components/ui/date-picker.tsx";
-import type { TeamMember } from "../../../shared/types/team-member.ts";
-import type { LocationType } from "../../../shared/types/location.ts";
-import { BadgeList } from "./BadgeList.tsx";
+import { Clipboard, Calendar as CalendarIcon, Filter, List, ShieldOff } from 'lucide-react';
 import { getServicesListSelector } from "../../services/selectors.ts";
 import type { Service } from "../../../shared/types/service.ts";
-import { getAllLocationsSelector } from "../../locations/selectors.ts";
-import { selectTeamMembers } from "../../teamMembers/selectors.ts";
+import { getLocationStaff } from "../selectors.ts";
 import { ALL } from "../../../shared/constants.ts";
+import type { CalendarDayFilters, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 
 type FilterValues = {
-    location: string,
     teamMember: string,
     service: string,
     status: string,
     clientName: string,
-    email: string,
-    phoneNumber: string,
 }
 
-interface IProps {
-    appointments: Array<Appointment>
-}
-
-export const Filters: FC<IProps> = () => {
+export const Filters: FC = () => {
     const dispatch = useDispatch();
     const viewType: AppointmentViewType = useSelector(getViewTypeSelector);
-    const teamMembers: Array<TeamMember> = useSelector(selectTeamMembers);
-    const locations: Array<LocationType> = useSelector(getAllLocationsSelector);
     const services: Array<Service> = useSelector(getServicesListSelector);
 
-    const { selectedDate } = useSelector(getFiltersSelector);
+    // New: use location-scoped staff from the calendar context
+    const locationStaff: Array<CalendarStaffMember> = useSelector(getLocationStaff);
+    const dayFilters: CalendarDayFilters = useSelector(getDayFilters);
+
+    // Legacy filter state (kept for backward compat during migration)
+    const legacyFilters: CalendarFilters = useSelector(getFiltersSelector);
 
     const [showFilters, setShowFilters] = useState(false);
-    const [localFilters, setLocalFilters] = useState<CalendarFilters>(getDefaultCalendarFilters());
 
     const getActiveFilterCount = useCallback(() => {
-        const activeFiltersCount: Array<boolean> = [
-            localFilters.location !== ALL,
-            localFilters.teamMember !== ALL,
-            localFilters.service !== ALL,
-            localFilters.status !== ALL,
-            !!localFilters.clientName,
-            !!localFilters.email,
-            !!localFilters.phoneNumber,
-        ];
+        let count = 0;
+        if (dayFilters.staffUserId) count++;
+        if (dayFilters.serviceId) count++;
+        if (dayFilters.status) count++;
+        if (dayFilters.clientName) count++;
+        return count;
+    }, [dayFilters])
 
-        return activeFiltersCount.filter(Boolean).length;
-    }, [localFilters])
-
-    const getTeamMemberOptions = useCallback(() => {
+    const getStaffOptions = useCallback(() => {
        return [
-            { value: ALL, label: 'All team members' },
-            ...teamMembers.map(member => ({ value: `${member.id}`, label: `${member.firstName} ${member.lastName}` }))
+            { value: ALL, label: 'All staff' },
+            ...locationStaff.map(s => ({ value: `${s.id}`, label: `${s.firstName} ${s.lastName}` }))
         ]
-    }, [teamMembers])
-
-    const getLocationOptions = useCallback(() => {
-        return [
-            { value: ALL, label: 'All locations' },
-            ...locations.map(location => ({ value: `${location.id}`, label: location.name }))
-        ]
-    }, [locations])
+    }, [locationStaff])
 
     const getServicesOptions = useCallback(() => {
         return [
@@ -87,50 +67,65 @@ export const Filters: FC<IProps> = () => {
         dispatch(toggleAddForm(true))
     }, [dispatch])
 
-    const handleToggleViewType = useCallback((viewType: AppointmentViewType) => {
-        dispatch(setViewTypeAction(viewType))
+    const handleOpenBlockForm = useCallback(() => {
+        dispatch(toggleBlockFormAction(true))
     }, [dispatch])
 
-    const handleChangeDate = useCallback((date: Date) => {
-
-        const { startDate, endDate } = getStartEndDate(date);
-
-        const newFilters: CalendarFilters = {
-            ...localFilters,
-            selectedDate: date,
-            startDate,
-            endDate,
-        }
-
-        dispatch(setCalendarFilterAction.request(newFilters))
-    }, [dispatch, localFilters])
+    const handleToggleViewType = useCallback((vt: AppointmentViewType) => {
+        dispatch(setViewTypeAction(vt))
+    }, [dispatch])
 
     const handleApplyFilters = useCallback((filterValues: FilterValues) => {
-        const newFilters = {
-            ...localFilters,
-            ...filterValues,
-        }
-        setLocalFilters(newFilters)
         setShowFilters(false);
-        dispatch(setCalendarFilterAction.request(newFilters))
-    }, [dispatch, localFilters])
+
+        // Build new day filters from the applied values
+        const newDayFilters: CalendarDayFilters = {};
+
+        if (filterValues.teamMember && filterValues.teamMember !== ALL) {
+            newDayFilters.staffUserId = parseInt(filterValues.teamMember, 10);
+        }
+        if (filterValues.service && filterValues.service !== ALL) {
+            newDayFilters.serviceId = parseInt(filterValues.service, 10);
+        }
+        if (filterValues.status && filterValues.status !== ALL) {
+            newDayFilters.status = filterValues.status;
+        }
+        if (filterValues.clientName) {
+            newDayFilters.clientName = filterValues.clientName;
+        }
+
+        // Dispatch new day filters (triggers day data refetch via saga)
+        dispatch(setDayFiltersAction(newDayFilters));
+
+        // Legacy compat: also update old filters
+        dispatch(setCalendarFilterAction.request({
+            ...legacyFilters,
+            teamMember: filterValues.teamMember || ALL,
+            service: filterValues.service || ALL,
+            status: filterValues.status || ALL,
+            clientName: filterValues.clientName || '',
+        }));
+    }, [dispatch, legacyFilters])
 
     const handleClearFilters = useCallback(() => {
-        setLocalFilters(getDefaultCalendarFilters());
-        dispatch(setCalendarFilterAction.request(getDefaultCalendarFilters()))
+        // Clear new day filters
+        dispatch(setDayFiltersAction({}));
+
+        // Legacy compat
+        dispatch(setCalendarFilterAction.request(getDefaultCalendarFilters()));
     }, [dispatch])
 
+    // Map current dayFilters back to FilterPanel values
+    const currentFilterValues = {
+        teamMember: dayFilters.staffUserId ? `${dayFilters.staffUserId}` : ALL,
+        service: dayFilters.serviceId ? `${dayFilters.serviceId}` : ALL,
+        status: dayFilters.status || ALL,
+        clientName: dayFilters.clientName || '',
+    };
+
     return (<div className="space-y-6">
-         {/*Top Controls: Date Selector, Filter, View Toggle, Add */}
+         {/* Top Controls: Filter, View Toggle, Add Appointment, Add Block */}
         <div className="flex gap-2 items-center mb-4">
-            <div>
-                <DatePicker
-                    value={selectedDate}
-                    onChange={(date) => handleChangeDate(date)}
-                    viewMode={'day'}
-                    className="h-11 w-[130px] bg-white border border-border rounded-lg text-sm font-medium text-foreground"
-                />
-            </div>
             <button
                 className={`
               relative flex items-center justify-center h-9 w-9 rounded-md border border-input transition-all duration-200 ease-out
@@ -166,7 +161,7 @@ export const Filters: FC<IProps> = () => {
                     <List className="h-4 w-4"/>
                 </button>
                 <button
-                    onClick={() =>handleToggleViewType(AppointmentViewType.GRID)}
+                    onClick={() => handleToggleViewType(AppointmentViewType.GRID)}
                     className={`
                 flex items-center justify-center h-9 w-9 rounded-md transition-all duration-200 ease-out
                 ${viewType === AppointmentViewType.GRID
@@ -180,11 +175,24 @@ export const Filters: FC<IProps> = () => {
                 </button>
             </div>
 
+            <div className="flex-1" />
+
+            <Button
+                variant="outline"
+                size="default"
+                className="h-9 px-3 gap-2"
+                onClick={handleOpenBlockForm}
+                title="Block time"
+            >
+                <ShieldOff className="h-4 w-4"/>
+                <span className="hidden sm:inline">Block</span>
+            </Button>
+
             <Button
                 size="default"
-                className="h-11 px-4 gap-2"
-                onClick={() => handleOpenAddForm()}
-                title={'Add new Appointment'}
+                className="h-9 px-4 gap-2"
+                onClick={handleOpenAddForm}
+                title="Add new Appointment"
             >
                 <Clipboard className="h-4 w-4"/>
                 <span>Add</span>
@@ -198,25 +206,17 @@ export const Filters: FC<IProps> = () => {
                 fields={[
                     {
                         type: 'select',
-                        key: 'location',
-                        label: 'Location',
-                        value: localFilters.location,
-                        options: getLocationOptions(),
-                        searchable: true,
-                    },
-                    {
-                        type: 'select',
                         key: 'teamMember',
-                        label: 'Team Member',
-                        value: localFilters.teamMember,
-                        options: getTeamMemberOptions(),
+                        label: 'Staff Member',
+                        value: currentFilterValues.teamMember,
+                        options: getStaffOptions(),
                         searchable: true,
                     },
                     {
                         type: 'select',
                         key: 'service',
                         label: 'Service',
-                        value: localFilters.service,
+                        value: currentFilterValues.service,
                         options: getServicesOptions(),
                         searchable: true,
                     },
@@ -224,7 +224,7 @@ export const Filters: FC<IProps> = () => {
                         type: 'select',
                         key: 'status',
                         label: 'Status',
-                        value: localFilters.status,
+                        value: currentFilterValues.status,
                         options: STATUS_LIST,
                         searchable: false,
                     },
@@ -232,29 +232,13 @@ export const Filters: FC<IProps> = () => {
                         type: 'text',
                         key: 'clientName',
                         label: 'Client Name',
-                        value: localFilters.clientName,
-                        placeholder: 'Search by client name...'
-                    },
-                    {
-                        type: 'text',
-                        key: 'email',
-                        label: 'Client Email',
-                        value: localFilters.email,
-                        placeholder: 'Search by email...'
-                    },
-                    {
-                        type: 'text',
-                        key: 'phoneNumber',
-                        label: 'Client Phone',
-                        value: localFilters.phoneNumber,
-                        placeholder: 'Search by phone...'
+                        value: currentFilterValues.clientName,
+                        placeholder: 'Search by client name...',
                     },
                 ]}
-                onApply={(values) => {handleApplyFilters(values as FilterValues)}}
-                onClear={() => handleClearFilters()}
+                onApply={(values) => handleApplyFilters(values as FilterValues)}
+                onClear={handleClearFilters}
             />
         )}
-        {/* Active Filter Badges - Always show when there are active filters */}
-        <BadgeList filters={localFilters} changeFilters={handleApplyFilters}/>
     </div>)
 }
