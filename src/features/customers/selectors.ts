@@ -22,6 +22,11 @@ export const getIsRemovingCustomerSelector = createSelector(
   (state) => state.isRemoving
 );
 
+export const getIsMergingCustomerSelector = createSelector(
+  getCustomersStateSelector,
+  (state) => state.isMerging
+);
+
 export const getCustomersErrorSelector = createSelector(
   getCustomersStateSelector,
   (state) => state.error
