@@ -7,9 +7,9 @@ import AddCustomerSlider from '../components/AddCustomerSlider';
 import EditCustomerSlider from '../components/EditCustomerSlider';
 import { CustomerFilters } from '../components/CustomerFilters';
 import { listCustomersAction } from '../actions';
-import { 
-  getAllCustomersSelector, 
-  getCustomersLoadingSelector
+import {
+    getAllCustomersSelector,
+    getCustomersLoadingSelector,
 } from '../selectors';
 import { ItemCard } from '../../../shared/components/common/ItemCard';
 import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
