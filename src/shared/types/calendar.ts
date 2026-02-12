@@ -202,7 +202,7 @@ export interface AdminCreateAppointmentPayload {
   locationId: number;
   customerId?: number;
   staffUserIds?: number[];
-  scheduledAt: number;
+  scheduledAt: string; // ISO 8601 date string
   notes?: string;
   bookingSource?: AppointmentBookingSource;
   overrideConflicts?: boolean;

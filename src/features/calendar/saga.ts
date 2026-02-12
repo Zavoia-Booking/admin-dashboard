@@ -10,8 +10,10 @@ import {
     fetchLocationContext,
     fetchCalendarSummary,
     fetchDayData,
+    fetchWeekData,
     setDayFiltersAction,
     setSelectedDateAction,
+    setViewModeAction,
     adminCreateAppointment,
     updateAppointmentStatus,
     createCalendarBlock,
@@ -40,7 +42,7 @@ import {
     getViewModeSelector,
     getDayFilters,
 } from "./selectors.ts";
-import { getFilterPayload, mapToAppointmentList, getDateRangeForMode } from "./utils.ts";
+import { getFilterPayload, mapToAppointmentList, getDateRangeForMode, getWeekStart, getWeekDays } from "./utils.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
 
 // ─────────────────────────────────────────────────────────────
@@ -54,16 +56,16 @@ function* handleGetAppointments(): Generator<any, void, any> {
         const getResponse: unknown = yield call(getAppointmentsRequest, getFilterPayload(filters));
         yield put(fetchCalendarAppointments.success(mapToAppointmentList(getResponse as any)));
     } catch (error: any) {
-        console.log(error);
+        yield put(fetchCalendarAppointments.failure(error));
     }
 }
 
 function* handleCreateAppointments(action: ActionType<typeof createCalendarAppointmentAction.request>): Generator<any, void, any> {
     try {
-        const appointments: unknown = yield call(createAppointmentsRequest, action.payload);
-        console.log(appointments);
+        const result: unknown = yield call(createAppointmentsRequest, action.payload);
+        yield put(createCalendarAppointmentAction.success(result));
     } catch (error: any) {
-        console.log(error);
+        yield put(createCalendarAppointmentAction.failure(error));
     }
 }
 
@@ -99,7 +101,7 @@ function* handleSetSelectedLocation(action: ActionType<typeof setSelectedLocatio
         includePreview: viewMode === AppointmentViewMode.WEEK,
     }));
 
-    // 3. If in day view, also fetch day data
+    // 3. Fetch view-specific data
     if (viewMode === AppointmentViewMode.DAY) {
         const dayFilters: CalendarDayFilters = yield select(getDayFilters);
         yield put(fetchDayData.request({
@@ -107,6 +109,10 @@ function* handleSetSelectedLocation(action: ActionType<typeof setSelectedLocatio
             date: startDate,
             filters: dayFilters,
         }));
+    } else if (viewMode === AppointmentViewMode.WEEK) {
+        const ws = getWeekStart(selectedDate);
+        const weekStartStr = ws.toISOString().split('T')[0];
+        yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr }));
     }
 }
 
@@ -157,7 +163,7 @@ function* handleFetchDayData(action: ActionType<typeof fetchDayData.request>): G
 }
 
 /**
- * When the selected date changes, refetch summary + day data.
+ * When the selected date changes, refetch summary + day/week data.
  */
 function* handleSetSelectedDate(_action: ActionType<typeof setSelectedDateAction>): Generator<any, void, any> {
     const locationId: number | null = yield select(getSelectedLocationId);
@@ -175,7 +181,7 @@ function* handleSetSelectedDate(_action: ActionType<typeof setSelectedDateAction
         includePreview: viewMode === AppointmentViewMode.WEEK,
     }));
 
-    // If in day view, also fetch day data
+    // Fetch view-specific data
     if (viewMode === AppointmentViewMode.DAY) {
         const dayFilters: CalendarDayFilters = yield select(getDayFilters);
         yield put(fetchDayData.request({
@@ -183,6 +189,71 @@ function* handleSetSelectedDate(_action: ActionType<typeof setSelectedDateAction
             date: startDate,
             filters: dayFilters,
         }));
+    } else if (viewMode === AppointmentViewMode.WEEK) {
+        const ws = getWeekStart(selectedDate);
+        const weekStartStr = ws.toISOString().split('T')[0];
+        yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr }));
+    }
+}
+
+/**
+ * Fetch full week data — 7 parallel day requests merged into a record.
+ */
+function* handleFetchWeekData(action: ActionType<typeof fetchWeekData.request>): Generator<any, void, any> {
+    const { locationId, weekStart } = action.payload;
+
+    try {
+        const weekStartDate = new Date(weekStart + 'T00:00:00');
+        const days = getWeekDays(weekStartDate);
+        const dateStrings = days.map(d => d.toISOString().split('T')[0]);
+
+        // Fire 7 parallel requests
+        const results: DayDataResponse[] = yield all(
+            dateStrings.map(dateStr => call(getDayDataRequest, locationId, dateStr))
+        );
+
+        // Merge into record keyed by "YYYY-MM-DD"
+        const merged: Record<string, DayDataResponse> = {};
+        dateStrings.forEach((dateStr, i) => {
+            merged[dateStr] = results[i];
+        });
+
+        yield put(fetchWeekData.success(merged));
+    } catch (error: any) {
+        yield put(fetchWeekData.failure(error));
+    }
+}
+
+/**
+ * When view mode changes, fetch appropriate data for the new mode.
+ */
+function* handleSetViewMode(_action: ActionType<typeof setViewModeAction>): Generator<any, void, any> {
+    const locationId: number | null = yield select(getSelectedLocationId);
+    if (!locationId) return;
+
+    const selectedDate: Date = yield select(getSelectedDate);
+    const viewMode: AppointmentViewMode = yield select(getViewModeSelector);
+    const { startDate, endDate } = getDateRangeForMode(selectedDate, viewMode);
+
+    // Refetch summary for the new date range
+    yield put(fetchCalendarSummary.request({
+        locationId,
+        startDate,
+        endDate,
+        includePreview: viewMode === AppointmentViewMode.WEEK,
+    }));
+
+    if (viewMode === AppointmentViewMode.DAY) {
+        const dayFilters: CalendarDayFilters = yield select(getDayFilters);
+        yield put(fetchDayData.request({
+            locationId,
+            date: startDate,
+            filters: dayFilters,
+        }));
+    } else if (viewMode === AppointmentViewMode.WEEK) {
+        const ws = getWeekStart(selectedDate);
+        const weekStartStr = ws.toISOString().split('T')[0];
+        yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr }));
     }
 }
 
@@ -205,6 +276,37 @@ function* handleSetDayFilters(_action: ActionType<typeof setDayFiltersAction>): 
 }
 
 // ─────────────────────────────────────────────────────────────
+// Helper: Refresh calendar data after a mutation (create / update / delete)
+// ─────────────────────────────────────────────────────────────
+
+function* refreshCalendarData(): Generator<any, void, any> {
+    const locationId: number | null = yield select(getSelectedLocationId);
+    if (!locationId) return;
+
+    const selectedDate: Date = yield select(getSelectedDate);
+    const viewMode: AppointmentViewMode = yield select(getViewModeSelector);
+
+    if (viewMode === AppointmentViewMode.DAY) {
+        const dayFilters: CalendarDayFilters = yield select(getDayFilters);
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        yield put(fetchDayData.request({ locationId, date: dateStr, filters: dayFilters }));
+    } else if (viewMode === AppointmentViewMode.WEEK) {
+        const ws = getWeekStart(selectedDate);
+        const weekStartStr = ws.toISOString().split('T')[0];
+        yield put(fetchWeekData.request({ locationId, weekStart: weekStartStr }));
+    }
+
+    // Also refresh summary
+    const { startDate, endDate } = getDateRangeForMode(selectedDate, viewMode);
+    yield put(fetchCalendarSummary.request({
+        locationId,
+        startDate,
+        endDate,
+        includePreview: viewMode === AppointmentViewMode.WEEK,
+    }));
+}
+
+// ─────────────────────────────────────────────────────────────
 // New sagas: Admin appointment CRUD
 // ─────────────────────────────────────────────────────────────
 
@@ -212,15 +314,7 @@ function* handleAdminCreateAppointment(action: ActionType<typeof adminCreateAppo
     try {
         const result: any = yield call(adminCreateAppointmentRequest, action.payload);
         yield put(adminCreateAppointment.success(result));
-
-        // Refresh day data after creation
-        const locationId: number | null = yield select(getSelectedLocationId);
-        if (locationId) {
-            const selectedDate: Date = yield select(getSelectedDate);
-            const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            yield put(fetchDayData.request({ locationId, date: dateStr, filters: dayFilters }));
-        }
+        yield call(refreshCalendarData);
     } catch (error: any) {
         yield put(adminCreateAppointment.failure(error));
     }
@@ -232,15 +326,7 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
     try {
         const result: any = yield call(updateAppointmentRequest, appointmentId, { status });
         yield put(updateAppointmentStatus.success(result));
-
-        // Refresh day data after status change
-        const locationId: number | null = yield select(getSelectedLocationId);
-        if (locationId) {
-            const selectedDate: Date = yield select(getSelectedDate);
-            const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            yield put(fetchDayData.request({ locationId, date: dateStr, filters: dayFilters }));
-        }
+        yield call(refreshCalendarData);
     } catch (error: any) {
         yield put(updateAppointmentStatus.failure(error));
     }
@@ -254,15 +340,7 @@ function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBloc
     try {
         const result: any = yield call(createCalendarBlockRequest, action.payload);
         yield put(createCalendarBlock.success(result));
-
-        // Refresh day data after block creation
-        const locationId: number | null = yield select(getSelectedLocationId);
-        if (locationId) {
-            const selectedDate: Date = yield select(getSelectedDate);
-            const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            yield put(fetchDayData.request({ locationId, date: dateStr, filters: dayFilters }));
-        }
+        yield call(refreshCalendarData);
     } catch (error: any) {
         yield put(createCalendarBlock.failure(error));
     }
@@ -274,15 +352,7 @@ function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBloc
     try {
         const result: any = yield call(updateCalendarBlockRequest, blockId, data);
         yield put(updateCalendarBlock.success(result));
-
-        // Refresh day data
-        const locationId: number | null = yield select(getSelectedLocationId);
-        if (locationId) {
-            const selectedDate: Date = yield select(getSelectedDate);
-            const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            yield put(fetchDayData.request({ locationId, date: dateStr, filters: dayFilters }));
-        }
+        yield call(refreshCalendarData);
     } catch (error: any) {
         yield put(updateCalendarBlock.failure(error));
     }
@@ -292,15 +362,7 @@ function* handleDeleteCalendarBlock(action: ActionType<typeof deleteCalendarBloc
     try {
         yield call(deleteCalendarBlockRequest, action.payload);
         yield put(deleteCalendarBlock.success(action.payload));
-
-        // Refresh day data
-        const locationId: number | null = yield select(getSelectedLocationId);
-        if (locationId) {
-            const selectedDate: Date = yield select(getSelectedDate);
-            const dayFilters: CalendarDayFilters = yield select(getDayFilters);
-            const dateStr = selectedDate.toISOString().split('T')[0];
-            yield put(fetchDayData.request({ locationId, date: dateStr, filters: dayFilters }));
-        }
+        yield call(refreshCalendarData);
     } catch (error: any) {
         yield put(deleteCalendarBlock.failure(error));
     }
@@ -322,8 +384,10 @@ export function* calendarSaga(): Generator<any, void, any> {
         takeLatest(fetchLocationContext.request, handleFetchLocationContext),
         takeLatest(fetchCalendarSummary.request, handleFetchCalendarSummary),
         takeLatest(fetchDayData.request, handleFetchDayData),
+        takeLatest(fetchWeekData.request, handleFetchWeekData),
         takeLatest(setSelectedDateAction, handleSetSelectedDate),
         takeLatest(setDayFiltersAction, handleSetDayFilters),
+        takeLatest(setViewModeAction, handleSetViewMode),
 
         // Admin appointment CRUD
         takeLatest(adminCreateAppointment.request, handleAdminCreateAppointment),

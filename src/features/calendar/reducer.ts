@@ -24,8 +24,15 @@ const initialState: CalendarViewState = {
     dayData: null,
     dayDataLoading: false,
 
+    // --- Week data ---
+    weekData: null,
+    weekDataLoading: false,
+
     // --- Day filters ---
     dayFilters: initialDayFilters,
+
+    // --- Staff filter ---
+    staffFilter: [],
 
     // --- Selected appointment detail ---
     selectedAppointment: null,
@@ -38,6 +45,9 @@ const initialState: CalendarViewState = {
         item: null,
     },
     blockFormOpen: false,
+
+    // --- Calendar sidebar ---
+    sidebarOpen: true,
 
     // --- View controls ---
     viewType: AppointmentViewType.LIST,
@@ -119,7 +129,9 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         locationContextLoading: payload !== null,
         summary: {},
         dayData: null,
+        weekData: null,
         dayFilters: initialDayFilters,
+        staffFilter: [],
     }
 }
 
@@ -197,6 +209,39 @@ const handleToggleBlockForm = (state: CalendarViewState, payload: boolean): Cale
     }
 }
 
+// --- Week data handlers ---
+
+const handleSetWeekData = (state: CalendarViewState, payload: Record<string, DayDataResponse>): CalendarViewState => {
+    return {
+        ...state,
+        weekData: payload,
+        weekDataLoading: false,
+    }
+}
+
+const handleSetWeekDataLoading = (state: CalendarViewState, payload: boolean): CalendarViewState => {
+    return {
+        ...state,
+        weekDataLoading: payload,
+    }
+}
+
+// --- Sidebar / staff filter handlers ---
+
+const handleToggleSidebar = (state: CalendarViewState, payload: boolean): CalendarViewState => {
+    return {
+        ...state,
+        sidebarOpen: payload,
+    }
+}
+
+const handleSetStaffFilter = (state: CalendarViewState, payload: number[]): CalendarViewState => {
+    return {
+        ...state,
+        staffFilter: payload,
+    }
+}
+
 // ─────────────────────────────────────────────────────────────
 // Reducer
 // ─────────────────────────────────────────────────────────────
@@ -254,6 +299,20 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetSelectedAppointment(state, action.payload);
         case getType(actions.toggleBlockFormAction):
             return handleToggleBlockForm(state, action.payload);
+
+        // --- Week data ---
+        case getType(actions.fetchWeekData.request):
+            return handleSetWeekDataLoading(state, true);
+        case getType(actions.fetchWeekData.success):
+            return handleSetWeekData(state, action.payload);
+        case getType(actions.fetchWeekData.failure):
+            return handleSetWeekDataLoading(state, false);
+
+        // --- Sidebar / Staff filter ---
+        case getType(actions.toggleCalendarSidebar):
+            return handleToggleSidebar(state, action.payload);
+        case getType(actions.setStaffFilter):
+            return handleSetStaffFilter(state, action.payload);
 
         default:
             return state;

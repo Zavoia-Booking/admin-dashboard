@@ -123,3 +123,26 @@ export const getSelectedAppointmentLoading = createSelector(getCalendarViewState
 export const getBlockFormOpen = createSelector(getCalendarViewStateSelector, (state) => {
     return state.blockFormOpen;
 })
+
+// ─────────────────────────────────────────────────────────────
+// New selectors: Week data, sidebar, staff filter
+// ─────────────────────────────────────────────────────────────
+
+/** Full week data (keyed by "YYYY-MM-DD") */
+export const getWeekData = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.weekData;
+})
+
+export const getWeekDataLoading = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.weekDataLoading;
+})
+
+/** Calendar sidebar open state (for mobile) */
+export const getSidebarOpen = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.sidebarOpen;
+})
+
+/** Staff filter — array of visible staff IDs (empty = all) */
+export const getStaffFilter = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.staffFilter;
+})

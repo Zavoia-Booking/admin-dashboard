@@ -20,7 +20,6 @@ export interface CustomerState {
   currentCustomer: Customer | null;
   isFetchingCustomer: boolean;
   isRemoving: boolean;
-  isMerging: boolean;
   pagination: CustomersPagination | null;
   summary: CustomersSummary | null;
 }
@@ -55,8 +54,4 @@ export interface ListCustomersPayload {
     offset: number;
     limit: number;
   };
-}
-
-export interface MergeCustomersPayload {
-  sourceId: number;
 }

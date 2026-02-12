@@ -4,31 +4,30 @@ import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
 import { toggleAddForm, toggleEditFormAction } from "../actions";
-import { AppointmentList } from "../components/AppointmentList.tsx";
 import {
   getAddFormSelector,
   getEditFormSelector,
   getViewModeSelector,
-  getViewTypeSelector,
+  getSidebarOpen,
 } from "../selectors.ts";
-import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
-import { Filters } from "../components/Filters.tsx";
+import { AppointmentViewMode } from "../types.ts";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
-import { DateTabs } from "../components/DateTab.tsx";
 import { getServicesAction } from "../../services/actions.ts";
 import { listLocationsAction } from "../../locations/actions.ts";
 import { listTeamMembersAction } from "../../teamMembers/actions.ts";
 import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
-import { LocationSelector } from "../components/LocationSelector.tsx";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
+import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
+import { CalendarHeader } from "../components/CalendarHeader.tsx";
+import { Card } from "../../../shared/components/ui/card.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
   const addFormOpen = useSelector(getAddFormSelector);
   const editForm = useSelector(getEditFormSelector);
-  const viewType: AppointmentViewType = useSelector(getViewTypeSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
+  const sidebarOpen = useSelector(getSidebarOpen);
 
   useEffect(() => {
     // Fetch supporting data - locations needed for LocationSelector,
@@ -50,23 +49,28 @@ const Calendar = () => {
     <AppLayout>
       <BusinessSetupGate>
         <AccessGuard>
-          {/* Location Selector - primary context for all calendar data */}
-          <LocationSelector />
+          <div className="flex h-[calc(100vh-64px)]">
+            {/* ─── Left Sidebar ─── */}
+            {sidebarOpen && <CalendarSidebar />}
 
-          <Filters />
-          <DateTabs/>
+            {/* ─── Main Content ─── */}
+            <div className="flex-1 flex flex-col min-w-0 bg-muted/10 dark:bg-transparent">
+              <div className="flex-1 p-0 md:p-4 lg:p-6 overflow-hidden flex flex-col">
+                <Card className="flex-1 flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface overflow-hidden rounded-none md:rounded-xl">
+                  {/* Top header bar */}
+                  <CalendarHeader />
 
-          {/* List View Content */}
-          {viewType === AppointmentViewType.LIST && (
-              <AppointmentList />
-          )}
+                  {/* Scrollable content area */}
+                  <div className="flex-1 overflow-auto relative">
+                    {/* Month view uses summary grid; Day & Week views use the time grid */}
+                    <AppointmentGrid viewMode={viewMode} />
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
 
-          {/* Grid View - Custom Day Timeline */}
-          {viewType === AppointmentViewType.GRID && (
-              <AppointmentGrid viewMode={viewMode} />
-          )}
-
-          {/* Add Appointment Slider */}
+          {/* ─── Drawers / Sliders (portaled) ─── */}
           <AddAppointmentSlider
             isOpen={addFormOpen}
             onClose={() => handleCloseAddForm()}
@@ -76,8 +80,6 @@ const Calendar = () => {
             appointment={editForm.item}
             onClose={handleCloseEditForm}
           />
-
-          {/* Block Creation Drawer */}
           <CreateBlockDrawer />
         </AccessGuard>
       </BusinessSetupGate>

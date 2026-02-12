@@ -96,6 +96,25 @@ export const toggleBlockFormAction = createAction(
     'CALENDAR/BLOCK_FORM/TOGGLE'
 )<boolean>()
 
+/** Toggle the calendar sidebar (mobile collapse) */
+export const toggleCalendarSidebar = createAction(
+    'CALENDAR/SIDEBAR/TOGGLE'
+)<boolean>()
+
+/** Set staff filter (array of visible staff IDs, empty = show all) */
+export const setStaffFilter = createAction(
+    'CALENDAR/STAFF_FILTER/SET'
+)<number[]>()
+
+/** Fetch full week data (7 days of appointments + blocks in parallel) */
+export const fetchWeekData = createAsyncAction(
+    'CALENDAR/WEEK_DATA/REQUEST',
+    'CALENDAR/WEEK_DATA/SUCCESS',
+    'CALENDAR/WEEK_DATA/FAILURE',
+)<{ locationId: number; weekStart: string },
+    Record<string, DayDataResponse>,
+    any>()
+
 // ─────────────────────────────────────────────────────────────
 // New actions: Admin appointment CRUD
 // ─────────────────────────────────────────────────────────────

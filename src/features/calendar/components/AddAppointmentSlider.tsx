@@ -17,7 +17,7 @@ import { Badge } from '../../../shared/components/ui/badge';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { useDispatch, useSelector } from 'react-redux';
-import { adminCreateAppointment, toggleAddForm } from '../actions';
+import { adminCreateAppointment } from '../actions';
 import {
   getSelectedLocationId,
   getLocationStaff,
@@ -313,7 +313,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setSubmitting(true);
     setError(null);
 
-    // Build scheduledAt as timestamp (ms)
+    // Build scheduledAt as ISO string
     const [hours, minutes] = form.time.split(':').map(Number);
     const scheduledDate = new Date(form.date);
     scheduledDate.setHours(hours, minutes, 0, 0);
@@ -323,7 +323,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       locationId: selectedLocationId,
       customerId: form.customerId ?? undefined,
       staffUserIds: form.staffUserId !== null ? [form.staffUserId] : undefined,
-      scheduledAt: scheduledDate.getTime(),
+      scheduledAt: scheduledDate.toISOString(),
       notes: form.notes.trim() || undefined,
       bookingSource: form.bookingSource,
     };
@@ -743,9 +743,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     >
                       {form.staffUserId !== null
                         ? (() => {
-                            const staff = locationStaff.find((s) => s.id === form.staffUserId);
-                            return staff ? `${staff.firstName} ${staff.lastName}` : 'Unknown';
-                          })()
+                          const staff = locationStaff.find((s) => s.id === form.staffUserId);
+                          return staff ? `${staff.firstName} ${staff.lastName}` : 'Unknown';
+                        })()
                         : 'Unassigned'}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>

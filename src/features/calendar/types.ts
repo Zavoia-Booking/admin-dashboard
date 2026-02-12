@@ -61,8 +61,15 @@ export type CalendarViewState = {
     dayData: DayDataResponse | null;
     dayDataLoading: boolean;
 
+    // --- Week data (full week view, keyed by "YYYY-MM-DD") ---
+    weekData: Record<string, DayDataResponse> | null;
+    weekDataLoading: boolean;
+
     // --- Day filters (for the calendar/day endpoint) ---
     dayFilters: CalendarDayFilters;
+
+    // --- Staff filter (for sidebar toggle list — array of visible staff IDs, empty = all) ---
+    staffFilter: number[];
 
     // --- Selected appointment detail ---
     selectedAppointment: Appointment | null;
@@ -75,6 +82,9 @@ export type CalendarViewState = {
         item: Appointment | null;
     };
     blockFormOpen: boolean;
+
+    // --- Calendar sidebar (mobile collapse) ---
+    sidebarOpen: boolean;
 
     // --- View controls ---
     viewType: AppointmentViewType;
