@@ -50,6 +50,7 @@ export type AuthUser = {
   // Limited access fields (dashboard_user — orphaned users with no business)
   limitedAccess?: boolean;
   reason?: string;
+  unreadNotificationsCount?: number;
   // Account management fields
   accountStatus?: 'active' | 'pending_acceptance' | 'disabled';
   deletionScheduledAt?: string | null;
@@ -168,9 +169,19 @@ export type AccountActionResponse = {
   deletionScheduledAt?: string; // Only returned for schedule deletion
 };
 
+export type AccountBlocker = {
+  messageCode: string;
+  code: string;
+  details: Record<string, unknown>;
+};
+
 export type AccountActionError = {
   statusCode: number;
   message: string;
-  code?: 'needs_to_remove_team_members' | 'must_leave_all_organisations';
-  details?: { teamMemberCount?: number; organisationCount?: number };
+  code?: 'needs_to_remove_team_members' | 'must_leave_all_organisations' | 'account_has_blockers';
+  details?: {
+    teamMemberCount?: number;
+    organisationCount?: number;
+    blockers?: AccountBlocker[];
+  };
 };

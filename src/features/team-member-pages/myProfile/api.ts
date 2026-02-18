@@ -80,6 +80,68 @@ export const deletePortfolioImage = async (key: string): Promise<void> => {
   await apiClient().delete(`/team-member-account/portfolio-image/${encodeURIComponent(key)}`);
 };
 
+// My Reviews types & API
+export interface MyReviewsPayload {
+  offset?: number;
+  limit?: number;
+  rating?: number;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export interface MyReviewCustomer {
+  id: number;
+  firstName: string;
+  lastName: string;
+  profileImage: string | null;
+}
+
+export interface MyReview {
+  id: number;
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+  customer: MyReviewCustomer;
+}
+
+export interface MyReviewsPagination {
+  offset: number;
+  limit: number;
+  total: number;
+}
+
+export interface MyReviewsResponse {
+  data: MyReview[];
+  pagination: MyReviewsPagination;
+}
+
+export interface RatingDistribution {
+  '5': number;
+  '4': number;
+  '3': number;
+  '2': number;
+  '1': number;
+}
+
+export interface MyStatsData {
+  averageRating: number | null;
+  totalReviews: number;
+  ratingDistribution: RatingDistribution;
+}
+
+export interface MyStatsResponse {
+  data: MyStatsData;
+}
+
+export const getMyReviews = async (params: MyReviewsPayload = {}): Promise<MyReviewsResponse> => {
+  const { data } = await apiClient().get<MyReviewsResponse>('/review/my-reviews', { params });
+  return data;
+};
+
+export const getMyStats = async (): Promise<MyStatsResponse> => {
+  const { data } = await apiClient().get<MyStatsResponse>('/review/my-stats');
+  return data;
+};
+
 // Predefined languages list
 export const AVAILABLE_LANGUAGES = [
   'English',

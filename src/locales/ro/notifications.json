@@ -1,0 +1,22 @@
+{
+  "title": "Notificări",
+  "subtitle": "{{count}} notificări",
+  "subtitleEmpty": "Nicio notificare încă",
+  "markAllAsRead": "Marchează toate ca citite",
+  "markAsRead": "Marchează ca citită",
+  "loadMore": "Încarcă mai multe",
+  "loadingMore": "Se încarcă...",
+  "empty": {
+    "title": "Nicio notificare",
+    "description": "Ești la zi! Notificările noi vor apărea aici când va fi ceva important."
+  },
+  "time": {
+    "justNow": "Chiar acum",
+    "minutesAgo_one": "acum {{count}}m",
+    "minutesAgo_other": "acum {{count}}m",
+    "hoursAgo_one": "acum {{count}}h",
+    "hoursAgo_other": "acum {{count}}h",
+    "daysAgo_one": "acum {{count}}z",
+    "daysAgo_other": "acum {{count}}z"
+  }
+}

@@ -14,7 +14,14 @@ export const updateBundleRequest = (payload: UpdateBundlePayload) => {
   return apiClient().put<{ message: string }>(`/bundles/${id}`, data);
 };
 
+export type DeleteBundleResponse = {
+  canDelete: boolean;
+  message?: string;
+  locationsCount?: number;
+  appointmentsCount?: number;
+};
+
 export const deleteBundleRequest = (id: number) => {
-  return apiClient().delete<{ message: string }>(`/bundles/${id}`);
+  return apiClient().delete<DeleteBundleResponse>(`/bundles/${id}`);
 };
 

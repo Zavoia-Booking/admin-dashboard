@@ -1,0 +1,143 @@
+{
+  "accountDisabled": {
+    "title": "Account Disabled",
+    "description": "Your account is currently disabled. All your data is preserved, but you won't have access to most features until you reactivate.",
+    "reactivating": "Reactivating...",
+    "reactivate": "Reactivate Account"
+  },
+  "accountScheduledForDeletion": {
+    "title": "Account Scheduled for Deletion",
+    "deletedOnPrefix": "Your account is scheduled to be permanently deleted on",
+    "afterDate": "After this date, all your data will be permanently removed and cannot be recovered.",
+    "cancelling": "Cancelling...",
+    "cancelDeletion": "Cancel Deletion & Keep Account"
+  },
+  "dataImport": {
+    "title": "Data Import",
+    "description": "Import your business data from CSV or Excel files to populate your account.",
+    "importCustomers": "Import Customers",
+    "importAppointments": "Import Appointments",
+    "importServices": "Import Services",
+    "supportedFormats": "Supported formats:",
+    "formatsList": "CSV (.csv), Excel (.xlsx, .xls)",
+    "fileSizeLimit": "File size limit:",
+    "fileSizeValue": "10MB maximum"
+  },
+  "dangerZone": {
+    "title": "Danger Zone",
+    "resetAllData": {
+      "title": "Reset All Data",
+      "description": "This will permanently delete all appointments, customers, and services. This action cannot be undone.",
+      "placeholder": "Type \"RESET\" to confirm",
+      "button": "Reset All Data"
+    },
+    "disableAccount": {
+      "title": "Disable Account",
+      "description": "Temporarily disable your account. Your data will be preserved, and you can reactivate anytime by logging back in.",
+      "ownerHint": "As an owner, you must remove all team members before disabling your account.",
+      "disabling": "Disabling...",
+      "button": "Disable Account"
+    },
+    "deleteAccount": {
+      "title": "Delete Account",
+      "description": "Schedule your account for permanent deletion. After 30 days, all data will be permanently removed.",
+      "gracePeriod": "During the 30-day grace period, you can log in and cancel the deletion to keep your account.",
+      "ownerHint": "As an owner, you must remove all team members before deleting your account.",
+      "scheduling": "Scheduling...",
+      "button": "Delete Account"
+    },
+    "mustLeaveOrganisations": {
+      "title": "Must Leave All Organisations",
+      "memberCount_one": "You are currently a member of 1 organisation.",
+      "memberCount_other": "You are currently a member of {{count}} organisations.",
+      "hint": "You must leave all organisations before you can deactivate or delete your account. Log in to each business and use the \"Leave Organisation\" option in your settings."
+    }
+  },
+  "blockersDialog": {
+    "title": "Resolve these before disabling or deleting",
+    "description": "Please resolve the following before you can disable or delete your account.",
+    "understood": "Understood"
+  },
+  "blockerActions": {
+    "assignments": "Assignments",
+    "calendar": "Calendar",
+    "billing": "Billing"
+  },
+  "teamMembersError": {
+    "title": "Team Members Must Be Removed",
+    "message": "You must remove all {{count}} team member(s) before performing this action.",
+    "goToHint": "Go to Assignments to manage and remove team members from your business.",
+    "goToAssignments": "Go to Assignments"
+  },
+  "cancelDeletion": {
+    "title": "Cancel Account Deletion",
+    "message": "Are you sure you want to cancel the scheduled deletion and keep your account?",
+    "keepAccount": "Keep My Account"
+  },
+  "deactivateDialog": {
+    "title": "Deactivate Account",
+    "inactive": "Your account will be marked as inactive.",
+    "reactivateHint": "You can reactivate it anytime by simply logging back in. All your data will be preserved.",
+    "marketplaceWarning": "Warning: Your business will be delisted from the marketplace.",
+    "cancel": "Cancel",
+    "disabling": "Disabling…",
+    "confirm": "Deactivate"
+  },
+  "deleteAccountDialog": {
+    "title": "Delete Account",
+    "scheduled": "Your account will be scheduled for permanent deletion in 30 days.",
+    "periodHint": "During this period, you can log in and cancel the deletion. After 30 days, your account and all data will be permanently deleted and cannot be recovered.",
+    "marketplaceWarning": "Warning: Your business will be delisted from the marketplace.",
+    "cancel": "Cancel",
+    "scheduling": "Scheduling…",
+    "scheduleDeletion": "Schedule Deletion"
+  },
+  "deletionScheduledSuccess": {
+    "title": "Account Scheduled for Deletion",
+    "scheduled": "Your account has been scheduled for deletion.",
+    "deletionDate": "Deletion date:",
+    "cancelHint": "You can cancel this by logging back in before the deletion date.",
+    "ok": "OK"
+  },
+  "leaveOrganisation": {
+    "title": "Leave Organisation",
+    "confirmMessage": "Are you sure you want to leave this organisation?",
+    "confirmHint": "You will lose access to this business and all associated data. This action cannot be undone.",
+    "confirmButton": "Leave Organisation",
+    "leaving": "Leaving...",
+    "cancel": "Cancel",
+    "successTitle": "Successfully Left Organisation",
+    "successMessage": "You have successfully left the organisation.",
+    "successHint": "Your access to this business has been removed. You will now be logged out.",
+    "successButton": "Confirm"
+  },
+  "activeAppointments": {
+    "title": "Active Appointments Found",
+    "message_one": "You have 1 active appointment that must be resolved before you can leave.",
+    "message_other": "You have {{count}} active appointments that must be resolved before you can leave.",
+    "hint": "Please cancel your pending appointments or ask the business owner to reassign them to another team member before trying again.",
+    "understood": "Understood"
+  },
+  "common": {
+    "cancel": "Cancel",
+    "thirtyDaysFromNow": "30 days from now"
+  },
+  "toast": {
+    "resetConfirmRequired": "Please type \"RESET\" to confirm",
+    "resetInitiated": "Data reset initiated (demo only)",
+    "importPlaceholder": "Import {{type}} functionality would be implemented here",
+    "accountDeactivated": "Account deactivated successfully",
+    "accountReactivated": "Account reactivated successfully",
+    "deletionCancelled": "Account deletion cancelled",
+    "deletionScheduledSuccess": "Account scheduled for deletion",
+    "failedDeactivate": "Failed to deactivate account",
+    "failedReactivate": "Failed to reactivate account",
+    "failedScheduleDeletion": "Failed to schedule account deletion",
+    "failedCancelDeletion": "Failed to cancel account deletion"
+  },
+  "importTypes": {
+    "customers": "customers",
+    "appointments": "appointments",
+    "services": "services"
+  }
+}

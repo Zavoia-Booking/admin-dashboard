@@ -1,0 +1,107 @@
+import * as actions from "./actions";
+import type { ReviewsState } from "./types";
+import { getType, type ActionType } from "typesafe-actions";
+import type { Reducer } from "redux";
+
+type Actions = ActionType<typeof actions>;
+
+const initialState: ReviewsState = {
+  stats: null,
+  statsLoading: false,
+  businessReviews: [],
+  businessReviewsTotal: 0,
+  businessReviewsLoading: false,
+  teamMemberReviews: [],
+  teamMemberReviewsTotal: 0,
+  teamMemberReviewsLoading: false,
+  error: null,
+};
+
+export const ReviewsReducer: Reducer<ReviewsState, any> = (
+  state: ReviewsState = initialState,
+  action: Actions,
+) => {
+  switch (action.type) {
+    // Stats
+    case getType(actions.fetchReviewStatsAction.request):
+      return { ...state, statsLoading: true, error: null };
+    case getType(actions.fetchReviewStatsAction.success):
+      return { ...state, statsLoading: false, stats: action.payload };
+    case getType(actions.fetchReviewStatsAction.failure):
+      return { ...state, statsLoading: false, error: action.payload.message };
+
+    // Business reviews (replace)
+    case getType(actions.fetchBusinessReviewsAction.request):
+      return { ...state, businessReviewsLoading: true, error: null };
+    case getType(actions.fetchBusinessReviewsAction.success):
+      return {
+        ...state,
+        businessReviewsLoading: false,
+        businessReviews: action.payload.data,
+        businessReviewsTotal: action.payload.pagination.total,
+      };
+    case getType(actions.fetchBusinessReviewsAction.failure):
+      return {
+        ...state,
+        businessReviewsLoading: false,
+        error: action.payload.message,
+      };
+
+    // Business reviews (append for "load more")
+    case getType(actions.fetchMoreBusinessReviewsAction.request):
+      return { ...state, businessReviewsLoading: true, error: null };
+    case getType(actions.fetchMoreBusinessReviewsAction.success):
+      return {
+        ...state,
+        businessReviewsLoading: false,
+        businessReviews: [...state.businessReviews, ...action.payload.data],
+        businessReviewsTotal: action.payload.pagination.total,
+      };
+    case getType(actions.fetchMoreBusinessReviewsAction.failure):
+      return {
+        ...state,
+        businessReviewsLoading: false,
+        error: action.payload.message,
+      };
+
+    // Team member reviews (replace)
+    case getType(actions.fetchTeamMemberReviewsAction.request):
+      return { ...state, teamMemberReviewsLoading: true, error: null };
+    case getType(actions.fetchTeamMemberReviewsAction.success):
+      return {
+        ...state,
+        teamMemberReviewsLoading: false,
+        teamMemberReviews: action.payload.data,
+        teamMemberReviewsTotal: action.payload.pagination.total,
+      };
+    case getType(actions.fetchTeamMemberReviewsAction.failure):
+      return {
+        ...state,
+        teamMemberReviewsLoading: false,
+        error: action.payload.message,
+      };
+
+    // Team member reviews (append for "load more")
+    case getType(actions.fetchMoreTeamMemberReviewsAction.request):
+      return { ...state, teamMemberReviewsLoading: true, error: null };
+    case getType(actions.fetchMoreTeamMemberReviewsAction.success):
+      return {
+        ...state,
+        teamMemberReviewsLoading: false,
+        teamMemberReviews: [
+          ...state.teamMemberReviews,
+          ...action.payload.data,
+        ],
+        teamMemberReviewsTotal: action.payload.pagination.total,
+      };
+    case getType(actions.fetchMoreTeamMemberReviewsAction.failure):
+      return {
+        ...state,
+        teamMemberReviewsLoading: false,
+        error: action.payload.message,
+      };
+
+    default:
+      return state;
+  }
+};

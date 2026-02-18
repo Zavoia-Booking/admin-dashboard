@@ -1,12 +1,21 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Upload, Trash2, FileUp, Power, RefreshCw, Calendar, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, Upload, Trash2, FileUp, Power, RefreshCw, Calendar, Users, CreditCard, ArrowRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Input } from '../../../shared/components/ui/input';
 import { toast } from 'sonner';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from '../../../shared/components/ui/alert-dialog';
 import { selectCurrentUser, selectIsOwner } from '../../auth/selectors';
 import { logoutRequestAction, fetchCurrentUserAction } from '../../auth/actions';
 import {
@@ -15,13 +24,15 @@ import {
   scheduleAccountDeletionApi,
   cancelAccountDeletionApi,
 } from '../../auth/api';
-import type { AccountActionError } from '../../auth/types';
+import type { AccountActionError, AccountBlocker } from '../../auth/types';
+import { translateMessageCode } from '../../../shared/utils/error';
 
 const AdvancedSettings = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { t } = useTranslation('advancedSettings');
   const { confirm, ConfirmDialog } = useConfirmRadix();
-  
+
   const user = useSelector(selectCurrentUser);
   const isOwner = useSelector(selectIsOwner);
   
@@ -30,6 +41,10 @@ const AdvancedSettings = () => {
   const [isReactivating, setIsReactivating] = useState(false);
   const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
+  const [accountBlockersError, setAccountBlockersError] = useState<AccountActionError | null>(null);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletionScheduledAtSuccess, setDeletionScheduledAtSuccess] = useState<string | null>(null);
 
   const accountDisabled = user?.accountDisabled ?? false;
   const accountScheduledForDeletion = user?.accountScheduledForDeletion ?? false;
@@ -40,34 +55,30 @@ const AdvancedSettings = () => {
   };
 
   const handleImportData = (type: 'customers' | 'appointments' | 'services') => {
-    toast.info(`Import ${type} functionality would be implemented here`);
+    toast.info(t('toast.importPlaceholder', { type: t(`importTypes.${type}`) }));
   };
 
   const handleResetData = () => {
     if (confirmText !== 'RESET') {
-      toast.error('Please type "RESET" to confirm');
+      toast.error(t('toast.resetConfirmRequired'));
       return;
     }
-    toast.success('Data reset initiated (demo only)');
+    toast.success(t('toast.resetInitiated'));
     setConfirmText('');
   };
 
   const handleTeamMembersError = async (error: AccountActionError) => {
     const teamMemberCount = error.details?.teamMemberCount ?? 0;
     const goToAssignments = await confirm({
-      title: 'Team Members Must Be Removed',
+      title: t('teamMembersError.title'),
       content: (
         <div className="space-y-2">
-          <p>
-            You must remove all {teamMemberCount} team member{teamMemberCount !== 1 ? 's' : ''} before performing this action.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            Go to Assignments to manage and remove team members from your business.
-          </p>
+          <p>{t('teamMembersError.message', { count: teamMemberCount })}</p>
+          <p className="text-muted-foreground text-sm">{t('teamMembersError.goToHint')}</p>
         </div>
       ),
-      confirmationText: 'Go to Assignments',
-      cancellationText: 'Cancel',
+      confirmationText: t('teamMembersError.goToAssignments'),
+      cancellationText: t('common.cancel'),
     });
 
     if (goToAssignments) {
@@ -75,40 +86,60 @@ const AdvancedSettings = () => {
     }
   };
 
-  const handleDeactivateAccount = async () => {
-    const confirmed = await confirm({
-      title: 'Deactivate Account',
-      content: (
-        <div className="space-y-2">
-          <p>Your account will be marked as inactive.</p>
-          <p className="text-muted-foreground text-sm">
-            You can reactivate it anytime by simply logging back in. All your data will be preserved.
-          </p>
-          {isOwner && (
-            <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">
-              Warning: Your business will be delisted from the marketplace and customers with existing appointments will no longer receive reminders.
-            </p>
-          )}
-        </div>
-      ),
-      confirmationText: 'Deactivate',
-      cancellationText: 'Cancel',
-      destructive: true,
-    });
+  const getBlockerIcon = (code: string) => {
+    switch (code) {
+      case 'needs_to_remove_team_members':
+        return { Icon: Users, iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400' };
+      case 'has_active_appointments':
+        return { Icon: Calendar, iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400' };
+      case 'has_active_subscription':
+        return { Icon: CreditCard, iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconColor: 'text-violet-600 dark:text-violet-400' };
+      default:
+        return { Icon: AlertTriangle, iconBg: 'bg-muted', iconColor: 'text-muted-foreground' };
+    }
+  };
 
-    if (!confirmed) return;
+  const getBlockerAction = (code: string): { labelKey: 'assignments' | 'calendar' | 'billing'; path: string } | null => {
+    switch (code) {
+      case 'needs_to_remove_team_members':
+        return { labelKey: 'assignments', path: '/assignments' };
+      case 'has_active_appointments':
+        return { labelKey: 'calendar', path: '/calendar' };
+      case 'has_active_subscription':
+        return { labelKey: 'billing', path: '/settings?tab=billing' };
+      default:
+        return null;
+    }
+  };
 
+  const handleAccountBlockersError = (error: AccountActionError) => {
+    setAccountBlockersError(error);
+  };
+
+  const handleCloseBlockersDialog = (path?: string) => {
+    setAccountBlockersError(null);
+    if (path) navigate(path);
+  };
+
+  const handleDeactivateAccount = () => {
+    setShowDeactivateConfirm(true);
+  };
+
+  const handleDeactivateConfirm = async () => {
+    setShowDeactivateConfirm(false);
     setIsDeactivating(true);
     try {
       await deactivateAccountApi();
-      toast.success('Account deactivated successfully');
+      toast.success(t('toast.accountDeactivated'));
       dispatch(logoutRequestAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data as AccountActionError | undefined;
-      if (errorData?.code === 'needs_to_remove_team_members') {
+      if (errorData?.code === 'account_has_blockers') {
+        handleAccountBlockersError(errorData);
+      } else if (errorData?.code === 'needs_to_remove_team_members') {
         await handleTeamMembersError(errorData);
       } else {
-        toast.error(errorData?.message || 'Failed to deactivate account');
+        toast.error(errorData?.message || t('toast.failedDeactivate'));
       }
     } finally {
       setIsDeactivating(false);
@@ -119,39 +150,22 @@ const AdvancedSettings = () => {
     setIsReactivating(true);
     try {
       await reactivateAccountApi();
-      toast.success('Account reactivated successfully');
+      toast.success(t('toast.accountReactivated'));
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data;
-      toast.error(errorData?.message || 'Failed to reactivate account');
+      toast.error(errorData?.message || t('toast.failedReactivate'));
     } finally {
       setIsReactivating(false);
     }
   };
 
-  const handleScheduleDeletion = async () => {
-    const confirmed = await confirm({
-      title: 'Delete Account',
-      content: (
-        <div className="space-y-2">
-          <p>Your account will be scheduled for permanent deletion in 30 days.</p>
-          <p className="text-muted-foreground text-sm">
-            During this period, you can log in and cancel the deletion. After 30 days, your account and all data will be permanently deleted and cannot be recovered.
-          </p>
-          {isOwner && (
-            <p className="text-amber-600 dark:text-amber-400 text-sm font-medium">
-              Warning: Your business will be delisted from the marketplace and customers with existing appointments will no longer receive reminders.
-            </p>
-          )}
-        </div>
-      ),
-      confirmationText: 'Schedule Deletion',
-      cancellationText: 'Cancel',
-      destructive: true,
-    });
+  const handleScheduleDeletion = () => {
+    setShowDeleteConfirm(true);
+  };
 
-    if (!confirmed) return;
-
+  const handleDeleteConfirm = async () => {
+    setShowDeleteConfirm(false);
     setIsSchedulingDeletion(true);
     try {
       const result = await scheduleAccountDeletionApi();
@@ -161,44 +175,33 @@ const AdvancedSettings = () => {
             month: 'long',
             day: 'numeric',
           })
-        : '30 days from now';
-
-      await confirm({
-        title: 'Account Scheduled for Deletion',
-        content: (
-          <div className="space-y-2">
-            <p>Your account has been scheduled for deletion.</p>
-            <p className="text-muted-foreground text-sm">
-              Deletion date: <strong>{deletionDate}</strong>
-            </p>
-            <p className="text-muted-foreground text-sm">
-              You can cancel this by logging back in before the deletion date.
-            </p>
-          </div>
-        ),
-        confirmationText: 'OK',
-        showCancel: false,
-      });
-
-      dispatch(logoutRequestAction.request());
+        : t('common.thirtyDaysFromNow');
+      setDeletionScheduledAtSuccess(deletionDate);
     } catch (error: any) {
       const errorData = error?.response?.data as AccountActionError | undefined;
-      if (errorData?.code === 'needs_to_remove_team_members') {
+      if (errorData?.code === 'account_has_blockers') {
+        handleAccountBlockersError(errorData);
+      } else if (errorData?.code === 'needs_to_remove_team_members') {
         await handleTeamMembersError(errorData);
       } else {
-        toast.error(errorData?.message || 'Failed to schedule account deletion');
+        toast.error(errorData?.message || t('toast.failedScheduleDeletion'));
       }
     } finally {
       setIsSchedulingDeletion(false);
     }
   };
 
+  const handleDeletionScheduledOk = () => {
+    setDeletionScheduledAtSuccess(null);
+    dispatch(logoutRequestAction.request());
+  };
+
   const handleCancelDeletion = async () => {
     const confirmed = await confirm({
-      title: 'Cancel Account Deletion',
-      content: 'Are you sure you want to cancel the scheduled deletion and keep your account?',
-      confirmationText: 'Keep My Account',
-      cancellationText: 'Cancel',
+      title: t('cancelDeletion.title'),
+      content: t('cancelDeletion.message'),
+      confirmationText: t('cancelDeletion.keepAccount'),
+      cancellationText: t('common.cancel'),
     });
 
     if (!confirmed) return;
@@ -206,11 +209,11 @@ const AdvancedSettings = () => {
     setIsCancellingDeletion(true);
     try {
       await cancelAccountDeletionApi();
-      toast.success('Account deletion cancelled');
+      toast.success(t('toast.deletionCancelled'));
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data;
-      toast.error(errorData?.message || 'Failed to cancel account deletion');
+      toast.error(errorData?.message || t('toast.failedCancelDeletion'));
     } finally {
       setIsCancellingDeletion(false);
     }
@@ -226,7 +229,10 @@ const AdvancedSettings = () => {
     });
   };
 
+  const blockers = accountBlockersError?.details?.blockers ?? [];
+
   return (
+    <>
     <form onSubmit={handleSubmit} className="space-y-6">
       <ConfirmDialog />
 
@@ -238,12 +244,10 @@ const AdvancedSettings = () => {
               <div className="p-2 rounded-xl bg-amber-500/10">
                 <Power className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="text-base font-semibold text-amber-800 dark:text-amber-200">Account Disabled</h3>
+              <h3 className="text-base font-semibold text-amber-800 dark:text-amber-200">{t('accountDisabled.title')}</h3>
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                Your account is currently disabled. All your data is preserved, but you won't have access to most features until you reactivate.
-              </p>
+              <p className="text-sm text-amber-700 dark:text-amber-300">{t('accountDisabled.description')}</p>
               <Button
                 type="button"
                 onClick={handleReactivateAccount}
@@ -251,7 +255,7 @@ const AdvancedSettings = () => {
                 className="w-full h-10 bg-amber-600 hover:bg-amber-700 text-white"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isReactivating ? 'animate-spin' : ''}`} />
-                {isReactivating ? 'Reactivating...' : 'Reactivate Account'}
+                {isReactivating ? t('accountDisabled.reactivating') : t('accountDisabled.reactivate')}
               </Button>
             </div>
           </CardContent>
@@ -265,16 +269,13 @@ const AdvancedSettings = () => {
               <div className="p-2 rounded-xl bg-destructive/10">
                 <Calendar className="h-5 w-5 text-destructive" />
               </div>
-              <h3 className="text-base font-semibold text-red-800 dark:text-red-200">Account Scheduled for Deletion</h3>
+              <h3 className="text-base font-semibold text-red-800 dark:text-red-200">{t('accountScheduledForDeletion.title')}</h3>
             </div>
             <div className="space-y-3">
               <p className="text-sm text-red-700 dark:text-red-300">
-                Your account is scheduled to be permanently deleted on{' '}
-                <strong>{formatDeletionDate(deletionScheduledAt)}</strong>.
+                {t('accountScheduledForDeletion.deletedOnPrefix')} <strong>{formatDeletionDate(deletionScheduledAt)}</strong>.
               </p>
-              <p className="text-sm text-red-600 dark:text-red-400">
-                After this date, all your data will be permanently removed and cannot be recovered.
-              </p>
+              <p className="text-sm text-red-600 dark:text-red-400">{t('accountScheduledForDeletion.afterDate')}</p>
               <Button
                 type="button"
                 onClick={handleCancelDeletion}
@@ -282,7 +283,7 @@ const AdvancedSettings = () => {
                 className="w-full h-10"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isCancellingDeletion ? 'animate-spin' : ''}`} />
-                {isCancellingDeletion ? 'Cancelling...' : 'Cancel Deletion & Keep Account'}
+                {isCancellingDeletion ? t('accountScheduledForDeletion.cancelling') : t('accountScheduledForDeletion.cancelDeletion')}
               </Button>
             </div>
           </CardContent>
@@ -296,12 +297,10 @@ const AdvancedSettings = () => {
             <div className="p-2 rounded-xl bg-primary/10">
               <Upload className="h-5 w-5 text-primary" />
             </div>
-            <h3 className="text-base font-semibold text-foreground">Data Import</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('dataImport.title')}</h3>
           </div>
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Import your business data from CSV or Excel files to populate your account.
-            </p>
+            <p className="text-sm text-muted-foreground">{t('dataImport.description')}</p>
             <div className="grid grid-cols-1 gap-2">
               <Button
                 type="button"
@@ -310,7 +309,7 @@ const AdvancedSettings = () => {
                 className="h-10 text-sm"
               >
                 <FileUp className="h-4 w-4 mr-2" />
-                Import Customers
+                {t('dataImport.importCustomers')}
               </Button>
               <Button
                 type="button"
@@ -319,7 +318,7 @@ const AdvancedSettings = () => {
                 className="h-10 text-sm"
               >
                 <FileUp className="h-4 w-4 mr-2" />
-                Import Appointments
+                {t('dataImport.importAppointments')}
               </Button>
               <Button
                 type="button"
@@ -328,15 +327,15 @@ const AdvancedSettings = () => {
                 className="h-10 text-sm"
               >
                 <FileUp className="h-4 w-4 mr-2" />
-                Import Services
+                {t('dataImport.importServices')}
               </Button>
             </div>
             <div className="p-3 rounded-lg bg-muted/30">
               <p className="text-xs text-muted-foreground">
-                <strong>Supported formats:</strong> CSV (.csv), Excel (.xlsx, .xls)
+                <strong>{t('dataImport.supportedFormats')}</strong> {t('dataImport.formatsList')}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                <strong>File size limit:</strong> 10MB maximum
+                <strong>{t('dataImport.fileSizeLimit')}</strong> {t('dataImport.fileSizeValue')}
               </p>
             </div>
           </div>
@@ -350,20 +349,18 @@ const AdvancedSettings = () => {
             <div className="p-2 rounded-xl bg-destructive/10">
               <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
-            <h3 className="text-base font-semibold text-foreground">Danger Zone</h3>
+            <h3 className="text-base font-semibold text-foreground">{t('dangerZone.title')}</h3>
           </div>
           <div className="space-y-4">
             {/* Reset All Data */}
             <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-              <h4 className="font-medium text-sm text-destructive mb-2">Reset All Data</h4>
-              <p className="text-xs text-muted-foreground mb-3">
-                This will permanently delete all appointments, customers, and services. This action cannot be undone.
-              </p>
+              <h4 className="font-medium text-sm text-destructive mb-2">{t('dangerZone.resetAllData.title')}</h4>
+              <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.resetAllData.description')}</p>
               <div className="space-y-2">
                 <Input
                   value={confirmText}
                   onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder='Type "RESET" to confirm'
+                  placeholder={t('dangerZone.resetAllData.placeholder')}
                   className="border-0 bg-background text-base h-10"
                 />
                 <Button
@@ -374,7 +371,7 @@ const AdvancedSettings = () => {
                   className="w-full h-10"
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Reset All Data
+                  {t('dangerZone.resetAllData.button')}
                 </Button>
               </div>
             </div>
@@ -384,17 +381,13 @@ const AdvancedSettings = () => {
               <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
                 <div className="flex items-center gap-2 mb-2">
                   <Power className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  <h4 className="font-medium text-sm text-amber-700 dark:text-amber-300">Disable Account</h4>
+                  <h4 className="font-medium text-sm text-amber-700 dark:text-amber-300">{t('dangerZone.disableAccount.title')}</h4>
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Temporarily disable your account. Your data will be preserved, and you can reactivate anytime by logging back in.
-                </p>
+                <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.disableAccount.description')}</p>
                 {isOwner && (
                   <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 mb-3">
                     <Users className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      As an owner, you must remove all team members before disabling your account.
-                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300">{t('dangerZone.disableAccount.ownerHint')}</p>
                   </div>
                 )}
                 <Button
@@ -405,7 +398,7 @@ const AdvancedSettings = () => {
                   className="w-full h-10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
                 >
                   <Power className={`h-4 w-4 mr-2 ${isDeactivating ? 'animate-pulse' : ''}`} />
-                  {isDeactivating ? 'Disabling...' : 'Disable Account'}
+                  {isDeactivating ? t('dangerZone.disableAccount.disabling') : t('dangerZone.disableAccount.button')}
                 </Button>
               </div>
             )}
@@ -413,19 +406,13 @@ const AdvancedSettings = () => {
             {/* Delete Account */}
             {!accountScheduledForDeletion && (
               <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-                <h4 className="font-medium text-sm text-destructive mb-2">Delete Account</h4>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Schedule your account for permanent deletion. After 30 days, all data will be permanently removed.
-                </p>
-                <p className="text-xs text-muted-foreground mb-3">
-                  During the 30-day grace period, you can log in and cancel the deletion to keep your account.
-                </p>
+                <h4 className="font-medium text-sm text-destructive mb-2">{t('dangerZone.deleteAccount.title')}</h4>
+                <p className="text-xs text-muted-foreground mb-2">{t('dangerZone.deleteAccount.description')}</p>
+                <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.deleteAccount.gracePeriod')}</p>
                 {isOwner && (
                   <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 mb-3">
                     <Users className="h-4 w-4 text-destructive flex-shrink-0" />
-                    <p className="text-xs text-destructive">
-                      As an owner, you must remove all team members before deleting your account.
-                    </p>
+                    <p className="text-xs text-destructive">{t('dangerZone.deleteAccount.ownerHint')}</p>
                   </div>
                 )}
                 <Button
@@ -436,7 +423,7 @@ const AdvancedSettings = () => {
                   className="w-full h-10"
                 >
                   <AlertTriangle className={`h-4 w-4 mr-2 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
-                  {isSchedulingDeletion ? 'Scheduling...' : 'Delete Account'}
+                  {isSchedulingDeletion ? t('dangerZone.deleteAccount.scheduling') : t('dangerZone.deleteAccount.button')}
                 </Button>
               </div>
             )}
@@ -444,6 +431,165 @@ const AdvancedSettings = () => {
         </CardContent>
       </Card>
     </form>
+
+    {/* Account blockers dialog (disable/delete blocked) */}
+    <AlertDialog open={!!accountBlockersError} onOpenChange={(open) => !open && handleCloseBlockersDialog()}>
+      <AlertDialogContent className="sm:max-w-lg">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+              <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <AlertDialogTitle className="text-left">{t('blockersDialog.title')}</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4 text-left pt-1">
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('blockersDialog.description')}</p>
+              <div className="space-y-2.5">
+                {blockers.map((b: AccountBlocker) => {
+                  const { Icon, iconBg, iconColor } = getBlockerIcon(b.code);
+                  const action = getBlockerAction(b.code);
+                  return (
+                    <div
+                      key={b.code}
+                      className="rounded-lg border border-border bg-muted/40 p-3 dark:bg-muted/20 grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-center"
+                    >
+                      <div className="flex items-start gap-3 min-w-0">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${iconBg} ${iconColor}`}>
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <p className="text-sm font-medium text-foreground leading-snug pt-1.5">
+                          {translateMessageCode(b.messageCode)}
+                        </p>
+                      </div>
+                      {action && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          rounded="full"
+                          className="w-full sm:w-auto shrink-0 gap-1 justify-center sm:justify-center"
+                          onClick={() => handleCloseBlockersDialog(action.path)}
+                        >
+                          {t(`blockerActions.${action.labelKey}`)}
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+          <Button rounded="full" onClick={() => handleCloseBlockersDialog()}>
+            {t('blockersDialog.understood')}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Deactivate Account confirmation */}
+    <AlertDialog open={showDeactivateConfirm} onOpenChange={(open) => !open && setShowDeactivateConfirm(false)}>
+      <AlertDialogContent className="sm:max-w-lg">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+              <Power className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <AlertDialogTitle className="text-left">{t('deactivateDialog.title')}</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4 text-left pt-1">
+              <p className="text-sm text-foreground leading-relaxed">{t('deactivateDialog.inactive')}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('deactivateDialog.reactivateHint')}</p>
+              {isOwner && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200 leading-relaxed">
+                    {t('deactivateDialog.marketplaceWarning')}
+                  </p>
+                </div>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+          <Button variant="outline" rounded="full" onClick={() => setShowDeactivateConfirm(false)}>
+            {t('deactivateDialog.cancel')}
+          </Button>
+          <Button variant="destructive" rounded="full" onClick={handleDeactivateConfirm} disabled={isDeactivating}>
+            {isDeactivating ? t('deactivateDialog.disabling') : t('deactivateDialog.confirm')}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Delete Account confirmation */}
+    <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
+      <AlertDialogContent className="sm:max-w-lg">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
+              <Trash2 className="h-5 w-5 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-left">{t('deleteAccountDialog.title')}</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription asChild>
+            <div className="space-y-4 text-left pt-1">
+              <p className="text-sm text-foreground leading-relaxed">{t('deleteAccountDialog.scheduled')}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('deleteAccountDialog.periodHint')}</p>
+              {isOwner && (
+                <div className="flex items-start gap-2 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-200 leading-relaxed">
+                    {t('deleteAccountDialog.marketplaceWarning')}
+                  </p>
+                </div>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+          <Button variant="outline" rounded="full" onClick={() => setShowDeleteConfirm(false)}>
+            {t('deleteAccountDialog.cancel')}
+          </Button>
+          <Button variant="destructive" rounded="full" onClick={handleDeleteConfirm} disabled={isSchedulingDeletion}>
+            {isSchedulingDeletion ? t('deleteAccountDialog.scheduling') : t('deleteAccountDialog.scheduleDeletion')}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+
+    {/* Account scheduled for deletion success */}
+    <AlertDialog open={!!deletionScheduledAtSuccess} onOpenChange={(open) => !open && handleDeletionScheduledOk()}>
+      <AlertDialogContent className="sm:max-w-lg">
+        <AlertDialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
+              <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <AlertDialogTitle className="text-left">{t('deletionScheduledSuccess.title')}</AlertDialogTitle>
+          </div>
+          <AlertDialogDescription asChild>
+            <div className="space-y-3 text-left pt-1">
+              <p className="text-sm text-foreground leading-relaxed">{t('deletionScheduledSuccess.scheduled')}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {t('deletionScheduledSuccess.deletionDate')} <strong className="text-foreground">{deletionScheduledAtSuccess}</strong>
+              </p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{t('deletionScheduledSuccess.cancelHint')}</p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+          <Button rounded="full" onClick={handleDeletionScheduledOk}>
+            {t('deletionScheduledSuccess.ok')}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 };
 

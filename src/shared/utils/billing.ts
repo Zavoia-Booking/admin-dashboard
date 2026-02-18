@@ -7,6 +7,10 @@ type MinimalUser = {
 
 type MinimalSubscriptionSummary = {
   currentTeamMembersCount?: number;
+  /** Billing source of truth: prefer when present */
+  paidSeats?: number;
+  usedSeats?: number;
+  availableSeats?: number;
 };
 
 type MinimalTeamMembersSummary = {
@@ -21,13 +25,28 @@ export function computeSeatContext(params: {
 }) {
   const { currentUser, subscriptionSummary, teamMembersSummary } = params;
 
-  const paidSeats =
-    (currentUser?.entitlements?.paidTeamSeats ?? undefined) !== undefined
-      ? (currentUser?.entitlements?.paidTeamSeats as number)
-      : (subscriptionSummary?.currentTeamMembersCount ?? 0);
+  // Prefer subscription summary (billing API) for seat counts when available
+  const paidSeatsFromSummary = subscriptionSummary?.paidSeats;
+  const usedSeatsFromSummary = subscriptionSummary?.usedSeats;
+  const availableSeatsFromSummary = subscriptionSummary?.availableSeats;
 
-  const usedSeats = (teamMembersSummary?.active ?? 0) + (teamMembersSummary?.pending ?? 0);
-  const availableSeats = paidSeats - usedSeats;
+  const paidSeats =
+    paidSeatsFromSummary !== undefined && paidSeatsFromSummary !== null
+      ? paidSeatsFromSummary
+      : (currentUser?.entitlements?.paidTeamSeats ?? undefined) !== undefined
+        ? (currentUser?.entitlements?.paidTeamSeats as number)
+        : (subscriptionSummary?.currentTeamMembersCount ?? 0);
+
+  const usedSeats =
+    usedSeatsFromSummary !== undefined && usedSeatsFromSummary !== null
+      ? usedSeatsFromSummary
+      : (teamMembersSummary?.active ?? 0) + (teamMembersSummary?.pending ?? 0);
+
+  const availableSeats =
+    availableSeatsFromSummary !== undefined && availableSeatsFromSummary !== null
+      ? availableSeatsFromSummary
+      : paidSeats - usedSeats;
+
   const hasAvailableSeats = availableSeats > 0;
 
   const subscriptionStatus = currentUser?.subscription?.status ?? null;

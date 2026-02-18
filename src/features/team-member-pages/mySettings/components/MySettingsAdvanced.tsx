@@ -1,7 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { LogOut, Info, AlertTriangle, Power, RefreshCw, Calendar, Building2, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { LogOut, Info, AlertTriangle, Power, RefreshCw, Calendar, Building2, Loader2, Trash2, CheckCircle } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
+import { Card, CardContent } from '../../../../shared/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+} from '../../../../shared/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import FormSectionHeader from '../../../../shared/components/forms/FormSectionHeader';
 import { leaveOrganisationApi } from '../api';
@@ -20,17 +30,25 @@ import { usePermissions } from '../../../../shared/hooks/usePermissions';
 
 const MySettingsAdvanced = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation('advancedSettings');
   const { confirm, ConfirmDialog } = useConfirmRadix();
   const { isDashboardUser } = usePermissions();
 
   // Leave organisation state
   const [isLeavingOrganisation, setIsLeavingOrganisation] = useState(false);
+  const [showLeaveOrgConfirm, setShowLeaveOrgConfirm] = useState(false);
+  const [showLeaveOrgSuccess, setShowLeaveOrgSuccess] = useState(false);
+  const [activeAppointmentsCount, setActiveAppointmentsCount] = useState<number | null>(null);
 
   // Account management state
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
   const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
   const [isCancellingDeletion, setIsCancellingDeletion] = useState(false);
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [mustLeaveOrgCount, setMustLeaveOrgCount] = useState<number | null>(null);
+  const [deletionScheduledAtSuccess, setDeletionScheduledAtSuccess] = useState<string | null>(null);
 
   const currentUser = useSelector(selectCurrentUser);
   const accountDisabled = currentUser?.accountDisabled ?? false;
@@ -49,64 +67,21 @@ const MySettingsAdvanced = () => {
 
   // ── Leave Organisation ──────────────────────────────────────────────
 
-  const handleLeaveOrganisation = async () => {
-    const confirmed = await confirm({
-      title: 'Leave Organisation',
-      content: (
-        <div className="space-y-2">
-          <p>Are you sure you want to leave this organisation?</p>
-          <p className="text-muted-foreground text-sm">
-            You will lose access to this business and all associated data. This action cannot be undone.
-          </p>
-        </div>
-      ),
-      confirmationText: 'Leave Organisation',
-      cancellationText: 'Cancel',
-      destructive: true,
-    });
+  const handleLeaveOrganisation = () => {
+    setShowLeaveOrgConfirm(true);
+  };
 
-    if (!confirmed) return;
-
+  const handleLeaveOrgConfirm = async () => {
+    setShowLeaveOrgConfirm(false);
     setIsLeavingOrganisation(true);
     try {
       await leaveOrganisationApi();
-
-      // Show success dialog
-      await confirm({
-        title: 'Successfully Left Organisation',
-        content: (
-          <div className="space-y-2">
-            <p>You have successfully left the organisation.</p>
-            <p className="text-muted-foreground text-sm">
-              Your access to this business has been removed. You will now be logged out.
-            </p>
-          </div>
-        ),
-        confirmationText: 'Confirm',
-        showCancel: false,
-      });
-
-      dispatch(logoutRequestAction.request());
+      setShowLeaveOrgSuccess(true);
     } catch (error: any) {
       const errorData = error?.response?.data;
-
       if (errorData?.code === 'has_active_appointments') {
-        const count = errorData?.details?.activeAppointmentsCount;
-        await confirm({
-          title: 'Active Appointments Found',
-          content: (
-            <div className="space-y-2">
-              <p>
-                You have {count ? <strong>{count}</strong> : ''} active appointment{count !== 1 ? 's' : ''} that must be resolved before you can leave.
-              </p>
-              <p className="text-muted-foreground text-sm">
-                Please cancel your pending appointments or ask the business owner to reassign them to another team member before trying again.
-              </p>
-            </div>
-          ),
-          confirmationText: 'Understood',
-          showCancel: false,
-        });
+        const count = errorData?.details?.activeAppointmentsCount ?? 0;
+        setActiveAppointmentsCount(count);
       } else {
         const message = errorData?.message || error?.message || 'Failed to leave organisation';
         const translatedMessage = Array.isArray(message)
@@ -119,56 +94,37 @@ const MySettingsAdvanced = () => {
     }
   };
 
-  // ── Account Management ──────────────────────────────────────────────
-
-  const handleOrganisationsError = async (error: AccountActionError) => {
-    const orgCount = error.details?.organisationCount ?? 0;
-    await confirm({
-      title: 'Must Leave All Organisations',
-      content: (
-        <div className="space-y-2">
-          <p>
-            You are currently a member of {orgCount} organisation{orgCount !== 1 ? 's' : ''}.
-          </p>
-          <p className="text-muted-foreground text-sm">
-            You must leave all organisations before you can deactivate or delete your account. Log in to each business and use the "Leave Organisation" option in your settings.
-          </p>
-        </div>
-      ),
-      confirmationText: 'Understood',
-      showCancel: false,
-    });
+  const handleLeaveOrgSuccessOk = () => {
+    setShowLeaveOrgSuccess(false);
+    dispatch(logoutRequestAction.request());
   };
 
-  const handleDeactivateAccount = async () => {
-    const confirmed = await confirm({
-      title: 'Deactivate Account',
-      content: (
-        <div className="space-y-2">
-          <p>Your account will be marked as inactive.</p>
-          <p className="text-muted-foreground text-sm">
-            You can reactivate it anytime by simply logging back in. All your data will be preserved.
-          </p>
-        </div>
-      ),
-      confirmationText: 'Deactivate',
-      cancellationText: 'Cancel',
-      destructive: true,
-    });
+  // ── Account Management ──────────────────────────────────────────────
 
-    if (!confirmed) return;
+  const handleOrganisationsError = (error: AccountActionError) => {
+    const orgCount = error.details?.organisationCount ?? 0;
+    setShowDeactivateConfirm(false);
+    setShowDeleteConfirm(false);
+    setMustLeaveOrgCount(orgCount);
+  };
 
+  const handleDeactivateAccount = () => {
+    setShowDeactivateConfirm(true);
+  };
+
+  const handleDeactivateConfirm = async () => {
+    setShowDeactivateConfirm(false);
     setIsDeactivating(true);
     try {
       await deactivateAccountApi();
-      toast.success('Account deactivated successfully');
+      toast.success(t('toast.accountDeactivated'));
       dispatch(logoutRequestAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data as AccountActionError | undefined;
       if (errorData?.code === 'must_leave_all_organisations') {
-        await handleOrganisationsError(errorData);
+        handleOrganisationsError(errorData);
       } else {
-        toast.error(errorData?.message || 'Failed to deactivate account');
+        toast.error(errorData?.message || t('toast.failedDeactivate'));
       }
     } finally {
       setIsDeactivating(false);
@@ -189,24 +145,12 @@ const MySettingsAdvanced = () => {
     }
   };
 
-  const handleScheduleDeletion = async () => {
-    const confirmed = await confirm({
-      title: 'Delete Account',
-      content: (
-        <div className="space-y-2">
-          <p>Your account will be scheduled for permanent deletion in 30 days.</p>
-          <p className="text-muted-foreground text-sm">
-            During this period, you can log in and cancel the deletion. After 30 days, your account and all data will be permanently deleted and cannot be recovered.
-          </p>
-        </div>
-      ),
-      confirmationText: 'Schedule Deletion',
-      cancellationText: 'Cancel',
-      destructive: true,
-    });
+  const handleScheduleDeletion = () => {
+    setShowDeleteConfirm(true);
+  };
 
-    if (!confirmed) return;
-
+  const handleDeleteConfirm = async () => {
+    setShowDeleteConfirm(false);
     setIsSchedulingDeletion(true);
     try {
       const result = await scheduleAccountDeletionApi();
@@ -216,36 +160,23 @@ const MySettingsAdvanced = () => {
             month: 'long',
             day: 'numeric',
           })
-        : '30 days from now';
-
-      await confirm({
-        title: 'Account Scheduled for Deletion',
-        content: (
-          <div className="space-y-2">
-            <p>Your account has been scheduled for deletion.</p>
-            <p className="text-muted-foreground text-sm">
-              Deletion date: <strong>{deletionDate}</strong>
-            </p>
-            <p className="text-muted-foreground text-sm">
-              You can cancel this by logging back in before the deletion date.
-            </p>
-          </div>
-        ),
-        confirmationText: 'OK',
-        showCancel: false,
-      });
-
-      dispatch(logoutRequestAction.request());
+        : t('common.thirtyDaysFromNow');
+      setDeletionScheduledAtSuccess(deletionDate);
     } catch (error: any) {
       const errorData = error?.response?.data as AccountActionError | undefined;
       if (errorData?.code === 'must_leave_all_organisations') {
-        await handleOrganisationsError(errorData);
+        handleOrganisationsError(errorData);
       } else {
-        toast.error(errorData?.message || 'Failed to schedule account deletion');
+        toast.error(errorData?.message || t('toast.failedScheduleDeletion'));
       }
     } finally {
       setIsSchedulingDeletion(false);
     }
+  };
+
+  const handleDeletionScheduledOk = () => {
+    setDeletionScheduledAtSuccess(null);
+    dispatch(logoutRequestAction.request());
   };
 
   const handleCancelDeletion = async () => {
@@ -275,20 +206,18 @@ const MySettingsAdvanced = () => {
     <div className="space-y-6">
       <ConfirmDialog />
 
-      {/* Account Status Banners */}
+      {/* Account Status Banners — same styling as business owner */}
       {accountDisabled && (
-        <div className="rounded-lg border border-amber-500/50 shadow-lg bg-amber-50 dark:bg-amber-950/20 p-6">
-          <div className="space-y-4">
+        <Card className="border-amber-500/50 shadow-lg bg-amber-50 dark:bg-amber-950/20">
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-3 pb-2 border-b border-amber-500/30">
               <div className="p-2 rounded-xl bg-amber-500/10">
                 <Power className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <h3 className="text-base font-semibold text-amber-800 dark:text-amber-200">Account Disabled</h3>
+              <h3 className="text-base font-semibold text-amber-800 dark:text-amber-200">{t('accountDisabled.title')}</h3>
             </div>
             <div className="space-y-3">
-              <p className="text-sm text-amber-700 dark:text-amber-300">
-                Your account is currently disabled. All your data is preserved, but you won't have access to most features until you reactivate.
-              </p>
+              <p className="text-sm text-amber-700 dark:text-amber-300">{t('accountDisabled.description')}</p>
               <Button
                 type="button"
                 onClick={handleReactivateAccount}
@@ -296,30 +225,27 @@ const MySettingsAdvanced = () => {
                 className="w-full h-10 bg-amber-600 hover:bg-amber-700 text-white"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isReactivating ? 'animate-spin' : ''}`} />
-                {isReactivating ? 'Reactivating...' : 'Reactivate Account'}
+                {isReactivating ? t('accountDisabled.reactivating') : t('accountDisabled.reactivate')}
               </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {accountScheduledForDeletion && deletionScheduledAt && (
-        <div className="rounded-lg border border-destructive/50 shadow-lg bg-red-50 dark:bg-red-950/20 p-6">
-          <div className="space-y-4">
+        <Card className="border-destructive/50 shadow-lg bg-red-50 dark:bg-red-950/20">
+          <CardContent className="space-y-4">
             <div className="flex items-center gap-3 pb-2 border-b border-destructive/30">
               <div className="p-2 rounded-xl bg-destructive/10">
                 <Calendar className="h-5 w-5 text-destructive" />
               </div>
-              <h3 className="text-base font-semibold text-red-800 dark:text-red-200">Account Scheduled for Deletion</h3>
+              <h3 className="text-base font-semibold text-red-800 dark:text-red-200">{t('accountScheduledForDeletion.title')}</h3>
             </div>
             <div className="space-y-3">
               <p className="text-sm text-red-700 dark:text-red-300">
-                Your account is scheduled to be permanently deleted on{' '}
-                <strong>{formatDeletionDate(deletionScheduledAt)}</strong>.
+                {t('accountScheduledForDeletion.deletedOnPrefix')} <strong>{formatDeletionDate(deletionScheduledAt)}</strong>.
               </p>
-              <p className="text-sm text-red-600 dark:text-red-400">
-                After this date, all your data will be permanently removed and cannot be recovered.
-              </p>
+              <p className="text-sm text-red-600 dark:text-red-400">{t('accountScheduledForDeletion.afterDate')}</p>
               <Button
                 type="button"
                 onClick={handleCancelDeletion}
@@ -327,11 +253,11 @@ const MySettingsAdvanced = () => {
                 className="w-full h-10"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isCancellingDeletion ? 'animate-spin' : ''}`} />
-                {isCancellingDeletion ? 'Cancelling...' : 'Cancel Deletion & Keep Account'}
+                {isCancellingDeletion ? t('accountScheduledForDeletion.cancelling') : t('accountScheduledForDeletion.cancelDeletion')}
               </Button>
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Leave Organisation Section — hidden for dashboard_user (no business to leave) */}
@@ -364,7 +290,7 @@ const MySettingsAdvanced = () => {
               type="button"
               variant="destructive"
               onClick={handleLeaveOrganisation}
-              disabled={isLeavingOrganisation}
+              disabled={isLeavingOrganisation || showLeaveOrgConfirm}
               className="h-10"
             >
               {isLeavingOrganisation ? (
@@ -383,80 +309,272 @@ const MySettingsAdvanced = () => {
         </div>
       )}
 
-      {/* Account Management - Danger Zone */}
-      <div className="rounded-lg border border-destructive/20 bg-card p-6 shadow-sm">
-        <FormSectionHeader
-          icon={AlertTriangle}
-          title="Account Management"
-          description="Deactivate or permanently delete your account"
-          className="mb-6"
-          iconBgColor="bg-destructive/10"
-          iconColor="text-destructive"
-        />
-
-        <div className="space-y-4">
-          {/* Organisation membership warning for team members */}
-          {!isDashboardUser && (
-            <div className="flex gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-              <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Organisation membership
-                </p>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  You must leave all organisations you belong to before you can deactivate or delete your account. Use the "Leave Organisation" option above in each business.
-                </p>
+      {/* Danger Zone — same styling as business owner */}
+      <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm border-destructive/20">
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+            <div className="p-2 rounded-xl bg-destructive/10">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <h3 className="text-base font-semibold text-foreground">{t('dangerZone.title')}</h3>
+          </div>
+          <div className="space-y-4">
+            {/* Must Leave All Organisations — same subsection style as owner blocks */}
+            {!isDashboardUser && (
+              <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                  <h4 className="font-medium text-sm text-blue-700 dark:text-blue-300">{t('dangerZone.mustLeaveOrganisations.title')}</h4>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{t('dangerZone.mustLeaveOrganisations.hint')}</p>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Disable Account */}
-          {!accountDisabled && !accountScheduledForDeletion && (
-            <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <Power className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                <h4 className="font-medium text-sm text-amber-700 dark:text-amber-300">Disable Account</h4>
+            {/* Deactivate Account — same styling as owner */}
+            {!accountDisabled && !accountScheduledForDeletion && (
+              <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Power className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  <h4 className="font-medium text-sm text-amber-700 dark:text-amber-300">{t('deactivateDialog.title')}</h4>
+                </div>
+                <p className="text-xs text-muted-foreground mb-2">{t('deactivateDialog.inactive')}</p>
+                <p className="text-xs text-muted-foreground mb-3">{t('deactivateDialog.reactivateHint')}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleDeactivateAccount}
+                  disabled={isDeactivating}
+                  className="w-full h-10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
+                >
+                  <Power className={`h-4 w-4 mr-2 ${isDeactivating ? 'animate-pulse' : ''}`} />
+                  {isDeactivating ? t('dangerZone.disableAccount.disabling') : t('deactivateDialog.confirm')}
+                </Button>
               </div>
-              <p className="text-xs text-muted-foreground mb-3">
-                Temporarily disable your account. Your data will be preserved, and you can reactivate anytime by logging back in.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleDeactivateAccount}
-                disabled={isDeactivating}
-                className="w-full h-10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
-              >
-                <Power className={`h-4 w-4 mr-2 ${isDeactivating ? 'animate-pulse' : ''}`} />
-                {isDeactivating ? 'Disabling...' : 'Disable Account'}
-              </Button>
-            </div>
-          )}
+            )}
 
-          {/* Delete Account */}
-          {!accountScheduledForDeletion && (
-            <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-              <h4 className="font-medium text-sm text-destructive mb-2">Delete Account</h4>
-              <p className="text-xs text-muted-foreground mb-2">
-                Schedule your account for permanent deletion. After 30 days, all data will be permanently removed.
-              </p>
-              <p className="text-xs text-muted-foreground mb-3">
-                During the 30-day grace period, you can log in and cancel the deletion to keep your account.
-              </p>
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleScheduleDeletion}
-                disabled={isSchedulingDeletion}
-                className="w-full h-10"
-              >
-                <AlertTriangle className={`h-4 w-4 mr-2 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
-                {isSchedulingDeletion ? 'Scheduling...' : 'Delete Account'}
-              </Button>
+            {/* Delete Account — same styling as owner */}
+            {!accountScheduledForDeletion && (
+              <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                <h4 className="font-medium text-sm text-destructive mb-2">{t('dangerZone.deleteAccount.title')}</h4>
+                <p className="text-xs text-muted-foreground mb-2">{t('dangerZone.deleteAccount.description')}</p>
+                <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.deleteAccount.gracePeriod')}</p>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleScheduleDeletion}
+                  disabled={isSchedulingDeletion}
+                  className="w-full h-10"
+                >
+                  <AlertTriangle className={`h-4 w-4 mr-2 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
+                  {isSchedulingDeletion ? t('dangerZone.deleteAccount.scheduling') : t('dangerZone.deleteAccount.button')}
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Leave Organisation confirmation — same styling as business owner modals */}
+      <AlertDialog open={showLeaveOrgConfirm} onOpenChange={(open) => !open && setShowLeaveOrgConfirm(false)}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
+                <LogOut className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('leaveOrganisation.title')}</AlertDialogTitle>
             </div>
-          )}
-        </div>
-      </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-left pt-1">
+                <p className="text-sm text-foreground leading-relaxed">{t('leaveOrganisation.confirmMessage')}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('leaveOrganisation.confirmHint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button variant="outline" rounded="full" onClick={() => setShowLeaveOrgConfirm(false)}>
+              {t('leaveOrganisation.cancel')}
+            </Button>
+            <Button variant="destructive" rounded="full" onClick={handleLeaveOrgConfirm} disabled={isLeavingOrganisation}>
+              {isLeavingOrganisation ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  {t('leaveOrganisation.leaving')}
+                </>
+              ) : (
+                t('leaveOrganisation.confirmButton')
+              )}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leave Organisation success */}
+      <AlertDialog open={showLeaveOrgSuccess} onOpenChange={(open) => !open && handleLeaveOrgSuccessOk()}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('leaveOrganisation.successTitle')}</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-left pt-1">
+                <p className="text-sm text-foreground leading-relaxed">{t('leaveOrganisation.successMessage')}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('leaveOrganisation.successHint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button rounded="full" onClick={handleLeaveOrgSuccessOk}>
+              {t('leaveOrganisation.successButton')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Active Appointments — info modal when leave is blocked */}
+      <AlertDialog open={activeAppointmentsCount !== null} onOpenChange={(open) => !open && setActiveAppointmentsCount(null)}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+                <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('activeAppointments.title')}</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-left pt-1">
+                {activeAppointmentsCount !== null && (
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {t('activeAppointments.message', { count: activeAppointmentsCount })}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('activeAppointments.hint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button rounded="full" onClick={() => setActiveAppointmentsCount(null)}>
+              {t('activeAppointments.understood')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Must Leave All Organisations — styled like business owner blockers dialog */}
+      <AlertDialog open={mustLeaveOrgCount !== null} onOpenChange={(open) => !open && setMustLeaveOrgCount(null)}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
+                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('dangerZone.mustLeaveOrganisations.title')}</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-left pt-1">
+                {mustLeaveOrgCount !== null && (
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {t('dangerZone.mustLeaveOrganisations.memberCount', { count: mustLeaveOrgCount })}
+                  </p>
+                )}
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('dangerZone.mustLeaveOrganisations.hint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button rounded="full" onClick={() => setMustLeaveOrgCount(null)}>
+              {t('blockersDialog.understood')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Deactivate Account confirmation — same styling as business owner */}
+      <AlertDialog open={showDeactivateConfirm} onOpenChange={(open) => !open && setShowDeactivateConfirm(false)}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+                <Power className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('deactivateDialog.title')}</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-left pt-1">
+                <p className="text-sm text-foreground leading-relaxed">{t('deactivateDialog.inactive')}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('deactivateDialog.reactivateHint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button variant="outline" rounded="full" onClick={() => setShowDeactivateConfirm(false)}>
+              {t('deactivateDialog.cancel')}
+            </Button>
+            <Button variant="destructive" rounded="full" onClick={handleDeactivateConfirm} disabled={isDeactivating}>
+              {isDeactivating ? t('deactivateDialog.disabling') : t('deactivateDialog.confirm')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Account confirmation — same styling as business owner */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
+                <Trash2 className="h-5 w-5 text-destructive" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('deleteAccountDialog.title')}</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-4 text-left pt-1">
+                <p className="text-sm text-foreground leading-relaxed">{t('deleteAccountDialog.scheduled')}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('deleteAccountDialog.periodHint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button variant="outline" rounded="full" onClick={() => setShowDeleteConfirm(false)}>
+              {t('deleteAccountDialog.cancel')}
+            </Button>
+            <Button variant="destructive" rounded="full" onClick={handleDeleteConfirm} disabled={isSchedulingDeletion}>
+              {isSchedulingDeletion ? t('deleteAccountDialog.scheduling') : t('deleteAccountDialog.scheduleDeletion')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Account scheduled for deletion success — same styling as business owner */}
+      <AlertDialog open={!!deletionScheduledAtSuccess} onOpenChange={(open) => !open && handleDeletionScheduledOk()}>
+        <AlertDialogContent className="sm:max-w-lg">
+          <AlertDialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40">
+                <Calendar className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <AlertDialogTitle className="text-left">{t('deletionScheduledSuccess.title')}</AlertDialogTitle>
+            </div>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-left pt-1">
+                <p className="text-sm text-foreground leading-relaxed">{t('deletionScheduledSuccess.scheduled')}</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t('deletionScheduledSuccess.deletionDate')} <strong className="text-foreground">{deletionScheduledAtSuccess}</strong>
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('deletionScheduledSuccess.cancelHint')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
+            <Button rounded="full" onClick={handleDeletionScheduledOk}>
+              {t('deletionScheduledSuccess.ok')}
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

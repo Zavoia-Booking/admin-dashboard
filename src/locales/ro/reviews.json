@@ -1,0 +1,49 @@
+{
+  "tabLabel": "Recenzii",
+  "myStats": {
+    "title": "Ratingul Tău",
+    "infoText": "Acesta este ratingul tău personal bazat pe recenziile clienților care au avut programări cu tine. Este afișat pe profilul tău public.",
+    "emptyDescription": "Când clienții tăi lasă recenzii după programări, acestea vor apărea aici."
+  },
+  "stats": {
+    "totalReviews_zero": "Nicio recenzie",
+    "totalReviews_one": "{{count}} recenzie",
+    "totalReviews_few": "{{count}} recenzii",
+    "totalReviews_other": "{{count}} de recenzii",
+    "overallTitle": "Rating Public",
+    "overallBadge": "Vizibil pentru clienți",
+    "businessTitle": "Recenzii Afacere",
+    "teamTitle": "Membrii Echipei",
+    "noRating": "Niciun rating încă",
+    "infoText": "Ratingul public este media combinată a recenziilor afacerii și a tuturor recenziilor membrilor echipei. Acesta este scorul pe care clienții îl văd pe profilul tău."
+  },
+  "subTabs": {
+    "business": "Recenzii Afacere",
+    "teamMembers": "Recenzii Echipă"
+  },
+  "filters": {
+    "allTeamMembers": "Toți membrii echipei",
+    "newest": "Cele mai noi",
+    "oldest": "Cele mai vechi"
+  },
+  "card": {
+    "reviewFor": "Recenzie pentru"
+  },
+  "empty": {
+    "title": "Nicio recenzie încă",
+    "description": "Recenziile de la clienți vor apărea aici după ce aceștia vor lăsa feedback."
+  },
+  "loadMore": "Încarcă mai multe",
+  "time": {
+    "justNow": "Chiar acum",
+    "minutesAgo_one": "acum {{count}} minut",
+    "minutesAgo_few": "acum {{count}} minute",
+    "minutesAgo_other": "acum {{count}} de minute",
+    "hoursAgo_one": "acum {{count}} oră",
+    "hoursAgo_few": "acum {{count}} ore",
+    "hoursAgo_other": "acum {{count}} de ore",
+    "daysAgo_one": "acum {{count}} zi",
+    "daysAgo_few": "acum {{count}} zile",
+    "daysAgo_other": "acum {{count}} de zile"
+  }
+}

@@ -30,6 +30,9 @@ const SupportPage = lazy(() => import('./features/support/pages/support'))
 const CustomersPage = lazy(() => import('./features/customers/pages/customers'))
 const MarketplacePage = lazy(() => import('./features/marketplace/pages/marketplace'))
 
+// Notifications
+const NotificationsPage = lazy(() => import('./features/notifications/pages/notifications'))
+
 // Team Member Only Pages
 const MyAssignmentsPage = lazy(() => import('./features/team-member-pages/myAssignments/pages/my-assignments'))
 const MyCustomersPage = lazy(() => import('./features/team-member-pages/myCustomers/pages/my-customers'))
@@ -72,6 +75,7 @@ function App() {
           <Route path="/customers" element={<ProtectedRoute element={<CustomersPage />} />} />
           <Route path="/marketplace" element={<ProtectedRoute element={<MarketplacePage />} />} />
           <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
+          <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
           <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
 
           {/* Team Member Only */}

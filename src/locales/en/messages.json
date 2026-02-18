@@ -54,6 +54,12 @@
     "E31": "Account exists as marketplace customer - add business owner access?",
     "E32": "Account exists as team member - add business owner access?"
   },
+  "ACCOUNT": {
+    "E04": "You must remove all team members before you can disable or delete your account",
+    "E08": "You have active appointments that must be resolved (cancel or complete them) before you can disable or delete your account",
+    "E09": "You have an active subscription. Cancel it before you can disable or delete your account",
+    "E10": "Please resolve the issues below before you can disable or delete your account"
+  },
   "LOCATION": {
     "S01": "Location created successfully",
     "S02": "Location updated successfully",

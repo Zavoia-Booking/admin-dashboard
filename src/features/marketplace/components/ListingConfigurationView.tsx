@@ -28,8 +28,9 @@ import { BookingToggleCard } from "./profile/BookingToggleCard";
 import { MarketplaceDetailsSection } from "./profile/MarketplaceDetailsSection";
 import { LocationCatalogSection } from "./profile/LocationCatalogSection";
 import IndustrySection from "./profile/IndustrySection.tsx";
+import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
-type MarketplaceTab = "profile" | "portfolio" | "promotions";
+type MarketplaceTab = "profile" | "portfolio" | "promotions" | "reviews";
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -58,6 +59,7 @@ interface ListingConfigurationViewProps {
 export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const { business, locationsWithAssignments, isPublishing, isListed } = props;
   const { t } = useTranslation("marketplace");
+  const { t: tReviews } = useTranslation("reviews");
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -73,12 +75,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const allowNavigationRef = useRef(false);
 
   // Get initial tab from URL or default to 'profile'
+  const validTabs: MarketplaceTab[] = ["profile", "portfolio", "promotions", "reviews"];
+
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get("tab") as MarketplaceTab | null;
-    if (
-      tab &&
-      (tab === "profile" || tab === "portfolio" || tab === "promotions")
-    ) {
+    if (tab && validTabs.includes(tab)) {
       return tab;
     }
     return "profile";
@@ -89,15 +90,12 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   // Should we show the global save/publish button?
   // We hide it on the portfolio tab if the listing is already published (isListed = true)
   // because portfolio changes are instant. We keep it if it's the initial "Publish" flow.
-  const showSaveButton = activeTab !== "portfolio" || !isListed;
+  const showSaveButton = (activeTab !== "portfolio" && activeTab !== "reviews") || !isListed;
 
   // Sync with URL changes
   useEffect(() => {
     const tab = searchParams.get("tab") as MarketplaceTab | null;
-    if (
-      tab &&
-      (tab === "profile" || tab === "portfolio" || tab === "promotions")
-    ) {
+    if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
     } else if (tab === "booking-settings") {
       setActiveTab("profile");
@@ -440,6 +438,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           </div>
         </div>
       ),
+    },
+    {
+      id: "reviews",
+      label: tReviews("tabLabel"),
+      content: <ReviewsTab />,
     },
   ];
 

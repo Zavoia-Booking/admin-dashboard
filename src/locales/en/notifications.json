@@ -1,0 +1,22 @@
+{
+  "title": "Notifications",
+  "subtitle": "{{count}} notifications",
+  "subtitleEmpty": "No notifications yet",
+  "markAllAsRead": "Mark all as read",
+  "markAsRead": "Mark as read",
+  "loadMore": "Load more",
+  "loadingMore": "Loading...",
+  "empty": {
+    "title": "No notifications",
+    "description": "You're all caught up! New notifications will appear here when there's something important."
+  },
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}}m ago",
+    "minutesAgo_other": "{{count}}m ago",
+    "hoursAgo_one": "{{count}}h ago",
+    "hoursAgo_other": "{{count}}h ago",
+    "daysAgo_one": "{{count}}d ago",
+    "daysAgo_other": "{{count}}d ago"
+  }
+}

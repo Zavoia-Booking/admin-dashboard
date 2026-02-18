@@ -54,6 +54,12 @@
     "E31": "Contul există ca și client marketplace - adaugi acces proprietar afacere?",
     "E32": "Contul există ca și membru al echipei - adaugi acces proprietar afacere?"
   },
+  "ACCOUNT": {
+    "E04": "Trebuie să elimini toți membrii echipei înainte de a dezactiva sau șterge contul",
+    "E08": "Ai programări active care trebuie rezolvate (anulează sau finalizează-le) înainte de a dezactiva sau șterge contul",
+    "E09": "Ai un abonament activ. Anulează-l înainte de a dezactiva sau șterge contul",
+    "E10": "Te rugăm să rezolvi problemele de mai jos înainte de a dezactiva sau șterge contul"
+  },
   "LOCATION": {
     "S01": "Locație creată cu succes",
     "S02": "Locație actualizată cu succes",

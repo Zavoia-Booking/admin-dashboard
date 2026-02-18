@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useForm, useController } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
   Package,
@@ -68,6 +69,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
 }) => {
   const text = useTranslation("services").t;
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const allServices = useSelector(getServicesListSelector);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
@@ -1140,7 +1142,15 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
           isLoading={isDeleting}
           className="z-[80]"
           overlayClassName="z-[80]"
-          secondaryActions={[]}
+          secondaryActions={[
+            {
+              label: "Go to Assignments",
+              onClick: () => {
+                handleCloseDeleteDialog(false);
+                navigate("/assignments");
+              },
+            },
+          ]}
         />
       )}
     </>

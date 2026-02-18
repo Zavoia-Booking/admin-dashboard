@@ -1,0 +1,45 @@
+{
+  "tabLabel": "Reviews",
+  "myStats": {
+    "title": "Your Rating",
+    "infoText": "This is your personal rating based on reviews from clients who booked with you. It is displayed on your public profile.",
+    "emptyDescription": "When your clients leave reviews after their appointments, they will appear here."
+  },
+  "stats": {
+    "totalReviews_zero": "No reviews",
+    "totalReviews_one": "{{count}} review",
+    "totalReviews_other": "{{count}} reviews",
+    "overallTitle": "Public Rating",
+    "overallBadge": "Visible to clients",
+    "businessTitle": "Business Reviews",
+    "teamTitle": "Team Members",
+    "noRating": "No rating yet",
+    "infoText": "Your public rating is the combined average of business reviews and all team member reviews. This is the score your clients see on your profile."
+  },
+  "subTabs": {
+    "business": "Business Reviews",
+    "teamMembers": "Team Member Reviews"
+  },
+  "filters": {
+    "allTeamMembers": "All Team Members",
+    "newest": "Newest",
+    "oldest": "Oldest"
+  },
+  "card": {
+    "reviewFor": "Review for"
+  },
+  "empty": {
+    "title": "No reviews yet",
+    "description": "Reviews from your customers will appear here once they start leaving feedback."
+  },
+  "loadMore": "Load more",
+  "time": {
+    "justNow": "Just now",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} mins ago",
+    "hoursAgo_one": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo_one": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago"
+  }
+}

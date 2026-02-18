@@ -1,5 +1,6 @@
 import * as actions from "./actions";
 import { hydrateSessionAction, loginAction, logoutRequestAction, registerOwnerRequestAction, setAuthLoadingAction, setAuthUserAction, setTokensAction, clearAuthErrorAction, googleLoginAction, googleRegisterAction, openAccountLinkingModal, closeAccountLinkingModal, reauthForLinkAction, linkGoogleAction, unlinkGoogleAction, selectBusinessAction, sendBusinessLinkEmailAction, closeAccountLinkingRequiredModal, dismissBusinessSelectorModal, setMemberRegistrationLoadingAction, checkTeamInvitationAction, completeTeamInvitationAction, showAccountStatusPromptAction, clearAccountStatusPromptAction } from "./actions";
+import { decrementUnreadCount, resetUnreadCount } from "../notifications/actions";
 import type { AuthState } from "./types";
 import { AuthStatusEnum  } from "./types";
 import { getType, type ActionType } from "typesafe-actions";
@@ -469,6 +470,26 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     case getType(clearAccountStatusPromptAction): {
       return { ...state, accountStatusPrompt: null };
+    }
+
+    case getType(decrementUnreadCount): {
+      if (!state.user) return state;
+      const current = state.user.unreadNotificationsCount ?? 0;
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          unreadNotificationsCount: Math.max(0, current - (action as any).payload),
+        },
+      };
+    }
+
+    case getType(resetUnreadCount): {
+      if (!state.user) return state;
+      return {
+        ...state,
+        user: { ...state.user, unreadNotificationsCount: 0 },
+      };
     }
 
     default:

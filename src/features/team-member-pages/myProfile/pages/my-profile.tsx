@@ -3,13 +3,13 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Save, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
-import { Card, CardContent } from '../../../../shared/components/ui/card';
 import { Button } from '../../../../shared/components/ui/button';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../../shared/components/ui/responsive-tabs';
 import ConfirmDialog from '../../../../shared/components/common/ConfirmDialog';
 import { ProfileTab, type ProfileTabRef } from '../components/ProfileTab';
 import { NoProfileYetView } from '../components/NoProfileYetView';
 import { PortfolioImagesSection } from '../components/PortfolioImagesSection';
+import { MyReviewsTab } from '../components/MyReviewsTab';
 import { getMarketplaceProfile, type MarketplaceProfile } from '../api';
 
 type MyProfileTab = 'profile' | 'portfolio' | 'reviews';
@@ -21,15 +21,7 @@ function PortfolioTabContent({ isActive }: { isActive: boolean }) {
 
 // Reviews Tab Content
 function ReviewsTabContent() {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-muted-foreground">
-          Reviews content coming soon...
-        </p>
-      </CardContent>
-    </Card>
-  );
+  return <MyReviewsTab />;
 }
 
 // Loading skeleton

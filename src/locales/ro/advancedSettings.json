@@ -1,0 +1,143 @@
+{
+  "accountDisabled": {
+    "title": "Cont dezactivat",
+    "description": "Contul tău este momentan dezactivat. Toate datele sunt păstrate, dar nu vei avea acces la majoritatea funcționalităților până la reactivare.",
+    "reactivating": "Se reactivează...",
+    "reactivate": "Reactivează contul"
+  },
+  "accountScheduledForDeletion": {
+    "title": "Cont programat pentru ștergere",
+    "deletedOnPrefix": "Contul tău este programat să fie șters definitiv pe",
+    "afterDate": "După această dată, toate datele vor fi eliminate definitiv și nu pot fi recuperate.",
+    "cancelling": "Se anulează...",
+    "cancelDeletion": "Anulează ștergerea și păstrează contul"
+  },
+  "dataImport": {
+    "title": "Import date",
+    "description": "Importă datele afacerii din fișiere CSV sau Excel pentru a-ți popula contul.",
+    "importCustomers": "Importă clienți",
+    "importAppointments": "Importă programări",
+    "importServices": "Importă servicii",
+    "supportedFormats": "Formate acceptate:",
+    "formatsList": "CSV (.csv), Excel (.xlsx, .xls)",
+    "fileSizeLimit": "Limită dimensiune fișier:",
+    "fileSizeValue": "maximum 10MB"
+  },
+  "dangerZone": {
+    "title": "Zonă periculoasă",
+    "resetAllData": {
+      "title": "Resetează toate datele",
+      "description": "Aceasta va șterge definitiv toate programările, clienții și serviciile. Acțiunea nu poate fi anulată.",
+      "placeholder": "Scrie \"RESET\" pentru a confirma",
+      "button": "Resetează toate datele"
+    },
+    "disableAccount": {
+      "title": "Dezactivează contul",
+      "description": "Dezactivează temporar contul. Datele vor rămâne păstrate și poți reactiva oricând reconectându-te.",
+      "ownerHint": "Ca proprietar, trebuie să elimini toți membrii echipei înainte de a dezactiva contul.",
+      "disabling": "Se dezactivează...",
+      "button": "Dezactivează contul"
+    },
+    "deleteAccount": {
+      "title": "Șterge contul",
+      "description": "Programează ștergerea definitivă a contului. După 30 de zile, toate datele vor fi eliminate definitiv.",
+      "gracePeriod": "În perioada de 30 de zile poți să te conectezi și să anulezi ștergerea pentru a păstra contul.",
+      "ownerHint": "Ca proprietar, trebuie să elimini toți membrii echipei înainte de a șterge contul.",
+      "scheduling": "Se programează...",
+      "button": "Șterge contul"
+    },
+    "mustLeaveOrganisations": {
+      "title": "Trebuie să părăsești toate organizațiile",
+      "memberCount_one": "Ești momentan membru al 1 organizație.",
+      "memberCount_other": "Ești momentan membru al {{count}} organizații.",
+      "hint": "Trebuie să părăsești toate organizațiile înainte de a dezactiva sau șterge contul. Conectează-te la fiecare afacere și folosește opțiunea \"Părăsește organizația\" din setări."
+    }
+  },
+  "blockersDialog": {
+    "title": "Rezolvă acestea înainte de a dezactiva sau șterge",
+    "description": "Te rugăm să rezolvi următoarele înainte de a dezactiva sau șterge contul.",
+    "understood": "Am înțeles"
+  },
+  "blockerActions": {
+    "assignments": "Atribuiri",
+    "calendar": "Calendar",
+    "billing": "Facturare"
+  },
+  "teamMembersError": {
+    "title": "Membrii echipei trebuie eliminați",
+    "message": "Trebuie să elimini toți cei {{count}} membri ai echipei înainte de această acțiune.",
+    "goToHint": "Mergi la Atribuiri pentru a gestiona și elimina membrii echipei din afacerea ta.",
+    "goToAssignments": "Mergi la Atribuiri"
+  },
+  "cancelDeletion": {
+    "title": "Anulare ștergere cont",
+    "message": "Sigur vrei să anulezi ștergerea programată și să păstrezi contul?",
+    "keepAccount": "Păstrează contul"
+  },
+  "deactivateDialog": {
+    "title": "Dezactivează contul",
+    "inactive": "Contul tău va fi marcat ca inactiv.",
+    "reactivateHint": "Poți să-l reactivezi oricând reconectându-te. Toate datele vor rămâne păstrate.",
+    "marketplaceWarning": "Atenție: Afacerea ta va fi scoasă din marketplace.",
+    "cancel": "Anulare",
+    "disabling": "Se dezactivează…",
+    "confirm": "Dezactivează"
+  },
+  "deleteAccountDialog": {
+    "title": "Șterge contul",
+    "scheduled": "Contul tău va fi programat pentru ștergere definitivă în 30 de zile.",
+    "periodHint": "În această perioadă poți să te conectezi și să anulezi ștergerea. După 30 de zile, contul și toate datele vor fi șterse definitiv și nu pot fi recuperate.",
+    "marketplaceWarning": "Atenție: Afacerea ta va fi scoasă din marketplace.",
+    "cancel": "Anulare",
+    "scheduling": "Se programează…",
+    "scheduleDeletion": "Programează ștergerea"
+  },
+  "deletionScheduledSuccess": {
+    "title": "Cont programat pentru ștergere",
+    "scheduled": "Contul tău a fost programat pentru ștergere.",
+    "deletionDate": "Data ștergerii:",
+    "cancelHint": "Poți anula conectându-te înainte de data ștergerii.",
+    "ok": "OK"
+  },
+  "leaveOrganisation": {
+    "title": "Părăsește organizația",
+    "confirmMessage": "Sigur vrei să părăsești această organizație?",
+    "confirmHint": "Vei pierde accesul la această afacere și la toate datele asociate. Acțiunea nu poate fi anulată.",
+    "confirmButton": "Părăsește organizația",
+    "leaving": "Se părăsește...",
+    "cancel": "Anulare",
+    "successTitle": "Ai părăsit organizația cu succes",
+    "successMessage": "Ai părăsit cu succes organizația.",
+    "successHint": "Accesul tău la această afacere a fost revocat. Vei fi deconectat.",
+    "successButton": "Confirm"
+  },
+  "activeAppointments": {
+    "title": "Programări active găsite",
+    "message_one": "Ai 1 programare activă care trebuie rezolvată înainte de a părăsi.",
+    "message_other": "Ai {{count}} programări active care trebuie rezolvate înainte de a părăsi.",
+    "hint": "Anulează programările în așteptare sau cere proprietarului afacerii să le realoce unui alt membru al echipei înainte de a încerca din nou.",
+    "understood": "Am înțeles"
+  },
+  "common": {
+    "cancel": "Anulare",
+    "thirtyDaysFromNow": "peste 30 de zile"
+  },
+  "toast": {
+    "resetConfirmRequired": "Scrie \"RESET\" pentru a confirma",
+    "resetInitiated": "Resetarea datelor a fost inițiată (doar demo)",
+    "importPlaceholder": "Funcționalitatea Import {{type}} va fi implementată aici",
+    "accountDeactivated": "Cont dezactivat cu succes",
+    "accountReactivated": "Cont reactivat cu succes",
+    "deletionCancelled": "Ștergerea contului a fost anulată",
+    "deletionScheduledSuccess": "Cont programat pentru ștergere",
+    "failedDeactivate": "Dezactivarea contului a eșuat",
+    "failedReactivate": "Reactivarea contului a eșuat",
+    "failedScheduleDeletion": "Programarea ștergerii contului a eșuat",
+    "failedCancelDeletion": "Anularea ștergerii contului a eșuat"
+  },
+  "importTypes": {
+    "customers": "clienți",
+    "appointments": "programări",
+    "services": "servicii"
+  }
+}

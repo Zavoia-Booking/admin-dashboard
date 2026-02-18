@@ -7,6 +7,7 @@ import { Badge } from '../../../shared/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { TeamMember, TeamMemberAppointment } from '../../../shared/types/team-member';
+import { UserRole } from '../../../shared/types/auth';
 import { deleteTeamMemberAction, fetchTeamMemberByIdAction } from '../actions';
 import { selectIsDeleting, selectDeleteResponse, selectCurrentTeamMember, selectIsFetchingTeamMember } from '../selectors';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
@@ -301,41 +302,44 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 />
               </div>
 
-              {/* Divider */}
-              <div className="flex items-end gap-2 mb-6 pt-4">
-                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
-              </div>
+              {/* Remove Team Member - hide for owners */}
+              {displayTeamMember.role !== UserRole.OWNER && (
+                <>
+                  <div className="flex items-end gap-2 mb-6 pt-4">
+                    <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+                  </div>
 
-              {/* Remove Team Member */}
-              <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                <div className="space-y-1">
-                  <h3 className="text-base font-medium text-foreground-1">
-                    Remove Team Member
-                  </h3>
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    This will remove the team member from your organisation and revoke their access.
-                  </p>
-                </div>
+                  <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
+                    <div className="space-y-1">
+                      <h3 className="text-base font-medium text-foreground-1">
+                        Remove Team Member
+                      </h3>
+                      <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                        This will remove the team member from your organisation and revoke their access.
+                      </p>
+                    </div>
 
-                <div className="flex flex-col gap-3 items-center">
-                  <Button
-                    variant="outline"
-                    rounded="full"
-                    onClick={handleDeleteClick}
-                    className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    disabled={isDeleting as boolean}
-                  >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Removing...
-                      </>
-                    ) : (
-                      'Remove from organisation'
-                    )}
-                  </Button>
-                </div>
-              </div>
+                    <div className="flex flex-col gap-3 items-center">
+                      <Button
+                        variant="outline"
+                        rounded="full"
+                        onClick={handleDeleteClick}
+                        className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={isDeleting as boolean}
+                      >
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Removing...
+                          </>
+                        ) : (
+                          'Remove from organisation'
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -1,6 +1,6 @@
 import { all, call, put, takeLatest } from "redux-saga/effects";
 import { listBundlesAction, createBundleAction, updateBundleAction, deleteBundleAction } from "./actions.ts";
-import { listBundlesRequest, createBundleRequest, updateBundleRequest, deleteBundleRequest } from "./api.ts";
+import { listBundlesRequest, createBundleRequest, updateBundleRequest, deleteBundleRequest, type DeleteBundleResponse } from "./api.ts";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import { getErrorMessage } from "../../shared/utils/error";
@@ -70,14 +70,20 @@ function* handleDeleteBundle(
   action: ActionType<typeof deleteBundleAction.request>
 ) {
   try {
-    const response: { data: { message: string } } = yield call(
+    const response: { data: DeleteBundleResponse } = yield call(
       deleteBundleRequest,
       action.payload.id
     );
-    if (response.data) {
+    const deleteResponse = response.data;
+
+    if (!deleteResponse) return;
+
+    if (deleteResponse.canDelete === false) {
+      // Bundle has dependencies (locations/appointments) - store response so modal shows counts
+      yield put(deleteBundleAction.success(deleteResponse));
+    } else {
       toast.success("Bundle deleted successfully");
-      yield put(deleteBundleAction.success(response.data));
-      // Refresh bundles list after deletion
+      yield put(deleteBundleAction.success({ canDelete: true, message: "" }));
       yield put(listBundlesAction.request());
     }
   } catch (error: unknown) {

@@ -38,6 +38,9 @@ export enum Permission {
   VIEW_ALL_APPOINTMENTS = 'view:all_appointments', // See all team members' appointments
   VIEW_OWN_APPOINTMENTS = 'view:own_appointments', // See only own appointments
 
+  // Notifications
+  ACCESS_NOTIFICATIONS = 'access:notifications',
+
   // Support (global ticketing, not business-specific)
   ACCESS_SUPPORT = 'access:support',
 
@@ -88,6 +91,7 @@ export enum Permission {
   ACCESS_MARKETPLACE_PROFILE = 'access:marketplace_profile',
   ACCESS_MARKETPLACE_PORTFOLIO = 'access:marketplace_portfolio',
   ACCESS_MARKETPLACE_PROMOTIONS = 'access:marketplace_promotions',
+  ACCESS_MARKETPLACE_REVIEWS = 'access:marketplace_reviews',
 
   // ===========================================
   // TEAM MEMBER-ONLY PAGES (separate routes)
@@ -129,6 +133,7 @@ const OWNER_PERMISSIONS: Permission[] = [
   Permission.ACCESS_DASHBOARD,
   Permission.ACCESS_CALENDAR,
   Permission.VIEW_ALL_APPOINTMENTS,
+  Permission.ACCESS_NOTIFICATIONS,
   Permission.ACCESS_SUPPORT,
 
   // Owner-only pages
@@ -158,6 +163,7 @@ const OWNER_PERMISSIONS: Permission[] = [
   Permission.ACCESS_MARKETPLACE_PROFILE,
   Permission.ACCESS_MARKETPLACE_PORTFOLIO,
   Permission.ACCESS_MARKETPLACE_PROMOTIONS,
+  Permission.ACCESS_MARKETPLACE_REVIEWS,
 
   Permission.ACCESS_SETTINGS,
   Permission.ACCESS_SETTINGS_PROFILE,
@@ -176,6 +182,7 @@ const TEAM_MEMBER_PERMISSIONS: Permission[] = [
   Permission.ACCESS_DASHBOARD,
   Permission.ACCESS_CALENDAR,
   Permission.VIEW_OWN_APPOINTMENTS,
+  Permission.ACCESS_NOTIFICATIONS,
   Permission.ACCESS_SUPPORT,
 
   // Team member-only pages (separate routes)
@@ -281,6 +288,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   // ===========================================
   '/dashboard': Permission.ACCESS_DASHBOARD,
   '/calendar': Permission.ACCESS_CALENDAR,
+  '/notifications': Permission.ACCESS_NOTIFICATIONS,
   '/support': Permission.ACCESS_SUPPORT,
 
   // ===========================================
@@ -322,6 +330,7 @@ export const SUB_ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/marketplace?tab=profile': Permission.ACCESS_MARKETPLACE_PROFILE,
   '/marketplace?tab=portfolio': Permission.ACCESS_MARKETPLACE_PORTFOLIO,
   '/marketplace?tab=promotions': Permission.ACCESS_MARKETPLACE_PROMOTIONS,
+  '/marketplace?tab=reviews': Permission.ACCESS_MARKETPLACE_REVIEWS,
 
   // ===========================================
   // TEAM MEMBER SUB-ROUTES

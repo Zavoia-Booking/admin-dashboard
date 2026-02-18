@@ -15,6 +15,8 @@ import { customersSaga } from "../../features/customers/saga";
 import { bundlesSaga } from "../../features/bundles/saga";
 import { categoriesSaga } from "../../features/categories/saga";
 import { dashboardSaga } from "../../features/dashboard/saga";
+import { notificationsSaga } from "../../features/notifications/saga";
+import { reviewsSaga } from "../../features/reviews/saga";
 
 export function* rootSaga() {
     yield all([
@@ -33,5 +35,7 @@ export function* rootSaga() {
         bundlesSaga(),
         categoriesSaga(),
         dashboardSaga(),
+        notificationsSaga(),
+        reviewsSaga(),
     ]);
 }

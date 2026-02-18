@@ -23,6 +23,12 @@ import enMessages from '../../locales/en/messages.json';
 import roMessages from '../../locales/ro/messages.json';
 import enMyAssignments from '../../locales/en/myAssignments.json';
 import roMyAssignments from '../../locales/ro/myAssignments.json';
+import enAdvancedSettings from '../../locales/en/advancedSettings.json';
+import roAdvancedSettings from '../../locales/ro/advancedSettings.json';
+import enNotifications from '../../locales/en/notifications.json';
+import roNotifications from '../../locales/ro/notifications.json';
+import enReviews from '../../locales/en/reviews.json';
+import roReviews from '../../locales/ro/reviews.json';
 
 const resources = {
   en: {
@@ -36,6 +42,9 @@ const resources = {
     marketplace: enMarketplace,
     messages: enMessages,
     myAssignments: enMyAssignments,
+    advancedSettings: enAdvancedSettings,
+    notifications: enNotifications,
+    reviews: enReviews,
   },
   ro: {
     services: roServices,
@@ -48,6 +57,9 @@ const resources = {
     marketplace: roMarketplace,
     messages: roMessages,
     myAssignments: roMyAssignments,
+    advancedSettings: roAdvancedSettings,
+    notifications: roNotifications,
+    reviews: roReviews,
   },
 };
 

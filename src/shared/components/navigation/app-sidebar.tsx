@@ -38,6 +38,7 @@ import {
 } from "../ui/sidebar"
 import { Permission } from "../../lib/permissions"
 import { usePermissions } from "../../hooks/usePermissions"
+import { NotificationBell } from "../common/NotificationBell"
 
 interface NavSubItem {
   title: string
@@ -147,6 +148,11 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
         title: t("sidebar.subItems.marketplace.promotions"),
         url: "/marketplace?tab=promotions",
         requiredPermission: Permission.ACCESS_MARKETPLACE_PROMOTIONS,
+      },
+      {
+        title: t("sidebar.subItems.marketplace.reviews"),
+        url: "/marketplace?tab=reviews",
+        requiredPermission: Permission.ACCESS_MARKETPLACE_REVIEWS,
       },
     ],
   },
@@ -326,13 +332,16 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain items={filteredNavItems} />
       </SidebarContent>
       
-      {/* Language and Dark Mode Controls */}
-      <div className="grid grid-cols-2 gap-0 border-t border-border-strong group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:gap-0">
+      {/* Notifications, Language and Dark Mode Controls */}
+      <div className="grid grid-cols-3 gap-0 border-t border-border-strong group-data-[collapsible=icon]:grid-cols-1 group-data-[collapsible=icon]:gap-0">
         <div className="flex items-center justify-center w-full border-b-0 group-data-[collapsible=icon]:border-b border-border-strong">
           <DarkModeToggle />
         </div>
         <div className="flex items-center justify-center w-full border-l border-border-strong group-data-[collapsible=icon]:border-l-0">
           <LanguageSwitcher />
+        </div>
+        <div className="flex items-center justify-center w-full border-l border-border-strong group-data-[collapsible=icon]:border-l-0 group-data-[collapsible=icon]:border-b border-b-0">
+          <NotificationBell />
         </div>
       </div>
       
