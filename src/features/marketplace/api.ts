@@ -36,7 +36,7 @@ export const updateMarketplaceVisibilityApi = async (isVisible: boolean): Promis
 }
 
 // Booking Settings API
-export const updateBookingSettingsApi = async (payload: UpdateBookingSettingsPayload): Promise<BookingSettings> => {
+export const updateBookingSettingsApi = async (payload: Partial<UpdateBookingSettingsPayload>): Promise<BookingSettings> => {
   const { data } = await apiClient().put<BookingSettings>('/marketplace-listing/booking-settings', payload);
   return data;
 }

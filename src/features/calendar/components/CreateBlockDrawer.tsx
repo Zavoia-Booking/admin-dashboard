@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import DatePicker from '../../../shared/components/ui/date-picker';
 import {
   ShieldOff, Clock, User, Loader2, MapPin, Calendar,
 } from 'lucide-react';
@@ -21,17 +20,33 @@ import {
   getBlockFormOpen,
   getSelectedDate,
   getBookingSettings,
+  getLocationWorkingHours,
+  getLocationOpen247,
 } from '../selectors';
-import { toast } from 'sonner';
+import { selectIsTeamMember } from '../../auth/selectors';
+
 import {
   CalendarBlockScope,
   CalendarBlockReason,
   type CalendarBlockCreatePayload,
 } from '../../../shared/types/calendar';
+import { formatSlotTime } from './utils';
+import { useTimeSlots } from '../hooks/useTimeSlots';
+import { isSlotOutsideWorkingHours } from '../workingHours';
 
 // ─────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────
+
+const WEEKDAY_LABELS: { value: number; label: string }[] = [
+  { value: 0, label: 'Sun' },
+  { value: 1, label: 'Mon' },
+  { value: 2, label: 'Tue' },
+  { value: 3, label: 'Wed' },
+  { value: 4, label: 'Thu' },
+  { value: 5, label: 'Fri' },
+  { value: 6, label: 'Sat' },
+];
 
 interface FormState {
   blockScope: CalendarBlockScope;
@@ -44,6 +59,10 @@ interface FormState {
   reason: CalendarBlockReason;
   title: string;
   notes: string;
+  isRecurring: boolean;
+  repeatFrequency: 'daily' | 'weekly';
+  repeatDaysOfWeek: number[]; // 0=Sun .. 6=Sat
+  repeatEndDate: Date | null;
 }
 
 const initialForm: FormState = {
@@ -57,6 +76,10 @@ const initialForm: FormState = {
   reason: CalendarBlockReason.OTHER,
   title: '',
   notes: '',
+  isRecurring: false,
+  repeatFrequency: 'weekly',
+  repeatDaysOfWeek: [],
+  repeatEndDate: null,
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -88,6 +111,9 @@ export const CreateBlockDrawer: React.FC = () => {
   const locationStaff = useSelector(getLocationStaff);
   const selectedDate = useSelector(getSelectedDate);
   const bookingSettings = useSelector(getBookingSettings);
+  const workingHours = useSelector(getLocationWorkingHours);
+  const open247 = useSelector(getLocationOpen247);
+  const isTeamMember = useSelector(selectIsTeamMember);
 
   // Form state
   const [form, setForm] = useState<FormState>(initialForm);
@@ -99,6 +125,15 @@ export const CreateBlockDrawer: React.FC = () => {
   const [endTimeOpen, setEndTimeOpen] = useState(false);
 
   const hasStaff = locationStaff.length > 0;
+  const canCreateBlocks =
+    !isTeamMember || !!bookingSettings?.allowStaffBlockCalendarWithoutConfirmation;
+  const allowedReasonOptions = useMemo(() => {
+    if (!isTeamMember) {
+      return reasonOptions;
+    }
+    const allowed = (bookingSettings?.staffBlockCalendarTypes ?? []).map((t) => String(t).toLowerCase());
+    return reasonOptions.filter((option) => allowed.includes(option.value));
+  }, [isTeamMember, bookingSettings]);
 
   // ─────────────────────────────────────────────────────────────
   // Reset on open
@@ -108,12 +143,22 @@ export const CreateBlockDrawer: React.FC = () => {
     if (isOpen) {
       setForm({
         ...initialForm,
+        blockScope: isTeamMember ? CalendarBlockScope.STAFF : CalendarBlockScope.LOCATION,
         startDate: selectedDate || new Date(),
         endDate: selectedDate || new Date(),
       });
       setError(null);
     }
-  }, [isOpen, selectedDate]);
+  }, [isOpen, selectedDate, isTeamMember]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (allowedReasonOptions.length === 0) return;
+    const allowedReasons = new Set(allowedReasonOptions.map((o) => o.value));
+    if (!allowedReasons.has(form.reason)) {
+      setForm((prev) => ({ ...prev, reason: allowedReasonOptions[0].value }));
+    }
+  }, [isOpen, allowedReasonOptions, form.reason]);
 
   // ─────────────────────────────────────────────────────────────
   // Close handler
@@ -123,27 +168,98 @@ export const CreateBlockDrawer: React.FC = () => {
     dispatch(toggleBlockFormAction(false));
   };
 
+  const handleBlockScopeLocation = useCallback(() => {
+    setForm((p) => ({ ...p, blockScope: CalendarBlockScope.LOCATION, userId: null }));
+  }, []);
+
+  const handleBlockScopeStaff = useCallback(() => {
+    setForm((p) => ({ ...p, blockScope: CalendarBlockScope.STAFF }));
+  }, []);
+
+  const handleSelectStaff = useCallback((staffId: number) => {
+    setForm((p) => ({ ...p, userId: staffId }));
+  }, []);
+
+  const handleAllDayChange = useCallback((checked: boolean) => {
+    setForm((p) => ({ ...p, isAllDay: checked }));
+  }, []);
+
+  const handleStartDateChange = useCallback((date: Date) => {
+    setForm((p) => ({
+      ...p,
+      startDate: date,
+      endDate: p.endDate && date && p.endDate < date ? date : p.endDate,
+    }));
+  }, []);
+
+  const handleEndDateChange = useCallback((date: Date) => {
+    setForm((p) => ({ ...p, endDate: date }));
+  }, []);
+
+  const handleStartTimeSelect = useCallback((slot: string) => {
+    setForm((p) => ({ ...p, startTime: slot }));
+    setStartTimeOpen(false);
+  }, []);
+
+  const handleEndTimeSelect = useCallback((slot: string) => {
+    setForm((p) => ({ ...p, endTime: slot }));
+    setEndTimeOpen(false);
+  }, []);
+
+  const handleReasonSelect = useCallback((reason: CalendarBlockReason) => {
+    setForm((p) => ({ ...p, reason }));
+  }, []);
+
+  const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((p) => ({ ...p, title: e.target.value }));
+  }, []);
+
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setForm((p) => ({ ...p, notes: e.target.value }));
+  }, []);
+
+  const handleRecurringChange = useCallback((checked: boolean) => {
+    setForm((p) => ({
+      ...p,
+      isRecurring: checked,
+      repeatDaysOfWeek: checked && p.repeatFrequency === 'weekly' ? p.repeatDaysOfWeek : [],
+    }));
+  }, []);
+
+  const handleRepeatFrequencyChange = useCallback((freq: 'daily' | 'weekly') => {
+    setForm((p) => ({
+      ...p,
+      repeatFrequency: freq,
+      repeatDaysOfWeek: freq === 'weekly' ? p.repeatDaysOfWeek : [],
+    }));
+  }, []);
+
+  const handleRepeatDayToggle = useCallback((day: number) => {
+    setForm((p) => {
+      const next = p.repeatDaysOfWeek.includes(day)
+        ? p.repeatDaysOfWeek.filter((d) => d !== day)
+        : [...p.repeatDaysOfWeek, day].sort((a, b) => a - b);
+      return { ...p, repeatDaysOfWeek: next };
+    });
+  }, []);
+
+  const handleRepeatEndDateChange = useCallback((date: Date | null) => {
+    setForm((p) => ({ ...p, repeatEndDate: date }));
+  }, []);
+
+  const handleToggleStartTimeOpen = useCallback(() => {
+    setStartTimeOpen((open) => !open);
+  }, []);
+
+  const handleToggleEndTimeOpen = useCallback(() => {
+    setEndTimeOpen((open) => !open);
+  }, []);
+
   // ─────────────────────────────────────────────────────────────
-  // Time slots
+  // Time slots (shared hook)
   // ─────────────────────────────────────────────────────────────
 
-  const timeSlots = useMemo(() => {
-    const interval = bookingSettings?.slotIntervalMinutes ?? 15;
-    const slots: string[] = [];
-    for (let m = 0; m < 24 * 60; m += interval) {
-      const hh = String(Math.floor(m / 60)).padStart(2, '0');
-      const mm = String(m % 60).padStart(2, '0');
-      slots.push(`${hh}:${mm}`);
-    }
-    return slots;
-  }, [bookingSettings]);
-
-  const formatSlotTime = (slot: string) => {
-    const [h, m] = slot.split(':').map(Number);
-    const d = new Date();
-    d.setHours(h, m, 0, 0);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
+  const timeSlots = useTimeSlots(bookingSettings?.slotIntervalMinutes);
 
   // ─────────────────────────────────────────────────────────────
   // Submit
@@ -153,12 +269,14 @@ export const CreateBlockDrawer: React.FC = () => {
     form.startDate !== null &&
     form.endDate !== null &&
     selectedLocationId !== null &&
+    (!isTeamMember || allowedReasonOptions.length > 0) &&
     (form.blockScope !== CalendarBlockScope.STAFF || form.userId !== null) &&
-    (form.isAllDay || (form.startTime !== '' && form.endTime !== ''));
+    (form.isAllDay || (form.startTime !== '' && form.endTime !== '')) &&
+    (!form.isRecurring || form.repeatFrequency === 'daily' || form.repeatDaysOfWeek.length > 0);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit || !selectedLocationId || !form.startDate || !form.endDate) return;
+    if (!canCreateBlocks || !canSubmit || !selectedLocationId || !form.startDate || !form.endDate) return;
 
     setSubmitting(true);
     setError(null);
@@ -196,14 +314,19 @@ export const CreateBlockDrawer: React.FC = () => {
       title: form.title.trim() || undefined,
       notes: form.notes.trim() || undefined,
     };
+    if (form.isRecurring) {
+      payload.isRecurring = true;
+      payload.repeatFrequency = form.repeatFrequency;
+      if (form.repeatFrequency === 'weekly' && form.repeatDaysOfWeek.length > 0) {
+        payload.repeatDaysOfWeek = form.repeatDaysOfWeek;
+      }
+      if (form.repeatEndDate) {
+        payload.repeatEndDate = form.repeatEndDate.toISOString().slice(0, 10);
+      }
+    }
 
     try {
       dispatch(createCalendarBlock.request(payload));
-      toast.success(
-        form.blockScope === CalendarBlockScope.LOCATION
-          ? 'Location block created'
-          : 'Staff time-off created',
-      );
       handleClose();
     } catch {
       setError('Failed to create block');
@@ -231,7 +354,7 @@ export const CreateBlockDrawer: React.FC = () => {
             type="submit"
             form="create-block-form"
             className="flex-1"
-            disabled={!canSubmit || submitting}
+            disabled={!canCreateBlocks || !canSubmit || submitting}
           >
             {submitting ? (
               <>
@@ -261,36 +384,44 @@ export const CreateBlockDrawer: React.FC = () => {
                 <h3 className="text-base font-semibold text-foreground">Block Type</h3>
               </div>
 
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setForm((p) => ({ ...p, blockScope: CalendarBlockScope.LOCATION, userId: null }))}
-                  className={cn(
-                    'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors flex-1',
-                    form.blockScope === CalendarBlockScope.LOCATION
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background border-border hover:bg-muted',
+              {!canCreateBlocks ? (
+                <div className="p-3 rounded-lg bg-muted/40 text-sm text-muted-foreground">
+                  Your role cannot create calendar blocks. Ask an owner to enable staff block permissions.
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  {!isTeamMember && (
+                    <button
+                      type="button"
+                      onClick={handleBlockScopeLocation}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors flex-1',
+                        form.blockScope === CalendarBlockScope.LOCATION
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border hover:bg-muted',
+                      )}
+                    >
+                      <MapPin className="h-4 w-4" />
+                      Location Block
+                    </button>
                   )}
-                >
-                  <MapPin className="h-4 w-4" />
-                  Location Block
-                </button>
-                {hasStaff && (
-                  <button
-                    type="button"
-                    onClick={() => setForm((p) => ({ ...p, blockScope: CalendarBlockScope.STAFF }))}
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors flex-1',
-                      form.blockScope === CalendarBlockScope.STAFF
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background border-border hover:bg-muted',
-                    )}
-                  >
-                    <User className="h-4 w-4" />
-                    Staff Time Off
-                  </button>
-                )}
-              </div>
+                  {hasStaff && (
+                    <button
+                      type="button"
+                      onClick={handleBlockScopeStaff}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-3 rounded-lg border text-sm font-medium transition-colors flex-1',
+                        form.blockScope === CalendarBlockScope.STAFF
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border hover:bg-muted',
+                      )}
+                    >
+                      <User className="h-4 w-4" />
+                      Staff Time Off
+                    </button>
+                  )}
+                </div>
+              )}
 
               <p className="text-xs text-muted-foreground">
                 {form.blockScope === CalendarBlockScope.LOCATION
@@ -300,7 +431,7 @@ export const CreateBlockDrawer: React.FC = () => {
             </div>
 
             {/* ── Staff Picker (if staff scope) ── */}
-            {form.blockScope === CalendarBlockScope.STAFF && (
+            {canCreateBlocks && form.blockScope === CalendarBlockScope.STAFF && (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-2 border-b border-border/50">
                   <div className="p-2 rounded-xl bg-primary/10">
@@ -313,7 +444,7 @@ export const CreateBlockDrawer: React.FC = () => {
                     <button
                       key={staff.id}
                       type="button"
-                      onClick={() => setForm((p) => ({ ...p, userId: staff.id }))}
+                      onClick={() => handleSelectStaff(staff.id)}
                       className={cn(
                         'flex items-center gap-3 p-3 rounded-lg border transition-colors text-left',
                         form.userId === staff.id
@@ -354,7 +485,7 @@ export const CreateBlockDrawer: React.FC = () => {
                 <Switch
                   id="all-day"
                   checked={form.isAllDay}
-                  onCheckedChange={(checked) => setForm((p) => ({ ...p, isAllDay: checked }))}
+                  onCheckedChange={handleAllDayChange}
                   className="!h-5 !w-9 !min-h-0 !min-w-0"
                 />
               </div>
@@ -364,18 +495,10 @@ export const CreateBlockDrawer: React.FC = () => {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Start Date</Label>
                   <DatePicker
-                    selected={form.startDate}
-                    onChange={(date) => {
-                      setForm((p) => ({
-                        ...p,
-                        startDate: date,
-                        endDate: p.endDate && date && p.endDate < date ? date : p.endDate,
-                      }));
-                    }}
-                    dateFormat="yyyy-MM-dd"
+                    value={form.startDate}
+                    onChange={handleStartDateChange}
                     className="border-0 bg-muted/50 focus:bg-background h-10 text-sm w-full rounded-md px-3"
-                    placeholderText="Start date"
-                    popperClassName="z-[90]"
+                    placeholder="Start date"
                   />
                 </div>
                 {!form.isAllDay && (
@@ -384,7 +507,7 @@ export const CreateBlockDrawer: React.FC = () => {
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setStartTimeOpen(!startTimeOpen)}
+                        onClick={handleToggleStartTimeOpen}
                         className="w-full h-10 text-sm text-left bg-muted/50 rounded-md px-3 flex items-center justify-between hover:bg-muted/70"
                       >
                         {form.startTime ? formatSlotTime(form.startTime) : 'Time'}
@@ -399,11 +522,9 @@ export const CreateBlockDrawer: React.FC = () => {
                               className={cn(
                                 'w-full text-left px-3 py-1.5 text-sm hover:bg-muted/50',
                                 form.startTime === slot ? 'bg-primary/10 font-medium' : '',
+                                isSlotOutsideWorkingHours(slot, form.startDate, workingHours, open247) && 'opacity-60 text-muted-foreground',
                               )}
-                              onClick={() => {
-                                setForm((p) => ({ ...p, startTime: slot }));
-                                setStartTimeOpen(false);
-                              }}
+                              onClick={() => handleStartTimeSelect(slot)}
                             >
                               {formatSlotTime(slot)}
                             </button>
@@ -420,13 +541,11 @@ export const CreateBlockDrawer: React.FC = () => {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">End Date</Label>
                   <DatePicker
-                    selected={form.endDate}
-                    onChange={(date) => setForm((p) => ({ ...p, endDate: date }))}
-                    dateFormat="yyyy-MM-dd"
-                    className="border-0 bg-muted/50 focus:bg-background h-10 text-sm w-full rounded-md px-3"
-                    placeholderText="End date"
-                    popperClassName="z-[90]"
+                    value={form.endDate}
+                    onChange={handleEndDateChange}
                     minDate={form.startDate ?? undefined}
+                    className="border-0 bg-muted/50 focus:bg-background h-10 text-sm w-full rounded-md px-3"
+                    placeholder="End date"
                   />
                 </div>
                 {!form.isAllDay && (
@@ -435,7 +554,7 @@ export const CreateBlockDrawer: React.FC = () => {
                     <div className="relative">
                       <button
                         type="button"
-                        onClick={() => setEndTimeOpen(!endTimeOpen)}
+                        onClick={handleToggleEndTimeOpen}
                         className="w-full h-10 text-sm text-left bg-muted/50 rounded-md px-3 flex items-center justify-between hover:bg-muted/70"
                       >
                         {form.endTime ? formatSlotTime(form.endTime) : 'Time'}
@@ -450,11 +569,9 @@ export const CreateBlockDrawer: React.FC = () => {
                               className={cn(
                                 'w-full text-left px-3 py-1.5 text-sm hover:bg-muted/50',
                                 form.endTime === slot ? 'bg-primary/10 font-medium' : '',
+                                isSlotOutsideWorkingHours(slot, form.endDate, workingHours, open247) && 'opacity-60 text-muted-foreground',
                               )}
-                              onClick={() => {
-                                setForm((p) => ({ ...p, endTime: slot }));
-                                setEndTimeOpen(false);
-                              }}
+                              onClick={() => handleEndTimeSelect(slot)}
                             >
                               {formatSlotTime(slot)}
                             </button>
@@ -467,6 +584,80 @@ export const CreateBlockDrawer: React.FC = () => {
               </div>
             </div>
 
+            {/* ── Repeat Section ── */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="repeat" className="text-sm font-medium">
+                  Repeat
+                </Label>
+                <Switch
+                  id="repeat"
+                  checked={form.isRecurring}
+                  onCheckedChange={handleRecurringChange}
+                  className="!h-5 !w-9 !min-h-0 !min-w-0"
+                />
+              </div>
+              {form.isRecurring && (
+                <div className="space-y-3 pl-1">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleRepeatFrequencyChange('daily')}
+                      className={cn(
+                        'px-3 py-1.5 text-sm rounded-md border font-medium',
+                        form.repeatFrequency === 'daily'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border hover:bg-muted',
+                      )}
+                    >
+                      Daily
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleRepeatFrequencyChange('weekly')}
+                      className={cn(
+                        'px-3 py-1.5 text-sm rounded-md border font-medium',
+                        form.repeatFrequency === 'weekly'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border hover:bg-muted',
+                      )}
+                    >
+                      Weekly
+                    </button>
+                  </div>
+                  {form.repeatFrequency === 'weekly' && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {WEEKDAY_LABELS.map(({ value, label }) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() => handleRepeatDayToggle(value)}
+                          className={cn(
+                            'w-10 h-9 text-xs rounded-md border font-medium',
+                            form.repeatDaysOfWeek.includes(value)
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-background border-border hover:bg-muted',
+                          )}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Ends on (optional)</Label>
+                    <DatePicker
+                      value={form.repeatEndDate}
+                      onChange={handleRepeatEndDateChange}
+                      minDate={form.startDate ?? undefined}
+                      className="border-0 bg-muted/50 focus:bg-background h-10 text-sm w-full rounded-md px-3"
+                      placeholder="No end date"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* ── Reason Section ── */}
             <div className="space-y-4">
               <div className="flex items-center gap-3 pb-2 border-b border-border/50">
@@ -476,11 +667,11 @@ export const CreateBlockDrawer: React.FC = () => {
                 <h3 className="text-base font-semibold text-foreground">Reason</h3>
               </div>
               <div className="flex flex-wrap gap-2">
-                {reasonOptions.map((option) => (
+                {allowedReasonOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
-                    onClick={() => setForm((p) => ({ ...p, reason: option.value }))}
+                    onClick={() => handleReasonSelect(option.value)}
                     className={cn(
                       'px-3 py-1.5 rounded-lg border text-sm font-medium transition-colors',
                       form.reason === option.value
@@ -492,6 +683,11 @@ export const CreateBlockDrawer: React.FC = () => {
                   </button>
                 ))}
               </div>
+              {canCreateBlocks && allowedReasonOptions.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No block reasons are currently allowed for your role. Ask an owner to configure allowed block types.
+                </p>
+              )}
             </div>
 
             {/* ── Title & Notes ── */}
@@ -501,7 +697,7 @@ export const CreateBlockDrawer: React.FC = () => {
                 <Input
                   placeholder="e.g., Team lunch, Maintenance..."
                   value={form.title}
-                  onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+                  onChange={handleTitleChange}
                   className="h-10 border-0 bg-muted/50"
                 />
               </div>
@@ -510,7 +706,7 @@ export const CreateBlockDrawer: React.FC = () => {
                 <Textarea
                   placeholder="Additional details..."
                   value={form.notes}
-                  onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+                  onChange={handleNotesChange}
                   rows={3}
                   className="border-0 bg-muted/50 resize-none"
                 />

@@ -8,6 +8,7 @@ import {
     getLocationStaff,
     getSelectedDate,
     getSelectedLocationId,
+    getStaffFilter,
 } from "../selectors.ts";
 import { toggleEditFormAction } from "../actions.ts";
 import { getAppointmentDetailRequest } from "../api.ts";
@@ -22,6 +23,7 @@ export const AppointmentList: FC = () => {
     const isDayLoading = useSelector(getDayDataLoading);
     const locationStaff = useSelector(getLocationStaff);
     const selectedDate = useSelector(getSelectedDate);
+    const staffFilter = useSelector(getStaffFilter);
 
     // Click handler: fetch full appointment detail and open edit drawer
     // (must be declared before early returns to satisfy Rules of Hooks)
@@ -62,6 +64,14 @@ export const AppointmentList: FC = () => {
         month: 'long',
         day: 'numeric',
     });
+    const visibleAppointments = staffFilter.length > 0
+        ? dayAppointments.filter((appointment) => {
+            if (appointment.isUnassigned || appointment.staffUserIds.length === 0) {
+                return false;
+            }
+            return appointment.staffUserIds.some((id) => staffFilter.includes(id));
+        })
+        : dayAppointments;
 
     return (
         <div className="space-y-3">
@@ -71,12 +81,12 @@ export const AppointmentList: FC = () => {
                     {dateLabel}
                 </h3>
                 <span className="text-xs text-muted-foreground">
-                    {dayAppointments.length} appointment{dayAppointments.length !== 1 ? 's' : ''}
+                    {visibleAppointments.length} appointment{visibleAppointments.length !== 1 ? 's' : ''}
                 </span>
             </div>
 
             {/* Empty state */}
-            {dayAppointments.length === 0 && (
+            {visibleAppointments.length === 0 && (
                 <Card>
                     <CardContent className="p-8 flex flex-col items-center gap-2">
                         <CalendarX className="h-8 w-8 text-muted-foreground/50" />
@@ -86,7 +96,7 @@ export const AppointmentList: FC = () => {
             )}
 
             {/* Appointment cards */}
-            {dayAppointments.map((appointment: SlimAppointment) => (
+            {visibleAppointments.map((appointment: SlimAppointment) => (
                 <SlimAppointmentCard
                     key={appointment.id}
                     appointment={appointment}

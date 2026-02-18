@@ -2,9 +2,9 @@ import * as actions from "./actions";
 import { type ActionType, getType } from "typesafe-actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
-import { AppointmentViewMode, AppointmentViewType, type CalendarFilters, type CalendarViewState } from "./types.ts";
+import { AppointmentViewMode, AppointmentViewType, type CalendarViewState, type AddFormPrefill, type PendingDrop } from "./types.ts";
 import type { Appointment, LocationContextData, DaySummary, DayDataResponse, CalendarDayFilters } from "../../shared/types/calendar.ts";
-import { getDefaultCalendarFilters } from "./utils.ts";
+import { getWeekStart } from "./utils.ts";
 
 type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
@@ -40,6 +40,7 @@ const initialState: CalendarViewState = {
 
     // --- UI drawers / forms ---
     addFormOpen: false,
+    addFormPrefill: null,
     editForm: {
         open: false,
         item: null,
@@ -55,20 +56,22 @@ const initialState: CalendarViewState = {
 
     // --- Date navigation ---
     selectedDate: new Date(),
+    displayedMonthStart: null,
+    displayedWeekStart: null,
 
-    // --- Legacy ---
-    appointments: [],
-    filters: getDefaultCalendarFilters(),
+    updateConflictOffer: null,
+    pendingDrop: null as PendingDrop,
 };
 
 // ─────────────────────────────────────────────────────────────
 // Handler helpers
 // ─────────────────────────────────────────────────────────────
 
-export const handleOpenAddForm = (state: CalendarViewState, payload: boolean): CalendarViewState => {
+export const handleOpenAddForm = (state: CalendarViewState, payload: { open: boolean; prefill?: AddFormPrefill }): CalendarViewState => {
     return {
         ...state,
-        addFormOpen: payload,
+        addFormOpen: payload.open,
+        addFormPrefill: payload.open ? (payload.prefill ?? null) : null,
     }
 }
 
@@ -88,37 +91,26 @@ export const handleSetViewType = (state: CalendarViewState, payload: Appointment
 }
 
 export const handleViewMode = (state: CalendarViewState, payload: AppointmentViewMode): CalendarViewState => {
-    return {
-        ...state,
-        viewMode: payload,
+    const next = { ...state, viewMode: payload };
+    if (payload === AppointmentViewMode.MONTH && state.selectedDate) {
+        const d = state.selectedDate;
+        next.displayedMonthStart = new Date(d.getFullYear(), d.getMonth(), 1);
     }
+    if (payload === AppointmentViewMode.WEEK && state.selectedDate) {
+        next.displayedWeekStart = getWeekStart(state.selectedDate);
+    }
+    return next;
 }
 
-export const handleFilterSelectedDate = (state: CalendarViewState, payload: Date): CalendarViewState => {
-    return {
-        ...state,
-        filters: {
-            ...state.filters,
-            selectedDate: payload,
-        }
-    }
+const handleSetDisplayedMonth = (state: CalendarViewState, payload: Date): CalendarViewState => {
+    return { ...state, displayedMonthStart: payload };
 }
 
-export const handleSetCalendarFilters = (state: CalendarViewState, payload: CalendarFilters): CalendarViewState => {
-    return {
-        ...state,
-        filters: payload,
-    }
+const handleSetDisplayedWeek = (state: CalendarViewState, payload: Date): CalendarViewState => {
+    return { ...state, displayedWeekStart: payload };
 }
 
-export const handleSetAppointment = (state: CalendarViewState, payload: Array<Appointment>): CalendarViewState => {
-    return {
-        ...state,
-        appointments: payload,
-    }
-}
-
-// --- New handlers for location-first design ---
+// --- Location-first design handlers ---
 
 const handleSetSelectedLocation = (state: CalendarViewState, payload: number | null): CalendarViewState => {
     return {
@@ -242,6 +234,14 @@ const handleSetStaffFilter = (state: CalendarViewState, payload: number[]): Cale
     }
 }
 
+const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: { appointmentId: number; data: Record<string, unknown>; message: string } | null): CalendarViewState => {
+    return { ...state, updateConflictOffer: payload };
+}
+
+const clearUpdateConflictOffer = (state: CalendarViewState): CalendarViewState => {
+    return state.updateConflictOffer === null ? state : { ...state, updateConflictOffer: null };
+}
+
 // ─────────────────────────────────────────────────────────────
 // Reducer
 // ─────────────────────────────────────────────────────────────
@@ -252,7 +252,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(logoutRequestAction.success):
             return { ...initialState };
 
-        // --- Legacy actions (kept during migration) ---
+        // --- UI actions ---
         case getType(actions.toggleAddForm):
             return handleOpenAddForm(state, action.payload);
         case getType(actions.toggleEditFormAction):
@@ -261,12 +261,8 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetViewType(state, action.payload);
         case getType(actions.setViewModeAction):
             return handleViewMode(state, action.payload);
-        case getType(actions.setCalendarFilterAction.success):
-            return handleSetCalendarFilters(state, action.payload);
-        case getType(actions.fetchCalendarAppointments.success):
-            return handleSetAppointment(state, action.payload);
 
-        // --- New actions (location-first calendar) ---
+        // --- Location-first calendar ---
         case getType(actions.setSelectedLocationAction):
             return handleSetSelectedLocation(state, action.payload);
 
@@ -287,7 +283,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.fetchDayData.request):
             return handleSetDayDataLoading(state, true);
         case getType(actions.fetchDayData.success):
-            return handleSetDayData(state, action.payload);
+            return { ...handleSetDayData(state, action.payload), pendingDrop: null };
         case getType(actions.fetchDayData.failure):
             return handleSetDayDataLoading(state, false);
 
@@ -295,6 +291,10 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetDayFilters(state, action.payload);
         case getType(actions.setSelectedDateAction):
             return handleSetSelectedDate(state, action.payload);
+        case getType(actions.setDisplayedMonthAction):
+            return handleSetDisplayedMonth(state, action.payload);
+        case getType(actions.setDisplayedWeekAction):
+            return handleSetDisplayedWeek(state, action.payload);
         case getType(actions.setSelectedAppointmentAction):
             return handleSetSelectedAppointment(state, action.payload);
         case getType(actions.toggleBlockFormAction):
@@ -304,7 +304,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.fetchWeekData.request):
             return handleSetWeekDataLoading(state, true);
         case getType(actions.fetchWeekData.success):
-            return handleSetWeekData(state, action.payload);
+            return { ...handleSetWeekData(state, action.payload), pendingDrop: null };
         case getType(actions.fetchWeekData.failure):
             return handleSetWeekDataLoading(state, false);
 
@@ -313,6 +313,15 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleToggleSidebar(state, action.payload);
         case getType(actions.setStaffFilter):
             return handleSetStaffFilter(state, action.payload);
+
+        // --- Update conflict offer (409 override flow) ---
+        case getType(actions.setUpdateConflictOffer):
+            return handleSetUpdateConflictOffer(state, action.payload);
+        case getType(actions.setCalendarPendingDrop):
+            return { ...state, pendingDrop: action.payload };
+        case getType(actions.updateAppointment.request):
+        case getType(actions.updateAppointment.success):
+            return clearUpdateConflictOffer(state);
 
         default:
             return state;

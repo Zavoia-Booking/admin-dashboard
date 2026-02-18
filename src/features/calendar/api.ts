@@ -10,21 +10,7 @@ import type {
 } from "../../shared/types/calendar.ts";
 
 // ─────────────────────────────────────────────────────────────
-// Legacy API (kept during migration)
-// ─────────────────────────────────────────────────────────────
-
-export const getAppointmentsRequest = async (filters: any): Promise<unknown> => {
-    const { data } = await apiClient().post(`/appointments/list`, filters);
-    return data;
-}
-
-export const createAppointmentsRequest = async (appointment: any): Promise<unknown> => {
-    const { data } = await apiClient().post(`/appointments/book`, appointment);
-    return data;
-}
-
-// ─────────────────────────────────────────────────────────────
-// New calendar API layer (view-driven data loading)
+// Calendar API layer (view-driven data loading)
 // ─────────────────────────────────────────────────────────────
 
 /** GET /calendar/location-context/:locationId */
@@ -63,6 +49,20 @@ export const getDayDataRequest = async (
     return data;
 }
 
+/** POST /calendar/week — returns Record<YYYY-MM-DD, DayDataResponse> */
+export const getWeekDataRequest = async (
+    locationId: number,
+    weekStart: string,
+    filters?: CalendarDayFilters,
+): Promise<Record<string, DayDataResponse>> => {
+    const { data } = await apiClient().post<Record<string, DayDataResponse>>(`/calendar/week`, {
+        locationId,
+        weekStart,
+        ...filters,
+    });
+    return data;
+}
+
 /** GET /appointments/:id (existing endpoint, for appointment detail) */
 export const getAppointmentDetailRequest = async (appointmentId: number): Promise<any> => {
     const { data } = await apiClient().get(`/appointments/${appointmentId}`);
@@ -79,9 +79,18 @@ export const adminCreateAppointmentRequest = async (payload: AdminCreateAppointm
     return data;
 }
 
-/** PATCH /appointments/:id (update status, reschedule, etc.) */
+/** PUT /appointments/:id (update status, reschedule, reassign, etc.) */
 export const updateAppointmentRequest = async (appointmentId: number, payload: any): Promise<any> => {
-    const { data } = await apiClient().patch(`/appointments/${appointmentId}`, payload);
+    const { data } = await apiClient().put(`/appointments/${appointmentId}`, payload);
+    return data;
+}
+
+/** POST /appointments/:id/cancel (cancel with reason + notification) */
+export const cancelAppointmentRequest = async (
+    appointmentId: number,
+    payload: { reason: string; notifyCustomer: boolean; notificationMethods: string[] },
+): Promise<any> => {
+    const { data } = await apiClient().post(`/appointments/${appointmentId}/cancel`, payload);
     return data;
 }
 

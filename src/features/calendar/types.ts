@@ -4,7 +4,14 @@ import type {
     DaySummary,
     DayDataResponse,
     CalendarDayFilters,
+    SlimAppointment,
 } from "../../shared/types/calendar.ts";
+
+/** Pending drag-drop: show appointment at drop position until user confirms or update succeeds. */
+export type PendingDrop =
+    | { type: "reschedule"; appointment: SlimAppointment; dateKey: string; hour: number; columnId: number }
+    | { type: "reassign"; appointment: SlimAppointment; staffId: number; staffLabel: string }
+    | null;
 
 // ─────────────────────────────────────────────────────────────
 // View Enums
@@ -22,25 +29,24 @@ export enum AppointmentViewType {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Filters
+// Add Form Prefill (click-to-create)
 // ─────────────────────────────────────────────────────────────
 
-/**
- * Legacy filter type – kept for backward compatibility with existing
- * components during migration. Will be removed once all views are
- * migrated to the new calendar flow.
- */
-export type CalendarFilters = {
-    location: string,
-    teamMember: string,
-    service: string,
-    status: string,
-    clientName: string,
-    email: string,
-    phoneNumber: string,
-    startDate: Date,
-    endDate: Date,
-    selectedDate: Date,
+export type AddFormPrefill = {
+    appointmentId?: number;
+    date?: Date;
+    time?: string; // "HH:mm"
+    staffUserId?: number;
+    serviceId?: number;
+    customerId?: number;
+    customerDisplay?: {
+        firstName: string;
+        lastName: string;
+        email: string;
+        phone: string;
+    } | null;
+    notes?: string;
+    bookingSource?: string;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -77,6 +83,7 @@ export type CalendarViewState = {
 
     // --- UI drawers / forms ---
     addFormOpen: boolean;
+    addFormPrefill: AddFormPrefill | null;
     editForm: {
         open: boolean;
         item: Appointment | null;
@@ -93,7 +100,15 @@ export type CalendarViewState = {
     // --- Date navigation ---
     selectedDate: Date;
 
-    // --- Legacy (kept during migration, will be removed) ---
-    appointments: Array<Appointment>;
-    filters: CalendarFilters;
+    /** When in month view, the first day of the displayed month (prev/next don't change selectedDate). */
+    displayedMonthStart: Date | null;
+
+    /** When in week view, the Monday of the displayed week (prev/next don't change selectedDate). */
+    displayedWeekStart: Date | null;
+
+    /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). */
+    updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string } | null;
+
+    /** Pending drag-drop: card stays at drop position until confirm/cancel or update success. */
+    pendingDrop: PendingDrop;
 }

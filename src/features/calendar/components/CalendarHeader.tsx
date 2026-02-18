@@ -1,23 +1,30 @@
 import { type FC, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSelectedDate, getSidebarOpen, getViewModeSelector } from "../selectors.ts";
-import { setSelectedDateAction, setViewModeAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
-import { AppointmentViewMode } from "../types.ts";
+import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSidebarOpen, getViewModeSelector, getViewTypeSelector } from "../selectors.ts";
+import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
+import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
-import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings } from "lucide-react";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
+
+interface CalendarHeaderProps {
+  onOpenSettings?: () => void;
+}
 
 /**
  * CalendarHeader — replaces the old DateTab + Filters top bar.
  * Contains month/year title, Day/Week/Month pill tabs, navigation arrows, action buttons.
  */
-export const CalendarHeader: FC = () => {
+export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
+  const displayedMonthStart = useSelector(getDisplayedMonthStart);
+  const displayedWeekStart = useSelector(getDisplayedWeekStart);
   const viewMode = useSelector(getViewModeSelector);
+  const viewType = useSelector(getViewTypeSelector);
   const sidebarOpen = useSelector(getSidebarOpen);
 
-  // Context-aware title
+  // Context-aware title (month view uses displayed month, not selected date)
   const title = (() => {
     if (viewMode === AppointmentViewMode.DAY) {
       return selectedDate.toLocaleDateString('en-US', {
@@ -25,38 +32,53 @@ export const CalendarHeader: FC = () => {
       });
     }
     if (viewMode === AppointmentViewMode.WEEK) {
-      const ws = getWeekStart(selectedDate);
-      const we = getWeekEnd(selectedDate);
+      const ws = displayedWeekStart ?? getWeekStart(selectedDate);
+      const we = getWeekEnd(ws);
       const startStr = ws.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
       const endStr = we.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       return `${startStr} – ${endStr}`;
     }
-    return selectedDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const monthDate = viewMode === AppointmentViewMode.MONTH && displayedMonthStart ? displayedMonthStart : selectedDate;
+    return monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   })();
 
   const handlePrev = useCallback(() => {
-    const next = new Date(selectedDate);
-    if (viewMode === AppointmentViewMode.DAY) {
-      next.setDate(next.getDate() - 1);
-    } else if (viewMode === AppointmentViewMode.WEEK) {
-      next.setDate(next.getDate() - 7);
-    } else {
-      next.setMonth(next.getMonth() - 1);
+    if (viewMode === AppointmentViewMode.MONTH) {
+      const base = displayedMonthStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const prev = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+      dispatch(setDisplayedMonthAction(prev));
+      return;
     }
+    if (viewMode === AppointmentViewMode.WEEK) {
+      const base = displayedWeekStart ?? getWeekStart(selectedDate);
+      const prev = new Date(base);
+      prev.setDate(base.getDate() - 7);
+      dispatch(setDisplayedWeekAction(prev));
+      return;
+    }
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() - 1);
     dispatch(setSelectedDateAction(next));
-  }, [dispatch, selectedDate, viewMode]);
+  }, [dispatch, selectedDate, displayedMonthStart, displayedWeekStart, viewMode]);
 
   const handleNext = useCallback(() => {
-    const next = new Date(selectedDate);
-    if (viewMode === AppointmentViewMode.DAY) {
-      next.setDate(next.getDate() + 1);
-    } else if (viewMode === AppointmentViewMode.WEEK) {
-      next.setDate(next.getDate() + 7);
-    } else {
-      next.setMonth(next.getMonth() + 1);
+    if (viewMode === AppointmentViewMode.MONTH) {
+      const base = displayedMonthStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const next = new Date(base.getFullYear(), base.getMonth() + 1, 1);
+      dispatch(setDisplayedMonthAction(next));
+      return;
     }
+    if (viewMode === AppointmentViewMode.WEEK) {
+      const base = displayedWeekStart ?? getWeekStart(selectedDate);
+      const next = new Date(base);
+      next.setDate(base.getDate() + 7);
+      dispatch(setDisplayedWeekAction(next));
+      return;
+    }
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
     dispatch(setSelectedDateAction(next));
-  }, [dispatch, selectedDate, viewMode]);
+  }, [dispatch, selectedDate, displayedMonthStart, displayedWeekStart, viewMode]);
 
   const handleToday = useCallback(() => {
     dispatch(setSelectedDateAction(new Date()));
@@ -69,6 +91,18 @@ export const CalendarHeader: FC = () => {
   const handleToggleSidebar = useCallback(() => {
     dispatch(toggleCalendarSidebar(!sidebarOpen));
   }, [dispatch, sidebarOpen]);
+
+  const handleToggleViewType = useCallback(() => {
+    dispatch(setViewTypeAction(viewType === AppointmentViewType.GRID ? AppointmentViewType.LIST : AppointmentViewType.GRID));
+  }, [dispatch, viewType]);
+
+  const handleOpenBlockForm = useCallback(() => {
+    dispatch(toggleBlockFormAction(true));
+  }, [dispatch]);
+
+  const handleOpenAddForm = useCallback(() => {
+    dispatch(toggleAddForm({ open: true }));
+  }, [dispatch]);
 
   return (
     <div className="flex items-center justify-between px-4 py-3 bg-transparent flex-shrink-0 gap-4">
@@ -121,13 +155,37 @@ export const CalendarHeader: FC = () => {
           </Button>
         </div>
 
-        <div className="w-4" /> {/* Spacer */}
+        {/* List / Grid toggle */}
+        {(viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full"
+            onClick={handleToggleViewType}
+            title={viewType === AppointmentViewType.GRID ? 'Switch to list view' : 'Switch to grid view'}
+          >
+            {viewType === AppointmentViewType.GRID ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+          </Button>
+        )}
 
-        <Button variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-medium border-dashed border-2" onClick={() => dispatch(toggleBlockFormAction(true))}>
+        {/* Settings */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 rounded-full"
+          onClick={onOpenSettings}
+          title="Calendar Settings"
+        >
+          <Settings className="h-4 w-4" />
+        </Button>
+
+        <div className="w-2" /> {/* Spacer */}
+
+        <Button variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-medium border-dashed border-2" onClick={handleOpenBlockForm}>
           <ShieldBan className="h-3.5 w-3.5 mr-1.5" />
           Block
         </Button>
-        <Button size="sm" className="h-9 rounded-full px-4 text-xs font-bold shadow-lg shadow-primary/20" onClick={() => dispatch(toggleAddForm(true))}>
+        <Button size="sm" className="h-9 rounded-full px-4 text-xs font-bold shadow-lg shadow-primary/20" onClick={handleOpenAddForm}>
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           Add Event
         </Button>

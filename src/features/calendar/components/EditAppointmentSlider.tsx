@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Ban, CheckCircle2, UserX, Clock, User, Scissors, MapPin,
-  Calendar, Bell, Mail, MessageSquare, Loader2, Users, Tag,
+  Calendar, Bell, Mail, MessageSquare, Users, Tag,
+  CalendarClock, UserCog, ShieldAlert,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
@@ -20,14 +21,15 @@ import {
   AlertDialogTitle,
 } from '../../../shared/components/ui/alert-dialog';
 import { Switch } from '../../../shared/components/ui/switch';
+import { Popover, PopoverTrigger, PopoverContent } from '../../../shared/components/ui/popover';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateAppointmentStatus, toggleEditFormAction } from '../actions';
-import { getLocationStaff } from '../selectors';
-import { getStatusBadge, formatTime, formatTimeRange, getStaffDisplayNames, getBookingSourceLabel } from './utils';
-import { toast } from 'sonner';
+import { updateAppointmentStatus, cancelAppointment, updateAppointment, toggleAddForm } from '../actions';
+import { getLocationStaff, getBookingSettings } from '../selectors';
+import { formatTimeRange, getStaffDisplayNames, getStatusBadge } from './utils';
 import type { Appointment } from '../../../shared/types/calendar';
+import { selectIsTeamMember } from '../../auth/selectors';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -46,8 +48,8 @@ interface EditAppointmentSliderProps {
 const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, onClose, appointment }) => {
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
-  // bookingSettings available via getBookingSettings for Phase 2 permission checks
-  // (allowStaffCancelWithoutConfirmation, allowStaffRescheduleWithoutConfirmation)
+  const bookingSettings = useSelector(getBookingSettings);
+  const isTeamMember = useSelector(selectIsTeamMember);
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -98,6 +100,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   }, [appointment, locationStaff]);
 
   const isUnassigned = !appointment?.teamMembers || appointment.teamMembers.length === 0;
+  const canCancel = !isTeamMember || !!bookingSettings?.allowStaffCancelWithoutConfirmation;
+  const canReschedule = !isTeamMember || !!bookingSettings?.allowStaffRescheduleWithoutConfirmation;
 
   // ─────────────────────────────────────────────────────────────
   // Status Actions
@@ -112,23 +116,35 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         status,
       }),
     );
-    toast.success(
-      status === 'cancelled'
-        ? 'Appointment cancelled'
-        : status === 'completed'
-        ? 'Appointment marked as completed'
-        : status === 'no_show'
-        ? 'Appointment marked as no-show'
-        : `Status updated to ${status}`,
-    );
     setActionLoading(null);
     onClose();
   };
 
   const handleCancelConfirm = () => {
-    handleStatusChange('cancelled');
+    if (!appointment) return;
+    setActionLoading('cancelled');
+
+    // Convert 'both' to array format expected by backend DTO
+    const methods: string[] =
+      notificationMethod === 'both'
+        ? ['email', 'sms']
+        : [notificationMethod];
+
+    dispatch(
+      cancelAppointment.request({
+        appointmentId: appointment.id,
+        reason: cancelReason || 'No reason provided',
+        notifyCustomer,
+        notificationMethods: notifyCustomer ? methods : [],
+      }),
+    );
+
     setCancelDialogOpen(false);
     setCancelReason('');
+    setNotifyCustomer(true);
+    setNotificationMethod('both');
+    setActionLoading(null);
+    onClose();
   };
 
   const handleConfirmAction = () => {
@@ -156,6 +172,63 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     });
   };
 
+  const handleNotificationMethodSelect = useCallback((method: 'email' | 'sms' | 'both') => {
+    setNotificationMethod(method);
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────
+  // Reschedule / Reassign
+  // ─────────────────────────────────────────────────────────────
+
+  const handleReschedule = () => {
+    if (!appointment) return;
+    // Close the detail drawer and open AddAppointmentSlider with prefill data
+    onClose();
+    const customer = appointment.customer
+      ? {
+          firstName: appointment.customer.firstName ?? '',
+          lastName: appointment.customer.lastName ?? '',
+          email: appointment.customer.email ?? '',
+          phone: appointment.customer.phone ?? '',
+        }
+      : null;
+    dispatch(toggleAddForm({
+      open: true,
+      prefill: {
+        appointmentId: appointment.id,
+        date: new Date(appointment.scheduledAt),
+        time: (() => {
+          const d = new Date(appointment.scheduledAt);
+          return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        })(),
+        staffUserId: (() => {
+          const first = appointment.teamMembers?.[0];
+          if (first == null) return undefined;
+          return typeof first === 'object' ? first.id : first;
+        })(),
+        serviceId: appointment.service?.id,
+        customerId: appointment.customer?.id,
+        customerDisplay: customer,
+        notes: appointment.notes ?? '',
+      },
+    }));
+  };
+
+  // Reassign staff via popover
+  const [reassignOpen, setReassignOpen] = useState(false);
+
+  const handleReassignStaff = (staffId: number | null) => {
+    if (!appointment) return;
+    setActionLoading('reassign');
+    dispatch(updateAppointment.request({
+      appointmentId: appointment.id,
+      data: { staffUserIds: staffId ? [staffId] : [] },
+    }));
+    setReassignOpen(false);
+    setActionLoading(null);
+    onClose();
+  };
+
   // ─────────────────────────────────────────────────────────────
   // Render
   // ─────────────────────────────────────────────────────────────
@@ -179,16 +252,20 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         {!isTerminal && (
           <div className="py-3 bg-background/50">
             <div className="grid grid-cols-3 gap-2 mb-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCancelDialogOpen(true)}
-                className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
-                disabled={actionLoading !== null}
-              >
-                <Ban className="h-3 w-3" />
-                Cancel
-              </Button>
+              {canCancel ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCancelDialogOpen(true)}
+                  className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
+                  disabled={actionLoading !== null}
+                >
+                  <Ban className="h-3 w-3" />
+                  Cancel
+                </Button>
+              ) : (
+                <div />
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -209,6 +286,63 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                 <CheckCircle2 className="h-3 w-3" />
                 Complete
               </Button>
+            </div>
+
+            {/* Reschedule & Reassign */}
+            <div className="grid grid-cols-2 gap-2">
+              {canReschedule ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReschedule}
+                  className="flex items-center gap-1 text-xs"
+                  disabled={actionLoading !== null}
+                >
+                  <CalendarClock className="h-3 w-3" />
+                  Reschedule
+                </Button>
+              ) : (
+                <div />
+              )}
+              <Popover open={reassignOpen} onOpenChange={setReassignOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1 text-xs"
+                    disabled={actionLoading !== null}
+                  >
+                    <UserCog className="h-3 w-3" />
+                    Reassign
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-1 z-[80]" align="start">
+                  <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">
+                    Select staff member
+                  </div>
+                  <button
+                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors"
+                    onClick={() => handleReassignStaff(null)}
+                  >
+                    Unassigned
+                  </button>
+                  {locationStaff.map((staff) => (
+                    <button
+                      key={staff.id}
+                      className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center gap-2"
+                      onClick={() => handleReassignStaff(staff.id)}
+                    >
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={staff.profileImage ?? undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {staff.firstName[0]}{staff.lastName[0]}
+                        </AvatarFallback>
+                      </Avatar>
+                      {staff.firstName} {staff.lastName}
+                    </button>
+                  ))}
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
         )}
@@ -234,10 +368,23 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
           {/* Status */}
           <Card className="border-0 shadow-sm bg-card/70">
             <CardContent className="py-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <span className="text-sm text-muted-foreground">Status</span>
-                {getStatusBadge(appointment.status)}
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getStatusBadge(appointment.status)}
+                  {appointment.overrideReason && (
+                    <Badge variant="secondary" className="text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 border-amber-300/50 gap-1">
+                      <ShieldAlert className="h-3 w-3" />
+                      Override
+                    </Badge>
+                  )}
+                </div>
               </div>
+              {appointment.overrideReason && (
+                <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
+                  Reason: {appointment.overrideReason}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -443,7 +590,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                           <button
                             key={method}
                             type="button"
-                            onClick={() => setNotificationMethod(method)}
+                            onClick={() => handleNotificationMethodSelect(method)}
                             className={cn(
                               'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors',
                               notificationMethod === method

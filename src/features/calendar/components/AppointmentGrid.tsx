@@ -2,8 +2,9 @@ import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
 import { dayNames } from "../utils.ts";
-import { AppointmentViewMode } from "../types.ts";
+import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { CalendarTimeGrid } from "./CalendarTimeGrid.tsx";
+import { AppointmentList } from "./AppointmentList.tsx";
 import type {
     DaySummary,
     AppointmentPreview,
@@ -13,6 +14,8 @@ import {
     getSummaryLoading,
     getSelectedDate,
     getSelectedLocationId,
+    getViewTypeSelector,
+    getMonthViewDisplayStart,
 } from "../selectors.ts";
 import { setSelectedDateAction, setViewModeAction } from "../actions.ts";
 import { Loader2 } from "lucide-react";
@@ -27,6 +30,7 @@ interface IProps {
 
 export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
     const selectedLocationId = useSelector(getSelectedLocationId);
+    const viewType = useSelector(getViewTypeSelector);
 
     if (!selectedLocationId) {
         return (
@@ -38,11 +42,19 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
         );
     }
 
-    // Day & Week views use CalendarTimeGrid; Month view uses SummaryGrid
+    // Day & Week views: list view or time grid
     if (viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) {
+        if (viewType === AppointmentViewType.LIST) {
+            return (
+                <div className="p-4">
+                    <AppointmentList />
+                </div>
+            );
+        }
         return <CalendarTimeGrid viewMode={viewMode} />;
     }
 
+    // Month view always uses summary grid
     return <SummaryGrid />;
 };
 
@@ -65,6 +77,7 @@ const getPreviewStatusColor = (status: string): string => {
 const SummaryGrid: FC = () => {
     const dispatch = useDispatch();
     const selectedDate = useSelector(getSelectedDate);
+    const monthViewDisplayStart = useSelector(getMonthViewDisplayStart);
     const summary = useSelector(getCalendarSummary);
     const isLoading = useSelector(getSummaryLoading);
 
@@ -73,16 +86,20 @@ const SummaryGrid: FC = () => {
         dispatch(setViewModeAction(AppointmentViewMode.DAY));
     }, [dispatch]);
 
-    // Build month calendar cells
+    // Build month calendar cells from displayed month (not selected date, so prev/next don't move selection)
     const dayCells = useMemo(() => {
-        const year = selectedDate.getFullYear();
-        const month = selectedDate.getMonth();
+        const base = monthViewDisplayStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+        const year = base.getFullYear();
+        const month = base.getMonth();
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
+        // Monday-first week: Mon=0, Sun=6
+        const firstDayOfWeek = (firstDay.getDay() + 6) % 7;
+        const lastDayOfWeek = (lastDay.getDay() + 6) % 7;
         const start = new Date(firstDay);
-        start.setDate(firstDay.getDate() - firstDay.getDay());
+        start.setDate(firstDay.getDate() - firstDayOfWeek);
         const end = new Date(lastDay);
-        end.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+        end.setDate(lastDay.getDate() + (6 - lastDayOfWeek));
 
         const cells = [];
         const current = new Date(start);
@@ -94,7 +111,7 @@ const SummaryGrid: FC = () => {
             current.setDate(current.getDate() + 1);
         }
         return cells;
-    }, [selectedDate]);
+    }, [monthViewDisplayStart, selectedDate]);
 
     if (isLoading) {
         return (
@@ -129,8 +146,8 @@ const SummaryGrid: FC = () => {
 
                     return (
                         <div
-                            key={date.toDateString()}
-                            className={`min-h-[100px] bg-background transition-colors cursor-pointer p-1.5
+                            key={dateKey}
+                            className={`relative isolate min-h-[100px] min-w-0 bg-background transition-colors cursor-pointer p-1.5 overflow-hidden
                                 ${!isCurrentMonth ? 'bg-muted/30 dark:bg-muted/10' : 'hover:bg-muted/20 dark:hover:bg-muted/10'}
                                 ${isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''}
                                 ${isClosed ? 'bg-muted/20 dark:bg-muted/10' : ''}

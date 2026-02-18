@@ -1,6 +1,6 @@
 import { type FC, useMemo } from "react";
 import { useSelector } from "react-redux";
-import { getSelectedDate } from "../selectors.ts";
+import { getSelectedDate, getWeekViewDisplayStart } from "../selectors.ts";
 import { getWeekStart } from "../utils.ts";
 
 const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -12,17 +12,17 @@ interface WeekDayStripProps {
 
 export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
   const selectedDate = useSelector(getSelectedDate);
+  const weekDisplayStart = useSelector(getWeekViewDisplayStart);
 
   const days = useMemo(() => {
-    const ws = getWeekStart(selectedDate);
+    const ws = weekDisplayStart ?? getWeekStart(selectedDate);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(ws);
       d.setDate(ws.getDate() + i);
       return d;
     });
-  }, [selectedDate]);
+  }, [weekDisplayStart, selectedDate]);
 
-  const todayStr = new Date().toDateString();
   const selectedStr = selectedDate.toDateString();
 
   return (
@@ -32,7 +32,6 @@ export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
       {/* Day columns container */}
       <div className="flex-1 flex gap-2">
         {days.map((day) => {
-          const isToday = day.toDateString() === todayStr;
           const isSelected = day.toDateString() === selectedStr;
 
           return (

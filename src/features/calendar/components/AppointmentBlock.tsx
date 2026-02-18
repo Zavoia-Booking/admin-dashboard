@@ -3,9 +3,9 @@ import { useDispatch, useSelector } from "react-redux";
 import type { SlimAppointment, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { getLocationStaff } from "../selectors.ts";
 import { toggleEditFormAction } from "../actions.ts";
-import { formatTime, formatTimeRange } from "./utils.tsx";
+import { formatTimeRange } from "./utils.tsx";
 import { getAppointmentDetailRequest } from "../api.ts";
-import { User } from "lucide-react";
+import { User, ShieldAlert } from "lucide-react";
 
 // ─────────────────────────────────────────────────────────────
 // Pastel status colors with left accent border
@@ -86,6 +86,10 @@ interface AppointmentBlockProps {
   height: number;
   /** Pixel top offset in the grid */
   top: number;
+  /** When set, position side-by-side with other overlapping appointments (0 = left) */
+  leftPercent?: number;
+  /** Width as percentage when side-by-side (otherwise full width) */
+  widthPercent?: number;
 }
 
 /**
@@ -96,7 +100,13 @@ interface AppointmentBlockProps {
  * - >40px: time range
  * - >56px: customer name + staff avatar cluster
  */
-export const AppointmentBlock: FC<AppointmentBlockProps> = ({ appointment, height, top }) => {
+export const AppointmentBlock: FC<AppointmentBlockProps> = ({
+  appointment,
+  height,
+  top,
+  leftPercent,
+  widthPercent,
+}) => {
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
 
@@ -109,17 +119,32 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({ appointment, heigh
     }
   }, [dispatch, appointment.id]);
 
+  const style: React.CSSProperties = { top, height };
+  if (leftPercent != null && widthPercent != null) {
+    style.left = `${leftPercent}%`;
+    style.width = `${widthPercent}%`;
+    style.right = 'auto';
+  }
+
   return (
     <div
-      className={`absolute left-1 right-1 rounded-xl px-3 py-2 z-10 cursor-pointer overflow-hidden
-                hover:shadow-lg hover:scale-[1.02] transition-all duration-200 ${getStatusClasses(appointment.status)}`}
-      style={{ top, height }}
+      className={`absolute rounded-xl px-3 py-2 z-10 cursor-pointer overflow-hidden
+                hover:shadow-lg hover:scale-[1.02] transition-all duration-200 ${getStatusClasses(appointment.status)}
+                ${leftPercent == null ? 'left-1 right-1' : ''}`}
+      style={style}
       title={`${appointment.customerName} – ${appointment.bookedItemName}`}
       onClick={handleClick}
     >
-      {/* Service name — always shown */}
-      <div className="font-bold text-xs leading-tight truncate">
-        {appointment.bookedItemName}
+      {/* Service name + override indicator */}
+      <div className="flex items-start justify-between gap-1">
+        <div className="font-bold text-xs leading-tight truncate min-w-0 flex-1">
+          {appointment.bookedItemName}
+        </div>
+        {appointment.overrideReason && (
+          <span title={appointment.overrideReason} className="flex-shrink-0">
+            <ShieldAlert className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400 opacity-90" />
+          </span>
+        )}
       </div>
 
       {/* Time range — shown when block is tall enough */}

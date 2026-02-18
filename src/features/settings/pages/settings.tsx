@@ -91,7 +91,7 @@ const SettingsPage = () => {
   ], [activeTab]);
 
   const handleSaveProfile = () => {
-    document.getElementById('business-info-form')?.requestSubmit();
+    (document.getElementById('business-info-form') as HTMLFormElement | null)?.requestSubmit();
   };
 
   const showSaveButton = activeTab === 'profile';

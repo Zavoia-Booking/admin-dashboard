@@ -5,27 +5,32 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from '../../lib/utils';
 
 interface DatePickerProps {
-  value: Date;
+  value?: Date | null;
   onChange: (date: Date) => void;
   className?: string;
   placeholder?: string;
   viewMode?: 'day' | 'week' | 'month';
+  minDate?: Date;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({ 
-  value, 
+  value = null, 
   onChange, 
   className,
-  viewMode = 'day'
+  placeholder = 'Select date',
+  viewMode = 'day',
+  minDate,
 }) => {
+  const fallbackDate = value ?? new Date();
   const [isOpen, setIsOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(value);
-  const [currentYear, setCurrentYear] = useState(value.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(fallbackDate);
+  const [currentYear, setCurrentYear] = useState(fallbackDate.getFullYear());
 
   // Sync currentMonth with value when it changes
   useEffect(() => {
-    setCurrentMonth(value);
-    setCurrentYear(value.getFullYear());
+    const d = value ?? new Date();
+    setCurrentMonth(d);
+    setCurrentYear(d.getFullYear());
   }, [value]);
 
   const daysInMonth = (date: Date) => {
@@ -102,6 +107,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const isSelected = (date: Date) => {
+    if (value == null) return false;
     if (viewMode === 'day') {
       return date.toDateString() === value.toDateString();
     } else if (viewMode === 'week') {
@@ -115,17 +121,26 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const isSelectedWeek = (weekStart: Date) => {
+    if (value == null) return false;
     const selectedWeekStart = getWeekStart(value);
     return weekStart.toDateString() === selectedWeekStart.toDateString();
   };
 
   const isSelectedMonth = (month: Date) => {
+    if (value == null) return false;
     return month.getMonth() === value.getMonth() && month.getFullYear() === value.getFullYear();
   };
 
   const isSameMonth = (date: Date) => {
     return date.getMonth() === currentMonth.getMonth() && 
            date.getFullYear() === currentMonth.getFullYear();
+  };
+
+  const isDateDisabled = (date: Date) => {
+    if (minDate == null) return false;
+    const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const minDayStart = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+    return dayStart < minDayStart;
   };
 
   const handleDateSelect = (date: Date) => {
@@ -170,6 +185,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const formatDisplayValue = () => {
+    if (value == null) return placeholder;
     if (viewMode === 'day') {
       return value.toLocaleDateString('en-US', { 
         month: 'short',
@@ -194,7 +210,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         year: 'numeric'
       });
     }
-    return '';
+    return placeholder;
   };
 
   const calendarDays = generateCalendarDays(currentMonth);
@@ -279,22 +295,27 @@ const DatePicker: React.FC<DatePickerProps> = ({
 
               {/* Calendar Grid */}
               <div className="grid grid-cols-7 gap-1">
-                {calendarDays.map((day, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "h-8 flex items-center justify-center text-sm rounded-md cursor-pointer transition-colors",
-                      !day && "invisible",
-                      day && isToday(day) && "bg-primary/10 text-primary font-semibold",
-                      day && isSelected(day) && "bg-primary text-primary-foreground font-semibold",
-                      day && !isSelected(day) && !isToday(day) && isSameMonth(day) && "hover:bg-muted",
-                      day && !isSameMonth(day) && "text-muted-foreground/50"
-                    )}
-                    onClick={() => day && handleDateSelect(day)}
-                  >
-                    {day?.getDate()}
-                  </div>
-                ))}
+                {calendarDays.map((day, index) => {
+                  const disabled = day != null && isDateDisabled(day);
+                  return (
+                    <div
+                      key={index}
+                      className={cn(
+                        "h-8 flex items-center justify-center text-sm rounded-md transition-colors",
+                        !day && "invisible",
+                        day && disabled && "cursor-not-allowed opacity-40 text-muted-foreground",
+                        day && !disabled && "cursor-pointer",
+                        day && !disabled && isToday(day) && "bg-primary/10 text-primary font-semibold",
+                        day && !disabled && isSelected(day) && "bg-primary text-primary-foreground font-semibold",
+                        day && !disabled && !isSelected(day) && !isToday(day) && isSameMonth(day) && "hover:bg-muted",
+                        day && !disabled && !isSameMonth(day) && "text-muted-foreground/50"
+                      )}
+                      onClick={() => day && !disabled && handleDateSelect(day)}
+                    >
+                      {day?.getDate()}
+                    </div>
+                  );
+                })}
               </div>
             </>
           )}

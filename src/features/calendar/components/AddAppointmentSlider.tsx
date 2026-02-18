@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import {
   Calendar, Clock, User, Scissors, Check, ChevronsUpDown,
   Loader2, Phone, Footprints, ShieldCheck, StickyNote, UserPlus,
@@ -17,7 +15,7 @@ import { Badge } from '../../../shared/components/ui/badge';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { useDispatch, useSelector } from 'react-redux';
-import { adminCreateAppointment } from '../actions';
+import { adminCreateAppointment, updateAppointment } from '../actions';
 import {
   getSelectedLocationId,
   getLocationStaff,
@@ -25,6 +23,8 @@ import {
   getLocationOpen247,
   getBookingSettings,
   getSelectedDate,
+  getAddFormPrefill,
+  getDayBlocks,
 } from '../selectors';
 import { listCustomersApi, addCustomerApi } from '../../customers/api';
 import { fetchLocationFullAssignmentRequest } from '../../assignments/api';
@@ -32,6 +32,13 @@ import { toast } from 'sonner';
 import type { Customer } from '../../../shared/types/customer';
 import type { LocationService, LocationTeamMember } from '../../assignments/types';
 import type { CalendarStaffMember, AppointmentBookingSource } from '../../../shared/types/calendar';
+import { formatSlotTime, getEndTimeString, getStaffDisplayNameOrUnassigned } from './utils';
+import DatePicker from '../../../shared/components/ui/date-picker';
+import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
+import { toLocalDateString } from '../utils';
+import { useTimeSlots } from '../hooks/useTimeSlots';
+import { useWorkingHoursForDate } from '../hooks/useWorkingHoursForDate';
+import { isTimeRangeOutsideWorkingHours, appointmentOverlapsBlocks } from '../workingHours';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -78,6 +85,16 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const open247 = useSelector(getLocationOpen247);
   const bookingSettings = useSelector(getBookingSettings);
   const selectedDate = useSelector(getSelectedDate);
+  const prefill = useSelector(getAddFormPrefill);
+  const dayBlocks = useSelector(getDayBlocks);
+
+  const pendingSubmitRef = useRef<{ payload: Parameters<typeof adminCreateAppointment.request>[0] } | null>(null);
+  const pendingUpdateRef = useRef<{ appointmentId: number; data: Record<string, unknown> } | null>(null);
+  const rescheduleAppointmentIdRef = useRef<number | null>(null);
+
+  /** Use ref first so reschedule always updates the appointment that was opened, even if prefill is later overwritten (e.g. by clicking a slot). */
+  const editingAppointmentId = rescheduleAppointmentIdRef.current ?? prefill?.appointmentId ?? null;
+  const isEditMode = editingAppointmentId !== null;
 
   // Form state
   const [form, setForm] = useState<FormState>(initialForm);
@@ -93,6 +110,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [quickCreate, setQuickCreate] = useState({ firstName: '', lastName: '', phone: '', email: '' });
   const [quickCreateSubmitting, setQuickCreateSubmitting] = useState(false);
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Confirmation when creating or rescheduling out of hours or on a block slot
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmReason, setConfirmReason] = useState<'out_of_hours' | 'on_block' | null>(null);
+  const [overrideReasonText, setOverrideReasonText] = useState('');
 
   // Services state (loaded from assignments API)
   const [locationServices, setLocationServices] = useState<LocationService[]>([]);
@@ -112,17 +134,29 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   useEffect(() => {
     if (isOpen) {
+      if (prefill?.appointmentId != null) {
+        rescheduleAppointmentIdRef.current = prefill.appointmentId;
+      }
       setForm({
         ...initialForm,
-        date: selectedDate || new Date(),
+        customerId: prefill?.customerId ?? null,
+        customerDisplay: prefill?.customerDisplay ?? null,
+        serviceId: prefill?.serviceId ?? null,
+        date: prefill?.date ?? selectedDate ?? new Date(),
+        time: prefill?.time ?? '',
+        staffUserId: prefill?.staffUserId ?? null,
+        notes: prefill?.notes ?? '',
+        bookingSource: (prefill?.bookingSource as AppointmentBookingSource) ?? ('admin' as AppointmentBookingSource),
       });
       setError(null);
       setCustomerSearch('');
       setCustomerResults([]);
       setShowQuickCreate(false);
       setQuickCreate({ firstName: '', lastName: '', phone: '', email: '' });
+    } else {
+      rescheduleAppointmentIdRef.current = null;
     }
-  }, [isOpen, selectedDate]);
+  }, [isOpen, selectedDate, prefill]);
 
   // ─────────────────────────────────────────────────────────────
   // Load services at location when form opens
@@ -218,6 +252,37 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     }
   }, [quickCreate, handleSelectCustomer]);
 
+  const handleDateChange = useCallback((date: Date) => {
+    setForm((prev) => ({ ...prev, date, time: '' }));
+  }, []);
+
+  const handleTimeSelect = useCallback((slot: string) => {
+    setForm((prev) => ({ ...prev, time: slot }));
+    setHourOpen(false);
+  }, []);
+
+  const handleSelectUnassigned = useCallback(() => {
+    setForm((prev) => ({ ...prev, staffUserId: null }));
+    setStaffOpen(false);
+  }, []);
+
+  const handleSelectStaff = useCallback((staffId: number) => {
+    setForm((prev) => ({ ...prev, staffUserId: staffId }));
+    setStaffOpen(false);
+  }, []);
+
+  const handleBookingSourceSelect = useCallback((source: AppointmentBookingSource) => {
+    setForm((prev) => ({ ...prev, bookingSource: source }));
+  }, []);
+
+  const handleQuickCreateChange = useCallback((field: keyof typeof quickCreate, value: string) => {
+    setQuickCreate((p) => ({ ...p, [field]: value }));
+  }, []);
+
+  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setForm((prev) => ({ ...prev, notes: e.target.value }));
+  }, []);
+
   // ─────────────────────────────────────────────────────────────
   // Derived data
   // ─────────────────────────────────────────────────────────────
@@ -250,50 +315,15 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [form.serviceId, locationStaff, locationTeamMembers]);
 
   // Working hours for the selected date
-  const dayWorkingHours = useMemo(() => {
-    if (!form.date || !workingHours || open247) return null;
-    const dayName = form.date
-      .toLocaleDateString('en-US', { weekday: 'long' })
-      .toLowerCase() as keyof typeof workingHours;
-    return workingHours[dayName] ?? null;
-  }, [form.date, workingHours, open247]);
-
+  const timeSlots = useTimeSlots(bookingSettings?.slotIntervalMinutes);
+  const { dayWorkingHours, isSlotOutsideHours } = useWorkingHoursForDate(
+    form.date,
+    workingHours,
+    open247
+  );
   const isClosedDay = dayWorkingHours ? !dayWorkingHours.isOpen : false;
 
-  // Generate time slots based on slotIntervalMinutes and working hours
-  const timeSlots = useMemo(() => {
-    const interval = bookingSettings?.slotIntervalMinutes ?? 15;
-    const slots: string[] = [];
-
-    let startMinute = 0;
-    let endMinute = 24 * 60;
-
-    if (dayWorkingHours && dayWorkingHours.isOpen) {
-      const [openH, openM] = dayWorkingHours.open.split(':').map(Number);
-      const [closeH, closeM] = dayWorkingHours.close.split(':').map(Number);
-      startMinute = openH * 60 + openM;
-      endMinute = closeH * 60 + closeM;
-    } else if (open247) {
-      startMinute = 0;
-      endMinute = 24 * 60;
-    }
-
-    for (let m = startMinute; m < endMinute; m += interval) {
-      const hh = String(Math.floor(m / 60)).padStart(2, '0');
-      const mm = String(m % 60).padStart(2, '0');
-      slots.push(`${hh}:${mm}`);
-    }
-
-    return slots;
-  }, [dayWorkingHours, open247, bookingSettings]);
-
-  // Format time for display
-  const formatSlotTime = (slot: string) => {
-    const [h, m] = slot.split(':').map(Number);
-    const date = new Date();
-    date.setHours(h, m, 0, 0);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-  };
+  // Bounds for “within working hours” (used only to style slots; all slots remain selectable)
 
   // ─────────────────────────────────────────────────────────────
   // Submit
@@ -303,17 +333,69 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     form.serviceId !== null &&
     form.date !== null &&
     form.time !== '' &&
-    selectedLocationId !== null &&
-    !isClosedDay;
+    selectedLocationId !== null;
+
+  const doCreateAppointment = useCallback(() => {
+    const pending = pendingSubmitRef.current;
+    if (!pending) return;
+    setSubmitting(true);
+    setError(null);
+    const reason = overrideReasonText.trim() || undefined;
+    try {
+      dispatch(adminCreateAppointment.request({ ...pending.payload, overrideReason: reason }));
+      pendingSubmitRef.current = null;
+      setConfirmOpen(false);
+      setConfirmReason(null);
+      setOverrideReasonText('');
+      onClose();
+    } catch {
+      setError('Failed to create appointment');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [dispatch, onClose, overrideReasonText]);
+
+  const doUpdateAppointment = useCallback(() => {
+    const pending = pendingUpdateRef.current;
+    if (!pending) return;
+    setSubmitting(true);
+    setError(null);
+    const reason = overrideReasonText.trim() || undefined;
+    try {
+      dispatch(updateAppointment.request({
+        appointmentId: pending.appointmentId,
+        data: { ...pending.data, overrideReason: reason },
+      }));
+      pendingUpdateRef.current = null;
+      setConfirmOpen(false);
+      setConfirmReason(null);
+      setOverrideReasonText('');
+      onClose();
+    } catch {
+      setError('Failed to update appointment');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [dispatch, onClose, overrideReasonText]);
+
+  const handleConfirmOverrides = useCallback(() => {
+    if (pendingSubmitRef.current) doCreateAppointment();
+    else if (pendingUpdateRef.current) doUpdateAppointment();
+  }, [doCreateAppointment, doUpdateAppointment]);
+
+  const handleCancelOverrides = useCallback(() => {
+    pendingSubmitRef.current = null;
+    pendingUpdateRef.current = null;
+    setConfirmReason(null);
+    setOverrideReasonText('');
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedLocationId || !form.date) return;
 
-    setSubmitting(true);
     setError(null);
 
-    // Build scheduledAt as ISO string
     const [hours, minutes] = form.time.split(':').map(Number);
     const scheduledDate = new Date(form.date);
     scheduledDate.setHours(hours, minutes, 0, 0);
@@ -321,16 +403,73 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     const payload = {
       serviceId: form.serviceId!,
       locationId: selectedLocationId,
-      customerId: form.customerId ?? undefined,
       staffUserIds: form.staffUserId !== null ? [form.staffUserId] : undefined,
       scheduledAt: scheduledDate.toISOString(),
       notes: form.notes.trim() || undefined,
-      bookingSource: form.bookingSource,
     };
 
+    const durationMinutes = selectedService ? (selectedService.customDuration ?? selectedService.defaultDuration) : 0;
+    const formDateStr = form.date ? toLocalDateString(form.date) : '';
+    const selectedDateStr = selectedDate ? toLocalDateString(selectedDate) : '';
+    const sameDay = formDateStr === selectedDateStr;
+    const blocksToCheck = sameDay ? dayBlocks : [];
+
+    if (isEditMode && editingAppointmentId) {
+      const isOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247);
+      const isOnBlock = appointmentOverlapsBlocks(scheduledDate, durationMinutes, blocksToCheck);
+      if (isOutOfHours || isOnBlock) {
+        pendingUpdateRef.current = {
+          appointmentId: editingAppointmentId,
+          data: {
+            ...payload,
+            allowOutOfHours: isOutOfHours,
+            overrideConflicts: isOnBlock,
+          },
+        };
+        setConfirmReason(isOnBlock ? 'on_block' : 'out_of_hours');
+        setConfirmOpen(true);
+        return;
+      }
+      setSubmitting(true);
+      try {
+        dispatch(updateAppointment.request({
+          appointmentId: editingAppointmentId,
+          data: payload,
+        }));
+        onClose();
+      } catch {
+        setError('Failed to update appointment');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Create: check if we need confirmation (out of hours or overlapping a block)
+    const isOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247);
+    const isOnBlock = appointmentOverlapsBlocks(scheduledDate, durationMinutes, blocksToCheck);
+    if (isOutOfHours || isOnBlock) {
+      pendingSubmitRef.current = {
+        payload: {
+          ...payload,
+          customerId: form.customerId ?? undefined,
+          bookingSource: form.bookingSource,
+          allowOutOfHours: isOutOfHours,
+          overrideConflicts: isOnBlock,
+        },
+      };
+      setConfirmReason(isOnBlock ? 'on_block' : 'out_of_hours');
+      setConfirmOpen(true);
+      return;
+    }
+
+    setSubmitting(true);
     try {
-      dispatch(adminCreateAppointment.request(payload));
-      toast.success('Appointment created');
+      dispatch(adminCreateAppointment.request({
+        ...payload,
+        customerId: form.customerId ?? undefined,
+        bookingSource: form.bookingSource,
+      }));
       onClose();
     } catch {
       setError('Failed to create appointment');
@@ -357,7 +496,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     <BaseSlider
       isOpen={isOpen}
       onClose={onClose}
-      title="New Appointment"
+      title={isEditMode ? 'Edit Appointment' : 'New Appointment'}
       contentClassName="bg-muted/50 scrollbar-hide"
       footer={
         <div className="flex gap-3">
@@ -378,10 +517,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             {submitting ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
+                {isEditMode ? 'Saving...' : 'Creating...'}
               </>
             ) : (
-              'Create Appointment'
+              isEditMode ? 'Save Changes' : 'Create Appointment'
             )}
           </Button>
         </div>
@@ -406,17 +545,41 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 <span className="text-xs text-muted-foreground">(optional)</span>
               </div>
 
-              {form.customerDisplay ? (
+              {isEditMode ? (
                 <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
                   <Avatar className="h-10 w-10 flex-shrink-0">
                     <AvatarFallback>
-                      {form.customerDisplay.firstName?.[0] ?? '?'}
-                      {form.customerDisplay.lastName?.[0] ?? ''}
+                      {form.customerDisplay?.firstName?.[0] ?? 'W'}
+                      {form.customerDisplay?.lastName?.[0] ?? ''}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="font-semibold text-base truncate">
-                      {form.customerDisplay.firstName} {form.customerDisplay.lastName}
+                      {form.customerDisplay
+                        ? `${form.customerDisplay.firstName} ${form.customerDisplay.lastName}`.trim()
+                        : 'Walk-in'}
+                    </div>
+                    {form.customerDisplay?.email && (
+                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.email}</div>
+                    )}
+                    {form.customerDisplay?.phone && (
+                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.phone}</div>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Customer cannot be changed for existing appointments.
+                    </div>
+                  </div>
+                </div>
+              ) : form.customerDisplay ? (
+                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
+                  <Avatar className="h-10 w-10 flex-shrink-0">
+                    <AvatarFallback>
+                      {[form.customerDisplay.firstName?.[0], form.customerDisplay.lastName?.[0]].filter(Boolean).join('') || form.customerDisplay.email?.[0]?.toUpperCase() || 'C'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-base truncate">
+                      {[form.customerDisplay.firstName, form.customerDisplay.lastName].filter(Boolean).join(' ').trim() || form.customerDisplay.email || 'Customer'}
                     </div>
                     {form.customerDisplay.email && (
                       <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.email}</div>
@@ -439,26 +602,26 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     <Input
                       placeholder="First name *"
                       value={quickCreate.firstName}
-                      onChange={(e) => setQuickCreate((p) => ({ ...p, firstName: e.target.value }))}
+                      onChange={(e) => handleQuickCreateChange('firstName', e.target.value)}
                       className="h-10"
                     />
                     <Input
                       placeholder="Last name"
                       value={quickCreate.lastName}
-                      onChange={(e) => setQuickCreate((p) => ({ ...p, lastName: e.target.value }))}
+                      onChange={(e) => handleQuickCreateChange('lastName', e.target.value)}
                       className="h-10"
                     />
                   </div>
                   <Input
                     placeholder="Phone"
                     value={quickCreate.phone}
-                    onChange={(e) => setQuickCreate((p) => ({ ...p, phone: e.target.value }))}
+                    onChange={(e) => handleQuickCreateChange('phone', e.target.value)}
                     className="h-10"
                   />
                   <Input
                     placeholder="Email"
                     value={quickCreate.email}
-                    onChange={(e) => setQuickCreate((p) => ({ ...p, email: e.target.value }))}
+                    onChange={(e) => handleQuickCreateChange('email', e.target.value)}
                     className="h-10"
                   />
                   <div className="flex gap-2">
@@ -650,8 +813,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               </div>
 
               {isClosedDay && (
-                <div className="p-3 rounded-lg bg-orange-100 text-orange-800 text-sm dark:bg-orange-900/20 dark:text-orange-400">
-                  Business is closed on this day. Please select another date.
+                <div className="p-3 rounded-lg bg-muted/50 text-muted-foreground text-sm">
+                  Business is closed on this day. You can still book; you will be asked to confirm.
                 </div>
               )}
 
@@ -659,14 +822,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Date</Label>
                   <DatePicker
-                    selected={form.date}
-                    onChange={(date) => {
-                      setForm((prev) => ({ ...prev, date, time: '' }));
-                    }}
-                    dateFormat="yyyy-MM-dd"
+                    value={form.date}
+                    onChange={handleDateChange}
                     className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
-                    placeholderText="Select date"
-                    popperClassName="z-[90]"
+                    placeholder="Select date"
                   />
                 </div>
                 <div className="space-y-2">
@@ -691,11 +850,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             className={cn(
                               'w-full text-left px-4 py-2 text-sm hover:bg-muted/50',
                               form.time === slot ? 'bg-primary/10 font-medium' : '',
+                              isSlotOutsideHours(slot) && 'opacity-60 text-muted-foreground',
                             )}
-                            onClick={() => {
-                              setForm((prev) => ({ ...prev, time: slot }));
-                              setHourOpen(false);
-                            }}
+                            onClick={() => handleTimeSelect(slot)}
                           >
                             {formatSlotTime(slot)}
                           </button>
@@ -713,12 +870,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               {form.time && selectedService && (
                 <div className="text-xs text-muted-foreground">
                   Appointment: {formatSlotTime(form.time)} &ndash;{' '}
-                  {(() => {
-                    const [h, m] = form.time.split(':').map(Number);
-                    const end = new Date();
-                    end.setHours(h, m + serviceDuration, 0, 0);
-                    return end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-                  })()}{' '}
+                  {formatSlotTime(getEndTimeString(form.time, serviceDuration))}{' '}
                   ({serviceDuration} min)
                 </div>
               )}
@@ -741,12 +893,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       role="combobox"
                       className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
                     >
-                      {form.staffUserId !== null
-                        ? (() => {
-                          const staff = locationStaff.find((s) => s.id === form.staffUserId);
-                          return staff ? `${staff.firstName} ${staff.lastName}` : 'Unknown';
-                        })()
-                        : 'Unassigned'}
+                      {getStaffDisplayNameOrUnassigned(form.staffUserId, locationStaff)}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -758,10 +905,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           {/* Unassigned option */}
                           <CommandItem
                             value="unassigned"
-                            onSelect={() => {
-                              setForm((prev) => ({ ...prev, staffUserId: null }));
-                              setStaffOpen(false);
-                            }}
+                            onSelect={handleSelectUnassigned}
                             className="flex items-center gap-3 p-3"
                           >
                             <Check
@@ -776,10 +920,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             <CommandItem
                               key={staff.id}
                               value={`${staff.firstName} ${staff.lastName}`}
-                              onSelect={() => {
-                                setForm((prev) => ({ ...prev, staffUserId: staff.id }));
-                                setStaffOpen(false);
-                              }}
+                              onSelect={() => handleSelectStaff(staff.id)}
                               className="flex items-center gap-3 p-3"
                             >
                               <Check
@@ -805,33 +946,35 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               </div>
             )}
 
-            {/* ── Booking Source Section ── */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <ShieldCheck className="h-5 w-5 text-primary" />
+            {/* ── Booking Source Section (create only) ── */}
+            {!isEditMode && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <ShieldCheck className="h-5 w-5 text-primary" />
+                  </div>
+                  <h3 className="text-base font-semibold text-foreground">Booking Source</h3>
                 </div>
-                <h3 className="text-base font-semibold text-foreground">Booking Source</h3>
+                <div className="flex gap-2">
+                  {bookingSources.map((source) => (
+                    <button
+                      key={source.value}
+                      type="button"
+                      onClick={() => handleBookingSourceSelect(source.value)}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
+                        form.bookingSource === source.value
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-background border-border hover:bg-muted',
+                      )}
+                    >
+                      {source.icon}
+                      {source.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-2">
-                {bookingSources.map((source) => (
-                  <button
-                    key={source.value}
-                    type="button"
-                    onClick={() => setForm((prev) => ({ ...prev, bookingSource: source.value }))}
-                    className={cn(
-                      'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                      form.bookingSource === source.value
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-background border-border hover:bg-muted',
-                    )}
-                  >
-                    {source.icon}
-                    {source.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            )}
 
             {/* ── Notes Section ── */}
             <div className="space-y-4">
@@ -844,7 +987,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               <Textarea
                 placeholder="Add any special notes or requirements..."
                 value={form.notes}
-                onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+                onChange={handleNotesChange}
                 rows={3}
                 className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
               />
@@ -852,6 +995,45 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           </CardContent>
         </Card>
       </form>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) handleCancelOverrides();
+        }}
+        onConfirm={handleConfirmOverrides}
+        onCancel={handleCancelOverrides}
+        title={pendingUpdateRef.current ? 'Reschedule anyway?' : 'Create appointment anyway?'}
+        description={
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {(confirmReason === 'on_block'
+                ? (pendingUpdateRef.current
+                    ? 'This time overlaps with blocked time. Are you sure you want to reschedule?'
+                    : 'This time overlaps with blocked time. Are you sure you want to create this appointment?')
+                : (pendingUpdateRef.current
+                    ? 'This time is outside business hours. Are you sure you want to reschedule?'
+                    : 'This time is outside business hours. Are you sure you want to create this appointment?'))
+                + ' Reminders are not sent to clients between 22:00 and 08:00 (business timezone).'}
+            </p>
+            <div className="space-y-1.5">
+              <Label htmlFor="override-reason" className="text-xs font-medium text-muted-foreground">
+                Reason for override (optional)
+              </Label>
+              <Input
+                id="override-reason"
+                placeholder="e.g. Customer request, Emergency"
+                value={overrideReasonText}
+                onChange={(e) => setOverrideReasonText(e.target.value)}
+                className="text-sm"
+              />
+            </div>
+          </div>
+        }
+        cancelTitle="Cancel"
+        confirmTitle={pendingUpdateRef.current ? 'Yes, reschedule' : 'Yes, create'}
+      />
     </BaseSlider>
   );
 };

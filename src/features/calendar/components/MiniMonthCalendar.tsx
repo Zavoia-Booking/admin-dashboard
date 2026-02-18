@@ -4,7 +4,7 @@ import { getSelectedDate, getCalendarSummary } from "../selectors.ts";
 import { setSelectedDateAction } from "../actions.ts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const DAY_LABELS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const DAY_LABELS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
 /**
  * MiniMonthCalendar — compact calendar grid for the sidebar.
@@ -38,8 +38,8 @@ export const MiniMonthCalendar: FC = () => {
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
 
-        // Fill leading empty cells for days before the first of the month
-        const startDayOfWeek = firstDay.getDay(); // 0 = Sun
+        // Fill leading empty cells for days before the first of the month (Monday-first)
+        const startDayOfWeek = (firstDay.getDay() + 6) % 7; // Mon=0, Tue=1, ..., Sun=6
         const result: Array<{ date: Date; isCurrentMonth: boolean } | null> = [];
 
         for (let i = 0; i < startDayOfWeek; i++) {

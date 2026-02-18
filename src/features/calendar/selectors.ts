@@ -1,17 +1,18 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
-import type { CalendarFilters } from "./types.ts";
+import { AppointmentViewMode } from "./types.ts";
+import { getWeekStart } from "./utils.ts";
 
 // ─────────────────────────────────────────────────────────────
-// Legacy selectors (kept during migration)
+// UI state selectors
 // ─────────────────────────────────────────────────────────────
-
-export const getCalendarAppointmentsSelector = createSelector(getCalendarViewStateSelector, (state) => {
-    return state.appointments
-});
 
 export const getAddFormSelector = createSelector(getCalendarViewStateSelector, (state) => {
     return state.addFormOpen
+})
+
+export const getAddFormPrefill = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.addFormPrefill
 })
 
 export const getEditFormSelector = createSelector(getCalendarViewStateSelector, (state) => {
@@ -26,16 +27,8 @@ export const getViewModeSelector = createSelector(getCalendarViewStateSelector, 
     return state.viewMode;
 })
 
-export const getFiltersSelector = createSelector(getCalendarViewStateSelector, (state): CalendarFilters => {
-    return state.filters;
-})
-
-export const getFiltersSelectedDate = createSelector(getFiltersSelector, (state) => {
-    return state.selectedDate;
-})
-
 // ─────────────────────────────────────────────────────────────
-// New selectors: Location-first calendar
+// Location-first calendar selectors
 // ─────────────────────────────────────────────────────────────
 
 /** Currently selected location ID */
@@ -110,6 +103,42 @@ export const getSelectedDate = createSelector(getCalendarViewStateSelector, (sta
     return state.selectedDate;
 })
 
+/** First day of the displayed month (month view only). When null, month view uses selectedDate's month. */
+export const getDisplayedMonthStart = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.displayedMonthStart;
+})
+
+/** Monday of the displayed week (week view only). When null, week view uses selectedDate's week. */
+export const getDisplayedWeekStart = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.displayedWeekStart;
+})
+
+/** For month view grid/fetch: first day of the month to display. */
+export const getMonthViewDisplayStart = createSelector(
+    getCalendarViewStateSelector,
+    getViewModeSelector,
+    getSelectedDate,
+    (state, viewMode, selectedDate) => {
+        if (viewMode !== AppointmentViewMode.MONTH) return null;
+        const d = state.displayedMonthStart;
+        if (d) return d;
+        return new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    }
+)
+
+/** For week view grid/fetch: Monday of the displayed week. */
+export const getWeekViewDisplayStart = createSelector(
+    getCalendarViewStateSelector,
+    getViewModeSelector,
+    getSelectedDate,
+    (state, viewMode, selectedDate) => {
+        if (viewMode !== AppointmentViewMode.WEEK) return null;
+        const d = state.displayedWeekStart;
+        if (d) return d;
+        return getWeekStart(selectedDate);
+    }
+)
+
 /** The selected appointment (for detail drawer) */
 export const getSelectedAppointment = createSelector(getCalendarViewStateSelector, (state) => {
     return state.selectedAppointment;
@@ -145,4 +174,13 @@ export const getSidebarOpen = createSelector(getCalendarViewStateSelector, (stat
 /** Staff filter — array of visible staff IDs (empty = all) */
 export const getStaffFilter = createSelector(getCalendarViewStateSelector, (state) => {
     return state.staffFilter;
+})
+
+/** Pending 409 conflict offer (retry update with override). */
+export const getUpdateConflictOffer = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.updateConflictOffer;
+})
+
+export const getPendingDrop = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.pendingDrop;
 })

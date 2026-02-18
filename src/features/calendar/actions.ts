@@ -9,25 +9,9 @@ import type {
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
-import { AppointmentViewMode, AppointmentViewType, type CalendarFilters } from "./types.ts";
+import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop } from "./types.ts";
 
-// ─────────────────────────────────────────────────────────────
-// Legacy actions (kept during migration)
-// ─────────────────────────────────────────────────────────────
-
-export const fetchCalendarAppointments = createAsyncAction(
-    'CALENDAR/GET/APPOINTMENTS/REQUEST',
-    'CALENDAR/GET/APPOINTMENTS/SUCCESS',
-    'CALENDAR/APPOINTMENTS/FAILURE',
-)<void, Array<Appointment>, any>();
-
-export const createCalendarAppointmentAction = createAsyncAction(
-    'CALENDAR/CREATE/APPOINTMENTS/REQUEST',
-    'CALENDAR/CREATE/APPOINTMENTS/SUCCESS',
-    'CALENDAR/CREATE/FAILURE',
-)<any, any, any>();
-
-export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<boolean>()
+export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: boolean; prefill?: AddFormPrefill }>()
 
 export const toggleEditFormAction = createAction('CALENDAR/EDIT/TOGGLE')<{
     open: boolean,
@@ -36,11 +20,6 @@ export const toggleEditFormAction = createAction('CALENDAR/EDIT/TOGGLE')<{
 
 export const setViewTypeAction = createAction('CALENDAR/VIEW_TYPE/SET')<AppointmentViewType>()
 export const setViewModeAction = createAction('CALENDAR/VIEW_MODE/SET')<AppointmentViewMode>()
-export const setCalendarFilterAction = createAsyncAction(
-    'CALENDAR/FILTER/SET/REQUEST',
-    'CALENDAR/FILTER/SET/SUCCESS',
-    'CALENDAR/FILTER/SET/FAILURE',
-)<CalendarFilters, CalendarFilters, void>()
 
 // ─────────────────────────────────────────────────────────────
 // New actions: Location-first calendar
@@ -84,6 +63,16 @@ export const setDayFiltersAction = createAction(
 /** Set the selected date (date navigation) */
 export const setSelectedDateAction = createAction(
     'CALENDAR/SELECTED_DATE/SET'
+)<Date>()
+
+/** Set the displayed month (month view only; first day of that month). */
+export const setDisplayedMonthAction = createAction(
+    'CALENDAR/DISPLAYED_MONTH/SET'
+)<Date>()
+
+/** Set the displayed week (week view only; Monday of that week). */
+export const setDisplayedWeekAction = createAction(
+    'CALENDAR/DISPLAYED_WEEK/SET'
 )<Date>()
 
 /** Set the selected appointment (for detail drawer) */
@@ -130,6 +119,30 @@ export const updateAppointmentStatus = createAsyncAction(
     'CALENDAR/UPDATE_STATUS/SUCCESS',
     'CALENDAR/UPDATE_STATUS/FAILURE',
 )<{ appointmentId: number; status: string }, any, any>()
+
+/** Offer to retry an update with override after 409 Conflict (set to null to clear). */
+export const setUpdateConflictOffer = createAction(
+    'CALENDAR/UPDATE_CONFLICT_OFFER/SET',
+)<{ appointmentId: number; data: Record<string, unknown>; message: string } | null>()
+
+/** Set/clear pending drag-drop (card preview). Cleared on update success or cancel. */
+export const setCalendarPendingDrop = createAction(
+    'CALENDAR/PENDING_DROP/SET',
+)<PendingDrop>()
+
+/** Update appointment (PATCH /appointments/:id — reschedule, reassign, etc.) */
+export const updateAppointment = createAsyncAction(
+    'CALENDAR/UPDATE_APPOINTMENT/REQUEST',
+    'CALENDAR/UPDATE_APPOINTMENT/SUCCESS',
+    'CALENDAR/UPDATE_APPOINTMENT/FAILURE',
+)<{ appointmentId: number; data: Record<string, any> }, any, any>()
+
+/** Cancel appointment with reason and notification preferences (POST /appointments/:id/cancel) */
+export const cancelAppointment = createAsyncAction(
+    'CALENDAR/CANCEL/REQUEST',
+    'CALENDAR/CANCEL/SUCCESS',
+    'CALENDAR/CANCEL/FAILURE',
+)<{ appointmentId: number; reason: string; notifyCustomer: boolean; notificationMethods: string[] }, any, any>()
 
 // ─────────────────────────────────────────────────────────────
 // New actions: Calendar block CRUD

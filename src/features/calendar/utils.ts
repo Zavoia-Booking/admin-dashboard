@@ -1,16 +1,23 @@
 // Helper functions to get date ranges based on selected date
-import { AppointmentViewMode, type CalendarFilters } from "./types.ts";
-import type { Appointment } from "../../shared/types/calendar.ts";
-import { ALL } from "../../shared/constants.ts";
+import { AppointmentViewMode } from "./types.ts";
 
+/** Format a Date as YYYY-MM-DD using local date (avoids timezone shifting the calendar day). */
+export const toLocalDateString = (d: Date): string => {
+    const y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+    return `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
+/** Get Monday as start of week (Europe convention) */
 export const getWeekStart = (date: Date) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day;
+    const day = date.getDay(); // 0=Sun, 1=Mon, ...
+    // (day + 6) % 7 converts: Mon=0, Tue=1, ..., Sun=6
+    const diff = (day + 6) % 7;
     const weekStart = new Date(date);
-    weekStart.setDate(diff);
+    weekStart.setDate(date.getDate() - diff);
     return weekStart;
 };
 
+/** Get Sunday as end of week (Mon–Sun) */
 export const getWeekEnd = (date: Date) => {
     const weekStart = getWeekStart(date);
     const weekEnd = new Date(weekStart);
@@ -51,7 +58,7 @@ export const convertTo24Hour = (time12h: string): string => {
 }
 
 
-export const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export const getWeekDays = (currentWeekStart: Date) => {
     return Array.from({ length: 7 }, (_, i) => {
@@ -71,38 +78,12 @@ export const STATUS_LIST = [
 ];
 
 
-export const DEFAULT_FILTERS: CalendarFilters = {
-    location: ALL,
-    teamMember: ALL,
-    service: ALL,
-    status: ALL,
-    clientName: '',
-    email: '',
-    phoneNumber: '',
-    selectedDate: new Date(),
-    startDate: new Date(new Date().setHours(0, 0, 0, 0)),
-    endDate: new Date(new Date().setHours(23, 59, 59, 0))
-}
-
-export const getDefaultCalendarFilters  = (): CalendarFilters => {
-    return {
-        location: ALL,
-        teamMember: ALL,
-        service: ALL,
-        status: ALL,
-        clientName: '',
-        email: '',
-        phoneNumber: '',
-        selectedDate: new Date(),
-        startDate: new Date(new Date().setHours(0, 0, 0, 0)),
-        endDate: new Date(new Date().setHours(23, 59, 59, 0))
-    }
-}
 export const getStartOfTheWeek = (): Date => {
     const today = new Date();
-    const currentDay = today.getDay();
+    const currentDay = today.getDay(); // 0=Sun, 1=Mon, ...
+    const diff = (currentDay + 6) % 7; // Mon=0
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - currentDay);
+    startOfWeek.setDate(today.getDate() - diff);
     return startOfWeek;
 }
 
@@ -244,87 +225,34 @@ export const getMonthRange = (selectedDate: Date): {startDate: Date, endDate: Da
  * Given a selected date and view mode, returns the ISO date strings
  * for the start and end of the visible range.
  * Used by sagas to determine which date range to fetch from the API.
+ * For MONTH view, pass monthViewStart (first day of displayed month) so prev/next don't use selectedDate's month.
+ * For WEEK view, pass weekViewStart (Monday of displayed week) so prev/next don't change selectedDate.
  */
-export const getDateRangeForMode = (selectedDate: Date, viewMode: AppointmentViewMode): { startDate: string; endDate: string } => {
+export const getDateRangeForMode = (
+    selectedDate: Date,
+    viewMode: AppointmentViewMode,
+    monthViewStart?: Date | null,
+    weekViewStart?: Date | null
+): { startDate: string; endDate: string } => {
     if (viewMode === AppointmentViewMode.DAY) {
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = toLocalDateString(selectedDate);
         return { startDate: dateStr, endDate: dateStr };
     }
 
     if (viewMode === AppointmentViewMode.WEEK) {
-        const { startDate, endDate } = getWeekRange(selectedDate);
+        const ref = weekViewStart ?? getWeekStart(selectedDate);
+        const { startDate, endDate } = getWeekRange(ref);
         return {
-            startDate: startDate.toISOString().split('T')[0],
-            endDate: endDate.toISOString().split('T')[0],
+            startDate: toLocalDateString(startDate),
+            endDate: toLocalDateString(endDate),
         };
     }
 
-    // MONTH
-    const { startDate, endDate } = getMonthRange(selectedDate);
+    // MONTH: use monthViewStart when provided (displayed month), else selectedDate
+    const monthRef = monthViewStart ?? selectedDate;
+    const { startDate, endDate } = getMonthRange(monthRef);
     return {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        startDate: toLocalDateString(startDate),
+        endDate: toLocalDateString(endDate),
     };
-}
-
-export const getFilterPayload = (filters: CalendarFilters): Record<string, number|string> => {
-
-    const { location, service,teamMember, status,
-        clientName, email, phoneNumber } = filters;
-    const payload: Record<string, number|string> = {}
-
-    if (location !== ALL && !!location) {
-        payload.locationId = location;
-    }
-
-    if (service !== ALL && !!service) {
-        payload.serviceId = service;
-    }
-
-    if (teamMember !== ALL && !!teamMember) {
-        payload.teamMember = teamMember;
-    }
-
-    if (status !== ALL && !!status) {
-        payload.status = status;
-    }
-
-    if (clientName) {
-        payload.clientName = clientName;
-    }
-
-    if (email) {
-        payload.clientEmail = email;
-    }
-
-    if (phoneNumber) {
-        payload.clientPhone = phoneNumber;
-    }
-
-
-    return payload;
-}
-
-export const mapToAppointmentList = (list: Array<any>): Array<Appointment> => {
-    return list.map((item: any) => {
-        const { id, customer, teamMembers, service, location,
-            scheduledAt, endsAt, status, notes, price, cancellationReason, createdAt, updatedAt,
-        } = item;
-
-        return {
-            id,
-            customer,
-            teamMembers,
-            service,
-            location,
-            scheduledAt,
-            endsAt,
-            status,
-            notes,
-            price,
-            cancellationReason,
-            createdAt,
-            updatedAt,
-        }
-    })
 }

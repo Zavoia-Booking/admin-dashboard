@@ -168,6 +168,8 @@ export interface BookingSettings {
   smsEnabled: boolean;
   cancellationPolicyMessage: string | null;
   bookingReminderMessage: string | null;
+  reminderHoursBefore: number;
+  enforceMinAdvanceForAdmin: boolean;
 }
 
 // Payload for updating booking settings (omit businessId as it's not editable)

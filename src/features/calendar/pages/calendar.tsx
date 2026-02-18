@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
@@ -20,6 +20,7 @@ import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
+import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
 import { Card } from "../../../shared/components/ui/card.tsx";
 
 const Calendar = () => {
@@ -28,6 +29,7 @@ const Calendar = () => {
   const editForm = useSelector(getEditFormSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
   const sidebarOpen = useSelector(getSidebarOpen);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     // Fetch supporting data - locations needed for LocationSelector,
@@ -38,7 +40,7 @@ const Calendar = () => {
   }, [dispatch]);
 
   const handleCloseAddForm = useCallback(() => {
-    dispatch(toggleAddForm(false))
+    dispatch(toggleAddForm({ open: false }))
   },[dispatch])
 
   const handleCloseEditForm = useCallback(() => {
@@ -46,7 +48,7 @@ const Calendar = () => {
   },[dispatch])
 
   return (
-    <AppLayout>
+    <AppLayout contentClassName="md:max-w-[1400px]">
       <BusinessSetupGate>
         <AccessGuard>
           <div className="flex h-[calc(100vh-64px)]">
@@ -58,7 +60,7 @@ const Calendar = () => {
               <div className="flex-1 p-0 md:p-4 lg:p-6 overflow-hidden flex flex-col">
                 <Card className="flex-1 flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface overflow-hidden rounded-none md:rounded-xl">
                   {/* Top header bar */}
-                  <CalendarHeader />
+                  <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 
                   {/* Scrollable content area */}
                   <div className="flex-1 overflow-auto relative">
@@ -81,6 +83,10 @@ const Calendar = () => {
             onClose={handleCloseEditForm}
           />
           <CreateBlockDrawer />
+          <CalendarSettingsSheet
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
+          />
         </AccessGuard>
       </BusinessSetupGate>
     </AppLayout>

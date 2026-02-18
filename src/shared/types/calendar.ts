@@ -36,6 +36,9 @@ export interface Appointment {
   cancellationReason: string,
   createdAt: Date,
   updatedAt: Date,
+  /** Set when admin overrode working hours or conflict. */
+  overrideReason?: string;
+  overrideUsedAt?: Date | string;
 }
 
 export interface AppointmentSection {
@@ -100,6 +103,11 @@ export interface CalendarBookingSettings {
   allowStaffRescheduleWithoutConfirmation: boolean;
   allowStaffBlockCalendarWithoutConfirmation: boolean;
   staffBlockCalendarTypes: string[];
+  cancellationPolicyMessage: string | null;
+  bookingReminderMessage: string | null;
+  reminderHoursBefore: number;
+  enforceMinAdvanceForAdmin: boolean;
+  minAdvanceBookingMinutes: number;
 }
 
 export interface LocationContextData {
@@ -150,6 +158,8 @@ export interface SlimAppointment {
   customerName: string;
   bookingSource: string;
   isUnassigned: boolean;
+  /** Set when admin overrode working hours or conflict (for grid badge). */
+  overrideReason?: string;
 }
 
 export interface CalendarBlockDto {
@@ -206,6 +216,10 @@ export interface AdminCreateAppointmentPayload {
   notes?: string;
   bookingSource?: AppointmentBookingSource;
   overrideConflicts?: boolean;
+  /** When true, backend skips working-hours validation (admin confirmed out-of-hours). */
+  allowOutOfHours?: boolean;
+  /** Optional reason when using override or out-of-hours (stored for audit). */
+  overrideReason?: string;
 }
 
 // --- Day Filters (for calendar/day endpoint) ---
