@@ -12,5 +12,6 @@ export const getSettingsStateSelector = createSelector(mainState, (state) => sta
 export const getCustomersStateSelector = createSelector(mainState, (state) => state.customers);
 export const getBundlesStateSelector = createSelector(mainState, (state) => state.bundles);
 export const getCategoriesStateSelector = createSelector(mainState, (state) => state.categories);
+export const getSupportStateSelector = createSelector(mainState, (state) => state.support);
 
 export default mainState;

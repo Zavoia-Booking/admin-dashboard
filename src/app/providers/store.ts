@@ -18,6 +18,7 @@ import { CategoriesReducer } from "../../features/categories/reducer";
 import dashboardReducer from "../../features/dashboard/reducer";
 import { NotificationsReducer } from "../../features/notifications/reducer";
 import { ReviewsReducer } from "../../features/reviews/reducer";
+import { SupportReducer } from "../../features/support/reducer";
 // --- create saga middleware ---
 const sagaMiddleware = createSagaMiddleware();
 
@@ -40,6 +41,7 @@ export const store = configureStore({
     dashboard: dashboardReducer,
     notifications: NotificationsReducer,
     reviews: ReviewsReducer,
+    support: SupportReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
