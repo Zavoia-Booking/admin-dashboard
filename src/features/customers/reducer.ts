@@ -13,6 +13,7 @@ const initialState: CustomerState = {
   currentCustomer: null,
   isFetchingCustomer: false,
   isRemoving: false,
+  isMerging: false,
   pagination: null,
   summary: null,
 };
@@ -71,6 +72,15 @@ export const CustomersReducer: Reducer<CustomerState, any> = (
 
     case getType(actions.removeCustomerAction.failure):
       return { ...state, isRemoving: false, error: action.payload.message };
+
+    case getType(actions.mergeCustomerAction.request):
+      return { ...state, isMerging: true, error: null };
+
+    case getType(actions.mergeCustomerAction.success):
+      return { ...state, isMerging: false, error: null };
+
+    case getType(actions.mergeCustomerAction.failure):
+      return { ...state, isMerging: false, error: action.payload.message };
 
     case getType(actions.listCustomersAction.request):
       return { ...state, isLoading: true, error: null };

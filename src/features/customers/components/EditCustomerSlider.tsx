@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { UserCircle, Mail, Phone, Loader2 } from 'lucide-react';
+import { UserCircle, Mail, Phone, Loader2, GitMerge } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { TextField } from '../../../shared/components/forms/fields/TextField';
@@ -9,7 +9,7 @@ import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Button } from '../../../shared/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import { fetchCustomerByIdAction, updateCustomerAction, removeCustomerAction, clearCurrentCustomerAction } from '../actions';
+import { fetchCustomerByIdAction, updateCustomerAction, removeCustomerAction, mergeCustomerAction, clearCurrentCustomerAction } from '../actions';
 import type { EditCustomerPayload } from '../types';
 import { useForm, useController } from 'react-hook-form';
 import { 
@@ -22,7 +22,8 @@ import {
   getCustomersErrorSelector,
   getCurrentCustomerSelector,
   getIsFetchingCustomerSelector,
-  getIsRemovingCustomerSelector
+  getIsRemovingCustomerSelector,
+  getIsMergingCustomerSelector
 } from '../selectors';
 import { toast } from 'sonner';
 
@@ -42,11 +43,14 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   const isCustomerLoading = useSelector(getCustomersLoadingSelector);
   const isFetchingCustomer = useSelector(getIsFetchingCustomerSelector);
   const isRemoving = useSelector(getIsRemovingCustomerSelector);
+  const isMerging = useSelector(getIsMergingCustomerSelector);
   const customer = useSelector(getCurrentCustomerSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showRemoveDialog, setShowRemoveDialog] = useState(false);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const justOpenedRef = useRef(false);
   const prevIsRemovingRef = useRef(false);
+  const prevIsMergingRef = useRef(false);
 
   const {
     control,
@@ -155,8 +159,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     if (isOpen) {
       setIsSubmitting(false);
       setShowRemoveDialog(false);
+      setShowMergeDialog(false);
       justOpenedRef.current = true;
       prevIsRemovingRef.current = false;
+      prevIsMergingRef.current = false;
       // Clear the flag after a brief delay to allow effects to run
       setTimeout(() => {
         justOpenedRef.current = false;
@@ -247,6 +253,25 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
       onClose();
     }
   }, [isRemoving, customerError, onClose]);
+
+  const handleMergeClick = () => {
+    setShowMergeDialog(true);
+  };
+
+  const handleConfirmMerge = () => {
+    if (!customer) return;
+    prevIsMergingRef.current = true;
+    dispatch(mergeCustomerAction.request({ sourceId: customer.id }));
+    setShowMergeDialog(false);
+  };
+
+  // Watch for merge success and close slider
+  useEffect(() => {
+    if (prevIsMergingRef.current && !isMerging && !customerError) {
+      prevIsMergingRef.current = false;
+      onClose();
+    }
+  }, [isMerging, customerError, onClose]);
 
   return (
     <>
@@ -424,6 +449,46 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                 <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
               </div>
 
+              {/* Merge Duplicate */}
+              <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
+                <div className="space-y-1">
+                  <h3 className="text-base font-medium text-foreground-1">
+                    Merge Duplicate
+                  </h3>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                    You are about to merge all other records for this customer into this one. This will combine their records.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3 items-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={handleMergeClick}
+                    className="w-1/2"
+                    disabled={isMerging}
+                  >
+                    {isMerging ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Merging...
+                      </>
+                    ) : (
+                      <>
+                        <GitMerge className="h-4 w-4 mr-2" />
+                        Merge duplicates
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-end gap-2 mb-6 pt-4">
+                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
+              </div>
+
               {/* Remove Customer */}
               <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
                 <div className="space-y-1">
@@ -484,6 +549,31 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                 </>
               ) : (
                 'Remove Customer'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Merge Duplicate Confirmation Dialog */}
+      <AlertDialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Merge Duplicate</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to merge {customer?.firstName} {customer?.lastName}? This will combine their record with the existing duplicate.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isMerging}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmMerge} disabled={isMerging}>
+              {isMerging ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Merging...
+                </>
+              ) : (
+                'Merge'
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

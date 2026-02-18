@@ -1,6 +1,6 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
-import { fetchCustomerByIdAction, addCustomerAction, updateCustomerAction, removeCustomerAction, listCustomersAction } from "./actions";
-import { fetchCustomerByIdApi, addCustomerApi, updateCustomerApi, removeCustomerApi, listCustomersApi } from "./api";
+import { fetchCustomerByIdAction, addCustomerAction, updateCustomerAction, removeCustomerAction, mergeCustomerAction, listCustomersAction } from "./actions";
+import { fetchCustomerByIdApi, addCustomerApi, updateCustomerApi, removeCustomerApi, mergeCustomersApi, listCustomersApi } from "./api";
 import type { Customer, CustomersListResponse } from "../../shared/types/customer";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
@@ -63,6 +63,22 @@ function* handleRemoveCustomer(action: ActionType<typeof removeCustomerAction.re
   }
 }
 
+function* handleMergeCustomer(action: ActionType<typeof mergeCustomerAction.request>) {
+  try {
+    yield call(mergeCustomersApi, action.payload.sourceId);
+    yield put(mergeCustomerAction.success());
+    toast.success('Customers merged successfully');
+    // Refresh the list after merging
+    yield put(listCustomersAction.request({ 
+      filters: [], 
+      pagination: { offset: 0, limit: 20 } 
+    }));
+  } catch (error: any) {
+    const message = error?.response?.data?.error || error?.message || "Failed to merge customers";
+    yield put(mergeCustomerAction.failure({ message }));
+  }
+}
+
 function* handleListCustomers(action: ActionType<typeof listCustomersAction.request>): Generator<any, void, any> {
   try {
     const response: CustomersListResponse = yield call(listCustomersApi, action.payload);
@@ -79,6 +95,7 @@ export function* customersSaga(): Generator<any, void, any> {
     takeLatest(addCustomerAction.request, handleAddCustomer),
     takeLatest(updateCustomerAction.request, handleUpdateCustomer),
     takeLatest(removeCustomerAction.request, handleRemoveCustomer),
+    takeLatest(mergeCustomerAction.request, handleMergeCustomer),
     takeLatest(listCustomersAction.request, handleListCustomers),
   ]);
 }

@@ -1,6 +1,6 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
 import type { Customer, CustomersListResponse } from "../../shared/types/customer";
-import type { AddCustomerPayload, EditCustomerPayload, ListCustomersPayload } from "./types";
+import type { AddCustomerPayload, EditCustomerPayload, ListCustomersPayload, MergeCustomersPayload } from "./types";
 
 export const fetchCustomerByIdAction = createAsyncAction(
   'customers/FETCH_CUSTOMER_BY_ID_REQUEST',
@@ -33,4 +33,10 @@ export const listCustomersAction = createAsyncAction(
   'customers/LIST_CUSTOMERS_SUCCESS',
   'customers/LIST_CUSTOMERS_FAILURE',
 )<ListCustomersPayload, CustomersListResponse, { message: string }>();
+
+export const mergeCustomerAction = createAsyncAction(
+  'customers/MERGE_CUSTOMER_REQUEST',
+  'customers/MERGE_CUSTOMER_SUCCESS',
+  'customers/MERGE_CUSTOMER_FAILURE',
+)<MergeCustomersPayload, void, { message: string }>();
 

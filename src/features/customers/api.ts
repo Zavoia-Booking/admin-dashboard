@@ -27,3 +27,7 @@ export const listCustomersApi = async (payload: ListCustomersPayload): Promise<C
   return data;
 };
 
+export const mergeCustomersApi = async (marketplaceCustomerId: number): Promise<void> => {
+  await apiClient().post('/business-customers/merge', { marketplaceCustomerId });
+};
+
