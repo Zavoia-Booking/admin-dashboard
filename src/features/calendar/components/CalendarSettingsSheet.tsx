@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '../../../shared/lib/utils';
 import { getBookingSettings } from '../selectors';
-import { AppointmentViewMode } from '../types';
+import { AppointmentViewMode, AppointmentViewType } from '../types';
 import {
   calendarPreferences,
   type TimeFormat,
@@ -89,6 +89,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
 
   // --- Display preferences (localStorage) ---
   const [defaultView, setDefaultView] = useState<AppointmentViewMode>(AppointmentViewMode.WEEK);
+  const [defaultViewType, setDefaultViewType] = useState<AppointmentViewType>(AppointmentViewType.LIST);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>('24h');
   const [colorCoding, setColorCoding] = useState<ColorCoding>('status');
   const [showCancelled, setShowCancelled] = useState(true);
@@ -107,6 +108,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
     if (open) {
       const prefs = calendarPreferences.getAll();
       setDefaultView(prefs.defaultViewMode);
+      setDefaultViewType(prefs.defaultViewType);
       setTimeFormat(prefs.timeFormat);
       setColorCoding(prefs.colorCoding);
       setShowCancelled(prefs.showCancelled);
@@ -126,6 +128,11 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
   const handleDefaultViewChange = useCallback((mode: AppointmentViewMode) => {
     setDefaultView(mode);
     calendarPreferences.setDefaultViewMode(mode);
+  }, []);
+
+  const handleDefaultViewTypeChange = useCallback((type: AppointmentViewType) => {
+    setDefaultViewType(type);
+    calendarPreferences.setDefaultViewType(type);
   }, []);
 
   const handleTimeFormatChange = useCallback((format: TimeFormat) => {
@@ -219,6 +226,22 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
                 value={defaultView}
                 onChange={handleDefaultViewChange}
               />
+            </div>
+
+            {/* List vs Grid (day/week layout) */}
+            <div className="space-y-2">
+              <Label className="text-sm">Day &amp; week layout</Label>
+              <PillSelector
+                options={[
+                  { value: AppointmentViewType.LIST, label: 'List' },
+                  { value: AppointmentViewType.GRID, label: 'Calendar grid' },
+                ]}
+                value={defaultViewType}
+                onChange={handleDefaultViewTypeChange}
+              />
+              <p className="text-xs text-muted-foreground">
+                List shows appointments in a list; grid shows the time-slot calendar.
+              </p>
             </div>
 
             {/* Time format */}

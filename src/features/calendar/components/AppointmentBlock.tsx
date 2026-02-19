@@ -6,28 +6,8 @@ import { toggleEditFormAction } from "../actions.ts";
 import { formatTimeRange } from "./utils.tsx";
 import { getAppointmentDetailRequest } from "../api.ts";
 import { User, ShieldAlert } from "lucide-react";
-
-// ─────────────────────────────────────────────────────────────
-// Pastel status colors with left accent border
-// ─────────────────────────────────────────────────────────────
-
-const STATUS_STYLES: Record<string, string> = {
-  // Confirmed: Blue
-  confirmed: 'bg-blue-400 text-white border-none',
-  // Pending: Purple/Lavender (like "Development meet" in screenshot)
-  pending: 'bg-purple-400 text-white border-none',
-  // Completed: Green (like "Design onboarding")
-  completed: 'bg-emerald-400 text-white border-none',
-  // No Show: Red/Pink (like "Design our website")
-  no_show: 'bg-pink-400 text-white border-none',
-  // Cancelled: Gray
-  cancelled: 'bg-gray-400 text-white border-none',
-};
-
-const getStatusClasses = (status: string): string => {
-  // Default to a soft yellow/orange if status unknown (like "Design session")
-  return STATUS_STYLES[status] ?? 'bg-amber-300 text-amber-900 border-none';
-};
+import { calendarPreferences } from "../calendarPreferences.ts";
+import { getAppointmentBlockColors } from "../colors.ts";
 
 // ─────────────────────────────────────────────────────────────
 // Staff Avatar Cluster
@@ -109,6 +89,8 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
 }) => {
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
+  const colorCoding = calendarPreferences.getColorCoding();
+  const { backgroundColor, color } = getAppointmentBlockColors(appointment, colorCoding);
 
   const handleClick = useCallback(async () => {
     try {
@@ -119,7 +101,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
     }
   }, [dispatch, appointment.id]);
 
-  const style: React.CSSProperties = { top, height };
+  const style: React.CSSProperties = { top, height, backgroundColor, color };
   if (leftPercent != null && widthPercent != null) {
     style.left = `${leftPercent}%`;
     style.width = `${widthPercent}%`;
@@ -128,8 +110,8 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
 
   return (
     <div
-      className={`absolute rounded-xl px-3 py-2 z-10 cursor-pointer overflow-hidden
-                hover:shadow-lg hover:scale-[1.02] transition-all duration-200 ${getStatusClasses(appointment.status)}
+      className={`absolute rounded-xl px-3 py-2 z-10 cursor-pointer overflow-hidden border-none
+                hover:shadow-lg hover:scale-[1.02] transition-all duration-200
                 ${leftPercent == null ? 'left-1 right-1' : ''}`}
       style={style}
       title={`${appointment.customerName} – ${appointment.bookedItemName}`}

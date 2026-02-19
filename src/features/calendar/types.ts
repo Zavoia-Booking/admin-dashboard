@@ -5,6 +5,7 @@ import type {
     DayDataResponse,
     CalendarDayFilters,
     SlimAppointment,
+    CalendarBlockDto,
 } from "../../shared/types/calendar.ts";
 
 /** Pending drag-drop: show appointment at drop position until user confirms or update succeeds. */
@@ -106,9 +107,12 @@ export type CalendarViewState = {
     /** When in week view, the Monday of the displayed week (prev/next don't change selectedDate). */
     displayedWeekStart: Date | null;
 
-    /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). */
-    updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string } | null;
+    /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). Only for non–staff conflicts; staff_appointment must not show override. */
+    updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null;
 
     /** Pending drag-drop: card stays at drop position until confirm/cancel or update success. */
     pendingDrop: PendingDrop;
+
+    /** Blocks created in this session, shown until next day/week fetch (optimistic UI). */
+    optimisticBlocks: CalendarBlockDto[];
 }

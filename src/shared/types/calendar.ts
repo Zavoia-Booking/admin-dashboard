@@ -176,6 +176,14 @@ export interface CalendarBlockDto {
 export interface DayDataResponse {
   appointments: SlimAppointment[];
   blocks: CalendarBlockDto[];
+  /** Month summary for sidebar mini calendar (when returned by /calendar/day). */
+  miniSummary?: Record<string, DaySummary>;
+}
+
+/** Response from POST /calendar/week: days keyed by date + optional month summary for mini calendar. */
+export interface CalendarWeekResponse {
+  days: Record<string, DayDataResponse>;
+  miniSummary?: Record<string, DaySummary>;
 }
 
 // --- Calendar Block CRUD (POST/PUT /calendar-blocks) ---

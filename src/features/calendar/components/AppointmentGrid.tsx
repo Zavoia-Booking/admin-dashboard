@@ -5,6 +5,7 @@ import { dayNames } from "../utils.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { CalendarTimeGrid } from "./CalendarTimeGrid.tsx";
 import { AppointmentList } from "./AppointmentList.tsx";
+import { WeekAppointmentList } from "./WeekAppointmentList.tsx";
 import type {
     DaySummary,
     AppointmentPreview,
@@ -19,6 +20,8 @@ import {
 } from "../selectors.ts";
 import { setSelectedDateAction, setViewModeAction } from "../actions.ts";
 import { Loader2 } from "lucide-react";
+import { calendarPreferences } from "../calendarPreferences.ts";
+import { getAppointmentBlockColors } from "../colors.ts";
 
 // ─────────────────────────────────────────────────────────────
 // Main component
@@ -45,7 +48,9 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
     // Day & Week views: list view or time grid
     if (viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) {
         if (viewType === AppointmentViewType.LIST) {
-            return (
+            return viewMode === AppointmentViewMode.WEEK ? (
+                <WeekAppointmentList />
+            ) : (
                 <div className="p-4">
                     <AppointmentList />
                 </div>
@@ -62,24 +67,13 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
 // Summary Grid (Month view)
 // ─────────────────────────────────────────────────────────────
 
-/** Pastel preview colors (matching AppointmentBlock status palette) */
-const getPreviewStatusColor = (status: string): string => {
-    switch (status) {
-        case 'confirmed': return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-        case 'completed': return 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300';
-        case 'no_show': return 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300';
-        case 'pending': return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300';
-        case 'cancelled': return 'bg-gray-100 text-gray-500 dark:bg-gray-800/30 dark:text-gray-400';
-        default: return 'bg-primary/10 text-primary';
-    }
-};
-
 const SummaryGrid: FC = () => {
     const dispatch = useDispatch();
     const selectedDate = useSelector(getSelectedDate);
     const monthViewDisplayStart = useSelector(getMonthViewDisplayStart);
     const summary = useSelector(getCalendarSummary);
     const isLoading = useSelector(getSummaryLoading);
+    const colorCoding = calendarPreferences.getColorCoding();
 
     const handleDayClick = useCallback((day: Date) => {
         dispatch(setSelectedDateAction(day));
@@ -195,15 +189,22 @@ const SummaryGrid: FC = () => {
                                                 {daySummary.appointmentCount} appt{daySummary.appointmentCount !== 1 ? 's' : ''}
                                             </div>
                                         )}
-                                        {/* Preview appointments */}
-                                        {daySummary.firstAppointments?.slice(0, 3).map((preview: AppointmentPreview) => (
-                                            <div
-                                                key={preview.id}
-                                                className={`text-[10px] truncate rounded px-1 py-px font-medium ${getPreviewStatusColor(preview.status)}`}
-                                            >
-                                                {preview.bookedItemName || preview.customerName}
-                                            </div>
-                                        ))}
+                                        {/* Preview appointments — use same color coding as grid (staff mode: no staff ids in summary, so falls back to 'unassigned' tint) */}
+                                        {daySummary.firstAppointments?.slice(0, 3).map((preview: AppointmentPreview) => {
+                                            const { backgroundColor, color } = getAppointmentBlockColors(
+                                                { status: preview.status, bookedItemName: preview.bookedItemName, staffUserIds: [] },
+                                                colorCoding
+                                            );
+                                            return (
+                                                <div
+                                                    key={preview.id}
+                                                    className="text-[10px] truncate rounded px-1 py-px font-medium"
+                                                    style={{ backgroundColor, color }}
+                                                >
+                                                    {preview.bookedItemName || preview.customerName}
+                                                </div>
+                                            );
+                                        })}
                                         {(daySummary.firstAppointments?.length ?? 0) > 3 && (
                                             <div className="text-[10px] text-muted-foreground pl-1">
                                                 +{(daySummary.firstAppointments?.length ?? 0) - 3} more

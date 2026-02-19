@@ -3,7 +3,7 @@ import { type ActionType, getType } from "typesafe-actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 import { AppointmentViewMode, AppointmentViewType, type CalendarViewState, type AddFormPrefill, type PendingDrop } from "./types.ts";
-import type { Appointment, LocationContextData, DaySummary, DayDataResponse, CalendarDayFilters } from "../../shared/types/calendar.ts";
+import type { Appointment, LocationContextData, DaySummary, DayDataResponse, CalendarWeekResponse, CalendarDayFilters, CalendarBlockDto } from "../../shared/types/calendar.ts";
 import { getWeekStart } from "./utils.ts";
 
 type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
@@ -61,7 +61,25 @@ const initialState: CalendarViewState = {
 
     updateConflictOffer: null,
     pendingDrop: null as PendingDrop,
+
+    optimisticBlocks: [],
 };
+
+/** Normalize API block payload to CalendarBlockDto (startsAt/endsAt as ISO strings). */
+function blockPayloadToDto(payload: any): CalendarBlockDto {
+    const startsAt = payload.startsAt instanceof Date ? payload.startsAt.toISOString() : (payload.startsAt ?? '');
+    const endsAt = payload.endsAt instanceof Date ? payload.endsAt.toISOString() : (payload.endsAt ?? '');
+    return {
+        id: payload.id,
+        blockScope: payload.blockScope,
+        userId: payload.userId ?? null,
+        startsAt,
+        endsAt,
+        isAllDay: payload.isAllDay ?? false,
+        reason: payload.reason ?? 'other',
+        title: payload.title ?? null,
+    };
+}
 
 // ─────────────────────────────────────────────────────────────
 // Handler helpers
@@ -124,6 +142,7 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         weekData: null,
         dayFilters: initialDayFilters,
         staffFilter: [],
+        optimisticBlocks: [],
     }
 }
 
@@ -158,11 +177,15 @@ const handleSetSummaryLoading = (state: CalendarViewState, payload: boolean): Ca
 }
 
 const handleSetDayData = (state: CalendarViewState, payload: DayDataResponse | null): CalendarViewState => {
+    const summary = payload?.miniSummary
+        ? { ...state.summary, ...payload.miniSummary }
+        : state.summary;
     return {
         ...state,
         dayData: payload,
         dayDataLoading: false,
-    }
+        summary,
+    };
 }
 
 const handleSetDayDataLoading = (state: CalendarViewState, payload: boolean): CalendarViewState => {
@@ -203,12 +226,16 @@ const handleToggleBlockForm = (state: CalendarViewState, payload: boolean): Cale
 
 // --- Week data handlers ---
 
-const handleSetWeekData = (state: CalendarViewState, payload: Record<string, DayDataResponse>): CalendarViewState => {
+const handleSetWeekData = (state: CalendarViewState, payload: CalendarWeekResponse): CalendarViewState => {
+    const summary = payload.miniSummary
+        ? { ...state.summary, ...payload.miniSummary }
+        : state.summary;
     return {
         ...state,
-        weekData: payload,
+        weekData: payload.days,
         weekDataLoading: false,
-    }
+        summary,
+    };
 }
 
 const handleSetWeekDataLoading = (state: CalendarViewState, payload: boolean): CalendarViewState => {
@@ -283,7 +310,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.fetchDayData.request):
             return handleSetDayDataLoading(state, true);
         case getType(actions.fetchDayData.success):
-            return { ...handleSetDayData(state, action.payload), pendingDrop: null };
+            return { ...handleSetDayData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
         case getType(actions.fetchDayData.failure):
             return handleSetDayDataLoading(state, false);
 
@@ -304,7 +331,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.fetchWeekData.request):
             return handleSetWeekDataLoading(state, true);
         case getType(actions.fetchWeekData.success):
-            return { ...handleSetWeekData(state, action.payload), pendingDrop: null };
+            return { ...handleSetWeekData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
         case getType(actions.fetchWeekData.failure):
             return handleSetWeekDataLoading(state, false);
 
@@ -322,6 +349,17 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.updateAppointment.request):
         case getType(actions.updateAppointment.success):
             return clearUpdateConflictOffer(state);
+
+        // --- CRUD result handling ---
+        case getType(actions.adminCreateAppointment.success):
+            return { ...state, addFormOpen: false, addFormPrefill: null };
+
+        case getType(actions.createCalendarBlock.success):
+            const createdBlock = action.payload?.block ?? action.payload;
+            return {
+                ...state,
+                optimisticBlocks: [...state.optimisticBlocks, blockPayloadToDto(createdBlock)],
+            };
 
         default:
             return state;

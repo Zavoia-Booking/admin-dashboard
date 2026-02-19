@@ -3,7 +3,7 @@
 // display preferences. These are not business-wide settings.
 // ─────────────────────────────────────────────────────────────
 
-import { AppointmentViewMode } from "./types.ts";
+import { AppointmentViewMode, AppointmentViewType } from "./types.ts";
 
 const PREFIX = 'calendar_pref_';
 
@@ -12,6 +12,7 @@ export type ColorCoding = 'status' | 'service' | 'staff';
 
 export interface CalendarPreferences {
     defaultViewMode: AppointmentViewMode;
+    defaultViewType: AppointmentViewType;
     timeFormat: TimeFormat;
     colorCoding: ColorCoding;
     showCancelled: boolean;
@@ -19,6 +20,7 @@ export interface CalendarPreferences {
 
 const DEFAULTS: CalendarPreferences = {
     defaultViewMode: AppointmentViewMode.WEEK,
+    defaultViewType: AppointmentViewType.LIST,
     timeFormat: '24h',
     colorCoding: 'status',
     showCancelled: true,
@@ -46,6 +48,7 @@ export const calendarPreferences = {
     getAll(): CalendarPreferences {
         return {
             defaultViewMode: getItem('defaultViewMode', DEFAULTS.defaultViewMode),
+            defaultViewType: getItem('defaultViewType', DEFAULTS.defaultViewType),
             timeFormat: getItem('timeFormat', DEFAULTS.timeFormat),
             colorCoding: getItem('colorCoding', DEFAULTS.colorCoding),
             showCancelled: getItem('showCancelled', DEFAULTS.showCancelled),
@@ -58,6 +61,14 @@ export const calendarPreferences = {
 
     setDefaultViewMode(mode: AppointmentViewMode): void {
         setItem('defaultViewMode', mode);
+    },
+
+    getDefaultViewType(): AppointmentViewType {
+        return getItem('defaultViewType', DEFAULTS.defaultViewType);
+    },
+
+    setDefaultViewType(type: AppointmentViewType): void {
+        setItem('defaultViewType', type);
     },
 
     getTimeFormat(): TimeFormat {

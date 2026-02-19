@@ -15,6 +15,8 @@ import { getAppointmentDetailRequest } from "../api.ts";
 import { formatTimeRange, getStaffDisplayNames, getStatusBadge, getBookingSourceLabel } from "./utils.tsx";
 import { Users, Clock, Loader2, CalendarX } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
+import { calendarPreferences } from "../calendarPreferences.ts";
+import { getAppointmentBlockColors } from "../colors.ts";
 
 export const AppointmentList: FC = () => {
     const dispatch = useDispatch();
@@ -120,9 +122,15 @@ interface SlimCardProps {
 
 const SlimAppointmentCard: FC<SlimCardProps> = ({ appointment, staffNames, onClick }) => {
     const timeRange = formatTimeRange(appointment.scheduledAt, appointment.endsAt);
+    const colorCoding = calendarPreferences.getColorCoding();
+    const { backgroundColor } = getAppointmentBlockColors(appointment, colorCoding);
 
     return (
-        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={onClick}>
+        <Card
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={onClick}
+            style={{ borderLeftWidth: 4, borderLeftStyle: "solid", borderLeftColor: backgroundColor }}
+        >
             <CardContent className="p-3">
                 <div className="flex items-start justify-between gap-3">
                     {/* Left: appointment details */}

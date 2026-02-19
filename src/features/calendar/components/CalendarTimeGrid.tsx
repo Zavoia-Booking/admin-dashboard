@@ -17,6 +17,8 @@ import {
   getUpdateConflictOffer,
   getPendingDrop,
   getWeekViewDisplayStart,
+  getOptimisticBlocks,
+  blockOverlapsDate,
 } from "../selectors.ts";
 import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, setUpdateConflictOffer, setCalendarPendingDrop } from "../actions.ts";
 import { AppointmentViewMode } from "../types.ts";
@@ -60,6 +62,7 @@ import {
 import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { Label } from "../../../shared/components/ui/label.tsx";
 import { Input } from "../../../shared/components/ui/input.tsx";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────────────────────────
 // Constants
@@ -77,6 +80,11 @@ const formatHourLabel = (hour: number): string => {
   if (hour === 12) return '12 PM';
   return `${hour - 12} PM`;
 };
+
+/** True if two time ranges overlap (startA < endB && endA > startB). */
+function timeRangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
+  return startA < endB && endA > startB;
+}
 
 /** Calculate top offset and height (px) for a time range on the grid */
 const getTimePosition = (isoStart: string, isoEnd: string) => {
@@ -489,6 +497,14 @@ const DayGrid: FC = () => {
     if (!pendingDrop) setDropConfirmInProgress(false);
   }, [pendingDrop]);
 
+  // Staff double-book conflict: do not allow override; clear pending drop and offer so card snaps back
+  useEffect(() => {
+    if (updateConflictOffer?.conflictType === 'staff_appointment') {
+      dispatch(setCalendarPendingDrop(null));
+      dispatch(setUpdateConflictOffer(null));
+    }
+  }, [updateConflictOffer?.conflictType, dispatch, updateConflictOffer]);
+
   // Short delay before showing confirm modal so the card can finish animating to its dropped position
   const CONFIRM_MODAL_DELAY_MS = 320;
   useEffect(() => {
@@ -626,7 +642,26 @@ const DayGrid: FC = () => {
     if (!data || data.type !== "appointment" || !overData) return;
     const appointment = data.appointment;
     if (appointment.status === "cancelled") return;
+
+    const staffConflictMessage = "This team member already has an appointment at this time. Choose another time or team member.";
+
     if (overData.type === "time-slot") {
+      const { columnId, dateKey, hour } = overData;
+      if (columnId !== 0) {
+        const columnApps = (appointmentsByColumn.get(columnId) ?? []).filter((a) => a.id !== appointment.id);
+        const [y, m, d] = dateKey.split("-").map(Number);
+        const slotStart = new Date(y, m - 1, d, hour, 0, 0, 0).getTime();
+        const slotEnd = slotStart + appointment.duration * 60 * 1000;
+        const hasConflict = columnApps.some((other) => {
+          const otherStart = new Date(other.scheduledAt).getTime();
+          const otherEnd = new Date(other.endsAt).getTime();
+          return timeRangesOverlap(slotStart, slotEnd, otherStart, otherEnd);
+        });
+        if (hasConflict) {
+          toast.error(staffConflictMessage);
+          return;
+        }
+      }
       dispatch(setCalendarPendingDrop({
         type: "reschedule",
         appointment,
@@ -635,6 +670,21 @@ const DayGrid: FC = () => {
         columnId: overData.columnId,
       }));
     } else if (overData.type === "staff-column") {
+      const { staffId } = overData;
+      if (staffId !== 0) {
+        const columnApps = (appointmentsByColumn.get(staffId) ?? []).filter((a) => a.id !== appointment.id);
+        const apptStart = new Date(appointment.scheduledAt).getTime();
+        const apptEnd = new Date(appointment.endsAt).getTime();
+        const hasConflict = columnApps.some((other) => {
+          const otherStart = new Date(other.scheduledAt).getTime();
+          const otherEnd = new Date(other.endsAt).getTime();
+          return timeRangesOverlap(apptStart, apptEnd, otherStart, otherEnd);
+        });
+        if (hasConflict) {
+          toast.error(staffConflictMessage);
+          return;
+        }
+      }
       dispatch(setCalendarPendingDrop({
         type: "reassign",
         appointment,
@@ -642,7 +692,7 @@ const DayGrid: FC = () => {
         staffLabel: overData.label,
       }));
     }
-  }, [dispatch]);
+  }, [dispatch, appointmentsByColumn]);
 
   const handleConfirmDrop = useCallback(() => {
     if (!pendingDrop) return;
@@ -878,9 +928,9 @@ const DayGrid: FC = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Single "Reschedule anyway" dialog: out-of-hours (client) or 409 conflict (server) */}
+      {/* Single "Reschedule anyway" dialog: out-of-hours (client) or 409 block conflict (server). Not shown for staff_appointment — that conflict cannot be overridden. */}
       <AlertDialog
-        open={overrideDialogOpen || !!updateConflictOffer}
+        open={overrideDialogOpen || (!!updateConflictOffer && updateConflictOffer.conflictType !== 'staff_appointment')}
         onOpenChange={(open) => {
           if (!open) {
             if (updateConflictOffer) handleCancelConflictOverride();
@@ -943,6 +993,7 @@ const WeekGrid: FC = () => {
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
   const staffFilter = useSelector(getStaffFilter);
+  const optimisticBlocks = useSelector(getOptimisticBlocks);
 
   const todayStr = new Date().toDateString();
 
@@ -966,14 +1017,16 @@ const WeekGrid: FC = () => {
     });
   }, [weekDays, workingHours, open247]);
 
-  // Get appointments and blocks for each day, filtered by staff
+  // Get appointments and blocks for each day, filtered by staff (blocks include optimistic)
   const columnData = useMemo(() => {
     return weekDays.map(day => {
       const dateKey = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
       const dayData: DayDataResponse | undefined = weekData?.[dateKey];
 
       let appointments = dayData?.appointments ?? [];
-      const blocks = dayData?.blocks ?? [];
+      const serverBlocks = dayData?.blocks ?? [];
+      const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, dateKey));
+      const blocks = [...serverBlocks, ...forDay];
 
       // Apply staff filter
       if (staffFilter.length > 0) {
@@ -985,7 +1038,7 @@ const WeekGrid: FC = () => {
 
       return { appointments, blocks };
     });
-  }, [weekDays, weekData, staffFilter]);
+  }, [weekDays, weekData, staffFilter, optimisticBlocks]);
 
   if (isLoading) {
     return (

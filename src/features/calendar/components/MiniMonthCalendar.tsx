@@ -72,17 +72,17 @@ export const MiniMonthCalendar: FC = () => {
         <div>
             {/* Month header with nav */}
             <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">{monthLabel}</span>
+                <span className="text-sm font-medium text-foreground-1">{monthLabel}</span>
                 <div className="flex items-center gap-0.5">
                     <button
                         onClick={handlePrevMonth}
-                        className="p-0.5 rounded hover:bg-sidebar-accent transition-colors"
+                        className="p-0.5 rounded hover:bg-muted transition-colors text-foreground-1"
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </button>
                     <button
                         onClick={handleNextMonth}
-                        className="p-0.5 rounded hover:bg-sidebar-accent transition-colors"
+                        className="p-0.5 rounded hover:bg-muted transition-colors text-foreground-1"
                     >
                         <ChevronRight className="h-4 w-4" />
                     </button>
@@ -92,7 +92,7 @@ export const MiniMonthCalendar: FC = () => {
             {/* Day-of-week header */}
             <div className="grid grid-cols-7 gap-0">
                 {DAY_LABELS.map(label => (
-                    <div key={label} className="text-center text-[10px] font-medium text-muted-foreground py-1">
+                    <div key={label} className="text-center text-xs font-medium text-muted-foreground py-1">
                         {label}
                     </div>
                 ))}
@@ -115,11 +115,11 @@ export const MiniMonthCalendar: FC = () => {
                         <button
                             key={i}
                             onClick={() => handleDayClick(date)}
-                            className={`h-7 w-full flex flex-col items-center justify-center rounded-md text-xs transition-colors relative
-                                ${!isCurrentMonth ? 'text-muted-foreground/40' : ''}
-                                ${isToday && !isSelected ? 'bg-primary text-primary-foreground font-bold' : ''}
-                                ${isSelected ? 'ring-2 ring-primary bg-primary/20 font-semibold' : ''}
-                                ${!isToday && !isSelected && isCurrentMonth ? 'hover:bg-sidebar-accent' : ''}
+                            className={`h-7 w-full flex flex-col items-center justify-center rounded-md text-xs font-medium transition-colors relative
+                                ${!isCurrentMonth ? 'text-muted-foreground/50' : ''}
+                                ${isToday && !isSelected ? 'bg-primary/10 text-primary font-semibold' : ''}
+                                ${isSelected ? 'bg-primary text-primary-foreground font-semibold' : ''}
+                                ${!isToday && !isSelected && isCurrentMonth ? 'hover:bg-muted text-foreground-1' : ''}
                             `}
                         >
                             {date.getDate()}

@@ -3,6 +3,7 @@ import type {
     LocationContextData,
     CalendarSummaryResponse,
     DayDataResponse,
+    CalendarWeekResponse,
     CalendarDayFilters,
     AdminCreateAppointmentPayload,
     CalendarBlockCreatePayload,
@@ -19,19 +20,27 @@ export const getLocationContextRequest = async (locationId: number): Promise<Loc
     return data;
 }
 
-/** POST /calendar/summary */
+/** POST /calendar/summary — optional filters apply to counts and previews */
 export const getCalendarSummaryRequest = async (
     locationId: number,
     startDate: string,
     endDate: string,
     includePreview: boolean = false,
+    filters?: CalendarDayFilters,
 ): Promise<CalendarSummaryResponse> => {
-    const { data } = await apiClient().post<CalendarSummaryResponse>(`/calendar/summary`, {
+    const body: Record<string, unknown> = {
         locationId,
         startDate,
         endDate,
         includePreview,
-    });
+    };
+    if (filters) {
+        if (filters.staffUserId != null) body.staffUserId = filters.staffUserId;
+        if (filters.serviceId != null) body.serviceId = filters.serviceId;
+        if (filters.status != null) body.status = filters.status;
+        if (filters.clientName != null) body.clientName = filters.clientName;
+    }
+    const { data } = await apiClient().post<CalendarSummaryResponse>(`/calendar/summary`, body);
     return data;
 }
 
@@ -49,13 +58,13 @@ export const getDayDataRequest = async (
     return data;
 }
 
-/** POST /calendar/week — returns Record<YYYY-MM-DD, DayDataResponse> */
+/** POST /calendar/week — returns { days, miniSummary } for grid + sidebar mini calendar */
 export const getWeekDataRequest = async (
     locationId: number,
     weekStart: string,
     filters?: CalendarDayFilters,
-): Promise<Record<string, DayDataResponse>> => {
-    const { data } = await apiClient().post<Record<string, DayDataResponse>>(`/calendar/week`, {
+): Promise<CalendarWeekResponse> => {
+    const { data } = await apiClient().post<CalendarWeekResponse>(`/calendar/week`, {
         locationId,
         weekStart,
         ...filters,

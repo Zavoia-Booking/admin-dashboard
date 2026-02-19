@@ -3,7 +3,7 @@ import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { toggleAddForm, toggleEditFormAction } from "../actions";
+import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction } from "../actions";
 import {
   getAddFormSelector,
   getEditFormSelector,
@@ -11,6 +11,7 @@ import {
   getSidebarOpen,
 } from "../selectors.ts";
 import { AppointmentViewMode } from "../types.ts";
+import { calendarPreferences } from "../calendarPreferences.ts";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
 import { getServicesAction } from "../../services/actions.ts";
@@ -32,6 +33,12 @@ const Calendar = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
+    // Apply saved display preferences on calendar load
+    dispatch(setViewModeAction(calendarPreferences.getDefaultViewMode()));
+    dispatch(setViewTypeAction(calendarPreferences.getDefaultViewType()));
+  }, [dispatch]);
+
+  useEffect(() => {
     // Fetch supporting data - locations needed for LocationSelector,
     // team members + services for filters/forms
     dispatch(listLocationsAction.request())
@@ -51,19 +58,19 @@ const Calendar = () => {
     <AppLayout contentClassName="md:max-w-[1400px]">
       <BusinessSetupGate>
         <AccessGuard>
-          <div className="flex h-[calc(100vh-64px)]">
+          <div className="flex min-h-[calc(100vh-64px)] items-start">
             {/* ─── Left Sidebar ─── */}
             {sidebarOpen && <CalendarSidebar />}
 
             {/* ─── Main Content ─── */}
             <div className="flex-1 flex flex-col min-w-0 bg-muted/10 dark:bg-transparent">
-              <div className="flex-1 p-0 md:p-4 lg:p-6 overflow-hidden flex flex-col">
-                <Card className="flex-1 flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface overflow-hidden rounded-none md:rounded-xl">
+              <div className="p-0 md:p-4 lg:p-6 flex flex-col">
+                <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
                   {/* Top header bar */}
                   <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 
-                  {/* Scrollable content area */}
-                  <div className="flex-1 overflow-auto relative">
+                  {/* Content area — height driven by grid/list for single page scroll */}
+                  <div className="relative">
                     {/* Month view uses summary grid; Day & Week views use the time grid */}
                     <AppointmentGrid viewMode={viewMode} />
                   </div>

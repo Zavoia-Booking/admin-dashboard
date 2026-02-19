@@ -4,6 +4,7 @@ import type {
     LocationContextData,
     DaySummary,
     DayDataResponse,
+    CalendarWeekResponse,
     CalendarDayFilters,
     AdminCreateAppointmentPayload,
     CalendarBlockCreatePayload,
@@ -42,7 +43,7 @@ export const fetchCalendarSummary = createAsyncAction(
     'CALENDAR/SUMMARY/REQUEST',
     'CALENDAR/SUMMARY/SUCCESS',
     'CALENDAR/SUMMARY/FAILURE',
-)<{ locationId: number; startDate: string; endDate: string; includePreview?: boolean },
+)<{ locationId: number; startDate: string; endDate: string; includePreview?: boolean; filters?: CalendarDayFilters },
     Record<string, DaySummary>,
     any>()
 
@@ -95,13 +96,13 @@ export const setStaffFilter = createAction(
     'CALENDAR/STAFF_FILTER/SET'
 )<number[]>()
 
-/** Fetch full week data (7 days of appointments + blocks in parallel) */
+/** Fetch full week data (7 days of appointments + blocks + optional miniSummary) */
 export const fetchWeekData = createAsyncAction(
     'CALENDAR/WEEK_DATA/REQUEST',
     'CALENDAR/WEEK_DATA/SUCCESS',
     'CALENDAR/WEEK_DATA/FAILURE',
-)<{ locationId: number; weekStart: string },
-    Record<string, DayDataResponse>,
+)<{ locationId: number; weekStart: string; filters?: CalendarDayFilters },
+    CalendarWeekResponse,
     any>()
 
 // ─────────────────────────────────────────────────────────────
@@ -120,10 +121,10 @@ export const updateAppointmentStatus = createAsyncAction(
     'CALENDAR/UPDATE_STATUS/FAILURE',
 )<{ appointmentId: number; status: string }, any, any>()
 
-/** Offer to retry an update with override after 409 Conflict (set to null to clear). */
+/** Offer to retry an update with override after 409 Conflict (set to null to clear). conflictType 'staff_appointment' = do not show override; 'block' or missing = show override. */
 export const setUpdateConflictOffer = createAction(
     'CALENDAR/UPDATE_CONFLICT_OFFER/SET',
-)<{ appointmentId: number; data: Record<string, unknown>; message: string } | null>()
+)<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null>()
 
 /** Set/clear pending drag-drop (card preview). Cleared on update success or cancel. */
 export const setCalendarPendingDrop = createAction(

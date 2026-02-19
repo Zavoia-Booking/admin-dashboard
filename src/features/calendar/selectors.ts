@@ -1,7 +1,18 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
 import { AppointmentViewMode } from "./types.ts";
-import { getWeekStart } from "./utils.ts";
+import { getWeekStart, toLocalDateString } from "./utils.ts";
+import type { CalendarBlockDto } from "../../shared/types/calendar.ts";
+
+/** True if block's time range overlaps the given date (YYYY-MM-DD). */
+export function blockOverlapsDate(block: CalendarBlockDto, dateKey: string): boolean {
+    const [y, m, d] = dateKey.split("-").map(Number);
+    const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+    const dayEnd = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+    const blockStart = new Date(block.startsAt).getTime();
+    const blockEnd = new Date(block.endsAt).getTime();
+    return blockStart < dayEnd && blockEnd > dayStart;
+}
 
 // ─────────────────────────────────────────────────────────────
 // UI state selectors
@@ -83,24 +94,46 @@ export const getDayDataLoading = createSelector(getCalendarViewStateSelector, (s
     return state.dayDataLoading;
 })
 
+/** The selected date for navigation */
+export const getSelectedDate = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.selectedDate;
+})
+
 /** Day-level appointments from the day data response */
 export const getDayAppointments = createSelector(getDayData, (dayData) => {
     return dayData?.appointments ?? [];
 })
 
-/** Day-level blocks from the day data response */
-export const getDayBlocks = createSelector(getDayData, (dayData) => {
-    return dayData?.blocks ?? [];
-})
+/** Optimistic blocks (created this session, cleared on next day/week fetch). */
+export const getOptimisticBlocks = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.optimisticBlocks ?? [];
+});
+
+/** Day-level blocks (server data + optimistic blocks overlapping the selected date). */
+export const getDayBlocks = createSelector(
+    getDayData,
+    getSelectedDate,
+    getOptimisticBlocks,
+    (dayData, selectedDate, optimisticBlocks) => {
+        const key = toLocalDateString(selectedDate);
+        const server = dayData?.blocks ?? [];
+        const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, key));
+        return [...server, ...forDay];
+    }
+);
+
+/** Blocks for a specific date key (for week view). Use with useSelector(state => getBlocksForDateKey(state, dateKey)). */
+export function getBlocksForDateKey(state: unknown, dateKey: string): CalendarBlockDto[] {
+    const cal = getCalendarViewStateSelector(state as any);
+    const selectedKey = toLocalDateString(cal.selectedDate);
+    const serverBlocks = (dateKey === selectedKey ? cal.dayData?.blocks : cal.weekData?.[dateKey]?.blocks) ?? [];
+    const forDay = (cal.optimisticBlocks ?? []).filter((b) => blockOverlapsDate(b, dateKey));
+    return [...serverBlocks, ...forDay];
+}
 
 /** Active day filters */
 export const getDayFilters = createSelector(getCalendarViewStateSelector, (state) => {
     return state.dayFilters;
-})
-
-/** The selected date for navigation */
-export const getSelectedDate = createSelector(getCalendarViewStateSelector, (state) => {
-    return state.selectedDate;
 })
 
 /** First day of the displayed month (month view only). When null, month view uses selectedDate's month. */
