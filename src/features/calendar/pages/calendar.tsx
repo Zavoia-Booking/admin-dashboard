@@ -1,45 +1,53 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { fetchCalendarAppointments, toggleAddForm, toggleEditFormAction } from "../actions.ts";
-import { AppointmentList } from "../components/AppointmentList.tsx";
+import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction } from "../actions";
 import {
   getAddFormSelector,
-  getCalendarAppointmentsSelector,
-  getEditFormSelector, getFiltersSelectedDate, getViewModeSelector,
-  getViewTypeSelector
+  getEditFormSelector,
+  getViewModeSelector,
+  getSidebarOpen,
 } from "../selectors.ts";
-import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
-import { Filters } from "../components/Filters.tsx";
+import { AppointmentViewMode } from "../types.ts";
+import { calendarPreferences } from "../calendarPreferences.ts";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
-import { DateTabs } from "../components/DateTab.tsx";
 import { getServicesAction } from "../../services/actions.ts";
 import { listLocationsAction } from "../../locations/actions.ts";
 import { listTeamMembersAction } from "../../teamMembers/actions.ts";
 import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
+import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
+import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
+import { CalendarHeader } from "../components/CalendarHeader.tsx";
+import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
+import { Card } from "../../../shared/components/ui/card.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
   const addFormOpen = useSelector(getAddFormSelector);
   const editForm = useSelector(getEditFormSelector);
-  const viewType: AppointmentViewType = useSelector(getViewTypeSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
-  const appointments = useSelector(getCalendarAppointmentsSelector);
-  const selectedDate = useSelector(getFiltersSelectedDate);
+  const sidebarOpen = useSelector(getSidebarOpen);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch calendar data - AccessGuard will handle blocking if needed
-    dispatch(fetchCalendarAppointments.request())
-    dispatch(listTeamMembersAction.request())
+    // Apply saved display preferences on calendar load
+    dispatch(setViewModeAction(calendarPreferences.getDefaultViewMode()));
+    dispatch(setViewTypeAction(calendarPreferences.getDefaultViewType()));
+  }, [dispatch]);
+
+  useEffect(() => {
+    // Fetch supporting data - locations needed for LocationSelector,
+    // team members + services for filters/forms
     dispatch(listLocationsAction.request())
+    dispatch(listTeamMembersAction.request())
     dispatch(getServicesAction.request())
   }, [dispatch]);
 
   const handleCloseAddForm = useCallback(() => {
-    dispatch(toggleAddForm(false))
+    dispatch(toggleAddForm({ open: false }))
   },[dispatch])
 
   const handleCloseEditForm = useCallback(() => {
@@ -47,30 +55,31 @@ const Calendar = () => {
   },[dispatch])
 
   return (
-    <AppLayout>
+    <AppLayout contentClassName="md:max-w-[1400px]">
       <BusinessSetupGate>
         <AccessGuard>
-          <Filters appointments={appointments}/>
-          <DateTabs/>
+          <div className="flex min-h-[calc(100vh-64px)] items-start">
+            {/* ─── Left Sidebar ─── */}
+            {sidebarOpen && <CalendarSidebar />}
 
-          {/* List View Content */}
-          {viewType === AppointmentViewType.LIST && (
-              <AppointmentList
-                  viewMode={viewMode}
-                  appointments={appointments}
-              />
-          )}
+            {/* ─── Main Content ─── */}
+            <div className="flex-1 flex flex-col min-w-0 bg-muted/10 dark:bg-transparent">
+              <div className="p-0 md:p-4 lg:p-6 flex flex-col">
+                <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
+                  {/* Top header bar */}
+                  <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 
-          {/*/!* Grid View - Custom Day Timeline *!/*/}
-          {viewType === AppointmentViewType.GRID && (
-              <AppointmentGrid
-                  viewMode={viewMode}
-                  selectedDate={selectedDate}
-                  appointments={appointments}
-              />
-          )}
+                  {/* Content area — height driven by grid/list for single page scroll */}
+                  <div className="relative">
+                    {/* Month view uses summary grid; Day & Week views use the time grid */}
+                    <AppointmentGrid viewMode={viewMode} />
+                  </div>
+                </Card>
+              </div>
+            </div>
+          </div>
 
-          {/* Add Appointment Slider */}
+          {/* ─── Drawers / Sliders (portaled) ─── */}
           <AddAppointmentSlider
             isOpen={addFormOpen}
             onClose={() => handleCloseAddForm()}
@@ -79,6 +88,11 @@ const Calendar = () => {
             isOpen={editForm.open}
             appointment={editForm.item}
             onClose={handleCloseEditForm}
+          />
+          <CreateBlockDrawer />
+          <CalendarSettingsSheet
+            open={settingsOpen}
+            onClose={() => setSettingsOpen(false)}
           />
         </AccessGuard>
       </BusinessSetupGate>

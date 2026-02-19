@@ -13,7 +13,6 @@ import { selectIsDeleting, selectDeleteResponse, selectCurrentTeamMember, select
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
 import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
-import { format } from 'date-fns';
 
 interface TeamMemberProfileSliderProps {
   isOpen: boolean;
@@ -96,7 +95,10 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const formatAppointmentTime = (scheduledAt: string, endsAt: string) => {
     const start = new Date(scheduledAt);
     const end = new Date(endsAt);
-    return `${format(start, 'MMM d, yyyy')} · ${format(start, 'h:mm a')} - ${format(end, 'h:mm a')}`;
+    const dateStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const endTime = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return `${dateStr} · ${startTime} - ${endTime}`;
   };
 
   const handleDeleteClick = () => {

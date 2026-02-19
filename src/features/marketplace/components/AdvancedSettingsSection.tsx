@@ -50,6 +50,8 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
         smsEnabled: false,
         cancellationPolicyMessage: null,
         bookingReminderMessage: null,
+        reminderHoursBefore: 24,
+        enforceMinAdvanceForAdmin: false,
       }),
     );
 
@@ -146,6 +148,10 @@ export const AdvancedSettingsSection = forwardRef<AdvancedSettingsSectionRef>(
             bookingSettings.cancellationPolicyMessage ?? null,
           bookingReminderMessage:
             bookingSettings.bookingReminderMessage ?? null,
+          reminderHoursBefore:
+            bookingSettings.reminderHoursBefore ?? 24,
+          enforceMinAdvanceForAdmin:
+            bookingSettings.enforceMinAdvanceForAdmin ?? false,
         });
       }
     }, [bookingSettings]);
