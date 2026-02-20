@@ -94,10 +94,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   // Sync with URL changes
   useEffect(() => {
-    const tab = searchParams.get("tab") as MarketplaceTab | null;
+    const rawTab = searchParams.get("tab");
+    const tab = rawTab as MarketplaceTab | null;
     if (tab && validTabs.includes(tab)) {
       setActiveTab(tab);
-    } else if (tab === "booking-settings") {
+    } else if (rawTab === "booking-settings") {
       setActiveTab("profile");
       navigate("/marketplace?tab=profile", { replace: true });
     }

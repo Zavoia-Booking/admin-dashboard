@@ -39,7 +39,6 @@ import {
   getIsSendingMessageSelector,
   getIsClosingTicketSelector,
 } from "../selectors";
-import { selectCurrentUser } from "../../auth/selectors";
 import {
   Plus,
   ArrowLeft,
@@ -138,7 +137,6 @@ function TicketListItem({
 
 function ConversationView({
   ticket,
-  currentUserId,
   isSending,
   isClosing,
   onSendMessage,
@@ -146,7 +144,6 @@ function ConversationView({
   onBack,
 }: {
   ticket: SupportTicket;
-  currentUserId: string;
   isSending: boolean;
   isClosing: boolean;
   onSendMessage: (message: string) => void;
@@ -360,7 +357,6 @@ export default function SupportPage() {
   const isCreating = useSelector(getIsCreatingTicketSelector);
   const isSending = useSelector(getIsSendingMessageSelector);
   const isClosing = useSelector(getIsClosingTicketSelector);
-  const user = useSelector(selectCurrentUser);
 
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
@@ -401,7 +397,6 @@ export default function SupportPage() {
     : tickets.filter((t) => t.status === statusFilter);
 
   const showConversation = selectedTicketId !== null;
-  const currentUserId = user?.id?.toString() || "";
 
   return (
     <AppLayout>
@@ -424,7 +419,6 @@ export default function SupportPage() {
                 ) : (
                   <ConversationView
                     ticket={currentTicket}
-                    currentUserId={currentUserId}
                     isSending={isSending}
                     isClosing={isClosing}
                     onSendMessage={handleSendMessage}
