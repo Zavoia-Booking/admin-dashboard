@@ -7,9 +7,12 @@ import type {
     CalendarWeekResponse,
     CalendarDayFilters,
     AdminCreateAppointmentPayload,
+    AdminCreateGroupAppointmentPayload,
+    RescheduleGroupPayload,
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
+import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop } from "./types.ts";
 
 export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: boolean; prefill?: AddFormPrefill }>()
@@ -37,6 +40,13 @@ export const fetchLocationContext = createAsyncAction(
     'CALENDAR/LOCATION_CONTEXT/SUCCESS',
     'CALENDAR/LOCATION_CONTEXT/FAILURE',
 )<number, LocationContextData, any>()
+
+/** Fetch location assignment (services + team for selected location). Fired after location context success; stored for sidebar and add form. */
+export const fetchLocationAssignment = createAsyncAction(
+    'CALENDAR/LOCATION_ASSIGNMENT/REQUEST',
+    'CALENDAR/LOCATION_ASSIGNMENT/SUCCESS',
+    'CALENDAR/LOCATION_ASSIGNMENT/FAILURE',
+)<number, { services: LocationService[]; teamMembers: LocationTeamMember[] }, any>()
 
 /** Fetch calendar summary for a date range (month/week overview) */
 export const fetchCalendarSummary = createAsyncAction(
@@ -115,28 +125,40 @@ export const adminCreateAppointment = createAsyncAction(
     'CALENDAR/ADMIN_CREATE/FAILURE',
 )<AdminCreateAppointmentPayload, any, any>()
 
+export const adminCreateAppointmentGroup = createAsyncAction(
+    'CALENDAR/ADMIN_CREATE_GROUP/REQUEST',
+    'CALENDAR/ADMIN_CREATE_GROUP/SUCCESS',
+    'CALENDAR/ADMIN_CREATE_GROUP/FAILURE',
+)<AdminCreateGroupAppointmentPayload, any, any>()
+
+export const rescheduleAppointmentGroup = createAsyncAction(
+    'CALENDAR/RESCHEDULE_GROUP/REQUEST',
+    'CALENDAR/RESCHEDULE_GROUP/SUCCESS',
+    'CALENDAR/RESCHEDULE_GROUP/FAILURE',
+)<{ bookingGroupId: string; payload: RescheduleGroupPayload }, any, any>()
+
 export const updateAppointmentStatus = createAsyncAction(
     'CALENDAR/UPDATE_STATUS/REQUEST',
     'CALENDAR/UPDATE_STATUS/SUCCESS',
     'CALENDAR/UPDATE_STATUS/FAILURE',
 )<{ appointmentId: number; status: string }, any, any>()
 
-/** Offer to retry an update with override after 409 Conflict (set to null to clear). conflictType 'staff_appointment' = do not show override; 'block' or missing = show override. */
+/** Offer to retry an update with override after 409 Conflict (set to null to clear). conflictType 'staff_appointment' = do not show override; 'block' or missing = show override. bookingGroupId: when set, confirm override should call reschedule group API. */
 export const setUpdateConflictOffer = createAction(
     'CALENDAR/UPDATE_CONFLICT_OFFER/SET',
-)<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null>()
+)<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block'; bookingGroupId?: string } | null>()
 
 /** Set/clear pending drag-drop (card preview). Cleared on update success or cancel. */
 export const setCalendarPendingDrop = createAction(
     'CALENDAR/PENDING_DROP/SET',
 )<PendingDrop>()
 
-/** Update appointment (PATCH /appointments/:id — reschedule, reassign, etc.) */
+/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). When rescheduling a group, pass bookingGroupId so conflict offer can use group reschedule. */
 export const updateAppointment = createAsyncAction(
     'CALENDAR/UPDATE_APPOINTMENT/REQUEST',
     'CALENDAR/UPDATE_APPOINTMENT/SUCCESS',
     'CALENDAR/UPDATE_APPOINTMENT/FAILURE',
-)<{ appointmentId: number; data: Record<string, any> }, any, any>()
+)<{ appointmentId: number; data: Record<string, any>; bookingGroupId?: string }, any, any>()
 
 /** Cancel appointment with reason and notification preferences (POST /appointments/:id/cancel) */
 export const cancelAppointment = createAsyncAction(

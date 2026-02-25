@@ -4,6 +4,7 @@ import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
 import { AppointmentViewMode, AppointmentViewType, type CalendarViewState, type AddFormPrefill, type PendingDrop } from "./types.ts";
 import type { Appointment, LocationContextData, DaySummary, DayDataResponse, CalendarWeekResponse, CalendarDayFilters, CalendarBlockDto } from "../../shared/types/calendar.ts";
+import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 import { getWeekStart } from "./utils.ts";
 
 type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
@@ -15,6 +16,10 @@ const initialState: CalendarViewState = {
     selectedLocationId: null,
     locationContext: null,
     locationContextLoading: false,
+    locationAssignmentLoading: false,
+    locationServices: [],
+    locationTeamMembers: [],
+    locationBundles: [],
 
     // --- Summary data ---
     summary: {},
@@ -137,6 +142,9 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         // Clear stale data when switching locations
         locationContext: null,
         locationContextLoading: payload !== null,
+        locationAssignmentLoading: false,
+        locationServices: [],
+        locationTeamMembers: [],
         summary: {},
         dayData: null,
         weekData: null,
@@ -151,7 +159,12 @@ const handleSetLocationContext = (state: CalendarViewState, payload: LocationCon
         ...state,
         locationContext: payload,
         locationContextLoading: false,
-    }
+        // When backend extends location-context with services + teamMembers + bundles, store them so sidebar and add form don't need a second call
+        locationAssignmentLoading: false,
+        locationServices: (payload?.services ?? []) as LocationService[],
+        locationTeamMembers: (payload?.teamMembers ?? []) as LocationTeamMember[],
+        locationBundles: payload?.bundles ?? [],
+    };
 }
 
 const handleSetLocationContextLoading = (state: CalendarViewState, payload: boolean): CalendarViewState => {
@@ -159,6 +172,26 @@ const handleSetLocationContextLoading = (state: CalendarViewState, payload: bool
         ...state,
         locationContextLoading: payload,
     }
+}
+
+const handleLocationAssignmentRequest = (state: CalendarViewState): CalendarViewState => {
+    return { ...state, locationAssignmentLoading: true };
+}
+
+const handleLocationAssignmentSuccess = (
+    state: CalendarViewState,
+    payload: { services: LocationService[]; teamMembers: LocationTeamMember[] },
+): CalendarViewState => {
+    return {
+        ...state,
+        locationAssignmentLoading: false,
+        locationServices: payload.services ?? [],
+        locationTeamMembers: payload.teamMembers ?? [],
+    };
+}
+
+const handleLocationAssignmentFailure = (state: CalendarViewState): CalendarViewState => {
+    return { ...state, locationAssignmentLoading: false };
 }
 
 const handleSetSummary = (state: CalendarViewState, payload: Record<string, DaySummary>): CalendarViewState => {
@@ -261,7 +294,7 @@ const handleSetStaffFilter = (state: CalendarViewState, payload: number[]): Cale
     }
 }
 
-const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: { appointmentId: number; data: Record<string, unknown>; message: string } | null): CalendarViewState => {
+const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block'; bookingGroupId?: string } | null): CalendarViewState => {
     return { ...state, updateConflictOffer: payload };
 }
 
@@ -299,6 +332,13 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetLocationContext(state, action.payload);
         case getType(actions.fetchLocationContext.failure):
             return handleSetLocationContextLoading(state, false);
+
+        case getType(actions.fetchLocationAssignment.request):
+            return handleLocationAssignmentRequest(state);
+        case getType(actions.fetchLocationAssignment.success):
+            return handleLocationAssignmentSuccess(state, action.payload);
+        case getType(actions.fetchLocationAssignment.failure):
+            return handleLocationAssignmentFailure(state);
 
         case getType(actions.fetchCalendarSummary.request):
             return handleSetSummaryLoading(state, true);

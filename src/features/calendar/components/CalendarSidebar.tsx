@@ -2,11 +2,9 @@ import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "reac
 import { useDispatch, useSelector } from "react-redux";
 import { LocationSelector } from "./LocationSelector.tsx";
 import { MiniMonthCalendar } from "./MiniMonthCalendar.tsx";
-import { getLocationStaff, getStaffFilter, getDayFilters, getSelectedLocationId } from "../selectors.ts";
+import { getLocationStaff, getStaffFilter, getDayFilters, getSelectedLocationId, getLocationServices, getLocationAssignmentLoading } from "../selectors.ts";
 import { setStaffFilter, setDayFiltersAction } from "../actions.ts";
 import type { CalendarStaffMember, CalendarDayFilters } from "../../../shared/types/calendar.ts";
-import { fetchLocationFullAssignmentRequest } from "../../assignments/api.ts";
-import type { LocationService } from "../../assignments/types.ts";
 import { User, Search, X, Check, ChevronDown } from "lucide-react";
 import { Label } from "../../../shared/components/ui/label.tsx";
 import {
@@ -214,26 +212,13 @@ const CalendarFilters: FC = () => {
     const selectedLocationId = useSelector(getSelectedLocationId);
     const dayFilters = useSelector(getDayFilters);
     const staffFilter = useSelector(getStaffFilter);
+    const locationServices = useSelector(getLocationServices);
+    const servicesLoading = useSelector(getLocationAssignmentLoading);
     const [customerSearch, setCustomerSearch] = useState(dayFilters.clientName ?? '');
-    const [locationServices, setLocationServices] = useState<LocationService[]>([]);
-    const [servicesLoading, setServicesLoading] = useState(false);
     const dayFiltersRef = useRef(dayFilters);
     dayFiltersRef.current = dayFilters;
 
     const activeStatus = dayFilters.status ?? null;
-
-    // Load services for the selected location (for service filter)
-    useEffect(() => {
-        if (!selectedLocationId) {
-            setLocationServices([]);
-            return;
-        }
-        setServicesLoading(true);
-        fetchLocationFullAssignmentRequest(selectedLocationId)
-            .then((data) => setLocationServices(data.services ?? []))
-            .catch(() => setLocationServices([]))
-            .finally(() => setServicesLoading(false));
-    }, [selectedLocationId]);
 
     // Sync local search from Redux when filters are cleared or set externally
     useEffect(() => {

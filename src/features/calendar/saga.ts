@@ -12,6 +12,8 @@ import {
     setDisplayedWeekAction,
     setViewModeAction,
     adminCreateAppointment,
+    adminCreateAppointmentGroup,
+    rescheduleAppointmentGroup,
     updateAppointmentStatus,
     updateAppointment,
     setUpdateConflictOffer,
@@ -26,6 +28,8 @@ import {
     getDayDataRequest,
     getWeekDataRequest,
     adminCreateAppointmentRequest,
+    adminCreateAppointmentGroupRequest,
+    rescheduleGroupRequest,
     updateAppointmentRequest,
     cancelAppointmentRequest,
     createCalendarBlockRequest,
@@ -89,7 +93,8 @@ function* handleSetSelectedLocation(action: ActionType<typeof setSelectedLocatio
 }
 
 /**
- * Fetch location context (working hours, staff, booking settings).
+ * Fetch location context (working hours, staff, booking settings, and when extended: services + teamMembers).
+ * Single call per location; reducer stores both context and assignment data from the response.
  */
 function* handleFetchLocationContext(action: ActionType<typeof fetchLocationContext.request>): Generator<any, void, any> {
     try {
@@ -348,6 +353,32 @@ function* handleAdminCreateAppointment(action: ActionType<typeof adminCreateAppo
     }
 }
 
+function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreateAppointmentGroup.request>): Generator<any, void, any> {
+    try {
+        const result: any = yield call(adminCreateAppointmentGroupRequest, action.payload);
+        yield put(adminCreateAppointmentGroup.success(result));
+        yield call(refreshCalendarData);
+        const count = result?.appointments?.length ?? 1;
+        toast.success(count > 1 ? `Booking group created (${count} items)` : 'Booking created');
+    } catch (error: any) {
+        yield put(adminCreateAppointmentGroup.failure(error));
+        toast.error(error?.response?.data?.message || 'Failed to create booking group');
+    }
+}
+
+function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleAppointmentGroup.request>): Generator<any, void, any> {
+    const { bookingGroupId, payload } = action.payload;
+    try {
+        const result: any = yield call(rescheduleGroupRequest, bookingGroupId, payload);
+        yield put(rescheduleAppointmentGroup.success(result));
+        yield call(refreshCalendarData);
+        toast.success('Booking group rescheduled');
+    } catch (error: any) {
+        yield put(rescheduleAppointmentGroup.failure(error));
+        toast.error(error?.response?.data?.message || 'Failed to reschedule group');
+    }
+}
+
 function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointmentStatus.request>): Generator<any, void, any> {
     const { appointmentId, status } = action.payload;
 
@@ -378,7 +409,7 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
             const raw = error?.response?.data?.message;
             const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? 'Time slot not available') : (raw || 'Time slot not available');
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
-            yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType }));
+            yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType, bookingGroupId: action.payload.bookingGroupId }));
             if (conflictType === 'staff_appointment') {
                 toast.error('This team member already has an appointment at this time. Choose another time or team member.');
             } else {
@@ -470,6 +501,8 @@ export function* calendarSaga(): Generator<any, void, any> {
 
         // Admin appointment CRUD
         takeLatest(adminCreateAppointment.request, handleAdminCreateAppointment),
+        takeLatest(adminCreateAppointmentGroup.request, handleAdminCreateAppointmentGroup),
+        takeLatest(rescheduleAppointmentGroup.request, handleRescheduleAppointmentGroup),
         takeLatest(updateAppointmentStatus.request, handleUpdateAppointmentStatus),
         takeLatest(updateAppointment.request, handleUpdateAppointment),
         takeLatest(cancelAppointment.request, handleCancelAppointment),

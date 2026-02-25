@@ -1,8 +1,8 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
-import { AppointmentViewMode } from "./types.ts";
+import { AppointmentViewMode, type CalendarViewState } from "./types.ts";
 import { getWeekStart, toLocalDateString } from "./utils.ts";
-import type { CalendarBlockDto } from "../../shared/types/calendar.ts";
+import type { CalendarBlockDto, SlimAppointment, CalendarDisplayBlock } from "../../shared/types/calendar.ts";
 
 /** True if block's time range overlaps the given date (YYYY-MM-DD). */
 export function blockOverlapsDate(block: CalendarBlockDto, dateKey: string): boolean {
@@ -61,6 +61,11 @@ export const getLocationStaff = createSelector(getLocationContext, (context) => 
     return context?.staff ?? [];
 })
 
+/** True when the selected location has at least one team member (for location-only vs team-based availability). */
+export const getHasTeamMembersAtLocation = createSelector(getLocationContext, (context) => {
+    return (context?.staff?.length ?? 0) > 0;
+})
+
 /** Working hours for the selected location */
 export const getLocationWorkingHours = createSelector(getLocationContext, (context) => {
     return context?.location.workingHours ?? null;
@@ -74,6 +79,26 @@ export const getLocationOpen247 = createSelector(getLocationContext, (context) =
 /** Booking settings for the business */
 export const getBookingSettings = createSelector(getLocationContext, (context) => {
     return context?.bookingSettings ?? null;
+})
+
+/** Location assignment (services + team) loading — from GET /assignments/locations/:id/full */
+export const getLocationAssignmentLoading = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.locationAssignmentLoading ?? false;
+})
+
+/** Services enabled at the selected location (from assignments full). */
+export const getLocationServices = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.locationServices ?? [];
+})
+
+/** Team members assigned to the selected location (from assignments full). */
+export const getLocationTeamMembers = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.locationTeamMembers ?? [];
+})
+
+/** Bundles enabled at the selected location (from GET /calendar/location-context). */
+export const getLocationBundles = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.locationBundles ?? [];
 })
 
 /** Calendar summary data (keyed by "YYYY-MM-DD") */
@@ -102,6 +127,72 @@ export const getSelectedDate = createSelector(getCalendarViewStateSelector, (sta
 /** Day-level appointments from the day data response */
 export const getDayAppointments = createSelector(getDayData, (dayData) => {
     return dayData?.appointments ?? [];
+})
+
+/**
+/**
+ * Convert raw appointments to display blocks (one per booking group or single appointment).
+ * Shared for day and week view so grouped bookings show as one combined block.
+ */
+export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): CalendarDisplayBlock[] {
+    if (!appointments?.length) return [];
+    const byGroup = new Map<string | null, SlimAppointment[]>();
+    for (const a of appointments) {
+        const key = a.bookingGroupId ?? null;
+        if (!byGroup.has(key)) byGroup.set(key, []);
+        byGroup.get(key)!.push(a);
+    }
+    const blocks: CalendarDisplayBlock[] = [];
+    for (const [, group] of byGroup) {
+        if (group.length === 0) continue;
+        if (group.length === 1) {
+            const a = group[0];
+            blocks.push({
+                type: 'single',
+                id: a.id,
+                appointmentIds: [a.id],
+                start: a.scheduledAt,
+                end: a.endsAt,
+                status: a.status,
+                label: a.bookedItemName,
+                duration: a.duration,
+                staffUserIds: a.staffUserIds || [],
+                customerName: a.customerName,
+                bookingSource: a.bookingSource,
+                isUnassigned: a.isUnassigned,
+                overrideReason: a.overrideReason,
+                bookingGroupId: a.bookingGroupId ?? undefined,
+            });
+        } else {
+            const sorted = [...group].sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
+            const start = sorted[0].scheduledAt;
+            const end = sorted[sorted.length - 1].endsAt;
+            const label = sorted.map((a) => a.bookedItemName).join(' + ');
+            const first = sorted[0];
+            blocks.push({
+                type: 'group',
+                id: first.id,
+                appointmentIds: sorted.map((a) => a.id),
+                start,
+                end,
+                status: first.status,
+                label,
+                duration: Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000),
+                staffUserIds: first.staffUserIds || [],
+                customerName: first.customerName,
+                bookingSource: first.bookingSource,
+                isUnassigned: first.isUnassigned,
+                overrideReason: first.overrideReason,
+                bookingGroupId: first.bookingGroupId ?? undefined,
+            });
+        }
+    }
+    return blocks.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
+}
+
+/** Day appointments grouped for display (uses appointmentsToDisplayBlocks). */
+export const getDayDisplayBlocks = createSelector(getDayAppointments, (appointments: SlimAppointment[]): CalendarDisplayBlock[] => {
+    return appointmentsToDisplayBlocks(appointments ?? []);
 })
 
 /** Optimistic blocks (created this session, cleared on next day/week fetch). */
@@ -210,9 +301,10 @@ export const getStaffFilter = createSelector(getCalendarViewStateSelector, (stat
 })
 
 /** Pending 409 conflict offer (retry update with override). */
-export const getUpdateConflictOffer = createSelector(getCalendarViewStateSelector, (state) => {
-    return state.updateConflictOffer;
-})
+export const getUpdateConflictOffer = createSelector(
+    getCalendarViewStateSelector,
+    (state: CalendarViewState): CalendarViewState['updateConflictOffer'] => state.updateConflictOffer,
+)
 
 export const getPendingDrop = createSelector(getCalendarViewStateSelector, (state) => {
     return state.pendingDrop;

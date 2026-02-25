@@ -1,22 +1,22 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction } from "../actions";
+import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction, setSelectedLocationAction } from "../actions";
 import {
   getAddFormSelector,
   getEditFormSelector,
   getViewModeSelector,
   getSidebarOpen,
+  getSelectedLocationId,
+  getLocationContext,
 } from "../selectors.ts";
 import { AppointmentViewMode } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
-import { getServicesAction } from "../../services/actions.ts";
 import { listLocationsAction } from "../../locations/actions.ts";
-import { listTeamMembersAction } from "../../teamMembers/actions.ts";
 import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
@@ -30,6 +30,9 @@ const Calendar = () => {
   const editForm = useSelector(getEditFormSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
   const sidebarOpen = useSelector(getSidebarOpen);
+  const selectedLocationId = useSelector(getSelectedLocationId);
+  const locationContext = useSelector(getLocationContext);
+  const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
@@ -39,12 +42,21 @@ const Calendar = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    // Fetch supporting data - locations needed for LocationSelector,
-    // team members + services for filters/forms
-    dispatch(listLocationsAction.request())
-    dispatch(listTeamMembersAction.request())
-    dispatch(getServicesAction.request())
+    // Locations needed for LocationSelector. Services and team are loaded per-location via assignments/full when a location is selected.
+    dispatch(listLocationsAction.request());
   }, [dispatch]);
+
+  // Refetch location context and current view when re-entering the calendar (already have a selected location and cached context)
+  useEffect(() => {
+    if (
+      selectedLocationId != null &&
+      locationContext != null &&
+      !hasRefetchedOnEnter.current
+    ) {
+      hasRefetchedOnEnter.current = true;
+      dispatch(setSelectedLocationAction(selectedLocationId));
+    }
+  }, [dispatch, selectedLocationId, locationContext]);
 
   const handleCloseAddForm = useCallback(() => {
     dispatch(toggleAddForm({ open: false }))

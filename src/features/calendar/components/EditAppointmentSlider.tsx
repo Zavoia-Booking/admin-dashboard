@@ -27,6 +27,7 @@ import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateAppointmentStatus, cancelAppointment, updateAppointment, toggleAddForm } from '../actions';
 import { getLocationStaff, getBookingSettings } from '../selectors';
+import { getAppointmentGroupRequest } from '../api';
 import { formatTimeRange, getStaffDisplayNames, getStatusBadge } from './utils';
 import type { Appointment } from '../../../shared/types/calendar';
 import { selectIsTeamMember } from '../../auth/selectors';
@@ -68,6 +69,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   // Loading state for actions
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
+  // Group appointments (when this appointment is part of a booking group)
+  const [groupAppointments, setGroupAppointments] = useState<Appointment[] | null>(null);
+  const [groupLoading, setGroupLoading] = useState(false);
+
   // Reset state when slider closes
   useEffect(() => {
     if (!isOpen) {
@@ -77,8 +82,24 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       setNotificationMethod('both');
       setConfirmDialog({ open: false, type: null, title: '', description: '' });
       setActionLoading(null);
+      setGroupAppointments(null);
     }
   }, [isOpen]);
+
+  // Fetch full group when opening edit for an appointment that belongs to a group
+  useEffect(() => {
+    const bookingGroupId = (appointment as { bookingGroupId?: string | null })?.bookingGroupId;
+    if (!isOpen || !appointment || !bookingGroupId) {
+      setGroupAppointments(null);
+      return;
+    }
+    setGroupLoading(true);
+    setGroupAppointments(null);
+    getAppointmentGroupRequest(bookingGroupId)
+      .then((list) => setGroupAppointments(Array.isArray(list) ? list : []))
+      .catch(() => setGroupAppointments([]))
+      .finally(() => setGroupLoading(false));
+  }, [isOpen, appointment?.id, (appointment as { bookingGroupId?: string | null })?.bookingGroupId]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data from appointment
@@ -196,6 +217,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       open: true,
       prefill: {
         appointmentId: appointment.id,
+        bookingGroupId: (appointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
         date: new Date(appointment.scheduledAt),
         time: (() => {
           const d = new Date(appointment.scheduledAt);
@@ -217,14 +239,26 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   // Reassign staff via popover
   const [reassignOpen, setReassignOpen] = useState(false);
 
-  const handleReassignStaff = (staffId: number | null) => {
+  const handleReassignStaff = (staffId: number) => {
     if (!appointment) return;
     setActionLoading('reassign');
     dispatch(updateAppointment.request({
       appointmentId: appointment.id,
-      data: { staffUserIds: staffId ? [staffId] : [] },
+      data: { staffUserIds: [staffId] },
+      bookingGroupId: (appointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
     }));
     setReassignOpen(false);
+    setActionLoading(null);
+    onClose();
+  };
+
+  const handleReassignGroupRow = (rowAppointment: Appointment, staffId: number) => {
+    setActionLoading('reassign');
+    dispatch(updateAppointment.request({
+      appointmentId: rowAppointment.id,
+      data: { staffUserIds: [staffId] },
+      bookingGroupId: (rowAppointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
+    }));
     setActionLoading(null);
     onClose();
   };
@@ -304,47 +338,115 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
               ) : (
                 <div />
               )}
-              <Popover open={reassignOpen} onOpenChange={setReassignOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1 text-xs"
-                    disabled={actionLoading !== null}
-                  >
-                    <UserCog className="h-3 w-3" />
-                    Reassign
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-1 z-[80]" align="start">
-                  <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">
-                    Select staff member
-                  </div>
-                  <button
-                    className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors"
-                    onClick={() => handleReassignStaff(null)}
-                  >
-                    Unassigned
-                  </button>
-                  {locationStaff.map((staff) => (
-                    <button
-                      key={staff.id}
-                      className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center gap-2"
-                      onClick={() => handleReassignStaff(staff.id)}
+              {locationStaff.length > 0 && (
+                <Popover open={reassignOpen} onOpenChange={setReassignOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex items-center gap-1 text-xs"
+                      disabled={actionLoading !== null}
                     >
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={staff.profileImage ?? undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {staff.firstName[0]}{staff.lastName[0]}
-                        </AvatarFallback>
-                      </Avatar>
-                      {staff.firstName} {staff.lastName}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
+                      <UserCog className="h-3 w-3" />
+                      Reassign
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-1 z-[80]" align="start">
+                    <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">
+                      Select staff member
+                    </div>
+                    {locationStaff.map((staff) => (
+                      <button
+                        key={staff.id}
+                        type="button"
+                        className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center gap-2"
+                        onClick={() => handleReassignStaff(staff.id)}
+                      >
+                        <Avatar className="h-5 w-5">
+                          <AvatarImage src={staff.profileImage ?? undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {staff.firstName[0]}{staff.lastName[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        {staff.firstName} {staff.lastName}
+                      </button>
+                    ))}
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
+        )}
+
+        {/* Booking group breakdown (when this appointment is part of a multi-item group) */}
+        {groupLoading && (
+          <div className="py-3 px-4 text-sm text-muted-foreground">Loading group...</div>
+        )}
+        {!groupLoading && groupAppointments && groupAppointments.length > 1 && (
+          <Card className="border-0 shadow-sm bg-card/70">
+            <CardContent className="py-4 space-y-3">
+              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
+                <div className="p-2 rounded-xl bg-primary/10">
+                  <Users className="h-4 w-4 text-primary" />
+                </div>
+                <h3 className="text-sm font-semibold text-foreground">Booking group ({groupAppointments.length} items)</h3>
+              </div>
+              <ul className="space-y-2">
+                {groupAppointments.map((row) => {
+                  const rowStaffIds = row.teamMembers?.map((tm: any) => tm?.id ?? tm) ?? [];
+                  const rowStaffNames = getStaffDisplayNames(rowStaffIds, locationStaff);
+                  const rowItemName = (row as { bookedItemName?: string }).bookedItemName ?? row.service?.name ?? 'Service';
+                  return (
+                    <li
+                      key={row.id}
+                      className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg bg-muted/40 border border-border/50"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="font-medium text-sm truncate">{rowItemName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatTimeRange(
+                            new Date(row.scheduledAt).toISOString(),
+                            new Date(row.endsAt).toISOString(),
+                          )}
+                          {' · '}
+                          {rowStaffNames || 'Unassigned'}
+                        </div>
+                      </div>
+                      {!isTerminal && locationStaff.length > 0 && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="shrink-0 text-xs h-8" disabled={actionLoading !== null}>
+                              <UserCog className="h-3 w-3 mr-1" />
+                              Reassign
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-56 p-1 z-[80]" align="end">
+                            <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">Select staff</div>
+                            {locationStaff.map((staff) => (
+                              <button
+                                key={staff.id}
+                                type="button"
+                                className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center gap-2"
+                                onClick={() => handleReassignGroupRow(row, staff.id)}
+                              >
+                                <Avatar className="h-5 w-5">
+                                  <AvatarImage src={staff.profileImage ?? undefined} />
+                                  <AvatarFallback className="text-[10px]">
+                                    {staff.firstName[0]}{staff.lastName[0]}
+                                  </AvatarFallback>
+                                </Avatar>
+                                {staff.firstName} {staff.lastName}
+                              </button>
+                            ))}
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          </Card>
         )}
 
         {/* Terminal status banner */}
@@ -556,6 +658,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
             <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4">
+                {(appointment as { bookingGroupId?: string | null })?.bookingGroupId && (
+                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                    This will cancel the entire booking (all items in this group).
+                  </p>
+                )}
                 <div>
                   <Label htmlFor="cancelReason" className="text-base font-medium">
                     Reason for cancellation

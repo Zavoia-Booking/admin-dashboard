@@ -42,6 +42,49 @@ export function getTimeSlotsForDay(intervalMinutes: number): string[] {
 }
 
 /**
+ * Slot start minutes in [startMinutes, endMinutes) at the given interval.
+ * Used by the calendar grid to build slot rows (e.g. 15-min slots in working hours range).
+ */
+export function getSlotStartsInRange(
+  startMinutes: number,
+  endMinutes: number,
+  intervalMinutes: number
+): number[] {
+  if (startMinutes >= endMinutes || intervalMinutes <= 0) return [];
+  const slots: number[] = [];
+  const firstSlot = Math.ceil(startMinutes / intervalMinutes) * intervalMinutes;
+  for (let m = firstSlot; m < endMinutes; m += intervalMinutes) {
+    slots.push(m);
+  }
+  return slots;
+}
+
+const MIN_APPOINTMENT_HEIGHT_PX = 24;
+
+/**
+ * Convert appointment time range (ISO start/end) to grid position (top, height in px).
+ * Single source of truth for calendar grid and DraggableAppointmentBlock so they stay in sync.
+ */
+export function getTimePositionForGrid(
+  isoStart: string,
+  isoEnd: string,
+  gridStartMinutes: number,
+  intervalMinutes: number,
+  slotHeight: number
+): { top: number; height: number } {
+  const start = new Date(isoStart);
+  const end = new Date(isoEnd);
+  const startMinutes = start.getHours() * 60 + start.getMinutes();
+  const endMinutes = end.getHours() * 60 + end.getMinutes();
+  const top = ((startMinutes - gridStartMinutes) / intervalMinutes) * slotHeight;
+  const height = Math.max(
+    ((endMinutes - startMinutes) / intervalMinutes) * slotHeight,
+    MIN_APPOINTMENT_HEIGHT_PX
+  );
+  return { top, height };
+}
+
+/**
  * Get open/close of a day in minutes (0–1440).
  * Returns null if open247 or day is closed (isOpen false).
  */
