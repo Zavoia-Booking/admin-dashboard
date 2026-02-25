@@ -10,20 +10,10 @@ import type { SlimAppointment } from "../../../shared/types/calendar.ts";
 import { getAppointmentDetailRequest } from "../api.ts";
 import { toggleEditFormAction } from "../actions.ts";
 import { AppointmentBlock } from "./AppointmentBlock.tsx";
+import { getTimePositionForGrid } from "../workingHours.ts";
 
 const HOUR_HEIGHT = 80;
 const GRID_START_HOUR = 6;
-
-function getTimePosition(isoStart: string, isoEnd: string): { top: number; height: number } {
-  const start = new Date(isoStart);
-  const end = new Date(isoEnd);
-  const startMinutes = start.getHours() * 60 + start.getMinutes();
-  const endMinutes = end.getHours() * 60 + end.getMinutes();
-  const gridStartMinutes = GRID_START_HOUR * 60;
-  const top = ((startMinutes - gridStartMinutes) / 60) * HOUR_HEIGHT;
-  const height = Math.max(((endMinutes - startMinutes) / 60) * HOUR_HEIGHT, 24);
-  return { top, height };
-}
 
 export type AppointmentDragData = {
   type: "appointment";
@@ -37,6 +27,8 @@ export type TimeSlotDropData = {
   columnId: number;
   dateKey: string;
   hour: number;
+  /** Slot start minute (0, 15, 30, 45 for 15-min grid). Default 0 for hour-only slots. */
+  minute?: number;
 };
 
 export type StaffColumnDropData = {
@@ -51,6 +43,10 @@ interface DraggableAppointmentBlockProps {
   dateKey: string;
   leftPercent?: number;
   widthPercent?: number;
+  /** When set, use interval-based grid positioning (from workingHours.getTimePositionForGrid). */
+  gridStartMinutes?: number;
+  intervalMinutes?: number;
+  slotHeight?: number;
 }
 
 export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
@@ -59,6 +55,9 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
   dateKey,
   leftPercent,
   widthPercent,
+  gridStartMinutes,
+  intervalMinutes,
+  slotHeight,
 }) => {
   const dispatch = useDispatch();
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -80,7 +79,26 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
     }
   }, [dispatch, appointment.id]);
 
-  const pos = getTimePosition(appointment.scheduledAt, appointment.endsAt);
+  const pos =
+    gridStartMinutes != null && intervalMinutes != null && slotHeight != null
+      ? getTimePositionForGrid(
+          appointment.scheduledAt,
+          appointment.endsAt,
+          gridStartMinutes,
+          intervalMinutes,
+          slotHeight
+        )
+      : (() => {
+          const start = new Date(appointment.scheduledAt);
+          const end = new Date(appointment.endsAt);
+          const startMinutes = start.getHours() * 60 + start.getMinutes();
+          const endMinutes = end.getHours() * 60 + end.getMinutes();
+          const gs = GRID_START_HOUR * 60;
+          return {
+            top: ((startMinutes - gs) / 60) * HOUR_HEIGHT,
+            height: Math.max(((endMinutes - startMinutes) / 60) * HOUR_HEIGHT, 24),
+          };
+        })();
   const wrapperStyle: React.CSSProperties = {
     position: "absolute",
     top: pos.top,
@@ -131,8 +149,11 @@ interface DroppableSlotProps {
   columnId: number;
   dateKey: string;
   hour: number;
+  /** Slot start minute (0, 15, 30, 45 for 15-min grid). Default 0. */
+  minute?: number;
   isOutsideHours: boolean;
-  onSlotClick?: (hour: number) => void;
+  slotHeight?: number;
+  onSlotClick?: (hour: number, minute?: number) => void;
 }
 
 export const DroppableSlot: FC<DroppableSlotProps> = ({
@@ -140,23 +161,26 @@ export const DroppableSlot: FC<DroppableSlotProps> = ({
   columnId,
   dateKey,
   hour,
+  minute = 0,
   isOutsideHours,
+  slotHeight = HOUR_HEIGHT,
   onSlotClick,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
-    data: { type: "time-slot", columnId, dateKey, hour } satisfies TimeSlotDropData,
+    data: { type: "time-slot", columnId, dateKey, hour, minute } satisfies TimeSlotDropData,
   });
+  const isHourBoundary = minute === 0;
   return (
     <div
       ref={setNodeRef}
-      className={`border-b border-dashed border-border ${isOver ? "ring-2 ring-primary/50 bg-primary/10" : ""} ${
+      className={`${isHourBoundary ? "border-b border-border" : "border-b border-dashed border-border/60"} ${isOver ? "ring-2 ring-primary/50 bg-primary/10" : ""} ${
         isOutsideHours
           ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
           : "cursor-pointer hover:bg-primary/5 transition-colors"
       }`}
-      style={{ height: HOUR_HEIGHT }}
-      onClick={onSlotClick ? () => onSlotClick(hour) : undefined}
+      style={{ height: slotHeight }}
+      onClick={onSlotClick ? () => onSlotClick(hour, minute) : undefined}
     />
   );
 };

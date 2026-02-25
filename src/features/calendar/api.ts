@@ -6,6 +6,10 @@ import type {
     CalendarWeekResponse,
     CalendarDayFilters,
     AdminCreateAppointmentPayload,
+    AdminCreateGroupAppointmentPayload,
+    RescheduleGroupPayload,
+    AvailableSlotsRequest,
+    AvailableSlotsResponse,
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
@@ -72,10 +76,24 @@ export const getWeekDataRequest = async (
     return data;
 }
 
+/** POST /calendar/available-slots — returns slot start times (ISO) where an appointment can be booked */
+export const getAvailableSlotsRequest = async (
+    payload: AvailableSlotsRequest,
+): Promise<AvailableSlotsResponse> => {
+    const { data } = await apiClient().post<AvailableSlotsResponse>(`/calendar/available-slots`, payload);
+    return data;
+}
+
 /** GET /appointments/:id (existing endpoint, for appointment detail) */
 export const getAppointmentDetailRequest = async (appointmentId: number): Promise<any> => {
     const { data } = await apiClient().get(`/appointments/${appointmentId}`);
     return data;
+}
+
+/** GET /appointments/group/:bookingGroupId (all appointments in a booking group for edit slider) */
+export const getAppointmentGroupRequest = async (bookingGroupId: string): Promise<any[]> => {
+    const { data } = await apiClient().get(`/appointments/group/${bookingGroupId}`);
+    return Array.isArray(data) ? data : [];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -85,6 +103,18 @@ export const getAppointmentDetailRequest = async (appointmentId: number): Promis
 /** POST /appointments/admin-create */
 export const adminCreateAppointmentRequest = async (payload: AdminCreateAppointmentPayload): Promise<any> => {
     const { data } = await apiClient().post(`/appointments/admin-create`, payload);
+    return data;
+}
+
+/** POST /appointments/admin-create-group (multi-service/bundle booking group) */
+export const adminCreateAppointmentGroupRequest = async (payload: AdminCreateGroupAppointmentPayload): Promise<any> => {
+    const { data } = await apiClient().post(`/appointments/admin-create-group`, payload);
+    return data;
+}
+
+/** PUT /appointments/group/:bookingGroupId/reschedule (reschedule whole group) */
+export const rescheduleGroupRequest = async (bookingGroupId: string, payload: RescheduleGroupPayload): Promise<any> => {
+    const { data } = await apiClient().put(`/appointments/group/${bookingGroupId}/reschedule`, payload);
     return data;
 }
 

@@ -39,6 +39,8 @@ export interface Appointment {
   /** Set when admin overrode working hours or conflict. */
   overrideReason?: string;
   overrideUsedAt?: Date | string;
+  /** When set, this appointment is part of a multi-item booking group. */
+  bookingGroupId?: string | null;
 }
 
 export interface AppointmentSection {
@@ -110,6 +112,43 @@ export interface CalendarBookingSettings {
   minAdvanceBookingMinutes: number;
 }
 
+/** Service at location (from GET /calendar/location-context when extended with assignments). */
+export interface LocationContextService {
+  serviceId: number;
+  serviceName: string;
+  category?: { id: number; name: string; color?: string } | null;
+  defaultPrice: number;
+  defaultDisplayPrice: number;
+  defaultDuration: number;
+  customPrice: number | null;
+  customDuration: number | null;
+  staffCount: number;
+  staffWithOverrides: number;
+  /** User IDs who can perform this service at this location (for filtering staff dropdown). */
+  staffIds?: number[];
+}
+
+/** Team member at location (from GET /calendar/location-context when extended with assignments). */
+export interface LocationContextTeamMember {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  email: string;
+  profileImage: string | null;
+  role: string;
+  servicesEnabled: number;
+  overridesCount: number;
+}
+
+/** Bundle at location for calendar context (add form: service or bundle per row). */
+export interface LocationContextBundle {
+  bundleId: number;
+  bundleName: string;
+  serviceIds: number[];
+  durationMinutes: number;
+  staffIds: number[];
+}
+
 export interface LocationContextData {
   location: {
     id: number;
@@ -120,6 +159,11 @@ export interface LocationContextData {
   };
   staff: CalendarStaffMember[];
   bookingSettings: CalendarBookingSettings;
+  /** Set when backend extends location-context with assignment data (services + team per location). */
+  services?: LocationContextService[];
+  teamMembers?: LocationContextTeamMember[];
+  /** Enabled bundles at location (for multi-item add form). */
+  bundles?: LocationContextBundle[];
 }
 
 // --- POST /calendar/summary ---
@@ -160,6 +204,29 @@ export interface SlimAppointment {
   isUnassigned: boolean;
   /** Set when admin overrode working hours or conflict (for grid badge). */
   overrideReason?: string;
+  /** When set, this appointment is part of a multi-item booking group; UI may show as one combined block. */
+  bookingGroupId?: string | null;
+  bookingGroupOrder?: number | null;
+}
+
+/** One display block: either a single appointment or a grouped booking (same bookingGroupId). */
+export interface CalendarDisplayBlock {
+  type: 'single' | 'group';
+  /** For single: one id; for group: first appointment id (for edit/detail). */
+  id: number;
+  /** All appointment ids in this block (for group: all rows; for single: [id]). */
+  appointmentIds: number[];
+  start: string;
+  end: string;
+  status: string;
+  label: string;
+  duration: number;
+  staffUserIds: number[];
+  customerName: string;
+  bookingSource: string;
+  isUnassigned: boolean;
+  overrideReason?: string;
+  bookingGroupId?: string | null;
 }
 
 export interface CalendarBlockDto {
@@ -213,12 +280,42 @@ export interface CalendarBlockUpdatePayload {
   notes?: string;
 }
 
+// --- POST /appointments/admin-create-group ---
+
+export interface AdminCreateGroupItemPayload {
+  serviceId?: number;
+  bundleId?: number;
+  staffUserId: number;
+}
+
+export interface AdminCreateGroupAppointmentPayload {
+  locationId: number;
+  customerId?: number;
+  items: AdminCreateGroupItemPayload[];
+  scheduledAt: string;
+  notes?: string;
+  bookingSource?: AppointmentBookingSource;
+  overrideConflicts?: boolean;
+  allowOutOfHours?: boolean;
+  overrideReason?: string;
+}
+
+// --- PUT /appointments/group/:bookingGroupId/reschedule ---
+
+export interface RescheduleGroupPayload {
+  scheduledAt: string;
+  overrideConflicts?: boolean;
+  allowOutOfHours?: boolean;
+  overrideReason?: string;
+}
+
 // --- POST /appointments/admin-create ---
 
 export interface AdminCreateAppointmentPayload {
   serviceId: number;
   locationId: number;
   customerId?: number;
+  /** Staff to assign. When location has 0 team members use [] (location-only booking). When location has team members, must be non-empty. */
   staffUserIds?: number[];
   scheduledAt: string; // ISO 8601 date string
   notes?: string;
@@ -228,6 +325,20 @@ export interface AdminCreateAppointmentPayload {
   allowOutOfHours?: boolean;
   /** Optional reason when using override or out-of-hours (stored for audit). */
   overrideReason?: string;
+}
+
+// --- POST /calendar/available-slots ---
+
+export interface AvailableSlotsRequest {
+  locationId: number;
+  date: string; // YYYY-MM-DD
+  serviceId?: number;
+  durationMinutes?: number;
+  staffUserId?: number;
+}
+
+export interface AvailableSlotsResponse {
+  availableSlots: string[]; // ISO 8601 date-time strings
 }
 
 // --- Day Filters (for calendar/day endpoint) ---

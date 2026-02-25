@@ -15,22 +15,26 @@ import { Badge } from '../../../shared/components/ui/badge';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { useDispatch, useSelector } from 'react-redux';
-import { adminCreateAppointment, updateAppointment } from '../actions';
+import { adminCreateAppointment, adminCreateAppointmentGroup, updateAppointment, rescheduleAppointmentGroup } from '../actions';
 import {
   getSelectedLocationId,
   getLocationStaff,
+  getHasTeamMembersAtLocation,
   getLocationWorkingHours,
   getLocationOpen247,
   getBookingSettings,
   getSelectedDate,
   getAddFormPrefill,
   getDayBlocks,
+  getLocationServices,
+  getLocationTeamMembers,
+  getLocationBundles,
+  getLocationAssignmentLoading,
+  getLocationContext,
 } from '../selectors';
 import { listCustomersApi, addCustomerApi } from '../../customers/api';
-import { fetchLocationFullAssignmentRequest } from '../../assignments/api';
 import { toast } from 'sonner';
 import type { Customer } from '../../../shared/types/customer';
-import type { LocationService, LocationTeamMember } from '../../assignments/types';
 import type { CalendarStaffMember, AppointmentBookingSource } from '../../../shared/types/calendar';
 import { formatSlotTime, getEndTimeString, getStaffDisplayNameOrUnassigned } from './utils';
 import DatePicker from '../../../shared/components/ui/date-picker';
@@ -39,6 +43,7 @@ import { toLocalDateString } from '../utils';
 import { useTimeSlots } from '../hooks/useTimeSlots';
 import { useWorkingHoursForDate } from '../hooks/useWorkingHoursForDate';
 import { isTimeRangeOutsideWorkingHours, appointmentOverlapsBlocks } from '../workingHours';
+import { getAvailableSlotsRequest } from '../api';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -81,14 +86,21 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // Redux state
   const selectedLocationId = useSelector(getSelectedLocationId);
   const locationStaff = useSelector(getLocationStaff);
+  const hasTeamMembersAtLocation = useSelector(getHasTeamMembersAtLocation);
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
   const bookingSettings = useSelector(getBookingSettings);
   const selectedDate = useSelector(getSelectedDate);
   const prefill = useSelector(getAddFormPrefill);
   const dayBlocks = useSelector(getDayBlocks);
+  const locationServices = useSelector(getLocationServices);
+  const locationTeamMembers = useSelector(getLocationTeamMembers);
+  const locationBundles = useSelector(getLocationBundles);
+  const servicesLoading = useSelector(getLocationAssignmentLoading);
+  const locationContext = useSelector(getLocationContext);
 
   const pendingSubmitRef = useRef<{ payload: Parameters<typeof adminCreateAppointment.request>[0] } | null>(null);
+  const pendingGroupSubmitRef = useRef<Parameters<typeof adminCreateAppointmentGroup.request>[0] | null>(null);
   const pendingUpdateRef = useRef<{ appointmentId: number; data: Record<string, unknown> } | null>(null);
   const rescheduleAppointmentIdRef = useRef<number | null>(null);
 
@@ -116,14 +128,17 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [confirmReason, setConfirmReason] = useState<'out_of_hours' | 'on_block' | null>(null);
   const [overrideReasonText, setOverrideReasonText] = useState('');
 
-  // Services state (loaded from assignments API)
-  const [locationServices, setLocationServices] = useState<LocationService[]>([]);
-  const [locationTeamMembers, setLocationTeamMembers] = useState<LocationTeamMember[]>([]);
-  const [servicesLoading, setServicesLoading] = useState(false);
   const [serviceOpen, setServiceOpen] = useState(false);
 
   // Staff dropdown state
   const [staffOpen, setStaffOpen] = useState(false);
+
+  /** Extra rows for multi-service/bundle group (create only). Each row: exactly one of serviceId or bundleId. First row is form.serviceId + form.staffUserId. */
+  const [groupItems, setGroupItems] = useState<Array<{ serviceId: number | null; bundleId: number | null; staffUserId: number | null }>>([]);
+
+  /** Available slot starts from API (ISO strings); when set, time picker shows only these. */
+  const [availableSlots, setAvailableSlots] = useState<string[] | null>(null);
+  const [availableSlotsLoading, setAvailableSlotsLoading] = useState(false);
 
   // Time picker state
   const [hourOpen, setHourOpen] = useState(false);
@@ -144,7 +159,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         serviceId: prefill?.serviceId ?? null,
         date: prefill?.date ?? selectedDate ?? new Date(),
         time: prefill?.time ?? '',
-        staffUserId: prefill?.staffUserId ?? null,
+        staffUserId: prefill?.staffUserId ?? (locationStaff.length === 1 ? locationStaff[0].id : null),
         notes: prefill?.notes ?? '',
         bookingSource: (prefill?.bookingSource as AppointmentBookingSource) ?? ('admin' as AppointmentBookingSource),
       });
@@ -153,30 +168,36 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setCustomerResults([]);
       setShowQuickCreate(false);
       setQuickCreate({ firstName: '', lastName: '', phone: '', email: '' });
+      setGroupItems([]);
     } else {
       rescheduleAppointmentIdRef.current = null;
     }
-  }, [isOpen, selectedDate, prefill]);
+  }, [isOpen, selectedDate, prefill, locationStaff]);
 
-  // ─────────────────────────────────────────────────────────────
-  // Load services at location when form opens
-  // ─────────────────────────────────────────────────────────────
-
+  // Fetch available slots when location, date, and service are set (create mode only)
+  const locationTimezone = locationContext?.location?.timezone ?? 'UTC';
   useEffect(() => {
-    if (isOpen && selectedLocationId) {
-      setServicesLoading(true);
-      fetchLocationFullAssignmentRequest(selectedLocationId)
-        .then((data) => {
-          setLocationServices(data.services);
-          setLocationTeamMembers(data.teamMembers);
-        })
-        .catch(() => {
-          setLocationServices([]);
-          setLocationTeamMembers([]);
-        })
-        .finally(() => setServicesLoading(false));
+    if (isEditMode || !selectedLocationId || !form.date || !form.serviceId) {
+      setAvailableSlots(null);
+      return;
     }
-  }, [isOpen, selectedLocationId]);
+    const dateStr = toLocalDateString(form.date);
+    setAvailableSlotsLoading(true);
+    setAvailableSlots(null);
+    getAvailableSlotsRequest({
+      locationId: selectedLocationId,
+      date: dateStr,
+      serviceId: form.serviceId,
+      staffUserId: form.staffUserId ?? undefined,
+    })
+      .then((res) => {
+        setAvailableSlots(res.availableSlots ?? []);
+      })
+      .catch(() => setAvailableSlots(null))
+      .finally(() => setAvailableSlotsLoading(false));
+  }, [isEditMode, selectedLocationId, form.date, form.serviceId, form.staffUserId]);
+
+  // Services and team for the selected location come from Redux (fetched once when location is selected via assignments/full).
 
   // ─────────────────────────────────────────────────────────────
   // Customer search (debounced)
@@ -261,11 +282,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setHourOpen(false);
   }, []);
 
-  const handleSelectUnassigned = useCallback(() => {
-    setForm((prev) => ({ ...prev, staffUserId: null }));
-    setStaffOpen(false);
-  }, []);
-
   const handleSelectStaff = useCallback((staffId: number) => {
     setForm((prev) => ({ ...prev, staffUserId: staffId }));
     setStaffOpen(false);
@@ -303,19 +319,38 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // Eligible staff: staff at this location who can perform the selected service
   const eligibleStaff = useMemo<CalendarStaffMember[]>(() => {
     if (!form.serviceId || locationTeamMembers.length === 0) return locationStaff;
-    // Find which team members have services enabled for the selected service
+    // When backend provides staffIds per service (from context), filter to those staff only
+    const serviceStaffIds = selectedService?.staffIds;
+    if (serviceStaffIds?.length) {
+      const idSet = new Set(serviceStaffIds);
+      return locationStaff.filter((s) => idSet.has(s.id));
+    }
     const eligibleUserIds = new Set(
       locationTeamMembers
-        .filter((tm) => tm.servicesEnabled > 0) // has at least some services
+        .filter((tm) => tm.servicesEnabled > 0)
         .map((tm) => tm.userId),
     );
-    // For now, show all location staff since we don't have per-service-per-staff data
-    // in the LocationTeamMember summary. The backend validates eligibility on create.
     return locationStaff.filter((s) => eligibleUserIds.has(s.id) || eligibleUserIds.size === 0);
-  }, [form.serviceId, locationStaff, locationTeamMembers]);
+  }, [form.serviceId, locationStaff, locationTeamMembers, selectedService]);
 
   // Working hours for the selected date
   const timeSlots = useTimeSlots(bookingSettings?.slotIntervalMinutes);
+  const displayTimeSlots = useMemo(() => {
+    if (availableSlots == null || availableSlots.length === 0) return timeSlots;
+    const tz = locationTimezone || 'UTC';
+    const times = availableSlots.map((iso) =>
+      new Date(iso).toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }),
+    );
+    return [...new Set(times)].sort();
+  }, [availableSlots, timeSlots, locationTimezone]);
+
+  // When we switch to showing only available slots, clear time if current selection is not in the list
+  useEffect(() => {
+    if (availableSlots != null && availableSlots.length > 0 && form.time && !displayTimeSlots.includes(form.time)) {
+      setForm((prev) => ({ ...prev, time: '' }));
+    }
+  }, [availableSlots, displayTimeSlots, form.time]);
+
   const { dayWorkingHours, isSlotOutsideHours } = useWorkingHoursForDate(
     form.date,
     workingHours,
@@ -329,11 +364,24 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   // Submit
   // ─────────────────────────────────────────────────────────────
 
+  const isMultiItemCreate = !isEditMode && groupItems.length > 0;
+  const allCreateItemsValid = useMemo(() => {
+    const first = form.serviceId !== null && (!hasTeamMembersAtLocation || form.staffUserId !== null);
+    if (!first) return false;
+    return groupItems.every((row) => {
+      const hasService = row.serviceId != null;
+      const hasBundle = row.bundleId != null;
+      if (!hasService && !hasBundle) return false;
+      if (hasService && hasBundle) return false;
+      return row.staffUserId !== null || !hasTeamMembersAtLocation;
+    });
+  }, [form.serviceId, form.staffUserId, groupItems, hasTeamMembersAtLocation]);
+
   const canSubmit =
-    form.serviceId !== null &&
     form.date !== null &&
     form.time !== '' &&
-    selectedLocationId !== null;
+    selectedLocationId !== null &&
+    (isMultiItemCreate ? allCreateItemsValid : (form.serviceId !== null && (!hasTeamMembersAtLocation || form.staffUserId !== null)));
 
   const doCreateAppointment = useCallback(() => {
     const pending = pendingSubmitRef.current;
@@ -361,11 +409,25 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setSubmitting(true);
     setError(null);
     const reason = overrideReasonText.trim() || undefined;
+    const dataWithOverride = { ...pending.data, overrideReason: reason };
     try {
-      dispatch(updateAppointment.request({
-        appointmentId: pending.appointmentId,
-        data: { ...pending.data, overrideReason: reason },
-      }));
+      if (prefill?.bookingGroupId && pending.data?.scheduledAt) {
+        dispatch(rescheduleAppointmentGroup.request({
+          bookingGroupId: prefill.bookingGroupId,
+          payload: {
+            scheduledAt: typeof pending.data.scheduledAt === 'string' ? pending.data.scheduledAt : '',
+            overrideConflicts: !!pending.data.overrideConflicts,
+            allowOutOfHours: !!pending.data.allowOutOfHours,
+            overrideReason: reason,
+          },
+        }));
+      } else {
+        dispatch(updateAppointment.request({
+          appointmentId: pending.appointmentId,
+          data: dataWithOverride,
+          bookingGroupId: prefill?.bookingGroupId,
+        }));
+      }
       pendingUpdateRef.current = null;
       setConfirmOpen(false);
       setConfirmReason(null);
@@ -376,15 +438,40 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     } finally {
       setSubmitting(false);
     }
+  }, [dispatch, onClose, overrideReasonText, prefill?.bookingGroupId]);
+
+  const doCreateGroupAppointment = useCallback(() => {
+    const pending = pendingGroupSubmitRef.current;
+    if (!pending) return;
+    setSubmitting(true);
+    setError(null);
+    const reason = overrideReasonText.trim() || undefined;
+    try {
+      dispatch(adminCreateAppointmentGroup.request({
+        ...pending,
+        overrideReason: reason,
+      }));
+      pendingGroupSubmitRef.current = null;
+      setConfirmOpen(false);
+      setConfirmReason(null);
+      setOverrideReasonText('');
+      onClose();
+    } catch {
+      setError('Failed to create booking group');
+    } finally {
+      setSubmitting(false);
+    }
   }, [dispatch, onClose, overrideReasonText]);
 
   const handleConfirmOverrides = useCallback(() => {
-    if (pendingSubmitRef.current) doCreateAppointment();
+    if (pendingGroupSubmitRef.current) doCreateGroupAppointment();
+    else if (pendingSubmitRef.current) doCreateAppointment();
     else if (pendingUpdateRef.current) doUpdateAppointment();
-  }, [doCreateAppointment, doUpdateAppointment]);
+  }, [doCreateAppointment, doCreateGroupAppointment, doUpdateAppointment]);
 
   const handleCancelOverrides = useCallback(() => {
     pendingSubmitRef.current = null;
+    pendingGroupSubmitRef.current = null;
     pendingUpdateRef.current = null;
     setConfirmReason(null);
     setOverrideReasonText('');
@@ -403,7 +490,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     const payload = {
       serviceId: form.serviceId!,
       locationId: selectedLocationId,
-      staffUserIds: form.staffUserId !== null ? [form.staffUserId] : undefined,
+      staffUserIds: hasTeamMembersAtLocation ? [form.staffUserId!] : [],
       scheduledAt: scheduledDate.toISOString(),
       notes: form.notes.trim() || undefined,
     };
@@ -432,10 +519,18 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       }
       setSubmitting(true);
       try {
-        dispatch(updateAppointment.request({
-          appointmentId: editingAppointmentId,
-          data: payload,
-        }));
+        if (prefill?.bookingGroupId && payload.scheduledAt) {
+          dispatch(rescheduleAppointmentGroup.request({
+            bookingGroupId: prefill.bookingGroupId,
+            payload: { scheduledAt: payload.scheduledAt },
+          }));
+        } else {
+          dispatch(updateAppointment.request({
+            appointmentId: editingAppointmentId,
+            data: payload,
+            bookingGroupId: prefill?.bookingGroupId,
+          }));
+        }
         onClose();
       } catch {
         setError('Failed to update appointment');
@@ -445,7 +540,60 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       return;
     }
 
-    // Create: check if we need confirmation (out of hours or overlapping a block)
+    // Multi-item create (group)
+    if (isMultiItemCreate) {
+      const firstItem = { serviceId: form.serviceId!, staffUserId: form.staffUserId ?? 0 };
+      const restItems = groupItems.map((row) => {
+        if (row.serviceId != null) {
+          return { serviceId: row.serviceId, staffUserId: row.staffUserId ?? 0 };
+        }
+        return { bundleId: row.bundleId!, staffUserId: row.staffUserId ?? 0 };
+      });
+      const items = [firstItem, ...restItems];
+      const groupPayload = {
+        locationId: selectedLocationId,
+        customerId: form.customerId ?? undefined,
+        items,
+        scheduledAt: scheduledDate.toISOString(),
+        notes: form.notes.trim() || undefined,
+        bookingSource: form.bookingSource,
+      };
+      const totalDurationMinutes = items.reduce((sum, item) => {
+        if ('serviceId' in item && item.serviceId) {
+          const s = locationServices.find((x) => x.serviceId === item.serviceId);
+          return sum + (s ? (s.customDuration ?? s.defaultDuration) : 0);
+        }
+        if ('bundleId' in item && item.bundleId) {
+          const b = locationBundles.find((x) => x.bundleId === item.bundleId);
+          return sum + (b?.durationMinutes ?? 0);
+        }
+        return sum;
+      }, 0);
+      const groupOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, totalDurationMinutes, dayWorkingHours, open247);
+      const groupOnBlock = appointmentOverlapsBlocks(scheduledDate, totalDurationMinutes, blocksToCheck);
+      if (groupOutOfHours || groupOnBlock) {
+        pendingGroupSubmitRef.current = {
+          ...groupPayload,
+          allowOutOfHours: groupOutOfHours,
+          overrideConflicts: groupOnBlock,
+        };
+        setConfirmReason(groupOnBlock ? 'on_block' : 'out_of_hours');
+        setConfirmOpen(true);
+        return;
+      }
+      setSubmitting(true);
+      try {
+        dispatch(adminCreateAppointmentGroup.request(groupPayload));
+        onClose();
+      } catch {
+        setError('Failed to create booking group');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+
+    // Single-item create: check if we need confirmation (out of hours or overlapping a block)
     const isOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247);
     const isOnBlock = appointmentOverlapsBlocks(scheduledDate, durationMinutes, blocksToCheck);
     if (isOutOfHours || isOnBlock) {
@@ -830,20 +978,29 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Time</Label>
-                  {timeSlots.length > 0 ? (
+                  {displayTimeSlots.length > 0 ? (
                     <Popover open={hourOpen} onOpenChange={setHourOpen}>
                       <PopoverTrigger asChild>
                         <Button
                           type="button"
                           variant="outline"
                           className="w-full h-12 text-base justify-between font-normal bg-muted/50 border-0"
+                          disabled={availableSlotsLoading}
                         >
-                          {form.time ? formatSlotTime(form.time) : 'Select time'}
-                          <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          {availableSlotsLoading ? (
+                            <span className="flex items-center gap-2 text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
+                            </span>
+                          ) : form.time ? (
+                            formatSlotTime(form.time)
+                          ) : (
+                            'Select time'
+                          )}
+                          {!availableSlotsLoading && <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="p-0 w-44 max-h-60 overflow-y-auto z-[90]">
-                        {timeSlots.map((slot) => (
+                        {displayTimeSlots.map((slot) => (
                           <button
                             key={slot}
                             type="button"
@@ -861,7 +1018,15 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     </Popover>
                   ) : (
                     <div className="h-12 flex items-center text-sm text-muted-foreground bg-muted/50 rounded-md px-3">
-                      {isClosedDay ? 'Closed' : 'Select a date first'}
+                      {availableSlotsLoading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
+                        </span>
+                      ) : isClosedDay ? (
+                        'Closed'
+                      ) : (
+                        'Select a date and service first'
+                      )}
                     </div>
                   )}
                 </div>
@@ -877,14 +1042,14 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             </div>
 
             {/* ── Staff Section ── */}
-            {locationStaff.length > 0 && (
+            {hasTeamMembersAtLocation ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-3 pb-2 border-b border-border/50">
                   <div className="p-2 rounded-xl bg-primary/10">
                     <User className="h-5 w-5 text-primary" />
                   </div>
                   <h3 className="text-base font-semibold text-foreground">Staff Member</h3>
-                  <span className="text-xs text-muted-foreground">(optional)</span>
+                  <span className="text-xs text-muted-foreground">(required)</span>
                 </div>
                 <Popover open={staffOpen} onOpenChange={setStaffOpen}>
                   <PopoverTrigger asChild>
@@ -893,7 +1058,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       role="combobox"
                       className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
                     >
-                      {getStaffDisplayNameOrUnassigned(form.staffUserId, locationStaff)}
+                      {hasTeamMembersAtLocation && form.staffUserId == null
+                        ? 'Select staff member'
+                        : getStaffDisplayNameOrUnassigned(form.staffUserId, locationStaff)}
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -902,20 +1069,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       <CommandInput placeholder="Search staff..." />
                       <CommandList>
                         <CommandGroup>
-                          {/* Unassigned option */}
-                          <CommandItem
-                            value="unassigned"
-                            onSelect={handleSelectUnassigned}
-                            className="flex items-center gap-3 p-3"
-                          >
-                            <Check
-                              className={cn('h-4 w-4', form.staffUserId === null ? 'opacity-100' : 'opacity-0')}
-                            />
-                            <Badge variant="outline" className="text-orange-600 border-orange-300">
-                              Unassigned
-                            </Badge>
-                          </CommandItem>
-
                           {eligibleStaff.map((staff) => (
                             <CommandItem
                               key={staff.id}
@@ -943,6 +1096,136 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     </Command>
                   </PopoverContent>
                 </Popover>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  No team members at this location — booking at location level.
+                </p>
+              </div>
+            )}
+
+            {/* ── Add another service (create only, multi-item group) ── */}
+            {!isEditMode && hasTeamMembersAtLocation && (
+              <div className="space-y-3">
+                {groupItems.map((row, idx) => {
+                  const serviceForRow = locationServices.find((s) => s.serviceId === row.serviceId);
+                  const bundleForRow = locationBundles.find((b) => b.bundleId === row.bundleId);
+                  const staffForRow = locationTeamMembers.find((t) => t.userId === row.staffUserId);
+                  const eligibleTeamMembersForRow =
+                    serviceForRow?.staffIds?.length
+                      ? locationTeamMembers.filter((t) => serviceForRow.staffIds!.includes(t.userId))
+                      : bundleForRow?.staffIds?.length
+                        ? locationTeamMembers.filter((t) => bundleForRow.staffIds.includes(t.userId))
+                        : locationTeamMembers;
+                  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? `${bundleForRow.bundleName} (bundle)` : 'Service or bundle';
+                  return (
+                    <div key={idx} className="flex items-center gap-2 p-3 rounded-lg bg-muted/40 border border-border/50">
+                      <div className="flex-1 grid grid-cols-2 gap-2 min-w-0">
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-10 justify-between text-sm truncate">
+                              {rowLabel}
+                              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[280px] p-0 z-[80]">
+                            <Command>
+                              <CommandInput placeholder="Search service or bundle..." />
+                              <CommandList>
+                                <CommandGroup>
+                                  {locationServices.map((s) => (
+                                    <CommandItem
+                                      key={`s-${s.serviceId}`}
+                                      value={s.serviceName}
+                                      onSelect={() =>
+                                        setGroupItems((prev) => {
+                                          const next = [...prev];
+                                          next[idx] = { ...next[idx], serviceId: s.serviceId, bundleId: null, staffUserId: next[idx]?.staffUserId ?? null };
+                                          return next;
+                                        })
+                                      }
+                                    >
+                                      {s.serviceName}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                                {locationBundles.length > 0 && (
+                                  <CommandGroup>
+                                    {locationBundles.map((b) => (
+                                      <CommandItem
+                                        key={`b-${b.bundleId}`}
+                                        value={b.bundleName}
+                                        onSelect={() =>
+                                          setGroupItems((prev) => {
+                                            const next = [...prev];
+                                            next[idx] = { ...next[idx], serviceId: null, bundleId: b.bundleId, staffUserId: next[idx]?.staffUserId ?? null };
+                                            return next;
+                                          })
+                                        }
+                                      >
+                                        {b.bundleName} (bundle)
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                )}
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button variant="outline" size="sm" className="h-10 justify-between text-sm truncate">
+                              {staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : 'Staff'}
+                              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-[280px] p-0 z-[80]">
+                            <Command>
+                              <CommandInput placeholder="Search..." />
+                              <CommandList>
+                                {eligibleTeamMembersForRow.map((t) => (
+                                  <CommandItem
+                                    key={t.userId}
+                                    value={`${t.firstName} ${t.lastName}`}
+                                    onSelect={() =>
+                                      setGroupItems((prev) => {
+                                        const next = [...prev];
+                                        next[idx] = { ...next[idx], staffUserId: t.userId };
+                                        return next;
+                                      })
+                                    }
+                                  >
+                                    {t.firstName} {t.lastName}
+                                  </CommandItem>
+                                ))}
+                              </CommandList>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-destructive hover:bg-destructive/10"
+                        onClick={() => setGroupItems((prev) => prev.filter((_, i) => i !== idx))}
+                        aria-label="Remove row"
+                      >
+                        ×
+                      </Button>
+                    </div>
+                  );
+                })}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full border-dashed"
+                  onClick={() => setGroupItems((prev) => [...prev, { serviceId: null, bundleId: null, staffUserId: null }])}
+                >
+                  + Add another service or bundle
+                </Button>
               </div>
             )}
 

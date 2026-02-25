@@ -16,6 +16,8 @@ export type LocationService = {
   // Staff info
   staffCount: number; // how many team members can perform
   staffWithOverrides: number; // how many have custom pricing
+  /** User IDs who can perform this service at this location (from backend context; use to filter staff dropdown). */
+  staffIds?: number[];
 };
 
 // Bundle assigned to a location

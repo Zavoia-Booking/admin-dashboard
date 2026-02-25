@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getDayAppointments,
+  getDayDisplayBlocks,
   getDayBlocks,
   getDayDataLoading,
   getLocationStaff,
@@ -19,17 +20,27 @@ import {
   getWeekViewDisplayStart,
   getOptimisticBlocks,
   blockOverlapsDate,
+  getBookingSettings,
+  appointmentsToDisplayBlocks,
 } from "../selectors.ts";
-import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, setUpdateConflictOffer, setCalendarPendingDrop } from "../actions.ts";
+import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop } from "../actions.ts";
 import { AppointmentViewMode } from "../types.ts";
 import type {
   SlimAppointment,
+  CalendarDisplayBlock,
   CalendarBlockDto,
   CalendarStaffMember,
   DayDataResponse,
 } from "../../../shared/types/calendar.ts";
 import { getWeekStart, toLocalDateString } from "../utils.ts";
-import { getWorkingHoursForDate, getDayOpenCloseHours, isTimeRangeOutsideWorkingHours } from "../workingHours.ts";
+import {
+  getWorkingHoursForDate,
+  getDayOpenCloseHours,
+  getDayOpenCloseMinutes,
+  getSlotStartsInRange,
+  getTimePositionForGrid,
+  isTimeRangeOutsideWorkingHours,
+} from "../workingHours.ts";
 import { AppointmentBlock } from "./AppointmentBlock.tsx";
 import { WeekDayStrip } from "./WeekDayStrip.tsx";
 import { DraggableAppointmentBlock, DroppableSlot } from "./CalendarDnD.tsx";
@@ -54,7 +65,8 @@ import {
   useDroppable,
   useSensors,
   useSensor,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   type DragStartEvent,
   type DragEndEvent,
@@ -68,7 +80,8 @@ import { toast } from "sonner";
 // Constants
 // ─────────────────────────────────────────────────────────────
 
-const HOUR_HEIGHT = 80; // px per hour - taller for better visibility
+const HOUR_HEIGHT = 80; // px per hour (legacy hour-based grid)
+const GRID_HEIGHT_PER_HOUR = 100; // px per hour for 15-min slot grid (→ 25px per slot)
 const GRID_START_HOUR = 6; // 6 AM
 const GRID_END_HOUR = 22; // 10 PM
 const GRID_HOURS = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) => GRID_START_HOUR + i);
@@ -102,6 +115,7 @@ const getTimePosition = (isoStart: string, isoEnd: string) => {
 /**
  * Assign lane index and total lanes for overlapping appointments so they can be shown side-by-side.
  * Returns for each appointment { laneIndex, totalLanes } (0-based lane, 1-based total).
+ * totalLanes is the count of appointments that overlap this one's time range (so a standalone block gets full width).
  */
 function getOverlapLanes(
   appointments: SlimAppointment[],
@@ -121,12 +135,64 @@ function getOverlapLanes(
     while (lane < laneEnds.length && laneEnds[lane] > top) lane++;
     if (lane === laneEnds.length) laneEnds.push(bottom);
     else laneEnds[lane] = bottom;
-    result.set(id, { laneIndex: lane, totalLanes: 0 }); // totalLanes filled below
+    result.set(id, { laneIndex: lane, totalLanes: 0 });
   }
 
-  const totalLanes = laneEnds.length;
-  result.forEach((v) => { v.totalLanes = totalLanes; });
+  // Per appointment: totalLanes = how many appointments overlap this one (so standalone blocks get full width)
+  for (let i = 0; i < indexed.length; i++) {
+    const { id, top, bottom } = indexed[i];
+    let count = 0;
+    for (let j = 0; j < indexed.length; j++) {
+      const o = indexed[j];
+      if (top < o.bottom && bottom > o.top) count++;
+    }
+    const entry = result.get(id);
+    if (entry) entry.totalLanes = count;
+  }
   return result;
+}
+
+/** Group appointments by overlapping time (transitive). Each group has minStart/maxEnd for the span. */
+export interface OverlapGroup {
+  appointments: SlimAppointment[];
+  minStartIso: string;
+  maxEndIso: string;
+}
+
+function getOverlapGroups(appointments: SlimAppointment[]): OverlapGroup[] {
+  if (appointments.length === 0) return [];
+  const sorted = [...appointments].sort(
+    (a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime(),
+  );
+  const groups: OverlapGroup[] = [];
+  let current: { appointments: SlimAppointment[]; minStart: number; maxEnd: number } = {
+    appointments: [sorted[0]],
+    minStart: new Date(sorted[0].scheduledAt).getTime(),
+    maxEnd: new Date(sorted[0].endsAt).getTime(),
+  };
+  for (let i = 1; i < sorted.length; i++) {
+    const appt = sorted[i];
+    const start = new Date(appt.scheduledAt).getTime();
+    const end = new Date(appt.endsAt).getTime();
+    if (timeRangesOverlap(current.minStart, current.maxEnd, start, end)) {
+      current.appointments.push(appt);
+      current.minStart = Math.min(current.minStart, start);
+      current.maxEnd = Math.max(current.maxEnd, end);
+    } else {
+      groups.push({
+        appointments: current.appointments,
+        minStartIso: new Date(current.minStart).toISOString(),
+        maxEndIso: new Date(current.maxEnd).toISOString(),
+      });
+      current = { appointments: [appt], minStart: start, maxEnd: end };
+    }
+  }
+  groups.push({
+    appointments: current.appointments,
+    minStartIso: new Date(current.minStart).toISOString(),
+    maxEndIso: new Date(current.maxEnd).toISOString(),
+  });
+  return groups;
 }
 
 const getBlockReasonLabel = (reason: string): string => {
@@ -257,6 +323,8 @@ const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, chi
 // Time Column — shared column renderer for both Day and Week views
 // ─────────────────────────────────────────────────────────────
 
+export type GridSlot = { hour: number; minute: number };
+
 interface TimeColumnProps {
   appointments: SlimAppointment[];
   blocks: CalendarBlockDto[];
@@ -265,11 +333,15 @@ interface TimeColumnProps {
   closeHour: number;
   open247: boolean;
   isToday: boolean;
-  onSlotClick?: (hour: number) => void;
-  /** When set, slots and appointments are droppable/draggable for DnD reschedule and reassign */
+  onSlotClick?: (hour: number, minute?: number) => void;
   enableDnd?: boolean;
   columnId?: number;
   dateKey?: string;
+  /** When set, use interval-based slots (e.g. 15 min) and these grid params */
+  gridSlotStarts?: GridSlot[];
+  slotHeight?: number;
+  gridStartMinutes?: number;
+  intervalMinutes?: number;
 }
 
 const TimeColumn: FC<TimeColumnProps> = ({
@@ -284,53 +356,75 @@ const TimeColumn: FC<TimeColumnProps> = ({
   enableDnd = false,
   columnId = 0,
   dateKey = "",
+  gridSlotStarts,
+  slotHeight: slotHeightProp,
+  gridStartMinutes,
+  intervalMinutes,
 }) => {
-  const gridHeight = GRID_HOURS.length * HOUR_HEIGHT;
+  const useSlots = gridSlotStarts != null && gridSlotStarts.length > 0 && slotHeightProp != null && gridStartMinutes != null && intervalMinutes != null;
+  const slotHeight = slotHeightProp ?? HOUR_HEIGHT;
+  const gridHeight = useSlots ? gridSlotStarts!.length * slotHeight : GRID_HOURS.length * HOUR_HEIGHT;
+
+  const slotRows = useSlots ? gridSlotStarts! : GRID_HOURS.map((hour) => ({ hour, minute: 0 }));
+
+  const getPos = useCallback(
+    (isoStart: string, isoEnd: string) => {
+      if (useSlots) {
+        return getTimePositionForGrid(isoStart, isoEnd, gridStartMinutes!, intervalMinutes!, slotHeight);
+      }
+      return getTimePosition(isoStart, isoEnd);
+    },
+    [useSlots, gridStartMinutes, intervalMinutes, slotHeight]
+  );
+
+  const nowTop =
+    useSlots && gridStartMinutes != null && intervalMinutes != null
+      ? ((new Date().getHours() * 60 + new Date().getMinutes() - gridStartMinutes) / intervalMinutes) * slotHeight
+      : ((new Date().getHours() * 60 + new Date().getMinutes()) - GRID_START_HOUR * 60) / 60 * HOUR_HEIGHT;
 
   return (
     <div className="relative" style={{ height: gridHeight }}>
-      {/* Hour grid lines + working hours shading (droppable when DnD enabled) */}
-      {GRID_HOURS.map(hour => {
-        const isOutsideHours = !open247 && (hour < openHour || hour >= closeHour);
+      {slotRows.map((slot) => {
+        const isOutsideHours = !open247 && (slot.hour < openHour || (slot.hour === closeHour && slot.minute > 0) || slot.hour >= closeHour);
+        const slotId = useSlots ? `slot-${columnId}-${dateKey}-${slot.hour}-${slot.minute}` : `slot-${columnId}-${dateKey}-${slot.hour}`;
         if (enableDnd && dateKey) {
-          const slotId = `slot-${columnId}-${dateKey}-${hour}`;
           return (
             <DroppableSlot
-              key={hour}
+              key={slotId}
               id={slotId}
               columnId={columnId}
               dateKey={dateKey}
-              hour={hour}
+              hour={slot.hour}
+              minute={slot.minute}
               isOutsideHours={isOutsideHours}
-              onSlotClick={onSlotClick}
+              slotHeight={slotHeight}
+              onSlotClick={onSlotClick ? () => onSlotClick(slot.hour, slot.minute) : undefined}
             />
           );
         }
         return (
           <div
-            key={hour}
-            className={`border-b border-dashed border-border ${isOutsideHours
+            key={slotId}
+            className={`${slot.minute === 0 ? "border-b border-border" : "border-b border-dashed border-border/60"} ${isOutsideHours
                 ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
                 : "cursor-pointer hover:bg-primary/5 transition-colors"
               }`}
-            style={{ height: HOUR_HEIGHT }}
-            onClick={onSlotClick ? () => onSlotClick(hour) : undefined}
+            style={{ height: slotHeight }}
+            onClick={onSlotClick ? () => onSlotClick(slot.hour, slot.minute) : undefined}
           />
         );
       })}
 
-      {/* Current time indicator (only on today's column) */}
       {isToday && (
         <div
           className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
-          style={{ top: ((new Date().getHours() * 60 + new Date().getMinutes()) - (GRID_START_HOUR * 60)) / 60 * HOUR_HEIGHT }}
+          style={{ top: nowTop }}
         >
           <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 ring-2 ring-white dark:ring-neutral-900" />
           <div className="flex-1 h-[2px] bg-red-500" />
         </div>
       )}
 
-      {/* Block overlays */}
       {blocks.map(block => {
         const staffName = block.blockScope === 'staff' && block.userId
           ? getStaffDisplayNames([block.userId], locationStaff)
@@ -347,7 +441,7 @@ const TimeColumn: FC<TimeColumnProps> = ({
             </BlockDetailPopover>
           );
         }
-        const pos = getTimePosition(block.startsAt, block.endsAt);
+        const pos = getPos(block.startsAt, block.endsAt);
         return (
           <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName}>
             <div
@@ -363,11 +457,10 @@ const TimeColumn: FC<TimeColumnProps> = ({
         );
       })}
 
-      {/* Appointment blocks — overlapping ones laid out side-by-side; draggable when DnD enabled */}
       {(() => {
         const overlapLanes = getOverlapLanes(appointments);
         return appointments.map(appt => {
-          const pos = getTimePosition(appt.scheduledAt, appt.endsAt);
+          const pos = getPos(appt.scheduledAt, appt.endsAt);
           const lanes = overlapLanes.get(appt.id);
           const totalLanes = lanes?.totalLanes ?? 1;
           const laneIndex = lanes?.laneIndex ?? 0;
@@ -382,6 +475,9 @@ const TimeColumn: FC<TimeColumnProps> = ({
                 dateKey={dateKey}
                 leftPercent={totalLanes > 1 ? leftPercent : undefined}
                 widthPercent={totalLanes > 1 ? widthPercent : undefined}
+                gridStartMinutes={gridStartMinutes}
+                intervalMinutes={intervalMinutes}
+                slotHeight={useSlots ? slotHeight : undefined}
               />
             );
           }
@@ -456,10 +552,29 @@ export const CalendarTimeGrid: FC<CalendarTimeGridProps> = ({ viewMode }) => {
 // Day Grid — staff columns + unassigned lane
 // ─────────────────────────────────────────────────────────────
 
+/** Convert a display block to SlimAppointment-like shape for grid layout and drag (uses first appointment id). */
+function displayBlockToSlim(block: CalendarDisplayBlock): SlimAppointment {
+  return {
+    id: block.id,
+    scheduledAt: block.start,
+    endsAt: block.end,
+    status: block.status,
+    bookedItemName: block.label,
+    duration: block.duration,
+    staffUserIds: block.staffUserIds,
+    customerName: block.customerName,
+    bookingSource: block.bookingSource,
+    isUnassigned: block.isUnassigned,
+    overrideReason: block.overrideReason,
+    bookingGroupId: block.bookingGroupId ?? undefined,
+  };
+}
+
 const DayGrid: FC = () => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const dayAppointments = useSelector(getDayAppointments);
+  const dayDisplayBlocks = useSelector(getDayDisplayBlocks);
   const dayBlocks = useSelector(getDayBlocks);
   const isLoading = useSelector(getDayDataLoading);
   const locationStaff = useSelector(getLocationStaff);
@@ -469,6 +584,7 @@ const DayGrid: FC = () => {
   const staffFilter = useSelector(getStaffFilter);
   const updateConflictOffer = useSelector(getUpdateConflictOffer);
   const pendingDrop = useSelector(getPendingDrop);
+  const bookingSettings = useSelector(getBookingSettings);
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [dropConfirmInProgress, setDropConfirmInProgress] = useState(false);
@@ -480,10 +596,12 @@ const DayGrid: FC = () => {
     newScheduledAt: Date;
     newEndsAt: Date;
     staffUserIds?: number[];
+    bookingGroupId?: string;
   } | null>(null);
 
   const dndSensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { delay: 100, tolerance: 5 } }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   );
 
   const dayWorkingHours = getWorkingHoursForDate(selectedDate, workingHours, open247);
@@ -491,6 +609,20 @@ const DayGrid: FC = () => {
   const isToday = selectedDate.toDateString() === new Date().toDateString();
   const { openHour, closeHour } = getDayOpenCloseHours(dayWorkingHours, open247, GRID_START_HOUR, GRID_END_HOUR);
   const dateKey = toLocalDateString(selectedDate);
+
+  const slotIntervalMinutes = bookingSettings?.slotIntervalMinutes ?? 15;
+  const dayBounds = getDayOpenCloseMinutes(dayWorkingHours, open247);
+  const rangeStartMinutes = dayBounds ? dayBounds.start : openHour * 60;
+  const rangeEndMinutes = dayBounds ? dayBounds.end : (open247 ? GRID_END_HOUR * 60 : closeHour * 60);
+  const daySlotMinutes = getSlotStartsInRange(rangeStartMinutes, rangeEndMinutes, slotIntervalMinutes);
+  const dayGridSlotStarts: GridSlot[] = daySlotMinutes.map((m) => ({
+    hour: Math.floor(m / 60),
+    minute: m % 60,
+  }));
+  const dayGridStartMinutes = daySlotMinutes[0] ?? 0;
+  const daySlotHeight = daySlotMinutes.length > 0
+    ? (GRID_HEIGHT_PER_HOUR / (60 / slotIntervalMinutes))
+    : HOUR_HEIGHT;
 
   // When pendingDrop is cleared (after refresh), hide confirm-in-progress so modal doesn't reappear
   useEffect(() => {
@@ -546,26 +678,36 @@ const DayGrid: FC = () => {
     return [...visibleStaffCols, { id: 0, label: 'Unassigned', isUnassigned: true }];
   }, [locationStaff, staffFilter, locationContext]);
 
-  // Group appointments by column
-  const appointmentsByColumn = useMemo(() => {
-    const map = new Map<number, SlimAppointment[]>();
+  // Group display blocks by column (one block per group or single appointment)
+  const displayBlocksByColumn = useMemo(() => {
+    const map = new Map<number, CalendarDisplayBlock[]>();
     columns.forEach(col => map.set(col.id, []));
 
-    for (const appt of dayAppointments) {
-      if (appt.isUnassigned || appt.staffUserIds.length === 0) {
+    for (const block of dayDisplayBlocks) {
+      if (block.isUnassigned || block.staffUserIds.length === 0) {
         if (map.has(0)) {
-          map.get(0)?.push(appt);
+          map.get(0)?.push(block);
         }
       } else {
-        for (const staffId of appt.staffUserIds) {
+        for (const staffId of block.staffUserIds) {
           if (map.has(staffId)) {
-            map.get(staffId)!.push(appt);
+            map.get(staffId)!.push(block);
           }
         }
       }
     }
     return map;
-  }, [dayAppointments, columns]);
+  }, [dayDisplayBlocks, columns]);
+
+  // Slim-like list per column for rendering (positioning uses block start/end)
+  const appointmentsByColumn = useMemo(() => {
+    const map = new Map<number, SlimAppointment[]>();
+    columns.forEach(col => {
+      const blocks = displayBlocksByColumn.get(col.id) ?? [];
+      map.set(col.id, blocks.map(displayBlockToSlim));
+    });
+    return map;
+  }, [displayBlocksByColumn, columns]);
 
   // When a drop is pending, show the appointment in the target column at the drop position until confirm/cancel
   const appointmentsByColumnWithPreview = useMemo(() => {
@@ -595,7 +737,8 @@ const DayGrid: FC = () => {
     removeFrom(sourceCol);
     if (pd.type === "reschedule") {
       const [y, m, d] = pd.dateKey.split("-").map(Number);
-      const previewStartsAt = new Date(y, m - 1, d, pd.hour, 0, 0, 0);
+      const minute = pd.minute ?? 0;
+      const previewStartsAt = new Date(y, m - 1, d, pd.hour, minute, 0, 0);
       const previewEndsAt = new Date(previewStartsAt.getTime() + appointment.duration * 60 * 1000);
       addTo(targetCol, {
         ...appointment,
@@ -643,14 +786,28 @@ const DayGrid: FC = () => {
     const appointment = data.appointment;
     if (appointment.status === "cancelled") return;
 
+    const isUnassignedTarget =
+      (overData.type === "time-slot" && overData.columnId === 0) ||
+      (overData.type === "staff-column" && overData.staffId === 0);
+    if (isUnassignedTarget) {
+      toast.error("Appointments must be assigned to a team member.");
+      return;
+    }
+
     const staffConflictMessage = "This team member already has an appointment at this time. Choose another time or team member.";
 
     if (overData.type === "time-slot") {
       const { columnId, dateKey, hour } = overData;
+      const minute = overData.minute ?? 0;
+      const [y, m, d] = dateKey.split("-").map(Number);
+      const droppedSlotStartMs = new Date(y, m - 1, d, hour, minute, 0, 0).getTime();
+      const apptStartMs = new Date(appointment.scheduledAt).getTime();
+      if (data.columnId === columnId && data.dateKey === dateKey && droppedSlotStartMs === apptStartMs) {
+        return;
+      }
       if (columnId !== 0) {
         const columnApps = (appointmentsByColumn.get(columnId) ?? []).filter((a) => a.id !== appointment.id);
-        const [y, m, d] = dateKey.split("-").map(Number);
-        const slotStart = new Date(y, m - 1, d, hour, 0, 0, 0).getTime();
+        const slotStart = droppedSlotStartMs;
         const slotEnd = slotStart + appointment.duration * 60 * 1000;
         const hasConflict = columnApps.some((other) => {
           const otherStart = new Date(other.scheduledAt).getTime();
@@ -667,11 +824,15 @@ const DayGrid: FC = () => {
         appointment,
         dateKey: overData.dateKey,
         hour: overData.hour,
+        minute: overData.minute ?? 0,
         columnId: overData.columnId,
       }));
     } else if (overData.type === "staff-column") {
       const { staffId } = overData;
-      if (staffId !== 0) {
+      if (appointment.staffUserIds.length > 0 && appointment.staffUserIds[0] === staffId) {
+        return;
+      }
+      {
         const columnApps = (appointmentsByColumn.get(staffId) ?? []).filter((a) => a.id !== appointment.id);
         const apptStart = new Date(appointment.scheduledAt).getTime();
         const apptEnd = new Date(appointment.endsAt).getTime();
@@ -699,25 +860,26 @@ const DayGrid: FC = () => {
     setDropConfirmInProgress(true);
     const toConfirm = pendingDrop;
     if (toConfirm.type === "reassign") {
-      const staffUserIds = toConfirm.staffId === 0 ? [] : [toConfirm.staffId];
       dispatch(
         updateAppointment.request({
           appointmentId: toConfirm.appointment.id,
-          data: { staffUserIds },
+          data: { staffUserIds: [toConfirm.staffId] },
+          bookingGroupId: toConfirm.appointment.bookingGroupId ?? undefined,
         }),
       );
       return;
     }
     const { appointment, dateKey: dKey, hour, columnId: targetColumnId } = toConfirm;
+    const minute = toConfirm.minute ?? 0;
     const [y, m, d] = dKey.split("-").map(Number);
-    const newScheduledAt = new Date(y, m - 1, d, hour, 0, 0, 0);
+    const newScheduledAt = new Date(y, m - 1, d, hour, minute, 0, 0);
     const newEndsAt = new Date(newScheduledAt.getTime() + appointment.duration * 60 * 1000);
     const isOutOfHours = !open247 && dayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, appointment.duration, dayWorkingHours, open247);
     const sourceColumnId = appointment.staffUserIds.length === 0 ? 0 : appointment.staffUserIds[0];
     const changingColumn = sourceColumnId !== targetColumnId;
     const payload: { scheduledAt?: string; staffUserIds?: number[] } = {};
-    if (changingColumn) {
-      payload.staffUserIds = targetColumnId === 0 ? [] : [targetColumnId];
+    if (changingColumn && targetColumnId !== 0) {
+      payload.staffUserIds = [targetColumnId];
     }
     if (isOutOfHours) {
       setPendingReschedulePayload({
@@ -725,43 +887,62 @@ const DayGrid: FC = () => {
         newScheduledAt,
         newEndsAt,
         staffUserIds: payload.staffUserIds,
+        bookingGroupId: appointment.bookingGroupId ?? undefined,
       });
       setOverrideDialogOpen(true);
       return;
     }
     payload.scheduledAt = newScheduledAt.toISOString();
-    dispatch(
-      updateAppointment.request({
-        appointmentId: appointment.id,
-        data: payload,
-      }),
-    );
+    if (appointment.bookingGroupId) {
+      dispatch(
+        rescheduleAppointmentGroup.request({
+          bookingGroupId: appointment.bookingGroupId,
+          payload: { scheduledAt: payload.scheduledAt! },
+        }),
+      );
+    } else {
+      dispatch(
+        updateAppointment.request({
+          appointmentId: appointment.id,
+          data: payload,
+          bookingGroupId: undefined,
+        }),
+      );
+    }
   }, [pendingDrop, dispatch, open247, dayWorkingHours]);
 
   const handleConfirmOverride = useCallback(() => {
     if (!pendingReschedulePayload) return;
     const reason = overrideReasonText.trim() || undefined;
-    const data: {
-      scheduledAt: string;
-      allowOutOfHours: boolean;
-      overrideConflicts: boolean;
-      overrideReason?: string;
-      staffUserIds?: number[];
-    } = {
-      scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
-      allowOutOfHours: true,
-      overrideConflicts: true,
-      overrideReason: reason,
-    };
-    if (pendingReschedulePayload.staffUserIds !== undefined) {
-      data.staffUserIds = pendingReschedulePayload.staffUserIds;
+    if (pendingReschedulePayload.bookingGroupId) {
+      dispatch(
+        rescheduleAppointmentGroup.request({
+          bookingGroupId: pendingReschedulePayload.bookingGroupId,
+          payload: {
+            scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
+            allowOutOfHours: true,
+            overrideConflicts: true,
+            overrideReason: reason,
+          },
+        }),
+      );
+    } else {
+      const data: Record<string, unknown> = {
+        scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
+        allowOutOfHours: true,
+        overrideConflicts: true,
+        overrideReason: reason,
+      };
+      if (pendingReschedulePayload.staffUserIds !== undefined) {
+        data.staffUserIds = pendingReschedulePayload.staffUserIds;
+      }
+      dispatch(
+        updateAppointment.request({
+          appointmentId: pendingReschedulePayload.appointmentId,
+          data,
+        }),
+      );
     }
-    dispatch(
-      updateAppointment.request({
-        appointmentId: pendingReschedulePayload.appointmentId,
-        data,
-      }),
-    );
     setPendingReschedulePayload(null);
     setOverrideDialogOpen(false);
     setOverrideReasonText("");
@@ -777,16 +958,31 @@ const DayGrid: FC = () => {
   const handleConfirmConflictOverride = useCallback(() => {
     if (!updateConflictOffer) return;
     const reason = overrideReasonText.trim() || undefined;
-    dispatch(
-      updateAppointment.request({
-        appointmentId: updateConflictOffer.appointmentId,
-        data: {
-          ...updateConflictOffer.data,
-          overrideConflicts: true,
-          overrideReason: reason,
-        },
-      }),
-    );
+    const dataWithOverride = {
+      ...updateConflictOffer.data,
+      overrideConflicts: true,
+      overrideReason: reason,
+    };
+    if (updateConflictOffer.bookingGroupId && updateConflictOffer.data?.scheduledAt) {
+      dispatch(
+        rescheduleAppointmentGroup.request({
+          bookingGroupId: updateConflictOffer.bookingGroupId,
+          payload: {
+            scheduledAt: String(updateConflictOffer.data.scheduledAt),
+            overrideConflicts: true,
+            allowOutOfHours: !!updateConflictOffer.data.allowOutOfHours,
+            overrideReason: reason,
+          },
+        }),
+      );
+    } else {
+      dispatch(
+        updateAppointment.request({
+          appointmentId: updateConflictOffer.appointmentId,
+          data: dataWithOverride,
+        }),
+      );
+    }
     dispatch(setUpdateConflictOffer(null));
     setOverrideReasonText("");
   }, [updateConflictOffer, overrideReasonText, dispatch]);
@@ -828,11 +1024,17 @@ const DayGrid: FC = () => {
             {/* Time gutter */}
             <div className="flex flex-col items-end pr-2 select-none flex-shrink-0" style={{ width: GUTTER_WIDTH }}>
               <div className="h-8 flex-shrink-0" />
-              {GRID_HOURS.map(hour => (
-                <div key={hour} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
-                  {formatHourLabel(hour)}
-                </div>
-              ))}
+              {dayGridSlotStarts.length > 0
+                ? dayGridSlotStarts.map((slot) => (
+                    <div key={`${slot.hour}-${slot.minute}`} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: daySlotHeight }}>
+                      {slot.minute === 0 ? formatHourLabel(slot.hour) : null}
+                    </div>
+                  ))
+                : GRID_HOURS.map((hour) => (
+                    <div key={hour} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
+                      {formatHourLabel(hour)}
+                    </div>
+                  ))}
             </div>
 
             {/* Staff columns (droppable for reassign) */}
@@ -857,14 +1059,19 @@ const DayGrid: FC = () => {
                   enableDnd
                   columnId={col.id}
                   dateKey={dateKey}
-                  onSlotClick={(hour) => {
+                  gridSlotStarts={dayGridSlotStarts.length > 0 ? dayGridSlotStarts : undefined}
+                  slotHeight={dayGridSlotStarts.length > 0 ? daySlotHeight : undefined}
+                  gridStartMinutes={dayGridSlotStarts.length > 0 ? dayGridStartMinutes : undefined}
+                  intervalMinutes={dayGridSlotStarts.length > 0 ? slotIntervalMinutes : undefined}
+                  onSlotClick={(hour, minute) => {
                     const hh = String(hour).padStart(2, "0");
+                    const mm = String(minute ?? 0).padStart(2, "0");
                     dispatch(
                       toggleAddForm({
                         open: true,
                         prefill: {
                           date: selectedDate,
-                          time: `${hh}:00`,
+                          time: `${hh}:${mm}`,
                           staffUserId: col.isUnassigned ? undefined : col.id,
                         },
                       }),
@@ -898,16 +1105,23 @@ const DayGrid: FC = () => {
             <AlertDialogTitle>Confirm</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDrop?.type === "reschedule" && (() => {
+                const min = pendingDrop.minute ?? 0;
+                const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
+                const isGroup = !!pendingDrop.appointment.bookingGroupId;
+                if (isGroup) {
+                  return (
+                    <>
+                      Move this booking (all items) to {pendingDrop.dateKey} at {timeStr}. Staff assignment will not change.
+                    </>
+                  );
+                }
                 const sourceCol = pendingDrop.appointment.staffUserIds.length === 0 ? 0 : pendingDrop.appointment.staffUserIds[0];
                 const changingColumn = sourceCol !== pendingDrop.columnId;
                 const staffLabel = columns.find(c => c.id === pendingDrop.columnId)?.label;
-                if (changingColumn && pendingDrop.columnId === 0) {
-                  return <>Unassign &quot;{pendingDrop.appointment.bookedItemName}&quot; and move to {pendingDrop.dateKey} at {pendingDrop.hour}:00?</>;
-                }
                 if (changingColumn && staffLabel) {
-                  return <>Assign &quot;{pendingDrop.appointment.bookedItemName}&quot; to {staffLabel} and move to {pendingDrop.dateKey} at {pendingDrop.hour}:00?</>;
+                  return <>Assign &quot;{pendingDrop.appointment.bookedItemName}&quot; to {staffLabel} and move to {pendingDrop.dateKey} at {timeStr}?</>;
                 }
-                return <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {pendingDrop.hour}:00?</>;
+                return <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>;
               })()}
               {pendingDrop?.type === "reassign" && (
                 <>Assign this appointment to {pendingDrop.staffLabel}?</>
@@ -980,6 +1194,168 @@ const DayGrid: FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────
+// Week day column (summary) — overlapping appointments as one card, no DnD
+// ─────────────────────────────────────────────────────────────
+
+interface WeekDayColumnSummaryProps {
+  appointments: SlimAppointment[];
+  blocks: CalendarBlockDto[];
+  locationStaff: CalendarStaffMember[];
+  openHour: number;
+  closeHour: number;
+  open247: boolean;
+  isToday: boolean;
+  day: Date;
+  dateKey: string;
+  onSlotClick?: (hour: number) => void;
+}
+
+const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
+  appointments,
+  blocks,
+  locationStaff,
+  openHour,
+  closeHour,
+  open247,
+  isToday,
+  day,
+  dateKey,
+  onSlotClick,
+}) => {
+  const dispatch = useDispatch();
+  const gridHeight = GRID_HOURS.length * HOUR_HEIGHT;
+  const overlapGroups = useMemo(() => getOverlapGroups(appointments), [appointments]);
+
+  const handleViewDay = useCallback(() => {
+    dispatch(setSelectedDateAction(day));
+    dispatch(setViewModeAction(AppointmentViewMode.DAY));
+  }, [dispatch, day]);
+
+  return (
+    <div className="relative" style={{ height: gridHeight }}>
+      {/* Hour grid: plain divs (no DnD), clickable for add */}
+      {GRID_HOURS.map((hour) => {
+        const isOutsideHours = !open247 && (hour < openHour || hour >= closeHour);
+        return (
+          <div
+            key={hour}
+            role="button"
+            tabIndex={0}
+            className={`border-b border-dashed border-border ${isOutsideHours
+              ? "bg-muted/30 cursor-default"
+              : "cursor-pointer hover:bg-primary/5 transition-colors"
+            }`}
+            style={{ height: HOUR_HEIGHT }}
+            onClick={onSlotClick ? () => onSlotClick(hour) : undefined}
+            onKeyDown={onSlotClick ? (e) => e.key === "Enter" && onSlotClick(hour) : undefined}
+          />
+        );
+      })}
+
+      {/* Current time indicator (only on today) */}
+      {isToday && (
+        <div
+          className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+          style={{
+            top:
+              ((new Date().getHours() * 60 + new Date().getMinutes() - GRID_START_HOUR * 60) / 60) *
+              HOUR_HEIGHT,
+          }}
+        >
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500 -ml-1.5 ring-2 ring-white dark:ring-neutral-900" />
+          <div className="flex-1 h-[2px] bg-red-500" />
+        </div>
+      )}
+
+      {/* Block overlays (same as TimeColumn) */}
+      {blocks.map((block) => {
+        const staffName =
+          block.blockScope === "staff" && block.userId
+            ? getStaffDisplayNames([block.userId], locationStaff)
+            : null;
+        if (block.isAllDay) {
+          return (
+            <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName}>
+              <div
+                className="absolute inset-x-0 bg-gray-100/80 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600 z-[5] cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-800/70 transition-colors"
+                style={{ top: 0, height: gridHeight }}
+                title={block.title || block.reason}
+              />
+            </BlockDetailPopover>
+          );
+        }
+        const pos = getTimePosition(block.startsAt, block.endsAt);
+        return (
+          <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName}>
+            <div
+              className="absolute inset-x-1 bg-gray-100/80 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600 rounded-sm z-[5] cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-800/70 transition-colors"
+              style={{ top: pos.top, height: pos.height }}
+              title={block.title || getBlockReasonLabel(block.reason)}
+            >
+              <span className="text-[10px] text-gray-600 dark:text-gray-400 px-1 truncate block">
+                {block.title || getBlockReasonLabel(block.reason)}
+              </span>
+            </div>
+          </BlockDetailPopover>
+        );
+      })}
+
+      {/* Summary cards: one per overlap group */}
+      {overlapGroups.map((group, groupIndex) => {
+        const pos = getTimePosition(group.minStartIso, group.maxEndIso);
+        const n = group.appointments.length;
+        const timeRangeStr = formatTimeRange(group.minStartIso, group.maxEndIso);
+        return (
+          <Popover key={`summary-${dateKey}-${groupIndex}`}>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                className="absolute inset-x-1 rounded-lg border border-border bg-muted/60 hover:bg-muted/80 dark:bg-muted/40 dark:hover:bg-muted/60 z-[6] cursor-pointer text-left shadow-sm transition-colors flex flex-col justify-center px-2 py-1"
+                style={{ top: pos.top, height: Math.max(pos.height, 28) }}
+              >
+                <span className="text-xs font-medium text-foreground truncate">
+                  {n} appointment{n !== 1 ? "s" : ""}
+                </span>
+                <span className="text-[10px] text-muted-foreground truncate">{timeRangeStr}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="right" align="start" className="w-72 p-0">
+              <div className="px-3 py-2 border-b border-border bg-muted/30">
+                <div className="font-medium text-sm text-foreground">
+                  {n} appointment{n !== 1 ? "s" : ""} · {timeRangeStr}
+                </div>
+              </div>
+              <ul className="max-h-48 overflow-y-auto py-2">
+                {group.appointments.map((appt) => (
+                  <li
+                    key={appt.id}
+                    className="px-3 py-1.5 text-xs border-b border-border/50 last:border-b-0 flex flex-col gap-0.5"
+                  >
+                    <span className="font-medium text-foreground truncate">{appt.bookedItemName}</span>
+                    <span className="text-muted-foreground">
+                      {formatTimeRange(appt.scheduledAt, appt.endsAt)}
+                      {appt.customerName ? ` · ${appt.customerName}` : ""}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {getStaffDisplayNames(appt.staffUserIds ?? [], locationStaff)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="px-3 py-2 border-t border-border">
+                <Button type="button" variant="outline" size="sm" className="w-full" onClick={handleViewDay}>
+                  View day
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        );
+      })}
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────
 // Week Grid — 7 day columns
 // ─────────────────────────────────────────────────────────────
 
@@ -994,7 +1370,29 @@ const WeekGrid: FC = () => {
   const open247 = useSelector(getLocationOpen247);
   const staffFilter = useSelector(getStaffFilter);
   const optimisticBlocks = useSelector(getOptimisticBlocks);
+  const pendingDrop = useSelector(getPendingDrop);
+  const updateConflictOffer = useSelector(getUpdateConflictOffer);
+  const bookingSettings = useSelector(getBookingSettings);
 
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [dropConfirmInProgress, setDropConfirmInProgress] = useState(false);
+  const [confirmModalDelayedOpen, setConfirmModalDelayedOpen] = useState(false);
+  const [overrideReasonText, setOverrideReasonText] = useState("");
+  const [overrideDialogOpen, setOverrideDialogOpen] = useState(false);
+  const [pendingReschedulePayload, setPendingReschedulePayload] = useState<{
+    appointmentId: number;
+    newScheduledAt: Date;
+    newEndsAt: Date;
+    staffUserIds?: number[];
+    bookingGroupId?: string;
+  } | null>(null);
+
+  const dndSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
+
+  const isSingleStaff = staffFilter.length === 1;
   const todayStr = new Date().toDateString();
 
   // Build 7 days for the displayed week (prev/next don't change selectedDate)
@@ -1016,6 +1414,27 @@ const WeekGrid: FC = () => {
       return { isOpen, openHour, closeHour };
     });
   }, [weekDays, workingHours, open247]);
+
+  const weekSlotIntervalMinutes = bookingSettings?.slotIntervalMinutes ?? 15;
+  const weekRangeStartMinutes = useMemo(
+    () => Math.min(...dayWorkingHours.map((d) => d.openHour * 60)),
+    [dayWorkingHours],
+  );
+  const weekRangeEndMinutes = useMemo(
+    () => Math.max(...dayWorkingHours.map((d) => d.closeHour * 60)),
+    [dayWorkingHours],
+  );
+  const weekSlotMinutes = useMemo(
+    () => getSlotStartsInRange(weekRangeStartMinutes, weekRangeEndMinutes, weekSlotIntervalMinutes),
+    [weekRangeStartMinutes, weekRangeEndMinutes, weekSlotIntervalMinutes],
+  );
+  const weekGridSlotStarts: GridSlot[] = useMemo(
+    () => weekSlotMinutes.map((m) => ({ hour: Math.floor(m / 60), minute: m % 60 })),
+    [weekSlotMinutes],
+  );
+  const weekGridStartMinutes = weekSlotMinutes[0] ?? 0;
+  const weekSlotHeight =
+    weekSlotMinutes.length > 0 ? GRID_HEIGHT_PER_HOUR / (60 / weekSlotIntervalMinutes) : HOUR_HEIGHT;
 
   // Get appointments and blocks for each day, filtered by staff (blocks include optimistic)
   const columnData = useMemo(() => {
@@ -1040,6 +1459,239 @@ const WeekGrid: FC = () => {
     });
   }, [weekDays, weekData, staffFilter, optimisticBlocks]);
 
+  // Convert each column's appointments to display blocks (grouped by bookingGroupId) then to SlimAppointment for rendering
+  const columnDisplayData = useMemo(() => {
+    return columnData.map((col) => ({
+      ...col,
+      appointments: appointmentsToDisplayBlocks(col.appointments).map((block): SlimAppointment => ({
+        id: block.id,
+        scheduledAt: block.start,
+        endsAt: block.end,
+        status: block.status,
+        bookedItemName: block.label,
+        duration: block.duration,
+        staffUserIds: block.staffUserIds,
+        customerName: block.customerName,
+        bookingSource: block.bookingSource,
+        isUnassigned: block.isUnassigned,
+        overrideReason: block.overrideReason,
+        bookingGroupId: block.bookingGroupId ?? undefined,
+      })),
+    }));
+  }, [columnData]);
+
+  // Merge pending drop preview into column data for week DnD (remove from source so only one draggable id exists)
+  const columnDataWithPreview = useMemo(() => {
+    if (!pendingDrop || pendingDrop.type !== "reschedule") return columnDisplayData;
+    const pd = pendingDrop;
+    const appointment = pd.appointment;
+    const appointmentId = appointment.id;
+    const sourceIndex = columnDisplayData.findIndex((col) => col.appointments.some((a) => a.id === appointmentId));
+    const [y, m, d] = pd.dateKey.split("-").map(Number);
+    const minute = pd.minute ?? 0;
+    const previewStartsAt = new Date(y, m - 1, d, pd.hour, minute, 0, 0);
+    const previewEndsAt = new Date(previewStartsAt.getTime() + appointment.duration * 60 * 1000);
+    const preview: SlimAppointment = {
+      ...appointment,
+      scheduledAt: previewStartsAt.toISOString(),
+      endsAt: previewEndsAt.toISOString(),
+    };
+    return columnDisplayData.map((col, i) => {
+      const dateKey = toLocalDateString(weekDays[i]);
+      if (dateKey === pd.dateKey) {
+        const without = col.appointments.filter((a) => a.id !== appointmentId);
+        return { ...col, appointments: [...without, preview] };
+      }
+      if (i === sourceIndex) {
+        return { ...col, appointments: col.appointments.filter((a) => a.id !== appointmentId) };
+      }
+      return col;
+    });
+  }, [columnDisplayData, pendingDrop, weekDays]);
+
+  const activeAppointment = useMemo(() => {
+    if (!activeId || String(activeId).startsWith("appointment-") === false) return null;
+    const id = parseInt(String(activeId).replace("appointment-", ""), 10);
+    for (const col of columnDataWithPreview) {
+      const found = col.appointments.find((a) => a.id === id);
+      if (found) return found;
+    }
+    return null;
+  }, [activeId, columnDataWithPreview]);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
+  }, []);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    setActiveId(null);
+    const data = event.active.data?.current as AppointmentDragData | null;
+    const overData = event.over?.data?.current as TimeSlotDropData | null;
+    if (!data || data.type !== "appointment" || !overData || overData.type !== "time-slot") return;
+    const appointment = data.appointment;
+    if (appointment.status === "cancelled") return;
+
+    const { columnId, dateKey, hour } = overData;
+    const minute = overData.minute ?? 0;
+    const [y, m, day] = dateKey.split("-").map(Number);
+    const droppedSlotStartMs = new Date(y, m - 1, day, hour, minute, 0, 0).getTime();
+    const apptStartMs = new Date(appointment.scheduledAt).getTime();
+    if (data.columnId === columnId && data.dateKey === dateKey && droppedSlotStartMs === apptStartMs) {
+      return;
+    }
+    const columnApps = (columnDataWithPreview[columnId]?.appointments ?? []).filter((a) => a.id !== appointment.id);
+    const slotEnd = droppedSlotStartMs + appointment.duration * 60 * 1000;
+    const hasConflict = columnApps.some((other) => {
+      const otherStart = new Date(other.scheduledAt).getTime();
+      const otherEnd = new Date(other.endsAt).getTime();
+      return timeRangesOverlap(droppedSlotStartMs, slotEnd, otherStart, otherEnd);
+    });
+    if (hasConflict) {
+      toast.error("This team member already has an appointment at this time. Choose another time or team member.");
+      return;
+    }
+    dispatch(setCalendarPendingDrop({
+      type: "reschedule",
+      appointment,
+      dateKey,
+      hour,
+      minute,
+      columnId,
+    }));
+  }, [dispatch, columnDataWithPreview]);
+
+  const handleConfirmDrop = useCallback(() => {
+    if (!pendingDrop || pendingDrop.type !== "reschedule") return;
+    setDropConfirmInProgress(true);
+    const { appointment, dateKey: dKey, hour } = pendingDrop;
+    const minute = pendingDrop.minute ?? 0;
+    const dayIndex = weekDays.findIndex((d) => toLocalDateString(d) === dKey);
+    const targetDayWorkingHours = dayIndex >= 0 ? getWorkingHoursForDate(weekDays[dayIndex], workingHours, open247) : null;
+    const [y, m, d] = dKey.split("-").map(Number);
+    const newScheduledAt = new Date(y, m - 1, d, hour, minute, 0, 0);
+    const newEndsAt = new Date(newScheduledAt.getTime() + appointment.duration * 60 * 1000);
+    const isOutOfHours = !open247 && targetDayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, appointment.duration, targetDayWorkingHours, open247);
+    const payload: { scheduledAt?: string; staffUserIds?: number[] } = {};
+    if (isOutOfHours) {
+      setPendingReschedulePayload({
+        appointmentId: appointment.id,
+        newScheduledAt,
+        newEndsAt,
+        bookingGroupId: appointment.bookingGroupId ?? undefined,
+      });
+      setOverrideDialogOpen(true);
+      return;
+    }
+    payload.scheduledAt = newScheduledAt.toISOString();
+    if (appointment.bookingGroupId) {
+      dispatch(
+        rescheduleAppointmentGroup.request({
+          bookingGroupId: appointment.bookingGroupId,
+          payload: { scheduledAt: payload.scheduledAt! },
+        }),
+      );
+    } else {
+      dispatch(
+        updateAppointment.request({
+          appointmentId: appointment.id,
+          data: payload,
+          bookingGroupId: undefined,
+        }),
+      );
+    }
+  }, [pendingDrop, dispatch, open247, workingHours, weekDays]);
+
+  const handleConfirmOverride = useCallback(() => {
+    if (!pendingReschedulePayload) return;
+    const reason = overrideReasonText.trim() || undefined;
+    if (pendingReschedulePayload.bookingGroupId) {
+      dispatch(
+        rescheduleAppointmentGroup.request({
+          bookingGroupId: pendingReschedulePayload.bookingGroupId,
+          payload: {
+            scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
+            allowOutOfHours: true,
+            overrideConflicts: true,
+            overrideReason: reason,
+          },
+        }),
+      );
+    } else {
+      const data: Record<string, unknown> = {
+        scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
+        allowOutOfHours: true,
+        overrideConflicts: true,
+        overrideReason: reason,
+      };
+      if (pendingReschedulePayload.staffUserIds !== undefined) {
+        data.staffUserIds = pendingReschedulePayload.staffUserIds;
+      }
+      dispatch(
+        updateAppointment.request({
+          appointmentId: pendingReschedulePayload.appointmentId,
+          data,
+        }),
+      );
+    }
+    setPendingReschedulePayload(null);
+    setOverrideDialogOpen(false);
+    setOverrideReasonText("");
+  }, [pendingReschedulePayload, overrideReasonText, dispatch]);
+
+  const handleCancelDrop = useCallback(() => {
+    dispatch(setCalendarPendingDrop(null));
+    setPendingReschedulePayload(null);
+    setOverrideDialogOpen(false);
+    setOverrideReasonText("");
+  }, [dispatch]);
+
+  const handleConfirmConflictOverride = useCallback(() => {
+    if (!updateConflictOffer) return;
+    const reason = overrideReasonText.trim() || undefined;
+    const dataWithOverride = {
+      ...updateConflictOffer.data,
+      overrideConflicts: true,
+      overrideReason: reason,
+    };
+    if (updateConflictOffer.bookingGroupId && updateConflictOffer.data?.scheduledAt) {
+      dispatch(
+        rescheduleAppointmentGroup.request({
+          bookingGroupId: updateConflictOffer.bookingGroupId,
+          payload: {
+            scheduledAt: String(updateConflictOffer.data.scheduledAt),
+            overrideConflicts: true,
+            allowOutOfHours: !!updateConflictOffer.data.allowOutOfHours,
+            overrideReason: reason,
+          },
+        }),
+      );
+    } else {
+      dispatch(
+        updateAppointment.request({
+          appointmentId: updateConflictOffer.appointmentId,
+          data: dataWithOverride,
+        }),
+      );
+    }
+    dispatch(setUpdateConflictOffer(null));
+    setOverrideReasonText("");
+  }, [updateConflictOffer, overrideReasonText, dispatch]);
+
+  const handleCancelConflictOverride = useCallback(() => {
+    dispatch(setUpdateConflictOffer(null));
+    setOverrideReasonText("");
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!pendingDrop) {
+      setConfirmModalDelayedOpen(false);
+      setDropConfirmInProgress(false);
+      return;
+    }
+    const t = setTimeout(() => setConfirmModalDelayedOpen(true), 50);
+    return () => clearTimeout(t);
+  }, [pendingDrop]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64 gap-2">
@@ -1049,65 +1701,222 @@ const WeekGrid: FC = () => {
     );
   }
 
+  const gridContent = (
+    <div className="overflow-x-auto">
+      <div className="flex" style={{ minWidth: 7 * 100 + GUTTER_WIDTH }}>
+        <div className="flex flex-col items-end pr-4 select-none flex-shrink-0" style={{ width: GUTTER_WIDTH }}>
+          {weekGridSlotStarts.length > 0
+            ? weekGridSlotStarts.map((slot) => (
+                <div key={`${slot.hour}-${slot.minute}`} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: weekSlotHeight }}>
+                  {slot.minute === 0 ? formatHourLabel(slot.hour) : null}
+                </div>
+              ))
+            : GRID_HOURS.map((hour) => (
+                <div key={hour} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
+                  {formatHourLabel(hour)}
+                </div>
+              ))}
+        </div>
+        {isSingleStaff
+          ? weekDays.map((day, i) => {
+              const { appointments, blocks } = columnDataWithPreview[i];
+              const { openHour, closeHour } = dayWorkingHours[i];
+              const isToday = day.toDateString() === todayStr;
+              const dateKey = toLocalDateString(day);
+              return (
+                <div
+                  key={day.toDateString()}
+                  className="flex-1 min-w-[100px] cursor-pointer"
+                  onDoubleClick={() => {
+                    dispatch(setSelectedDateAction(day));
+                    dispatch(setViewModeAction(AppointmentViewMode.DAY));
+                  }}
+                >
+                  <div className="mx-1">
+                    <TimeColumn
+                      appointments={appointments}
+                      blocks={blocks}
+                      locationStaff={locationStaff}
+                      openHour={openHour}
+                      closeHour={closeHour}
+                      open247={open247}
+                      isToday={isToday}
+                      enableDnd
+                      columnId={i}
+                      dateKey={dateKey}
+                      gridSlotStarts={weekGridSlotStarts.length > 0 ? weekGridSlotStarts : undefined}
+                      slotHeight={weekGridSlotStarts.length > 0 ? weekSlotHeight : undefined}
+                      gridStartMinutes={weekGridSlotStarts.length > 0 ? weekGridStartMinutes : undefined}
+                      intervalMinutes={weekGridSlotStarts.length > 0 ? weekSlotIntervalMinutes : undefined}
+                      onSlotClick={(hour, minute) => {
+                        const hh = String(hour).padStart(2, '0');
+                        const mm = String(minute ?? 0).padStart(2, '0');
+                        dispatch(toggleAddForm({
+                          open: true,
+                          prefill: {
+                            date: day,
+                            time: `${hh}:${mm}`,
+                          },
+                        }));
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })
+          : weekDays.map((day, i) => {
+              const { appointments, blocks } = columnDataWithPreview[i];
+              const { openHour, closeHour } = dayWorkingHours[i];
+              const isToday = day.toDateString() === todayStr;
+              const dateKey = toLocalDateString(day);
+              return (
+                <div
+                  key={day.toDateString()}
+                  className="flex-1 min-w-[100px] cursor-pointer"
+                  onDoubleClick={() => {
+                    dispatch(setSelectedDateAction(day));
+                    dispatch(setViewModeAction(AppointmentViewMode.DAY));
+                  }}
+                >
+                  <div className="mx-1">
+                    <WeekDayColumnSummary
+                      appointments={appointments}
+                      blocks={blocks}
+                      locationStaff={locationStaff}
+                      openHour={openHour}
+                      closeHour={closeHour}
+                      open247={open247}
+                      isToday={isToday}
+                      day={day}
+                      dateKey={dateKey}
+                      onSlotClick={(hour) => {
+                        const hh = String(hour).padStart(2, '0');
+                        dispatch(toggleAddForm({
+                          open: true,
+                          prefill: {
+                            date: day,
+                            time: `${hh}:00`,
+                          },
+                        }));
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex flex-col">
-      {/* Week day strip (date headers) */}
       <WeekDayStrip gutterWidth={GUTTER_WIDTH} />
-
-      {/* Scrollable grid */}
-      <div className="overflow-x-auto">
-        <div className="flex" style={{ minWidth: 7 * 100 + GUTTER_WIDTH }}>
-          {/* Time gutter */}
-          <div className="flex flex-col items-end pr-4 select-none flex-shrink-0" style={{ width: GUTTER_WIDTH }}>
-            {/* Spacer for top padding of grid to align with cards? No, grid starts immediately. */}
-            {GRID_HOURS.map(hour => (
-              <div key={hour} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
-                {formatHourLabel(hour)}
-              </div>
-            ))}
-          </div>
-
-          {/* Day columns */}
-          {weekDays.map((day, i) => {
-            const { appointments, blocks } = columnData[i];
-            const { openHour, closeHour } = dayWorkingHours[i];
-            const isToday = day.toDateString() === todayStr;
-
-            return (
-              <div
-                key={day.toDateString()}
-                className="flex-1 min-w-[100px] cursor-pointer"
-                onDoubleClick={() => {
-                  dispatch(setSelectedDateAction(day));
-                  dispatch(setViewModeAction(AppointmentViewMode.DAY));
-                }}
-              >
-                <div className="mx-1">
-                  <TimeColumn
-                    appointments={appointments}
-                    blocks={blocks}
-                    locationStaff={locationStaff}
-                    openHour={openHour}
-                    closeHour={closeHour}
-                    open247={open247}
-                    isToday={isToday}
-                    onSlotClick={(hour) => {
-                      const hh = String(hour).padStart(2, '0');
-                      dispatch(toggleAddForm({
-                        open: true,
-                        prefill: {
-                          date: day,
-                          time: `${hh}:00`,
-                        },
-                      }));
-                    }}
-                  />
+      {isSingleStaff ? (
+        <DndContext
+          sensors={dndSensors}
+          collisionDetection={pointerWithin}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          {gridContent}
+          {createPortal(
+            <DragOverlay modifiers={[snapCenterToCursor]}>
+              {activeAppointment ? (
+                <div className="rounded-xl px-3 py-2 shadow-lg border border-border bg-card cursor-grabbing">
+                  <div className="font-bold text-xs truncate">{activeAppointment.bookedItemName}</div>
+                  <div className="text-[10px] opacity-90 truncate mt-1">
+                    {formatTimeRange(activeAppointment.scheduledAt, activeAppointment.endsAt)}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              ) : null}
+            </DragOverlay>,
+            document.body,
+          )}
+        </DndContext>
+      ) : (
+        gridContent
+      )}
+
+      <AlertDialog open={!!pendingDrop && !overrideDialogOpen && !dropConfirmInProgress && confirmModalDelayedOpen} onOpenChange={(open) => !open && handleCancelDrop()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDrop?.type === "reschedule" && (() => {
+                const min = pendingDrop.minute ?? 0;
+                const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
+                const isGroup = !!pendingDrop.appointment.bookingGroupId;
+                if (isGroup) {
+                  return (
+                    <>
+                      Move this booking (all items) to {pendingDrop.dateKey} at {timeStr}. Staff assignment will not change.
+                    </>
+                  );
+                }
+                return <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>;
+              })()}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelDrop}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleConfirmDrop();
+              }}
+            >
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={overrideDialogOpen || (!!updateConflictOffer && updateConflictOffer.conflictType !== 'staff_appointment')}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (updateConflictOffer) handleCancelConflictOverride();
+            else handleCancelDrop();
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {updateConflictOffer ? "Confirm reschedule" : "Outside business hours"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {updateConflictOffer
+                ? "This time has a scheduling conflict. Do you want to reschedule anyway? You can add an optional reason below."
+                : "This time is outside business hours. Are you sure you want to reschedule? You can add an optional reason below."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2">
+            <Label htmlFor="week-dnd-override-reason" className="text-xs text-muted-foreground">Reason (optional)</Label>
+            <Input
+              id="week-dnd-override-reason"
+              placeholder="e.g. Customer request"
+              value={overrideReasonText}
+              onChange={(e) => setOverrideReasonText(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={updateConflictOffer ? handleCancelConflictOverride : handleCancelDrop}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                if (updateConflictOffer) handleConfirmConflictOverride();
+                else handleConfirmOverride();
+              }}
+            >
+              Reschedule anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
