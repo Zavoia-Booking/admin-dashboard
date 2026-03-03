@@ -10,9 +10,29 @@ import type {
 } from "../../shared/types/calendar.ts";
 import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 
+/** One segment in a group drop preview (ghost position per segment). */
+export type PendingDropSegmentPreview = {
+    id: number;
+    startIso: string;
+    endIso: string;
+    staffUserIds: number[];
+};
+
 /** Pending drag-drop: show appointment at drop position until user confirms or update succeeds. */
 export type PendingDrop =
-    | { type: "reschedule"; appointment: SlimAppointment; dateKey: string; hour: number; minute?: number; columnId: number }
+    | {
+        type: "reschedule";
+        appointment: SlimAppointment;
+        dateKey: string;
+        hour: number;
+        minute?: number;
+        columnId: number;
+        /** When true: moving a group; scheduledAt for API = newGroupStartIso (first segment start). */
+        isGroupDrop?: boolean;
+        bookingGroupId?: string;
+        newGroupStartIso?: string;
+        segmentsPreview?: PendingDropSegmentPreview[];
+    }
     | { type: "reassign"; appointment: SlimAppointment; staffId: number; staffLabel: string }
     | null;
 

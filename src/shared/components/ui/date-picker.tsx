@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -11,18 +11,56 @@ interface DatePickerProps {
   placeholder?: string;
   viewMode?: 'day' | 'week' | 'month';
   minDate?: Date;
+  /** When true, trigger is rounded and connects to popover with open/close animation (e.g. add-appointment flow). */
+  connectedPopover?: boolean;
+  /** Optional class for popover content when connectedPopover (e.g. add-appointment-popover-expand). */
+  contentClassName?: string;
 }
 
-const DatePicker: React.FC<DatePickerProps> = ({ 
-  value = null, 
-  onChange, 
+const DatePicker: React.FC<DatePickerProps> = ({
+  value = null,
+  onChange,
   className,
   placeholder = 'Select date',
   viewMode = 'day',
   minDate,
+  connectedPopover = false,
+  contentClassName,
 }) => {
   const fallbackDate = value ?? new Date();
   const [isOpen, setIsOpen] = useState(false);
+  const [closingAnimation, setClosingAnimation] = useState(false);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setIsOpen(open);
+      if (!connectedPopover) return;
+      if (open) {
+        if (closeTimeoutRef.current) {
+          clearTimeout(closeTimeoutRef.current);
+          closeTimeoutRef.current = null;
+        }
+        setClosingAnimation(false);
+      } else {
+        setClosingAnimation(true);
+        closeTimeoutRef.current = setTimeout(() => {
+          setClosingAnimation(false);
+          closeTimeoutRef.current = null;
+        }, 250);
+      }
+    },
+    [connectedPopover],
+  );
+
+  useEffect(() => {
+    if (!connectedPopover) return;
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, [connectedPopover]);
+
+  const showOpenBorder = connectedPopover && (isOpen || closingAnimation);
   const [currentMonth, setCurrentMonth] = useState(fallbackDate);
   const [currentYear, setCurrentYear] = useState(fallbackDate.getFullYear());
 
@@ -219,12 +257,17 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           className={cn(
-            "h-11 w-full bg-white border border-border rounded-lg text-sm font-medium text-foreground justify-start",
+            "h-12 w-full bg-white border border-border text-sm font-medium text-foreground justify-start",
+            connectedPopover
+              ? "rounded-full px-4 hover:border-border-strong"
+              : "rounded-lg",
+            showOpenBorder &&
+              "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none",
             className
           )}
         >
@@ -236,8 +279,22 @@ const DatePicker: React.FC<DatePickerProps> = ({
           </div>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[320px] p-0 z-[90]" align="start">
-        <div className="p-3">
+      <PopoverContent
+        className={cn(
+          "p-0 z-[90]",
+          connectedPopover &&
+            "!w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border add-appointment-popover-expand -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none overflow-hidden flex flex-col",
+          connectedPopover &&
+            (showOpenBorder ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border"),
+          !connectedPopover && "w-[320px]",
+          contentClassName
+        )}
+        align="start"
+        side="bottom"
+        sideOffset={connectedPopover ? 0 : undefined}
+        avoidCollisions={connectedPopover ? false : undefined}
+      >
+        <div className={cn("p-3 overflow-y-auto min-h-0", connectedPopover && "flex-1")}>
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <Button

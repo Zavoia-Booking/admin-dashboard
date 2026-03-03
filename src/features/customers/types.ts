@@ -57,6 +57,17 @@ export interface ListCustomersPayload {
   };
 }
 
+export interface CustomerPickerSearchPayload {
+  search?: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface CustomerPickerSearchResponse {
+  data: Array<Pick<Customer, 'id' | 'firstName' | 'lastName' | 'email' | 'phone'>>;
+  pagination: CustomersPagination;
+}
+
 export interface MergeCustomersPayload {
   sourceId: number;
 }

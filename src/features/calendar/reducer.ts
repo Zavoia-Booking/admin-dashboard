@@ -391,7 +391,7 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return clearUpdateConflictOffer(state);
 
         // --- CRUD result handling ---
-        case getType(actions.adminCreateAppointment.success):
+        case getType(actions.adminCreateAppointmentGroup.success):
             return { ...state, addFormOpen: false, addFormPrefill: null };
 
         case getType(actions.createCalendarBlock.success):

@@ -3,13 +3,14 @@ import { Search, X } from "lucide-react";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
 
-interface SearchInputProps {
+export interface SearchInputProps {
   placeholder?: string;
   value?: string;
   defaultValue?: string;
   debounceMs?: number;
   onChange?: (value: string) => void;
   onDebouncedChange?: (value: string) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   className?: string;
   inputClassName?: string;
   autoFocus?: boolean;
@@ -21,17 +22,18 @@ interface SearchInputProps {
  * - Calls `onChange` on every keystroke.
  * - Calls `onDebouncedChange` after `debounceMs` (default 300ms).
  */
-export const SearchInput: React.FC<SearchInputProps> = ({
+export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(({
   placeholder,
   value,
   defaultValue,
   debounceMs = 300,
   onChange,
   onDebouncedChange,
+  onFocus,
   className,
   inputClassName,
   autoFocus,
-}) => {
+}, ref) => {
   const [internalValue, setInternalValue] = React.useState<string>(
     value ?? defaultValue ?? ""
   );
@@ -79,9 +81,11 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   return (
     <div className={cn("relative w-full", className)}>
       <Input
+        ref={ref}
         placeholder={placeholder}
         value={internalValue}
         onChange={handleChange}
+        onFocus={onFocus}
         autoFocus={autoFocus}
         className={cn(
           "!h-11 text-base !pr-12 pl-4 !rounded-full border border-input bg-surface dark:bg-neutral-900 dark:border-border",
@@ -91,7 +95,10 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       {hasValue ? (
         <button
           type="button"
-          onClick={handleClear}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClear();
+          }}
           className="absolute inset-y-0 right-3 flex items-center justify-center text-destructive hover:text-destructive/90 cursor-pointer"
           aria-label="Clear search"
         >
@@ -107,6 +114,7 @@ export const SearchInput: React.FC<SearchInputProps> = ({
       )}
     </div>
   );
-};
+});
+SearchInput.displayName = "SearchInput";
 
 

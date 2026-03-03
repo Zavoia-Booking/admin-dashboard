@@ -1,21 +1,28 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
-  Calendar, Clock, User, Scissors, Check, ChevronsUpDown,
-  Loader2, Phone, Footprints, ShieldCheck, StickyNote, UserPlus,
+  ArrowRight, Calendar, CalendarClock, CalendarPlus, Check, ChevronsUpDown, Clock, Footprints,
+  Loader2, Percent, Phone, Plus, PlusCircle, ShieldCheck, Tag, X,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
-import { Textarea } from '../../../shared/components/ui/textarea';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../shared/components/ui/command';
+import { Command, CommandItem, CommandList } from '../../../shared/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
 import { Badge } from '../../../shared/components/ui/badge';
+import { Pill } from '../../../shared/components/ui/pill';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { FormFooter } from '../../../shared/components/forms/FormFooter';
+import { SliderSectionHeader } from '../../../shared/components/forms/SliderSectionHeader';
+import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
+import { SliderContentDivider } from '../../../shared/components/common/SliderContentDivider';
+import { ManageServicesSheet } from '../../../shared/components/common/ManageServicesSheet/ManageServicesSheet';
+import { ManageBundlesSheet } from '../../../shared/components/common/ManageBundlesSheet/ManageBundlesSheet';
 import { useDispatch, useSelector } from 'react-redux';
-import { adminCreateAppointment, adminCreateAppointmentGroup, updateAppointment, rescheduleAppointmentGroup } from '../actions';
+import { getCurrencyDisplay } from '../../../shared/utils/currency';
+import { selectCurrentUser } from '../../auth/selectors';
+import { adminCreateAppointmentGroup, updateAppointment, rescheduleAppointmentGroup } from '../actions';
 import {
   getSelectedLocationId,
   getLocationStaff,
@@ -23,27 +30,41 @@ import {
   getLocationWorkingHours,
   getLocationOpen247,
   getBookingSettings,
-  getSelectedDate,
   getAddFormPrefill,
-  getDayBlocks,
   getLocationServices,
   getLocationTeamMembers,
   getLocationBundles,
   getLocationAssignmentLoading,
-  getLocationContext,
+  getCalendarTimezone,
 } from '../selectors';
-import { listCustomersApi, addCustomerApi } from '../../customers/api';
-import { toast } from 'sonner';
-import type { Customer } from '../../../shared/types/customer';
-import type { CalendarStaffMember, AppointmentBookingSource } from '../../../shared/types/calendar';
-import { formatSlotTime, getEndTimeString, getStaffDisplayNameOrUnassigned } from './utils';
+import type { AppointmentBookingSource } from '../../../shared/types/calendar';
+import { formatSlotTime, getEndTimeString, formatTimeKey } from './utils';
 import DatePicker from '../../../shared/components/ui/date-picker';
 import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
-import { toLocalDateString } from '../utils';
 import { useTimeSlots } from '../hooks/useTimeSlots';
 import { useWorkingHoursForDate } from '../hooks/useWorkingHoursForDate';
-import { isTimeRangeOutsideWorkingHours, appointmentOverlapsBlocks } from '../workingHours';
-import { getAvailableSlotsRequest } from '../api';
+import { isTimeRangeOutsideWorkingHours, doesTimeRangeSpanMidnight } from '../workingHours';
+import { checkSlotRequest, getAvailableSlotsRequest } from '../api';
+import {
+  type FormState,
+  areNumberArraysEqual,
+  type AppointmentItem,
+  allItemsHaveStaff,
+  buildScheduledDate,
+  getConfirmDialogDescription,
+  getConfirmDialogTitle,
+  getConfirmButtonTitle,
+  isValidAppointmentItem,
+  getGroupItemsForPayload,
+  getGroupTotalDurationMinutes,
+  getGroupTotalPriceMajor,
+} from './addAppointmentSliderHelpers';
+import CustomerSearchPicker from './CustomerSearchPicker';
+import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
+import type { Bundle as ManageSheetBundle } from '../../../shared/components/common/ManageBundlesSheet/types';
+import { buildZonedDateFromDateKey, formatDateInTimezone } from '../timezone';
+import { validateDescription } from '../../../shared/utils/validation';
+import "./addAppointmentSliderPopover.css";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -54,27 +75,290 @@ interface AddAppointmentSliderProps {
   onClose: () => void;
 }
 
-interface FormState {
-  customerId: number | null;
-  customerDisplay: { firstName: string; lastName: string; email: string; phone: string } | null;
-  serviceId: number | null;
-  date: Date | null;
-  time: string; // "HH:mm"
-  staffUserId: number | null; // null = unassigned
-  notes: string;
-  bookingSource: AppointmentBookingSource;
-}
-
 const initialForm: FormState = {
   customerId: null,
   customerDisplay: null,
-  serviceId: null,
   date: null,
   time: '',
-  staffUserId: null,
   notes: '',
   bookingSource: 'admin' as AppointmentBookingSource,
 };
+
+// ─────────────────────────────────────────────────────────────
+// Constants
+// ─────────────────────────────────────────────────────────────
+
+const SLIDER_COMBO_TRIGGER_CLASS =
+  '!px-5 h-10 text-sm border-border-strong text-foreground-1 group disabled:opacity-50 disabled:cursor-not-allowed';
+
+const BOOKING_SOURCES: { value: AppointmentBookingSource; label: string; icon: React.ReactNode }[] = [
+  { value: 'admin' as AppointmentBookingSource, label: 'Admin', icon: <ShieldCheck className="h-4 w-4" /> },
+  { value: 'phone' as AppointmentBookingSource, label: 'Phone', icon: <Phone className="h-4 w-4" /> },
+  { value: 'walk_in' as AppointmentBookingSource, label: 'Walk-in', icon: <Footprints className="h-4 w-4" /> },
+];
+
+interface AppointmentItemRowService {
+  serviceId: number;
+  serviceName: string;
+  staffIds?: number[];
+  customDuration?: number | null;
+  defaultDuration?: number;
+  customPrice?: number | null;
+  defaultPrice?: number;
+  category?: { id: number; name: string; color?: string } | null;
+  staffOverrides?: Array<{ userId: number; customPrice: number | null; customDuration: number | null }>;
+}
+interface AppointmentItemRowBundle {
+  bundleId: number;
+  bundleName: string;
+  serviceCount?: number;
+  calculatedDisplayPrice?: number;
+  durationMinutes?: number;
+  staffIds?: number[];
+  priceType?: 'sum' | 'fixed' | 'discount';
+}
+interface AppointmentItemRowTeamMember {
+  userId: number;
+  firstName: string;
+  lastName: string;
+}
+
+interface AppointmentItemRowProps {
+  item: AppointmentItem;
+  index: number;
+  hasTeamMembersAtLocation: boolean;
+  locationServices: AppointmentItemRowService[];
+  locationBundles: AppointmentItemRowBundle[];
+  locationTeamMembers: AppointmentItemRowTeamMember[];
+  currencyDisplay: { icon?: React.ComponentType<{ className?: string }>; symbol?: string };
+  onUpdateStaff: (index: number, staffUserId: number | null) => void;
+  onRemoveItem: (index: number) => void;
+}
+
+function AppointmentItemRow({
+  item,
+  index,
+  hasTeamMembersAtLocation,
+  locationServices,
+  locationBundles,
+  locationTeamMembers,
+  currencyDisplay,
+  onUpdateStaff,
+  onRemoveItem,
+}: AppointmentItemRowProps) {
+  const { t } = useTranslation('assignments');
+  const serviceForRow = locationServices.find((s) => s.serviceId === item.serviceId);
+  const bundleForRow = locationBundles.find((b) => b.bundleId === item.bundleId);
+  const staffForRow = locationTeamMembers.find((t) => t.userId === item.staffUserId);
+  const eligibleTeamMembersForRow =
+    serviceForRow?.staffIds?.length
+      ? locationTeamMembers.filter((t) => serviceForRow.staffIds!.includes(t.userId))
+      : bundleForRow?.staffIds?.length
+        ? locationTeamMembers.filter((t) => bundleForRow.staffIds!.includes(t.userId))
+        : locationTeamMembers;
+  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : 'Unknown item';
+  const staffOverride = serviceForRow?.staffOverrides?.length && item.staffUserId != null
+    ? serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)
+    : null;
+  const hasLocationCustom = serviceForRow
+    ? (serviceForRow.customPrice != null || serviceForRow.customDuration != null)
+    : false;
+  const hasStaffCustom = staffOverride
+    ? (staffOverride.customPrice != null || staffOverride.customDuration != null)
+    : false;
+  const durationMinutes = serviceForRow
+    ? (item.staffUserId != null && serviceForRow.staffOverrides?.length
+        ? (serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)?.customDuration ?? serviceForRow.customDuration ?? serviceForRow.defaultDuration ?? 0)
+        : (serviceForRow.customDuration ?? serviceForRow.defaultDuration ?? 0))
+    : (bundleForRow?.durationMinutes ?? 0);
+  const price = serviceForRow
+    ? ((item.staffUserId != null && serviceForRow.staffOverrides?.length
+        ? (serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)?.customPrice ?? serviceForRow.customPrice ?? serviceForRow.defaultPrice ?? 0)
+        : (serviceForRow.customPrice ?? serviceForRow.defaultPrice ?? 0)) / 100)
+    : (bundleForRow?.calculatedDisplayPrice ?? 0);
+  const itemTypeLabel = serviceForRow ? 'Service' : 'Bundle';
+  const isService = itemTypeLabel === 'Service';
+  const hasCustomRates = isService && (hasLocationCustom || hasStaffCustom);
+  const [staffPopoverOpen, setStaffPopoverOpen] = useState(false);
+  const [closingAnimation, setClosingAnimation] = useState(false);
+  const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleStaffPopoverOpenChange = useCallback((open: boolean) => {
+    setStaffPopoverOpen(open);
+    if (open) {
+      if (closeTimeoutRef.current) {
+        clearTimeout(closeTimeoutRef.current);
+        closeTimeoutRef.current = null;
+      }
+      setClosingAnimation(false);
+    } else {
+      setClosingAnimation(true);
+      closeTimeoutRef.current = setTimeout(() => {
+        setClosingAnimation(false);
+        closeTimeoutRef.current = null;
+      }, 250);
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+  }, []);
+
+  const showOpenBorder = staffPopoverOpen || closingAnimation;
+
+  return (
+    <div className="group flex items-stretch gap-3 rounded-lg border border-border bg-white dark:bg-surface px-4 py-3 hover:border-border-strong">
+      <div className="flex-1 min-w-0 space-y-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="truncate text-sm font-medium text-foreground-1">{rowLabel}</span>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Badge
+            variant="secondary"
+            className={cn(
+              'text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 shrink-0',
+              isService
+                ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800'
+                : 'bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800',
+            )}
+          >
+            <div className={cn('h-2 w-2 rounded-full', isService ? 'bg-green-500' : 'bg-purple-500')} />
+            <span className="text-neutral-900 dark:text-foreground-1">{itemTypeLabel}</span>
+          </Badge>
+          {isService && serviceForRow?.category?.name && (
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 border-border text-neutral-900 dark:text-neutral-900",
+                !serviceForRow.category?.color && "bg-muted/80 text-foreground-2"
+              )}
+              style={
+                serviceForRow.category?.color
+                  ? { backgroundColor: serviceForRow.category.color }
+                  : undefined
+              }
+            >
+              {serviceForRow.category.name}
+            </Badge>
+          )}
+          {!isService && bundleForRow?.priceType && (() => {
+            const priceTypeConfig: Record<string, { label: string; color: string; Icon: typeof PlusCircle }> = {
+              sum: { label: 'Sum', color: '#dbeafe', Icon: PlusCircle },
+              fixed: { label: 'Fixed', color: '#d1fae5', Icon: Tag },
+              discount: { label: 'Discount', color: '#fed7aa', Icon: Percent },
+            };
+            const config = priceTypeConfig[bundleForRow.priceType];
+            if (!config) return null;
+            const { label, color: bgColor, Icon } = config;
+            return (
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-[11px] px-2 py-0.5 rounded-full font-medium shrink-0 border-border text-neutral-900 dark:text-neutral-900 inline-flex items-center justify-center gap-1 leading-none",
+                  !bgColor && "bg-muted/80 text-foreground-2"
+                )}
+                style={bgColor ? { backgroundColor: bgColor } : undefined}
+              >
+                <Icon className="h-3 w-3 shrink-0" />
+                <span className="leading-none">{label}</span>
+              </Badge>
+            );
+          })()}
+        </div>
+        <div className="flex items-center mt-6 gap-3 flex-wrap text-sm text-foreground-2">
+          <span className="inline-flex items-center gap-0.5 font-medium text-foreground-1">
+            {currencyDisplay.icon ? (
+              <currencyDisplay.icon className="h-3.5 w-3.5 text-foreground-1" />
+            ) : (
+              <span>{currencyDisplay.symbol}</span>
+            )}
+            <span>{price.toFixed(2)}</span>
+          </span>
+          {durationMinutes > 0 && (
+            <>
+              <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
+              <span>{durationMinutes} min</span>
+            </>
+          )}
+        </div>
+        {hasCustomRates && (
+          <div className="mt-2">
+            <Badge
+              variant="secondary"
+              className="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+            >
+              <div className="h-2 w-2 rounded-full bg-purple-500" />
+              <span className="text-neutral-900 dark:text-foreground-1">
+                {t('page.locationService.badge.custom')}
+              </span>
+            </Badge>
+          </div>
+        )}
+      </div>
+      <div className="flex items-center gap-2 shrink-0 self-stretch">
+        {hasTeamMembersAtLocation && (
+            <Popover open={staffPopoverOpen} onOpenChange={handleStaffPopoverOpenChange}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  rounded="full"
+                  size="sm"
+                  className={cn(
+                    "h-8 w-[280px] justify-between !px-3 border border-border hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10",
+                    showOpenBorder && "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none"
+                  )}
+                >
+                  <span className="truncate">{staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : 'Assign staff'}</span>
+                  <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                className={cn(
+                  "w-[var(--radix-popover-trigger-width)] md:w-[var(--radix-popover-trigger-width)] box-border -mt-px border border-t-0 bg-surface dark:bg-neutral-900 shadow-none p-0 z-[80] rounded-t-none rounded-b-[16px]",
+                  "add-appointment-popover-expand",
+                  showOpenBorder ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border",
+                )}
+                side="bottom"
+                align="end"
+                sideOffset={0}
+                avoidCollisions={false}
+              >
+                <Command shouldFilter={false}>
+                  <CommandList>
+                    {eligibleTeamMembersForRow.map((t, teamIndex) => (
+                      <CommandItem
+                        key={t.userId}
+                        value={`${t.firstName} ${t.lastName}`}
+                        onSelect={() => onUpdateStaff(index, t.userId)}
+                        className={cn(
+                          "h-8 cursor-pointer transition-colors duration-200",
+                          teamIndex === eligibleTeamMembersForRow.length - 1 && "rounded-b-[12px]",
+                        )}
+                      >
+                        <Check className={cn('mr-2 h-4 w-4', item.staffUserId === t.userId ? 'opacity-100' : 'opacity-0')} />
+                        {t.firstName} {t.lastName}
+                      </CommandItem>
+                    ))}
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+          )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          rounded="full"
+          className="shrink-0 h-8 w-8 text-foreground-3 dark:text-foreground-2 hover:text-destructive hover:bg-destructive/10"
+          onClick={() => onRemoveItem(index)}
+          aria-label="Remove row"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 // ─────────────────────────────────────────────────────────────
 // Component
@@ -90,19 +374,23 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
   const bookingSettings = useSelector(getBookingSettings);
-  const selectedDate = useSelector(getSelectedDate);
   const prefill = useSelector(getAddFormPrefill);
-  const dayBlocks = useSelector(getDayBlocks);
   const locationServices = useSelector(getLocationServices);
   const locationTeamMembers = useSelector(getLocationTeamMembers);
   const locationBundles = useSelector(getLocationBundles);
   const servicesLoading = useSelector(getLocationAssignmentLoading);
-  const locationContext = useSelector(getLocationContext);
+  const calendarTimezone = useSelector(getCalendarTimezone);
+  const currentUser = useSelector(selectCurrentUser);
+  const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
+  const currencyDisplay = useMemo(
+    () => getCurrencyDisplay(businessCurrency),
+    [businessCurrency],
+  );
 
-  const pendingSubmitRef = useRef<{ payload: Parameters<typeof adminCreateAppointment.request>[0] } | null>(null);
   const pendingGroupSubmitRef = useRef<Parameters<typeof adminCreateAppointmentGroup.request>[0] | null>(null);
   const pendingUpdateRef = useRef<{ appointmentId: number; data: Record<string, unknown> } | null>(null);
   const rescheduleAppointmentIdRef = useRef<number | null>(null);
+  const userChangedTimeRef = useRef(false);
 
   /** Use ref first so reschedule always updates the appointment that was opened, even if prefill is later overwritten (e.g. by clicking a slot). */
   const editingAppointmentId = rescheduleAppointmentIdRef.current ?? prefill?.appointmentId ?? null;
@@ -113,35 +401,30 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Customer search state
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [customerResults, setCustomerResults] = useState<Customer[]>([]);
-  const [customerLoading, setCustomerLoading] = useState(false);
-  const [customerOpen, setCustomerOpen] = useState(false);
-  const [showQuickCreate, setShowQuickCreate] = useState(false);
-  const [quickCreate, setQuickCreate] = useState({ firstName: '', lastName: '', phone: '', email: '' });
-  const [quickCreateSubmitting, setQuickCreateSubmitting] = useState(false);
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   // Confirmation when creating or rescheduling out of hours or on a block slot
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmReason, setConfirmReason] = useState<'out_of_hours' | 'on_block' | null>(null);
   const [overrideReasonText, setOverrideReasonText] = useState('');
 
-  const [serviceOpen, setServiceOpen] = useState(false);
-
-  // Staff dropdown state
-  const [staffOpen, setStaffOpen] = useState(false);
-
-  /** Extra rows for multi-service/bundle group (create only). Each row: exactly one of serviceId or bundleId. First row is form.serviceId + form.staffUserId. */
-  const [groupItems, setGroupItems] = useState<Array<{ serviceId: number | null; bundleId: number | null; staffUserId: number | null }>>([]);
+  const [isManageServicesSheetOpen, setIsManageServicesSheetOpen] = useState(false);
+  const [isManageBundlesSheetOpen, setIsManageBundlesSheetOpen] = useState(false);
+  const [appointmentItems, setAppointmentItems] = useState<AppointmentItem[]>([]);
 
   /** Available slot starts from API (ISO strings); when set, time picker shows only these. */
   const [availableSlots, setAvailableSlots] = useState<string[] | null>(null);
+  const [outOfHoursSlots, setOutOfHoursSlots] = useState<string[]>([]);
+  const [nextAvailableDate, setNextAvailableDate] = useState<string | null>(null);
   const [availableSlotsLoading, setAvailableSlotsLoading] = useState(false);
+  const [slotFetchError, setSlotFetchError] = useState<string | null>(null);
+  const [slotValidation, setSlotValidation] = useState<{ loading: boolean; valid: boolean | null; reason?: string }>({
+    loading: false,
+    valid: null,
+  });
 
   // Time picker state
   const [hourOpen, setHourOpen] = useState(false);
+  const [hourClosingAnimation, setHourClosingAnimation] = useState(false);
+  const hourCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ─────────────────────────────────────────────────────────────
   // Reset form when slider opens/closes
@@ -149,6 +432,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   useEffect(() => {
     if (isOpen) {
+      userChangedTimeRef.current = false;
       if (prefill?.appointmentId != null) {
         rescheduleAppointmentIdRef.current = prefill.appointmentId;
       }
@@ -156,193 +440,351 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         ...initialForm,
         customerId: prefill?.customerId ?? null,
         customerDisplay: prefill?.customerDisplay ?? null,
-        serviceId: prefill?.serviceId ?? null,
-        date: prefill?.date ?? selectedDate ?? new Date(),
+        date: prefill?.date ?? new Date(),
         time: prefill?.time ?? '',
-        staffUserId: prefill?.staffUserId ?? (locationStaff.length === 1 ? locationStaff[0].id : null),
         notes: prefill?.notes ?? '',
         bookingSource: (prefill?.bookingSource as AppointmentBookingSource) ?? ('admin' as AppointmentBookingSource),
       });
+      const prefillServiceId = prefill?.serviceId ?? null;
+      const prefillStaffId = prefill?.staffUserId ?? null;
+      setAppointmentItems(
+        prefillServiceId != null
+          ? [{ serviceId: prefillServiceId, bundleId: null, staffUserId: prefillStaffId }]
+          : [],
+      );
       setError(null);
-      setCustomerSearch('');
-      setCustomerResults([]);
-      setShowQuickCreate(false);
-      setQuickCreate({ firstName: '', lastName: '', phone: '', email: '' });
-      setGroupItems([]);
+      setSlotFetchError(null);
     } else {
+      userChangedTimeRef.current = false;
       rescheduleAppointmentIdRef.current = null;
-    }
-  }, [isOpen, selectedDate, prefill, locationStaff]);
-
-  // Fetch available slots when location, date, and service are set (create mode only)
-  const locationTimezone = locationContext?.location?.timezone ?? 'UTC';
-  useEffect(() => {
-    if (isEditMode || !selectedLocationId || !form.date || !form.serviceId) {
+      setIsManageServicesSheetOpen(false);
+      setIsManageBundlesSheetOpen(false);
+      setAppointmentItems([]);
       setAvailableSlots(null);
+      setOutOfHoursSlots([]);
+      setNextAvailableDate(null);
+      setAvailableSlotsLoading(false);
+      setSlotFetchError(null);
+      setSlotValidation({ loading: false, valid: null });
+    }
+  }, [isOpen, prefill]);
+
+  // Fetch available slots when location, date, and service chain are set (create mode only)
+  const slotDurationMinutes = useMemo(
+    () => getGroupTotalDurationMinutes(getGroupItemsForPayload(appointmentItems), locationServices, locationBundles),
+    [appointmentItems, locationServices, locationBundles],
+  );
+  const MINUTES_PER_DAY = 24 * 60;
+  const durationExceedsOneDay = slotDurationMinutes > MINUTES_PER_DAY;
+
+  const slotFetchItems = useMemo(() => {
+    const validItems = appointmentItems.filter((item) => item.serviceId != null || item.bundleId != null);
+    if (validItems.length === 0) {
+      return null;
+    }
+    if (hasTeamMembersAtLocation && validItems.some((item) => item.staffUserId == null)) {
+      return null;
+    }
+    const resolvedItems = validItems.map((item) => ({
+      ...(item.serviceId != null ? { serviceId: item.serviceId } : {}),
+      ...(item.bundleId != null ? { bundleId: item.bundleId } : {}),
+      ...(item.staffUserId != null ? { staffUserId: item.staffUserId } : {}),
+    }));
+    return resolvedItems;
+  }, [appointmentItems, hasTeamMembersAtLocation]);
+
+  useEffect(() => {
+    if (isEditMode || !selectedLocationId || !form.date || !slotFetchItems) {
+      setAvailableSlots(null);
+      setOutOfHoursSlots([]);
+      setNextAvailableDate(null);
+      setAvailableSlotsLoading(false);
+      setSlotFetchError(null);
       return;
     }
-    const dateStr = toLocalDateString(form.date);
+    const controller = new AbortController();
+    const dateStr = formatDateInTimezone(form.date, calendarTimezone);
     setAvailableSlotsLoading(true);
+    setSlotFetchError(null);
     setAvailableSlots(null);
+    setOutOfHoursSlots([]);
+    setNextAvailableDate(null);
+    const slotRequestId = `${Date.now()}-${selectedLocationId}`;
+    console.log('[SLOT] fetch:start', {
+      requestId: slotRequestId,
+      timezone: calendarTimezone,
+      locationId: selectedLocationId,
+      date: dateStr,
+      itemCount: slotFetchItems.length,
+    });
     getAvailableSlotsRequest({
       locationId: selectedLocationId,
       date: dateStr,
-      serviceId: form.serviceId,
-      staffUserId: form.staffUserId ?? undefined,
-    })
+      items: slotFetchItems,
+      findNextAvailable: true,
+    }, controller.signal)
       .then((res) => {
+        if (controller.signal.aborted) return;
+        console.log('[SLOT] fetch:result', {
+          requestId: slotRequestId,
+          timezone: calendarTimezone,
+          availableSlots: res.availableSlots?.length ?? 0,
+          outOfHoursSlots: res.outOfHoursSlots?.length ?? 0,
+          nextAvailableDate: res.nextAvailableDate ?? null,
+        });
         setAvailableSlots(res.availableSlots ?? []);
+        setOutOfHoursSlots(res.outOfHoursSlots ?? []);
+        setNextAvailableDate(res.nextAvailableDate ?? null);
       })
-      .catch(() => setAvailableSlots(null))
-      .finally(() => setAvailableSlotsLoading(false));
-  }, [isEditMode, selectedLocationId, form.date, form.serviceId, form.staffUserId]);
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        console.error('[SLOT] fetch:error', {
+          requestId: slotRequestId,
+          message: err?.message ?? 'Unknown availability fetch error',
+        });
+        setAvailableSlots([]);
+        setOutOfHoursSlots([]);
+        setNextAvailableDate(null);
+        setSlotFetchError('Could not load availability. Please try changing the date or staff assignments.');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setAvailableSlotsLoading(false);
+        }
+      });
+    return () => controller.abort();
+  }, [isEditMode, selectedLocationId, form.date, slotFetchItems, calendarTimezone]);
 
-  // Services and team for the selected location come from Redux (fetched once when location is selected via assignments/full).
-
-  // ─────────────────────────────────────────────────────────────
-  // Customer search (debounced)
-  // ─────────────────────────────────────────────────────────────
-
-  const searchCustomers = useCallback(async (query: string) => {
-    if (query.length < 2) {
-      setCustomerResults([]);
+  const isPrefillTimeMode = !isEditMode && Boolean(prefill?.time) && !userChangedTimeRef.current;
+  useEffect(() => {
+    if (!isPrefillTimeMode || !selectedLocationId || !slotFetchItems || !form.date || !form.time) {
+      setSlotValidation({ loading: false, valid: null });
       return;
     }
-    setCustomerLoading(true);
-    try {
-      const response = await listCustomersApi({
-        search: query, // Use global search instead of filters
-        filters: [],
-        pagination: { offset: 0, limit: 10 },
-      });
-      setCustomerResults(response.data);
-    } catch {
-      setCustomerResults([]);
-    } finally {
-      setCustomerLoading(false);
+    const scheduledDate = buildScheduledDate(form.date, form.time, calendarTimezone);
+    if (!scheduledDate) {
+      setSlotValidation({ loading: false, valid: null });
+      return;
     }
-  }, []);
 
-  const handleCustomerSearchChange = useCallback(
-    (value: string) => {
-      setCustomerSearch(value);
-      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-      searchTimerRef.current = setTimeout(() => searchCustomers(value), 300);
-    },
-    [searchCustomers],
-  );
-
-  const handleSelectCustomer = useCallback((customer: Customer) => {
-    setForm((prev) => ({
-      ...prev,
-      customerId: customer.id,
-      customerDisplay: {
-        firstName: customer.firstName,
-        lastName: customer.lastName,
-        email: customer.email,
-        phone: customer.phone,
-      },
-    }));
-    setCustomerOpen(false);
-    setCustomerSearch('');
-  }, []);
-
-  const handleClearCustomer = useCallback(() => {
-    setForm((prev) => ({ ...prev, customerId: null, customerDisplay: null }));
-  }, []);
-
-  // Quick create customer
-  const handleQuickCreateCustomer = useCallback(async () => {
-    if (!quickCreate.firstName.trim()) return;
-    setQuickCreateSubmitting(true);
-    try {
-      const newCustomer = await addCustomerApi({
-        firstName: quickCreate.firstName.trim(),
-        lastName: quickCreate.lastName.trim() || undefined,
-        phone: quickCreate.phone.trim() || undefined,
-        email: quickCreate.email.trim() || undefined,
+    const controller = new AbortController();
+    setSlotValidation({ loading: true, valid: null });
+    checkSlotRequest({
+      locationId: selectedLocationId,
+      startTime: scheduledDate.toISOString(),
+      items: slotFetchItems,
+    }, controller.signal)
+      .then((res) => {
+        if (controller.signal.aborted) return;
+        setSlotValidation({
+          loading: false,
+          valid: res.valid,
+          reason: res.conflicts?.[0]?.reason,
+        });
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        console.error('[SLOT] check:error', {
+          message: err?.message ?? 'Unknown slot check error',
+        });
+        setSlotValidation({
+          loading: false,
+          valid: false,
+          reason: 'Failed to validate this slot. Please try another time.',
+        });
       });
-      handleSelectCustomer(newCustomer);
-      setShowQuickCreate(false);
-      setQuickCreate({ firstName: '', lastName: '', phone: '', email: '' });
-      toast.success('Customer created');
-    } catch {
-      toast.error('Failed to create customer');
-    } finally {
-      setQuickCreateSubmitting(false);
-    }
-  }, [quickCreate, handleSelectCustomer]);
+    return () => controller.abort();
+  }, [isPrefillTimeMode, selectedLocationId, slotFetchItems, form.date, form.time, calendarTimezone]);
+
+  // Services and team for the selected location come from Redux (fetched once when location is selected via assignments/full).
 
   const handleDateChange = useCallback((date: Date) => {
     setForm((prev) => ({ ...prev, date, time: '' }));
   }, []);
 
   const handleTimeSelect = useCallback((slot: string) => {
+    userChangedTimeRef.current = true;
     setForm((prev) => ({ ...prev, time: slot }));
     setHourOpen(false);
   }, []);
 
-  const handleSelectStaff = useCallback((staffId: number) => {
-    setForm((prev) => ({ ...prev, staffUserId: staffId }));
-    setStaffOpen(false);
+  const handleHourOpenChange = useCallback((open: boolean) => {
+    setHourOpen(open);
+    if (open) {
+      if (hourCloseTimeoutRef.current) {
+        clearTimeout(hourCloseTimeoutRef.current);
+        hourCloseTimeoutRef.current = null;
+      }
+      setHourClosingAnimation(false);
+    } else {
+      setHourClosingAnimation(true);
+      hourCloseTimeoutRef.current = setTimeout(() => {
+        setHourClosingAnimation(false);
+        hourCloseTimeoutRef.current = null;
+      }, 250);
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (hourCloseTimeoutRef.current) clearTimeout(hourCloseTimeoutRef.current);
+    };
   }, []);
 
   const handleBookingSourceSelect = useCallback((source: AppointmentBookingSource) => {
     setForm((prev) => ({ ...prev, bookingSource: source }));
   }, []);
 
-  const handleQuickCreateChange = useCallback((field: keyof typeof quickCreate, value: string) => {
-    setQuickCreate((p) => ({ ...p, [field]: value }));
+  const servicesForSheet = useMemo<ManageSheetService[]>(() => {
+    return locationServices.map((service) => ({
+      id: service.serviceId,
+      name: service.serviceName,
+      price: (service.customPrice ?? service.defaultPrice) / 100,
+      duration: service.customDuration ?? service.defaultDuration,
+      category: service.category ?? null,
+    }));
+  }, [locationServices]);
+
+  const bundlesForSheet = useMemo<ManageSheetBundle[]>(() => {
+    return locationBundles.map((bundle) => ({
+      bundleId: bundle.bundleId,
+      bundleName: bundle.bundleName,
+      priceType: bundle.priceType,
+      fixedPriceAmountMinor: bundle.fixedPriceAmountMinor ?? null,
+      discountPercentage: bundle.discountPercentage ?? null,
+      calculatedPriceAmountMinor: bundle.calculatedPriceAmountMinor,
+      displayPrice: bundle.calculatedDisplayPrice,
+      serviceCount: bundle.serviceCount ?? bundle.serviceIds.length,
+    }));
+  }, [locationBundles]);
+
+  const getAutoStaffForService = useCallback((serviceId: number): number | null => {
+    if (!hasTeamMembersAtLocation) return null;
+    const service = locationServices.find((item) => item.serviceId === serviceId);
+    if (service?.staffIds?.length === 1) return service.staffIds[0];
+    if (locationStaff.length === 1) return locationStaff[0].id;
+    return null;
+  }, [hasTeamMembersAtLocation, locationServices, locationStaff]);
+
+  const getAutoStaffForBundle = useCallback((bundleId: number): number | null => {
+    if (!hasTeamMembersAtLocation) return null;
+    const bundle = locationBundles.find((item) => item.bundleId === bundleId);
+    if (bundle?.staffIds?.length === 1) return bundle.staffIds[0];
+    if (locationStaff.length === 1) return locationStaff[0].id;
+    return null;
+  }, [hasTeamMembersAtLocation, locationBundles, locationStaff]);
+
+  const selectedServiceIds = useMemo(
+    () => appointmentItems
+      .map((item) => item.serviceId)
+      .filter((serviceId): serviceId is number => serviceId != null),
+    [appointmentItems],
+  );
+
+  const selectedBundleIds = useMemo(
+    () => appointmentItems
+      .map((item) => item.bundleId)
+      .filter((bundleId): bundleId is number => bundleId != null),
+    [appointmentItems],
+  );
+
+  const applySelectedServices = useCallback((serviceIds: number[]) => {
+    const validServiceIds = Array.from(
+      new Set(
+        serviceIds.filter((serviceId) =>
+          locationServices.some((service) => service.serviceId === serviceId),
+        ),
+      ),
+    );
+    setAppointmentItems((prev) => {
+      const existingServices = prev.filter((item) => item.serviceId != null && item.bundleId == null);
+      const bundleItems = prev.filter((item) => item.bundleId != null && item.serviceId == null);
+      const prevIds = existingServices.map((item) => item.serviceId as number);
+      if (areNumberArraysEqual(prevIds, validServiceIds)) return prev;
+      const nextServiceItems: AppointmentItem[] = validServiceIds.map((serviceId) => {
+        const existing = existingServices.find((item) => item.serviceId === serviceId);
+        const service = locationServices.find((item) => item.serviceId === serviceId);
+        const allowedStaffIds = service?.staffIds ?? [];
+        const existingStaff = existing?.staffUserId ?? null;
+        const isExistingStaffValid = existingStaff != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(existingStaff));
+        return {
+          serviceId,
+          bundleId: null,
+          staffUserId: isExistingStaffValid ? existingStaff : getAutoStaffForService(serviceId),
+        };
+      });
+      const nextItems = [...nextServiceItems, ...bundleItems];
+      return nextItems;
+    });
+  }, [getAutoStaffForService, locationServices]);
+
+  const handleSelectSingleService = useCallback((serviceId: number) => {
+    applySelectedServices([serviceId]);
+    setIsManageServicesSheetOpen(false);
+  }, [applySelectedServices]);
+
+  const handleUpdateItemStaff = useCallback((index: number, staffUserId: number | null) => {
+    setAppointmentItems((prev) => prev.map((item, itemIndex) => (
+      itemIndex === index ? { ...item, staffUserId } : item
+    )));
   }, []);
 
-  const handleNotesChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setForm((prev) => ({ ...prev, notes: e.target.value }));
+  const handleRemoveItem = useCallback((index: number) => {
+    setAppointmentItems((prev) => prev.filter((_, itemIndex) => itemIndex !== index));
   }, []);
+
+  const handleApplyBundleIds = useCallback((bundleIds: number[]) => {
+    setAppointmentItems((prev) => {
+      const serviceItems = prev.filter((item) => item.serviceId != null && item.bundleId == null);
+      const existingBundleItems = prev.filter((item) => item.bundleId != null && item.serviceId == null);
+      const nextBundleItems: AppointmentItem[] = bundleIds.map((bundleId) => {
+        const existing = existingBundleItems.find((item) => item.bundleId === bundleId);
+        return {
+          serviceId: null,
+          bundleId,
+          staffUserId: existing?.staffUserId ?? getAutoStaffForBundle(bundleId),
+        };
+      });
+      const nextItems = [...serviceItems, ...nextBundleItems];
+      return nextItems;
+    });
+    setIsManageBundlesSheetOpen(false);
+  }, [getAutoStaffForBundle]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data
   // ─────────────────────────────────────────────────────────────
 
-  const selectedService = useMemo(
-    () => locationServices.find((s) => s.serviceId === form.serviceId) ?? null,
-    [locationServices, form.serviceId],
-  );
-
-  // Get the effective duration/price for the selected service
-  const serviceDuration = selectedService
-    ? selectedService.customDuration ?? selectedService.defaultDuration
-    : 0;
-  const servicePrice = selectedService
-    ? (selectedService.customPrice ?? selectedService.defaultPrice) / 100
-    : 0;
-
-  // Eligible staff: staff at this location who can perform the selected service
-  const eligibleStaff = useMemo<CalendarStaffMember[]>(() => {
-    if (!form.serviceId || locationTeamMembers.length === 0) return locationStaff;
-    // When backend provides staffIds per service (from context), filter to those staff only
-    const serviceStaffIds = selectedService?.staffIds;
-    if (serviceStaffIds?.length) {
-      const idSet = new Set(serviceStaffIds);
-      return locationStaff.filter((s) => idSet.has(s.id));
-    }
-    const eligibleUserIds = new Set(
-      locationTeamMembers
-        .filter((tm) => tm.servicesEnabled > 0)
-        .map((tm) => tm.userId),
-    );
-    return locationStaff.filter((s) => eligibleUserIds.has(s.id) || eligibleUserIds.size === 0);
-  }, [form.serviceId, locationStaff, locationTeamMembers, selectedService]);
-
   // Working hours for the selected date
   const timeSlots = useTimeSlots(bookingSettings?.slotIntervalMinutes);
   const displayTimeSlots = useMemo(() => {
-    if (availableSlots == null || availableSlots.length === 0) return timeSlots;
-    const tz = locationTimezone || 'UTC';
-    const times = availableSlots.map((iso) =>
-      new Date(iso).toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false }),
+    if (availableSlotsLoading) {
+      return [];
+    }
+    let list: string[];
+    if (availableSlots == null) {
+      list = timeSlots;
+    } else if (availableSlots.length === 0) {
+      return [];
+    } else {
+      const times = availableSlots.map((iso) => formatTimeKey(iso, calendarTimezone));
+      list = [...new Set(times)].sort();
+    }
+    // Filter out past slots when the selected date is today (in calendar timezone)
+    if (!form.date) return list;
+    const now = Date.now();
+    return list.filter((slot) => {
+      const slotStart = buildScheduledDate(form.date, slot, calendarTimezone);
+      if (!slotStart || slotStart.getTime() < now) return false;
+      if (doesTimeRangeSpanMidnight(slotStart, slotDurationMinutes, calendarTimezone)) return false;
+      return true;
+    });
+  }, [availableSlots, availableSlotsLoading, timeSlots, calendarTimezone, form.date, slotDurationMinutes]);
+  const outOfHoursTimeSet = useMemo(() => {
+    return new Set(
+      outOfHoursSlots.map((iso) => formatTimeKey(iso, calendarTimezone)),
     );
-    return [...new Set(times)].sort();
-  }, [availableSlots, timeSlots, locationTimezone]);
+  }, [calendarTimezone, outOfHoursSlots]);
 
   // When we switch to showing only available slots, clear time if current selection is not in the list
   useEffect(() => {
@@ -358,50 +800,89 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   );
   const isClosedDay = dayWorkingHours ? !dayWorkingHours.isOpen : false;
 
-  // Bounds for “within working hours” (used only to style slots; all slots remain selectable)
+  // Backend returns availableSlots + outOfHoursSlots (which of those are outside working hours).
+  // Use that when we have it; only use frontend working-hours when showing full-day list (e.g. edit mode, no API data).
+  const { inHoursSlots, slotsOutsideHours } = useMemo(() => {
+    if (open247) {
+      return { inHoursSlots: [...displayTimeSlots], slotsOutsideHours: [] };
+    }
+    const hasBackendClassification = availableSlots != null;
+    if (hasBackendClassification) {
+      const inHours = displayTimeSlots.filter((slot) => !outOfHoursTimeSet.has(slot));
+      const outside = displayTimeSlots.filter((slot) => outOfHoursTimeSet.has(slot));
+      return { inHoursSlots: inHours, slotsOutsideHours: outside };
+    }
+    const inHours: string[] = [];
+    const outside: string[] = [];
+    for (const slot of displayTimeSlots) {
+      if (isSlotOutsideHours(slot)) outside.push(slot);
+      else inHours.push(slot);
+    }
+    return { inHoursSlots: inHours, slotsOutsideHours: outside };
+  }, [displayTimeSlots, isSlotOutsideHours, outOfHoursTimeSet, open247, availableSlots]);
+
+  const workingHoursLabel = useMemo(() => {
+    if (open247) return 'Open 24/7';
+    if (!dayWorkingHours?.isOpen) return 'Closed';
+    return `${dayWorkingHours.open} – ${dayWorkingHours.close}`;
+  }, [open247, dayWorkingHours]);
+
+  // Bounds for "within working hours" (used only to style slots; all slots remain selectable)
 
   // ─────────────────────────────────────────────────────────────
   // Submit
   // ─────────────────────────────────────────────────────────────
 
-  const isMultiItemCreate = !isEditMode && groupItems.length > 0;
-  const allCreateItemsValid = useMemo(() => {
-    const first = form.serviceId !== null && (!hasTeamMembersAtLocation || form.staffUserId !== null);
-    if (!first) return false;
-    return groupItems.every((row) => {
-      const hasService = row.serviceId != null;
-      const hasBundle = row.bundleId != null;
-      if (!hasService && !hasBundle) return false;
-      if (hasService && hasBundle) return false;
-      return row.staffUserId !== null || !hasTeamMembersAtLocation;
-    });
-  }, [form.serviceId, form.staffUserId, groupItems, hasTeamMembersAtLocation]);
+  const allCreateItemsValid = useMemo(
+    () => appointmentItems.length > 0 && appointmentItems.every((item) => isValidAppointmentItem(item, hasTeamMembersAtLocation)),
+    [appointmentItems, hasTeamMembersAtLocation],
+  );
+  const isTimeInAvailableSlots = useMemo(() => {
+    if (form.time === '') return false;
+    if (availableSlots == null) return isEditMode;
+    return displayTimeSlots.includes(form.time);
+  }, [availableSlots, displayTimeSlots, form.time, isEditMode]);
+  const isScheduledInPast = useMemo(() => {
+    const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
+    return scheduled !== null && scheduled.getTime() < Date.now();
+  }, [form.date, form.time, calendarTimezone]);
+  const isSpanMidnight = useMemo(() => {
+    if (!form.date || !form.time) return false;
+    const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
+    return scheduled !== null && doesTimeRangeSpanMidnight(scheduled, slotDurationMinutes, calendarTimezone);
+  }, [form.date, form.time, calendarTimezone, slotDurationMinutes]);
+  const prefillSlotIsValid = !isPrefillTimeMode || form.time === '' || slotValidation.valid !== false;
+  const totalPrice = useMemo(
+    () => getGroupTotalPriceMajor(appointmentItems, locationServices, locationBundles),
+    [appointmentItems, locationServices, locationBundles],
+  );
+  const selectedServicesCount = useMemo(
+    () => appointmentItems.filter((item) => item.serviceId != null).length,
+    [appointmentItems],
+  );
+  const selectedBundlesCount = useMemo(
+    () => appointmentItems.filter((item) => item.bundleId != null).length,
+    [appointmentItems],
+  );
+
+  const notesError = useMemo(
+    () => validateDescription(form.notes, 500),
+    [form.notes],
+  );
 
   const canSubmit =
     form.date !== null &&
     form.time !== '' &&
     selectedLocationId !== null &&
-    (isMultiItemCreate ? allCreateItemsValid : (form.serviceId !== null && (!hasTeamMembersAtLocation || form.staffUserId !== null)));
-
-  const doCreateAppointment = useCallback(() => {
-    const pending = pendingSubmitRef.current;
-    if (!pending) return;
-    setSubmitting(true);
-    setError(null);
-    const reason = overrideReasonText.trim() || undefined;
-    try {
-      dispatch(adminCreateAppointment.request({ ...pending.payload, overrideReason: reason }));
-      pendingSubmitRef.current = null;
-      setConfirmOpen(false);
-      setConfirmReason(null);
-      setOverrideReasonText('');
-      onClose();
-    } catch {
-      setError('Failed to create appointment');
-    } finally {
-      setSubmitting(false);
-    }
-  }, [dispatch, onClose, overrideReasonText]);
+    !isScheduledInPast &&
+    !isSpanMidnight &&
+    !durationExceedsOneDay &&
+    isTimeInAvailableSlots &&
+    prefillSlotIsValid &&
+    !slotValidation.loading &&
+    !availableSlotsLoading &&
+    allCreateItemsValid &&
+    !notesError;
 
   const doUpdateAppointment = useCallback(() => {
     const pending = pendingUpdateRef.current;
@@ -465,56 +946,44 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   const handleConfirmOverrides = useCallback(() => {
     if (pendingGroupSubmitRef.current) doCreateGroupAppointment();
-    else if (pendingSubmitRef.current) doCreateAppointment();
     else if (pendingUpdateRef.current) doUpdateAppointment();
-  }, [doCreateAppointment, doCreateGroupAppointment, doUpdateAppointment]);
+  }, [doCreateGroupAppointment, doUpdateAppointment]);
 
   const handleCancelOverrides = useCallback(() => {
-    pendingSubmitRef.current = null;
     pendingGroupSubmitRef.current = null;
     pendingUpdateRef.current = null;
     setConfirmReason(null);
     setOverrideReasonText('');
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!canSubmit || !selectedLocationId || !form.date) return;
+  const openConfirmDialog = useCallback((reason: 'out_of_hours' | 'on_block') => {
+    setConfirmReason(reason);
+    setConfirmOpen(true);
+  }, []);
 
-    setError(null);
+  const durationMinutes = slotDurationMinutes;
 
-    const [hours, minutes] = form.time.split(':').map(Number);
-    const scheduledDate = new Date(form.date);
-    scheduledDate.setHours(hours, minutes, 0, 0);
-
-    const payload = {
-      serviceId: form.serviceId!,
-      locationId: selectedLocationId,
-      staffUserIds: hasTeamMembersAtLocation ? [form.staffUserId!] : [],
-      scheduledAt: scheduledDate.toISOString(),
-      notes: form.notes.trim() || undefined,
-    };
-
-    const durationMinutes = selectedService ? (selectedService.customDuration ?? selectedService.defaultDuration) : 0;
-    const formDateStr = form.date ? toLocalDateString(form.date) : '';
-    const selectedDateStr = selectedDate ? toLocalDateString(selectedDate) : '';
-    const sameDay = formDateStr === selectedDateStr;
-    const blocksToCheck = sameDay ? dayBlocks : [];
-
-    if (isEditMode && editingAppointmentId) {
+  const submitEdit = useCallback(
+    (
+      scheduledDate: Date,
+      payload: {
+        serviceId: number;
+        locationId: number;
+        staffUserIds: number[];
+        scheduledAt: string;
+        notes?: string;
+      },
+    ) => {
       const isOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247);
-      const isOnBlock = appointmentOverlapsBlocks(scheduledDate, durationMinutes, blocksToCheck);
-      if (isOutOfHours || isOnBlock) {
+      if (isOutOfHours) {
         pendingUpdateRef.current = {
-          appointmentId: editingAppointmentId,
+          appointmentId: editingAppointmentId!,
           data: {
             ...payload,
             allowOutOfHours: isOutOfHours,
-            overrideConflicts: isOnBlock,
           },
         };
-        setConfirmReason(isOnBlock ? 'on_block' : 'out_of_hours');
-        setConfirmOpen(true);
+        openConfirmDialog('out_of_hours');
         return;
       }
       setSubmitting(true);
@@ -526,7 +995,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           }));
         } else {
           dispatch(updateAppointment.request({
-            appointmentId: editingAppointmentId,
+            appointmentId: editingAppointmentId!,
             data: payload,
             bookingGroupId: prefill?.bookingGroupId,
           }));
@@ -537,48 +1006,38 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       } finally {
         setSubmitting(false);
       }
-      return;
-    }
+    },
+    [
+      durationMinutes,
+      dayWorkingHours,
+      open247,
+      editingAppointmentId,
+      openConfirmDialog,
+      prefill?.bookingGroupId,
+      dispatch,
+      onClose,
+    ],
+  );
 
-    // Multi-item create (group)
-    if (isMultiItemCreate) {
-      const firstItem = { serviceId: form.serviceId!, staffUserId: form.staffUserId ?? 0 };
-      const restItems = groupItems.map((row) => {
-        if (row.serviceId != null) {
-          return { serviceId: row.serviceId, staffUserId: row.staffUserId ?? 0 };
-        }
-        return { bundleId: row.bundleId!, staffUserId: row.staffUserId ?? 0 };
-      });
-      const items = [firstItem, ...restItems];
+  const submitGroupCreate = useCallback(
+    (scheduledDate: Date) => {
+      const items = getGroupItemsForPayload(appointmentItems);
       const groupPayload = {
-        locationId: selectedLocationId,
+        locationId: selectedLocationId!,
         customerId: form.customerId ?? undefined,
         items,
         scheduledAt: scheduledDate.toISOString(),
         notes: form.notes.trim() || undefined,
         bookingSource: form.bookingSource,
       };
-      const totalDurationMinutes = items.reduce((sum, item) => {
-        if ('serviceId' in item && item.serviceId) {
-          const s = locationServices.find((x) => x.serviceId === item.serviceId);
-          return sum + (s ? (s.customDuration ?? s.defaultDuration) : 0);
-        }
-        if ('bundleId' in item && item.bundleId) {
-          const b = locationBundles.find((x) => x.bundleId === item.bundleId);
-          return sum + (b?.durationMinutes ?? 0);
-        }
-        return sum;
-      }, 0);
+      const totalDurationMinutes = getGroupTotalDurationMinutes(items, locationServices, locationBundles);
       const groupOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, totalDurationMinutes, dayWorkingHours, open247);
-      const groupOnBlock = appointmentOverlapsBlocks(scheduledDate, totalDurationMinutes, blocksToCheck);
-      if (groupOutOfHours || groupOnBlock) {
+      if (groupOutOfHours) {
         pendingGroupSubmitRef.current = {
           ...groupPayload,
           allowOutOfHours: groupOutOfHours,
-          overrideConflicts: groupOnBlock,
         };
-        setConfirmReason(groupOnBlock ? 'on_block' : 'out_of_hours');
-        setConfirmOpen(true);
+        openConfirmDialog('out_of_hours');
         return;
       }
       setSubmitting(true);
@@ -590,51 +1049,70 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       } finally {
         setSubmitting(false);
       }
+    },
+    [
+      form,
+      appointmentItems,
+      selectedLocationId,
+      locationServices,
+      locationBundles,
+      dayWorkingHours,
+      open247,
+      openConfirmDialog,
+      dispatch,
+      onClose,
+    ],
+  );
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit || !selectedLocationId || !form.date) return;
+
+    setError(null);
+
+    const scheduledDate = buildScheduledDate(form.date, form.time, calendarTimezone);
+    if (!scheduledDate) return;
+    if (scheduledDate.getTime() < Date.now()) {
+      setError('Cannot create an appointment in the past.');
       return;
     }
+    if (doesTimeRangeSpanMidnight(scheduledDate, slotDurationMinutes, calendarTimezone)) {
+      setError('This appointment would span two days. Please end by midnight and create a separate appointment for the next day.');
+      return;
+    }
+    console.log('[APPOINTMENT] submit:start', {
+      mode: isEditMode ? 'edit' : 'create-group',
+      locationId: selectedLocationId,
+      timezone: calendarTimezone,
+      scheduledDate: scheduledDate.toISOString(),
+      itemCount: appointmentItems.length,
+    });
 
-    // Single-item create: check if we need confirmation (out of hours or overlapping a block)
-    const isOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247);
-    const isOnBlock = appointmentOverlapsBlocks(scheduledDate, durationMinutes, blocksToCheck);
-    if (isOutOfHours || isOnBlock) {
-      pendingSubmitRef.current = {
-        payload: {
-          ...payload,
-          customerId: form.customerId ?? undefined,
-          bookingSource: form.bookingSource,
-          allowOutOfHours: isOutOfHours,
-          overrideConflicts: isOnBlock,
-        },
+    if (notesError) return;
+
+    if (isEditMode && editingAppointmentId) {
+      const editItem = appointmentItems.find((item) => item.serviceId != null);
+      if (!editItem?.serviceId) {
+        setError('Please select a service before saving this appointment.');
+        return;
+      }
+      const payload = {
+        serviceId: editItem.serviceId,
+        locationId: selectedLocationId,
+        staffUserIds: hasTeamMembersAtLocation && editItem.staffUserId != null ? [editItem.staffUserId] : [],
+        scheduledAt: scheduledDate.toISOString(),
+        notes: form.notes.trim() || undefined,
       };
-      setConfirmReason(isOnBlock ? 'on_block' : 'out_of_hours');
-      setConfirmOpen(true);
+      submitEdit(scheduledDate, payload);
       return;
     }
 
-    setSubmitting(true);
-    try {
-      dispatch(adminCreateAppointment.request({
-        ...payload,
-        customerId: form.customerId ?? undefined,
-        bookingSource: form.bookingSource,
-      }));
-      onClose();
-    } catch {
-      setError('Failed to create appointment');
-    } finally {
-      setSubmitting(false);
-    }
+    submitGroupCreate(scheduledDate);
   };
 
-  // ─────────────────────────────────────────────────────────────
-  // Booking sources
-  // ─────────────────────────────────────────────────────────────
-
-  const bookingSources: { value: AppointmentBookingSource; label: string; icon: React.ReactNode }[] = [
-    { value: 'admin' as AppointmentBookingSource, label: 'Admin', icon: <ShieldCheck className="h-4 w-4" /> },
-    { value: 'phone' as AppointmentBookingSource, label: 'Phone', icon: <Phone className="h-4 w-4" /> },
-    { value: 'walk_in' as AppointmentBookingSource, label: 'Walk-in', icon: <Footprints className="h-4 w-4" /> },
-  ];
+  const hasSelectedAnyItem = appointmentItems.length > 0;
+  const isStaffReadyForSlots = allItemsHaveStaff(appointmentItems, hasTeamMembersAtLocation);
+  const canSelectDateTime = isStaffReadyForSlots && !durationExceedsOneDay;
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -645,379 +1123,387 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       isOpen={isOpen}
       onClose={onClose}
       title={isEditMode ? 'Edit Appointment' : 'New Appointment'}
-      contentClassName="bg-muted/50 scrollbar-hide"
+      subtitle={isEditMode ? 'Update appointment details' : 'Book a new appointment for a client'}
+      icon={isEditMode ? Calendar : CalendarPlus}
+      iconColor="text-foreground-1"
+      contentClassName="bg-surface scrollbar-hide"
       footer={
-        <div className="flex gap-3">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            className="flex-1"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            form="add-appointment-form"
-            className="flex-1"
-            disabled={!canSubmit || submitting}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                {isEditMode ? 'Saving...' : 'Creating...'}
-              </>
-            ) : (
-              isEditMode ? 'Save Changes' : 'Create Appointment'
-            )}
-          </Button>
-        </div>
+        <FormFooter
+          onCancel={onClose}
+          formId="add-appointment-form"
+          cancelLabel="Cancel"
+          submitLabel={isEditMode ? 'Save Changes' : 'Create Appointment'}
+          disabled={!canSubmit}
+          isLoading={submitting}
+        />
       }
     >
-      <form id="add-appointment-form" onSubmit={handleSubmit} className="max-w-md mx-auto">
-        {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-            {error}
-          </div>
-        )}
-
-        <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm transition-all duration-300">
-          <CardContent className="space-y-8">
-            {/* ── Client Section ── */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Client</h3>
-                <span className="text-xs text-muted-foreground">(optional)</span>
+      <form
+        id="add-appointment-form"
+        onSubmit={handleSubmit}
+        className="h-full flex flex-col cursor-default"
+      >
+        <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+          <div className="max-w-2xl mx-auto space-y-8 cursor-default">
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                {error}
               </div>
+            )}
 
-              {isEditMode ? (
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarFallback>
-                      {form.customerDisplay?.firstName?.[0] ?? 'W'}
-                      {form.customerDisplay?.lastName?.[0] ?? ''}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-base truncate">
-                      {form.customerDisplay
-                        ? `${form.customerDisplay.firstName} ${form.customerDisplay.lastName}`.trim()
-                        : 'Walk-in'}
-                    </div>
-                    {form.customerDisplay?.email && (
-                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.email}</div>
+            <CustomerSearchPicker
+              isOpen={isOpen}
+              isEditMode={isEditMode}
+              selectedCustomer={form.customerDisplay}
+              onSelectCustomer={(customer) => {
+                setForm((prev) => ({
+                  ...prev,
+                  customerId: customer.id,
+                  customerDisplay: {
+                    firstName: customer.firstName,
+                    lastName: customer.lastName,
+                    email: customer.email,
+                    phone: customer.phone,
+                  },
+                }));
+              }}
+              onClearCustomer={() => {
+                setForm((prev) => ({ ...prev, customerId: null, customerDisplay: null }));
+              }}
+            />
+
+            <SliderContentDivider />
+
+            {/* ── Services & Bundles Section ── */}
+            <div className="space-y-5">
+              <SliderSectionHeader
+                title={isEditMode ? 'Service' : 'Services & Bundles'}
+                description={isEditMode ? 'Choose the service for this appointment.' : 'Choose services and bundles, then assign staff for each item.'}
+              />
+              {!isEditMode && locationBundles.length > 0 ? (
+                <div className="w-full flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={() => setIsManageServicesSheetOpen(true)}
+                    className={`${SLIDER_COMBO_TRIGGER_CLASS} justify-center`}
+                    disabled={servicesLoading}
+                  >
+                    {servicesLoading ? (
+                      <span className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Loading services...
+                      </span>
+                    ) : (
+                      <>
+                        <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
+                        <span>Select services</span>
+                      </>
                     )}
-                    {form.customerDisplay?.phone && (
-                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.phone}</div>
-                    )}
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Customer cannot be changed for existing appointments.
-                    </div>
-                  </div>
-                </div>
-              ) : form.customerDisplay ? (
-                <div className="flex items-center gap-2 p-3 bg-muted/30 rounded-lg">
-                  <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarFallback>
-                      {[form.customerDisplay.firstName?.[0], form.customerDisplay.lastName?.[0]].filter(Boolean).join('') || form.customerDisplay.email?.[0]?.toUpperCase() || 'C'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-base truncate">
-                      {[form.customerDisplay.firstName, form.customerDisplay.lastName].filter(Boolean).join(' ').trim() || form.customerDisplay.email || 'Customer'}
-                    </div>
-                    {form.customerDisplay.email && (
-                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.email}</div>
-                    )}
-                    {form.customerDisplay.phone && (
-                      <div className="text-sm text-muted-foreground truncate">{form.customerDisplay.phone}</div>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={handleClearCustomer}>
-                    Change
+                  </Button>
+                  <div className="h-6 w-px bg-border justify-self-center" aria-hidden="true" />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={() => setIsManageBundlesSheetOpen(true)}
+                    className={`${SLIDER_COMBO_TRIGGER_CLASS} justify-center`}
+                  >
+                    <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
+                    <span>Select bundles</span>
                   </Button>
                 </div>
-              ) : showQuickCreate ? (
-                <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <UserPlus className="h-4 w-4" />
-                    Quick Create Customer
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input
-                      placeholder="First name *"
-                      value={quickCreate.firstName}
-                      onChange={(e) => handleQuickCreateChange('firstName', e.target.value)}
-                      className="h-10"
-                    />
-                    <Input
-                      placeholder="Last name"
-                      value={quickCreate.lastName}
-                      onChange={(e) => handleQuickCreateChange('lastName', e.target.value)}
-                      className="h-10"
-                    />
-                  </div>
-                  <Input
-                    placeholder="Phone"
-                    value={quickCreate.phone}
-                    onChange={(e) => handleQuickCreateChange('phone', e.target.value)}
-                    className="h-10"
-                  />
-                  <Input
-                    placeholder="Email"
-                    value={quickCreate.email}
-                    onChange={(e) => handleQuickCreateChange('email', e.target.value)}
-                    className="h-10"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowQuickCreate(false)}
-                      className="flex-1"
-                    >
-                      Back
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={handleQuickCreateCustomer}
-                      disabled={!quickCreate.firstName.trim() || quickCreateSubmitting}
-                      className="flex-1"
-                    >
-                      {quickCreateSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Create'}
-                    </Button>
-                  </div>
+              ) : (
+                <div className="flex w-full">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={() => setIsManageServicesSheetOpen(true)}
+                    className={`${SLIDER_COMBO_TRIGGER_CLASS} w-full sm:w-auto`}
+                    disabled={servicesLoading}
+                  >
+                    {servicesLoading ? (
+                      <span className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Loading services...
+                      </span>
+                    ) : (
+                      <>
+                        <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
+                        <span>Select services</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+
+              <ManageServicesSheet
+                isOpen={isManageServicesSheetOpen}
+                onClose={() => setIsManageServicesSheetOpen(false)}
+                allServices={servicesForSheet}
+                initialSelectedIds={selectedServiceIds}
+                mode={isEditMode ? 'single' : 'multi'}
+                onSelect={handleSelectSingleService}
+                onApply={(serviceIds) => {
+                  applySelectedServices(serviceIds);
+                  setIsManageServicesSheetOpen(false);
+                }}
+                title={isEditMode ? 'Select Service' : 'Select Services'}
+                subtitle={isEditMode ? 'Choose one service for this appointment.' : 'Choose one or more services for this appointment.'}
+                expandAllCategories={true}
+              />
+              {!isEditMode && locationBundles.length > 0 && (
+                <ManageBundlesSheet
+                  isOpen={isManageBundlesSheetOpen}
+                  onClose={() => setIsManageBundlesSheetOpen(false)}
+                  allBundles={bundlesForSheet}
+                  initialSelectedIds={selectedBundleIds}
+                  onApply={handleApplyBundleIds}
+                  title="Select Bundles"
+                  subtitle="Choose one or more bundles for this booking."
+                />
+              )}
+
+              {appointmentItems.length === 0 ? (
+                <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
+                  Select service(s){!isEditMode && locationBundles.length > 0 ? ' and/or bundle(s)' : ''} to start building this appointment.
                 </div>
               ) : (
-                <div className="space-y-2">
-                  <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedServicesCount > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
                       >
-                        Search by name...
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[350px] p-0 z-[80]">
-                      <Command shouldFilter={false}>
-                        <CommandInput
-                          placeholder="Search clients..."
-                          value={customerSearch}
-                          onValueChange={handleCustomerSearchChange}
-                        />
-                        <CommandList>
-                          {customerLoading && (
-                            <div className="flex items-center justify-center py-4">
-                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            </div>
-                          )}
-                          {!customerLoading && customerSearch.length >= 2 && customerResults.length === 0 && (
-                            <CommandEmpty>No customers found.</CommandEmpty>
-                          )}
-                          {customerResults.length > 0 && (
-                            <CommandGroup>
-                              {customerResults.map((customer) => (
-                                <CommandItem
-                                  key={customer.id}
-                                  value={`${customer.id}`}
-                                  onSelect={() => handleSelectCustomer(customer)}
-                                  className="flex items-center gap-3 p-3"
-                                >
-                                  <Avatar className="h-8 w-8">
-                                    <AvatarFallback>
-                                      {customer.firstName[0]}
-                                      {customer.lastName?.[0] ?? ''}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div className="flex-1">
-                                    <div className="font-medium">{customer.firstName} {customer.lastName}</div>
-                                    {customer.email && <div className="text-sm text-muted-foreground">{customer.email}</div>}
-                                    {customer.phone && <div className="text-sm text-muted-foreground">{customer.phone}</div>}
-                                  </div>
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          )}
-                          <CommandGroup>
-                            <CommandItem
-                              onSelect={() => {
-                                setCustomerOpen(false);
-                                setShowQuickCreate(true);
-                              }}
-                              className="flex items-center gap-2 p-3 text-primary"
-                            >
-                              <UserPlus className="h-4 w-4" />
-                              Add new customer
-                            </CommandItem>
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                        <div className="h-2 w-2 rounded-full bg-green-500" />
+                        <span className="font-semibold text-neutral-900 dark:text-foreground-1">{selectedServicesCount}</span>
+                        <span className="text-neutral-900 dark:text-foreground-1">
+                          {selectedServicesCount === 1 ? 'service' : 'services'}
+                        </span>
+                      </Badge>
+                    )}
+                    {selectedBundlesCount > 0 && (
+                      <Badge
+                        variant="secondary"
+                        className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+                      >
+                        <div className="h-2 w-2 rounded-full bg-purple-500" />
+                        <span className="font-semibold text-neutral-900 dark:text-foreground-1">{selectedBundlesCount}</span>
+                        <span className="text-neutral-900 dark:text-foreground-1">
+                          {selectedBundlesCount === 1 ? 'bundle' : 'bundles'}
+                        </span>
+                      </Badge>
+                    )}
+                  </div>
+                  {appointmentItems.map((item, idx) => (
+                    <AppointmentItemRow
+                      key={`${item.serviceId ?? 'b'}-${item.bundleId ?? 's'}-${idx}`}
+                      item={item}
+                      index={idx}
+                      hasTeamMembersAtLocation={hasTeamMembersAtLocation}
+                      locationServices={locationServices}
+                      locationBundles={locationBundles}
+                      locationTeamMembers={locationTeamMembers}
+                      currencyDisplay={currencyDisplay}
+                      onUpdateStaff={handleUpdateItemStaff}
+                      onRemoveItem={handleRemoveItem}
+                    />
+                  ))}
+                  <div className="rounded-lg border border-border bg-surface-hover/50 dark:bg-surface px-4 py-3 flex items-center justify-between gap-4">
+                    <span className="text-sm font-medium text-foreground-1">
+                      Total
+                    </span>
+                    <div className="flex items-center gap-3 text-sm text-foreground-2">
+                      <span className="inline-flex items-center gap-0.5 font-semibold text-foreground-1">
+                        {currencyDisplay.icon ? (
+                          <currencyDisplay.icon className="h-3.5 w-3.5 text-foreground-1" />
+                        ) : (
+                          <span>{currencyDisplay.symbol}</span>
+                        )}
+                        <span>{totalPrice.toFixed(2)}</span>
+                      </span>
+                      {durationMinutes > 0 && (
+                        <>
+                          <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
+                          <span className="inline-flex items-center gap-1.5">
+                            <Clock className="h-3.5 w-3.5 text-foreground-2 shrink-0" />
+                            <span>{durationMinutes} min</span>
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* ── Service Section ── */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Scissors className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Service</h3>
-              </div>
-              <div className="space-y-2">
-                <Popover open={serviceOpen} onOpenChange={setServiceOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {servicesLoading ? (
-                        <span className="flex items-center gap-2 text-muted-foreground">
-                          <Loader2 className="h-4 w-4 animate-spin" /> Loading services...
-                        </span>
-                      ) : selectedService ? (
-                        <span>{selectedService.serviceName}</span>
-                      ) : (
-                        <span className="text-muted-foreground">Select a service</span>
-                      )}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search services..." />
-                      <CommandList>
-                        <CommandEmpty>No services at this location.</CommandEmpty>
-                        <CommandGroup>
-                          {locationServices.map((service) => {
-                            const price = (service.customPrice ?? service.defaultPrice) / 100;
-                            const duration = service.customDuration ?? service.defaultDuration;
-                            return (
-                              <CommandItem
-                                key={service.serviceId}
-                                value={service.serviceName}
-                                onSelect={() => {
-                                  setForm((prev) => ({
-                                    ...prev,
-                                    serviceId: service.serviceId,
-                                    // Reset staff if service changes
-                                    staffUserId: null,
-                                  }));
-                                  setServiceOpen(false);
-                                }}
-                                className="flex items-center gap-3 p-3"
-                              >
-                                <Check
-                                  className={cn(
-                                    'h-4 w-4',
-                                    form.serviceId === service.serviceId ? 'opacity-100' : 'opacity-0',
-                                  )}
-                                />
-                                <div className="flex-1">
-                                  <div className="font-medium">{service.serviceName}</div>
-                                  <div className="text-xs text-muted-foreground">
-                                    {duration} min &middot; ${price.toFixed(2)}
-                                    {service.category && (
-                                      <span className="ml-2 text-xs">{service.category.name}</span>
-                                    )}
-                                  </div>
-                                </div>
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-
-                {selectedService && (
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    <Badge variant="secondary" className="text-xs">{serviceDuration} min</Badge>
-                    <Badge variant="secondary" className="text-xs">${servicePrice.toFixed(2)}</Badge>
-                  </div>
-                )}
-              </div>
-            </div>
+            <SliderContentDivider />
 
             {/* ── Date & Time Section ── */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Calendar className="h-5 w-5 text-primary" />
+            <div className="space-y-5">
+              <SliderSectionHeader
+                title="Date & Time"
+                description="Select when the appointment will take place."
+              />
+              {!hasSelectedAnyItem && (
+                <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
+                  Select at least one service or bundle to unlock date and time selection.
                 </div>
-                <h3 className="text-base font-semibold text-foreground">Date & Time</h3>
-              </div>
+              )}
+              {hasSelectedAnyItem && !isStaffReadyForSlots && (
+                <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
+                  Assign staff to each selected item to load accurate availability.
+                </div>
+              )}
+
+              {hasSelectedAnyItem && isStaffReadyForSlots && durationExceedsOneDay && (
+                <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+                  Total duration is longer than a full day and would span multiple days. Please remove some services so this appointment fits within one day (by midnight).
+                </div>
+              )}
 
               {isClosedDay && (
-                <div className="p-3 rounded-lg bg-muted/50 text-muted-foreground text-sm">
+                <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
                   Business is closed on this day. You can still book; you will be asked to confirm.
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className={cn('grid grid-cols-2 gap-4', !canSelectDateTime && 'opacity-60 pointer-events-none')}>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Date</Label>
+                  <Label className="text-sm font-medium text-foreground-1">Date</Label>
                   <DatePicker
                     value={form.date}
                     onChange={handleDateChange}
-                    className="border-0 bg-muted/50 focus:bg-background h-12 text-base w-full rounded-md px-3"
+                    minDate={(() => {
+                      const d = new Date();
+                      d.setHours(0, 0, 0, 0);
+                      return d;
+                    })()}
+                    connectedPopover
+                    className={cn(
+                      "border bg-surface hover:bg-surface-hover focus:bg-surface h-12 text-base w-full px-4",
+                      canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle"
+                    )}
                     placeholder="Select date"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-sm font-medium">Time</Label>
+                  <Label className="text-sm font-medium text-foreground-1">Time</Label>
                   {displayTimeSlots.length > 0 ? (
-                    <Popover open={hourOpen} onOpenChange={setHourOpen}>
+                    <Popover open={hourOpen} onOpenChange={handleHourOpenChange}>
                       <PopoverTrigger asChild>
                         <Button
                           type="button"
                           variant="outline"
-                          className="w-full h-12 text-base justify-between font-normal bg-muted/50 border-0"
-                          disabled={availableSlotsLoading}
+                          className={cn(
+                            "w-full h-12 text-base justify-between font-normal border bg-surface hover:bg-surface-hover rounded-full px-4",
+                            (hourOpen || hourClosingAnimation)
+                              ? "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none"
+                              : (availableSlotsLoading || !canSelectDateTime || !form.date)
+                                ? "border-border dark:border-border-subtle"
+                                : "border-border-strong dark:border-border-strong"
+                          )}
+                          disabled={availableSlotsLoading || !canSelectDateTime || !form.date}
                         >
                           {availableSlotsLoading ? (
-                            <span className="flex items-center gap-2 text-muted-foreground">
+                            <span className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
                               <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
                             </span>
                           ) : form.time ? (
-                            formatSlotTime(form.time)
+                            <span className="text-foreground-1">{formatSlotTime(form.time)}</span>
                           ) : (
-                            'Select time'
+                            <span className="text-foreground-3 dark:text-foreground-2">Select time</span>
                           )}
                           {!availableSlotsLoading && <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="p-0 w-44 max-h-60 overflow-y-auto z-[90]">
-                        {displayTimeSlots.map((slot) => (
-                          <button
-                            key={slot}
-                            type="button"
-                            className={cn(
-                              'w-full text-left px-4 py-2 text-sm hover:bg-muted/50',
-                              form.time === slot ? 'bg-primary/10 font-medium' : '',
-                              isSlotOutsideHours(slot) && 'opacity-60 text-muted-foreground',
-                            )}
-                            onClick={() => handleTimeSelect(slot)}
-                          >
-                            {formatSlotTime(slot)}
-                          </button>
-                        ))}
+                      <PopoverContent
+                        className={cn(
+                          "add-appointment-popover-expand !w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-trigger-width)] max-h-[calc(100vh-6rem)] box-border -mt-px border border-t-0 rounded-t-none rounded-b-[16px] shadow-none p-0 z-[90] overflow-hidden flex flex-col",
+                          (hourOpen || hourClosingAnimation) ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border"
+                        )}
+                        side="bottom"
+                        align="start"
+                        sideOffset={0}
+                        avoidCollisions={false}
+                      >
+                        <div className="min-h-0 flex-1 max-h-60 overflow-y-auto py-1">
+                          <div className="px-3 pt-2 pb-1.5">
+                            <p className="text-xs font-medium text-foreground-3 dark:text-foreground-2">
+                              {workingHoursLabel}
+                            </p>
+                          </div>
+                          {inHoursSlots.length > 0 && (
+                            <>
+                              <div className="px-3 pb-1">
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-3 dark:text-foreground-2">
+                                  Working hours
+                                </p>
+                              </div>
+                              {inHoursSlots.map((slot) => {
+                                const isSelected = form.time === slot;
+                                return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  className={cn(
+                                    'w-full text-left px-3 py-2.5 rounded-lg text-sm cursor-pointer',
+                                    isSelected
+                                      ? 'bg-primary/10 font-medium text-foreground-1 hover:bg-primary/15 dark:hover:bg-primary/20'
+                                      : 'text-foreground-1 hover:bg-info-100 dark:hover:bg-surface-hover',
+                                  )}
+                                  onClick={() => handleTimeSelect(slot)}
+                                >
+                                  {formatSlotTime(slot)}
+                                </button>
+                                );
+                              })}
+                            </>
+                          )}
+                          {inHoursSlots.length === 0 && slotsOutsideHours.length > 0 && (
+                            <div className="px-4 py-2 text-xs text-foreground-3 dark:text-foreground-2">
+                              No available times within working hours
+                            </div>
+                          )}
+                          {slotsOutsideHours.length > 0 && (
+                            <>
+                              <div className="border-t border-border my-1" role="separator" />
+                              <div className="px-3 pt-1 pb-1">
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-3 dark:text-foreground-2">
+                                  Outside working hours
+                                </p>
+                              </div>
+                              {slotsOutsideHours.map((slot) => {
+                                const isSelected = form.time === slot;
+                                return (
+                                <button
+                                  key={slot}
+                                  type="button"
+                                  className={cn(
+                                    'w-full text-left px-3 py-2.5 rounded-lg text-sm cursor-pointer',
+                                    isSelected
+                                      ? 'bg-primary/10 font-medium text-foreground-1 opacity-100 hover:bg-primary/15 dark:hover:bg-primary/20'
+                                      : 'opacity-80 text-foreground-3 dark:text-foreground-2 hover:bg-info-100 dark:hover:bg-surface-hover hover:opacity-100',
+                                  )}
+                                  onClick={() => handleTimeSelect(slot)}
+                                >
+                                  {formatSlotTime(slot)}
+                                </button>
+                                );
+                              })}
+                            </>
+                          )}
+                        </div>
                       </PopoverContent>
                     </Popover>
                   ) : (
-                    <div className="h-12 flex items-center text-sm text-muted-foreground bg-muted/50 rounded-md px-3">
+                    <div
+                      className={cn(
+                        "h-12 flex items-center text-sm text-foreground-3 dark:text-foreground-2 border bg-surface rounded-full px-4",
+                        canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle"
+                      )}
+                    >
                       {availableSlotsLoading ? (
                         <span className="flex items-center gap-2">
                           <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
@@ -1025,258 +1511,117 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       ) : isClosedDay ? (
                         'Closed'
                       ) : (
-                        'Select a date and service first'
+                        'No availability on this date'
                       )}
                     </div>
                   )}
                 </div>
               </div>
 
-              {form.time && selectedService && (
-                <div className="text-xs text-muted-foreground">
+              {nextAvailableDate && (() => {
+                const nextDateFormatted = (() => {
+                  const d = new Date(nextAvailableDate + 'T12:00:00');
+                  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                })();
+                return (
+                  <div className="space-y-2">
+                    <div className="flex items-start gap-2 text-sm text-foreground-1 leading-relaxed">
+                      <CalendarClock className="h-4 w-4 mt-0.5 flex-shrink-0 text-primary" />
+                      <div className="space-y-0.5 min-w-0">
+                        <p className="font-medium text-foreground-1">No in-hours slots on this date</p>
+                        <p className="text-xs text-foreground-3 dark:text-foreground-2">
+                          The next day with availability is {nextDateFormatted}. Use the button below to switch.
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      rounded="full"
+                      className="!px-6 w-fit border-border-strong text-foreground-1 group disabled:opacity-50"
+                      onClick={() => {
+                        setForm((prev) => ({
+                          ...prev,
+                          date: buildZonedDateFromDateKey(nextAvailableDate, '00:00', calendarTimezone),
+                          time: '',
+                        }));
+                      }}
+                    >
+                      <span>Next available date</span>
+                      <ArrowRight className="h-4 w-4 ml-2 text-primary transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+                    </Button>
+                  </div>
+                );
+              })()}
+              {slotFetchError && (
+                <div className="text-xs text-destructive">
+                  {slotFetchError}
+                </div>
+              )}
+
+              {isPrefillTimeMode && slotValidation.valid === false && (
+                <div className="text-xs text-destructive">
+                  {slotValidation.reason ?? 'Selected slot is no longer available.'}
+                </div>
+              )}
+
+              {form.time && durationMinutes > 0 && (
+                <div className="text-xs text-foreground-3 dark:text-foreground-2">
                   Appointment: {formatSlotTime(form.time)} &ndash;{' '}
-                  {formatSlotTime(getEndTimeString(form.time, serviceDuration))}{' '}
-                  ({serviceDuration} min)
+                  {formatSlotTime(getEndTimeString(form.time, durationMinutes))}{' '}
+                  ({durationMinutes} min)
                 </div>
               )}
             </div>
 
-            {/* ── Staff Section ── */}
-            {hasTeamMembersAtLocation ? (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <h3 className="text-base font-semibold text-foreground">Staff Member</h3>
-                  <span className="text-xs text-muted-foreground">(required)</span>
-                </div>
-                <Popover open={staffOpen} onOpenChange={setStaffOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      role="combobox"
-                      className="border-0 bg-muted/50 hover:bg-muted/70 h-12 text-base justify-between w-full"
-                    >
-                      {hasTeamMembersAtLocation && form.staffUserId == null
-                        ? 'Select staff member'
-                        : getStaffDisplayNameOrUnassigned(form.staffUserId, locationStaff)}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[350px] p-0 z-[80]">
-                    <Command>
-                      <CommandInput placeholder="Search staff..." />
-                      <CommandList>
-                        <CommandGroup>
-                          {eligibleStaff.map((staff) => (
-                            <CommandItem
-                              key={staff.id}
-                              value={`${staff.firstName} ${staff.lastName}`}
-                              onSelect={() => handleSelectStaff(staff.id)}
-                              className="flex items-center gap-3 p-3"
-                            >
-                              <Check
-                                className={cn('h-4 w-4', form.staffUserId === staff.id ? 'opacity-100' : 'opacity-0')}
-                              />
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={staff.profileImage ?? undefined} />
-                                <AvatarFallback>
-                                  {staff.firstName[0]}
-                                  {staff.lastName[0]}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="font-medium">
-                                {staff.firstName} {staff.lastName}
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground">
-                  No team members at this location — booking at location level.
-                </p>
-              </div>
-            )}
-
-            {/* ── Add another service (create only, multi-item group) ── */}
-            {!isEditMode && hasTeamMembersAtLocation && (
-              <div className="space-y-3">
-                {groupItems.map((row, idx) => {
-                  const serviceForRow = locationServices.find((s) => s.serviceId === row.serviceId);
-                  const bundleForRow = locationBundles.find((b) => b.bundleId === row.bundleId);
-                  const staffForRow = locationTeamMembers.find((t) => t.userId === row.staffUserId);
-                  const eligibleTeamMembersForRow =
-                    serviceForRow?.staffIds?.length
-                      ? locationTeamMembers.filter((t) => serviceForRow.staffIds!.includes(t.userId))
-                      : bundleForRow?.staffIds?.length
-                        ? locationTeamMembers.filter((t) => bundleForRow.staffIds.includes(t.userId))
-                        : locationTeamMembers;
-                  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? `${bundleForRow.bundleName} (bundle)` : 'Service or bundle';
-                  return (
-                    <div key={idx} className="flex items-center gap-2 p-3 rounded-lg bg-muted/40 border border-border/50">
-                      <div className="flex-1 grid grid-cols-2 gap-2 min-w-0">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-10 justify-between text-sm truncate">
-                              {rowLabel}
-                              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[280px] p-0 z-[80]">
-                            <Command>
-                              <CommandInput placeholder="Search service or bundle..." />
-                              <CommandList>
-                                <CommandGroup>
-                                  {locationServices.map((s) => (
-                                    <CommandItem
-                                      key={`s-${s.serviceId}`}
-                                      value={s.serviceName}
-                                      onSelect={() =>
-                                        setGroupItems((prev) => {
-                                          const next = [...prev];
-                                          next[idx] = { ...next[idx], serviceId: s.serviceId, bundleId: null, staffUserId: next[idx]?.staffUserId ?? null };
-                                          return next;
-                                        })
-                                      }
-                                    >
-                                      {s.serviceName}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                                {locationBundles.length > 0 && (
-                                  <CommandGroup>
-                                    {locationBundles.map((b) => (
-                                      <CommandItem
-                                        key={`b-${b.bundleId}`}
-                                        value={b.bundleName}
-                                        onSelect={() =>
-                                          setGroupItems((prev) => {
-                                            const next = [...prev];
-                                            next[idx] = { ...next[idx], serviceId: null, bundleId: b.bundleId, staffUserId: next[idx]?.staffUserId ?? null };
-                                            return next;
-                                          })
-                                        }
-                                      >
-                                        {b.bundleName} (bundle)
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
-                                )}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="h-10 justify-between text-sm truncate">
-                              {staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : 'Staff'}
-                              <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[280px] p-0 z-[80]">
-                            <Command>
-                              <CommandInput placeholder="Search..." />
-                              <CommandList>
-                                {eligibleTeamMembersForRow.map((t) => (
-                                  <CommandItem
-                                    key={t.userId}
-                                    value={`${t.firstName} ${t.lastName}`}
-                                    onSelect={() =>
-                                      setGroupItems((prev) => {
-                                        const next = [...prev];
-                                        next[idx] = { ...next[idx], staffUserId: t.userId };
-                                        return next;
-                                      })
-                                    }
-                                  >
-                                    {t.firstName} {t.lastName}
-                                  </CommandItem>
-                                ))}
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 text-destructive hover:bg-destructive/10"
-                        onClick={() => setGroupItems((prev) => prev.filter((_, i) => i !== idx))}
-                        aria-label="Remove row"
-                      >
-                        ×
-                      </Button>
-                    </div>
-                  );
-                })}
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full border-dashed"
-                  onClick={() => setGroupItems((prev) => [...prev, { serviceId: null, bundleId: null, staffUserId: null }])}
-                >
-                  + Add another service or bundle
-                </Button>
-              </div>
-            )}
-
             {/* ── Booking Source Section (create only) ── */}
             {!isEditMode && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <ShieldCheck className="h-5 w-5 text-primary" />
+              <>
+                <SliderContentDivider />
+                <div className="space-y-5">
+                  <SliderSectionHeader
+                    title="Booking Source"
+                    description="How was this appointment booked?"
+                  />
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
+                    {BOOKING_SOURCES.map((source) => (
+                      <Pill
+                        key={source.value}
+                        selected={form.bookingSource === source.value}
+                        showCheckmark
+                        className="!min-h-12 w-auto justify-start items-center transition-none active:scale-100"
+                        onClick={() => handleBookingSourceSelect(source.value)}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {source.icon}
+                          {source.label}
+                        </span>
+                      </Pill>
+                    ))}
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Booking Source</h3>
                 </div>
-                <div className="flex gap-2">
-                  {bookingSources.map((source) => (
-                    <button
-                      key={source.value}
-                      type="button"
-                      onClick={() => handleBookingSourceSelect(source.value)}
-                      className={cn(
-                        'flex items-center gap-1.5 px-3 py-2 rounded-lg border text-sm font-medium transition-colors',
-                        form.bookingSource === source.value
-                          ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-background border-border hover:bg-muted',
-                      )}
-                    >
-                      {source.icon}
-                      {source.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              </>
             )}
 
+            <SliderContentDivider />
+
             {/* ── Notes Section ── */}
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <StickyNote className="h-5 w-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">Notes</h3>
-              </div>
-              <Textarea
-                placeholder="Add any special notes or requirements..."
+            <div className="space-y-5">
+              <TextareaField
                 value={form.notes}
-                onChange={handleNotesChange}
+                onChange={(value) => setForm((prev) => ({ ...prev, notes: value }))}
+                label="Notes"
+                placeholder="Add any special notes or requirements..."
+                helperText="Add any special notes or requirements for this appointment."
                 rows={3}
-                className="border-0 bg-muted/50 focus:bg-background text-base resize-none"
+                id="appointment-notes"
+                maxLength={500}
+                showCharacterCount
+                error={notesError ?? undefined}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </form>
 
       <ConfirmDialog
@@ -1287,21 +1632,14 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         }}
         onConfirm={handleConfirmOverrides}
         onCancel={handleCancelOverrides}
-        title={pendingUpdateRef.current ? 'Reschedule anyway?' : 'Create appointment anyway?'}
+        title={getConfirmDialogTitle(pendingUpdateRef.current != null)}
         description={
           <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {(confirmReason === 'on_block'
-                ? (pendingUpdateRef.current
-                    ? 'This time overlaps with blocked time. Are you sure you want to reschedule?'
-                    : 'This time overlaps with blocked time. Are you sure you want to create this appointment?')
-                : (pendingUpdateRef.current
-                    ? 'This time is outside business hours. Are you sure you want to reschedule?'
-                    : 'This time is outside business hours. Are you sure you want to create this appointment?'))
-                + ' Reminders are not sent to clients between 22:00 and 08:00 (business timezone).'}
+            <p className="text-sm text-foreground-3 dark:text-foreground-2">
+              {getConfirmDialogDescription(confirmReason ?? 'out_of_hours', pendingUpdateRef.current != null)}
             </p>
             <div className="space-y-1.5">
-              <Label htmlFor="override-reason" className="text-xs font-medium text-muted-foreground">
+              <Label htmlFor="override-reason" className="text-xs font-medium text-foreground-3 dark:text-foreground-2">
                 Reason for override (optional)
               </Label>
               <Input
@@ -1315,7 +1653,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           </div>
         }
         cancelTitle="Cancel"
-        confirmTitle={pendingUpdateRef.current ? 'Yes, reschedule' : 'Yes, create'}
+        confirmTitle={getConfirmButtonTitle(pendingUpdateRef.current != null)}
       />
     </BaseSlider>
   );

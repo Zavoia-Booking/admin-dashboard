@@ -5,8 +5,8 @@ export interface Customer {
   lastName: string;
   phone: string;
   source: 'manual' | 'marketplace' | 'import';
-  status: 'active' | 'inactive';
-  conflictStatus: 'none' | 'duplicate' | 'merged';
+  status: 'active' | 'blocked' | 'archived';
+  conflictStatus: 'none' | 'duplicate_detected' | 'merged' | 'ignored';
   hasConflict: boolean;
   duplicateOfId: number | null;
   notes: string;

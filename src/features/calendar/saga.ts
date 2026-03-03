@@ -11,7 +11,6 @@ import {
     setDisplayedMonthAction,
     setDisplayedWeekAction,
     setViewModeAction,
-    adminCreateAppointment,
     adminCreateAppointmentGroup,
     rescheduleAppointmentGroup,
     updateAppointmentStatus,
@@ -27,7 +26,6 @@ import {
     getCalendarSummaryRequest,
     getDayDataRequest,
     getWeekDataRequest,
-    adminCreateAppointmentRequest,
     adminCreateAppointmentGroupRequest,
     rescheduleGroupRequest,
     updateAppointmentRequest,
@@ -335,24 +333,6 @@ function* refreshCalendarData(): Generator<any, void, any> {
 // New sagas: Admin appointment CRUD
 // ─────────────────────────────────────────────────────────────
 
-function* handleAdminCreateAppointment(action: ActionType<typeof adminCreateAppointment.request>): Generator<any, void, any> {
-    try {
-        const result: any = yield call(adminCreateAppointmentRequest, action.payload);
-        yield put(adminCreateAppointment.success(result));
-        yield call(refreshCalendarData);
-        toast.success('Appointment created');
-    } catch (error: any) {
-        yield put(adminCreateAppointment.failure(error));
-        const status = error?.response?.status;
-        const conflictType = error?.response?.data?.details?.conflictType;
-        if (status === 409 && conflictType === 'staff_appointment') {
-            toast.error('This team member already has an appointment at this time. Choose another time or team member.');
-        } else {
-            toast.error(error?.response?.data?.message || 'Failed to create appointment');
-        }
-    }
-}
-
 function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreateAppointmentGroup.request>): Generator<any, void, any> {
     try {
         const result: any = yield call(adminCreateAppointmentGroupRequest, action.payload);
@@ -362,6 +342,16 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
         toast.success(count > 1 ? `Booking group created (${count} items)` : 'Booking created');
     } catch (error: any) {
         yield put(adminCreateAppointmentGroup.failure(error));
+        const status = error?.response?.status;
+        const message = error?.response?.data?.message;
+        const details = error?.response?.data?.details;
+        if (status === 409) {
+            console.error('[APPOINTMENT] create-group:conflict', {
+                payload: action.payload,
+                message,
+                details,
+            });
+        }
         toast.error(error?.response?.data?.message || 'Failed to create booking group');
     }
 }
@@ -500,7 +490,6 @@ export function* calendarSaga(): Generator<any, void, any> {
         takeLatest(setViewModeAction, handleSetViewMode),
 
         // Admin appointment CRUD
-        takeLatest(adminCreateAppointment.request, handleAdminCreateAppointment),
         takeLatest(adminCreateAppointmentGroup.request, handleAdminCreateAppointmentGroup),
         takeLatest(rescheduleAppointmentGroup.request, handleRescheduleAppointmentGroup),
         takeLatest(updateAppointmentStatus.request, handleUpdateAppointmentStatus),

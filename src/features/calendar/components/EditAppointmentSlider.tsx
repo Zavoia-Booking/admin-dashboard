@@ -26,11 +26,12 @@ import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateAppointmentStatus, cancelAppointment, updateAppointment, toggleAddForm } from '../actions';
-import { getLocationStaff, getBookingSettings } from '../selectors';
+import { getLocationStaff, getBookingSettings, getCalendarTimezone } from '../selectors';
 import { getAppointmentGroupRequest } from '../api';
-import { formatTimeRange, getStaffDisplayNames, getStatusBadge } from './utils';
+import { formatTimeKey, formatTimeRange, getStaffDisplayNames, getStatusBadge } from './utils';
 import type { Appointment } from '../../../shared/types/calendar';
 import { selectIsTeamMember } from '../../auth/selectors';
+import { buildZonedDateFromDateKey, formatDateInTimezone } from '../timezone';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -50,6 +51,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
   const bookingSettings = useSelector(getBookingSettings);
+  const calendarTimezone = useSelector(getCalendarTimezone);
   const isTeamMember = useSelector(selectIsTeamMember);
 
   // Cancel dialog state
@@ -201,7 +203,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   // Reschedule / Reassign
   // ─────────────────────────────────────────────────────────────
 
-  const handleReschedule = () => {
+  const handleReschedule = useCallback(() => {
     if (!appointment) return;
     // Close the detail drawer and open AddAppointmentSlider with prefill data
     onClose();
@@ -218,11 +220,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       prefill: {
         appointmentId: appointment.id,
         bookingGroupId: (appointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
-        date: new Date(appointment.scheduledAt),
-        time: (() => {
-          const d = new Date(appointment.scheduledAt);
-          return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-        })(),
+        date: buildZonedDateFromDateKey(
+          formatDateInTimezone(new Date(appointment.scheduledAt), calendarTimezone),
+          '00:00',
+          calendarTimezone,
+        ),
+        time: formatTimeKey(new Date(appointment.scheduledAt).toISOString(), calendarTimezone),
         staffUserId: (() => {
           const first = appointment.teamMembers?.[0];
           if (first == null) return undefined;
@@ -234,7 +237,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         notes: appointment.notes ?? '',
       },
     }));
-  };
+  }, [appointment, calendarTimezone, dispatch, onClose]);
 
   // Reassign staff via popover
   const [reassignOpen, setReassignOpen] = useState(false);
