@@ -5,6 +5,7 @@
 import type { WorkingHours, WorkingHoursDay } from "../../shared/types/location";
 import type { CalendarBlockDto } from "../../shared/types/calendar";
 import { convertTo24Hour } from "./utils";
+import { getMinutesInTimezone, formatDateInTimezone } from "./timezone";
 
 /** Day-of-week key matching WorkingHours (lowercase). */
 function getDayKey(date: Date): keyof WorkingHours {
@@ -70,12 +71,15 @@ export function getTimePositionForGrid(
   isoEnd: string,
   gridStartMinutes: number,
   intervalMinutes: number,
-  slotHeight: number
+  slotHeight: number,
+  timezone?: string
 ): { top: number; height: number } {
-  const start = new Date(isoStart);
-  const end = new Date(isoEnd);
-  const startMinutes = start.getHours() * 60 + start.getMinutes();
-  const endMinutes = end.getHours() * 60 + end.getMinutes();
+  const startMinutes = timezone
+    ? getMinutesInTimezone(isoStart, timezone)
+    : (new Date(isoStart).getHours() * 60 + new Date(isoStart).getMinutes());
+  const endMinutes = timezone
+    ? getMinutesInTimezone(isoEnd, timezone)
+    : (new Date(isoEnd).getHours() * 60 + new Date(isoEnd).getMinutes());
   const top = ((startMinutes - gridStartMinutes) / intervalMinutes) * slotHeight;
   const height = Math.max(
     ((endMinutes - startMinutes) / intervalMinutes) * slotHeight,
@@ -164,6 +168,19 @@ export function isTimeRangeOutsideWorkingHours(
   const startMinutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
   const endMinutes = startMinutes + durationMinutes;
   return startMinutes < bounds.start || endMinutes > bounds.end;
+}
+
+/**
+ * True if the time range (scheduledAt + durationMinutes) crosses midnight in the given timezone
+ * (start and end on different calendar days). Used to block multi-day appointments.
+ */
+export function doesTimeRangeSpanMidnight(
+  scheduledAt: Date,
+  durationMinutes: number,
+  timezone: string
+): boolean {
+  const end = new Date(scheduledAt.getTime() + durationMinutes * 60 * 1000);
+  return formatDateInTimezone(scheduledAt, timezone) !== formatDateInTimezone(end, timezone);
 }
 
 /**

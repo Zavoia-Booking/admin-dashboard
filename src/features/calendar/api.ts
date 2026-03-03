@@ -5,11 +5,12 @@ import type {
     DayDataResponse,
     CalendarWeekResponse,
     CalendarDayFilters,
-    AdminCreateAppointmentPayload,
     AdminCreateGroupAppointmentPayload,
     RescheduleGroupPayload,
     AvailableSlotsRequest,
     AvailableSlotsResponse,
+    CheckSlotRequest,
+    CheckSlotResponse,
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
@@ -43,6 +44,10 @@ export const getCalendarSummaryRequest = async (
         if (filters.serviceId != null) body.serviceId = filters.serviceId;
         if (filters.status != null) body.status = filters.status;
         if (filters.clientName != null) body.clientName = filters.clientName;
+        if (filters.customerId != null) body.customerId = filters.customerId;
+        if (filters.customerEmail != null) body.customerEmail = filters.customerEmail;
+        if (filters.customerPhone != null) body.customerPhone = filters.customerPhone;
+        if (filters.customerFullName != null) body.customerFullName = filters.customerFullName;
     }
     const { data } = await apiClient().post<CalendarSummaryResponse>(`/calendar/summary`, body);
     return data;
@@ -79,8 +84,18 @@ export const getWeekDataRequest = async (
 /** POST /calendar/available-slots — returns slot start times (ISO) where an appointment can be booked */
 export const getAvailableSlotsRequest = async (
     payload: AvailableSlotsRequest,
+    signal?: AbortSignal,
 ): Promise<AvailableSlotsResponse> => {
-    const { data } = await apiClient().post<AvailableSlotsResponse>(`/calendar/available-slots`, payload);
+    const { data } = await apiClient().post<AvailableSlotsResponse>(`/calendar/available-slots`, payload, { signal });
+    return data;
+}
+
+/** POST /calendar/check-slot — validates one concrete start time against item chain */
+export const checkSlotRequest = async (
+    payload: CheckSlotRequest,
+    signal?: AbortSignal,
+): Promise<CheckSlotResponse> => {
+    const { data } = await apiClient().post<CheckSlotResponse>(`/calendar/check-slot`, payload, { signal });
     return data;
 }
 
@@ -99,12 +114,6 @@ export const getAppointmentGroupRequest = async (bookingGroupId: string): Promis
 // ─────────────────────────────────────────────────────────────
 // Admin Appointment CRUD
 // ─────────────────────────────────────────────────────────────
-
-/** POST /appointments/admin-create */
-export const adminCreateAppointmentRequest = async (payload: AdminCreateAppointmentPayload): Promise<any> => {
-    const { data } = await apiClient().post(`/appointments/admin-create`, payload);
-    return data;
-}
 
 /** POST /appointments/admin-create-group (multi-service/bundle booking group) */
 export const adminCreateAppointmentGroupRequest = async (payload: AdminCreateGroupAppointmentPayload): Promise<any> => {

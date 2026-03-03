@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { DashedDivider } from "./DashedDivider";
 import { cn } from "../../lib/utils";
+import { PortalContainerContext } from "../../contexts/PortalContainerContext";
 
 interface BaseSliderProps {
   isOpen: boolean;
@@ -47,6 +48,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
   footer,
 }) => {
   const [shouldAnimate, setShouldAnimate] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Handle animation timing
   React.useEffect(() => {
@@ -166,6 +168,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
 
       {/* Sliding Panel */}
       <div
+        ref={panelRef}
         className={cn(
           "fixed bg-surface z-70 overflow-hidden",
           // Mobile: full width, slides from right
@@ -190,6 +193,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
+        <PortalContainerContext.Provider value={panelRef}>
         <div className="flex flex-col h-full md:h-full overflow-hidden">
           {/* Header - Mobile: back button, Desktop: close button */}
           <div
@@ -291,7 +295,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
           {footer && (
             <div
               className={cn(
-                "hidden md:flex flex-col bg-surface shrink-0",
+                "hidden md:flex flex-col bg-surface shrink-0 z-100",
                 footerClassName
               )}
             >
@@ -306,6 +310,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
             </div>
           )}
         </div>
+        </PortalContainerContext.Provider>
       </div>
     </>
   );

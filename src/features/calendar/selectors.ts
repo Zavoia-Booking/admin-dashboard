@@ -3,6 +3,7 @@ import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
 import { AppointmentViewMode, type CalendarViewState } from "./types.ts";
 import { getWeekStart, toLocalDateString } from "./utils.ts";
 import type { CalendarBlockDto, SlimAppointment, CalendarDisplayBlock } from "../../shared/types/calendar.ts";
+import { getCurrentBusinessSelector } from "../business/selectors.ts";
 
 /** True if block's time range overlaps the given date (YYYY-MM-DD). */
 export function blockOverlapsDate(block: CalendarBlockDto, dateKey: string): boolean {
@@ -51,6 +52,17 @@ export const getSelectedLocationId = createSelector(getCalendarViewStateSelector
 export const getLocationContext = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationContext;
 })
+
+/** Calendar timezone source of truth: location timezone first, then business timezone. */
+export const getCalendarTimezone = createSelector(
+    getCurrentBusinessSelector,
+    getLocationContext,
+    (business, context) => {
+        const businessTz = business?.timezone?.trim();
+        const locationTz = context?.location?.timezone?.trim();
+        return locationTz || businessTz || 'UTC';
+    }
+);
 
 export const getLocationContextLoading = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationContextLoading;
@@ -130,9 +142,9 @@ export const getDayAppointments = createSelector(getDayData, (dayData) => {
 })
 
 /**
-/**
- * Convert raw appointments to display blocks (one per booking group or single appointment).
- * Shared for day and week view so grouped bookings show as one combined block.
+ * Convert raw appointments to display blocks.
+ * Single appointments (or group of size 1): one block type 'single'.
+ * Groups (same bookingGroupId, length > 1): one block per segment type 'group_segment', each in correct staff column and time window.
  */
 export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): CalendarDisplayBlock[] {
     if (!appointments?.length) return [];
@@ -165,26 +177,28 @@ export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): Ca
             });
         } else {
             const sorted = [...group].sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-            const start = sorted[0].scheduledAt;
-            const end = sorted[sorted.length - 1].endsAt;
-            const label = sorted.map((a) => a.bookedItemName).join(' + ');
-            const first = sorted[0];
-            blocks.push({
-                type: 'group',
-                id: first.id,
-                appointmentIds: sorted.map((a) => a.id),
-                start,
-                end,
-                status: first.status,
-                label,
-                duration: Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000),
-                staffUserIds: first.staffUserIds || [],
-                customerName: first.customerName,
-                bookingSource: first.bookingSource,
-                isUnassigned: first.isUnassigned,
-                overrideReason: first.overrideReason,
-                bookingGroupId: first.bookingGroupId ?? undefined,
-            });
+            const groupSize = sorted.length;
+            for (let i = 0; i < sorted.length; i++) {
+                const a = sorted[i];
+                blocks.push({
+                    type: 'group_segment',
+                    id: a.id,
+                    appointmentIds: [a.id],
+                    start: a.scheduledAt,
+                    end: a.endsAt,
+                    status: a.status,
+                    label: a.bookedItemName,
+                    duration: a.duration,
+                    staffUserIds: a.staffUserIds || [],
+                    customerName: a.customerName,
+                    bookingSource: a.bookingSource,
+                    isUnassigned: a.isUnassigned,
+                    overrideReason: a.overrideReason,
+                    bookingGroupId: a.bookingGroupId ?? undefined,
+                    bookingGroupOrder: a.bookingGroupOrder ?? i + 1,
+                    groupSize,
+                });
+            }
         }
     }
     return blocks.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());

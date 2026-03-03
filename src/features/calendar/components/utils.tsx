@@ -30,13 +30,14 @@ export const findItemByKey = (list: Array<any>, key: string, value: string | num
  * Format a time string from an ISO date string.
  * Uses calendar preference (12h / 24h) from Calendar Settings.
  */
-export const formatTime = (isoDate: string): string => {
+export const formatTime = (isoDate: string, timezone?: string): string => {
     const date = new Date(isoDate);
     const hour12 = calendarPreferences.getTimeFormat() === '12h';
     return date.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12,
+        ...(timezone ? { timeZone: timezone } : {}),
     });
 }
 
@@ -44,8 +45,20 @@ export const formatTime = (isoDate: string): string => {
  * Format a time range from two ISO date strings.
  * Uses calendar preference (12h / 24h).
  */
-export const formatTimeRange = (startIso: string, endIso: string): string => {
-    return `${formatTime(startIso)} - ${formatTime(endIso)}`;
+export const formatTimeRange = (startIso: string, endIso: string, timezone?: string): string => {
+    return `${formatTime(startIso, timezone)} - ${formatTime(endIso, timezone)}`;
+}
+
+/**
+ * Format ISO date-time into stable 24h "HH:mm" key for slot matching.
+ */
+export const formatTimeKey = (isoDate: string, timezone: string): string => {
+    return new Date(isoDate).toLocaleTimeString('en-GB', {
+        timeZone: timezone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
 }
 
 /**

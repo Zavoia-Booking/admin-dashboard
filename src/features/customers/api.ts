@@ -1,5 +1,11 @@
 import type { Customer, CustomersListResponse } from "../../shared/types/customer";
-import type { AddCustomerPayload, EditCustomerPayload, ListCustomersPayload } from "./types";
+import type {
+  AddCustomerPayload,
+  CustomerPickerSearchPayload,
+  CustomerPickerSearchResponse,
+  EditCustomerPayload,
+  ListCustomersPayload,
+} from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const fetchCustomerByIdApi = async (id: number): Promise<Customer> => {
@@ -24,6 +30,16 @@ export const removeCustomerApi = async (id: number): Promise<void> => {
 
 export const listCustomersApi = async (payload: ListCustomersPayload): Promise<CustomersListResponse> => {
   const { data } = await apiClient().post<CustomersListResponse>('/business-customers/list', payload);
+  return data;
+};
+
+export const searchCustomersForPickerApi = async (
+  payload: CustomerPickerSearchPayload,
+  options?: { signal?: AbortSignal },
+): Promise<CustomerPickerSearchResponse> => {
+  const { data } = await apiClient().post<CustomerPickerSearchResponse>('/business-customers/picker-search', payload, {
+    signal: options?.signal,
+  });
   return data;
 };
 
