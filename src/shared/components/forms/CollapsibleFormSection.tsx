@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react';
 import { ChevronUp, ChevronDown } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '../ui/collapsible';
+import { Collapsible, CollapsibleTrigger } from '../ui/collapsible';
 import { useIsMobile } from '../../hooks/use-mobile';
+import { cn } from '../../lib/utils';
+import './CollapsibleFormSection.css';
+
+/** Uses global collapsible.css ([data-slot="collapsible-content"]) - same as CategoryAccordion / ManageServicesSheet */
+const ANIMATION_MS = 300;
 
 export interface CollapsibleFormSectionProps {
   icon?: LucideIcon;
@@ -34,6 +35,55 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
   defaultOpen = false,
 }) => {
   const isMobile = useIsMobile();
+  const contentRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [closing, setClosing] = useState(false);
+  const [expandStarted, setExpandStarted] = useState(false);
+  const wasOpenRef = useRef(false);
+  if (open) wasOpenRef.current = true;
+  const contentRendered = open || closing || wasOpenRef.current;
+
+  const updateHeight = useCallback(() => {
+    const outer = contentRef.current;
+    if (!outer) return;
+    const inner = innerRef.current;
+    const height = inner ? inner.offsetHeight : outer.scrollHeight;
+    outer.style.setProperty('--radix-collapsible-content-height', `${height}px`);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      setClosing(false);
+      setExpandStarted(false);
+    }
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open && !closing && contentRef.current) {
+      updateHeight();
+      setClosing(true);
+    }
+  }, [open, closing, updateHeight]);
+
+  useEffect(() => {
+    if (!closing) return;
+    const t = setTimeout(() => {
+      setClosing(false);
+      wasOpenRef.current = false;
+    }, ANIMATION_MS);
+    return () => clearTimeout(t);
+  }, [closing]);
+
+  useLayoutEffect(() => {
+    if (contentRendered && !closing) {
+      updateHeight();
+      if (open && !expandStarted) {
+        const raf = requestAnimationFrame(() => setExpandStarted(true));
+        return () => cancelAnimationFrame(raf);
+      }
+    }
+  }, [contentRendered, closing, open, expandStarted, updateHeight]);
+
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
       <div className={`space-y-4 ${className}`}>
@@ -63,11 +113,25 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
             )}
           </div>
         </CollapsibleTrigger>
-        <CollapsibleContent>{children}</CollapsibleContent>
+        {contentRendered && (
+          <div
+            ref={contentRef}
+            data-slot="collapsible-content"
+            data-state={closing ? 'closed' : 'open'}
+            className={cn(
+              'overflow-hidden relative',
+              open && !closing && !expandStarted && 'collapsible-form-section-before-expand'
+            )}
+          >
+            {/* Inner is absolute so it doesn't give the outer height - animation controls height */}
+            <div ref={innerRef} className="absolute inset-x-0 top-0">
+              {children}
+            </div>
+          </div>
+        )}
       </div>
     </Collapsible>
   );
 };
 
 export default CollapsibleFormSection;
-

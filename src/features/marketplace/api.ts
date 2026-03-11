@@ -35,9 +35,34 @@ export const updateMarketplaceVisibilityApi = async (isVisible: boolean): Promis
   return data;
 }
 
-// Booking Settings API
+// Keys allowed by backend UpdateBookingSettingsDto (strip id, businessId, createdAt, updatedAt)
+const BOOKING_SETTINGS_UPDATE_KEYS = [
+  'minAdvanceBookingMinutes',
+  'maxAdvanceBookingMinutes',
+  'slotIntervalMinutes',
+  'bufferTimeMinutes',
+  'cancellationWindowMinutes',
+  'allowCustomerCancellation',
+  'allowCustomerReschedule',
+  'autoConfirmBookings',
+  'allowStaffSelection',
+  'showAnyStaffOption',
+  'allowStaffCancelWithoutConfirmation',
+  'allowStaffRescheduleWithoutConfirmation',
+  'allowStaffBlockCalendarWithoutConfirmation',
+  'staffBlockCalendarTypes',
+  'emailEnabled',
+  'smsEnabled',
+  'reminderHoursBefore',
+  'enforceMinAdvanceForAdmin',
+] as const;
+
+// Booking Settings API (backend may return { message, settings }; normalize to BookingSettings)
 export const updateBookingSettingsApi = async (payload: Partial<UpdateBookingSettingsPayload>): Promise<BookingSettings> => {
-  const { data } = await apiClient().put<BookingSettings>('/marketplace-listing/booking-settings', payload);
-  return data;
+  const body = Object.fromEntries(
+    BOOKING_SETTINGS_UPDATE_KEYS.filter((k) => k in payload).map((k) => [k, (payload as Record<string, unknown>)[k]])
+  );
+  const { data } = await apiClient().put<BookingSettings | { message: string; settings: BookingSettings }>('/marketplace-listing/booking-settings', body);
+  return (data as { settings?: BookingSettings }).settings ?? (data as BookingSettings);
 }
 

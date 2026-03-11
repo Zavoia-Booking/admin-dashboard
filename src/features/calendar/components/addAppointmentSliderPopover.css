@@ -35,28 +35,3 @@
   transform-origin: top !important;
 }
 
-@keyframes add-appointment-quick-create-down {
-  from {
-    height: 0;
-  }
-  to {
-    height: var(--radix-collapsible-content-height);
-  }
-}
-
-@keyframes add-appointment-quick-create-up {
-  from {
-    height: var(--radix-collapsible-content-height);
-  }
-  to {
-    height: 0;
-  }
-}
-
-.add-appointment-quick-create[data-state="open"] {
-  animation: add-appointment-quick-create-down 0.35s ease-out !important;
-}
-
-.add-appointment-quick-create[data-state="closed"] {
-  animation: add-appointment-quick-create-up 0.35s ease-out !important;
-}

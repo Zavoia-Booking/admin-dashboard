@@ -83,8 +83,15 @@ const initialForm: FormState = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Reason options
+// Reason options & settings mapping
 // ─────────────────────────────────────────────────────────────
+// Map booking-settings staffBlockCalendarTypes keys to CalendarBlockReason enum values.
+// Settings use "holidays", "timeOff", "sickDays"; enum uses "holiday", "vacation", "sick".
+const STAFF_BLOCK_TYPE_TO_REASON: Record<string, CalendarBlockReason> = {
+  holidays: CalendarBlockReason.HOLIDAY,
+  timeOff: CalendarBlockReason.VACATION,
+  sickDays: CalendarBlockReason.SICK,
+};
 
 const reasonOptions: { value: CalendarBlockReason; label: string }[] = [
   { value: CalendarBlockReason.HOLIDAY, label: 'Holiday' },
@@ -131,8 +138,14 @@ export const CreateBlockDrawer: React.FC = () => {
     if (!isTeamMember) {
       return reasonOptions;
     }
-    const allowed = (bookingSettings?.staffBlockCalendarTypes ?? []).map((t) => String(t).toLowerCase());
-    return reasonOptions.filter((option) => allowed.includes(option.value));
+    const types = bookingSettings?.staffBlockCalendarTypes ?? [];
+    const allowedReasons = new Set<CalendarBlockReason>(
+      types
+        .map((key) => STAFF_BLOCK_TYPE_TO_REASON[String(key).trim()])
+        .filter((r): r is CalendarBlockReason => r != null),
+    );
+    if (allowedReasons.size === 0) return [];
+    return reasonOptions.filter((option) => allowedReasons.has(option.value));
   }, [isTeamMember, bookingSettings]);
 
   // ─────────────────────────────────────────────────────────────

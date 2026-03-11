@@ -6,19 +6,14 @@ import { useTranslation } from "react-i18next";
 import {
   fetchMarketplaceListingAction,
   publishMarketplaceListingAction,
-  updateBookingSettingsAction,
 } from "../actions";
-import type {
-  PublishMarketplaceListingPayload,
-  UpdateBookingSettingsPayload,
-} from "../types";
+import type { PublishMarketplaceListingPayload } from "../types";
 import {
   selectMarketplaceBusiness,
   selectMarketplaceListing,
   selectMarketplaceLoading,
   selectLocationCatalog,
   selectMarketplacePublishing,
-  selectBookingSettingsSaving,
   selectMarketplaceIndustries,
   selectMarketplaceIndustryTags,
   selectMarketplaceSelectedIndustryTags,
@@ -37,7 +32,6 @@ export default function MarketplacePage() {
   const isLoading = useSelector(selectMarketplaceLoading);
   const locationCatalog = useSelector(selectLocationCatalog);
   const isPublishing = useSelector(selectMarketplacePublishing);
-  const isSavingBookingSettings = useSelector(selectBookingSettingsSaving);
   const industries = useSelector(selectMarketplaceIndustries);
   const industryTags = useSelector(selectMarketplaceIndustryTags);
   const selectedIndustryTags = useSelector(
@@ -97,10 +91,6 @@ export default function MarketplacePage() {
     dispatch(publishMarketplaceListingAction.request(payload));
   };
 
-  const handleSaveBookingSettings = (data: UpdateBookingSettingsPayload) => {
-    dispatch(updateBookingSettingsAction.request(data));
-  };
-
   // Show loading state
   if (isLoading) {
     return (
@@ -121,7 +111,7 @@ export default function MarketplacePage() {
         <ListingConfigurationView
           business={business}
           locationsWithAssignments={locationCatalog}
-          isPublishing={isPublishing || isSavingBookingSettings}
+          isPublishing={isPublishing}
           isVisible={listing.isVisible}
           isListed={listing.isListed}
           marketplaceName={listing.marketplaceName}
@@ -139,7 +129,6 @@ export default function MarketplacePage() {
           industryTags={industryTags}
           selectedIndustryTags={selectedIndustryTags}
           onSave={handleSaveConfiguration}
-          onSaveBookingSettings={handleSaveBookingSettings}
         />
       </AppLayout>
     );

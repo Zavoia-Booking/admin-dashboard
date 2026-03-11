@@ -166,8 +166,6 @@ export interface BookingSettings {
   staffBlockCalendarTypes: string[];
   emailEnabled: boolean;
   smsEnabled: boolean;
-  cancellationPolicyMessage: string | null;
-  bookingReminderMessage: string | null;
   reminderHoursBefore: number;
   enforceMinAdvanceForAdmin: boolean;
 }

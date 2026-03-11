@@ -416,7 +416,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [nextAvailableDate, setNextAvailableDate] = useState<string | null>(null);
   const [availableSlotsLoading, setAvailableSlotsLoading] = useState(false);
   const [slotFetchError, setSlotFetchError] = useState<string | null>(null);
-  const [slotValidation, setSlotValidation] = useState<{ loading: boolean; valid: boolean | null; reason?: string }>({
+  const [slotValidation, setSlotValidation] = useState<{
+    loading: boolean;
+    valid: boolean | null;
+    reason?: string;
+    conflictType?: 'staff_appointment' | 'block';
+  }>({
     loading: false,
     valid: null,
   });
@@ -510,13 +515,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setOutOfHoursSlots([]);
     setNextAvailableDate(null);
     const slotRequestId = `${Date.now()}-${selectedLocationId}`;
-    console.log('[SLOT] fetch:start', {
-      requestId: slotRequestId,
-      timezone: calendarTimezone,
-      locationId: selectedLocationId,
-      date: dateStr,
-      itemCount: slotFetchItems.length,
-    });
     getAvailableSlotsRequest({
       locationId: selectedLocationId,
       date: dateStr,
@@ -525,13 +523,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     }, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) return;
-        console.log('[SLOT] fetch:result', {
-          requestId: slotRequestId,
-          timezone: calendarTimezone,
-          availableSlots: res.availableSlots?.length ?? 0,
-          outOfHoursSlots: res.outOfHoursSlots?.length ?? 0,
-          nextAvailableDate: res.nextAvailableDate ?? null,
-        });
         setAvailableSlots(res.availableSlots ?? []);
         setOutOfHoursSlots(res.outOfHoursSlots ?? []);
         setNextAvailableDate(res.nextAvailableDate ?? null);
@@ -580,6 +571,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
           loading: false,
           valid: res.valid,
           reason: res.conflicts?.[0]?.reason,
+          conflictType: res.conflicts?.[0]?.conflictType,
         });
       })
       .catch((err) => {
@@ -773,13 +765,32 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     // Filter out past slots when the selected date is today (in calendar timezone)
     if (!form.date) return list;
     const now = Date.now();
+    const isSelectedDateToday =
+      formatDateInTimezone(form.date, calendarTimezone) === formatDateInTimezone(new Date(), calendarTimezone);
+    const minAdvanceMs =
+      isSelectedDateToday &&
+      bookingSettings?.enforceMinAdvanceForAdmin &&
+      (bookingSettings?.minAdvanceBookingMinutes ?? 0) > 0
+        ? (bookingSettings.minAdvanceBookingMinutes ?? 0) * 60 * 1000
+        : 0;
+    const earliestStart = now + minAdvanceMs;
     return list.filter((slot) => {
       const slotStart = buildScheduledDate(form.date, slot, calendarTimezone);
       if (!slotStart || slotStart.getTime() < now) return false;
+      if (minAdvanceMs > 0 && slotStart.getTime() < earliestStart) return false;
       if (doesTimeRangeSpanMidnight(slotStart, slotDurationMinutes, calendarTimezone)) return false;
       return true;
     });
-  }, [availableSlots, availableSlotsLoading, timeSlots, calendarTimezone, form.date, slotDurationMinutes]);
+  }, [
+    availableSlots,
+    availableSlotsLoading,
+    timeSlots,
+    calendarTimezone,
+    form.date,
+    slotDurationMinutes,
+    bookingSettings?.enforceMinAdvanceForAdmin,
+    bookingSettings?.minAdvanceBookingMinutes,
+  ]);
   const outOfHoursTimeSet = useMemo(() => {
     return new Set(
       outOfHoursSlots.map((iso) => formatTimeKey(iso, calendarTimezone)),
@@ -1064,6 +1075,35 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     ],
   );
 
+  /** Open confirm dialog to create on blocked time (override); used when check-slot returns conflictType === 'block'. */
+  const handleCreateOnBlock = useCallback(() => {
+    if (!selectedLocationId || !form.date || !form.time) return;
+    const scheduledDate = buildScheduledDate(form.date, form.time, calendarTimezone);
+    if (!scheduledDate) return;
+    const items = getGroupItemsForPayload(appointmentItems);
+    const groupPayload = {
+      locationId: selectedLocationId,
+      customerId: form.customerId ?? undefined,
+      items,
+      scheduledAt: scheduledDate.toISOString(),
+      notes: form.notes.trim() || undefined,
+      bookingSource: form.bookingSource,
+      overrideConflicts: true as const,
+    };
+    pendingGroupSubmitRef.current = groupPayload;
+    openConfirmDialog('on_block');
+  }, [
+    selectedLocationId,
+    form.date,
+    form.time,
+    form.customerId,
+    form.notes,
+    form.bookingSource,
+    appointmentItems,
+    calendarTimezone,
+    openConfirmDialog,
+  ]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit || !selectedLocationId || !form.date) return;
@@ -1080,13 +1120,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setError('This appointment would span two days. Please end by midnight and create a separate appointment for the next day.');
       return;
     }
-    console.log('[APPOINTMENT] submit:start', {
-      mode: isEditMode ? 'edit' : 'create-group',
-      locationId: selectedLocationId,
-      timezone: calendarTimezone,
-      scheduledDate: scheduledDate.toISOString(),
-      itemCount: appointmentItems.length,
-    });
 
     if (notesError) return;
 
@@ -1560,8 +1593,27 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               )}
 
               {isPrefillTimeMode && slotValidation.valid === false && (
-                <div className="text-xs text-destructive">
-                  {slotValidation.reason ?? 'Selected slot is no longer available.'}
+                <div className="space-y-2">
+                  <div className="text-xs text-destructive">
+                    {slotValidation.reason ?? 'Selected slot is no longer available.'}
+                  </div>
+                  {!isEditMode &&
+                    slotValidation.conflictType === 'block' &&
+                    form.date &&
+                    form.time &&
+                    selectedLocationId &&
+                    appointmentItems.length > 0 &&
+                    allCreateItemsValid && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={handleCreateOnBlock}
+                      >
+                        Create anyway
+                      </Button>
+                    )}
                 </div>
               )}
 

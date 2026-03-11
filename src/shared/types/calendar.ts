@@ -105,8 +105,6 @@ export interface CalendarBookingSettings {
   allowStaffRescheduleWithoutConfirmation: boolean;
   allowStaffBlockCalendarWithoutConfirmation: boolean;
   staffBlockCalendarTypes: string[];
-  cancellationPolicyMessage: string | null;
-  bookingReminderMessage: string | null;
   reminderHoursBefore: number;
   enforceMinAdvanceForAdmin: boolean;
   minAdvanceBookingMinutes: number;

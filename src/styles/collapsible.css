@@ -52,7 +52,7 @@
 }
 
 [data-slot="collapsible-content"][data-state="open"] {
-  animation: accordion-down 0.3s ease-out;
+  animation: accordion-down 0.3s ease-out forwards;
 }
 
 [data-slot="collapsible-content"][data-state="closed"] {
