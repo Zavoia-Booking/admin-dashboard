@@ -1,11 +1,13 @@
-import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type FC, useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { LocationSelector } from "./LocationSelector.tsx";
 import { MiniMonthCalendar } from "./MiniMonthCalendar.tsx";
+import { CustomerFilterPicker } from "./CustomerFilterPicker.tsx";
 import { getLocationStaff, getStaffFilter, getDayFilters, getSelectedLocationId, getLocationServices, getLocationAssignmentLoading } from "../selectors.ts";
 import { setStaffFilter, setDayFiltersAction } from "../actions.ts";
 import type { CalendarStaffMember, CalendarDayFilters } from "../../../shared/types/calendar.ts";
-import { User, Search, X, Check, ChevronDown } from "lucide-react";
+import type { Customer } from "../../../shared/types/customer.ts";
+import { User, X, Check, ChevronDown } from "lucide-react";
 import { Label } from "../../../shared/components/ui/label.tsx";
 import {
     Select,
@@ -214,17 +216,19 @@ const CalendarFilters: FC = () => {
     const staffFilter = useSelector(getStaffFilter);
     const locationServices = useSelector(getLocationServices);
     const servicesLoading = useSelector(getLocationAssignmentLoading);
-    const [customerSearch, setCustomerSearch] = useState(dayFilters.clientName ?? '');
-    const dayFiltersRef = useRef(dayFilters);
-    dayFiltersRef.current = dayFilters;
 
     const activeStatus = dayFilters.status ?? null;
-
-    // Sync local search from Redux when filters are cleared or set externally
-    useEffect(() => {
-        const next = dayFilters.clientName ?? '';
-        if (next !== customerSearch) setCustomerSearch(next);
-    }, [dayFilters.clientName]);
+    const selectedCustomer = useMemo<Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone"> | null>(() => {
+        if (dayFilters.customerId == null) return null;
+        const [firstName = '', ...rest] = (dayFilters.customerFullName ?? '').trim().split(' ').filter(Boolean);
+        return {
+            id: dayFilters.customerId,
+            firstName,
+            lastName: rest.join(' '),
+            email: dayFilters.customerEmail ?? '',
+            phone: dayFilters.customerPhone ?? '',
+        };
+    }, [dayFilters.customerId, dayFilters.customerFullName, dayFilters.customerEmail, dayFilters.customerPhone]);
 
     const handleStatusToggle = useCallback((status: string) => {
         const newFilters: CalendarDayFilters = {
@@ -234,35 +238,42 @@ const CalendarFilters: FC = () => {
         dispatch(setDayFiltersAction(newFilters));
     }, [dispatch, dayFilters]);
 
-    const handleCustomerSearchInputChange = useCallback((value: string) => {
-        setCustomerSearch(value);
-    }, []);
-
-    const handleApplyCustomerSearch = useCallback(() => {
-        const trimmed = customerSearch.trim();
-        const current = dayFiltersRef.current;
-        if ((current.clientName ?? '') === trimmed) return;
+    const handleSelectCustomer = useCallback((customer: Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone">) => {
         dispatch(setDayFiltersAction({
-            ...current,
-            clientName: trimmed || undefined,
-        }));
-    }, [customerSearch, dispatch]);
-
-    const handleClearCustomerSearch = useCallback(() => {
-        setCustomerSearch('');
-        dispatch(setDayFiltersAction({
-            ...dayFiltersRef.current,
+            ...dayFilters,
             clientName: undefined,
+            customerId: customer.id,
+            customerEmail: customer.email || undefined,
+            customerPhone: customer.phone || undefined,
+            customerFullName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || undefined,
         }));
-    }, [dispatch]);
+    }, [dispatch, dayFilters]);
+
+    const handleClearCustomerFilter = useCallback(() => {
+        dispatch(setDayFiltersAction({
+            ...dayFilters,
+            clientName: undefined,
+            customerId: undefined,
+            customerEmail: undefined,
+            customerPhone: undefined,
+            customerFullName: undefined,
+        }));
+    }, [dispatch, dayFilters]);
 
     const handleClearFilters = useCallback(() => {
-        setCustomerSearch('');
         dispatch(setDayFiltersAction({}));
         dispatch(setStaffFilter([]));
     }, [dispatch]);
 
-    const hasActiveFilters = activeStatus || (dayFilters.clientName ?? '').trim() || staffFilter.length > 0 || dayFilters.serviceId != null;
+    const hasActiveFilters =
+        activeStatus ||
+        (dayFilters.clientName ?? '').trim() ||
+        dayFilters.customerId != null ||
+        (dayFilters.customerEmail ?? '').trim() ||
+        (dayFilters.customerPhone ?? '').trim() ||
+        (dayFilters.customerFullName ?? '').trim() ||
+        staffFilter.length > 0 ||
+        dayFilters.serviceId != null;
 
     return (
         <div className="space-y-4">
@@ -332,46 +343,14 @@ const CalendarFilters: FC = () => {
                 </div>
             )}
 
-            {/* Customer search: apply on Search button or Enter */}
+            {/* Customer entity picker */}
             <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-muted-foreground">Customer</Label>
-                <div className="flex gap-2">
-                    <div className="relative flex-1 min-w-0">
-                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
-                        <input
-                            type="text"
-                            placeholder="Name, email, or phone"
-                            value={customerSearch}
-                            onChange={(e) => handleCustomerSearchInputChange(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    handleApplyCustomerSearch();
-                                }
-                            }}
-                            className="w-full h-9 pl-8 pr-8 text-sm border border-border rounded-md bg-background text-foreground-1 placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-0 transition-colors"
-                        />
-                        {customerSearch ? (
-                            <button
-                                type="button"
-                                onClick={handleClearCustomerSearch}
-                                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground-1 transition-colors"
-                                aria-label="Clear search"
-                            >
-                                <X className="h-3.5 w-3.5" />
-                            </button>
-                        ) : null}
-                    </div>
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        className="h-9 shrink-0"
-                        onClick={handleApplyCustomerSearch}
-                    >
-                        Search
-                    </Button>
-                </div>
+                <CustomerFilterPicker
+                    selectedCustomer={selectedCustomer}
+                    onSelectCustomer={handleSelectCustomer}
+                    onClearCustomer={handleClearCustomerFilter}
+                />
             </div>
         </div>
     );

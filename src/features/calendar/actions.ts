@@ -6,7 +6,6 @@ import type {
     DayDataResponse,
     CalendarWeekResponse,
     CalendarDayFilters,
-    AdminCreateAppointmentPayload,
     AdminCreateGroupAppointmentPayload,
     RescheduleGroupPayload,
     CalendarBlockCreatePayload,
@@ -118,12 +117,6 @@ export const fetchWeekData = createAsyncAction(
 // ─────────────────────────────────────────────────────────────
 // New actions: Admin appointment CRUD
 // ─────────────────────────────────────────────────────────────
-
-export const adminCreateAppointment = createAsyncAction(
-    'CALENDAR/ADMIN_CREATE/REQUEST',
-    'CALENDAR/ADMIN_CREATE/SUCCESS',
-    'CALENDAR/ADMIN_CREATE/FAILURE',
-)<AdminCreateAppointmentPayload, any, any>()
 
 export const adminCreateAppointmentGroup = createAsyncAction(
     'CALENDAR/ADMIN_CREATE_GROUP/REQUEST',

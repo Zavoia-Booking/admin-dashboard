@@ -126,6 +126,8 @@ export interface LocationContextService {
   staffWithOverrides: number;
   /** User IDs who can perform this service at this location (for filtering staff dropdown). */
   staffIds?: number[];
+  /** Per-staff price/duration overrides for add-appointment (staff → location → default). */
+  staffOverrides?: Array<{ userId: number; customPrice: number | null; customDuration: number | null }>;
 }
 
 /** Team member at location (from GET /calendar/location-context when extended with assignments). */
@@ -146,6 +148,12 @@ export interface LocationContextBundle {
   bundleName: string;
   serviceIds: number[];
   durationMinutes: number;
+  priceType: 'sum' | 'fixed' | 'discount';
+  fixedPriceAmountMinor: number | null;
+  discountPercentage: number | null;
+  calculatedPriceAmountMinor: number;
+  calculatedDisplayPrice: number;
+  serviceCount: number;
   staffIds: number[];
 }
 
@@ -209,12 +217,12 @@ export interface SlimAppointment {
   bookingGroupOrder?: number | null;
 }
 
-/** One display block: either a single appointment or a grouped booking (same bookingGroupId). */
+/** One display block: single appointment, merged group (legacy), or one segment of a group (group_segment). */
 export interface CalendarDisplayBlock {
-  type: 'single' | 'group';
-  /** For single: one id; for group: first appointment id (for edit/detail). */
+  type: 'single' | 'group' | 'group_segment';
+  /** For single/group_segment: this appointment id; for group: first appointment id (legacy). */
   id: number;
-  /** All appointment ids in this block (for group: all rows; for single: [id]). */
+  /** For single/group_segment: [id]; for group: all segment ids (legacy). */
   appointmentIds: number[];
   start: string;
   end: string;
@@ -227,6 +235,10 @@ export interface CalendarDisplayBlock {
   isUnassigned: boolean;
   overrideReason?: string;
   bookingGroupId?: string | null;
+  /** 1-based order within the group (for group_segment). */
+  bookingGroupOrder?: number;
+  /** Number of segments in the group (for group_segment). */
+  groupSize?: number;
 }
 
 export interface CalendarBlockDto {
@@ -285,7 +297,7 @@ export interface CalendarBlockUpdatePayload {
 export interface AdminCreateGroupItemPayload {
   serviceId?: number;
   bundleId?: number;
-  staffUserId: number;
+  staffUserId?: number;
 }
 
 export interface AdminCreateGroupAppointmentPayload {
@@ -309,24 +321,6 @@ export interface RescheduleGroupPayload {
   overrideReason?: string;
 }
 
-// --- POST /appointments/admin-create ---
-
-export interface AdminCreateAppointmentPayload {
-  serviceId: number;
-  locationId: number;
-  customerId?: number;
-  /** Staff to assign. When location has 0 team members use [] (location-only booking). When location has team members, must be non-empty. */
-  staffUserIds?: number[];
-  scheduledAt: string; // ISO 8601 date string
-  notes?: string;
-  bookingSource?: AppointmentBookingSource;
-  overrideConflicts?: boolean;
-  /** When true, backend skips working-hours validation (admin confirmed out-of-hours). */
-  allowOutOfHours?: boolean;
-  /** Optional reason when using override or out-of-hours (stored for audit). */
-  overrideReason?: string;
-}
-
 // --- POST /calendar/available-slots ---
 
 export interface AvailableSlotsRequest {
@@ -335,10 +329,38 @@ export interface AvailableSlotsRequest {
   serviceId?: number;
   durationMinutes?: number;
   staffUserId?: number;
+  items?: Array<{
+    serviceId?: number;
+    bundleId?: number;
+    staffUserId?: number;
+  }>;
+  findNextAvailable?: boolean;
 }
 
 export interface AvailableSlotsResponse {
   availableSlots: string[]; // ISO 8601 date-time strings
+  outOfHoursSlots?: string[];
+  nextAvailableDate?: string | null;
+}
+
+export interface CheckSlotRequest {
+  locationId: number;
+  startTime: string; // ISO
+  items: Array<{
+    serviceId?: number;
+    bundleId?: number;
+    staffUserId?: number;
+  }>;
+}
+
+export interface CheckSlotResponse {
+  valid: boolean;
+  conflicts?: Array<{
+    itemIndex: number;
+    staffUserId: number;
+    reason: string;
+    conflictType: 'staff_appointment' | 'block';
+  }>;
 }
 
 // --- Day Filters (for calendar/day endpoint) ---
@@ -348,4 +370,8 @@ export interface CalendarDayFilters {
   serviceId?: number;
   status?: string;
   clientName?: string;
+  customerId?: number;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerFullName?: string;
 }
