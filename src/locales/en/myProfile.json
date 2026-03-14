@@ -1,0 +1,82 @@
+{
+  "tabs": {
+    "profile": "Profile",
+    "portfolio": "Portfolio",
+    "reviews": "Reviews"
+  },
+  "buttons": {
+    "saving": "Saving...",
+    "saveChanges": "Save Changes"
+  },
+  "unsavedDialog": {
+    "title": "Unsaved Changes",
+    "description": "You have unsaved changes. Are you sure you want to leave? Your changes will be lost.",
+    "leave": "Leave",
+    "stay": "Stay"
+  },
+  "toast": {
+    "loadFailed": "Failed to load marketplace profile",
+    "saveFailed": "Failed to save profile",
+    "saveSuccess": "Profile saved successfully!"
+  },
+  "noProfileYet": {
+    "greeting": "Hey {{name}}, let's build your personal brand",
+    "fallbackName": "there",
+    "fallbackFullName": "Your Name",
+    "heroSubtitle": "Your marketplace profile is your <bold>professional identity</bold>. It's how clients discover you, learn about your expertise, and choose to book with <bold>you specifically</bold>. Stand out from the crowd and attract the clients you want.",
+    "takesMinutes": "Takes 5 minutes",
+    "boostVisibility": "Boost your visibility",
+    "createProfile": "Create My Profile",
+    "showcase": "Showcase",
+    "showcaseDescription": "Tell your story and highlight what makes you unique",
+    "professionalTitle": "Professional Title",
+    "professionalTitleHint": "Your expertise area",
+    "aboutMe": "About Me",
+    "aboutMeHint": "Your story & personality",
+    "socialLinks": "Social Links",
+    "socialLinksHint": "Connect everywhere",
+    "yourPublicProfile": "Your Public Profile",
+    "publicProfileHint": "How clients will see you on the marketplace",
+    "publicProfileDescription": "A complete profile helps clients understand your skills, experience, and personality. Profiles with photos and detailed bios receive <bold>3x more booking requests</bold>.",
+    "getDiscovered": "Get Discovered",
+    "getDiscoveredDescription": "Clients search for professionals by specialty. Your profile helps them find exactly what they're looking for—<bold>you</bold>.",
+    "buildTrust": "Build Trust",
+    "buildTrustDescription": "Your profile, combined with reviews, creates credibility. Clients book with confidence when they know who you are.",
+    "successStarts": "Your success starts with visibility",
+    "successDescription": "Every booking starts with a client discovering your profile. The more complete and compelling your profile, the more clients will choose <bold>you</bold> over others. Start building your professional presence today.",
+    "quickStart": "Quick Start",
+    "step1": "Add your display name",
+    "step2": "Write your bio",
+    "step3": "Upload portfolio photos",
+    "step4": "Start getting discovered!"
+  },
+  "profileTab": {
+    "basicInfo": "Basic Information",
+    "basicInfoDescription": "Your public identity on the marketplace. Choose a display name and title that represents you professionally.",
+    "displayName": "Display Name",
+    "displayNamePlaceholder": "Enter your display name",
+    "professionalTitle": "Professional Title",
+    "professionalTitlePlaceholder": "e.g., Senior Hair Stylist",
+    "aboutMe": "About Me",
+    "aboutMeDescription": "Tell potential clients about yourself, your experience, and what makes you unique. A great bio helps build trust and attract the right clients.",
+    "aboutMePlaceholder": "Share your experience, skills, and what makes you unique...",
+    "languagesInterests": "Languages & Interests",
+    "languagesInterestsDescription": "Share the languages you speak and your personal interests. Let clients get to know you beyond your professional skills.",
+    "languages": "Languages",
+    "languagesPlaceholder": "Select languages",
+    "languagesSearchPlaceholder": "Search languages...",
+    "interests": "Interests",
+    "interestsPlaceholder": "Select interests",
+    "interestsSearchPlaceholder": "Search interests...",
+    "socialLinks": "Social Links",
+    "socialLinksDescription": "Connect with clients beyond the platform. Add your social media profiles and website to build your personal brand.",
+    "instagram": "Instagram",
+    "instagramPlaceholder": "https://instagram.com/username",
+    "tiktok": "TikTok",
+    "tiktokPlaceholder": "https://tiktok.com/@username",
+    "facebook": "Facebook",
+    "facebookPlaceholder": "https://facebook.com/username",
+    "website": "Website",
+    "websitePlaceholder": "https://yourwebsite.com"
+  }
+}

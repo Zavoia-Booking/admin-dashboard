@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
@@ -53,20 +54,21 @@ import {
 import type { SupportTicket, TicketCategory, TicketStatus } from "../types";
 import { cn } from "../../../shared/lib/utils";
 
-const STATUS_CONFIG: Record<TicketStatus, { label: string; className: string }> = {
-  OPEN: { label: "Open", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800" },
-  IN_PROGRESS: { label: "In Progress", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800" },
-  CLOSED: { label: "Closed", className: "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700" },
-  REOPENED: { label: "Reopened", className: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800" },
+const STATUS_CLASSES: Record<TicketStatus, string> = {
+  OPEN: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+  IN_PROGRESS: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+  CLOSED: "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700",
+  REOPENED: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800",
 };
 
-const CATEGORY_CONFIG: Record<TicketCategory, { label: string; icon: typeof Bug }> = {
-  bug: { label: "Bug", icon: Bug },
-  question: { label: "Question", icon: HelpCircle },
+const CATEGORY_ICONS: Record<TicketCategory, typeof Bug> = {
+  bug: Bug,
+  question: HelpCircle,
 };
 
 function StatusBadge({ status }: { status: TicketStatus }) {
-  const config = STATUS_CONFIG[status];
+  const { t } = useTranslation("support");
+  const config = { label: t(`status.${status}`), className: STATUS_CLASSES[status] };
   return (
     <Badge className={cn("text-xs font-medium border", config.className)}>
       {config.label}
@@ -75,12 +77,13 @@ function StatusBadge({ status }: { status: TicketStatus }) {
 }
 
 function CategoryBadge({ category }: { category: TicketCategory }) {
-  const config = CATEGORY_CONFIG[category];
-  const Icon = config.icon;
+  const { t } = useTranslation("support");
+  const Icon = CATEGORY_ICONS[category];
+  const label = t(`category.${category}`);
   return (
     <Badge variant="outline" className="text-xs gap-1">
       <Icon className="h-3 w-3" />
-      {config.label}
+      {label}
     </Badge>
   );
 }
@@ -150,6 +153,7 @@ function ConversationView({
   onClose: () => void;
   onBack: () => void;
 }) {
+  const { t } = useTranslation("support");
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isClosed = ticket.status === "CLOSED";
@@ -174,14 +178,16 @@ function ConversationView({
           <Button variant="ghost" size="icon" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="min-w-0">
+            <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-foreground-1">Ticket #{ticket.id}</span>
+              <span className="text-sm font-medium text-foreground-1">{t("ticket.ticketId", { id: ticket.id })}</span>
               <CategoryBadge category={ticket.category} />
               <StatusBadge status={ticket.status} />
             </div>
             <p className="text-xs text-foreground-3 mt-0.5">
-              Created {new Date(ticket.createdAt).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })}
+              {t("ticket.created", {
+                date: new Date(ticket.createdAt).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }),
+              })}
             </p>
           </div>
         </div>
@@ -192,7 +198,7 @@ function ConversationView({
             onClick={onClose}
             disabled={isClosing}
           >
-            {isClosing ? "Closing..." : "Close ticket"}
+            {isClosing ? t("ticket.closing") : t("ticket.closeTicket")}
           </Button>
         )}
       </div>
@@ -220,7 +226,7 @@ function ConversationView({
                 )}
               >
                 {isAdmin && (
-                  <p className="text-xs font-medium mb-1 opacity-70">Support Team</p>
+                  <p className="text-xs font-medium mb-1 opacity-70">{t("ticket.supportTeam")}</p>
                 )}
                 <p className="text-sm whitespace-pre-wrap break-words">{entry.message}</p>
               </div>
@@ -234,14 +240,14 @@ function ConversationView({
       {isClosed ? (
         <div className="flex items-center justify-center gap-2 py-4 border-t border-border text-foreground-3 text-sm">
           <Lock className="h-4 w-4" />
-          This ticket is closed
+          {t("ticket.ticketClosed")}
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex items-end gap-2 pt-4 border-t border-border">
           <Textarea
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Type your message..."
+            placeholder={t("ticket.typeMessage")}
             className="min-h-10 max-h-32 resize-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -270,6 +276,7 @@ function NewTicketDialog({
   isCreating: boolean;
   onSubmit: (category: TicketCategory, message: string) => void;
 }) {
+  const { t } = useTranslation("support");
   const [category, setCategory] = useState<TicketCategory>("question");
   const [message, setMessage] = useState("");
 
@@ -291,14 +298,14 @@ function NewTicketDialog({
       <DialogContent className="sm:max-w-md">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>New Support Ticket</DialogTitle>
+            <DialogTitle>{t("dialog.title")}</DialogTitle>
             <DialogDescription>
-              Describe your issue and we'll get back to you as soon as possible.
+              {t("dialog.description")}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground-1">Category</label>
+              <label className="text-sm font-medium text-foreground-1">{t("dialog.categoryLabel")}</label>
               <Select value={category} onValueChange={(v) => setCategory(v as TicketCategory)}>
                 <SelectTrigger className="w-full">
                   <SelectValue />
@@ -307,24 +314,24 @@ function NewTicketDialog({
                   <SelectItem value="question">
                     <div className="flex items-center gap-2">
                       <HelpCircle className="h-4 w-4" />
-                      Question
+                      {t("category.question")}
                     </div>
                   </SelectItem>
                   <SelectItem value="bug">
                     <div className="flex items-center gap-2">
                       <Bug className="h-4 w-4" />
-                      Bug Report
+                      {t("category.bugReport")}
                     </div>
                   </SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground-1">Message</label>
+              <label className="text-sm font-medium text-foreground-1">{t("dialog.messageLabel")}</label>
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                placeholder="Describe your issue in detail..."
+                placeholder={t("dialog.messagePlaceholder")}
                 className="min-h-28"
                 maxLength={10000}
               />
@@ -336,10 +343,10 @@ function NewTicketDialog({
               variant="outline"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              {t("dialog.cancel")}
             </Button>
             <Button type="submit" disabled={!message.trim() || isCreating}>
-              {isCreating ? "Submitting..." : "Submit Ticket"}
+              {isCreating ? t("ticket.submitting") : t("ticket.submitTicket")}
             </Button>
           </DialogFooter>
         </form>
@@ -349,6 +356,7 @@ function NewTicketDialog({
 }
 
 export default function SupportPage() {
+  const { t } = useTranslation("support");
   const dispatch = useDispatch();
   const tickets = useSelector(getTicketsSelector);
   const currentTicket = useSelector(getCurrentTicketSelector);
@@ -404,7 +412,7 @@ export default function SupportPage() {
         {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:block">
           <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
-            Support
+            {t("page.title")}
           </h1>
         </div>
 
@@ -442,13 +450,13 @@ export default function SupportPage() {
                     rounded="full"
                     onClick={() => setStatusFilter(s)}
                   >
-                    {s === "all" ? "All" : STATUS_CONFIG[s].label}
+                    {t(`status.${s}`)}
                   </Button>
                 ))}
               </div>
               <Button size="sm" onClick={() => setIsNewTicketOpen(true)}>
                 <Plus className="h-4 w-4 mr-1" />
-                New Ticket
+                {t("ticket.newTicket")}
               </Button>
             </div>
 
@@ -461,11 +469,11 @@ export default function SupportPage() {
               ) : filteredTickets.length === 0 ? (
                 tickets.length === 0 ? (
                   <EmptyState
-                    title="No support tickets"
-                    description="Need help? Create a support ticket and our team will assist you."
+                    title={t("empty.noTickets")}
+                    description={t("empty.description")}
                     icon={LifeBuoy}
                     actionButton={{
-                      label: "Create your first ticket",
+                      label: t("empty.createFirst"),
                       onClick: () => setIsNewTicketOpen(true),
                       icon: Plus,
                     }}
@@ -474,14 +482,14 @@ export default function SupportPage() {
                   <div className="flex flex-col items-center justify-center py-20 text-center gap-2">
                     <CircleDot className="h-10 w-10 text-foreground-3" />
                     <p className="text-sm text-foreground-3">
-                      No tickets match the selected filter
+                      {t("empty.noMatch")}
                     </p>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setStatusFilter("all")}
                     >
-                      Clear filter
+                      {t("empty.clearFilter")}
                     </Button>
                   </div>
                 )

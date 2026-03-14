@@ -1,6 +1,10 @@
 {
   "page": {
     "title": "Team Members",
+    "displayNameFallback": {
+      "pending": "Pending",
+      "invite": "Invite"
+    },
     "subtitle": "Manage your team members",
     "actions": {
       "inviteMember": "Invite Member"
@@ -10,10 +14,123 @@
       "noTeamMembersDescription": "Invite your first team member to start building your team.",
       "noResults": "No team members found matching your search.",
       "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    },
+    "badges": {
+      "invitationSent": "Invitation sent"
+    },
+    "actionsLabel": {
+      "editTeamMember": "Edit Team Member"
+    },
+    "toasts": {
+      "cannotEditPending": "Cannot edit a pending team member until they complete registration.",
+      "pendingNotAccepted": "This team member has not yet accepted their invitation."
+    },
+    "confirmDialog": {
+      "updateStatus": "Update Status",
+      "updateStatusDescription": "Are you sure you want to change {{name}}'s status from {{currentStatus}} to {{newStatus}}?",
+      "resendInvitation": "Resend Invitation",
+      "resendInvitationDescription": "Are you sure you want to resend the invitation to {{email}}?",
+      "resend": "Resend",
+      "cancelInvitation": "Cancel Invitation",
+      "cancelInvitationDescription": "Cancel the invitation for {{email}}?",
+      "cancel": "Cancel"
     }
   },
   "filters": {
     "searchPlaceholder": "Search team members by name or email..."
+  },
+  "inviteSlider": {
+    "title": "Invite Team Member",
+    "subscriptionInfo": {
+      "title": "Subscription Info",
+      "description": "Review your subscription details and available seats."
+    },
+    "contactInfo": {
+      "title": "Contact Information",
+      "description": "Enter the email address of the team member you want to invite.",
+      "emailLabel": "Email Address *",
+      "emailPlaceholder": "e.g. contact@example.com"
+    },
+    "locationAssignment": {
+      "title": "Location Assignment",
+      "description": "Select which locations this team member will have access to.",
+      "noLocations": "No locations available. Please create a location first.",
+      "noLocationsSelected": "No locations selected. At least one location is required.",
+      "oneLocationSelected": "1 location selected. At least one location must remain selected.",
+      "locationsSelected": "{{count}} locations selected."
+    },
+    "validation": {
+      "emailRequired": "Email is required",
+      "invalidEmail": "Invalid email address",
+      "locationRequired": "At least one location must be selected"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "sendInvitation": "Send Invitation",
+      "goToBilling": "Go to Billing"
+    },
+    "confirmDialog": {
+      "title": "Send Invitation",
+      "description": "Are you sure you want to send an invitation to {{email}}?"
+    }
+  },
+  "subscriptionInfo": {
+    "teamMembers": "Team Members",
+    "trialMessage": "During your trial period, you can invite unlimited team members to explore features together!",
+    "subscriptionRequired": "Subscription required",
+    "subscriptionRequiredDescription": "You need an active subscription to invite team members.",
+    "goToBilling": "Go to billing",
+    "subscriptionCancelled": "Subscription Required",
+    "subscriptionCancelledDescription": "Your subscription has been cancelled. To invite team members, you need to renew your subscription first.",
+    "renewSubscription": "Renew Subscription",
+    "paidSeats": "Paid Seats",
+    "usedSeats": "Used Seats",
+    "availableSeats": "You have {{count}} available seat. No additional charge for this invitation.",
+    "availableSeats_other": "You have {{count}} available seats. No additional charge for this invitation.",
+    "allSeatsInUse": "All Seats In Use",
+    "allSeatsInUseDescription": "You currently have all seats in use. To invite a new team member, you will need to purchase an additional seat first."
+  },
+  "trialBanner": {
+    "title": "Trial Period Active",
+    "daysRemaining": "You have {{count}} day remaining in your trial.",
+    "daysRemaining_other": "You have {{count}} days remaining in your trial.",
+    "upgradeNow": "Upgrade Now"
+  },
+  "profileSlider": {
+    "loading": "Loading...",
+    "profileInfo": "Profile Information",
+    "upcomingAppointments": "Upcoming Appointments",
+    "noAppointments": "This team member has no upcoming appointments.",
+    "goToAppointments": "Go to Appointments",
+    "assignments": "Assignments",
+    "assignmentsDescription": "All assignments for this team member, including services, locations, custom pricing, and custom working hours, are managed in the dedicated Assignments section.",
+    "stats": {
+      "services": "Services",
+      "locations": "Locations",
+      "appointments": "Appointments"
+    },
+    "goToAssignments": "Go to Assignments",
+    "removeTeamMember": "Remove Team Member",
+    "removeTeamMemberDescription": "This will remove the team member from your organisation and revoke their access.",
+    "removing": "Removing...",
+    "removeFromOrganisation": "Remove from organisation",
+    "status": {
+      "active": "Active",
+      "inactive": "Inactive"
+    }
+  },
+  "invitationSuccess": {
+    "title": "Invitation Sent!",
+    "description": "Your team member invitation has been sent successfully",
+    "emailInfo": "An invitation email will be sent to {{email}}. They'll receive instructions to set up their account and join your team.",
+    "teamMemberFallback": "the team member",
+    "goToTeamMembers": "Go to Team Members"
+  },
+  "toasts": {
+    "inviteFailed": "Failed to invite team member",
+    "listFailed": "Failed to list team members",
+    "removeSuccess": "Team member removed successfully",
+    "removeFailed": "Failed to remove team member",
+    "fetchFailed": "Failed to fetch team member"
   }
 }
-

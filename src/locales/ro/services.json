@@ -34,6 +34,7 @@
         "delete": "Șterge"
       },
       "metadata": {
+        "duration": "durată",
         "location": "locație",
         "locations": "locații",
         "teamMember": "membru echipă",
@@ -193,6 +194,19 @@
     }
   },
   "editService": {
+    "assignments": {
+      "title": "Atribuiri",
+      "teamMembers": "Membri echipă",
+      "locations": "Locații",
+      "description": "Gestionează ce membri ai echipei și locații pot oferi acest serviciu. Vizualizează și modifică toate atribuirile în secțiunea Atribuiri.",
+      "goToAssignments": "Mergi la Atribuiri"
+    },
+    "removeService": {
+      "title": "Elimină Serviciu",
+      "description": "Aceasta va elimina permanent acest serviciu din lista ta. Această acțiune nu poate fi anulată.",
+      "button": "Elimină Serviciu",
+      "removing": "Se elimină..."
+    },
     "title": "Editează Serviciu",
     "subtitle": "Actualizați informațiile, prețurile și disponibilitatea serviciului",
     "sections": {
@@ -254,6 +268,7 @@
     "comingSoon": "Pachete în Curând",
     "description": "Gestionarea pachetelor va fi disponibilă aici în curând. Creați pachete de servicii și oferiți-le ca pachete clienților dvs.",
     "filters": {
+      "filterBundlesDescription": "Filtrează pachetele după preț, număr servicii și tip preț",
       "searchPlaceholder": "Caută pachete...",
       "addBundle": "Adaugă Pachet",
       "addFilter": "Filtre",
@@ -365,6 +380,15 @@
       "manageServices": "Selectează servicii",
       "bundleLabel": "acest pachet",
       "validation": {
+        "nameRequired": "Numele pachetului este obligatoriu",
+        "nameMinLength": "Numele pachetului trebuie să aibă cel puțin 2 caractere",
+        "nameMaxLength": "Numele pachetului nu trebuie să depășească 100 de caractere",
+        "descriptionMaxLength": "Descrierea nu trebuie să depășească 500 de caractere",
+        "fixedPriceRequired": "Prețul fix este obligatoriu",
+        "fixedPriceMin": "Prețul fix trebuie să fie mai mare sau egal cu 0",
+        "discountRequired": "Procentul de reducere este obligatoriu",
+        "discountMin": "Procentul de reducere trebuie să fie cel puțin 0",
+        "discountMax": "Procentul de reducere nu trebuie să depășească 100",
         "servicesMinimum": "Cel puțin 2 servicii trebuie selectate pentru un pachet"
       },
       "confirmDialog": {
@@ -375,6 +399,7 @@
       }
     },
     "editBundle": {
+      "goToAssignments": "Mergi la Atribuiri",
       "title": "Editează Pachet",
       "subtitle": "Actualizează informațiile și serviciile pachetului",
       "sections": {
@@ -477,11 +502,38 @@
     "services": "servicii",
     "loading": "Se încarcă pachetele..."
   },
+  "toasts": {
+    "services": {
+      "loadFailed": "Nu s-au putut încărca serviciile",
+      "loadDetailsFailed": "Nu s-au putut încărca detaliile serviciului",
+      "createSuccess": "Serviciul a fost creat cu succes",
+      "deleteSuccess": "Serviciul a fost șters cu succes",
+      "deleteFailed": "Nu s-a putut șterge serviciul",
+      "editSuccess": "Serviciul a fost actualizat cu succes"
+    },
+    "bundles": {
+      "loadFailed": "Nu s-au putut încărca pachetele",
+      "createSuccess": "Pachetul a fost creat cu succes",
+      "createFailed": "Nu s-a putut crea pachetul",
+      "updateSuccess": "Pachetul a fost actualizat cu succes",
+      "updateFailed": "Nu s-a putut actualiza pachetul",
+      "deleteSuccess": "Pachetul a fost șters cu succes",
+      "deleteFailed": "Nu s-a putut șterge pachetul"
+    }
+  },
+  "badges": {
+    "priceMin": "Preț min",
+    "priceMax": "Preț max",
+    "durationMin": "Durată min",
+    "durationMax": "Durată max",
+    "category": "Categorie"
+  },
   "promotions": {
     "comingSoon": "Promoții în Curând",
     "description": "Gestionarea promoțiilor va fi disponibilă aici în curând. Creați reduceri, oferte speciale și campanii promoționale pentru serviciile dvs."
   },
   "filters": {
+    "filterServicesDescription": "Filtrează serviciile după preț, durată și categorie",
     "searchPlaceholder": "Caută servicii...",
     "addFilter": "Filtre",
     "byPrice": "După preț",

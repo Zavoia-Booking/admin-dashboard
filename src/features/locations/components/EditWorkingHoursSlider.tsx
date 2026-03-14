@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { Clock, AlertCircle } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
@@ -10,7 +11,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { LocationType } from '../../../shared/types/location';
 import type { EditLocationWorkingHours } from '../types';
-import { capitalize } from '../utils';
 import { defaultWorkingHours } from '../constants';
 import { updateLocationAction } from '../actions';
 
@@ -25,6 +25,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
   onClose, 
   location 
 }) => {
+  const { t } = useTranslation("locations");
   const dispatch = useDispatch();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const { handleSubmit, reset, watch } = useForm<EditLocationWorkingHours>();
@@ -52,6 +53,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
     onClose();
   };
 
+  const getDayLabel = (day: string) => t(`editWorkingHours.days.${day}` as any);
   const updateWorkingHours = (day: keyof typeof defaultWorkingHours, field: 'open' | 'close' | 'isOpen', value: string | boolean) => {
     const current = watch();
     const next: EditLocationWorkingHours = {
@@ -72,7 +74,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Working Hours"
+        title={t("editWorkingHours.title")}
         contentClassName="bg-muted/50 scrollbar-hide"
         footer={
           <div className="flex gap-3">
@@ -82,14 +84,14 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
               onClick={handleCancel}
               className="flex-1"
             >
-              Cancel
+              {t("editWorkingHours.cancel")}
             </Button>
             <Button
               type="submit"
               form="edit-working-hours-form"
               className="flex-1"
             >
-              Save Changes
+              {t("editWorkingHours.saveChanges")}
             </Button>
           </div>
         }
@@ -103,20 +105,20 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                   <div className="p-2 rounded-xl bg-primary/10">
                     <Clock className="h-5 w-5 text-primary" />
                   </div>
-                  <h3 className="text-base font-semibold text-foreground">Working Hours</h3>
+                  <h3 className="text-base font-semibold text-foreground">{t("editWorkingHours.sectionTitle")}</h3>
                 </div>
                 <div className="space-y-3">
                   {Object.entries(watch().workingHours || location.workingHours).map(([day, hours]) => (
                     <div key={day} className="bg-white rounded-xl shadow-xs p-4 flex flex-col gap-2 border">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-semibold text-base">{capitalize(day)}</span>
+                        <span className="font-semibold text-base">{getDayLabel(day)}</span>
                         {hours.isOpen ? (
                           <button
                             type="button"
                             className="px-2 py-0 rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 text-xs font-medium"
                             onClick={() => updateWorkingHours(day as keyof typeof defaultWorkingHours, 'isOpen', false)}
                           >
-                            Mark as Closed
+                            {t("editWorkingHours.markAsClosed")}
                           </button>
                         ) : (
                           <button
@@ -124,14 +126,14 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                             className="px-2 py-0 rounded-md bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 text-xs font-medium"
                             onClick={() => updateWorkingHours(day as keyof typeof defaultWorkingHours, 'isOpen', true)}
                           >
-                            Mark as Open
+                            {t("editWorkingHours.markAsOpen")}
                           </button>
                         )}
                       </div>
                       {hours.isOpen ? (
                         <>
                           <div>
-                            <Label className="text-xs text-gray-500 mb-1 block">Opening Time</Label>
+                            <Label className="text-xs text-gray-500 mb-1 block">{t("editWorkingHours.openingTime")}</Label>
                             <Input
                               type="time"
                               value={hours.open}
@@ -143,7 +145,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                             />
                           </div>
                           <div className="mt-2">
-                            <Label className="text-xs text-gray-500 mb-1 block">Closing Time</Label>
+                            <Label className="text-xs text-gray-500 mb-1 block">{t("editWorkingHours.closingTime")}</Label>
                             <Input
                               type="time"
                               value={hours.close}
@@ -157,7 +159,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                         </>
                       ) : (
                         <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-400 italic text-sm mt-2">
-                          This location is closed on {capitalize(day)}
+                          {t("editWorkingHours.closedOn", { day: getDayLabel(day) })}
                         </div>
                       )}
                     </div>
@@ -175,16 +177,16 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertCircle className="h-5 w-5 text-primary" />
-              Update Working Hours
+              {t("editWorkingHours.confirmTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {`Are you sure you want to update the working hours for ${location.name}? This will save all changes.`}
+              {t("editWorkingHours.confirmDescription", { name: location.name })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t("editWorkingHours.confirmCancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmUpdate}>
-              Save Changes
+              {t("editWorkingHours.confirmSave")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

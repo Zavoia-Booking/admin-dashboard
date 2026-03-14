@@ -51,7 +51,7 @@ export default function MyAssignmentsPage() {
         }
       } catch (error: any) {
         console.error('Error fetching assigned locations:', error);
-        toast.error(error?.message || 'Failed to load assigned locations');
+        toast.error(error?.message || t('toast.loadLocationsFailed'));
       } finally {
         setIsLocationsLoading(false);
       }
@@ -73,7 +73,7 @@ export default function MyAssignmentsPage() {
         setLocationAssignments(data);
       } catch (error: any) {
         console.error('Error fetching location assignments:', error);
-        toast.error(error?.message || 'Failed to load assignments');
+        toast.error(error?.message || t('toast.loadAssignmentsFailed'));
       } finally {
         setIsAssignmentsLoading(false);
       }

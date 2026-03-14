@@ -1,4 +1,5 @@
 import { all, call, put, takeLatest } from "redux-saga/effects";
+import i18n from "../../shared/lib/i18n";
 import { listBundlesAction, createBundleAction, updateBundleAction, deleteBundleAction } from "./actions.ts";
 import { listBundlesRequest, createBundleRequest, updateBundleRequest, deleteBundleRequest, type DeleteBundleResponse } from "./api.ts";
 import type { ActionType } from "typesafe-actions";
@@ -17,7 +18,7 @@ function* handleListBundles(): Generator<any, void, any> {
   } catch (error: unknown) {
     console.error("Failed to load bundles:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage || "Failed to load bundles");
+    toast.error(errorMessage || i18n.t("services:toasts.bundles.loadFailed"));
     yield put(listBundlesAction.failure({ message: errorMessage }));
   }
 }
@@ -31,7 +32,7 @@ function* handleCreateBundle(
       action.payload
     );
     if (response.data) {
-      toast.success("Bundle created successfully");
+      toast.success(i18n.t("services:toasts.bundles.createSuccess"));
       yield put(createBundleAction.success(response.data));
       // Refresh bundles list after creation
       yield put(listBundlesAction.request());
@@ -39,7 +40,7 @@ function* handleCreateBundle(
   } catch (error: unknown) {
     console.error("Failed to create bundle:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage || "Failed to create bundle");
+    toast.error(errorMessage || i18n.t("services:toasts.bundles.createFailed"));
     yield put(createBundleAction.failure({ message: errorMessage }));
   }
 }
@@ -53,7 +54,7 @@ function* handleUpdateBundle(
       action.payload
     );
     if (response.data) {
-      toast.success("Bundle updated successfully");
+      toast.success(i18n.t("services:toasts.bundles.updateSuccess"));
       yield put(updateBundleAction.success(response.data));
       // Refresh bundles list after update
       yield put(listBundlesAction.request());
@@ -61,7 +62,7 @@ function* handleUpdateBundle(
   } catch (error: unknown) {
     console.error("Failed to update bundle:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage || "Failed to update bundle");
+    toast.error(errorMessage || i18n.t("services:toasts.bundles.updateFailed"));
     yield put(updateBundleAction.failure({ message: errorMessage }));
   }
 }
@@ -82,14 +83,14 @@ function* handleDeleteBundle(
       // Bundle has dependencies (locations/appointments) - store response so modal shows counts
       yield put(deleteBundleAction.success(deleteResponse));
     } else {
-      toast.success("Bundle deleted successfully");
+      toast.success(i18n.t("services:toasts.bundles.deleteSuccess"));
       yield put(deleteBundleAction.success({ canDelete: true, message: "" }));
       yield put(listBundlesAction.request());
     }
   } catch (error: unknown) {
     console.error("Failed to delete bundle:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage || "Failed to delete bundle");
+    toast.error(errorMessage || i18n.t("services:toasts.bundles.deleteFailed"));
     yield put(deleteBundleAction.failure({ message: errorMessage }));
   }
 }

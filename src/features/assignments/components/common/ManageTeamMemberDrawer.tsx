@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
-import { X, ArrowRight } from "lucide-react";
+import { X, ArrowRight, CheckSquare, Square } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -127,14 +127,16 @@ export function ManageTeamMemberDrawer({
     }
   }, [isOpen, initialServices, isLoading, localLocationServices]);
 
+  const hasCustomValues = (s: StaffService) =>
+    s.customPrice !== null || s.customDuration !== null;
+
   // Filter services
   const filteredServices = useMemo(() => {
-    // Apply basic filter (all/enabled/custom)
     switch (filter) {
       case "enabled":
         return localServices.filter((s) => s.canPerform);
       case "custom":
-        return localServices.filter((s) => s.isCustom);
+        return localServices.filter(hasCustomValues);
       default:
         return localServices;
     }
@@ -142,7 +144,7 @@ export function ManageTeamMemberDrawer({
 
   // Stats
   const enabledCount = localServices.filter((s) => s.canPerform).length;
-  const customCount = localServices.filter((s) => s.isCustom).length;
+  const customCount = localServices.filter(hasCustomValues).length;
 
   // Check for changes
   const hasChanges = useMemo(() => {
@@ -162,6 +164,55 @@ export function ManageTeamMemberDrawer({
 
   // Check if there are any validation errors
   const hasErrors = servicesWithErrors.size > 0;
+
+  const areAllVisibleEnabled = useMemo(() => {
+    if (filteredServices.length === 0) return false;
+    return filteredServices.every((s) => s.canPerform);
+  }, [filteredServices]);
+
+  const toggleAllVisible = () => {
+    const filteredIds = new Set(filteredServices.map((s) => s.serviceId));
+    const newCanPerform = !areAllVisibleEnabled;
+    setLocalServices((prev) =>
+      prev.map((s) => {
+        if (!filteredIds.has(s.serviceId)) return s;
+        if (newCanPerform) {
+          const isCustom = s.customPrice !== null || s.customDuration !== null;
+          return { ...s, canPerform: true, isCustom };
+        }
+        return { ...s, canPerform: false, isCustom: false };
+      })
+    );
+    if (!newCanPerform && filter !== "all") {
+      setFilter("all");
+    }
+  };
+
+  const renderSelectAllButton = () => (
+    <button
+      onClick={toggleAllVisible}
+      className={cn(
+        "inline-flex items-center justify-center h-10 md:h-8 !min-h-0 md:!min-w-36 px-3 gap-1.5 rounded-full border border-border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+        areAllVisibleEnabled
+          ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
+          : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong"
+      )}
+      aria-label={areAllVisibleEnabled ? t("page.manageTeamMemberDrawer.deselectAll") : t("page.manageTeamMemberDrawer.selectAll")}
+      disabled={filteredServices.length === 0}
+    >
+      {areAllVisibleEnabled ? (
+        <CheckSquare className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      ) : (
+        <Square className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      )}
+      <span className="text-xs font-medium hidden md:inline">
+        {areAllVisibleEnabled ? t("page.manageTeamMemberDrawer.deselectAll") : t("page.manageTeamMemberDrawer.selectAll")}
+      </span>
+      <span className="text-xs font-medium md:hidden">
+        {t("page.manageTeamMemberDrawer.filters.all")}
+      </span>
+    </button>
+  );
 
   // Handlers
   const handleToggleCanPerform = (serviceId: number, canPerform: boolean) => {
@@ -302,17 +353,10 @@ export function ManageTeamMemberDrawer({
         </h3>
         <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
           {filter === "custom"
-            ? t("page.manageTeamMemberDrawer.emptyState.noCustomDescription", {
-                defaultValue: "No services have custom pricing.",
-              })
+            ? t("page.manageTeamMemberDrawer.emptyState.noCustomDescription")
             : filter === "enabled"
-            ? t("page.manageTeamMemberDrawer.emptyState.noEnabledDescription", {
-                defaultValue: "No services are enabled for this member.",
-              })
-            : t(
-                "page.manageTeamMemberDrawer.emptyState.noServicesDescription",
-                { defaultValue: "No services available at this location." }
-              )}
+            ? t("page.manageTeamMemberDrawer.emptyState.noEnabledDescription")
+            : t("page.manageTeamMemberDrawer.emptyState.noServicesDescription")}
         </p>
       </div>
     </div>
@@ -380,14 +424,8 @@ export function ManageTeamMemberDrawer({
           <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
             <DrawerTitle className="text-lg text-foreground-1 cursor-default">
               {t("page.manageTeamMemberDrawer.title", {
-                name: "",
+                name: teamMember ? `${teamMember.firstName} ${teamMember.lastName}` : "",
               })}
-              {teamMember && (
-                <span className="font-medium">
-                  {" "}
-                  {teamMember.firstName} {teamMember.lastName}
-                </span>
-              )}
             </DrawerTitle>
             <DrawerDescription className="text-xs text-foreground-3 dark:text-foreground-2 mt-1">
               {t("page.manageTeamMemberDrawer.titleSubtitle")}
@@ -405,89 +443,91 @@ export function ManageTeamMemberDrawer({
       {isLoading ? (
         renderToolbarSkeleton(false)
       ) : (
-        <div className="p-2 pt-0 pb-2 flex flex-col">
-          {/* Filter buttons row */}
-          <div className="w-full">
-            <div
-              ref={filterButtonsDesktopRef}
-              className="relative flex h-10 items-stretch gap-1 rounded-full bg-transparent border border-border p-1"
-            >
-              <button
-                data-filter-id="all"
-                onClick={() => setFilter("all")}
-                style={
-                  {
-                    height: "auto",
-                    minHeight: "0",
-                  } as React.CSSProperties
-                }
-                className={cn(
-                  "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-0.5 py-2.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-                  filter === "all"
-                    ? "text-foreground cursor-default"
-                    : "text-foreground-2 hover:text-foreground cursor-pointer"
-                )}
+        <div className="p-2 pt-0 pb-2 flex flex-col gap-2">
+          <div className="flex items-center gap-2 w-full">
+            <div className="flex-1 min-w-0">
+              <div
+                ref={filterButtonsDesktopRef}
+                className="relative flex h-10 items-stretch gap-1 rounded-full bg-transparent border border-border p-1"
               >
-                <span className="text-xs">
-                  {t("page.manageTeamMemberDrawer.filters.all")}
-                </span>
-              </button>
-              <button
-                data-filter-id="enabled"
-                onClick={() => setFilter("enabled")}
-                style={
-                  {
-                    height: "auto",
-                    minHeight: "0",
-                  } as React.CSSProperties
-                }
-                className={cn(
-                  "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-0.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-                  filter === "enabled"
-                    ? "text-foreground cursor-default"
-                    : "text-foreground-2 hover:text-foreground cursor-pointer"
-                )}
-              >
-                <span className="text-xs">
-                  {t("page.manageTeamMemberDrawer.filters.enabled")} (
-                  {enabledCount})
-                </span>
-              </button>
-              <button
-                data-filter-id="custom"
-                onClick={() => setFilter("custom")}
-                style={
-                  {
-                    height: "auto",
-                    minHeight: "0",
-                  } as React.CSSProperties
-                }
-                className={cn(
-                  "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-0.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-                  filter === "custom"
-                    ? "text-foreground cursor-default"
-                    : "text-foreground-2 hover:text-foreground cursor-pointer"
-                )}
-              >
-                <span className="text-xs">
-                  {t("page.manageTeamMemberDrawer.filters.customRates", {
-                    defaultValue: "Custom rates",
-                  })}{" "}
-                  ({customCount})
-                </span>
-              </button>
+                <button
+                  data-filter-id="all"
+                  onClick={() => setFilter("all")}
+                  style={
+                    {
+                      height: "auto",
+                      minHeight: "0",
+                    } as React.CSSProperties
+                  }
+                  className={cn(
+                    "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-0.5 py-2.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+                    filter === "all"
+                      ? "text-foreground cursor-default"
+                      : "text-foreground-2 hover:text-foreground cursor-pointer"
+                  )}
+                >
+                  <span className="text-xs">
+                    {t("page.manageTeamMemberDrawer.filters.all")}
+                  </span>
+                </button>
+                <button
+                  data-filter-id="enabled"
+                  onClick={() => setFilter("enabled")}
+                  style={
+                    {
+                      height: "auto",
+                      minHeight: "0",
+                    } as React.CSSProperties
+                  }
+                  className={cn(
+                    "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-0.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+                    filter === "enabled"
+                      ? "text-foreground cursor-default"
+                      : "text-foreground-2 hover:text-foreground cursor-pointer"
+                  )}
+                >
+                  <span className="text-xs">
+                    {t("page.manageTeamMemberDrawer.filters.enabled")} (
+                    {enabledCount})
+                  </span>
+                </button>
+                <button
+                  data-filter-id="custom"
+                  onClick={() => setFilter("custom")}
+                  style={
+                    {
+                      height: "auto",
+                      minHeight: "0",
+                    } as React.CSSProperties
+                  }
+                  className={cn(
+                    "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-0.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+                    filter === "custom"
+                      ? "text-foreground cursor-default"
+                      : "text-foreground-2 hover:text-foreground cursor-pointer"
+                  )}
+                >
+                  <span className="text-xs">
+                    {t("page.manageTeamMemberDrawer.filters.customRates", {
+                      defaultValue: "Custom rates",
+                    })}{" "}
+                    ({customCount})
+                  </span>
+                </button>
 
-              {/* Animated pill indicator */}
-              {indicatorStyle && (
-                <span
-                  className="pointer-events-none absolute inset-y-1 block rounded-full bg-sidebar shadow-sm transition-all duration-300 ease-out"
-                  style={{
-                    width: `${Math.max(0, indicatorStyle.width - 2)}px`,
-                    transform: `translateX(${indicatorStyle.left - 3}px)`,
-                  }}
-                />
-              )}
+                {/* Animated pill indicator */}
+                {indicatorStyle && (
+                  <span
+                    className="pointer-events-none absolute inset-y-1 block rounded-full bg-sidebar shadow-sm transition-all duration-300 ease-out"
+                    style={{
+                      width: `${Math.max(0, indicatorStyle.width - 2)}px`,
+                      transform: `translateX(${indicatorStyle.left - 3}px)`,
+                    }}
+                  />
+                )}
+              </div>
             </div>
+            {renderSelectAllButton()}
           </div>
         </div>
       )}
@@ -611,7 +651,7 @@ export function ManageTeamMemberDrawer({
                 >
                   <X className="h-4 w-4" />
                   <span className="sr-only">
-                    {t("page.manageTeamMemberDrawer.buttons.cancel")}
+                    {t("page.ariaLabels.close")}
                   </span>
                 </Button>
               </div>
@@ -705,14 +745,8 @@ export function ManageTeamMemberDrawer({
               <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
                 <h2 className="text-lg text-foreground-1 cursor-default">
                   {t("page.manageTeamMemberDrawer.title", {
-                    name: "",
+                    name: teamMember ? `${teamMember.firstName} ${teamMember.lastName}` : "",
                   })}
-                  {teamMember && (
-                    <span className="font-medium">
-                      {" "}
-                      {teamMember.firstName} {teamMember.lastName}
-                    </span>
-                  )}
                 </h2>
                 <p className="text-xs text-foreground-3 dark:text-foreground-2 mt-1">
                   {t("page.manageTeamMemberDrawer.titleSubtitle")}
@@ -726,7 +760,7 @@ export function ManageTeamMemberDrawer({
               >
                 <X className="h-4 w-4" />
                 <span className="sr-only">
-                  {t("page.manageTeamMemberDrawer.buttons.cancel")}
+                  {t("page.ariaLabels.close")}
                 </span>
               </Button>
             </div>
@@ -737,89 +771,91 @@ export function ManageTeamMemberDrawer({
             {isLoading ? (
               renderToolbarSkeleton(true)
             ) : (
-              <div className="p-4 pt-2 pb-2 flex flex-col">
-                {/* Filter buttons row */}
-                <div className="w-full">
-                  <div
-                    ref={filterButtonsDesktopRef}
-                    className="relative flex w-2/3 h-8 items-stretch gap-1 rounded-full bg-transparent border border-border p-1"
-                  >
-                    <button
-                      data-filter-id="all"
-                      onClick={() => setFilter("all")}
-                      style={
-                        {
-                          height: "auto",
-                          minHeight: "0",
-                        } as React.CSSProperties
-                      }
-                      className={cn(
-                        "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-1.5 py-2.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-                        filter === "all"
-                          ? "text-foreground cursor-default"
-                          : "text-foreground-2 hover:text-foreground cursor-pointer"
-                      )}
+              <div className="p-4 pt-2 pb-2 flex flex-col gap-2">
+                <div className="flex items-center gap-2 w-full">
+                  <div className="flex-1 min-w-0">
+                    <div
+                      ref={filterButtonsDesktopRef}
+                      className="relative flex w-full h-8 items-stretch gap-1 rounded-full bg-transparent border border-border p-1"
                     >
-                      <span className="text-sm">
-                        {t("page.manageTeamMemberDrawer.filters.all")}
-                      </span>
-                    </button>
-                    <button
-                      data-filter-id="enabled"
-                      onClick={() => setFilter("enabled")}
-                      style={
-                        {
-                          height: "auto",
-                          minHeight: "0",
-                        } as React.CSSProperties
-                      }
-                      className={cn(
-                        "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-1.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-                        filter === "enabled"
-                          ? "text-foreground cursor-default"
-                          : "text-foreground-2 hover:text-foreground cursor-pointer"
-                      )}
-                    >
-                      <span className="text-sm">
-                        {t("page.manageTeamMemberDrawer.filters.enabled")} (
-                        {enabledCount})
-                      </span>
-                    </button>
-                    <button
-                      data-filter-id="custom"
-                      onClick={() => setFilter("custom")}
-                      style={
-                        {
-                          height: "auto",
-                          minHeight: "0",
-                        } as React.CSSProperties
-                      }
-                      className={cn(
-                        "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-1.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
-                        filter === "custom"
-                          ? "text-foreground cursor-default"
-                          : "text-foreground-2 hover:text-foreground cursor-pointer"
-                      )}
-                    >
-                      <span className="text-sm">
-                        {t("page.manageTeamMemberDrawer.filters.customRates", {
-                          defaultValue: "Custom rates",
-                        })}{" "}
-                        ({customCount})
-                      </span>
-                    </button>
+                      <button
+                        data-filter-id="all"
+                        onClick={() => setFilter("all")}
+                        style={
+                          {
+                            height: "auto",
+                            minHeight: "0",
+                          } as React.CSSProperties
+                        }
+                        className={cn(
+                          "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-1.5 py-2.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+                          filter === "all"
+                            ? "text-foreground cursor-default"
+                            : "text-foreground-2 hover:text-foreground cursor-pointer"
+                        )}
+                      >
+                        <span className="text-sm">
+                          {t("page.manageTeamMemberDrawer.filters.all")}
+                        </span>
+                      </button>
+                      <button
+                        data-filter-id="enabled"
+                        onClick={() => setFilter("enabled")}
+                        style={
+                          {
+                            height: "auto",
+                            minHeight: "0",
+                          } as React.CSSProperties
+                        }
+                        className={cn(
+                          "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-1.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+                          filter === "enabled"
+                            ? "text-foreground cursor-default"
+                            : "text-foreground-2 hover:text-foreground cursor-pointer"
+                        )}
+                      >
+                        <span className="text-sm">
+                          {t("page.manageTeamMemberDrawer.filters.enabled")} (
+                          {enabledCount})
+                        </span>
+                      </button>
+                      <button
+                        data-filter-id="custom"
+                        onClick={() => setFilter("custom")}
+                        style={
+                          {
+                            height: "auto",
+                            minHeight: "0",
+                          } as React.CSSProperties
+                        }
+                        className={cn(
+                          "relative z-10 flex items-center justify-center gap-2 text-xs font-medium transition-colors flex-1 rounded-full px-1.5 py-1.5 !min-h-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-focus/60 focus-visible:ring-offset-0",
+                          filter === "custom"
+                            ? "text-foreground cursor-default"
+                            : "text-foreground-2 hover:text-foreground cursor-pointer"
+                        )}
+                      >
+                        <span className="text-sm">
+                          {t("page.manageTeamMemberDrawer.filters.customRates", {
+                            defaultValue: "Custom rates",
+                          })}{" "}
+                          ({customCount})
+                        </span>
+                      </button>
 
-                    {/* Animated pill indicator */}
-                    {indicatorStyle && (
-                      <span
-                        className="pointer-events-none absolute inset-y-1 block rounded-full bg-sidebar shadow-sm transition-all duration-300 ease-out"
-                        style={{
-                          width: `${Math.max(0, indicatorStyle.width - 2)}px`,
-                          transform: `translateX(${indicatorStyle.left - 3}px)`,
-                        }}
-                      />
-                    )}
+                      {/* Animated pill indicator */}
+                      {indicatorStyle && (
+                        <span
+                          className="pointer-events-none absolute inset-y-1 block rounded-full bg-sidebar shadow-sm transition-all duration-300 ease-out"
+                          style={{
+                            width: `${Math.max(0, indicatorStyle.width - 2)}px`,
+                            transform: `translateX(${indicatorStyle.left - 3}px)`,
+                          }}
+                        />
+                      )}
+                    </div>
                   </div>
+                  {renderSelectAllButton()}
                 </div>
               </div>
             )}

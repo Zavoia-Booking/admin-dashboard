@@ -1144,7 +1144,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
           overlayClassName="z-[80]"
           secondaryActions={[
             {
-              label: "Go to Assignments",
+              label: text("bundles.editBundle.goToAssignments"),
               onClick: () => {
                 handleCloseDeleteDialog(false);
                 navigate("/assignments");

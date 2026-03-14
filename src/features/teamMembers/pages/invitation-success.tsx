@@ -1,10 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Mail } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 
 const InvitationSuccess: React.FC = () => {
+  const { t } = useTranslation('teamMembers');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const email = searchParams.get('email');
@@ -29,10 +31,10 @@ const InvitationSuccess: React.FC = () => {
             {/* Title */}
             <div className="space-y-2">
               <h1 className="text-3xl font-bold text-foreground">
-                Invitation Sent!
+                {t('invitationSuccess.title')}
               </h1>
               <p className="text-muted-foreground">
-                Your team member invitation has been sent successfully
+                {t('invitationSuccess.description')}
               </p>
             </div>
 
@@ -46,8 +48,7 @@ const InvitationSuccess: React.FC = () => {
             {/* Information Box */}
             <div className="w-full bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
               <p className="text-sm text-blue-900 dark:text-blue-100">
-                An invitation email will be sent to <strong>{email || 'the team member'}</strong>. 
-                They'll receive instructions to set up their account and join your team.
+                {t('invitationSuccess.emailInfo', { email: email || t('invitationSuccess.teamMemberFallback') })}
               </p>
             </div>
 
@@ -58,7 +59,7 @@ const InvitationSuccess: React.FC = () => {
                 className="w-full"
                 size="lg"
               >
-                Go to Team Members
+                {t('invitationSuccess.goToTeamMembers')}
               </Button>
             </div>
           </div>

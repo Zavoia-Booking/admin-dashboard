@@ -1,4 +1,18 @@
 {
+  "breadcrumbs": {
+    "dashboard": "Dashboard",
+    "calendar": "Calendar",
+    "locations": "Locations",
+    "services": "Services",
+    "assignments": "Assignments",
+    "teamMembers": "Team Members",
+    "customers": "Customers",
+    "marketplace": "Marketplace",
+    "support": "Support",
+    "settings": "Settings",
+    "home": "Home",
+    "detail": "Detail"
+  },
   "sidebar": {
     "dashboard": "Dashboard",
     "calendar": "Calendar",

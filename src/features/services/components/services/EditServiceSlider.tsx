@@ -779,17 +779,17 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                 <div className="space-y-5">
                   <div className="space-y-1">
                     <h3 className="text-lg font-semibold text-foreground-1">
-                      Assignments
+                      {text("editService.assignments.title")}
                     </h3>
                   </div>
 
                   <AssignmentsCard
                     stats={[
-                      { label: 'Team Members', value: service.teamMembersCount || 0 },
-                      { label: 'Locations', value: service.locationsCount || 0 },
+                      { label: text("editService.assignments.teamMembers"), value: service.teamMembersCount || 0 },
+                      { label: text("editService.assignments.locations"), value: service.locationsCount || 0 },
                     ]}
-                    description="Manage which team members and locations can offer this service. View and modify all assignments in the dedicated Assignments section."
-                    buttonLabel="Go to Assignments"
+                    description={text("editService.assignments.description")}
+                    buttonLabel={text("editService.assignments.goToAssignments")}
                     onButtonClick={() => {
                       navigate('/assignments');
                     }}
@@ -805,10 +805,10 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                 <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
                   <div className="space-y-1">
                     <h3 className="text-base font-medium text-foreground-1">
-                      Remove Service
+                      {text("editService.removeService.title")}
                     </h3>
                     <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      This will permanently remove this service from your service list. This action cannot be undone.
+                      {text("editService.removeService.description")}
                     </p>
                   </div>
 
@@ -824,10 +824,10 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                       {isDeleting ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Removing...
+                          {text("editService.removeService.removing")}
                         </>
                       ) : (
-                        'Remove Service'
+                        text("editService.removeService.button")
                       )}
                     </Button>
                   </div>
@@ -852,7 +852,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
           overlayClassName="z-[80]"
           secondaryActions={[
             {
-              label: 'Go to Assignments',
+              label: text("editService.assignments.goToAssignments"),
               onClick: () => {
                 handleCloseDeleteDialog(false);
                 navigate('/assignments');

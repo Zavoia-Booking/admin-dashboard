@@ -242,7 +242,7 @@ export function MarketplaceImagesSection({
       onPortfolioImagesChange((currentImages) =>
         currentImages.map((img) =>
           img.tempId === tempId
-            ? { ...img, isUploading: false, uploadError: "Upload failed" }
+            ? { ...img, isUploading: false, uploadError: "uploadFailed" }
             : img,
         ),
       );
@@ -600,7 +600,11 @@ export function MarketplaceImagesSection({
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-destructive/10 backdrop-blur-sm z-10 gap-1 px-2 text-center">
                               <AlertCircle className="text-destructive mb-1 h-4 w-4" />
                               <span className="font-bold text-destructive leading-tight uppercase text-[8px]">
-                                {image.uploadError}
+                                {image.uploadError === "uploadFailed"
+                                  ? t("portfolio.errors.uploadFailed", {
+                                      name: image.originalName || "",
+                                    })
+                                  : image.uploadError}
                               </span>
                               <Button
                                 type="button"

@@ -10,10 +10,117 @@
       "noCustomersDescription": "Adaugă primul tău client pentru a începe să gestionezi baza ta de clienți.",
       "noResults": "Nu s-au găsit clienți care să corespundă căutării tale.",
       "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
+    },
+    "badges": {
+      "duplicate": "Duplicat"
+    },
+    "actionsLabel": {
+      "editCustomer": "Editează clientul"
     }
   },
   "filters": {
     "searchPlaceholder": "Caută clienți după nume sau email..."
+  },
+  "addCustomer": {
+    "title": "Adaugă client nou",
+    "subtitle": "Creează un client nou manual",
+    "form": {
+      "basicInfoTitle": "Informații de bază",
+      "basicInfoDescription": "Introdu detaliile de bază ale clientului.",
+      "firstNameLabel": "Prenume",
+      "firstNamePlaceholder": "ex. Ion",
+      "lastNameLabel": "Nume",
+      "lastNamePlaceholder": "ex. Popescu",
+      "contactInfoTitle": "Informații contact",
+      "contactInfoDescription": "Detalii de contact opționale pentru client.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "ex. ion.popescu@exemplu.com",
+      "phoneLabel": "Telefon",
+      "phonePlaceholder": "ex. +40123456789",
+      "additionalInfoTitle": "Informații suplimentare",
+      "additionalInfoDescription": "Adaugă note despre acest client pentru o organizare mai bună.",
+      "notesLabel": "Note",
+      "notesPlaceholder": "Adaugă orice note despre acest client..."
+    },
+    "validation": {
+      "firstNameRequired": "Prenumele este obligatoriu",
+      "firstNameMinLength": "Prenumele trebuie să aibă cel puțin 2 caractere",
+      "firstNameMaxLength": "Prenumele trebuie să aibă mai puțin de 50 de caractere",
+      "lastNameMaxLength": "Numele trebuie să aibă mai puțin de 50 de caractere",
+      "phoneInvalid": "Introdu un număr de telefon valid",
+      "notesMaxLength": "Notele trebuie să aibă mai puțin de 500 de caractere"
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "add": "Adaugă client"
+    },
+    "toasts": {
+      "addFailed": "Nu am putut adăuga clientul",
+      "addFailedDescription": "Verifică informațiile și încearcă din nou."
+    }
+  },
+  "editCustomer": {
+    "title": "Editează clientul",
+    "loading": "Se încarcă...",
+    "subtitle": "Actualizează informațiile clientului",
+    "form": {
+      "basicInfoTitle": "Informații de bază",
+      "basicInfoDescription": "Actualizează detaliile de bază ale clientului.",
+      "firstNameLabel": "Prenume",
+      "firstNamePlaceholder": "ex. Ion",
+      "lastNameLabel": "Nume",
+      "lastNamePlaceholder": "ex. Popescu",
+      "contactInfoTitle": "Informații contact",
+      "contactInfoDescription": "Detalii de contact opționale pentru client.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "ex. ion.popescu@exemplu.com",
+      "phoneLabel": "Telefon",
+      "phonePlaceholder": "ex. +40123456789",
+      "additionalInfoTitle": "Informații suplimentare",
+      "additionalInfoDescription": "Adaugă note despre acest client pentru o organizare mai bună.",
+      "notesLabel": "Note",
+      "notesPlaceholder": "Adaugă orice note despre acest client...",
+      "mergeDuplicateTitle": "Combină duplicatul",
+      "mergeDuplicateDescription": "Ești pe cale să combini toate celelalte înregistrări ale acestui client în aceasta. Acest lucru va combina înregistrările lor.",
+      "mergeDuplicatesButton": "Combină duplicatul",
+      "merging": "Se combină...",
+      "removeCustomerTitle": "Elimină clientul",
+      "removeCustomerDescription": "Aceasta va elimina clientul din lista ta de clienți.",
+      "removeCustomerButton": "Elimină clientul",
+      "removing": "Se elimină..."
+    },
+    "validation": {
+      "firstNameRequired": "Prenumele este obligatoriu",
+      "firstNameMinLength": "Prenumele trebuie să aibă cel puțin 2 caractere",
+      "firstNameMaxLength": "Prenumele trebuie să aibă mai puțin de 50 de caractere",
+      "lastNameMaxLength": "Numele trebuie să aibă mai puțin de 50 de caractere",
+      "phoneInvalid": "Introdu un număr de telefon valid",
+      "notesMaxLength": "Notele trebuie să aibă mai puțin de 500 de caractere"
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "update": "Actualizează clientul"
+    },
+    "removeDialog": {
+      "title": "Elimină clientul",
+      "description": "Sigur vrei să elimini {{name}}? Această acțiune nu poate fi anulată.",
+      "cancel": "Anulează",
+      "remove": "Elimină clientul"
+    },
+    "mergeDialog": {
+      "title": "Combină duplicatul",
+      "description": "Sigur vrei să combini {{name}}? Aceasta va combina înregistrarea lor cu duplicatul existent.",
+      "cancel": "Anulează",
+      "merge": "Combină"
+    },
+    "toasts": {
+      "updateFailed": "Nu am putut actualiza clientul",
+      "updateFailedDescription": "Verifică informațiile și încearcă din nou."
+    }
+  },
+  "myCustomers": {
+    "pageTitle": "Clienții mei",
+    "cardTitle": "Clienții tăi",
+    "comingSoon": "Pagina Clienții mei va fi disponibilă în curând..."
   }
 }
-

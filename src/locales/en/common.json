@@ -1,4 +1,83 @@
 {
+  "remoteLocation": {
+    "label": "I offer remote/online services",
+    "descriptionOn": "Meetings happen outside Zavoia. Add your Zoom/Meet/Teams link or instructions, and choose the correct timezone so clients join at the right time.",
+    "descriptionOff": "Turn on if you take sessions via Zoom, Google Meet, Teams, etc."
+  },
+  "open247": {
+    "label": "Open 24/7",
+    "descriptionOn": "Open all day, every day. Daily hours are turned off.",
+    "descriptionOff": "Set your daily hours below. Turn this on if you're open 24/7."
+  },
+  "address": {
+    "search": "Search",
+    "manual": "Manual",
+    "helperText": "Type to search. If you can't find it, switch to Manual.",
+    "placeholder": "Start typing an address...",
+    "searching": "Searching...",
+    "noAddressesFound": "No addresses found. Try a different search or use Manual mode.",
+    "selectedAddress": "Selected Address",
+    "street": "Street *",
+    "changeAddress": "Change address",
+    "buildingNumber": "Building / Number *",
+    "city": "City *",
+    "postcode": "Postcode *",
+    "country": "Country *",
+    "streetPlaceholder": "Enter street name",
+    "streetExample": "e.g. Main Street",
+    "buildingPlaceholder": "e.g. Bl. 556, Apt. 12",
+    "cityPlaceholder": "Enter city",
+    "postcodePlaceholder": "Postal code",
+    "countryPlaceholder": "Country",
+    "buildingHelpTitle": "Building number format help",
+    "buildingHelpIntro": "You can include building number, apartment, floor, or suite details here.",
+    "buildingHelpFormats": "Common formats:",
+    "buildingHelpExample1": "\"556, Apt 12\"",
+    "buildingHelpExample2": "\"Building 3, Floor 2\"",
+    "buildingHelpExample3": "\"Suite 205\""
+  },
+  "workingHours": {
+    "closed": "Closed",
+    "from": "From",
+    "to": "To",
+    "collapseAria": "Collapse working hours",
+    "expandAria": "Expand working hours",
+    "closingBeforeOpening": "Closing time cannot be earlier than opening time",
+    "applyTo": "Apply to:",
+    "monFri": "Mon–Fri",
+    "allWeek": "All week",
+    "shortcutsAria": "What do these shortcuts do?",
+    "shortcutsIntro": "Quick actions buttons to apply Monday's hours to other days:",
+    "monFriDesc": "Copies Monday's open/close and open/closed status to Tue–Fri. Weekends are unchanged.",
+    "allWeekDesc": "Copies Monday's open/close and status to every day (Tue–Sun).",
+    "tip": "Tip: Set valid Monday hours first.",
+    "copyToTueFriAria": "Copy to Tue–Fri",
+    "copyToAllAria": "Copy to all days",
+    "weekdaysUpdated": "Weekdays updated",
+    "allDaysUpdated": "All days updated",
+    "setMondayFirst": "Set valid Monday hours first",
+    "setBothMondayFirst": "Set both opening and closing times on Monday first",
+    "mondayClosingBeforeOpening": "Monday closing time cannot be earlier than opening time",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
+  },
+  "pinVerification": {
+    "confirmed": "Location pin confirmed",
+    "required": "Location pin verification required",
+    "confirmedDesc": "Your location pin has been verified on the map.",
+    "requiredDesc": "Please confirm the exact location of your pin on the map.",
+    "movePin": "Move Pin",
+    "verifyPin": "Verify Pin"
+  },
+  "locationName": "Location Name",
+  "description": "Description",
   "deleteConfirmDialog": {
     "loading": {
       "title": "Checking dependencies",

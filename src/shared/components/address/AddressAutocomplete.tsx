@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { maptilerAutocomplete } from '../../lib/maptiler';
 import type { AddressAutocompleteChange, AddressSuggestion } from '../../types/geo';
 import { Input } from '../ui/input';
@@ -18,7 +19,7 @@ type Props = {
 export default function AddressAutocomplete({
   value,
   onChange,
-  placeholder = 'Start typing an address...',
+  placeholder,
   debounceMs = 500,
   countryCodes,
   limit = 8,
@@ -26,6 +27,8 @@ export default function AddressAutocomplete({
   className,
   autoFocus = false,
 }: Props) {
+  const { t } = useTranslation('common');
+  const displayPlaceholder = placeholder ?? t('address.placeholder');
   const [query, setQuery] = useState<string>(value ?? '');
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -154,7 +157,7 @@ export default function AddressAutocomplete({
             e.currentTarget.setAttribute('autocomplete', 'new-password');
             if (suggestions.length) setOpen(true);
           }}
-          placeholder={placeholder}
+          placeholder={displayPlaceholder}
           disabled={disabled}
           autoComplete="new-password"
           name={`addr-${Math.random().toString(36).slice(2)}`}
@@ -170,11 +173,11 @@ export default function AddressAutocomplete({
       {open && (
         <div className="absolute z-15 mt-1 w-full rounded-md border bg-surface shadow-lg overflow-hidden">
           {loading && (
-            <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2 animate-pulse">Searching...</div>
+            <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2 animate-pulse">{t('address.searching')}</div>
           )}
           {!loading && suggestions.length === 0 && query.trim().length >= 3 && (
             <div className="p-3 text-sm text-foreground-3 dark:text-foreground-2">
-              No addresses found. Try a different search or use Manual mode.
+              {t('address.noAddressesFound')}
             </div>
           )}
           {!loading && suggestions.length > 0 && suggestions.map((s, idx) => (

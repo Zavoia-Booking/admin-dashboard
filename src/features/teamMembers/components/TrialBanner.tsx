@@ -1,10 +1,12 @@
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { selectCurrentUser } from '../../auth/selectors'
 import { Button } from '../../../shared/components/ui/button'
 import { AlertCircle, Clock } from 'lucide-react'
 
 export default function TrialBanner() {
+  const { t } = useTranslation('teamMembers')
   const navigate = useNavigate()
   const user = useSelector(selectCurrentUser)
 
@@ -27,11 +29,11 @@ export default function TrialBanner() {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">Trial Period Active</h3>
+              <h3 className="font-semibold text-gray-900">{t('trialBanner.title')}</h3>
               <AlertCircle className="h-4 w-4 text-orange-500" />
             </div>
             <p className="text-sm text-gray-600">
-              You have <span className="font-semibold text-orange-600">{daysRemaining} {daysRemaining === 1 ? 'day' : 'days'}</span> remaining in your trial. 
+              {t('trialBanner.daysRemaining', { count: daysRemaining })}
             </p>
           </div>
         </div>
@@ -39,7 +41,7 @@ export default function TrialBanner() {
           onClick={() => navigate('/settings?tab=billing')}
           className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
         >
-          Upgrade Now
+          {t('trialBanner.upgradeNow')}
         </Button>
       </div>
     </div>

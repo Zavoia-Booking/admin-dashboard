@@ -1,6 +1,10 @@
 {
   "page": {
     "title": "Membri echipă",
+    "displayNameFallback": {
+      "pending": "În așteptare",
+      "invite": "Invitație"
+    },
     "subtitle": "Gestionează membrii echipei tale",
     "actions": {
       "inviteMember": "Invită membru"
@@ -10,10 +14,123 @@
       "noTeamMembersDescription": "Invită primul tău membru al echipei pentru a începe să construiești echipa ta.",
       "noResults": "Nu s-au găsit membri ai echipei care să corespundă căutării tale.",
       "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
+    },
+    "badges": {
+      "invitationSent": "Invitație trimisă"
+    },
+    "actionsLabel": {
+      "editTeamMember": "Editează membru echipă"
+    },
+    "toasts": {
+      "cannotEditPending": "Nu poți edita un membru în așteptare până când finalizează înregistrarea.",
+      "pendingNotAccepted": "Acest membru al echipei nu a acceptat încă invitația."
+    },
+    "confirmDialog": {
+      "updateStatus": "Actualizează status",
+      "updateStatusDescription": "Sigur vrei să schimbi statusul lui {{name}} de la {{currentStatus}} la {{newStatus}}?",
+      "resendInvitation": "Retrimite invitația",
+      "resendInvitationDescription": "Sigur vrei să retrimiți invitația către {{email}}?",
+      "resend": "Retrimite",
+      "cancelInvitation": "Anulează invitația",
+      "cancelInvitationDescription": "Anulezi invitația pentru {{email}}?",
+      "cancel": "Anulează"
     }
   },
   "filters": {
     "searchPlaceholder": "Caută membri după nume sau email..."
+  },
+  "inviteSlider": {
+    "title": "Invită membru echipă",
+    "subscriptionInfo": {
+      "title": "Informații abonament",
+      "description": "Verifică detaliile abonamentului și locurile disponibile."
+    },
+    "contactInfo": {
+      "title": "Informații contact",
+      "description": "Introdu adresa de email a membrului echipei pe care vrei să îl inviți.",
+      "emailLabel": "Adresă email *",
+      "emailPlaceholder": "ex. contact@exemplu.com"
+    },
+    "locationAssignment": {
+      "title": "Atribuire locații",
+      "description": "Selectează la ce locații va avea acces acest membru al echipei.",
+      "noLocations": "Nu există locații disponibile. Creează mai întâi o locație.",
+      "noLocationsSelected": "Nicio locație selectată. Este necesară cel puțin o locație.",
+      "oneLocationSelected": "1 locație selectată. Cel puțin o locație trebuie să rămână selectată.",
+      "locationsSelected": "{{count}} locații selectate."
+    },
+    "validation": {
+      "emailRequired": "Email-ul este obligatoriu",
+      "invalidEmail": "Adresă de email invalidă",
+      "locationRequired": "Trebuie selectată cel puțin o locație"
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "sendInvitation": "Trimite invitația",
+      "goToBilling": "Mergi la Facturare"
+    },
+    "confirmDialog": {
+      "title": "Trimite invitația",
+      "description": "Sigur vrei să trimiți o invitație către {{email}}?"
+    }
+  },
+  "subscriptionInfo": {
+    "teamMembers": "Membri echipă",
+    "trialMessage": "În perioada de probă, poți invita membri nelimitați pentru a explora funcționalitățile împreună!",
+    "subscriptionRequired": "Abonament necesar",
+    "subscriptionRequiredDescription": "Ai nevoie de un abonament activ pentru a invita membri ai echipei.",
+    "goToBilling": "Mergi la facturare",
+    "subscriptionCancelled": "Abonament necesar",
+    "subscriptionCancelledDescription": "Abonamentul tău a fost anulat. Pentru a invita membri ai echipei, trebuie să reînnoiești mai întâi abonamentul.",
+    "renewSubscription": "Reînnoiește abonamentul",
+    "paidSeats": "Locuri plătite",
+    "usedSeats": "Locuri utilizate",
+    "availableSeats": "Ai {{count}} loc disponibil. Fără cost suplimentar pentru această invitație.",
+    "availableSeats_other": "Ai {{count}} locuri disponibile. Fără cost suplimentar pentru această invitație.",
+    "allSeatsInUse": "Toate locurile sunt ocupate",
+    "allSeatsInUseDescription": "Momentan ai toate locurile ocupate. Pentru a invita un nou membru, va trebui să achiziționezi mai întâi un loc suplimentar."
+  },
+  "trialBanner": {
+    "title": "Perioadă de probă activă",
+    "daysRemaining": "Mai ai {{count}} zi în perioada de probă.",
+    "daysRemaining_other": "Mai ai {{count}} zile în perioada de probă.",
+    "upgradeNow": "Faceți upgrade acum"
+  },
+  "profileSlider": {
+    "loading": "Se încarcă...",
+    "profileInfo": "Informații profil",
+    "upcomingAppointments": "Programări viitoare",
+    "noAppointments": "Acest membru al echipei nu are programări viitoare.",
+    "goToAppointments": "Mergi la programări",
+    "assignments": "Atribuiri",
+    "assignmentsDescription": "Toate atribuirile pentru acest membru al echipei, inclusiv servicii, locații, prețuri personalizate și program personalizat, sunt gestionate în secțiunea Atribuiri.",
+    "stats": {
+      "services": "Servicii",
+      "locations": "Locații",
+      "appointments": "Programări"
+    },
+    "goToAssignments": "Mergi la Atribuiri",
+    "removeTeamMember": "Elimină membru echipă",
+    "removeTeamMemberDescription": "Aceasta va elimina membrul echipei din organizația ta și îi va revoca accesul.",
+    "removing": "Se elimină...",
+    "removeFromOrganisation": "Elimină din organizație",
+    "status": {
+      "active": "Activ",
+      "inactive": "Inactiv"
+    }
+  },
+  "invitationSuccess": {
+    "title": "Invitație trimisă!",
+    "description": "Invitația către membru a fost trimisă cu succes",
+    "emailInfo": "Un email de invitație va fi trimis către {{email}}. Vor primi instrucțiuni pentru a-și configura contul și a se alătura echipei tale.",
+    "teamMemberFallback": "membrul echipei",
+    "goToTeamMembers": "Mergi la Membri echipă"
+  },
+  "toasts": {
+    "inviteFailed": "Nu s-a putut invita membrul echipei",
+    "listFailed": "Nu s-au putut încărca membrii echipei",
+    "removeSuccess": "Membrul echipei a fost eliminat cu succes",
+    "removeFailed": "Nu s-a putut elimina membrul echipei",
+    "fetchFailed": "Nu s-a putut încărca membrul echipei"
   }
 }
-

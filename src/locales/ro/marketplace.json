@@ -1,6 +1,7 @@
 {
   "marketing": {
     "hero": {
+      "yourBusiness": "Afacerea Ta",
       "title": "Fii Descoperit. Obține Rezervări.",
       "subtitle": "Pune <bold>{{businessName}}</bold> în fața clienților gata să rezerve, instantaneu. Ți-am pregătit serviciile pentru descoperire—fără reclame, fără bătăi de cap.",
       "cta": "Listează Afacerea Mea",
@@ -94,6 +95,7 @@
   "details": {
     "title": "Detalii Marketplace",
     "businessName": {
+      "notAvailable": "N/A",
       "label": "Nume Afacere",
       "useBusinessDescription": "Folosește numele principal al afacerii pentru listarea ta în marketplace. Asta păstrează brandul tău consistent pentru clienți.",
       "customDescription": "Creează un nume de brand unic pentru această listare. Folosește-l pentru a ieși în evidență în marketplace și a-l separa de profilul tău principal de afacere.",

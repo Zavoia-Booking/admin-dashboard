@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../shared/components/ui/dialog';
@@ -17,6 +18,7 @@ interface GoogleAccountManagerProps {
 }
 
 const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, onSetPasswordClick, returnUrl = '/settings' }) => {
+  const { t } = useTranslation('settings');
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);
   const linkingLoading = useSelector((state: RootState) => (state as any).auth.linkingLoading) as boolean;
@@ -64,7 +66,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
 
   const handleUnlinkConfirm = () => {
     if (!password.trim()) {
-      toast.error('Password is required to unlink your Google account');
+      toast.error(t('googleAccount.toast.passwordRequired'));
       return;
     }
 
@@ -88,13 +90,13 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
     redirect_uri: redirectUri,
     onSuccess: (resp: { code?: string }) => {
       if (!resp.code) {
-        toast.error('Unable to get code from Google');
+        toast.error(t('googleAccount.toast.unableToGetCode'));
         return;
       }
       dispatch(linkGoogleByCodeAction.request({ code: resp.code, redirectUri }));
     },
     onError: () => {
-      toast.error('Google popup was closed or failed');
+      toast.error(t('googleAccount.toast.googleFailed'));
     },
   } as any);
 
@@ -103,11 +105,11 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
       <div className={`space-y-2 ${className}`}>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <div className="space-y-1 flex-1 min-w-0">
-            <Label className="text-sm font-medium text-foreground">Google Account</Label>
+            <Label className="text-sm font-medium text-foreground">{t('googleAccount.label')}</Label>
             <p className="text-xs text-muted-foreground line-clamp-2 sm:line-clamp-none">
               {isGoogleLinked 
-                ? 'Your Google account is linked for easy sign-in' 
-                : 'Link your Google account for convenient access'
+                ? t('googleAccount.linkedDescription') 
+                : t('googleAccount.unlinkedDescription')
               }
             </p>
           </div>
@@ -116,7 +118,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
               <>
                 <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-xs font-medium ring-1 ring-green-200">
                   <LinkIcon className="h-3 w-3" />
-                  Linked
+                  {t('googleAccount.linked')}
                 </div>
                 <Button
                   type="button"
@@ -125,7 +127,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   onClick={handleUnlinkClick}
                   disabled={linkingLoading}
                   aria-busy={linkingLoading}
-                  className="h-auto py-1.5 px-4 rounded-full text-destructive border-destructive/30 hover:bg-destructive/10"
+                  className="!h-7 !min-h-0 py-1.5 px-4 rounded-full text-destructive border-destructive/30 hover:bg-destructive/10"
                 >
                   {linkingLoading ? (
                     <>
@@ -144,7 +146,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
               <>
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
                   <Unlink className="h-3 w-3" />
-                  Not linked
+                  {t('googleAccount.notLinked')}
                 </div>
                 <Button
                   type="button"
@@ -153,17 +155,17 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   onClick={handleLinkClick}
                   disabled={linkingLoading}
                   aria-busy={linkingLoading}
-                  className="h-auto py-1.5 px-4 rounded-full"
+                  className="!h-7 !min-h-0 py-1.5 px-4 rounded-full"
                 >
                   {linkingLoading ? (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                      Linking
+                      {t('googleAccount.linking')}
                     </>
                   ) : (
                     <>
                       <LinkIcon className="h-3 w-3 mr-1" />
-                      Link
+                      {t('googleAccount.link')}
                     </>
                   )}
                 </Button>
@@ -188,15 +190,15 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <AlertCircle className="h-5 w-5 text-amber-500" />
-                  Password Required
+                  {t('googleAccount.passwordRequired')}
                 </DialogTitle>
                 <DialogDescription className="pt-2">
-                  You signed up with Google and don't have a password set yet. To unlink your Google account, you first need to set up a password so you can still access your account.
+                  {t('googleAccount.passwordRequiredDescription')}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-4">
                 <p className="text-sm text-muted-foreground">
-                  Once you've set a password, you can come back here to unlink your Google account.
+                  {t('googleAccount.passwordRequiredHint')}
                 </p>
               </div>
               <DialogFooter className="flex gap-2">
@@ -208,7 +210,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                     setUnlinkAttempted(false);
                   }}
                 >
-                  Cancel
+                  {t('googleAccount.cancel')}
                 </Button>
                 <Button
                   onClick={() => {
@@ -218,7 +220,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                     onSetPasswordClick?.();
                   }}
                 >
-                  Set Up Password
+                  {t('googleAccount.setUpPassword')}
                 </Button>
               </DialogFooter>
             </>
@@ -226,21 +228,20 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
             // Normal unlink flow with password confirmation
             <>
               <DialogHeader>
-                <DialogTitle>Unlink Google Account</DialogTitle>
+                <DialogTitle>{t('googleAccount.unlinkTitle')}</DialogTitle>
                 <DialogDescription>
-                  To unlink your Google account, please confirm your account password. 
-                  You'll still be able to sign in with your email and password.
+                  {t('googleAccount.unlinkDescription')}
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="password">Current Password</Label>
+                  <Label htmlFor="password">{t('googleAccount.currentPassword')}</Label>
                   <Input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your current password"
+                    placeholder={t('googleAccount.currentPasswordPlaceholder')}
                     className={`w-full ${unlinkAttempted && linkingError ? 'border-destructive' : ''}`}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && !linkingLoading) {
@@ -264,7 +265,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   }}
                   disabled={linkingLoading}
                 >
-                  Cancel
+                  {t('googleAccount.cancel')}
                 </Button>
                 <Button
                   variant="destructive"
@@ -274,10 +275,10 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   {linkingLoading ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Unlinking...
+                      {t('googleAccount.unlinkingLong')}
                     </>
                   ) : (
-                    'Unlink Account'
+                    t('googleAccount.unlinkAccount')
                   )}
                 </Button>
               </DialogFooter>

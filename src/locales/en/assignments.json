@@ -201,6 +201,11 @@
         "noServicesRequiredDescription": "You need to add services to this location before you can assign team members."
       }
     },
+    "ariaLabels": {
+      "close": "Close",
+      "addMember": "Add {{name}} to location",
+      "removeMember": "Remove {{name}} from location"
+    },
     "manageTeamMemberDrawer": {
       "title": "Manage Services for {{name}}",
       "titleSubtitle": "Enable services and set custom rates for this team member.",
@@ -239,11 +244,15 @@
         "apply": "Apply"
       },
       "disabledMessage": "Enable this service to set custom pricing.",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
       "emptyState": {
         "noServices": "No services available at this location.",
         "noServicesDescription": "No services available at this location.",
         "noEnabled": "No services enabled for this member.",
-        "noCustom": "No services have custom pricing."
+        "noEnabledDescription": "No services are enabled for this member.",
+        "noCustom": "No services have custom pricing.",
+        "noCustomDescription": "No services have custom pricing."
       }
     },
     "toasts": {

@@ -34,6 +34,7 @@
         "delete": "Delete"
       },
       "metadata": {
+        "duration": "duration",
         "location": "location",
         "locations": "locations",
         "teamMember": "team member",
@@ -196,6 +197,19 @@
     }
   },
   "editService": {
+    "assignments": {
+      "title": "Assignments",
+      "teamMembers": "Team Members",
+      "locations": "Locations",
+      "description": "Manage which team members and locations can offer this service. View and modify all assignments in the dedicated Assignments section.",
+      "goToAssignments": "Go to Assignments"
+    },
+    "removeService": {
+      "title": "Remove Service",
+      "description": "This will permanently remove this service from your service list. This action cannot be undone.",
+      "button": "Remove Service",
+      "removing": "Removing..."
+    },
     "title": "Edit Service",
     "subtitle": "Update service information, pricing, and availability",
     "sections": {
@@ -257,6 +271,7 @@
     "comingSoon": "Bundles Coming Soon",
     "description": "Bundle management will be available here soon. Create service packages and offer them as bundles to your customers.",
     "filters": {
+      "filterBundlesDescription": "Filter bundles by price, service count, and price type",
       "searchPlaceholder": "Search bundles...",
       "addBundle": "Add Bundle",
       "addFilter": "Filters",
@@ -368,6 +383,15 @@
       "manageServices": "Select Services",
       "bundleLabel": "this bundle",
       "validation": {
+        "nameRequired": "Bundle name is required",
+        "nameMinLength": "Bundle name must be at least 2 characters",
+        "nameMaxLength": "Bundle name must not exceed 100 characters",
+        "descriptionMaxLength": "Description must not exceed 500 characters",
+        "fixedPriceRequired": "Fixed price is required",
+        "fixedPriceMin": "Fixed price must be greater than or equal to 0",
+        "discountRequired": "Discount percentage is required",
+        "discountMin": "Discount percentage must be at least 0",
+        "discountMax": "Discount percentage must not exceed 100",
         "servicesMinimum": "At least 2 services must be selected for a bundle"
       },
       "confirmDialog": {
@@ -378,6 +402,7 @@
       }
     },
     "editBundle": {
+      "goToAssignments": "Go to Assignments",
       "title": "Edit Bundle",
       "subtitle": "Update bundle information and services",
       "sections": {
@@ -480,11 +505,38 @@
     "services": "services",
     "loading": "Loading bundles..."
   },
+  "toasts": {
+    "services": {
+      "loadFailed": "Failed to load services",
+      "loadDetailsFailed": "Failed to load service details",
+      "createSuccess": "Service created successfully",
+      "deleteSuccess": "Service deleted successfully",
+      "deleteFailed": "Failed to delete service",
+      "editSuccess": "Service edited successfully"
+    },
+    "bundles": {
+      "loadFailed": "Failed to load bundles",
+      "createSuccess": "Bundle created successfully",
+      "createFailed": "Failed to create bundle",
+      "updateSuccess": "Bundle updated successfully",
+      "updateFailed": "Failed to update bundle",
+      "deleteSuccess": "Bundle deleted successfully",
+      "deleteFailed": "Failed to delete bundle"
+    }
+  },
+  "badges": {
+    "priceMin": "Price min",
+    "priceMax": "Price max",
+    "durationMin": "Duration min",
+    "durationMax": "Duration max",
+    "category": "Category"
+  },
   "promotions": {
     "comingSoon": "Promotions Coming Soon",
     "description": "Promotion management will be available here soon. Create discounts, special offers, and promotional campaigns for your services."
   },
   "filters": {
+    "filterServicesDescription": "Filter services by price, duration, and category",
     "searchPlaceholder": "Search services...",
     "addFilter": "Filters",
     "byPrice": "By price",

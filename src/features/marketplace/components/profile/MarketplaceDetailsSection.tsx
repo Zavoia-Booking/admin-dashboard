@@ -115,7 +115,7 @@ export const MarketplaceDetailsSection: React.FC<
           <div className="text-sm pt-4 border-t border-info-200">
             <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
               <Building2 className="h-4 w-4 text-neutral-900 dark:text-foreground-1" />
-              {business?.name || "N/A"}
+              {business?.name || t("details.businessName.notAvailable")}
             </span>
           </div>
         ) : (

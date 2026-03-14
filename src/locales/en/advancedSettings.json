@@ -101,6 +101,8 @@
   },
   "leaveOrganisation": {
     "title": "Leave Organisation",
+    "cardDescription": "Remove yourself from this business. You must cancel or reassign all your active appointments first.",
+    "cardHint": "Ask the business owner to reassign your appointments to another team member, or cancel them yourself.",
     "confirmMessage": "Are you sure you want to leave this organisation?",
     "confirmHint": "You will lose access to this business and all associated data. This action cannot be undone.",
     "confirmButton": "Leave Organisation",

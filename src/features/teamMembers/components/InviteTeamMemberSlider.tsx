@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mail, MapPin, Loader2, AlertCircle } from 'lucide-react';
 import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
@@ -35,6 +36,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { t } = useTranslation('teamMembers');
   const dispatch = useDispatch();
   const { register, handleSubmit, setValue, reset, getValues, formState: { errors }, watch, trigger } = useForm<InviteTeamMemberPayload>({
     defaultValues: initialFormData
@@ -93,30 +95,30 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
         // Only validate if invite is allowed or in trial
         if (isInviteAllowed || seatCtx.isTrial) {
           if (!value || value.trim().length === 0) {
-            return 'Email is required';
+            return t('inviteSlider.validation.emailRequired');
           }
           // Email pattern validation
           const emailPattern = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
           if (!emailPattern.test(value)) {
-            return 'Invalid email address';
+            return t('inviteSlider.validation.invalidEmail');
           }
         }
         return true;
       }
     });
-  }, [register, isInviteAllowed, seatCtx.isTrial]);
+  }, [register, isInviteAllowed, seatCtx.isTrial, t]);
 
   // Register locationIds with validation
   useEffect(() => {
     register('locationIds', {
       validate: (value) => {
         if (!value || value.length === 0) {
-          return 'At least one location must be selected';
+          return t('inviteSlider.validation.locationRequired');
         }
         return true;
       }
     });
-  }, [register]);
+  }, [register, t]);
 
   // Fetch pricing summary when slider opens
   useEffect(() => {
@@ -197,14 +199,14 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     });
   
     if (isTrial) {
-      return 'Send Invitation';
+      return t('inviteSlider.buttons.sendInvitation');
     }
 
     if (isCancelled || !hasSubscription || !hasAvailableSeats) {
-      return 'Go to Billing';
+      return t('inviteSlider.buttons.goToBilling');
     }
 
-    return 'Send Invitation';
+    return t('inviteSlider.buttons.sendInvitation');
   }
 
   const getDisableEmailStatus = () => {
@@ -230,12 +232,12 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Invite Team Member"
+        title={t('inviteSlider.title')}
         footer={
           <FormFooter
             onCancel={handleCancel}
             formId="invite-team-member-form"
-            cancelLabel="Cancel"
+            cancelLabel={t('inviteSlider.buttons.cancel')}
             submitLabel={getTextForButton()}
             disabled={isInviting}
             isLoading={isInviting}
@@ -254,10 +256,10 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Subscription Info
+                    {t('inviteSlider.subscriptionInfo.title')}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Review your subscription details and available seats.
+                    {t('inviteSlider.subscriptionInfo.description')}
                   </p>
                 </div>
 
@@ -285,22 +287,22 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Contact Information
+                    {t('inviteSlider.contactInfo.title')}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Enter the email address of the team member you want to invite.
+                    {t('inviteSlider.contactInfo.description')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-base font-medium">
-                    Email Address *
+                    {t('inviteSlider.contactInfo.emailLabel')}
                   </Label>
                   <div className="relative">
                     <Input
                       id="email"
                       type="email"
-                      placeholder="e.g. contact@example.com"
+                      placeholder={t('inviteSlider.contactInfo.emailPlaceholder')}
                       value={watch('email')}
                       onChange={(e) => {
                         setValue('email', e.target.value, { shouldValidate: true });
@@ -336,17 +338,17 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Location Assignment
+                    {t('inviteSlider.locationAssignment.title')}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Select which locations this team member will have access to.
+                    {t('inviteSlider.locationAssignment.description')}
                   </p>
                 </div>
 
                 <div className="space-y-5">
                   {allLocations.length === 0 ? (
                     <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                      No locations available. Please create a location first.
+                      {t('inviteSlider.locationAssignment.noLocations')}
                     </p>
                   ) : (
                     <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -393,10 +395,10 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                   {allLocations.length > 0 && (
                     <p className="text-xs text-foreground-3 dark:text-foreground-2">
                       {locationIds.length === 0
-                        ? 'No locations selected. At least one location is required.'
+                        ? t('inviteSlider.locationAssignment.noLocationsSelected')
                         : locationIds.length === 1
-                        ? '1 location selected. At least one location must remain selected.'
-                        : `${locationIds.length} locations selected.`}
+                        ? t('inviteSlider.locationAssignment.oneLocationSelected')
+                        : t('inviteSlider.locationAssignment.locationsSelected', { count: locationIds.length })}
                     </p>
                   )}
                   {errors.locationIds && (
@@ -416,15 +418,15 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Send Invitation</AlertDialogTitle>
+            <AlertDialogTitle>{t('inviteSlider.confirmDialog.title')}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to send an invitation to {watch('email')} ?
+              {t('inviteSlider.confirmDialog.description', { email: watch('email') })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('inviteSlider.buttons.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmInvite}>
-              Send Invitation
+              {t('inviteSlider.buttons.sendInvitation')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

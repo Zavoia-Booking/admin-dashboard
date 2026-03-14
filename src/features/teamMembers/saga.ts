@@ -1,10 +1,13 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
+import { getSubscriptionSummaryAction } from "../settings/actions";
 import { cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, inviteTeamMemberAction, listTeamMembersAction, resendInvitationAction } from "./actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi } from "./api";
 import type { InviteTeamMemberResponse } from "./types";
 import { toast } from "sonner";
 import type { DeleteResponse } from "../../shared/types/delete-response";
+import { getErrorMessage, translateMessageCode } from "../../shared/utils/error";
+import i18n from "../../shared/lib/i18n";
 
 function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberAction.request>) {
   try {
@@ -17,7 +20,7 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
     const backendMessage = Array.isArray(resp?.message)
       ? resp?.message?.join(' ')
       : resp?.message;
-    const message = backendMessage || resp?.error || error?.message || 'Failed to invite team member';
+    const message = backendMessage || resp?.error || error?.message || i18n.t('teamMembers:toasts.inviteFailed');
     yield put(inviteTeamMemberAction.failure({ message }));
   }
 }
@@ -27,7 +30,7 @@ function* handleListTeamMembers() {
     const response: { summary: TeamMemberSummary; teamMembers: TeamMember[] } = yield call(listTeamMembersApi);
     yield put(listTeamMembersAction.success(response));
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to list team members';
+    const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.listFailed');
     yield put(listTeamMembersAction.failure({ message }));
   }
 }
@@ -47,9 +50,12 @@ function* handleCancelInvitation(action: ReturnType<typeof cancelInvitationActio
   try {
     yield call(cancelInvitationApi, action.payload.id);
     yield put(cancelInvitationAction.success());
+    toast.success(translateMessageCode('TEAM.S02'));
     yield put(listTeamMembersAction.request());
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to cancel invitation';
+    yield put(getSubscriptionSummaryAction.request());
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    toast.error(message);
     yield put(cancelInvitationAction.failure({ message }));
   }
 }
@@ -58,9 +64,11 @@ function* handleResendInvitation(action: ReturnType<typeof resendInvitationActio
   try {
     yield call(resendInvitationApi, action.payload.id);
     yield put(resendInvitationAction.success());
+    toast.success(translateMessageCode('TEAM.S03'));
     yield put(listTeamMembersAction.request());
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to resend invitation';
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    toast.error(message);
     yield put(resendInvitationAction.failure({ message }));
   }
 }
@@ -76,11 +84,11 @@ function* handleDeleteTeamMember(action: ReturnType<typeof deleteTeamMemberActio
     } else {
       // Successfully deleted
       yield put(deleteTeamMemberAction.success({ deleteResponse: { canDelete: true } }));
-      toast.success('Team member removed successfully');
+      toast.success(i18n.t('teamMembers:toasts.removeSuccess'));
       yield put(listTeamMembersAction.request());
     }
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to remove team member';
+    const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.removeFailed');
     toast.error(message);
     yield put(deleteTeamMemberAction.failure({ message }));
   }
@@ -91,7 +99,7 @@ function* handleFetchTeamMemberById(action: ReturnType<typeof fetchTeamMemberByI
     const teamMember: TeamMember = yield call(fetchTeamMemberByIdApi, action.payload.id);
     yield put(fetchTeamMemberByIdAction.success({ teamMember }));
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to fetch team member';
+    const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.fetchFailed');
     toast.error(message);
     yield put(fetchTeamMemberByIdAction.failure({ message }));
   }

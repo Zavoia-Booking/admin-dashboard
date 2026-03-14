@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Mail, Phone, Check, Loader2, Calendar, MapPin, User, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -25,6 +26,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   onClose,
   teamMember,
 }) => {
+  const { t, i18n } = useTranslation('teamMembers');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isDeleting = useSelector(selectIsDeleting) as boolean;
@@ -74,7 +76,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
       : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40';
     return (
       <Badge className={badgeClasses}>
-        {status === 'active' ? 'Active' : 'Inactive'}
+        {status === 'active' ? t('profileSlider.status.active') : t('profileSlider.status.inactive')}
       </Badge>
     );
   };
@@ -95,9 +97,10 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const formatAppointmentTime = (scheduledAt: string, endsAt: string) => {
     const start = new Date(scheduledAt);
     const end = new Date(endsAt);
-    const dateStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    const endTime = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const locale = i18n.language === 'ro' ? 'ro-RO' : 'en-US';
+    const dateStr = start.toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
+    const startTime = start.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
+    const endTime = end.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
     return `${dateStr} · ${startTime} - ${endTime}`;
   };
 
@@ -137,7 +140,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title={hasValidData ? `${displayTeamMember.firstName} ${displayTeamMember.lastName}` : 'Loading...'}
+        title={hasValidData ? `${displayTeamMember.firstName} ${displayTeamMember.lastName}` : t('profileSlider.loading')}
       >
         <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
           {isFetchingTeamMember || !hasValidData ? (
@@ -151,7 +154,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Profile Information
+                    {t('profileSlider.profileInfo')}
                   </h3>
                 </div>
 
@@ -202,7 +205,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Upcoming Appointments
+                    {t('profileSlider.upcomingAppointments')}
                   </h3>
                 </div>
 
@@ -248,7 +251,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                       }}
                       className="w-full sm:w-auto"
                     >
-                      Go to Appointments
+                      {t('profileSlider.goToAppointments')}
                     </Button>
                   </div>
                 ) : (
@@ -258,7 +261,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                         <Info className="h-5 w-5 text-foreground-3 dark:text-foreground-2 flex-shrink-0 mt-0.5" />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed">
-                            This team member has no upcoming appointments.
+                            {t('profileSlider.noAppointments')}
                           </p>
                         </div>
                       </div>
@@ -271,7 +274,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                       }}
                       className="w-full sm:w-auto"
                     >
-                      Go to Appointments
+                      {t('profileSlider.goToAppointments')}
                     </Button>
                   </div>
                 )}
@@ -286,18 +289,18 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Assignments
+                    {t('profileSlider.assignments')}
                   </h3>
                 </div>
 
                 <AssignmentsCard
                   stats={[
-                    { label: 'Services', value: displayTeamMember.servicesCount || 0 },
-                    { label: 'Locations', value: displayTeamMember.locationsCount || 0 },
-                    { label: 'Appointments', value: displayTeamMember.totalAppointments || 0 },
+                    { label: t('profileSlider.stats.services'), value: displayTeamMember.servicesCount || 0 },
+                    { label: t('profileSlider.stats.locations'), value: displayTeamMember.locationsCount || 0 },
+                    { label: t('profileSlider.stats.appointments'), value: displayTeamMember.totalAppointments || 0 },
                   ]}
-                  description="All assignments for this team member, including services, locations, custom pricing, and custom working hours, are managed in the dedicated Assignments section."
-                  buttonLabel="Go to Assignments"
+                  description={t('profileSlider.assignmentsDescription')}
+                  buttonLabel={t('profileSlider.goToAssignments')}
                   onButtonClick={() => {
                     navigate('/assignments');
                   }}
@@ -314,10 +317,10 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
                     <div className="space-y-1">
                       <h3 className="text-base font-medium text-foreground-1">
-                        Remove Team Member
+                        {t('profileSlider.removeTeamMember')}
                       </h3>
                       <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                        This will remove the team member from your organisation and revoke their access.
+                        {t('profileSlider.removeTeamMemberDescription')}
                       </p>
                     </div>
 
@@ -332,10 +335,10 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                         {isDeleting ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Removing...
+                            {t('profileSlider.removing')}
                           </>
                         ) : (
-                          'Remove from organisation'
+                          t('profileSlider.removeFromOrganisation')
                         )}
                       </Button>
                     </div>
@@ -361,7 +364,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
           overlayClassName="z-[80]"
           secondaryActions={[
             {
-              label: 'Go to Assignments',
+              label: t('profileSlider.goToAssignments'),
               onClick: () => {
                 handleCloseDialog(false);
                 navigate('/assignments');

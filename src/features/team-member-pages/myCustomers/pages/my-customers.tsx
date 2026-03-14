@@ -1,25 +1,28 @@
+import { useTranslation } from 'react-i18next';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/components/ui/card';
 
 export default function MyCustomersPage() {
+  const { t } = useTranslation('customers');
+
   return (
     <AppLayout>
       <div className="space-y-6">
         {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:block">
           <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
-            My Customers
+            {t("myCustomers.pageTitle")}
           </h1>
         </div>
 
         {/* Main Content */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Customers</CardTitle>
+            <CardTitle>{t("myCustomers.cardTitle")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
-              My Customers page coming soon...
+              {t("myCustomers.comingSoon")}
             </p>
             {/* Customers who booked with you */}
           </CardContent>

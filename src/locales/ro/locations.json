@@ -10,6 +10,21 @@
       "noLocationsDescription": "Creează prima ta locație pentru a începe să gestionezi locațiile afacerii tale.",
       "noResults": "Nu s-au găsit locații care să corespundă căutării tale.",
       "noResultsDescription": "Încearcă să ajustezi căutarea pentru a găsi ceea ce cauți."
+    },
+    "metadata": {
+      "address": "adresă",
+      "phone": "telefon",
+      "email": "email"
+    },
+    "badges": {
+      "service": "Serviciu",
+      "services": "Servicii",
+      "teamMember": "Membru echipă",
+      "teamMembers": "Membri echipă",
+      "remoteLocation": "Locație la distanță"
+    },
+    "actionsLabel": {
+      "editLocation": "Editează locația"
     }
   },
   "filters": {
@@ -17,6 +32,166 @@
   },
   "address": {
     "countryRestrictionInfo": "Căutarea adreselor este limitată la țara afacerii tale ({{countryCode}}). Folosește modul Manual pentru adrese din afara acestei regiuni."
+  },
+  "mapDialogShared": {
+    "searchPlaceholder": "Caută adresa corectă...",
+    "addressWarningTitle": "Confirmă poziția pinului",
+    "addressWarningDescription": "Am plasat pinul pe baza adresei tale. Dacă este corect, dă click pe \"Confirmă locația\". Dacă nu, poți căuta adresa corectă, da click pe hartă sau trage pinul pentru a ajusta. Clienții îți vor găsi afacerea pe baza poziției pinului."
+  },
+  "addLocation": {
+    "title": "Adaugă locație nouă",
+    "subtitle": "Creează o locație nouă pentru afacerea ta",
+    "form": {
+      "nameLabel": "Nume locație",
+      "remoteNameLabel": "Nume locație online",
+      "descriptionLabel": "Descriere",
+      "namePlaceholder": "ex. Birou Central",
+      "addressLabel": "Adresă *",
+      "contactTitle": "Informații contact",
+      "emailLabel": "Email locație *",
+      "phoneLabel": "Telefon locație *",
+      "inheritedLabel": "afacerea ta",
+      "helperTextOn": "Informațiile de contact ale afacerii tale vor fi folosite pentru această locație.",
+      "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
+      "helperTextOnRemote": "Informațiile de contact ale afacerii vor fi folosite pentru această locație.",
+      "helperTextOffRemote": "Furnizează detalii de contact diferite pentru această locație.",
+      "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
+      "workingHoursLabel": "Program",
+      "teamMembersTitle": "Membri echipă",
+      "teamMembersDescription": "Selectează ce membri ai echipei pot lucra la această locație. Toți membrii activi sunt selectați implicit.",
+      "noTeamMembers": "Nu există membri activi disponibili.",
+      "servicesTitle": "Servicii",
+      "servicesDescription": "Selectează ce servicii sunt disponibile la această locație. Toate serviciile sunt selectate implicit.",
+      "servicesEnabled": "/ {{total}} activate",
+      "noServices": "Nu există servicii disponibile încă.",
+      "manageServices": "Gestionează servicii",
+      "remoteNamePlaceholder": "Online"
+    },
+    "validation": {
+      "nameRequired": "Introdu numele locației",
+      "nameMinLength": "Introdu cel puțin 2 caractere",
+      "nameMaxLength": "Sunt permise maximum 70 de caractere",
+      "nameInvalidChars": "Elimină caracterele speciale (sunt permise doar - ' & . ( ))",
+      "addressRequired": "Adresa este obligatorie",
+      "emailRequired": "Introdu o adresă de email validă",
+      "phoneRequired": "Numărul de telefon este obligatoriu",
+      "phoneInvalid": "Introdu un număr de telefon valid",
+      "timezoneRequired": "Fusul orar este obligatoriu",
+      "descriptionMaxLength": "Sunt permise maximum {{max}} caractere",
+      "descriptionInvalidChars": "Caracterele speciale < > nu sunt permise"
+    },
+    "mapDialog": {
+      "title": "Verifică pinul locației",
+      "description": "Ajustează pinul la locația ta exactă. Poți trage pinul, da click pe hartă sau căuta o adresă nouă.",
+      "cancel": "Anulează",
+      "confirm": "Confirmă locația"
+    },
+    "manageServicesSheet": {
+      "title": "Selectează servicii",
+      "subtitle": "Alege ce servicii sunt disponibile la această locație"
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "create": "Creează locație"
+    },
+    "toasts": {
+      "validAddressFirst": "Introdu mai întâi o adresă validă",
+      "couldNotFindLocation": "Nu s-a putut găsi locația pe hartă. Caută adresa corectă în hartă.",
+      "couldNotGeocode": "Nu s-a putut geocoda adresa. Ajustează pinul manual.",
+      "selectLocationOnMap": "Selectează o locație pe hartă",
+      "selectLocationOrSearch": "Selectează o locație pe hartă sau caută o adresă",
+      "pinConfirmed": "Pinul locației a fost confirmat",
+      "createFailed": "Nu am putut crea locația",
+      "createFailedDescription": "Verifică informațiile și încearcă din nou."
+    }
+  },
+  "editLocation": {
+    "title": "Editează {{name}}",
+    "titleFallback": "Editează locația",
+    "subtitle": "Actualizează informațiile locației",
+    "form": {
+      "nameLabel": "Nume locație",
+      "namePlaceholder": "ex. Birou Central",
+      "addressLabel": "Adresă *",
+      "contactTitle": "Informații contact",
+      "emailLabel": "Email locație *",
+      "phoneLabel": "Telefon locație *",
+      "inheritedLabel": "afacerea ta",
+      "helperTextOn": "Informațiile de contact ale afacerii tale vor fi folosite pentru această locație.",
+      "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
+      "helperTextOnRemote": "Informațiile de contact ale afacerii vor fi folosite pentru această locație.",
+      "helperTextOffRemote": "Furnizează detalii de contact diferite pentru această locație.",
+      "descriptionLabel": "Descriere",
+      "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
+      "descriptionPlaceholderRemote": "Descrie această locație (ex. Link Zoom, Google Meet, etc.)",
+      "workingHoursLabel": "Program",
+      "remoteNameLabel": "Nume locație online",
+      "remoteNamePlaceholder": "ex. Sesiuni online"
+    },
+    "assignments": {
+      "title": "Atribuiri",
+      "services": "Servicii",
+      "teamMembers": "Membri echipă",
+      "description": "Gestionează ce servicii și membri ai echipei sunt atribuiți acestei locații. Vizualizează și modifică toate atribuirile în secțiunea Atribuiri.",
+      "goToAssignments": "Mergi la Atribuiri"
+    },
+    "removeLocation": {
+      "title": "Elimină locația",
+      "description": "Aceasta va elimina permanent această locație din lista ta. Această acțiune nu poate fi anulată.",
+      "button": "Elimină locația",
+      "removing": "Se elimină..."
+    },
+    "mapDialog": {
+      "title": "Verifică pinul locației",
+      "description": "Ajustează pinul la locația ta exactă. Poți trage pinul, da click pe hartă sau căuta o adresă nouă.",
+      "cancel": "Anulează",
+      "confirm": "Confirmă locația"
+    },
+    "buttons": {
+      "cancel": "Anulează",
+      "update": "Actualizează locația"
+    },
+    "toasts": {
+      "validAddressFirst": "Introdu mai întâi o adresă validă",
+      "couldNotFindLocation": "Nu s-a putut găsi locația pe hartă. Caută adresa corectă în hartă.",
+      "couldNotGeocode": "Nu s-a putut geocoda adresa. Ajustează pinul manual.",
+      "selectLocationOnMap": "Selectează o locație pe hartă",
+      "selectLocationOrSearch": "Selectează o locație pe hartă sau caută o adresă",
+      "pinConfirmed": "Pinul locației a fost confirmat",
+      "updateFailed": "Nu am putut actualiza locația",
+      "updateFailedDescription": "Verifică informațiile și încearcă din nou."
+    }
+  },
+  "editWorkingHours": {
+    "title": "Program",
+    "sectionTitle": "Program",
+    "cancel": "Anulează",
+    "saveChanges": "Salvează modificările",
+    "markAsClosed": "Marchează ca închis",
+    "markAsOpen": "Marchează ca deschis",
+    "openingTime": "Ora deschiderii",
+    "closingTime": "Ora închiderii",
+    "closedOn": "Această locație este închisă {{day}}.",
+    "confirmTitle": "Actualizează programul",
+    "confirmDescription": "Sigur vrei să actualizezi programul pentru {{name}}? Toate modificările vor fi salvate.",
+    "confirmCancel": "Anulează",
+    "confirmSave": "Salvează modificările",
+    "days": {
+      "monday": "Luni",
+      "tuesday": "Marți",
+      "wednesday": "Miercuri",
+      "thursday": "Joi",
+      "friday": "Vineri",
+      "saturday": "Sâmbătă",
+      "sunday": "Duminică"
+    }
+  },
+  "toasts": {
+    "createFailed": "Nu s-a putut crea locația",
+    "updateFailed": "Nu s-a putut actualiza locația",
+    "listFailed": "Nu s-au putut încărca locațiile",
+    "deleteSuccess": "Locația a fost ștearsă cu succes",
+    "deleteFailed": "Nu s-a putut șterge locația",
+    "fetchFailed": "Nu s-a putut încărca locația"
   }
 }
-

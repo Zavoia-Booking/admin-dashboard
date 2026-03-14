@@ -476,7 +476,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
                 {text("bundles.filters.addFilter")}
               </DrawerTitle>
               <DrawerDescription className="sr-only">
-                Filter bundles by price, service count, and price type
+                {text("bundles.filters.filterBundlesDescription")}
               </DrawerDescription>
               <div className="p-4 overflow-y-auto max-h-[80vh] space-y-4">
                 {renderFiltersContent()}

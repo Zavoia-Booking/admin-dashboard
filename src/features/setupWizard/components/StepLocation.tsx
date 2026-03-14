@@ -779,8 +779,8 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 setInitialMapCenter([0, 0]);
                 mapInstanceRef.current = null;
               }}
-              title="Verify Location Pin"
-              description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
+              title={t("addLocation.mapDialog.title")}
+              description={t("addLocation.mapDialog.description")}
               accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
               center={initialMapCenter}
               zoom={hasValidCoords ? 16 : 2}
@@ -813,7 +813,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                       mapInstanceRef.current = null;
                     }}
                   >
-                    Cancel
+                    {t("addLocation.mapDialog.cancel")}
                   </Button>
                   <Button
                     onClick={handleConfirmPin}
@@ -821,7 +821,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                     rounded="full"
                   >
                     <MapPin className="h-4 w-4" />
-                    Confirm Location
+                    {t("addLocation.mapDialog.confirm")}
                   </Button>
                 </>
               }

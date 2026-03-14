@@ -278,7 +278,7 @@ function MemberOverrideRow({
               aria-invalid={!!durationError}
             />
             <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-foreground-3 dark:text-foreground-2">
-              min
+              {t("page.locationService.fields.minSuffix")}
             </div>
           </div>
 
@@ -718,7 +718,7 @@ export function ServiceStaffOverridesModal({
                 className="hidden md:flex absolute right-4 top-4 h-8 w-8 rounded-md hover:bg-surface-hover active:bg-surface-active"
               >
                 <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
+                <span className="sr-only">{t("page.ariaLabels.close")}</span>
               </Button>
             </div>
             <DashedDivider

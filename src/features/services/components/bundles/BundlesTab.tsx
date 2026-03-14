@@ -342,7 +342,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                     metadata={[
                       {
                         icon: Clock,
-                        label: "duration",
+                        label: t("page.service.metadata.duration"),
                         value: formatDuration(getTotalDuration(bundle)),
                       },
                     ]}

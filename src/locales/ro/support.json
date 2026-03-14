@@ -1,0 +1,44 @@
+{
+  "page": {
+    "title": "Suport"
+  },
+  "status": {
+    "OPEN": "Deschis",
+    "IN_PROGRESS": "În curs",
+    "CLOSED": "Închis",
+    "REOPENED": "Redeschis",
+    "all": "Toate"
+  },
+  "category": {
+    "bug": "Bug",
+    "question": "Întrebare",
+    "bugReport": "Raportare Bug"
+  },
+  "ticket": {
+    "ticketId": "Tichet #{{id}}",
+    "created": "Creat {{date}}",
+    "closeTicket": "Închide tichetul",
+    "closing": "Se închide...",
+    "supportTeam": "Echipa Suport",
+    "ticketClosed": "Acest tichet este închis",
+    "typeMessage": "Scrie mesajul tău...",
+    "newTicket": "Tichet Nou",
+    "submitTicket": "Trimite Tichet",
+    "submitting": "Se trimite..."
+  },
+  "dialog": {
+    "title": "Tichet Suport Nou",
+    "description": "Descrie problema ta și te vom contacta cât mai curând posibil.",
+    "categoryLabel": "Categorie",
+    "messageLabel": "Mesaj",
+    "messagePlaceholder": "Descrie problema ta în detaliu...",
+    "cancel": "Anulează"
+  },
+  "empty": {
+    "noTickets": "Niciun tichet suport",
+    "description": "Ai nevoie de ajutor? Creează un tichet suport și echipa noastră te va asista.",
+    "createFirst": "Creează primul tichet",
+    "noMatch": "Niciun tichet nu corespunde filtrului selectat",
+    "clearFilter": "Resetează filtrul"
+  }
+}

@@ -31,7 +31,7 @@ export function NotListedYetView({
   teamMembers,
 }: NotListedYetViewProps) {
   const { t } = useTranslation("marketplace");
-  const businessName = business?.name || "Your Business";
+  const businessName = business?.name || t("marketing.hero.yourBusiness");
 
   // Effective data for preview
   const effectiveName = listing?.effectiveName || businessName;

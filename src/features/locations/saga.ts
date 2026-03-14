@@ -1,4 +1,5 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
+import i18n from "../../shared/lib/i18n";
 import { createLocationAction, deleteLocationAction, fetchLocationByIdAction, listLocationsAction, updateLocationAction } from "./actions";
 import { createLocationApi, deleteLocationApi, getLocationByIdApi, listLocationsApi, updateLocationApi } from "./api";
 import type { LocationType } from "../../shared/types/location";
@@ -11,7 +12,7 @@ function* handleFetchLocationById(action: ActionType<typeof fetchLocationByIdAct
     const location: LocationType = yield call(getLocationByIdApi, action.payload.locationId);
     yield put(fetchLocationByIdAction.success({ location }));
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to fetch location";
+    const message = error?.response?.data?.error || error?.message || i18n.t("locations:toasts.fetchFailed");
     yield put(fetchLocationByIdAction.failure({ message }));
   }
 }
@@ -42,7 +43,7 @@ function* handleUpdateLocation(action: ActionType<typeof updateLocationAction.re
     yield put(updateLocationAction.success({ updateResponse: response }));
     yield put(listLocationsAction.request());
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to update location";
+    const message = error?.response?.data?.error || error?.message || i18n.t("locations:toasts.updateFailed");
     yield put(updateLocationAction.failure({ message }));
   }
 }
@@ -52,7 +53,7 @@ function* handleListLocations(): Generator<any, void, any> {
     const { locations } = yield call(listLocationsApi);
     yield put(listLocationsAction.success({ locations }));
   } catch (error: any) {
-    yield put(listLocationsAction.failure({ message: error?.message || "Failed to list locations" }));
+    yield put(listLocationsAction.failure({ message: error?.message || i18n.t("locations:toasts.listFailed") }));
   }
 }
 
@@ -67,11 +68,11 @@ function* handleDeleteLocation(action: ActionType<typeof deleteLocationAction.re
     } else {
       // Successfully deleted
       yield put(deleteLocationAction.success({ deleteResponse: { canDelete: true } }));
-      toast.success('Location deleted successfully');
+      toast.success(i18n.t("locations:toasts.deleteSuccess"));
       yield put(listLocationsAction.request());
     }
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Failed to delete location';
+    const message = error?.response?.data?.error || error?.message || i18n.t("locations:toasts.deleteFailed");
     toast.error(message);
     yield put(deleteLocationAction.failure({ message }));
   }

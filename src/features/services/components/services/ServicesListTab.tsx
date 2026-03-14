@@ -292,7 +292,7 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
                 const metadata: ItemCardMetadata[] = [
                   {
                     icon: Clock,
-                    label: "duration",
+                    label: text("page.service.metadata.duration"),
                     value: formatDuration(service.duration),
                   },
                 ];

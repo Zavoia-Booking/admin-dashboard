@@ -107,13 +107,13 @@ export default function LocationsPage() {
                 if (!location.isRemote && location.address) {
                   metadata.push({
                     icon: MapPin,
-                    label: "address",
+                    label: text("page.metadata.address"),
                     value: location.address,
                   });
                 }
                 metadata.push(
-                  { icon: Phone, label: "phone", value: location.phone },
-                  { icon: Mail, label: "email", value: location.email },
+                  { icon: Phone, label: text("page.metadata.phone"), value: location.phone },
+                  { icon: Mail, label: text("page.metadata.email"), value: location.email },
                 );
 
                 // Build badges array (services and team members)
@@ -122,7 +122,7 @@ export default function LocationsPage() {
                 const servicesCount = location.servicesCount ?? 0;
                 if (servicesCount > 0) {
                   badges.push({
-                    label: servicesCount === 1 ? "Service" : "Services",
+                    label: servicesCount === 1 ? text("page.badges.service") : text("page.badges.services"),
                     count: servicesCount,
                     icon: Briefcase,
                   });
@@ -131,14 +131,14 @@ export default function LocationsPage() {
                 const teamMembersCount = location.teamMembersCount ?? 0;
                 if (teamMembersCount > 0) {
                   badges.push({
-                    label: teamMembersCount === 1 ? "Team Member" : "Team Members",
+                    label: teamMembersCount === 1 ? text("page.badges.teamMember") : text("page.badges.teamMembers"),
                     count: teamMembersCount,
                     icon: Users,
                   });
                 }
                 if (location.isRemote) {
                   badges.push({
-                    label: "Remote location",
+                    label: text("page.badges.remoteLocation"),
                     variant: "info",
                   });
                 }
@@ -154,7 +154,7 @@ export default function LocationsPage() {
                     actions={[
                       {
                         icon: Edit,
-                        label: "Edit Location",
+                        label: text("page.actionsLabel.editLocation"),
                         onClick: (e) => {
                           e.stopPropagation();
                           openEditSlider(location);

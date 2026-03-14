@@ -142,14 +142,14 @@ export default function CustomersPage() {
 
               // Build category for duplicate badge
               const category = customer.hasConflict ? {
-                name: 'Duplicate',
+                name: text("page.badges.duplicate"),
                 color: '#fecaca',
               } : null;
 
               // Build actions array
               const actions = [{
                 icon: Edit,
-                label: "Edit Customer",
+                label: text("page.actionsLabel.editCustomer"),
                 onClick: (e: React.MouseEvent) => {
                   e.stopPropagation();
                   handleEditCustomer(customer.id);

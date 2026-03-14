@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useState, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Switch } from "../../components/ui/switch";
 import type { WorkingHours, WorkingHoursDay } from "../../types/location";
 import CustomTimePicker from "./CustomTimePicker";
@@ -50,6 +51,7 @@ type DayRowProps = {
 
 const DayRow: React.FC<DayRowProps> = memo(
   ({ day, hours, onToggleOpen, onChangeOpen, onChangeClose }) => {
+    const { t } = useTranslation('common');
     const handleToggle = useCallback(
       (checked: boolean) => {
         onToggleOpen(day, checked);
@@ -80,14 +82,14 @@ const DayRow: React.FC<DayRowProps> = memo(
             className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
           />
           <div className="text-base md:text-sm text-foreground-1 capitalize">
-            {String(day)}
+            {t(`workingHours.days.${day}`)}
           </div>
         </div>
         <div className="hidden md:flex flex-1 items-center justify-center min-w-[100px]">
           {!hours.isOpen && (
             <div className="flex items-center gap-2 text-foreground-3 dark:text-foreground-2">
               <Moon className="h-4 w-4 text-primary" />
-              <span className="text-sm">Closed</span>
+              <span className="text-sm">{t('workingHours.closed')}</span>
             </div>
           )}
         </div>
@@ -97,18 +99,18 @@ const DayRow: React.FC<DayRowProps> = memo(
               <div className="justify-self-end md:contents">
                 <CustomTimePicker
                   id={`wh-${day}-open`}
-                  label="From"
+                  label={t('workingHours.from')}
                   value={hours.open}
                   onChange={handleOpenChange}
                 />
               </div>
               <span className="md:hidden text-sm text-foreground-3 dark:text-foreground-2 text-center">
-                To
+                {t('workingHours.to')}
               </span>
               <div className="justify-self-start md:contents">
                 <CustomTimePicker
                   id={`wh-${day}-close`}
-                  label="To"
+                  label={t('workingHours.to')}
                   value={hours.close}
                   onChange={handleCloseChange}
                 />
@@ -118,13 +120,13 @@ const DayRow: React.FC<DayRowProps> = memo(
             <>
               {/* Mobile layout: left chip, centered 'To', right chip */}
               <span className="md:hidden inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[128px] text-sm leading-none text-foreground-2 dark:text-foreground-1 justify-self-end">
-                Closed
+                {t('workingHours.closed')}
               </span>
               <span className="md:hidden text-sm text-foreground-3 dark:text-foreground-2 text-center">
-                To
+                {t('workingHours.to')}
               </span>
               <span className="md:hidden inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[128px] text-sm leading-none text-foreground-2 dark:text-foreground-1 justify-self-start">
-                Closed
+                {t('workingHours.closed')}
               </span>
 
               {/* Desktop layout: preserve labels next to chips */}
@@ -133,10 +135,10 @@ const DayRow: React.FC<DayRowProps> = memo(
                   id={`wh-${day}-open-label`}
                   className="text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap"
                 >
-                  From
+                  {t('workingHours.from')}
                 </span>
                 <span className="inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[104px] text-sm leading-none text-foreground-2 dark:text-foreground-1">
-                  Closed
+                  {t('workingHours.closed')}
                 </span>
               </div>
               <div className="hidden md:flex items-center gap-2 shrink-0">
@@ -144,10 +146,10 @@ const DayRow: React.FC<DayRowProps> = memo(
                   id={`wh-${day}-close-label`}
                   className="text-xs text-foreground-3 dark:text-foreground-2 whitespace-nowrap"
                 >
-                  To
+                  {t('workingHours.to')}
                 </span>
                 <span className="inline-flex !h-10 !min-h-0 px-4 rounded-full border border-border bg-surface-active items-center justify-center w-[104px] text-sm leading-none text-foreground-2 dark:text-foreground-1">
-                  Closed
+                  {t('workingHours.closed')}
                 </span>
               </div>
             </>
@@ -163,6 +165,7 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
   onChange,
   className,
 }) => {
+  const { t } = useTranslation('common');
   const [showAllMobile, setShowAllMobile] = useState(false);
   const isMobile = useIsMobile();
   const restRef = useRef<HTMLDivElement>(null);
@@ -233,13 +236,13 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
         const openM = toMinutes(openVal);
         const closeM = toMinutes(val);
         if (openM != null && closeM != null && closeM < openM) {
-          showWarningToast("Closing time cannot be earlier than opening time");
+          showWarningToast(t('workingHours.closingBeforeOpening'));
           return;
         }
       }
       setDay(day, (prev) => ({ ...prev, close: val }));
     },
-    [setDay, value]
+    [setDay, value, t]
   );
 
   const triggerFlash = useCallback((days: (keyof WorkingHours)[]) => {
@@ -328,7 +331,7 @@ const WorkingHoursEditor: React.FC<WorkingHoursEditorProps> = ({
           <button
             type="button"
             aria-label={
-              showAllMobile ? "Collapse working hours" : "Expand working hours"
+              showAllMobile ? t('workingHours.collapseAria') : t('workingHours.expandAria')
             }
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface shadow-sm active:bg-surface-hover cursor-pointer"
             onClick={() => setShowAllMobile((v) => !v)}

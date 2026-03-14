@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Check, Lock, Info, LogOut } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Save, Lock, Info, LogOut } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -73,6 +74,7 @@ interface BusinessProfileProps {
 }
 
 const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
+  const { t } = useTranslation('settings');
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
@@ -101,7 +103,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       .then(setIndustries)
       .catch((err) => {
         console.error('Failed to fetch industries:', err);
-        toast.error('Failed to load industries');
+        toast.error(t('profile.toast.industriesLoadFailed'));
       });
   }, []);
 
@@ -154,14 +156,14 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml', 'image/avif'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)');
+      toast.error(t('profile.toast.invalidImage'));
       return;
     }
 
     // Validate file size (10MB max)
     const maxSizeMB = 10;
     if (file.size > maxSizeMB * 1024 * 1024) {
-      toast.error(`File size must be less than ${maxSizeMB}MB`);
+      toast.error(t('profile.toast.fileTooLarge', { max: maxSizeMB }));
       return;
     }
 
@@ -175,13 +177,13 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         logoKey: response.logoKey,
       }));
       
-      toast.success('Logo uploaded successfully!');
+      toast.success(t('profile.toast.logoUploaded'));
       
       // Refresh user data to update sidebar logo
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       console.error('Error uploading logo:', error);
-      toast.error(error?.message || 'Failed to upload logo');
+      toast.error(error?.message || t('profile.toast.logoUploadFailed'));
     } finally {
       setIsUploadingLogo(false);
       // Reset file input
@@ -223,28 +225,28 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
   const handleSetPassword = async () => {
     if (!newPassword.trim()) {
-      toast.error('Please enter a password');
+      toast.error(t('profile.toast.enterPassword'));
       return;
     }
     if (newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error(t('profile.toast.passwordMinLength'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('profile.toast.passwordsNoMatch'));
       return;
     }
 
     setIsSettingPassword(true);
     try {
       await setPasswordApi({ password: newPassword });
-      toast.success('Password set successfully! You can now unlink your Google account.');
+      toast.success(t('profile.toast.passwordSetSuccess'));
       setNewPassword('');
       setConfirmPassword('');
       // Refresh user data to update hasPassword
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to set password';
+      const message = error?.response?.data?.message || error?.message || t('profile.toast.passwordSetFailed');
       const translatedMessage = Array.isArray(message) 
         ? translateMessageCode(message[0]) 
         : translateMessageCode(message);
@@ -261,17 +263,17 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <FormSectionHeader
             icon={Building2}
-            title="Basic Information"
-            description="Essential details about your business"
+            title={t('profile.basicInfo.title')}
+            description={t('profile.basicInfo.description')}
             className="mb-6"
           />
           
           <div className="space-y-6">
             {/* Logo Upload - Circular Display */}
             <div className="space-y-2">
-              <Label className="text-base font-medium text-foreground-1">Business Logo</Label>
+              <Label className="text-base font-medium text-foreground-1">{t('profile.basicInfo.logo')}</Label>
               <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                Your logo appears on your booking page and communications
+                {t('profile.basicInfo.logoDescription')}
               </p>
               
               {/* Hidden file input */}
@@ -305,7 +307,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                     }`}
                   >
                     <Camera className="h-3 w-3" />
-                    {isUploadingLogo ? 'Uploading...' : 'Edit'}
+                    {isUploadingLogo ? t('profile.basicInfo.uploading') : t('profile.basicInfo.edit')}
                   </div>
                 </div>
               </div>
@@ -315,8 +317,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
             <div className="flex flex-wrap gap-6">
               <div className="flex-1 min-w-[280px]">
                 <TextField
-                  label="Business Name"
-                  placeholder="Enter your business name"
+                  label={t('profile.basicInfo.businessName')}
+                  placeholder={t('profile.basicInfo.businessNamePlaceholder')}
                   value={formData.businessName}
                   onChange={(value) => setFormData(prev => ({ ...prev, businessName: value }))}
                   icon={Building2}
@@ -326,8 +328,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               
               <div className="flex-1 min-w-[280px]">
                 <OptionSelect
-                  label="Industry"
-                  placeholder="Select industry"
+                  label={t('profile.basicInfo.industry')}
+                  placeholder={t('profile.basicInfo.industryPlaceholder')}
                   value={formData.industryId != null ? String(formData.industryId) : ''}
                   onChange={(value) =>
                     setFormData((prev) => ({
@@ -344,20 +346,20 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               <div className="rounded-lg border border-info-border bg-info-bg dark:bg-info-bg/30 p-4 mt-1">
                 <div className="flex gap-2 mb-2">
                   <Info className="h-4 w-4 text-info shrink-0 mt-0.5" aria-hidden />
-                  <span className="text-sm font-medium text-info">Changing your industry</span>
+                  <span className="text-sm font-medium text-info">{t('profile.basicInfo.changingIndustry')}</span>
                 </div>
                 <ul className="space-y-2 text-sm text-foreground-2 leading-relaxed list-none pl-0">
                   <li className="flex gap-2">
                     <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
-                    <span>If you have an active marketplace listing, it will be temporarily set to invisible.</span>
+                    <span>{t('profile.basicInfo.industryWarning1')}</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
-                    <span>After you save this change, go to your marketplace listing to update your industry categories and make it visible again.</span>
+                    <span>{t('profile.basicInfo.industryWarning2')}</span>
                   </li>
                   <li className="flex gap-2">
                     <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
-                    <span>This keeps your business from showing in the wrong category and helps customers find you more easily.</span>
+                    <span>{t('profile.basicInfo.industryWarning3')}</span>
                   </li>
                 </ul>
               </div>
@@ -365,8 +367,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
             {/* Description */}
             <TextareaField
-              label="Business Description"
-              placeholder="Tell your clients about your business..."
+              label={t('profile.basicInfo.description')}
+              placeholder={t('profile.basicInfo.descriptionPlaceholder')}
               value={formData.description}
               onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
               maxLength={500}
@@ -375,10 +377,10 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
             {/* Currency */}
             <div className="space-y-2">
               <Label htmlFor="businessCurrency" className="text-base font-medium">
-                Default Pricing Currency *
+                {t('profile.basicInfo.currency')}
               </Label>
               <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                Choose your default currency for pricing
+                {t('profile.basicInfo.currencyDescription')}
               </p>
               <CurrencySelect
                 id="businessCurrency"
@@ -393,16 +395,16 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <FormSectionHeader
             icon={Mail}
-            title="Contact Information"
-            description="How clients can reach you"
+            title={t('profile.contact.title')}
+            description={t('profile.contact.description')}
             className="mb-6"
           />
           
           <div className="flex flex-wrap gap-6">
             <div className="flex-1 min-w-[280px]">
               <TextField
-                label="Business Email"
-                placeholder="business@example.com"
+                label={t('profile.contact.email')}
+                placeholder={t('profile.contact.emailPlaceholder')}
                 value={formData.businessEmail}
                 onChange={(value) => setFormData(prev => ({ ...prev, businessEmail: value }))}
                 icon={Mail}
@@ -412,8 +414,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
             
             <div className="flex-1 min-w-[280px]">
               <TextField
-                label="Business Phone"
-                placeholder="+1 (555) 123-4567"
+                label={t('profile.contact.phone')}
+                placeholder={t('profile.contact.phonePlaceholder')}
                 value={formData.businessPhone}
                 onChange={(value) => setFormData(prev => ({ ...prev, businessPhone: value }))}
                 icon={Globe}
@@ -426,16 +428,16 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <FormSectionHeader
             icon={Globe}
-            title="Social Media Links"
-            description="Connect your social media profiles"
+            title={t('profile.social.title')}
+            description={t('profile.social.description')}
             className="mb-6"
           />
           
           <div className="flex flex-wrap gap-6">
             <div className="flex-1 min-w-[280px]">
               <TextField
-                label="Instagram URL"
-                placeholder="https://instagram.com/yourbusiness"
+                label={t('profile.social.instagram')}
+                placeholder={t('profile.social.instagramPlaceholder')}
                 value={formData.instagramUrl}
                 onChange={(value) => setFormData(prev => ({ ...prev, instagramUrl: value }))}
                 icon={Instagram}
@@ -444,8 +446,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
             
             <div className="flex-1 min-w-[280px]">
               <TextField
-                label="Facebook URL"
-                placeholder="https://facebook.com/yourbusiness"
+                label={t('profile.social.facebook')}
+                placeholder={t('profile.social.facebookPlaceholder')}
                 value={formData.facebookUrl}
                 onChange={(value) => setFormData(prev => ({ ...prev, facebookUrl: value }))}
                 icon={Facebook}
@@ -458,8 +460,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           <FormSectionHeader
             icon={Shield}
-            title="Account Security"
-            description="Manage your account authentication and security"
+            title={t('profile.security.title')}
+            description={t('profile.security.description')}
             className="mb-6"
           />
           
@@ -471,10 +473,10 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div className="space-y-1 flex-1 min-w-0 mb-4">
                   <Label className="text-sm font-medium text-foreground">
-                    Change Password
+                    {t('profile.security.changePassword')}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Update your account password
+                    {t('profile.security.changePasswordDescription')}
                   </p>
                 </div>
               </div>
@@ -483,8 +485,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 <div className="flex-1 min-w-[280px]">
                   <TextField
                     id="new-password"
-                    label="New Password"
-                    placeholder="Enter new password"
+                    label={t('profile.security.newPassword')}
+                    placeholder={t('profile.security.newPasswordPlaceholder')}
                     value={newPassword}
                     onChange={setNewPassword}
                     type="password"
@@ -496,8 +498,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 <div className="flex-1 min-w-[280px]">
                   <TextField
                     id="confirm-password"
-                    label="Confirm Password"
-                    placeholder="Confirm new password"
+                    label={t('profile.security.confirmPassword')}
+                    placeholder={t('profile.security.confirmPasswordPlaceholder')}
                     value={confirmPassword}
                     onChange={setConfirmPassword}
                     type="password"
@@ -517,18 +519,20 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 <Button
                   type="button"
                   size="sm"
+                  rounded="full"
+                  className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
                   onClick={handleSetPassword}
                   disabled={!newPassword.trim() || !confirmPassword.trim() || isSettingPassword}
                 >
                   {isSettingPassword ? (
                     <>
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Updating...
+                      {t('profile.security.updating')}
                     </>
                   ) : (
                     <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Change Password
+                      {t('profile.security.changePasswordButton')}
+                      <Save className="h-4 w-4 mr-2" />
                     </>
                   )}
                 </Button>
@@ -544,7 +548,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 active:bg-red-500/15 dark:hover:text-red-400 dark:hover:border-red-500/40"
                 >
                   <LogOut className="h-4 w-4 shrink-0" />
-                  Log out
+                  {t('profile.security.logOut')}
                 </button>
               </div>
             )}

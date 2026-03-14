@@ -1,3 +1,4 @@
+import { useTranslation, Trans } from 'react-i18next';
 import { Card, CardContent } from '../../../../shared/components/ui/card';
 import { Button } from '../../../../shared/components/ui/button';
 import { DashedDivider } from '../../../../shared/components/common/DashedDivider';
@@ -26,11 +27,12 @@ interface NoProfileYetViewProps {
 }
 
 export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
+  const { t } = useTranslation('myProfile');
   const user = useSelector((state: RootState) => state.auth.user);
-  const firstName = user?.firstName || 'there';
+  const firstName = user?.firstName || t('noProfileYet.fallbackName');
   const fullName = user?.firstName && user?.lastName 
     ? `${user.firstName} ${user.lastName}` 
-    : 'Your Name';
+    : t('noProfileYet.fallbackFullName');
   // Get initials: first letter of firstName + first letter of lastName
   const initials = user?.firstName && user?.lastName
     ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
@@ -59,15 +61,17 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
                 </AvatarFallback>
               </Avatar>
               <h2 className="text-2xl md:text-3xl font-bold leading-tight text-foreground-1">
-                Hey {firstName}, let's build your personal brand
+                {t('noProfileYet.greeting', { name: firstName })}
               </h2>
             </div>
 
             {/* Full Width Subtitle */}
             <p className="text-foreground-2 text-base md:text-xl leading-relaxed max-w-4xl text-left">
-              Your marketplace profile is your <span className="font-bold text-foreground-1">professional identity</span>. 
-              It's how clients discover you, learn about your expertise, and choose to book with <span className="font-bold text-foreground-1">you specifically</span>. 
-              Stand out from the crowd and attract the clients you want.
+              <Trans
+                t={t}
+                i18nKey="noProfileYet.heroSubtitle"
+                components={{ bold: <span className="font-bold text-foreground-1" /> }}
+              />
             </p>
           </div>
 
@@ -78,11 +82,11 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
               <div className="flex flex-wrap justify-center justify-start gap-3">
                 <div className="inline-flex items-center gap-2 text-xs font-medium bg-surface border border-border rounded-full px-3 py-1.5 text-foreground-2">
                   <Sparkles className="w-3.5 h-3.5 text-primary" />
-                  <span>Takes 5 minutes</span>
+                  <span>{t('noProfileYet.takesMinutes')}</span>
                 </div>
                 <div className="inline-flex items-center gap-2 text-xs font-medium bg-surface border border-border rounded-full px-3 py-1.5 text-foreground-2">
                   <TrendingUp className="w-3.5 h-3.5 text-green-500" />
-                  <span>Boost your visibility</span>
+                  <span>{t('noProfileYet.boostVisibility')}</span>
                 </div>
               </div>
 
@@ -90,7 +94,7 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
                 onClick={onCreateProfile}
                 className="btn-primary group !h-8 text-base w-full md:!w-52 rounded-full shadow-lg active:scale-95 flex items-center gap-2"
               >
-                <span>Create My Profile</span>
+                <span>{t('noProfileYet.createProfile')}</span>
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1" />
               </Button>
             </div>
@@ -103,10 +107,10 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
           <CardContent className="h-full p-4 md:pt-8 relative flex flex-col gap-4">
             <div className="space-y-1 mb-0">
               <h4 className="font-bold text-base mb-3 uppercase tracking-widest text-foreground-2">
-                Showcase
+                {t('noProfileYet.showcase')}
               </h4>
               <p className="text-xs text-foreground-2 leading-tight">
-                Tell your story and highlight what makes you unique
+                {t('noProfileYet.showcaseDescription')}
               </p>
             </div>
 
@@ -115,11 +119,11 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
                 <div className="flex items-center gap-1.5">
                   <Briefcase className="h-3.5 w-3.5 text-primary" />
                   <span className="text-sm font-bold text-foreground-1 block leading-tight">
-                    Professional Title
+                    {t('noProfileYet.professionalTitle')}
                   </span>
                 </div>
                 <span className="text-xs text-foreground-3 block">
-                  Your expertise area
+                  {t('noProfileYet.professionalTitleHint')}
                 </span>
               </div>
 
@@ -133,11 +137,11 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
                 <div className="flex items-center gap-1.5">
                   <Heart className="h-3.5 w-3.5 text-pink-500" />
                   <span className="text-sm font-bold text-foreground-1 block leading-tight">
-                    About Me
+                    {t('noProfileYet.aboutMe')}
                   </span>
                 </div>
                 <span className="text-xs text-foreground-3 block">
-                  Your story & personality
+                  {t('noProfileYet.aboutMeHint')}
                 </span>
               </div>
 
@@ -151,11 +155,11 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
                 <div className="flex items-center gap-1.5">
                   <Globe className="h-3.5 w-3.5 text-blue-500" />
                   <span className="text-sm font-bold text-foreground-1 block leading-tight">
-                    Social Links
+                    {t('noProfileYet.socialLinks')}
                   </span>
                 </div>
                 <span className="text-xs text-foreground-3 block">
-                  Connect everywhere
+                  {t('noProfileYet.socialLinksHint')}
                 </span>
               </div>
             </div>
@@ -170,17 +174,20 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
               <div className="space-y-1 mb-0 md:mb-2">
                 <div className="flex items-center gap-2">
                   <h4 className="font-bold text-base uppercase tracking-widest text-foreground-2">
-                    Your Public Profile
+                    {t('noProfileYet.yourPublicProfile')}
                   </h4>
                   <Award className="w-5 h-5 text-amber-500" />
                 </div>
                 <div className="flex items-center gap-2 text-sm text-foreground-2">
-                  How clients will see you on the marketplace
+                  {t('noProfileYet.publicProfileHint')}
                 </div>
               </div>
               <p className="text-sm text-foreground-2 mt-3 md:mt-6 leading-relaxed">
-                A complete profile helps clients understand your skills, experience, and personality. 
-                Profiles with photos and detailed bios receive <span className="font-semibold text-foreground-1">3x more booking requests</span>.
+                <Trans
+                  t={t}
+                  i18nKey="noProfileYet.publicProfileDescription"
+                  components={{ bold: <span className="font-semibold text-foreground-1" /> }}
+                />
               </p>
             </div>
           </CardContent>
@@ -193,10 +200,14 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
             <div className="space-y-1">
               <h4 className="font-bold text-base uppercase tracking-widest text-foreground-2 flex items-center gap-2">
                 <Users className="w-4 h-4 text-orange-500" />
-                Get Discovered
+                {t('noProfileYet.getDiscovered')}
               </h4>
               <p className="text-sm text-foreground-2 mt-6 md:mt-2 leading-relaxed">
-                Clients search for professionals by specialty. Your profile helps them find exactly what they're looking for—<span className="font-semibold">you</span>.
+                <Trans
+                  t={t}
+                  i18nKey="noProfileYet.getDiscoveredDescription"
+                  components={{ bold: <span className="font-semibold" /> }}
+                />
               </p>
             </div>
           </CardContent>
@@ -209,10 +220,10 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
             <div className="space-y-1">
               <h4 className="font-bold text-base uppercase tracking-widest text-foreground-2 flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-500" />
-                Build Trust
+                {t('noProfileYet.buildTrust')}
               </h4>
               <p className="text-sm text-foreground-2 mt-6 md:mt-2 leading-relaxed">
-                Your profile, combined with reviews, creates credibility. Clients book with confidence when they know who you are.
+                {t('noProfileYet.buildTrustDescription')}
               </p>
             </div>
           </CardContent>
@@ -225,11 +236,14 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
             <div className="flex items-center gap-10">
               <div className="space-y-4">
                 <h4 className="text-2xl font-bold tracking-tight text-foreground-1">
-                  Your success starts with visibility
+                  {t('noProfileYet.successStarts')}
                 </h4>
                 <p className="text-foreground-2 text-base md:text-lg leading-relaxed max-w-2xl">
-                  Every booking starts with a client discovering your profile. The more complete and compelling your profile, 
-                  the more clients will choose <span className="font-semibold">you</span> over others. Start building your professional presence today.
+                  <Trans
+                    t={t}
+                    i18nKey="noProfileYet.successDescription"
+                    components={{ bold: <span className="font-semibold" /> }}
+                  />
                 </p>
               </div>
             </div>
@@ -239,28 +253,28 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="w-4 h-4 text-primary" />
                   <span className="text-[11px] font-bold uppercase tracking-widest text-foreground-3">
-                    Quick Start
+                    {t('noProfileYet.quickStart')}
                   </span>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">1</div>
-                  <span className="text-sm text-foreground-2">Add your display name</span>
+                  <span className="text-sm text-foreground-2">{t('noProfileYet.step1')}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">2</div>
-                  <span className="text-sm text-foreground-2">Write your bio</span>
+                  <span className="text-sm text-foreground-2">{t('noProfileYet.step2')}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">3</div>
-                  <span className="text-sm text-foreground-2">Upload portfolio photos</span>
+                  <span className="text-sm text-foreground-2">{t('noProfileYet.step3')}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="h-5 w-5 rounded-full bg-green-500/10 flex items-center justify-center">
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
                   </div>
-                  <span className="text-sm text-foreground-2">Start getting discovered!</span>
+                  <span className="text-sm text-foreground-2">{t('noProfileYet.step4')}</span>
                 </div>
               </div>
             </div>

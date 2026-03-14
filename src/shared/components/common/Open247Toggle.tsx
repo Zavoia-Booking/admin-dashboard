@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Clock } from 'lucide-react';
@@ -11,6 +12,7 @@ export interface Open247ToggleProps {
 }
 
 const Open247Toggle: React.FC<Open247ToggleProps> = ({ open247, onChange, className = '', id = 'open247' }) => {
+  const { t } = useTranslation('common');
   return (
     <div
       className={`${open247 ? 'rounded-lg border border-info-300 bg-info-100 p-4' : 'bg-surface-active dark:bg-neutral-900 border border-border rounded-lg p-4'} ${className}`}
@@ -19,11 +21,11 @@ const Open247Toggle: React.FC<Open247ToggleProps> = ({ open247, onChange, classN
         <div className="flex items-start gap-3">
           <Clock className={`h-6 w-6 shrink-0 ${open247 ? 'text-info' : 'text-primary'}`} />
           <div>
-            <Label htmlFor={id} className={`text-base font-medium ${open247 ? 'text-neutral-900' : ''}`}>Open 24/7</Label>
+            <Label htmlFor={id} className={`text-base font-medium ${open247 ? 'text-neutral-900' : ''}`}>{t('open247.label')}</Label>
             <p className={`text-sm mt-1 ${open247 ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
               {open247
-                ? 'Open all day, every day. Daily hours are turned off.'
-                : 'Set your daily hours below. Turn this on if you’re open 24/7.'}
+                ? t('open247.descriptionOn')
+                : t('open247.descriptionOff')}
             </p>
           </div>
         </div>

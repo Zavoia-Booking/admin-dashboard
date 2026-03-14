@@ -121,9 +121,9 @@ export function LocationTeamMembersSection({
                 }
                 onSaveTeamMemberToggle(member.userId, checked);
               }}
-              aria-label={`${isEnabled ? "Remove" : "Add"} ${
-                member.firstName
-              } from location`}
+              aria-label={isEnabled
+                ? t("page.ariaLabels.removeMember", { name: member.firstName })
+                : t("page.ariaLabels.addMember", { name: member.firstName })}
               aria-disabled={isAnySaving}
             />
           </div>
@@ -260,9 +260,9 @@ export function LocationTeamMembersSection({
                   }
                   onSaveTeamMemberToggle(member.userId, checked);
                 }}
-                aria-label={`${isEnabled ? "Remove" : "Add"} ${
-                  member.firstName
-                } from location`}
+                aria-label={isEnabled
+                  ? t("page.ariaLabels.removeMember", { name: member.firstName })
+                  : t("page.ariaLabels.addMember", { name: member.firstName })}
                 aria-disabled={isAnySaving}
               />
             </div>

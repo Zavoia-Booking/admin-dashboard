@@ -1,5 +1,9 @@
 {
   "pageTitle": "Atribuirile mele",
+  "toast": {
+    "loadLocationsFailed": "Nu s-au putut încărca locațiile atribuite",
+    "loadAssignmentsFailed": "Nu s-au putut încărca atribuirile"
+  },
   "locationsPanel": {
     "title": "Locații ({{count}}{{ofTotal}})",
     "ofTotal": " din {{total}}",

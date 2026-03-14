@@ -291,7 +291,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                   {text("filters.addFilter")}
                 </DrawerTitle>
                 <DrawerDescription className="sr-only">
-                  Filter services by price, duration, and category
+                  {text("filters.filterServicesDescription")}
                 </DrawerDescription>
                 <div className="p-4 overflow-y-auto max-h-[80vh] space-y-4">
                   {/* By Price */}

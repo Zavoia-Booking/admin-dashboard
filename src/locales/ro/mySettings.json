@@ -1,0 +1,66 @@
+{
+  "tabs": {
+    "profile": "Profil",
+    "profileMobile": "Profil",
+    "advanced": "Setări Avansate",
+    "advancedMobile": "Avansate"
+  },
+  "buttons": {
+    "saving": "Se salvează",
+    "saveChanges": "Salvează Modificările"
+  },
+  "profile": {
+    "personalInfo": {
+      "title": "Informații Personale",
+      "description": "Detaliile profilului tău vizibile pe marketplace"
+    },
+    "profilePhoto": {
+      "label": "Fotografie Profil",
+      "description": "Fotografia ta de profil apare pe profilul tău de marketplace",
+      "edit": "Editează",
+      "uploading": "Se încarcă..."
+    },
+    "contactInfo": {
+      "title": "Informații de Contact",
+      "description": "Detaliile tale de contact pentru comunicarea contului"
+    },
+    "accountSecurity": {
+      "title": "Securitate Cont",
+      "description": "Gestionează autentificarea și securitatea contului tău",
+      "changePassword": "Schimbă Parola",
+      "changePasswordHint": "Actualizează parola contului. Lasă parola curentă goală dacă o configurezi pentru prima dată.",
+      "currentPassword": "Parola Curentă",
+      "currentPasswordPlaceholder": "Introdu parola curentă",
+      "newPassword": "Parolă Nouă",
+      "newPasswordPlaceholder": "Introdu parola nouă",
+      "confirmPassword": "Confirmă Parola Nouă",
+      "confirmPasswordPlaceholder": "Confirmă parola nouă",
+      "updating": "Se actualizează..."
+    },
+    "fields": {
+      "firstName": "Prenume",
+      "firstNamePlaceholder": "Introdu prenumele tău",
+      "lastName": "Nume",
+      "lastNamePlaceholder": "Introdu numele tău",
+      "email": "Adresă Email",
+      "emailPlaceholder": "email@exemplu.com",
+      "phone": "Număr de Telefon",
+      "phonePlaceholder": "+1 (555) 123-4567"
+    },
+    "toast": {
+      "loadFailed": "Nu s-a putut încărca profilul",
+      "updateSuccess": "Profil actualizat cu succes!",
+      "updateFailed": "Nu s-a putut actualiza profilul",
+      "invalidImage": "Selectează un fișier imagine valid (JPEG, PNG, WebP, SVG sau AVIF)",
+      "fileTooLarge": "Dimensiunea fișierului trebuie să fie mai mică de {{max}}MB",
+      "imageUploadSuccess": "Imaginea de profil a fost încărcată cu succes!",
+      "imageUploadFailed": "Nu s-a putut încărca imaginea de profil",
+      "enterPassword": "Introdu o parolă nouă",
+      "passwordMinLength": "Parola trebuie să aibă cel puțin 8 caractere",
+      "passwordsNoMatch": "Parolele nu coincid",
+      "passwordChanged": "Parola a fost schimbată cu succes!",
+      "passwordSet": "Parola a fost setată cu succes!",
+      "passwordUpdateFailed": "Nu s-a putut actualiza parola"
+    }
+  }
+}

@@ -6,6 +6,11 @@ export interface DashboardApiResponse {
     name: string;
     id: number;
     isCurrentlyOpen: boolean;
+    open247: boolean;
+    timezone: string;
+    workingHours:
+      | Array<{ day: string; isOpen: boolean; openTime?: string; closeTime?: string }>
+      | Record<string, { open?: string; close?: string; isOpen?: boolean }>;
   };
   todayWidget: {
     appointments: number;

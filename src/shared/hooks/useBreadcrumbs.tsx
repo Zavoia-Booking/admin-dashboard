@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { 
   Home, 
   Calendar,
@@ -14,23 +15,37 @@ import {
 } from 'lucide-react';
 import type { BreadcrumbItemType } from '../components/Breadcrumbs';
 
-// Breadcrumb configuration for routes
-const routeConfig: Record<string, { label: string; icon?: React.ReactNode }> = {
-  '/dashboard': { label: 'Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-  '/calendar': { label: 'Calendar', icon: <Calendar className="w-4 h-4" /> },
-  '/locations': { label: 'Locations', icon: <MapPin className="w-4 h-4" /> },
-  '/services': { label: 'Services', icon: <Settings className="w-4 h-4" /> },
-  '/assignments': { label: 'Assignments', icon: <ClipboardList className="w-4 h-4" /> },
-  '/team-members': { label: 'Team Members', icon: <Users className="w-4 h-4" /> },
-  '/customers': { label: 'Customers', icon: <User className="w-4 h-4" /> },
-  '/marketplace': { label: 'Marketplace', icon: <Store className="w-4 h-4" /> },
-  '/support': { label: 'Support', icon: <Headphones className="w-4 h-4" /> },
-  '/settings': { label: 'Settings', icon: <Settings className="w-4 h-4" /> },
+// Route to translation key mapping
+const routeToKey: Record<string, string> = {
+  '/dashboard': 'breadcrumbs.dashboard',
+  '/calendar': 'breadcrumbs.calendar',
+  '/locations': 'breadcrumbs.locations',
+  '/services': 'breadcrumbs.services',
+  '/assignments': 'breadcrumbs.assignments',
+  '/team-members': 'breadcrumbs.teamMembers',
+  '/customers': 'breadcrumbs.customers',
+  '/marketplace': 'breadcrumbs.marketplace',
+  '/support': 'breadcrumbs.support',
+  '/settings': 'breadcrumbs.settings',
+};
+
+const routeIcons: Record<string, React.ReactNode> = {
+  '/dashboard': <LayoutDashboard className="w-4 h-4" />,
+  '/calendar': <Calendar className="w-4 h-4" />,
+  '/locations': <MapPin className="w-4 h-4" />,
+  '/services': <Settings className="w-4 h-4" />,
+  '/assignments': <ClipboardList className="w-4 h-4" />,
+  '/team-members': <Users className="w-4 h-4" />,
+  '/customers': <User className="w-4 h-4" />,
+  '/marketplace': <Store className="w-4 h-4" />,
+  '/support': <Headphones className="w-4 h-4" />,
+  '/settings': <Settings className="w-4 h-4" />,
 };
 
 export function useBreadcrumbs(): BreadcrumbItemType[] {
   const location = useLocation();
   const params = useParams();
+  const { t } = useTranslation('navigation');
 
   return useMemo(() => {
     const pathSegments = location.pathname.split('/').filter(Boolean);
@@ -38,7 +53,7 @@ export function useBreadcrumbs(): BreadcrumbItemType[] {
 
     // Always start with Home
     breadcrumbs.push({
-      label: 'Home',
+      label: t('breadcrumbs.home'),
       path: '/dashboard',
       icon: <Home className="w-4 h-4" />,
     });
@@ -55,28 +70,30 @@ export function useBreadcrumbs(): BreadcrumbItemType[] {
       if (isId) {
         // It's an ID - create a detail breadcrumb
         const parentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-        const parentConfig = routeConfig[parentPath];
+        const parentKey = routeToKey[parentPath];
+        const parentLabel = parentKey ? t(parentKey) : t('breadcrumbs.detail');
         
         breadcrumbs.push({
-          label: `${parentConfig?.label || 'Detail'} #${segment}`,
+          label: `${parentLabel} #${segment}`,
           // Don't make the detail page clickable if it's the current page
           path: isLast ? undefined : currentPath,
         });
       } else {
         // It's a regular route
-        const config = routeConfig[currentPath];
+        const key = routeToKey[currentPath];
+        const icon = routeIcons[currentPath];
         
-        if (config) {
+        if (key) {
           breadcrumbs.push({
-            label: config.label,
+            label: t(key),
             path: isLast ? undefined : currentPath, // Current page is not clickable
-            icon: config.icon,
+            icon,
           });
         }
       }
     });
 
     return breadcrumbs;
-  }, [location.pathname, params]);
+  }, [location.pathname, params, t]);
 }
 

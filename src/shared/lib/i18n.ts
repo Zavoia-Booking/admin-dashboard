@@ -29,6 +29,16 @@ import enNotifications from '../../locales/en/notifications.json';
 import roNotifications from '../../locales/ro/notifications.json';
 import enReviews from '../../locales/en/reviews.json';
 import roReviews from '../../locales/ro/reviews.json';
+import enSupport from '../../locales/en/support.json';
+import roSupport from '../../locales/ro/support.json';
+import enSettings from '../../locales/en/settings.json';
+import roSettings from '../../locales/ro/settings.json';
+import enDashboard from '../../locales/en/dashboard.json';
+import roDashboard from '../../locales/ro/dashboard.json';
+import enMySettings from '../../locales/en/mySettings.json';
+import roMySettings from '../../locales/ro/mySettings.json';
+import enMyProfile from '../../locales/en/myProfile.json';
+import roMyProfile from '../../locales/ro/myProfile.json';
 
 const resources = {
   en: {
@@ -45,6 +55,11 @@ const resources = {
     advancedSettings: enAdvancedSettings,
     notifications: enNotifications,
     reviews: enReviews,
+    support: enSupport,
+    settings: enSettings,
+    dashboard: enDashboard,
+    mySettings: enMySettings,
+    myProfile: enMyProfile,
   },
   ro: {
     services: roServices,
@@ -60,6 +75,11 @@ const resources = {
     advancedSettings: roAdvancedSettings,
     notifications: roNotifications,
     reviews: roReviews,
+    support: roSupport,
+    settings: roSettings,
+    dashboard: roDashboard,
+    mySettings: roMySettings,
+    myProfile: roMyProfile,
   },
 };
 

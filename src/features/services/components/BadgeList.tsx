@@ -1,4 +1,5 @@
 import { type FC, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
 import type { ServiceFilterState } from "../types.ts";
@@ -11,6 +12,7 @@ interface IProps {
 }
 
 export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) => {
+    const text = useTranslation("services").t;
     const { priceMin, priceMax, durationMin, durationMax, categoryIds = [] } = filters;
 
     // Treat empty string and "0" as "no price filter" (for UX we don't want to show 0 when user never set it)
@@ -50,7 +52,7 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) =
                         className="flex items-center gap-1 cursor-pointer   text-xs"
                         onClick={() => setFilters('priceMin', '')}
                     >
-                        Price min: {priceMin}
+                        {text("badges.priceMin")}: {priceMin}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
@@ -60,7 +62,7 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) =
                         className="flex items-center gap-1 cursor-pointer   text-xs"
                         onClick={() => setFilters('priceMax', '')}
                     >
-                        Price max: {priceMax}
+                        {text("badges.priceMax")}: {priceMax}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
@@ -70,7 +72,7 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) =
                         className="flex items-center gap-1 cursor-pointer  text-xs"
                         onClick={() => setFilters('durationMin', '')}
                     >
-                        Duration min: {durationMin}
+                        {text("badges.durationMin")}: {durationMin}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
@@ -80,7 +82,7 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) =
                         className="flex items-center gap-1 cursor-pointer  text-xs"
                         onClick={() => setFilters('durationMax', '')}
                     >
-                        Duration max: {durationMax}
+                        {text("badges.durationMax")}: {durationMax}
                         <X className="h-4 w-4 ml-1"/>
                     </Badge>
                 )}
@@ -99,7 +101,7 @@ export const BadgeList: FC<IProps>  = ({ filters, changeFilters, categories }) =
                             });
                         }}
                     >
-                        Category: {cat.name}
+                        {text("badges.category")}: {cat.name}
                         <X className="h-4 w-4 ml-1" />
                     </Badge>
                 ))}

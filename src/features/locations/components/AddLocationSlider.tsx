@@ -31,7 +31,7 @@ import { listTeamMembersAction } from '../../teamMembers/actions';
 import { getServicesListSelector } from '../../services/selectors';
 import { getServicesAction } from '../../services/actions';
 import type { TeamMember } from '../../../shared/types/team-member';
-import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
+import { isE164, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
 import { getLocationLoadingSelector, getLocationErrorSelector } from '../selectors';
 import { toast } from 'sonner';
 
@@ -161,7 +161,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     const hasAddress = address && address.trim().length > 0;
 
     if (!hasAddress) {
-      toast.error('Please enter a valid address first');
+      toast.error(t("addLocation.toasts.validAddressFirst"));
       return;
     }
     
@@ -188,13 +188,13 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
           setAdjustedCoordinates(geocodedCoords);
           setIsMapOpen(true);
         } else {
-          toast.error('Could not find location on map. Please search for the correct address in the map.');
+          toast.error(t("addLocation.toasts.couldNotFindLocation"));
           setInitialMapCenter([0, 0]);
           setIsMapOpen(true);
         }
       } catch (error) {
         console.error('Geocoding error:', error);
-        toast.error('Could not geocode address. Please adjust the pin manually.');
+        toast.error(t("addLocation.toasts.couldNotGeocode"));
         setInitialMapCenter([0, 0]);
         setIsMapOpen(true);
       } finally {
@@ -217,7 +217,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
       
       if (!finalCoordinates) {
-        toast.error('Please select a location on the map');
+        toast.error(t("addLocation.toasts.selectLocationOnMap"));
         return;
       }
       
@@ -254,7 +254,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       }
       
       if (!finalLat || !finalLng) {
-        toast.error('Please select a location on the map or search for an address');
+        toast.error(t("addLocation.toasts.selectLocationOrSearch"));
         return;
       }
       
@@ -279,7 +279,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       isConfirmingFromMap.current = false;
     }, 100);
 
-    toast.success('Location pin confirmed');
+    toast.success(t("addLocation.toasts.pinConfirmed"));
   };
 
   // Controlled fields with validation
@@ -288,8 +288,13 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        const error = validateLocationName(value);
-        return error === null ? true : error;
+        const v = (value ?? "").trim();
+        if (!v) return t("addLocation.validation.nameRequired");
+        if (v.length < 2) return t("addLocation.validation.nameMinLength");
+        if (v.length > 70) return t("addLocation.validation.nameMaxLength");
+        const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+        if (!NAME_PATTERN.test(v)) return t("addLocation.validation.nameInvalidChars");
+        return true;
       },
     },
   });
@@ -301,7 +306,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       validate: (value) => {
         if (isRemote) return true; // Address not required for remote locations
         if (!value || value.trim().length === 0) {
-          return "Address is required";
+          return t("addLocation.validation.addressRequired");
         }
         return true;
       },
@@ -313,9 +318,10 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        // Always validate - whether using business contact or location-specific contact
-        const error = requiredEmailError("Email", value);
-        return error === null ? true : error;
+        const v = (value ?? "").trim();
+        if (!v) return t("addLocation.validation.emailRequired");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return t("addLocation.validation.emailRequired");
+        return true;
       },
     },
   });
@@ -327,11 +333,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       validate: {
         required: (value) =>
           (!!value && value.trim().length > 0) ||
-          "Phone number is required",
+          t("addLocation.validation.phoneRequired"),
         format: (value) =>
           !value ||
           isE164(value) ||
-          "Enter a valid phone number",
+          t("addLocation.validation.phoneInvalid"),
       },
     },
   });
@@ -341,9 +347,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        if (!value || !value.trim()) return true; // Optional field
-        const error = validateDescription(value, 500);
-        return error === null ? true : error;
+        if (!value || !value.trim()) return true;
+        const v = value.trim();
+        if (v.length > 500) return t("addLocation.validation.descriptionMaxLength", { max: 500 });
+        if (/<script|<iframe|javascript:|onclick|onerror|onload/i.test(v)) return t("addLocation.validation.descriptionInvalidChars");
+        return true;
       },
     },
   });
@@ -356,7 +364,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         // Only require timezone when location is remote
         if (!isRemote) return true; // Skip validation for physical locations
         if (!value || value.trim().length === 0) {
-          return "Timezone is required";
+          return t("addLocation.validation.timezoneRequired");
         }
         return true;
       },
@@ -434,8 +442,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   // Watch for errors and show toast
   useEffect(() => {
     if (locationError && isSubmitting) {
-      toast.error("We couldn't create the location", {
-        description: "Please check your information and try again.",
+      toast.error(t("addLocation.toasts.createFailed"), {
+        description: t("addLocation.toasts.createFailedDescription"),
         icon: undefined,
       });
       setIsSubmitting(false);
@@ -593,8 +601,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Add New Location"
-        subtitle="Create a new location for your business"
+        title={t("addLocation.title")}
+        subtitle={t("addLocation.subtitle")}
         icon={MapPin}
         iconColor="text-foreground-1"
         contentClassName="bg-surface scrollbar-hide"
@@ -602,8 +610,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
           <FormFooter
             onCancel={handleCancel}
             formId="add-location-form"
-            cancelLabel="Cancel"
-            submitLabel="Create Location"
+            cancelLabel={t("addLocation.buttons.cancel")}
+            submitLabel={t("addLocation.buttons.create")}
             disabled={isFormDisabled || isSubmitting || isLocationLoading}
             isLoading={isSubmitting || isLocationLoading}
           />
@@ -637,7 +645,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
-                    placeholder="e.g. Downtown Office"
+                    label={t("addLocation.form.nameLabel")}
+                    placeholder={t("addLocation.form.namePlaceholder")}
                     required
                   />
 
@@ -646,7 +655,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                       htmlFor="location.address"
                       className="text-base font-medium"
                     >
-                      Address *
+                      {t("addLocation.form.addressLabel")}
                     </Label>
                     {businessCountryCode && (
                       <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -701,7 +710,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
                     inheritedPhone={businessPhone}
-                    inheritedLabel="your business"
+                    inheritedLabel={t("addLocation.form.inheritedLabel")}
                     localEmail={emailField.value || ""}
                     localPhone={phoneField.value || ""}
                     onEmailChange={(email) => {
@@ -713,11 +722,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     }}
                     emailError={emailState.error?.message}
                     phoneError={phoneState.error?.message}
-                    title="Contact information"
-                    emailLabel="Location Email *"
-                    phoneLabel="Location Phone *"
-                    helperTextOn="Your business contact info will be used for this location."
-                    helperTextOff="Provide different contact details for this location."
+                    title={t("addLocation.form.contactTitle")}
+                    emailLabel={t("addLocation.form.emailLabel")}
+                    phoneLabel={t("addLocation.form.phoneLabel")}
+                    helperTextOn={t("addLocation.form.helperTextOn")}
+                    helperTextOff={t("addLocation.form.helperTextOff")}
                   />
 
                   <div className="pt-4">
@@ -726,7 +735,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                       value={descriptionField.value || ""}
                       onChange={descriptionField.onChange}
                       error={descriptionState.error?.message}
-                      placeholder="Describe this location (e.g. Main office with parking)"
+                      label={t("addLocation.form.descriptionLabel")}
+                      placeholder={t("addLocation.form.descriptionPlaceholder")}
                     />
                   </div>
 
@@ -740,17 +750,17 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   <div className="space-y-5">
                     <div className="space-y-1">
                       <h3 className="text-lg font-semibold text-foreground-1">
-                        Team Members
+                        {t("addLocation.form.teamMembersTitle")}
                       </h3>
                       <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                        Select which team members can work at this location. All active team members are selected by default.
+                        {t("addLocation.form.teamMembersDescription")}
                       </p>
                     </div>
 
                     <div className="space-y-5">
                       {allTeamMembers.filter((member: TeamMember) => member.roleStatus === 'active').length === 0 ? (
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                          No active team members available.
+                          {t("addLocation.form.noTeamMembers")}
                         </p>
                       ) : (
                         <div className="flex flex-wrap gap-2 sm:gap-3">
@@ -802,10 +812,10 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                       <div className="space-y-1 flex-1">
                         <h3 className="text-lg font-semibold text-foreground-1">
-                          Services
+                          {t("addLocation.form.servicesTitle")}
                         </h3>
                         <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                          Select which services are available at this location. All services are selected by default.
+                          {t("addLocation.form.servicesDescription")}
                         </p>
                       </div>
 
@@ -814,7 +824,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                         {allServices.length > 0 && (
                           <Badge variant="filter" className="rounded-full px-3 py-1 flex items-center gap-1.5 cursor-default select-none">
                             <span className="font-semibold text-neutral-900 dark:text-foreground-1">{(watch('serviceIds') || []).length}</span>
-                            <span className="text-neutral-900 dark:text-foreground-1">/ {allServices.length} enabled</span>
+                            <span className="text-neutral-900 dark:text-foreground-1">{t("addLocation.form.servicesEnabled", { total: allServices.length })}</span>
                           </Badge>
                         )}
                       </div>
@@ -823,7 +833,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     <div>
                       {allServices.length === 0 ? (
                         <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                          No services available yet.
+                          {t("addLocation.form.noServices")}
                         </p>
                       ) : (
                         <Button
@@ -834,14 +844,14 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                           className="!px-6 border-border-strong text-foreground-1 group"
                         >
                           <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
-                          <span>Manage Services</span>
+                          <span>{t("addLocation.form.manageServices")}</span>
                         </Button>
                       )}
                     </div>
                   </div>
 
                   <div className="space-y-4 pt-4">
-                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Label className="text-base font-medium">{t("addLocation.form.workingHoursLabel")}</Label>
                     <Open247Toggle
                       id="add-location-open247"
                       open247={open247}
@@ -869,9 +879,10 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
+                    label={t("addLocation.form.remoteNameLabel")}
                     isRemote
                     required
-                    placeholder="Online"
+                    placeholder={t("addLocation.form.remoteNamePlaceholder")}
                   />
 
                   <TimezoneField
@@ -888,7 +899,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
                     inheritedPhone={businessPhone}
-                    inheritedLabel="your business"
+                    inheritedLabel={t("addLocation.form.inheritedLabel")}
                     localEmail={emailField.value || ""}
                     localPhone={phoneField.value || ""}
                     onEmailChange={(email) => {
@@ -900,15 +911,15 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     }}
                     emailError={emailState.error?.message}
                     phoneError={phoneState.error?.message}
-                    title="Contact information"
-                    emailLabel="Location Email *"
-                    phoneLabel="Location Phone *"
-                    helperTextOn="Business contact info will be used for this location."
-                    helperTextOff="Provide different contact details for this location."
+                    title={t("addLocation.form.contactTitle")}
+                    emailLabel={t("addLocation.form.emailLabel")}
+                    phoneLabel={t("addLocation.form.phoneLabel")}
+                    helperTextOn={t("addLocation.form.helperTextOnRemote")}
+                    helperTextOff={t("addLocation.form.helperTextOffRemote")}
                   />
 
                   <div className="space-y-2 pt-4">
-                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Label className="text-base font-medium">{t("addLocation.form.workingHoursLabel")}</Label>
                     <Open247Toggle
                       id="add-location-open247-remote"
                       open247={open247}
@@ -946,8 +957,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
               setInitialMapCenter([0, 0]);
               mapInstanceRef.current = null;
             }}
-            title="Verify Location Pin"
-            description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
+            title={t("addLocation.mapDialog.title")}
+            description={t("addLocation.mapDialog.description")}
             accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
             center={initialMapCenter}
             zoom={hasValidCoords ? 16 : 2}
@@ -981,7 +992,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     mapInstanceRef.current = null;
                   }}
                 >
-                  Cancel
+                  {t("addLocation.mapDialog.cancel")}
                 </Button>
                 <Button
                   onClick={handleConfirmPin}
@@ -989,7 +1000,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                   rounded="full"
                 >
                   <MapPin className="h-4 w-4" />
-                  Confirm Location
+                  {t("addLocation.mapDialog.confirm")}
                 </Button>
               </>
             }
@@ -1014,8 +1025,8 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         onSave={(selectedIds) => {
           setValue('serviceIds', selectedIds, { shouldDirty: true });
         }}
-        title="Select Services"
-        subtitle="Choose which services are available at this location"
+        title={t("addLocation.manageServicesSheet.title")}
+        subtitle={t("addLocation.manageServicesSheet.subtitle")}
         expandAllCategories
       />
     </>

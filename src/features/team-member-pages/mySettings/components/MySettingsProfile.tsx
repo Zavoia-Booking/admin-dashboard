@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch } from 'react-redux';
-import { User, Mail, Phone, Shield, Camera, Loader2, Check, Lock } from 'lucide-react';
+import { User, Mail, Phone, Shield, Camera, Loader2, Save, Lock } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
 import { Label } from '../../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ interface MySettingsProfileProps {
 }
 
 const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileProps) => {
+  const { t } = useTranslation('mySettings');
   const dispatch = useDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +74,7 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
       setOriginalFormData(newFormData);
     } catch (error: any) {
       console.error('Error fetching profile:', error);
-      toast.error(error?.message || 'Failed to load profile');
+      toast.error(error?.message || t('profile.toast.loadFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -88,12 +90,12 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
         email: formData.email,
         phone: formData.phone || undefined,
       });
-      toast.success('Profile updated successfully!');
+      toast.success(t('profile.toast.updateSuccess'));
       setOriginalFormData(formData);
       // Refresh user data in Redux
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to update profile';
+      const message = error?.response?.data?.message || error?.message || t('profile.toast.updateFailed');
       const translatedMessage = Array.isArray(message)
         ? translateMessageCode(message[0])
         : translateMessageCode(message);
@@ -133,14 +135,14 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/svg+xml', 'image/avif'];
     if (!allowedTypes.includes(file.type)) {
-      toast.error('Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)');
+      toast.error(t('profile.toast.invalidImage'));
       return;
     }
 
     // Validate file size (10MB max)
     const maxSizeMB = 10;
     if (file.size > maxSizeMB * 1024 * 1024) {
-      toast.error(`File size must be less than ${maxSizeMB}MB`);
+      toast.error(t('profile.toast.fileTooLarge', { max: maxSizeMB }));
       return;
     }
 
@@ -157,13 +159,13 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
         profileImage: response.profileImage,
       }));
       
-      toast.success('Profile image uploaded successfully!');
+      toast.success(t('profile.toast.imageUploadSuccess'));
       
       // Refresh user data to update sidebar/header
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       console.error('Error uploading profile image:', error);
-      const message = error?.response?.data?.message || error?.message || 'Failed to upload profile image';
+      const message = error?.response?.data?.message || error?.message || t('profile.toast.imageUploadFailed');
       const translatedMessage = Array.isArray(message)
         ? translateMessageCode(message[0])
         : translateMessageCode(message);
@@ -179,15 +181,15 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
 
   const handleChangePassword = async () => {
     if (!newPassword.trim()) {
-      toast.error('Please enter a new password');
+      toast.error(t('profile.toast.enterPassword'));
       return;
     }
     if (newPassword.length < 8) {
-      toast.error('Password must be at least 8 characters');
+      toast.error(t('profile.toast.passwordMinLength'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error(t('profile.toast.passwordsNoMatch'));
       return;
     }
 
@@ -200,10 +202,10 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
           currentPassword,
           newPassword,
         });
-        toast.success('Password changed successfully!');
+        toast.success(t('profile.toast.passwordChanged'));
       } else {
         await setPasswordApi({ password: newPassword });
-        toast.success('Password set successfully!');
+        toast.success(t('profile.toast.passwordSet'));
       }
       setCurrentPassword('');
       setNewPassword('');
@@ -211,7 +213,7 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
       // Refresh user data
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to update password';
+      const message = error?.response?.data?.message || error?.message || t('profile.toast.passwordUpdateFailed');
       const translatedMessage = Array.isArray(message)
         ? translateMessageCode(message[0])
         : translateMessageCode(message);
@@ -337,17 +339,17 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <FormSectionHeader
           icon={User}
-          title="Personal Information"
-          description="Your profile details visible on the marketplace"
+          title={t('profile.personalInfo.title')}
+          description={t('profile.personalInfo.description')}
           className="mb-6"
         />
 
         <div className="space-y-6">
           {/* Profile Image Upload - Circular Display */}
           <div className="space-y-2">
-            <Label className="text-base font-medium text-foreground-1">Profile Photo</Label>
+            <Label className="text-base font-medium text-foreground-1">{t('profile.profilePhoto.label')}</Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              Your profile photo appears on your marketplace profile
+              {t('profile.profilePhoto.description')}
             </p>
 
             {/* Hidden file input */}
@@ -380,7 +382,7 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
                     }`}
                 >
                   <Camera className="h-3 w-3" />
-                  {isUploadingImage ? 'Uploading...' : 'Edit'}
+                  {isUploadingImage ? t('profile.profilePhoto.uploading') : t('profile.profilePhoto.edit')}
                 </div>
               </div>
             </div>
@@ -390,8 +392,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
           <div className="flex flex-wrap gap-6">
             <div className="flex-1 min-w-[280px]">
               <TextField
-                label="First Name"
-                placeholder="Enter your first name"
+                label={t('profile.fields.firstName')}
+                placeholder={t('profile.fields.firstNamePlaceholder')}
                 value={formData.firstName}
                 onChange={(value) => setFormData(prev => ({ ...prev, firstName: value }))}
                 icon={User}
@@ -402,8 +404,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
 
             <div className="flex-1 min-w-[280px]">
               <TextField
-                label="Last Name"
-                placeholder="Enter your last name"
+                label={t('profile.fields.lastName')}
+                placeholder={t('profile.fields.lastNamePlaceholder')}
                 value={formData.lastName}
                 onChange={(value) => setFormData(prev => ({ ...prev, lastName: value }))}
                 icon={User}
@@ -419,16 +421,16 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <FormSectionHeader
           icon={Mail}
-          title="Contact Information"
-          description="Your contact details for account communication"
+          title={t('profile.contactInfo.title')}
+          description={t('profile.contactInfo.description')}
           className="mb-6"
         />
 
         <div className="flex flex-wrap gap-6">
           <div className="flex-1 min-w-[280px]">
             <TextField
-              label="Email Address"
-              placeholder="your@email.com"
+              label={t('profile.fields.email')}
+              placeholder={t('profile.fields.emailPlaceholder')}
               value={formData.email}
               onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
               icon={Mail}
@@ -439,8 +441,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
 
           <div className="flex-1 min-w-[280px]">
             <TextField
-              label="Phone Number"
-              placeholder="+1 (555) 123-4567"
+              label={t('profile.fields.phone')}
+              placeholder={t('profile.fields.phonePlaceholder')}
               value={formData.phone}
               onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
               icon={Phone}
@@ -454,8 +456,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
       <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
         <FormSectionHeader
           icon={Shield}
-          title="Account Security"
-          description="Manage your account authentication and security"
+          title={t('profile.accountSecurity.title')}
+          description={t('profile.accountSecurity.description')}
           className="mb-6"
         />
 
@@ -471,10 +473,10 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
               <div className="space-y-1 flex-1 min-w-0 mb-4">
                 <Label className="text-sm font-medium text-foreground">
-                  Change Password
+                  {t('profile.accountSecurity.changePassword')}
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Update your account password. Leave current password empty if setting up for the first time.
+                  {t('profile.accountSecurity.changePasswordHint')}
                 </p>
               </div>
             </div>
@@ -483,8 +485,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
               <div className="flex-1 min-w-[280px]">
                 <TextField
                   id="current-password"
-                  label="Current Password"
-                  placeholder="Enter current password"
+                  label={t('profile.accountSecurity.currentPassword')}
+                  placeholder={t('profile.accountSecurity.currentPasswordPlaceholder')}
                   value={currentPassword}
                   onChange={setCurrentPassword}
                   type="password"
@@ -496,8 +498,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
               <div className="flex-1 min-w-[280px]">
                 <TextField
                   id="new-password"
-                  label="New Password"
-                  placeholder="Enter new password"
+                  label={t('profile.accountSecurity.newPassword')}
+                  placeholder={t('profile.accountSecurity.newPasswordPlaceholder')}
                   value={newPassword}
                   onChange={setNewPassword}
                   type="password"
@@ -511,8 +513,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
               <div className="flex-1 min-w-[280px]">
                 <TextField
                   id="confirm-password"
-                  label="Confirm New Password"
-                  placeholder="Confirm new password"
+                  label={t('profile.accountSecurity.confirmPassword')}
+                  placeholder={t('profile.accountSecurity.confirmPasswordPlaceholder')}
                   value={confirmPassword}
                   onChange={setConfirmPassword}
                   type="password"
@@ -533,18 +535,20 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
               <Button
                 type="button"
                 size="sm"
+                rounded="full"
+                className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
                 onClick={handleChangePassword}
                 disabled={!newPassword.trim() || !confirmPassword.trim() || isChangingPassword}
               >
                 {isChangingPassword ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Updating...
+                    {t('profile.accountSecurity.updating')}
                   </>
                 ) : (
                   <>
-                    <Check className="h-4 w-4 mr-2" />
-                    Change Password
+                    {t('profile.accountSecurity.changePassword')}
+                    <Save className="h-4 w-4 ml-2" />
                   </>
                 )}
               </Button>

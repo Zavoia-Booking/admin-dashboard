@@ -1,5 +1,9 @@
 {
   "pageTitle": "My Assignments",
+  "toast": {
+    "loadLocationsFailed": "Failed to load assigned locations",
+    "loadAssignmentsFailed": "Failed to load assignments"
+  },
   "locationsPanel": {
     "title": "Locations ({{count}}{{ofTotal}})",
     "ofTotal": " of {{total}}",

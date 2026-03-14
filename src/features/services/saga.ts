@@ -1,4 +1,5 @@
 import { all, call, put, takeLatest } from "redux-saga/effects";
+import i18n from "../../shared/lib/i18n";
 import {
   createServicesAction,
   deleteServicesAction,
@@ -29,7 +30,7 @@ function* handleGetServices(): Generator<any, void, any> {
     }
   } catch (error: unknown) {
     console.log(error);
-    toast.error("Failed to load services");
+    toast.error(i18n.t("services:toasts.services.loadFailed"));
   }
 }
 
@@ -46,7 +47,7 @@ function* handleGetServiceById(
     }
   } catch (error: unknown) {
     console.log(error);
-    toast.error("Failed to load service details");
+    toast.error(i18n.t("services:toasts.services.loadDetailsFailed"));
   }
 }
 
@@ -59,7 +60,7 @@ function* handleCreateServices(
       action.payload
     );
     if (response.data) {
-      toast.success("Service created successfully");
+      toast.success(i18n.t("services:toasts.services.createSuccess"));
       yield put(getServicesAction.request());
       // Refresh categories in case a new one was created during service creation
       yield put(listCategoriesAction.request());
@@ -90,14 +91,14 @@ function* handleDeleteService(
       yield put(deleteServicesAction.success(deleteResponse));
     } else {
       // Service was successfully deleted
-      toast.success("Service deleted successfully");
+      toast.success(i18n.t("services:toasts.services.deleteSuccess"));
       yield put(deleteServicesAction.success({ canDelete: true, message: 'Service deleted successfully' }));
       yield put(getServicesAction.request());
     }
   } catch (error: unknown) {
     console.error("Failed to delete service:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error(errorMessage || "Failed to delete service");
+    toast.error(errorMessage || i18n.t("services:toasts.services.deleteFailed"));
     yield put(deleteServicesAction.failure({ message: errorMessage }));
   }
 }
@@ -114,7 +115,7 @@ function* handleEditServices(
       editPayload
     );
     if (response.data) {
-      toast.success("Service edited successfully");
+      toast.success(i18n.t("services:toasts.services.editSuccess"));
       yield put(editServicesAction.success(response.data));
       yield put(getServicesAction.request());
       // Refresh categories in case a new one was created during service edit

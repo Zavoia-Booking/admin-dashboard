@@ -1,4 +1,83 @@
 {
+  "remoteLocation": {
+    "label": "Ofer servicii la distanță/online",
+    "descriptionOn": "Întâlnirile au loc în afara Zavoia. Adaugă linkul Zoom/Meet/Teams sau instrucțiunile și alege fusul orar corect ca clienții să se conecteze la ora potrivită.",
+    "descriptionOff": "Activează dacă ții ședințe prin Zoom, Google Meet, Teams etc."
+  },
+  "open247": {
+    "label": "Deschis non-stop",
+    "descriptionOn": "Deschis toată ziua, în fiecare zi. Orele zilnice sunt dezactivate.",
+    "descriptionOff": "Setează orele zilnice mai jos. Activează dacă ești deschis non-stop."
+  },
+  "address": {
+    "search": "Caută",
+    "manual": "Manual",
+    "helperText": "Scrie pentru a căuta. Dacă nu găsești, treci la Manual.",
+    "placeholder": "Începe să scrii o adresă...",
+    "searching": "Se caută...",
+    "noAddressesFound": "Nu s-au găsit adrese. Încearcă altă căutare sau folosește modul Manual.",
+    "selectedAddress": "Adresa selectată",
+    "street": "Stradă *",
+    "changeAddress": "Schimbă adresa",
+    "buildingNumber": "Clădire / Număr *",
+    "city": "Oraș *",
+    "postcode": "Cod poștal *",
+    "country": "Țară *",
+    "streetPlaceholder": "Introdu numele străzii",
+    "streetExample": "ex. Strada Principală",
+    "buildingPlaceholder": "ex. Bl. 556, Ap. 12",
+    "cityPlaceholder": "Introdu orașul",
+    "postcodePlaceholder": "Cod poștal",
+    "countryPlaceholder": "Țara",
+    "buildingHelpTitle": "Ajutor format număr clădire",
+    "buildingHelpIntro": "Poți include numărul clădirii, apartamentul, etajul sau biroul aici.",
+    "buildingHelpFormats": "Formate comune:",
+    "buildingHelpExample1": "\"556, Ap. 12\"",
+    "buildingHelpExample2": "\"Clădirea 3, Etaj 2\"",
+    "buildingHelpExample3": "\"Birou 205\""
+  },
+  "workingHours": {
+    "closed": "Închis",
+    "from": "De la",
+    "to": "Până la",
+    "collapseAria": "Restrânge orele de lucru",
+    "expandAria": "Extinde orele de lucru",
+    "closingBeforeOpening": "Ora închiderii nu poate fi înainte de ora deschiderii",
+    "applyTo": "Aplică la:",
+    "monFri": "Lun–Vin",
+    "allWeek": "Toată săptămâna",
+    "shortcutsAria": "Ce fac aceste comenzi rapide?",
+    "shortcutsIntro": "Butoane pentru a aplica orele de luni la alte zile:",
+    "monFriDesc": "Copiază orele de deschidere/închidere și statusul de luni la Mar–Vin. Weekend-ul rămâne neschimbat.",
+    "allWeekDesc": "Copiază orele și statusul de luni la toate zilele (Mar–Dum).",
+    "tip": "Sfat: Setează mai întâi orele valide pentru luni.",
+    "copyToTueFriAria": "Copiază la Mar–Vin",
+    "copyToAllAria": "Copiază la toate zilele",
+    "weekdaysUpdated": "Zilele lucrătoare au fost actualizate",
+    "allDaysUpdated": "Toate zilele au fost actualizate",
+    "setMondayFirst": "Setează mai întâi orele valide pentru luni",
+    "setBothMondayFirst": "Setează orele de deschidere și închidere pentru luni mai întâi",
+    "mondayClosingBeforeOpening": "Ora închiderii de luni nu poate fi înainte de ora deschiderii",
+    "days": {
+      "monday": "Luni",
+      "tuesday": "Marți",
+      "wednesday": "Miercuri",
+      "thursday": "Joi",
+      "friday": "Vineri",
+      "saturday": "Sâmbătă",
+      "sunday": "Duminică"
+    }
+  },
+  "pinVerification": {
+    "confirmed": "Pinul locației confirmat",
+    "required": "Verificare pin locație necesară",
+    "confirmedDesc": "Pinul locației tale a fost verificat pe hartă.",
+    "requiredDesc": "Te rugăm să confirmi locația exactă a pinului pe hartă.",
+    "movePin": "Mută pinul",
+    "verifyPin": "Verifică pinul"
+  },
+  "locationName": "Nume locație",
+  "description": "Descriere",
   "deleteConfirmDialog": {
     "loading": {
       "title": "Verificare dependențe",
@@ -6,9 +85,9 @@
     },
     "canDelete": {
       "title": "Ștergi \"{{resourceName}}\"?",
-      "description": "Acest pachet va fi șters permanent. Nu poți anula această acțiune.",
+      "description": "Acest {{resourceType}} va fi șters permanent. Nu poți anula această acțiune.",
       "cancel": "Anulează",
-      "delete": "Șterge Pachet",
+      "delete": "Șterge {{resourceType}}",
       "deleting": "Se șterge..."
     },
     "cannotDelete": {

@@ -1,0 +1,66 @@
+{
+  "tabs": {
+    "profile": "Profile",
+    "profileMobile": "Profile",
+    "advanced": "Advanced Settings",
+    "advancedMobile": "Advanced"
+  },
+  "buttons": {
+    "saving": "Saving",
+    "saveChanges": "Save Changes"
+  },
+  "profile": {
+    "personalInfo": {
+      "title": "Personal Information",
+      "description": "Your profile details visible on the marketplace"
+    },
+    "profilePhoto": {
+      "label": "Profile Photo",
+      "description": "Your profile photo appears on your marketplace profile",
+      "edit": "Edit",
+      "uploading": "Uploading..."
+    },
+    "contactInfo": {
+      "title": "Contact Information",
+      "description": "Your contact details for account communication"
+    },
+    "accountSecurity": {
+      "title": "Account Security",
+      "description": "Manage your account authentication and security",
+      "changePassword": "Change Password",
+      "changePasswordHint": "Update your account password. Leave current password empty if setting up for the first time.",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter current password",
+      "newPassword": "New Password",
+      "newPasswordPlaceholder": "Enter new password",
+      "confirmPassword": "Confirm New Password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "updating": "Updating..."
+    },
+    "fields": {
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Enter your last name",
+      "email": "Email Address",
+      "emailPlaceholder": "your@email.com",
+      "phone": "Phone Number",
+      "phonePlaceholder": "+1 (555) 123-4567"
+    },
+    "toast": {
+      "loadFailed": "Failed to load profile",
+      "updateSuccess": "Profile updated successfully!",
+      "updateFailed": "Failed to update profile",
+      "invalidImage": "Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)",
+      "fileTooLarge": "File size must be less than {{max}}MB",
+      "imageUploadSuccess": "Profile image uploaded successfully!",
+      "imageUploadFailed": "Failed to upload profile image",
+      "enterPassword": "Please enter a new password",
+      "passwordMinLength": "Password must be at least 8 characters",
+      "passwordsNoMatch": "Passwords do not match",
+      "passwordChanged": "Password changed successfully!",
+      "passwordSet": "Password set successfully!",
+      "passwordUpdateFailed": "Failed to update password"
+    }
+  }
+}

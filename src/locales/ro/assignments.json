@@ -66,6 +66,7 @@
       "buttons": {
         "manageServices": "Selectează servicii",
         "addServices": "Adaugă servicii",
+        "createFirstService": "Creează Primul Tău Serviciu",
         "showMore": "Afișează încă {{count}}",
         "showLess": "Afișează mai puțin"
       },
@@ -75,7 +76,11 @@
       },
       "emptyState": {
         "title": "Niciun serviciu adăugat",
-        "description": "Adăugați servicii pentru a le face disponibile la această locație."
+        "description": "Adăugați servicii pentru a le face disponibile la această locație.",
+        "noServicesCreated": {
+          "title": "Niciun serviciu creat încă",
+          "description": "Creați primul dvs. serviciu pentru a începe. Odată creat, îl puteți atribui acestei locații."
+        }
       }
     },
     "locationBundles": {
@@ -193,9 +198,14 @@
         "noTeamMembersInBusinessDescription": "Adăugați mai întâi membri ai echipei în afacerea dvs. pentru a-i atribui locațiilor."
       }
     },
+    "ariaLabels": {
+      "close": "Închide",
+      "addMember": "Adaugă {{name}} la locație",
+      "removeMember": "Elimină {{name}} de la locație"
+    },
     "manageTeamMemberDrawer": {
       "title": "Gestionează Serviciile pentru {{name}}",
-      "titleSubtitle": "Activează serviciile și setează tarife personalizate pentru această locație.",
+      "titleSubtitle": "Activează serviciile și setează tarife personalizate pentru acest membru al echipei.",
       "description": "Configurați serviciile și prețurile pentru acest membru al echipei la această locație.",
       "badge": {
         "custom": "Personalizat"
@@ -231,11 +241,15 @@
         "apply": "Aplică"
       },
       "disabledMessage": "Activați acest serviciu pentru a seta prețuri personalizate.",
+      "selectAll": "Selectează tot",
+      "deselectAll": "Deselectează tot",
       "emptyState": {
         "noServices": "Niciun serviciu disponibil la această locație.",
         "noServicesDescription": "Niciun serviciu disponibil la această locație.",
         "noEnabled": "Niciun serviciu activat pentru acest membru.",
-        "noCustom": "Niciun serviciu nu are prețuri personalizate."
+        "noEnabledDescription": "Niciun serviciu nu este activat pentru acest membru.",
+        "noCustom": "Niciun serviciu nu are prețuri personalizate.",
+        "noCustomDescription": "Niciun serviciu nu are prețuri personalizate."
       }
     },
     "toasts": {

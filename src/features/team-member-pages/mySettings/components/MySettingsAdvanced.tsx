@@ -13,7 +13,6 @@ import {
   AlertDialogDescription,
 } from '../../../../shared/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import FormSectionHeader from '../../../../shared/components/forms/FormSectionHeader';
 import { leaveOrganisationApi } from '../api';
 import {
   deactivateAccountApi,
@@ -135,11 +134,11 @@ const MySettingsAdvanced = () => {
     setIsReactivating(true);
     try {
       await reactivateAccountApi();
-      toast.success('Account reactivated successfully');
+      toast.success(t('toast.accountReactivated'));
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data;
-      toast.error(errorData?.message || 'Failed to reactivate account');
+      toast.error(errorData?.message || t('toast.failedReactivate'));
     } finally {
       setIsReactivating(false);
     }
@@ -181,10 +180,10 @@ const MySettingsAdvanced = () => {
 
   const handleCancelDeletion = async () => {
     const confirmed = await confirm({
-      title: 'Cancel Account Deletion',
-      content: 'Are you sure you want to cancel the scheduled deletion and keep your account?',
-      confirmationText: 'Keep My Account',
-      cancellationText: 'Cancel',
+      title: t('cancelDeletion.title'),
+      content: t('cancelDeletion.message'),
+      confirmationText: t('cancelDeletion.keepAccount'),
+      cancellationText: t('common.cancel'),
     });
 
     if (!confirmed) return;
@@ -192,11 +191,11 @@ const MySettingsAdvanced = () => {
     setIsCancellingDeletion(true);
     try {
       await cancelAccountDeletionApi();
-      toast.success('Account deletion cancelled');
+      toast.success(t('toast.deletionCancelled'));
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data;
-      toast.error(errorData?.message || 'Failed to cancel account deletion');
+      toast.error(errorData?.message || t('toast.failedCancelDeletion'));
     } finally {
       setIsCancellingDeletion(false);
     }
@@ -260,119 +259,115 @@ const MySettingsAdvanced = () => {
         </Card>
       )}
 
-      {/* Leave Organisation Section — hidden for dashboard_user (no business to leave) */}
-      {!isDashboardUser && (
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <FormSectionHeader
-            icon={LogOut}
-            title="Leave Organisation"
-            description="Remove yourself from this business"
-            className="mb-6"
-            iconBgColor="bg-destructive/10"
-            iconColor="text-destructive"
-          />
-
-          <div className="space-y-4">
-            {/* Info box */}
-            <div className="flex gap-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
-              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                  Before leaving
+      {/* Account Actions Section — same layout as business Advanced */}
+      <div className="space-y-4">
+        {/* Leave Organisation — hidden for dashboard_user */}
+        {!isDashboardUser && (
+          <Card className="border border-border/60 overflow-hidden">
+            <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
+              <div className="space-y-1 min-w-0">
+                <h4 className="text-base font-medium text-foreground">{t('leaveOrganisation.title')}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t('leaveOrganisation.cardDescription')}
                 </p>
-                <p className="text-sm text-blue-700 dark:text-blue-300">
-                  You must cancel or reassign all your active appointments before you can leave the organisation. Ask the business owner to reassign your appointments to another team member, or cancel them yourself.
-                </p>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={handleLeaveOrganisation}
-              disabled={isLeavingOrganisation || showLeaveOrgConfirm}
-              className="h-10"
-            >
-              {isLeavingOrganisation ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Leaving...
-                </>
-              ) : (
-                <>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Leave Organisation
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Danger Zone — same styling as business owner */}
-      <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm border-destructive/20">
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-            <div className="p-2 rounded-xl bg-destructive/10">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground">{t('dangerZone.title')}</h3>
-          </div>
-          <div className="space-y-4">
-            {/* Must Leave All Organisations — same subsection style as owner blocks */}
-            {!isDashboardUser && (
-              <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  <h4 className="font-medium text-sm text-blue-700 dark:text-blue-300">{t('dangerZone.mustLeaveOrganisations.title')}</h4>
+                <div className="mt-3 p-3 rounded-lg border border-blue-200/80 dark:border-blue-800/60 bg-blue-50/70 dark:bg-blue-950/40">
+                  <p className="text-xs font-medium text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                    {t('leaveOrganisation.cardHint')}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground mb-2">{t('dangerZone.mustLeaveOrganisations.hint')}</p>
               </div>
-            )}
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                rounded="full"
+                onClick={handleLeaveOrganisation}
+                disabled={isLeavingOrganisation || showLeaveOrgConfirm}
+                className="shrink-0 !h-9 !px-4"
+              >
+                {isLeavingOrganisation ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                    {t('leaveOrganisation.leaving')}
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                    {t('leaveOrganisation.title')}
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Deactivate Account — same styling as owner */}
-            {!accountDisabled && !accountScheduledForDeletion && (
-              <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Power className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  <h4 className="font-medium text-sm text-amber-700 dark:text-amber-300">{t('deactivateDialog.title')}</h4>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">{t('deactivateDialog.inactive')}</p>
-                <p className="text-xs text-muted-foreground mb-3">{t('deactivateDialog.reactivateHint')}</p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDeactivateAccount}
-                  disabled={isDeactivating}
-                  className="w-full h-10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
-                >
-                  <Power className={`h-4 w-4 mr-2 ${isDeactivating ? 'animate-pulse' : ''}`} />
-                  {isDeactivating ? t('dangerZone.disableAccount.disabling') : t('deactivateDialog.confirm')}
-                </Button>
+        {/* Disable Account */}
+        {!accountDisabled && !accountScheduledForDeletion && (
+          <Card className="border border-border/60 overflow-hidden">
+            <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
+              <div className="space-y-1 min-w-0">
+                <h4 className="text-base font-medium text-foreground">{t('dangerZone.disableAccount.title')}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('deactivateDialog.inactive')}</p>
+                <p className="text-xs text-muted-foreground">{t('deactivateDialog.reactivateHint')}</p>
+                {!isDashboardUser && (
+                  <div className="mt-3 p-3 rounded-lg border border-blue-200/80 dark:border-blue-800/60 bg-blue-50/70 dark:bg-blue-950/40">
+                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                      <Building2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {t('dangerZone.mustLeaveOrganisations.hint')}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                rounded="full"
+                onClick={handleDeactivateAccount}
+                disabled={isDeactivating}
+                className="shrink-0 !h-9 !px-4 border-border hover:bg-muted"
+              >
+                <Power className={`h-3.5 w-3.5 mr-1.5 ${isDeactivating ? 'animate-pulse' : ''}`} />
+                {isDeactivating ? t('dangerZone.disableAccount.disabling') : t('deactivateDialog.confirm')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Delete Account — same styling as owner */}
-            {!accountScheduledForDeletion && (
-              <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-                <h4 className="font-medium text-sm text-destructive mb-2">{t('dangerZone.deleteAccount.title')}</h4>
-                <p className="text-xs text-muted-foreground mb-2">{t('dangerZone.deleteAccount.description')}</p>
-                <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.deleteAccount.gracePeriod')}</p>
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleScheduleDeletion}
-                  disabled={isSchedulingDeletion}
-                  className="w-full h-10"
-                >
-                  <AlertTriangle className={`h-4 w-4 mr-2 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
-                  {isSchedulingDeletion ? t('dangerZone.deleteAccount.scheduling') : t('dangerZone.deleteAccount.button')}
-                </Button>
+        {/* Delete Account */}
+        {!accountScheduledForDeletion && (
+          <Card className="border border-border/60 overflow-hidden">
+            <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
+              <div className="space-y-1 min-w-0">
+                <h4 className="text-base font-medium text-foreground">{t('dangerZone.deleteAccount.title')}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('dangerZone.deleteAccount.description')}</p>
+                <p className="text-xs text-muted-foreground">{t('dangerZone.deleteAccount.gracePeriod')}</p>
+                {!isDashboardUser && (
+                  <div className="mt-3 p-3 rounded-lg border border-blue-200/80 dark:border-blue-800/60 bg-blue-50/70 dark:bg-blue-950/40">
+                    <p className="text-xs font-medium text-blue-800 dark:text-blue-200 flex items-start gap-2">
+                      <Building2 className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {t('dangerZone.mustLeaveOrganisations.hint')}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                rounded="full"
+                onClick={handleScheduleDeletion}
+                disabled={isSchedulingDeletion}
+                className="shrink-0 !h-9 !px-4"
+              >
+                <AlertTriangle className={`h-3.5 w-3.5 mr-1.5 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
+                {isSchedulingDeletion ? t('dangerZone.deleteAccount.scheduling') : t('dangerZone.deleteAccount.button')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {/* Leave Organisation confirmation — same styling as business owner modals */}
       <AlertDialog open={showLeaveOrgConfirm} onOpenChange={(open) => !open && setShowLeaveOrgConfirm(false)}>

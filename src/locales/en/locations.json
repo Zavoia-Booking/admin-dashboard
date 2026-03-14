@@ -10,6 +10,21 @@
       "noLocationsDescription": "Create your first location to start managing your business locations.",
       "noResults": "No locations found matching your search.",
       "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    },
+    "metadata": {
+      "address": "address",
+      "phone": "phone",
+      "email": "email"
+    },
+    "badges": {
+      "service": "Service",
+      "services": "Services",
+      "teamMember": "Team Member",
+      "teamMembers": "Team Members",
+      "remoteLocation": "Remote location"
+    },
+    "actionsLabel": {
+      "editLocation": "Edit Location"
     }
   },
   "filters": {
@@ -17,6 +32,166 @@
   },
   "address": {
     "countryRestrictionInfo": "Address search is limited to your business country ({{countryCode}})."
+  },
+  "mapDialogShared": {
+    "searchPlaceholder": "Search for the correct address...",
+    "addressWarningTitle": "Confirm Pin Location",
+    "addressWarningDescription": "We've attempted to place the pin based on your address. If it's correct, simply click \"Confirm Location\". If not, you can search for the correct address, click on the map, or drag the pin to adjust. Customers will find your business based on the pin location."
+  },
+  "addLocation": {
+    "title": "Add New Location",
+    "subtitle": "Create a new location for your business",
+    "form": {
+      "nameLabel": "Location Name",
+      "remoteNameLabel": "Online Location Name",
+      "descriptionLabel": "Description",
+      "namePlaceholder": "e.g. Downtown Office",
+      "addressLabel": "Address *",
+      "contactTitle": "Contact information",
+      "emailLabel": "Location Email *",
+      "phoneLabel": "Location Phone *",
+      "inheritedLabel": "your business",
+      "helperTextOn": "Your business contact info will be used for this location.",
+      "helperTextOff": "Provide different contact details for this location.",
+      "helperTextOnRemote": "Business contact info will be used for this location.",
+      "helperTextOffRemote": "Provide different contact details for this location.",
+      "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
+      "workingHoursLabel": "Working Hours",
+      "teamMembersTitle": "Team Members",
+      "teamMembersDescription": "Select which team members can work at this location. All active team members are selected by default.",
+      "noTeamMembers": "No active team members available.",
+      "servicesTitle": "Services",
+      "servicesDescription": "Select which services are available at this location. All services are selected by default.",
+      "servicesEnabled": "/ {{total}} enabled",
+      "noServices": "No services available yet.",
+      "manageServices": "Manage Services",
+      "remoteNamePlaceholder": "Online"
+    },
+    "validation": {
+      "nameRequired": "Please enter a location name",
+      "nameMinLength": "Enter at least 2 characters",
+      "nameMaxLength": "Maximum 70 characters allowed",
+      "nameInvalidChars": "Please remove special characters (only - ' & . ( ) allowed)",
+      "addressRequired": "Address is required",
+      "emailRequired": "Please enter a valid email address",
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Enter a valid phone number",
+      "timezoneRequired": "Timezone is required",
+      "descriptionMaxLength": "Maximum {{max}} characters allowed",
+      "descriptionInvalidChars": "Special characters < > aren't allowed"
+    },
+    "mapDialog": {
+      "title": "Verify Location Pin",
+      "description": "Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address.",
+      "cancel": "Cancel",
+      "confirm": "Confirm Location"
+    },
+    "manageServicesSheet": {
+      "title": "Select Services",
+      "subtitle": "Choose which services are available at this location"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "create": "Create Location"
+    },
+    "toasts": {
+      "validAddressFirst": "Please enter a valid address first",
+      "couldNotFindLocation": "Could not find location on map. Please search for the correct address in the map.",
+      "couldNotGeocode": "Could not geocode address. Please adjust the pin manually.",
+      "selectLocationOnMap": "Please select a location on the map",
+      "selectLocationOrSearch": "Please select a location on the map or search for an address",
+      "pinConfirmed": "Location pin confirmed",
+      "createFailed": "We couldn't create the location",
+      "createFailedDescription": "Please check your information and try again."
+    }
+  },
+  "editLocation": {
+    "title": "Edit {{name}}",
+    "titleFallback": "Edit Location",
+    "subtitle": "Update location information",
+    "form": {
+      "nameLabel": "Location Name",
+      "namePlaceholder": "e.g. Downtown Office",
+      "addressLabel": "Address *",
+      "contactTitle": "Contact information",
+      "emailLabel": "Location Email *",
+      "phoneLabel": "Location Phone *",
+      "inheritedLabel": "your business",
+      "helperTextOn": "Your business contact info will be used for this location.",
+      "helperTextOff": "Provide different contact details for this location.",
+      "helperTextOnRemote": "Business contact info will be used for this location.",
+      "helperTextOffRemote": "Provide different contact details for this location.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
+      "descriptionPlaceholderRemote": "Describe this location (e.g. Link to Zoom, Google Meet, etc.)",
+      "workingHoursLabel": "Working Hours",
+      "remoteNameLabel": "Online Location Name",
+      "remoteNamePlaceholder": "e.g. Online Sessions"
+    },
+    "assignments": {
+      "title": "Assignments",
+      "services": "Services",
+      "teamMembers": "Team Members",
+      "description": "Manage which services and team members are assigned to this location. View and modify all assignments in the dedicated Assignments section.",
+      "goToAssignments": "Go to Assignments"
+    },
+    "removeLocation": {
+      "title": "Remove Location",
+      "description": "This will permanently remove this location from your locations list. This action cannot be undone.",
+      "button": "Remove Location",
+      "removing": "Removing..."
+    },
+    "mapDialog": {
+      "title": "Verify Location Pin",
+      "description": "Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address.",
+      "cancel": "Cancel",
+      "confirm": "Confirm Location"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "update": "Update Location"
+    },
+    "toasts": {
+      "validAddressFirst": "Please enter a valid address first",
+      "couldNotFindLocation": "Could not find location on map. Please search for the correct address in the map.",
+      "couldNotGeocode": "Could not geocode address. Please adjust the pin manually.",
+      "selectLocationOnMap": "Please select a location on the map",
+      "selectLocationOrSearch": "Please select a location on the map or search for an address",
+      "pinConfirmed": "Location pin confirmed",
+      "updateFailed": "We couldn't update the location",
+      "updateFailedDescription": "Please check your information and try again."
+    }
+  },
+  "editWorkingHours": {
+    "title": "Working Hours",
+    "sectionTitle": "Working Hours",
+    "cancel": "Cancel",
+    "saveChanges": "Save Changes",
+    "markAsClosed": "Mark as Closed",
+    "markAsOpen": "Mark as Open",
+    "openingTime": "Opening Time",
+    "closingTime": "Closing Time",
+    "closedOn": "This location is closed on {{day}}",
+    "confirmTitle": "Update Working Hours",
+    "confirmDescription": "Are you sure you want to update the working hours for {{name}}? This will save all changes.",
+    "confirmCancel": "Cancel",
+    "confirmSave": "Save Changes",
+    "days": {
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    }
+  },
+  "toasts": {
+    "createFailed": "Failed to create location",
+    "updateFailed": "Failed to update location",
+    "listFailed": "Failed to list locations",
+    "deleteSuccess": "Location deleted successfully",
+    "deleteFailed": "Failed to delete location",
+    "fetchFailed": "Failed to fetch location"
   }
 }
-

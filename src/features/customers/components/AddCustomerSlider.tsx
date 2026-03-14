@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { UserCircle, Mail, Phone } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
@@ -35,6 +36,7 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
   isOpen, 
   onClose 
 }) => {
+  const { t } = useTranslation('customers');
   const dispatch = useDispatch();
   const customerError = useSelector(getCustomersErrorSelector);
   const isCustomerLoading = useSelector(getCustomersLoadingSelector);
@@ -56,9 +58,9 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
     name: "firstName",
     control,
     rules: {
-      required: "First name is required",
-      minLength: { value: 2, message: "First name must be at least 2 characters" },
-      maxLength: { value: 50, message: "First name must be less than 50 characters" },
+      required: t("addCustomer.validation.firstNameRequired"),
+      minLength: { value: 2, message: t("addCustomer.validation.firstNameMinLength") },
+      maxLength: { value: 50, message: t("addCustomer.validation.firstNameMaxLength") },
     },
   });
 
@@ -66,7 +68,7 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
     name: "lastName",
     control,
     rules: {
-      maxLength: { value: 50, message: "Last name must be less than 50 characters" },
+      maxLength: { value: 50, message: t("addCustomer.validation.lastNameMaxLength") },
     },
   });
 
@@ -91,7 +93,7 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
           !value ||
           value.trim().length === 0 ||
           isE164(value) ||
-          "Enter a valid phone number",
+          t("addCustomer.validation.phoneInvalid"),
       },
     },
   });
@@ -100,7 +102,7 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
     name: "notes",
     control,
     rules: {
-      maxLength: { value: 500, message: "Notes must be less than 500 characters" },
+      maxLength: { value: 500, message: t("addCustomer.validation.notesMaxLength") },
     },
   });
 
@@ -128,13 +130,13 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
   // Watch for errors and show toast
   useEffect(() => {
     if (customerError && isSubmitting) {
-      toast.error("We couldn't add the customer", {
-        description: "Please check your information and try again.",
+      toast.error(t("addCustomer.toasts.addFailed"), {
+        description: t("addCustomer.toasts.addFailedDescription"),
         icon: undefined,
       });
       setIsSubmitting(false);
     }
-  }, [customerError, isSubmitting]);
+  }, [customerError, isSubmitting, t]);
 
   // Watch for success and close form
   useEffect(() => {
@@ -194,8 +196,8 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title="Add New Customer"
-        subtitle="Create a new customer manually"
+        title={t("addCustomer.title")}
+        subtitle={t("addCustomer.subtitle")}
         icon={UserCircle}
         iconColor="text-foreground-1"
         contentClassName="bg-surface scrollbar-hide"
@@ -203,8 +205,8 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
           <FormFooter
             onCancel={handleCancel}
             formId="add-customer-form"
-            cancelLabel="Cancel"
-            submitLabel="Add Customer"
+            cancelLabel={t("addCustomer.buttons.cancel")}
+            submitLabel={t("addCustomer.buttons.add")}
             disabled={isFormDisabled || isSubmitting || isCustomerLoading}
             isLoading={isSubmitting || isCustomerLoading}
           />
@@ -221,10 +223,10 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Basic Information
+                    {t("addCustomer.form.basicInfoTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Enter the customer's basic details.
+                    {t("addCustomer.form.basicInfoDescription")}
                   </p>
                 </div>
 
@@ -232,8 +234,8 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
                   value={firstNameField.value || ""}
                   onChange={firstNameField.onChange}
                   error={firstNameState.error?.message}
-                  label="First Name"
-                  placeholder="e.g. John"
+                  label={t("addCustomer.form.firstNameLabel")}
+                  placeholder={t("addCustomer.form.firstNamePlaceholder")}
                   required
                   maxLength={50}
                   icon={UserCircle}
@@ -243,8 +245,8 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
                   value={lastNameField.value || ""}
                   onChange={lastNameField.onChange}
                   error={lastNameState.error?.message}
-                  label="Last Name"
-                  placeholder="e.g. Doe"
+                  label={t("addCustomer.form.lastNameLabel")}
+                  placeholder={t("addCustomer.form.lastNamePlaceholder")}
                   maxLength={50}
                 />
               </div>
@@ -258,22 +260,22 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Contact Information
+                    {t("addCustomer.form.contactInfoTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Optional contact details for the customer.
+                    {t("addCustomer.form.contactInfoDescription")}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-base font-medium">
-                    Email
+                    {t("addCustomer.form.emailLabel")}
                   </Label>
                   <div className="relative">
                     <Input
                       id="email"
                       type="email"
-                      placeholder="e.g. john.doe@example.com"
+                      placeholder={t("addCustomer.form.emailPlaceholder")}
                       value={emailField.value || ""}
                       onChange={emailField.onChange}
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
@@ -297,13 +299,13 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-base font-medium">
-                    Phone
+                    {t("addCustomer.form.phoneLabel")}
                   </Label>
                   <div className="relative">
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="e.g. +1234567890"
+                      placeholder={t("addCustomer.form.phonePlaceholder")}
                       value={phoneField.value || ""}
                       onChange={(e) => {
                         const sanitized = sanitizePhoneToE164Draft(e.target.value || "");
@@ -338,10 +340,10 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Additional Information
+                    {t("addCustomer.form.additionalInfoTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Add notes about this customer for better organization.
+                    {t("addCustomer.form.additionalInfoDescription")}
                   </p>
                 </div>
 
@@ -349,8 +351,8 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
                   value={notesField.value || ""}
                   onChange={notesField.onChange}
                   error={notesState.error?.message}
-                  label="Notes"
-                  placeholder="Add any notes about this customer..."
+                  label={t("addCustomer.form.notesLabel")}
+                  placeholder={t("addCustomer.form.notesPlaceholder")}
                   rows={4}
                 />
               </div>

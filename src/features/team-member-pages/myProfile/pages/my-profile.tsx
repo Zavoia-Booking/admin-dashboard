@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Save, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ function PageSkeleton() {
 }
 
 export default function MyProfilePage() {
+  const { t } = useTranslation('myProfile');
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
@@ -84,7 +86,7 @@ export default function MyProfilePage() {
         }
       } catch (error: any) {
         console.error('Error fetching marketplace profile:', error);
-        toast.error(error?.message || 'Failed to load marketplace profile');
+        toast.error(error?.message || t('toast.loadFailed'));
       } finally {
         setIsLoading(false);
       }
@@ -240,7 +242,7 @@ export default function MyProfilePage() {
   const tabItems: ResponsiveTabItem[] = [
     {
       id: 'profile',
-      label: 'Profile',
+      label: t('tabs.profile'),
       content: (
         <ProfileTab 
           ref={profileTabRef} 
@@ -251,12 +253,12 @@ export default function MyProfilePage() {
     },
     {
       id: 'portfolio',
-      label: 'Portfolio',
+      label: t('tabs.portfolio'),
       content: <PortfolioTabContent isActive={activeTab === 'portfolio'} />,
     },
     {
       id: 'reviews',
-      label: 'Reviews',
+      label: t('tabs.reviews'),
       content: <ReviewsTabContent />,
     },
   ];
@@ -273,11 +275,11 @@ export default function MyProfilePage() {
       {isSaving ? (
         <>
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Saving...</span>
+          <span>{t('buttons.saving')}</span>
         </>
       ) : (
         <>
-          <span>Save Changes</span>
+          <span>{t('buttons.saveChanges')}</span>
           <Save className="hidden md:inline h-4 w-4" />
         </>
       )}
@@ -302,10 +304,10 @@ export default function MyProfilePage() {
         onConfirm={handleConfirmLeave}
         onCancel={handleCancelLeave}
         onOpenChange={setShowUnsavedDialog}
-        title="Unsaved Changes"
-        description="You have unsaved changes. Are you sure you want to leave? Your changes will be lost."
-        confirmTitle="Leave"
-        cancelTitle="Stay"
+        title={t('unsavedDialog.title')}
+        description={t('unsavedDialog.description')}
+        confirmTitle={t('unsavedDialog.leave')}
+        cancelTitle={t('unsavedDialog.stay')}
         variant="destructive"
         icon={AlertTriangle}
         iconBgColor="transparent"

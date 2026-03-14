@@ -27,7 +27,7 @@ import type { LocationType, WorkingHours } from '../../../shared/types/location'
 import { useForm, useController } from 'react-hook-form';
 import { defaultWorkingHours } from '../constants';
 import { selectCurrentUser } from '../../auth/selectors';
-import { isE164, requiredEmailError, validateLocationName, validateDescription, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
+import { isE164, sanitizePhoneToE164Draft } from '../../../shared/utils/validation';
 import { getLocationLoadingSelector, getLocationErrorSelector, getIsDeletingSelector, getDeleteResponseSelector } from '../selectors';
 import { toast } from 'sonner';
 import { mapLocationForEdit } from '../utils';
@@ -125,8 +125,13 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        const error = validateLocationName(value);
-        return error === null ? true : error;
+        const v = (value ?? "").trim();
+        if (!v) return t("addLocation.validation.nameRequired");
+        if (v.length < 2) return t("addLocation.validation.nameMinLength");
+        if (v.length > 70) return t("addLocation.validation.nameMaxLength");
+        const NAME_PATTERN = /^[A-Za-zÀ-ÿ0-9\s\-'&.()]+$/;
+        if (!NAME_PATTERN.test(v)) return t("addLocation.validation.nameInvalidChars");
+        return true;
       },
     },
   });
@@ -136,9 +141,9 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        if (isRemote) return true; // Address not required for remote locations
+        if (isRemote) return true;
         if (!value || value.trim().length === 0) {
-          return "Address is required";
+          return t("addLocation.validation.addressRequired");
         }
         return true;
       },
@@ -150,9 +155,10 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        // Always validate - whether using business contact or location-specific contact
-        const error = requiredEmailError("Email", value);
-        return error === null ? true : error;
+        const v = (value ?? "").trim();
+        if (!v) return t("addLocation.validation.emailRequired");
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return t("addLocation.validation.emailRequired");
+        return true;
       },
     },
   });
@@ -164,11 +170,11 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       validate: {
         required: (value) =>
           (!!value && value.trim().length > 0) ||
-          "Phone number is required",
+          t("addLocation.validation.phoneRequired"),
         format: (value) =>
           !value ||
           isE164(value) ||
-          "Enter a valid phone number",
+          t("addLocation.validation.phoneInvalid"),
       },
     },
   });
@@ -178,9 +184,11 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        if (!value || !value.trim()) return true; // Optional field
-        const error = validateDescription(value, 500);
-        return error === null ? true : error;
+        if (!value || !value.trim()) return true;
+        const v = value.trim();
+        if (v.length > 500) return t("addLocation.validation.descriptionMaxLength", { max: 500 });
+        if (/<script|<iframe|javascript:|onclick|onerror|onload/i.test(v)) return t("addLocation.validation.descriptionInvalidChars");
+        return true;
       },
     },
   });
@@ -221,7 +229,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     const hasAddress = address && address.trim().length > 0;
 
     if (!hasAddress) {
-      toast.error('Please enter a valid address first');
+      toast.error(t("editLocation.toasts.validAddressFirst"));
       return;
     }
 
@@ -249,14 +257,14 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           setAdjustedCoordinates(geocodedCoords);
           setIsMapOpen(true);
         } else {
-          toast.error('Could not find location on map. Please search for the correct address in the map.');
+          toast.error(t("editLocation.toasts.couldNotFindLocation"));
           setInitialMapCenter(FALLBACK_MAP_CENTER);
           setAdjustedCoordinates(FALLBACK_MAP_CENTER);
           setIsMapOpen(true);
         }
       } catch (error) {
         console.error('Geocoding error:', error);
-        toast.error('Could not geocode address. Please adjust the pin manually.');
+        toast.error(t("editLocation.toasts.couldNotGeocode"));
         setInitialMapCenter(FALLBACK_MAP_CENTER);
         setAdjustedCoordinates(FALLBACK_MAP_CENTER);
         setIsMapOpen(true);
@@ -280,7 +288,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
 
       if (!finalCoordinates) {
-        toast.error('Please select a location on the map');
+        toast.error(t("editLocation.toasts.selectLocationOnMap"));
         return;
       }
 
@@ -317,7 +325,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       }
 
       if (!finalLat || !finalLng) {
-        toast.error('Please select a location on the map or search for an address');
+        toast.error(t("editLocation.toasts.selectLocationOrSearch"));
         return;
       }
 
@@ -345,7 +353,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     // Re-run validation so formState.isValid updates and Update button can enable
     void trigger();
 
-    toast.success('Location pin confirmed');
+    toast.success(t("editLocation.toasts.pinConfirmed"));
   };
 
   const { field: timezoneField, fieldState: timezoneState } = useController<EditLocationType, "timezone">({
@@ -353,10 +361,9 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        // Only require timezone when location is remote
-        if (!isRemote) return true; // Skip validation for physical locations
+        if (!isRemote) return true;
         if (!value || value.trim().length === 0) {
-          return "Timezone is required";
+          return t("addLocation.validation.timezoneRequired");
         }
         return true;
       },
@@ -483,8 +490,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   // Watch for errors and show toast
   useEffect(() => {
     if (locationError && isSubmitting) {
-      toast.error("We couldn't update the location", {
-        description: "Please check your information and try again.",
+      toast.error(t("editLocation.toasts.updateFailed"), {
+        description: t("editLocation.toasts.updateFailedDescription"),
         icon: undefined,
       });
       setIsSubmitting(false);
@@ -659,8 +666,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title={location ? `Edit ${location.name}` : "Edit Location"}
-        subtitle="Update location information"
+        title={location ? t("editLocation.title", { name: location.name }) : t("editLocation.titleFallback")}
+        subtitle={t("editLocation.subtitle")}
         icon={MapPin}
         iconColor="text-foreground-1"
         contentClassName="bg-surface scrollbar-hide"
@@ -668,8 +675,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           <FormFooter
             onCancel={handleCancel}
             formId="edit-location-form"
-            cancelLabel="Cancel"
-            submitLabel="Update Location"
+            cancelLabel={t("editLocation.buttons.cancel")}
+            submitLabel={t("editLocation.buttons.update")}
             disabled={isFormDisabled || isSubmitting || isLocationLoading}
             isLoading={isSubmitting || isLocationLoading}
           />
@@ -705,8 +712,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
-                    label="Location Name"
-                    placeholder="e.g. Downtown Office"
+                    label={t("editLocation.form.nameLabel")}
+                    placeholder={t("editLocation.form.namePlaceholder")}
                     required
                     maxLength={70}
                     icon={MapPin}
@@ -717,7 +724,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                       htmlFor="location.address"
                       className="text-base font-medium"
                     >
-                      Address *
+                      {t("editLocation.form.addressLabel")}
                     </Label>
                     {businessCountryCode && (
                       <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -772,7 +779,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
                     inheritedPhone={businessPhone}
-                    inheritedLabel="your business"
+                    inheritedLabel={t("editLocation.form.inheritedLabel")}
                     localEmail={emailField.value || ""}
                     localPhone={phoneField.value || ""}
                     onEmailChange={(email) => {
@@ -784,11 +791,11 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     }}
                     emailError={emailState.error?.message}
                     phoneError={phoneState.error?.message}
-                    title="Contact information"
-                    emailLabel="Location Email *"
-                    phoneLabel="Location Phone *"
-                    helperTextOn="Your business contact info will be used for this location."
-                    helperTextOff="Provide different contact details for this location."
+                    title={t("editLocation.form.contactTitle")}
+                    emailLabel={t("editLocation.form.emailLabel")}
+                    phoneLabel={t("editLocation.form.phoneLabel")}
+                    helperTextOn={t("editLocation.form.helperTextOn")}
+                    helperTextOff={t("editLocation.form.helperTextOff")}
                   />
 
                   <div className="pt-4">
@@ -797,14 +804,14 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                       value={descriptionField.value || ""}
                       onChange={descriptionField.onChange}
                       error={descriptionState.error?.message}
-                      label="Description"
-                      placeholder="Describe this location (e.g. Main office with parking)"
+                      label={t("editLocation.form.descriptionLabel")}
+                      placeholder={t("editLocation.form.descriptionPlaceholder")}
                       rows={4}
                     />
                   </div>
 
                   <div className="space-y-4 pt-4">
-                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Label className="text-base font-medium">{t("editLocation.form.workingHoursLabel")}</Label>
                     <Open247Toggle
                       id="edit-location-open247"
                       open247={open247}
@@ -832,8 +839,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     value={nameField.value || ""}
                     onChange={nameField.onChange}
                     error={nameState.error?.message}
-                    label="Online Location Name"
-                    placeholder="e.g. Online Sessions"
+                    label={t("editLocation.form.remoteNameLabel")}
+                    placeholder={t("editLocation.form.remoteNamePlaceholder")}
                     required
                     maxLength={70}
                     icon={MapPin}
@@ -854,7 +861,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     onToggleChange={handleContactToggleChange}
                     inheritedEmail={businessEmail}
                     inheritedPhone={businessPhone}
-                    inheritedLabel="your business"
+                    inheritedLabel={t("editLocation.form.inheritedLabel")}
                     localEmail={emailField.value || ""}
                     localPhone={phoneField.value || ""}
                     onEmailChange={(email) => {
@@ -866,11 +873,11 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     }}
                     emailError={emailState.error?.message}
                     phoneError={phoneState.error?.message}
-                    title="Contact information"
-                    emailLabel="Location Email *"
-                    phoneLabel="Location Phone *"
-                    helperTextOn="Business contact info will be used for this location."
-                    helperTextOff="Provide different contact details for this location."
+                    title={t("editLocation.form.contactTitle")}
+                    emailLabel={t("editLocation.form.emailLabel")}
+                    phoneLabel={t("editLocation.form.phoneLabel")}
+                    helperTextOn={t("editLocation.form.helperTextOnRemote")}
+                    helperTextOff={t("editLocation.form.helperTextOffRemote")}
                   />
 
                   <div className="pt-4">
@@ -879,14 +886,14 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                       value={descriptionField.value || ""}
                       onChange={descriptionField.onChange}
                       error={descriptionState.error?.message}
-                      label="Description"
-                      placeholder="Describe this location (e.g. Link to Zoom, Google Meet, etc.)"
+                      label={t("editLocation.form.descriptionLabel")}
+                      placeholder={t("editLocation.form.descriptionPlaceholderRemote")}
                       rows={4}
                     />
                   </div>
 
                   <div className="space-y-2 pt-4">
-                    <Label className="text-base font-medium">Working Hours</Label>
+                    <Label className="text-base font-medium">{t("editLocation.form.workingHoursLabel")}</Label>
                     <Open247Toggle
                       id="edit-location-open247-remote"
                       open247={open247}
@@ -915,17 +922,17 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               <div className="space-y-5">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Assignments
+                    {t("editLocation.assignments.title")}
                   </h3>
                 </div>
 
                 <AssignmentsCard
                   stats={[
-                    { label: 'Services', value: location.servicesCount || 0 },
-                    { label: 'Team Members', value: location.teamMembersCount || 0 },
+                    { label: t("editLocation.assignments.services"), value: location.servicesCount || 0 },
+                    { label: t("editLocation.assignments.teamMembers"), value: location.teamMembersCount || 0 },
                   ]}
-                  description="Manage which services and team members are assigned to this location. View and modify all assignments in the dedicated Assignments section."
-                  buttonLabel="Go to Assignments"
+                  description={t("editLocation.assignments.description")}
+                  buttonLabel={t("editLocation.assignments.goToAssignments")}
                   onButtonClick={() => {
                     navigate(`/assignments?tab=locations&locationId=${location.id}`);
                   }}
@@ -941,10 +948,10 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
                 <div className="space-y-1">
                   <h3 className="text-base font-medium text-foreground-1">
-                    Remove Location
+                    {t("editLocation.removeLocation.title")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    This will permanently remove this location from your locations list. This action cannot be undone.
+                    {t("editLocation.removeLocation.description")}
                   </p>
                 </div>
 
@@ -957,14 +964,14 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
                     disabled={isDeleting}
                   >
-                    {isDeleting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Removing...
-                      </>
-                    ) : (
-                      'Remove Location'
-                    )}
+                        {isDeleting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t("editLocation.removeLocation.removing")}
+                          </>
+                        ) : (
+                          t("editLocation.removeLocation.button")
+                        )}
                   </Button>
                 </div>
               </div>
@@ -987,7 +994,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
           overlayClassName="z-[80]"
           secondaryActions={[
             {
-              label: 'Go to Assignments',
+              label: t("editLocation.assignments.goToAssignments"),
               onClick: () => {
                 handleCloseDeleteDialog(false);
                 navigate(`/assignments?tab=locations&locationId=${location.id}`);
@@ -1012,8 +1019,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
               setInitialMapCenter([0, 0]);
               mapInstanceRef.current = null;
             }}
-            title="Verify Location Pin"
-            description="Adjust the pin to your exact location. You can drag the pin, click on the map, or search for a new address."
+            title={t("editLocation.mapDialog.title")}
+            description={t("editLocation.mapDialog.description")}
             accessToken={import.meta.env.VITE_MAPBOX_ACCESS_TOKEN || ''}
             center={safeCenter}
             zoom={hasValidCoords ? 16 : 2}
@@ -1047,7 +1054,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     mapInstanceRef.current = null;
                   }}
                 >
-                  Cancel
+                  {t("editLocation.mapDialog.cancel")}
                 </Button>
                 <Button
                   onClick={handleConfirmPin}
@@ -1055,7 +1062,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                   rounded="full"
                 >
                   <MapPin className="h-4 w-4" />
-                  Confirm Location
+                  {t("editLocation.mapDialog.confirm")}
                 </Button>
               </>
             }

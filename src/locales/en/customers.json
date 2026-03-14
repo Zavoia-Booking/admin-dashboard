@@ -10,10 +10,117 @@
       "noCustomersDescription": "Add your first customer to start managing your customer base.",
       "noResults": "No customers found matching your search.",
       "noResultsDescription": "Try adjusting your search to find what you're looking for."
+    },
+    "badges": {
+      "duplicate": "Duplicate"
+    },
+    "actionsLabel": {
+      "editCustomer": "Edit Customer"
     }
   },
   "filters": {
     "searchPlaceholder": "Search customers by name or email..."
+  },
+  "addCustomer": {
+    "title": "Add New Customer",
+    "subtitle": "Create a new customer manually",
+    "form": {
+      "basicInfoTitle": "Basic Information",
+      "basicInfoDescription": "Enter the customer's basic details.",
+      "firstNameLabel": "First Name",
+      "firstNamePlaceholder": "e.g. John",
+      "lastNameLabel": "Last Name",
+      "lastNamePlaceholder": "e.g. Doe",
+      "contactInfoTitle": "Contact Information",
+      "contactInfoDescription": "Optional contact details for the customer.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "e.g. john.doe@example.com",
+      "phoneLabel": "Phone",
+      "phonePlaceholder": "e.g. +1234567890",
+      "additionalInfoTitle": "Additional Information",
+      "additionalInfoDescription": "Add notes about this customer for better organization.",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Add any notes about this customer..."
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "firstNameMinLength": "First name must be at least 2 characters",
+      "firstNameMaxLength": "First name must be less than 50 characters",
+      "lastNameMaxLength": "Last name must be less than 50 characters",
+      "phoneInvalid": "Enter a valid phone number",
+      "notesMaxLength": "Notes must be less than 500 characters"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "add": "Add Customer"
+    },
+    "toasts": {
+      "addFailed": "We couldn't add the customer",
+      "addFailedDescription": "Please check your information and try again."
+    }
+  },
+  "editCustomer": {
+    "title": "Edit Customer",
+    "loading": "Loading...",
+    "subtitle": "Update customer information",
+    "form": {
+      "basicInfoTitle": "Basic Information",
+      "basicInfoDescription": "Update the customer's basic details.",
+      "firstNameLabel": "First Name",
+      "firstNamePlaceholder": "e.g. John",
+      "lastNameLabel": "Last Name",
+      "lastNamePlaceholder": "e.g. Doe",
+      "contactInfoTitle": "Contact Information",
+      "contactInfoDescription": "Optional contact details for the customer.",
+      "emailLabel": "Email",
+      "emailPlaceholder": "e.g. john.doe@example.com",
+      "phoneLabel": "Phone",
+      "phonePlaceholder": "e.g. +1234567890",
+      "additionalInfoTitle": "Additional Information",
+      "additionalInfoDescription": "Add notes about this customer for better organization.",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Add any notes about this customer...",
+      "mergeDuplicateTitle": "Merge Duplicate",
+      "mergeDuplicateDescription": "You are about to merge all other records for this customer into this one. This will combine their records.",
+      "mergeDuplicatesButton": "Merge duplicates",
+      "merging": "Merging...",
+      "removeCustomerTitle": "Remove Customer",
+      "removeCustomerDescription": "This will remove the customer from your customer list.",
+      "removeCustomerButton": "Remove Customer",
+      "removing": "Removing..."
+    },
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "firstNameMinLength": "First name must be at least 2 characters",
+      "firstNameMaxLength": "First name must be less than 50 characters",
+      "lastNameMaxLength": "Last name must be less than 50 characters",
+      "phoneInvalid": "Enter a valid phone number",
+      "notesMaxLength": "Notes must be less than 500 characters"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "update": "Update Customer"
+    },
+    "removeDialog": {
+      "title": "Remove Customer",
+      "description": "Are you sure you want to remove {{name}}? This action cannot be undone.",
+      "cancel": "Cancel",
+      "remove": "Remove Customer"
+    },
+    "mergeDialog": {
+      "title": "Merge Duplicate",
+      "description": "Are you sure you want to merge {{name}}? This will combine their record with the existing duplicate.",
+      "cancel": "Cancel",
+      "merge": "Merge"
+    },
+    "toasts": {
+      "updateFailed": "We couldn't update the customer",
+      "updateFailedDescription": "Please check your information and try again."
+    }
+  },
+  "myCustomers": {
+    "pageTitle": "My Customers",
+    "cardTitle": "Your Customers",
+    "comingSoon": "My Customers page coming soon..."
   }
 }
-

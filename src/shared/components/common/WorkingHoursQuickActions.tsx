@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { WorkingHours, WorkingHoursDay } from "../../types/location";
 import {
   Popover,
@@ -40,6 +41,7 @@ export default function WorkingHoursQuickActions({
   onChange,
   onFlashDays,
 }: Props) {
+  const { t } = useTranslation('common');
   const [announce, setAnnounce] = useState<string>("");
 
   const monday = value.monday;
@@ -70,15 +72,11 @@ export default function WorkingHoursQuickActions({
 
       if (isOpen) {
         if (openM == null || closeM == null) {
-          showWarningToast(
-            "Set both opening and closing times on Monday first"
-          );
+          showWarningToast(t('workingHours.setBothMondayFirst'));
           return;
         }
         if (closeM < openM) {
-          showWarningToast(
-            "Monday closing time cannot be earlier than opening time"
-          );
+          showWarningToast(t('workingHours.mondayClosingBeforeOpening'));
           return;
         }
       }
@@ -106,6 +104,7 @@ export default function WorkingHoursQuickActions({
       onFlashDays,
       setDay,
       value,
+      t,
     ]
   );
 
@@ -116,7 +115,7 @@ export default function WorkingHoursQuickActions({
 
     if (isOpen) {
       if (openM == null || closeM == null || closeM < openM) {
-        showWarningToast("Set valid Monday hours first");
+        showWarningToast(t('workingHours.setMondayFirst'));
         return;
       }
     }
@@ -133,8 +132,8 @@ export default function WorkingHoursQuickActions({
 
     onChange(next);
     onFlashDays?.(["tuesday", "wednesday", "thursday", "friday"]);
-    setAnnounce("Weekdays updated");
-    showSuccessToast("Weekdays updated");
+    setAnnounce(t('workingHours.weekdaysUpdated'));
+    showSuccessToast(t('workingHours.weekdaysUpdated'));
   }, [
     monday.open,
     monday.close,
@@ -145,18 +144,19 @@ export default function WorkingHoursQuickActions({
     onFlashDays,
     setDay,
     value,
+    t,
   ]);
 
   return (
     <div className="px-4 md:px-3 pb-4 md:pb-3">
       {/* Mobile: header row with label and tooltip */}
       <div className="flex items-center justify-between md:hidden">
-        <div className="text-foreground-3 dark:text-foreground-2 text-sm">Apply to:</div>
+        <div className="text-foreground-3 dark:text-foreground-2 text-sm">{t('workingHours.applyTo')}</div>
         <Popover>
           <PopoverTrigger asChild>
             <button
               type="button"
-              aria-label="What do these shortcuts do?"
+              aria-label={t('workingHours.shortcutsAria')}
               className="inline-flex items-center justify-center text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
             >
               <HelpCircle className="h-5 w-5" />
@@ -170,19 +170,16 @@ export default function WorkingHoursQuickActions({
           >
             <div className="space-y-2">
               <div className="font-medium">
-                Quick actions buttons to apply Monday's hours to other days:
+                {t('workingHours.shortcutsIntro')}
               </div>
               <div>
-                <span className="font-medium">Mon–Fri</span>: Copies Monday's
-                open/close and open/closed status to Tue–Fri. Weekends are
-                unchanged.
+                <span className="font-medium">{t('workingHours.monFri')}</span>: {t('workingHours.monFriDesc')}
               </div>
               <div>
-                <span className="font-medium">All week</span>: Copies Monday's
-                open/close and status to every day (Tue–Sun).
+                <span className="font-medium">{t('workingHours.allWeek')}</span>: {t('workingHours.allWeekDesc')}
               </div>
               <div className="text-xs text-foreground-3 dark:text-foreground-2">
-                Tip: Set valid Monday hours first.
+                {t('workingHours.tip')}
               </div>
             </div>
           </PopoverContent>
@@ -193,9 +190,9 @@ export default function WorkingHoursQuickActions({
       <div className="mt-2 md:hidden grid grid-cols-[1fr_auto_1fr] items-center gap-3 w-full">
         <button
           type="button"
-          aria-label="Copy to Tue–Fri"
+          aria-label={t('workingHours.copyToTueFriAria')}
           title={
-            mondayInvalidRange ? "Set valid Monday hours first" : undefined
+            mondayInvalidRange ? t('workingHours.setMondayFirst') : undefined
           }
           className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-end ${
             mondayInvalidRange
@@ -206,14 +203,14 @@ export default function WorkingHoursQuickActions({
           onClick={applyWeekdaysFromMonday}
         >
           <CalendarCheck className="h-4 w-4 text-primary" />
-          Mon–Fri
+          {t('workingHours.monFri')}
         </button>
         <span aria-hidden="true" className="min-w-4"></span>
         <button
           type="button"
-          aria-label="Copy to all days"
+          aria-label={t('workingHours.copyToAllAria')}
           title={
-            mondayInvalidRange ? "Set valid Monday hours first" : undefined
+            mondayInvalidRange ? t('workingHours.setMondayFirst') : undefined
           }
           className={`inline-flex items-center justify-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer w-[128px] justify-self-start ${
             mondayInvalidRange
@@ -231,24 +228,24 @@ export default function WorkingHoursQuickActions({
                 "saturday",
                 "sunday",
               ],
-              "All days updated"
+              t('workingHours.allDaysUpdated')
             )
           }
         >
           <CalendarDays className="h-4 w-4 text-primary" />
-          All week
+          {t('workingHours.allWeek')}
         </button>
       </div>
 
       {/* Desktop: single row with label left and controls right */}
       <div className="hidden md:flex items-center justify-between gap-2 pt-2 mt-2">
-        <div className="text-foreground-3 dark:text-foreground-2 text-sm">Apply to:</div>
+        <div className="text-foreground-3 dark:text-foreground-2 text-sm">{t('workingHours.applyTo')}</div>
         <div className="flex items-center gap-1">
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
-                aria-label="What do these shortcuts do?"
+                aria-label={t('workingHours.shortcutsAria')}
                 className="inline-flex items-center justify-center text-foreground-3 dark:text-foreground-2 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
               >
                 <HelpCircle className="h-5 w-5" />
@@ -262,28 +259,25 @@ export default function WorkingHoursQuickActions({
             >
               <div className="space-y-2">
                 <div className="font-medium">
-                  Quick actions buttons to apply Monday's hours to other days:
+                  {t('workingHours.shortcutsIntro')}
                 </div>
                 <div>
-                  <span className="font-medium">Mon–Fri</span>: Copies Monday's
-                  open/close and open/closed status to Tue–Fri. Weekends are
-                  unchanged.
+                  <span className="font-medium">{t('workingHours.monFri')}</span>: {t('workingHours.monFriDesc')}
                 </div>
                 <div>
-                  <span className="font-medium">All week</span>: Copies Monday's
-                  open/close and status to every day (Tue–Sun).
+                  <span className="font-medium">{t('workingHours.allWeek')}</span>: {t('workingHours.allWeekDesc')}
                 </div>
                 <div className="text-xs text-foreground-3 dark:text-foreground-2">
-                  Tip: Set valid Monday hours first.
+                  {t('workingHours.tip')}
                 </div>
               </div>
             </PopoverContent>
           </Popover>
           <button
             type="button"
-            aria-label="Copy to Tue–Fri"
+            aria-label={t('workingHours.copyToTueFriAria')}
             title={
-              mondayInvalidRange ? "Set valid Monday hours first" : undefined
+              mondayInvalidRange ? t('workingHours.setMondayFirst') : undefined
             }
             className={`inline-flex items-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active mr-0 md:mr-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap ${
               mondayInvalidRange
@@ -294,13 +288,13 @@ export default function WorkingHoursQuickActions({
             onClick={applyWeekdaysFromMonday}
           >
             <CalendarCheck className="h-4 w-4 text-primary" />
-            Mon–Fri
+            {t('workingHours.monFri')}
           </button>
           <button
             type="button"
-            aria-label="Copy to all days"
+            aria-label={t('workingHours.copyToAllAria')}
             title={
-              mondayInvalidRange ? "Set valid Monday hours first" : undefined
+              mondayInvalidRange ? t('workingHours.setMondayFirst') : undefined
             }
             className={`inline-flex items-center gap-2 !h-10 !min-h-0 py-0 px-4 rounded-full border border-border bg-surface text-xs font-medium text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap md:ml-8 ${
               mondayInvalidRange
@@ -318,12 +312,12 @@ export default function WorkingHoursQuickActions({
                   "saturday",
                   "sunday",
                 ],
-                "All days updated"
+                t('workingHours.allDaysUpdated')
               )
             }
           >
             <CalendarDays className="h-4 w-4 text-primary" />
-            All week
+            {t('workingHours.allWeek')}
           </button>
         </div>
       </div>

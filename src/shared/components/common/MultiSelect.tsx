@@ -1,9 +1,8 @@
 import React, { useState, useMemo } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Check } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { Command, CommandInput, CommandList, CommandGroup, CommandItem, CommandEmpty } from "../ui/command";
-import { Checkbox } from "../ui/checkbox";
 import { cn } from "../../lib/utils";
 
 export interface MultiSelectOption {
@@ -70,12 +69,21 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             aria-haspopup="listbox"
             aria-expanded={open}
             className={cn(
-              "w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
-              "border-gray-200 hover:border-gray-300 focus:border-blue-400 focus-visible:ring-blue-400"
+              "w-full h-12 md:h-10 justify-between items-center font-normal transition-all cursor-pointer",
+              "border-border dark:border-border-subtle bg-surface dark:bg-neutral-900",
+              "hover:border-border-strong hover:bg-surface/80",
+              "focus-visible:border-focus focus-visible:ring-focus/50 focus-visible:ring-2 focus-visible:ring-offset-0"
             )}
           >
             <span className="flex items-center gap-2 min-w-0">
-              <span className="truncate text-left capitalize">{displayLabel}</span>
+              <span
+                className={cn(
+                  "truncate text-left capitalize",
+                  selectedOptions.length === 0 && "text-muted-foreground"
+                )}
+              >
+                {displayLabel}
+              </span>
               {selectedOptions.length > 0 && (
                 <span className="ml-2 text-xs text-muted-foreground">
                   ({selectedOptions.length})
@@ -84,14 +92,14 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
             </span>
             <ChevronDown
               className={cn(
-                "h-4 w-4 text-gray-400 transition-transform shrink-0",
+                "h-4 w-4 text-muted-foreground transition-transform shrink-0",
                 open && "rotate-180"
               )}
             />
           </Button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-[calc(100vw-2rem)] md:w-[400px] p-0 shadow-lg border border-gray-200"
+          className="w-[calc(100vw-2rem)] md:w-[400px] p-0 shadow-lg border border-border bg-popover"
           align="start"
         >
           <Command>
@@ -109,11 +117,11 @@ export const MultiSelect: React.FC<MultiSelectProps> = ({
                       className="cursor-pointer"
                     >
                       <div className="flex items-center gap-3 w-full py-1.5">
-                        <Checkbox
-                          checked={isSelected}
-                          onCheckedChange={() => handleToggle(option.id)}
-                          className="shrink-0 h-3.5 w-3.5 !min-h-0 !min-w-0 !rounded-[2px] [&_svg]:h-2.5 [&_svg]:w-2.5"
-                        />
+                        {isSelected ? (
+                          <Check className="h-4 w-4 text-primary shrink-0" />
+                        ) : (
+                          <span className="h-4 w-4 shrink-0" />
+                        )}
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium capitalize">{option.name}</div>
                           {option.subtitle && (

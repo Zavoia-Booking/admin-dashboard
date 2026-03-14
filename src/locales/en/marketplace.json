@@ -1,6 +1,7 @@
 {
   "marketing": {
     "hero": {
+      "yourBusiness": "Your Business",
       "title": "Get Discovered. Get Booked.",
       "subtitle": "Put <bold>{{businessName}}</bold> in front of ready-to-book clients instantly. We've prepared your services for discovery—no ads, no hassle.",
       "cta": "List My Business",
@@ -94,6 +95,7 @@
   "details": {
     "title": "Marketplace Details",
     "businessName": {
+      "notAvailable": "N/A",
       "label": "Business Name",
       "useBusinessDescription": "Use your main business name for your marketplace listing. This keeps your branding consistent for customers.",
       "customDescription": "Create a unique brand name for this listing. Use it to stand out in the marketplace and separate it from your main business profile.",

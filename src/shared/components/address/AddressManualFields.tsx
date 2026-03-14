@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
@@ -54,11 +55,12 @@ const AddressManualFields: React.FC<Props> = ({
   onStreetFocus,
   onStreetBlur,
 }) => {
+  const { t } = useTranslation('common');
   return (
     <div className="mt-2 space-y-3">
       <div className="space-y-1">
         <div className="flex items-center justify-between">
-          <Label className="text-base font-medium text-foreground-1">{isLocked ? 'Selected Address' : 'Street *'}</Label>
+          <Label className="text-base font-medium text-foreground-1">{isLocked ? t('address.selectedAddress') : t('address.street')}</Label>
           {isLocked && streetBase && (
             <Button
               variant="ghost"
@@ -73,7 +75,7 @@ const AddressManualFields: React.FC<Props> = ({
               )}
             >
               <span className="text-xs text-foreground-1">
-                Change address
+                {t('address.changeAddress')}
               </span>
               <ChevronRight className="h-3 w-3 pt-0.5 translate-x-0.5" />
             </Button>
@@ -86,7 +88,7 @@ const AddressManualFields: React.FC<Props> = ({
                 <Input
                   value={streetBase}
                   onChange={(e) => onStreetChange(e.target.value)}
-                  placeholder="Enter street name"
+                  placeholder={t('address.streetPlaceholder')}
                   className={`!pr-11 truncate transition-all focus-visible:ring-1 focus-visible:ring-focus focus-visible:ring-offset-0 focus:border-focus cursor-not-allowed bg-surface-hover text-foreground-2 border-border`}
                   readOnly
                   aria-readonly
@@ -111,7 +113,7 @@ const AddressManualFields: React.FC<Props> = ({
             <Input
               value={actualStreet}
               onChange={(e) => onStreetChange(e.target.value)}
-              placeholder="e.g. Main Street"
+              placeholder={t('address.streetExample')}
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 streetError
                   ? 'border-destructive bg-error-bg focus-visible:ring-error'
@@ -136,12 +138,12 @@ const AddressManualFields: React.FC<Props> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
           <div className="relative">
-            <Label className="text-base font-medium text-foreground-1">Building / Number *</Label>
+            <Label className="text-base font-medium text-foreground-1">{t('address.buildingNumber')}</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  aria-label="Building number format help"
+                  aria-label={t('address.buildingHelpTitle')}
                   className="absolute -top-2 -right-1 inline-flex items-center justify-center text-foreground-3 dark:text-foreground-1 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
                 >
                   <HelpCircle className="h-5 w-5" />
@@ -155,15 +157,15 @@ const AddressManualFields: React.FC<Props> = ({
                 className="whitespace-normal text-sm leading-relaxed w-[calc(100vw-2rem)] max-w-[360px] [transform:translateX(calc(-50vw+50%))!important] md:[transform:none!important]"
               >
                 <p>
-                  You can include <span className="font-medium">building number</span>, <span className="font-medium">apartment</span>, <span className="font-medium">floor</span>, or <span className="font-medium">suite</span> details here.
+                  {t('address.buildingHelpIntro')}
                 </p>
                 <div className="my-3 border-t border-border" />
                 <div className="space-y-1.5">
-                  <div className="text-xs font-medium text-foreground">Common formats:</div>
+                  <div className="text-xs font-medium text-foreground">{t('address.buildingHelpFormats')}</div>
                   <div className="text-xs text-muted-foreground dark:text-foreground-2 space-y-1">
-                    <div>• "556, Apt 12"</div>
-                    <div>• "Building 3, Floor 2"</div>
-                    <div>• "Suite 205"</div>
+                    <div>• {t('address.buildingHelpExample1')}</div>
+                    <div>• {t('address.buildingHelpExample2')}</div>
+                    <div>• {t('address.buildingHelpExample3')}</div>
                   </div>
                 </div>
               </PopoverContent>
@@ -173,7 +175,7 @@ const AddressManualFields: React.FC<Props> = ({
             <Input 
               value={streetNumber} 
               onChange={(e) => onNumberChange(e.target.value)} 
-              placeholder="e.g. Bl. 556, Apt. 12" 
+              placeholder={t('address.buildingPlaceholder')} 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 numberError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
@@ -192,12 +194,12 @@ const AddressManualFields: React.FC<Props> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-base font-medium text-foreground-1">City *</Label>
+          <Label className="text-base font-medium text-foreground-1">{t('address.city')}</Label>
           <div className="relative">
             <Input 
               value={city} 
               onChange={(e) => onCityChange(e.target.value)} 
-              placeholder="Enter city" 
+              placeholder={t('address.cityPlaceholder')} 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 cityError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
@@ -219,12 +221,12 @@ const AddressManualFields: React.FC<Props> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label className="text-base font-medium text-foreground-1">Postcode *</Label>
+          <Label className="text-base font-medium text-foreground-1">{t('address.postcode')}</Label>
           <div className="relative">
             <Input 
               value={postalCode} 
               onChange={(e) => onPostalChange(e.target.value)} 
-              placeholder="Postal code" 
+              placeholder={t('address.postcodePlaceholder')} 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 postalError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 
@@ -243,12 +245,12 @@ const AddressManualFields: React.FC<Props> = ({
           </div>
         </div>
         <div className="space-y-1">
-          <Label className="text-base font-medium text-foreground-1">Country *</Label>
+          <Label className="text-base font-medium text-foreground-1">{t('address.country')}</Label>
           <div className="relative">
             <Input 
               value={country} 
               onChange={(e) => onCountryChange(e.target.value)} 
-              placeholder="Country" 
+              placeholder={t('address.countryPlaceholder')} 
               className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                 countryError ? 'border-destructive bg-error-bg focus-visible:ring-error' : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
               }`} 

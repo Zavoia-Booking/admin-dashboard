@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import {
@@ -152,6 +153,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
   countryCodes,
   ...mapProps
 }) => {
+  const { t } = useTranslation(['locations', 'common']);
   const [searchValue, setSearchValue] = useState('');
   const isMobile = useIsMobile();
 
@@ -188,7 +190,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
       <AddressAutocomplete
         value={searchValue}
         onChange={handleAddressSelect}
-        placeholder="Search for the correct address..."
+        placeholder={t('locations:mapDialogShared.searchPlaceholder')}
         limit={8}
         countryCodes={countryCodes}
       />
@@ -201,12 +203,10 @@ export const MapDialog: React.FC<MapDialogProps> = ({
       <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
       <div className="flex-1 text-sm">
         <p className="font-medium text-blue-900 dark:text-foreground-1 mb-1">
-          Confirm Pin Location
+          {t('locations:mapDialogShared.addressWarningTitle')}
         </p>
         <p className="text-blue-800 dark:text-foreground-2">
-          We've attempted to place the pin based on your address. If it's correct, simply click "Confirm Location". 
-          If not, you can search for the correct address, click on the map, or drag the pin to adjust. 
-          <strong className="text-blue-900 dark:text-foreground-1"> Customers will find your business based on the pin location.</strong>
+          {t('locations:mapDialogShared.addressWarningDescription')}
         </p>
       </div>
     </div>
@@ -285,7 +285,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           
           <DialogPrimitive.Close className="flex items-center !min-h-0 !h-9 !min-w-0 !w-9 justify-center ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
             <X className="!h-5 !w-5" />
-            <span className="sr-only">Close</span>
+            <span className="sr-only">{t('common:close')}</span>
           </DialogPrimitive.Close>
         </DialogPrimitive.Content>
       </DialogPortal>

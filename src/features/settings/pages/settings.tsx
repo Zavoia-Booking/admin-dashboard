@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessProfile from '../components/BusinessProfile';
 import { Button } from '../../../shared/components/ui/button';
@@ -19,6 +20,7 @@ import { getBusinessUpdatingSelector } from '../../business/selectors';
 type SettingsTab = 'profile' | 'billing' | 'advanced';
 
 const SettingsPage = () => {
+  const { t } = useTranslation('settings');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
@@ -69,26 +71,26 @@ const SettingsPage = () => {
   const tabItems: ResponsiveTabItem[] = useMemo(() => [
     {
       id: 'profile',
-      label: 'Profile',
-      mobileLabel: 'Profile',
+      label: t('tabs.profile'),
+      mobileLabel: t('tabs.profileMobile'),
       icon: User,
       content: renderTabContent('profile'),
     },
     {
       id: 'billing',
-      label: 'Billing & Subscription',
-      mobileLabel: 'Billing',
+      label: t('tabs.billing'),
+      mobileLabel: t('tabs.billingMobile'),
       icon: CreditCard,
       content: renderTabContent('billing'),
     },
     {
       id: 'advanced',
-      label: 'Advanced Settings',
-      mobileLabel: 'Advanced',
+      label: t('tabs.advanced'),
+      mobileLabel: t('tabs.advancedMobile'),
       icon: Settings,
       content: renderTabContent('advanced'),
     },
-  ], [activeTab]);
+  ], [activeTab, t]);
 
   const handleSaveProfile = () => {
     (document.getElementById('business-info-form') as HTMLFormElement | null)?.requestSubmit();
@@ -107,7 +109,7 @@ const SettingsPage = () => {
         <>
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
           <span>
-            Saving
+            {t('buttons.saving')}
             <span className="inline-block w-4 text-left animate-pulse" aria-hidden>
               ...
             </span>
@@ -115,7 +117,7 @@ const SettingsPage = () => {
         </>
       ) : (
         <>
-          <span>Save Changes</span>
+          <span>{t('buttons.saveChanges')}</span>
           <Save className="hidden md:inline h-4 w-4" />
         </>
       )}

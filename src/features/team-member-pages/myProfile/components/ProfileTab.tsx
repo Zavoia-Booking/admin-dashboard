@@ -1,4 +1,5 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { User, Briefcase, Instagram, Facebook, Link2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '../../../../shared/components/ui/label';
@@ -66,6 +67,7 @@ function ProfileTabInner(
   { initialProfile, onProfileSaved }: ProfileTabProps,
   ref: React.ForwardedRef<ProfileTabRef>
 ) {
+  const { t } = useTranslation('myProfile');
   const mapProfileToFormData = (profile: MarketplaceProfile | null): ProfileFormData => {
     if (!profile) return initialFormData;
     return {
@@ -116,9 +118,9 @@ function ProfileTabInner(
       setFormData(newFormData);
       setOriginalFormData(newFormData);
       onProfileSaved(response.marketplaceProfile);
-      toast.success('Profile saved successfully!');
+      toast.success(t('toast.saveSuccess'));
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to save profile';
+      const message = error?.response?.data?.message || error?.message || t('toast.saveFailed');
       const translatedMessage = Array.isArray(message)
         ? translateMessageCode(message[0])
         : translateMessageCode(message);
@@ -159,16 +161,16 @@ function ProfileTabInner(
           {/* Basic Information Section */}
           <div className="px-0 space-y-4">
             <SectionDivider
-              title="Basic Information"
+              title={t('profileTab.basicInfo')}
               className="mt-4 uppercase tracking-wider text-foreground-2"
             />
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed px-1">
-              Your public identity on the marketplace. Choose a display name and title that represents you professionally.
+              {t('profileTab.basicInfoDescription')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2.5">
               <TextField
-                label="Display Name"
-                placeholder="Enter your display name"
+                label={t('profileTab.displayName')}
+                placeholder={t('profileTab.displayNamePlaceholder')}
                 value={formData.displayName}
                 onChange={(value) => setFormData(prev => ({ ...prev, displayName: value }))}
                 icon={User}
@@ -176,8 +178,8 @@ function ProfileTabInner(
                 maxLength={50}
               />
               <TextField
-                label="Professional Title"
-                placeholder="e.g., Senior Hair Stylist"
+                label={t('profileTab.professionalTitle')}
+                placeholder={t('profileTab.professionalTitlePlaceholder')}
                 value={formData.professionalTitle}
                 onChange={(value) => setFormData(prev => ({ ...prev, professionalTitle: value }))}
                 icon={Briefcase}
@@ -190,16 +192,16 @@ function ProfileTabInner(
           {/* About Me Section */}
           <div className="px-0 space-y-4">
             <SectionDivider
-              title="About Me"
+              title={t('profileTab.aboutMe')}
               className="uppercase tracking-wider text-foreground-2"
             />
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed px-1">
-              Tell potential clients about yourself, your experience, and what makes you unique. A great bio helps build trust and attract the right clients.
+              {t('profileTab.aboutMeDescription')}
             </p>
             <div className="px-2.5">
               <TextareaField
                 label=""
-                placeholder="Share your experience, skills, and what makes you unique..."
+                placeholder={t('profileTab.aboutMePlaceholder')}
                 value={formData.aboutMe}
                 onChange={(value) => setFormData(prev => ({ ...prev, aboutMe: value }))}
                 maxLength={1000}
@@ -212,37 +214,37 @@ function ProfileTabInner(
           {/* Languages & Interests Section */}
           <div className="px-0 space-y-4">
             <SectionDivider
-              title="Languages & Interests"
+              title={t('profileTab.languagesInterests')}
               className="uppercase tracking-wider text-foreground-2"
             />
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed px-1">
-              Share the languages you speak and your personal interests. Let clients get to know you beyond your professional skills.
+              {t('profileTab.languagesInterestsDescription')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2.5">
               {/* Languages */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium text-foreground-2">Languages</Label>
+                <Label className="text-sm font-medium text-foreground-2">{t('profileTab.languages')}</Label>
                 <MultiSelect
                   value={formData.languages}
                   onChange={(selected) => setFormData(prev => ({ ...prev, languages: selected as string[] }))}
                   options={languageOptions}
-                  placeholder="Select languages"
-                  searchPlaceholder="Search languages..."
+                  placeholder={t('profileTab.languagesPlaceholder')}
+                  searchPlaceholder={t('profileTab.languagesSearchPlaceholder')}
                 />
                 {formData.languages.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     {formData.languages.map((lang) => (
                       <Badge
                         key={lang}
                         variant="filter"
-                        className="gap-1 px-2 py-0.5 text-xs"
+                        className="gap-1.5 px-3 py-1.5 text-sm"
                       >
                         {lang}
                         <div
                           onClick={() => !isSaving && removeLanguage(lang)}
-                          className="hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-0.5 transition-colors cursor-pointer"
+                          className="hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1 transition-colors cursor-pointer"
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-4 w-4" />
                         </div>
                       </Badge>
                     ))}
@@ -252,28 +254,28 @@ function ProfileTabInner(
 
               {/* Interests */}
               <div className="space-y-3">
-                <Label className="text-sm font-medium text-foreground-2">Interests</Label>
+                <Label className="text-sm font-medium text-foreground-2">{t('profileTab.interests')}</Label>
                 <MultiSelect
                   value={formData.interests}
                   onChange={(selected) => setFormData(prev => ({ ...prev, interests: selected as string[] }))}
                   options={interestOptions}
-                  placeholder="Select interests"
-                  searchPlaceholder="Search interests..."
+                  placeholder={t('profileTab.interestsPlaceholder')}
+                  searchPlaceholder={t('profileTab.interestsSearchPlaceholder')}
                 />
                 {formData.interests.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-1.5 pt-2">
+                  <div className="flex flex-wrap items-center gap-2 pt-2">
                     {formData.interests.map((interest) => (
                       <Badge
                         key={interest}
                         variant="filter"
-                        className="gap-1 px-2 py-0.5 text-xs"
+                        className="gap-1.5 px-3 py-1.5 text-sm"
                       >
                         {interest}
                         <div
                           onClick={() => !isSaving && removeInterest(interest)}
-                          className="hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-0.5 transition-colors cursor-pointer"
+                          className="hover:bg-neutral-300 dark:hover:bg-neutral-600 rounded-full p-1 transition-colors cursor-pointer"
                         >
-                          <X className="h-3 w-3" />
+                          <X className="h-4 w-4" />
                         </div>
                       </Badge>
                     ))}
@@ -286,16 +288,16 @@ function ProfileTabInner(
           {/* Social Links Section */}
           <div className="px-0 space-y-4">
             <SectionDivider
-              title="Social Links"
+              title={t('profileTab.socialLinks')}
               className="uppercase tracking-wider text-foreground-2"
             />
             <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed px-1">
-              Connect with clients beyond the platform. Add your social media profiles and website to build your personal brand.
+              {t('profileTab.socialLinksDescription')}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 px-2.5">
               <TextField
-                label="Instagram"
-                placeholder="https://instagram.com/username"
+                label={t('profileTab.instagram')}
+                placeholder={t('profileTab.instagramPlaceholder')}
                 value={formData.socialLinks.instagram || ''}
                 onChange={(value) => setFormData(prev => ({ 
                   ...prev, 
@@ -305,8 +307,8 @@ function ProfileTabInner(
                 disabled={isSaving}
               />
               <TextField
-                label="TikTok"
-                placeholder="https://tiktok.com/@username"
+                label={t('profileTab.tiktok')}
+                placeholder={t('profileTab.tiktokPlaceholder')}
                 value={formData.socialLinks.tiktok || ''}
                 onChange={(value) => setFormData(prev => ({ 
                   ...prev, 
@@ -315,8 +317,8 @@ function ProfileTabInner(
                 disabled={isSaving}
               />
               <TextField
-                label="Facebook"
-                placeholder="https://facebook.com/username"
+                label={t('profileTab.facebook')}
+                placeholder={t('profileTab.facebookPlaceholder')}
                 value={formData.socialLinks.facebook || ''}
                 onChange={(value) => setFormData(prev => ({ 
                   ...prev, 
@@ -326,8 +328,8 @@ function ProfileTabInner(
                 disabled={isSaving}
               />
               <TextField
-                label="Website"
-                placeholder="https://yourwebsite.com"
+                label={t('profileTab.website')}
+                placeholder={t('profileTab.websitePlaceholder')}
                 value={formData.socialLinks.website || ''}
                 onChange={(value) => setFormData(prev => ({ 
                   ...prev, 

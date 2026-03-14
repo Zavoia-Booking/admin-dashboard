@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { UserCircle, Mail, Phone, Loader2, GitMerge } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
@@ -38,6 +39,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   onClose,
   customerId 
 }) => {
+  const { t } = useTranslation('customers');
   const dispatch = useDispatch();
   const customerError = useSelector(getCustomersErrorSelector);
   const isCustomerLoading = useSelector(getCustomersLoadingSelector);
@@ -75,9 +77,9 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     name: "firstName",
     control,
     rules: {
-      required: "First name is required",
-      minLength: { value: 2, message: "First name must be at least 2 characters" },
-      maxLength: { value: 50, message: "First name must be less than 50 characters" },
+      required: t("editCustomer.validation.firstNameRequired"),
+      minLength: { value: 2, message: t("editCustomer.validation.firstNameMinLength") },
+      maxLength: { value: 50, message: t("editCustomer.validation.firstNameMaxLength") },
     },
   });
 
@@ -85,7 +87,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     name: "lastName",
     control,
     rules: {
-      maxLength: { value: 50, message: "Last name must be less than 50 characters" },
+      maxLength: { value: 50, message: t("editCustomer.validation.lastNameMaxLength") },
     },
   });
 
@@ -110,7 +112,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
           !value ||
           value.trim().length === 0 ||
           isE164(value) ||
-          "Enter a valid phone number",
+          t("editCustomer.validation.phoneInvalid"),
       },
     },
   });
@@ -119,7 +121,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     name: "notes",
     control,
     rules: {
-      maxLength: { value: 500, message: "Notes must be less than 500 characters" },
+      maxLength: { value: 500, message: t("editCustomer.validation.notesMaxLength") },
     },
   });
 
@@ -173,13 +175,13 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   // Watch for errors and show toast
   useEffect(() => {
     if (customerError && isSubmitting) {
-      toast.error("We couldn't update the customer", {
-        description: "Please check your information and try again.",
+      toast.error(t("editCustomer.toasts.updateFailed"), {
+        description: t("editCustomer.toasts.updateFailedDescription"),
         icon: undefined,
       });
       setIsSubmitting(false);
     }
-  }, [customerError, isSubmitting]);
+  }, [customerError, isSubmitting, t]);
 
   // Watch for success and close form
   useEffect(() => {
@@ -278,8 +280,8 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
-        title={customer ? "Edit Customer" : "Loading..."}
-        subtitle="Update customer information"
+        title={customer ? t("editCustomer.title") : t("editCustomer.loading")}
+        subtitle={t("editCustomer.subtitle")}
         icon={UserCircle}
         iconColor="text-foreground-1"
         contentClassName="bg-surface scrollbar-hide"
@@ -287,8 +289,8 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
           <FormFooter
             onCancel={handleCancel}
             formId="edit-customer-form"
-            cancelLabel="Cancel"
-            submitLabel="Update Customer"
+            cancelLabel={t("editCustomer.buttons.cancel")}
+            submitLabel={t("editCustomer.buttons.update")}
             disabled={isFormDisabled || isSubmitting || isCustomerLoading || isFetchingCustomer || !customer}
             isLoading={isSubmitting || isCustomerLoading}
           />
@@ -310,10 +312,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Basic Information
+                    {t("editCustomer.form.basicInfoTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Update the customer's basic details.
+                    {t("editCustomer.form.basicInfoDescription")}
                   </p>
                 </div>
 
@@ -321,8 +323,8 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                   value={firstNameField.value || ""}
                   onChange={firstNameField.onChange}
                   error={firstNameState.error?.message}
-                  label="First Name"
-                  placeholder="e.g. John"
+                  label={t("editCustomer.form.firstNameLabel")}
+                  placeholder={t("editCustomer.form.firstNamePlaceholder")}
                   required
                   maxLength={50}
                   icon={UserCircle}
@@ -332,8 +334,8 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                   value={lastNameField.value || ""}
                   onChange={lastNameField.onChange}
                   error={lastNameState.error?.message}
-                  label="Last Name"
-                  placeholder="e.g. Doe"
+                  label={t("editCustomer.form.lastNameLabel")}
+                  placeholder={t("editCustomer.form.lastNamePlaceholder")}
                   maxLength={50}
                 />
               </div>
@@ -347,22 +349,22 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Contact Information
+                    {t("editCustomer.form.contactInfoTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Optional contact details for the customer.
+                    {t("editCustomer.form.contactInfoDescription")}
                   </p>
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="email" className="text-base font-medium">
-                    Email
+                    {t("editCustomer.form.emailLabel")}
                   </Label>
                   <div className="relative">
                     <Input
                       id="email"
                       type="email"
-                      placeholder="e.g. john.doe@example.com"
+                      placeholder={t("editCustomer.form.emailPlaceholder")}
                       value={emailField.value || ""}
                       onChange={emailField.onChange}
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
@@ -386,13 +388,13 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
 
                 <div className="space-y-2">
                   <Label htmlFor="phone" className="text-base font-medium">
-                    Phone
+                    {t("editCustomer.form.phoneLabel")}
                   </Label>
                   <div className="relative">
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="e.g. +1234567890"
+                      placeholder={t("editCustomer.form.phonePlaceholder")}
                       value={phoneField.value || ""}
                       onChange={(e) => {
                         const sanitized = sanitizePhoneToE164Draft(e.target.value || "");
@@ -427,10 +429,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
               <div className="space-y-4">
                 <div className="space-y-1">
                   <h3 className="text-lg font-semibold text-foreground-1">
-                    Additional Information
+                    {t("editCustomer.form.additionalInfoTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    Add notes about this customer for better organization.
+                    {t("editCustomer.form.additionalInfoDescription")}
                   </p>
                 </div>
 
@@ -438,8 +440,8 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                   value={notesField.value || ""}
                   onChange={notesField.onChange}
                   error={notesState.error?.message}
-                  label="Notes"
-                  placeholder="Add any notes about this customer..."
+                  label={t("editCustomer.form.notesLabel")}
+                  placeholder={t("editCustomer.form.notesPlaceholder")}
                   rows={4}
                 />
               </div>
@@ -453,10 +455,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
               <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
                 <div className="space-y-1">
                   <h3 className="text-base font-medium text-foreground-1">
-                    Merge Duplicate
+                    {t("editCustomer.form.mergeDuplicateTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    You are about to merge all other records for this customer into this one. This will combine their records.
+                    {t("editCustomer.form.mergeDuplicateDescription")}
                   </p>
                 </div>
 
@@ -472,12 +474,12 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                     {isMerging ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Merging...
+                        {t("editCustomer.form.merging")}
                       </>
                     ) : (
                       <>
                         <GitMerge className="h-4 w-4 mr-2" />
-                        Merge duplicates
+                        {t("editCustomer.form.mergeDuplicatesButton")}
                       </>
                     )}
                   </Button>
@@ -493,10 +495,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
               <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
                 <div className="space-y-1">
                   <h3 className="text-base font-medium text-foreground-1">
-                    Remove Customer
+                    {t("editCustomer.form.removeCustomerTitle")}
                   </h3>
                   <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    This will remove the customer from your customer list.
+                    {t("editCustomer.form.removeCustomerDescription")}
                   </p>
                 </div>
                 
@@ -512,10 +514,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                     {isRemoving ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Removing...
+                        {t("editCustomer.form.removing")}
                       </>
                     ) : (
-                      'Remove Customer'
+                      t("editCustomer.form.removeCustomerButton")
                     )}
                   </Button>
                 </div>
@@ -530,13 +532,15 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
       <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Customer</AlertDialogTitle>
+            <AlertDialogTitle>{t("editCustomer.removeDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to remove {customer?.firstName} {customer?.lastName}? This action cannot be undone.
+              {t("editCustomer.removeDialog.description", {
+                name: customer ? `${customer.firstName} ${customer.lastName}`.trim() : '',
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isRemoving}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isRemoving}>{t("editCustomer.removeDialog.cancel")}</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleConfirmRemove}
               className="bg-destructive hover:bg-destructive/90"
@@ -545,10 +549,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
               {isRemoving ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Removing...
+                  {t("editCustomer.form.removing")}
                 </>
               ) : (
-                'Remove Customer'
+                t("editCustomer.removeDialog.remove")
               )}
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -559,21 +563,23 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
       <AlertDialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Merge Duplicate</AlertDialogTitle>
+            <AlertDialogTitle>{t("editCustomer.mergeDialog.title")}</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to merge {customer?.firstName} {customer?.lastName}? This will combine their record with the existing duplicate.
+              {t("editCustomer.mergeDialog.description", {
+                name: customer ? `${customer.firstName} ${customer.lastName}`.trim() : '',
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isMerging}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isMerging}>{t("editCustomer.mergeDialog.cancel")}</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmMerge} disabled={isMerging}>
               {isMerging ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Merging...
+                  {t("editCustomer.form.merging")}
                 </>
               ) : (
-                'Merge'
+                t("editCustomer.mergeDialog.merge")
               )}
             </AlertDialogAction>
           </AlertDialogFooter>

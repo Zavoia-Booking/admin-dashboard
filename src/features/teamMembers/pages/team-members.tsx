@@ -81,9 +81,13 @@ export default function TeamMembersPage() {
     switch (pendingAction.type) {
       case 'toggleStatus':
         return {
-          title: 'Update Status',
-          description: `Are you sure you want to change ${pendingAction.toggleStatusData?.name}'s status from ${pendingAction.toggleStatusData?.currentStatus} to ${pendingAction.toggleStatusData?.newStatus}?`,
-          confirmText: 'Update Status',
+          title: text('page.confirmDialog.updateStatus'),
+          description: text('page.confirmDialog.updateStatusDescription', {
+            name: pendingAction.toggleStatusData?.name,
+            currentStatus: pendingAction.toggleStatusData?.currentStatus,
+            newStatus: pendingAction.toggleStatusData?.newStatus,
+          }),
+          confirmText: text('page.confirmDialog.updateStatus'),
           onConfirm: () => {
             // confirmToggleStatus
           }
@@ -91,16 +95,20 @@ export default function TeamMembersPage() {
 
       case 'resend':
         return {
-          title: 'Resend Invitation',
-          description: `Are you sure you want to resend the invitation to ${pendingAction.email || pendingAction.teamMemberName}?`,
-          confirmText: 'Resend',
+          title: text('page.confirmDialog.resendInvitation'),
+          description: text('page.confirmDialog.resendInvitationDescription', {
+            email: pendingAction.email || pendingAction.teamMemberName,
+          }),
+          confirmText: text('page.confirmDialog.resend'),
           onConfirm: confirmResend
         };
       case 'cancelInvite':
         return {
-          title: 'Cancel Invitation',
-          description: `Cancel the invitation for ${pendingAction.email}?`,
-          confirmText: 'Cancel Invitation',
+          title: text('page.confirmDialog.cancelInvitation'),
+          description: text('page.confirmDialog.cancelInvitationDescription', {
+            email: pendingAction.email,
+          }),
+          confirmText: text('page.confirmDialog.cancelInvitation'),
           onConfirm: confirmCancelInvite,
         };
       default:
@@ -177,7 +185,7 @@ export default function TeamMembersPage() {
                       {activeMembers.map((member: TeamMember) => {
                 const memberRoleStatus = member.roleStatus;
                 const canEdit = memberRoleStatus !== 'pending_acceptance';
-                const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
+                const displayName = `${member.firstName || text('page.displayNameFallback.pending')} ${member.lastName || text('page.displayNameFallback.invite')}`.trim();
                 
                 // Create initials for avatar
                 const initials = member.firstName && member.lastName
@@ -215,7 +223,7 @@ export default function TeamMembersPage() {
                         }}
                       >
                         <Clock className="h-3 w-3 mr-1.5 mt-0.5" />
-                        Invitation sent
+                        {text("page.badges.invitationSent")}
                       </Badge>
                     )}
                     <div className="flex items-center gap-2 text-sm text-foreground-2">
@@ -236,7 +244,7 @@ export default function TeamMembersPage() {
                 if (canEdit) {
                   actions.push({
                     icon: Edit,
-                    label: "Edit Team Member",
+                    label: text("page.actionsLabel.editTeamMember"),
                     onClick: (e: React.MouseEvent) => {
                       e.stopPropagation();
                       openEditSlider(member);
@@ -253,7 +261,7 @@ export default function TeamMembersPage() {
                     thumbnail={thumbnail}
                     onClick={() => {
                       if (!canEdit) {
-                        toast.info('Cannot edit a pending team member until they complete registration.');
+                        toast.info(text('page.toasts.cannotEditPending'));
                         return;
                       }
                       openProfileSlider(member);
@@ -278,7 +286,7 @@ export default function TeamMembersPage() {
                         }}
                       >
                         <Clock className="h-3 w-3 mr-1.5 mt-0.5" />
-                        Invitation Sent
+                        {text("page.badges.invitationSent")}
                       </Badge>
                       <div className="flex-grow border-t-2 border-gray-300"></div>
                     </div>
@@ -288,7 +296,7 @@ export default function TeamMembersPage() {
                   {pendingMembers.length > 0 && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
                       {pendingMembers.map((member: TeamMember) => {
-                        const displayName = `${member.firstName || 'Pending'} ${member.lastName || 'Invite'}`.trim();
+                        const displayName = `${member.firstName || text('page.displayNameFallback.pending')} ${member.lastName || text('page.displayNameFallback.invite')}`.trim();
                         
                         // Create initials for avatar
                         const initials = member.firstName && member.lastName
@@ -347,7 +355,7 @@ export default function TeamMembersPage() {
                               className="flex-1"
                             >
                               <Send className="h-4 w-4" />
-                              Resend
+                              {text("page.confirmDialog.resend")}
                             </Button>
                             <Button
                               type="button"
@@ -365,7 +373,7 @@ export default function TeamMembersPage() {
                               className="flex-1"
                             >
                               <XCircle className="h-4 w-4" />
-                              Cancel
+                              {text("page.confirmDialog.cancel")}
                             </Button>
                           </div>
                         );
@@ -382,7 +390,7 @@ export default function TeamMembersPage() {
                             thumbnail={thumbnail}
                             bottomActions={bottomActions}
                             onClick={() => {
-                              toast.info('This team member has not yet accepted their invitation.');
+                              toast.info(text('page.toasts.pendingNotAccepted'));
                             }}
                           />
                         );
@@ -412,7 +420,7 @@ export default function TeamMembersPage() {
                       variant="outline"
                       onClick={() => setIsConfirmDialogOpen(false)}
                     >
-                      Cancel
+                      {text("page.confirmDialog.cancel")}
                     </Button>
                   </div>
                 </DialogContent>

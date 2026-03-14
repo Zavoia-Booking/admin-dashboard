@@ -2,10 +2,9 @@ import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Upload, Trash2, FileUp, Power, RefreshCw, Calendar, Users, CreditCard, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Trash2, Power, RefreshCw, Calendar, Users, CreditCard, ArrowRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
-import { Input } from '../../../shared/components/ui/input';
 import { toast } from 'sonner';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import {
@@ -36,7 +35,6 @@ const AdvancedSettings = () => {
   const user = useSelector(selectCurrentUser);
   const isOwner = useSelector(selectIsOwner);
   
-  const [confirmText, setConfirmText] = useState('');
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isReactivating, setIsReactivating] = useState(false);
   const [isSchedulingDeletion, setIsSchedulingDeletion] = useState(false);
@@ -52,19 +50,6 @@ const AdvancedSettings = () => {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-  };
-
-  const handleImportData = (type: 'customers' | 'appointments' | 'services') => {
-    toast.info(t('toast.importPlaceholder', { type: t(`importTypes.${type}`) }));
-  };
-
-  const handleResetData = () => {
-    if (confirmText !== 'RESET') {
-      toast.error(t('toast.resetConfirmRequired'));
-      return;
-    }
-    toast.success(t('toast.resetInitiated'));
-    setConfirmText('');
   };
 
   const handleTeamMembersError = async (error: AccountActionError) => {
@@ -290,146 +275,73 @@ const AdvancedSettings = () => {
         </Card>
       )}
 
-      {/* Data Import Section */}
-      <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm">
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-            <div className="p-2 rounded-xl bg-primary/10">
-              <Upload className="h-5 w-5 text-primary" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground">{t('dataImport.title')}</h3>
-          </div>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t('dataImport.description')}</p>
-            <div className="grid grid-cols-1 gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleImportData('customers')}
-                className="h-10 text-sm"
-              >
-                <FileUp className="h-4 w-4 mr-2" />
-                {t('dataImport.importCustomers')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleImportData('appointments')}
-                className="h-10 text-sm"
-              >
-                <FileUp className="h-4 w-4 mr-2" />
-                {t('dataImport.importAppointments')}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => handleImportData('services')}
-                className="h-10 text-sm"
-              >
-                <FileUp className="h-4 w-4 mr-2" />
-                {t('dataImport.importServices')}
-              </Button>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/30">
-              <p className="text-xs text-muted-foreground">
-                <strong>{t('dataImport.supportedFormats')}</strong> {t('dataImport.formatsList')}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                <strong>{t('dataImport.fileSizeLimit')}</strong> {t('dataImport.fileSizeValue')}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Danger Zone Section */}
-      <Card className="border-0 shadow-lg bg-card/70 backdrop-blur-sm border-destructive/20">
-        <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-            <div className="p-2 rounded-xl bg-destructive/10">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
-            <h3 className="text-base font-semibold text-foreground">{t('dangerZone.title')}</h3>
-          </div>
-          <div className="space-y-4">
-            {/* Reset All Data */}
-            <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-              <h4 className="font-medium text-sm text-destructive mb-2">{t('dangerZone.resetAllData.title')}</h4>
-              <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.resetAllData.description')}</p>
-              <div className="space-y-2">
-                <Input
-                  value={confirmText}
-                  onChange={(e) => setConfirmText(e.target.value)}
-                  placeholder={t('dangerZone.resetAllData.placeholder')}
-                  className="border-0 bg-background text-base h-10"
-                />
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleResetData}
-                  disabled={confirmText !== 'RESET'}
-                  className="w-full h-10"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  {t('dangerZone.resetAllData.button')}
-                </Button>
-              </div>
-            </div>
-
-            {/* Disable Account */}
-            {!accountDisabled && !accountScheduledForDeletion && (
-              <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Power className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  <h4 className="font-medium text-sm text-amber-700 dark:text-amber-300">{t('dangerZone.disableAccount.title')}</h4>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.disableAccount.description')}</p>
+      {/* Account Actions Section */}
+      <div className="space-y-4">
+        {/* Disable Account */}
+        {!accountDisabled && !accountScheduledForDeletion && (
+          <Card className="border border-border/60 overflow-hidden">
+            <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
+              <div className="space-y-1 min-w-0">
+                <h4 className="text-base font-medium text-foreground">{t('dangerZone.disableAccount.title')}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('dangerZone.disableAccount.description')}</p>
                 {isOwner && (
-                  <div className="flex items-center gap-2 p-2 rounded-md bg-amber-500/10 mb-3">
-                    <Users className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <p className="text-xs text-amber-700 dark:text-amber-300">{t('dangerZone.disableAccount.ownerHint')}</p>
+                  <div className="mt-3 p-3 rounded-lg border border-amber-200/80 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/40">
+                    <p className="text-xs font-medium text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                      <Users className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {t('dangerZone.disableAccount.ownerHint')}
+                    </p>
                   </div>
                 )}
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleDeactivateAccount}
-                  disabled={isDeactivating}
-                  className="w-full h-10 border-amber-500/30 text-amber-700 dark:text-amber-300 hover:bg-amber-500/10"
-                >
-                  <Power className={`h-4 w-4 mr-2 ${isDeactivating ? 'animate-pulse' : ''}`} />
-                  {isDeactivating ? t('dangerZone.disableAccount.disabling') : t('dangerZone.disableAccount.button')}
-                </Button>
               </div>
-            )}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                rounded="full"
+                onClick={handleDeactivateAccount}
+                disabled={isDeactivating}
+                className="shrink-0 !h-9 !px-4 border-border hover:bg-muted"
+              >
+                <Power className={`h-3.5 w-3.5 mr-1.5 ${isDeactivating ? 'animate-pulse' : ''}`} />
+                {isDeactivating ? t('dangerZone.disableAccount.disabling') : t('dangerZone.disableAccount.button')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
-            {/* Delete Account */}
-            {!accountScheduledForDeletion && (
-              <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-                <h4 className="font-medium text-sm text-destructive mb-2">{t('dangerZone.deleteAccount.title')}</h4>
-                <p className="text-xs text-muted-foreground mb-2">{t('dangerZone.deleteAccount.description')}</p>
-                <p className="text-xs text-muted-foreground mb-3">{t('dangerZone.deleteAccount.gracePeriod')}</p>
+        {/* Delete Account */}
+        {!accountScheduledForDeletion && (
+          <Card className="border border-border/60 overflow-hidden">
+            <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
+              <div className="space-y-1 min-w-0">
+                <h4 className="text-base font-medium text-foreground">{t('dangerZone.deleteAccount.title')}</h4>
+                <p className="text-sm text-muted-foreground leading-relaxed">{t('dangerZone.deleteAccount.description')}</p>
+                <p className="text-xs text-muted-foreground">{t('dangerZone.deleteAccount.gracePeriod')}</p>
                 {isOwner && (
-                  <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 mb-3">
-                    <Users className="h-4 w-4 text-destructive flex-shrink-0" />
-                    <p className="text-xs text-destructive">{t('dangerZone.deleteAccount.ownerHint')}</p>
+                  <div className="mt-3 p-3 rounded-lg border border-amber-200/80 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/40">
+                    <p className="text-xs font-medium text-amber-800 dark:text-amber-200 flex items-start gap-2">
+                      <Users className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      {t('dangerZone.deleteAccount.ownerHint')}
+                    </p>
                   </div>
                 )}
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleScheduleDeletion}
-                  disabled={isSchedulingDeletion}
-                  className="w-full h-10"
-                >
-                  <AlertTriangle className={`h-4 w-4 mr-2 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
-                  {isSchedulingDeletion ? t('dangerZone.deleteAccount.scheduling') : t('dangerZone.deleteAccount.button')}
-                </Button>
               </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                rounded="full"
+                onClick={handleScheduleDeletion}
+                disabled={isSchedulingDeletion}
+                className="shrink-0 !h-9 !px-4"
+              >
+                <AlertTriangle className={`h-3.5 w-3.5 mr-1.5 ${isSchedulingDeletion ? 'animate-pulse' : ''}`} />
+                {isSchedulingDeletion ? t('dangerZone.deleteAccount.scheduling') : t('dangerZone.deleteAccount.button')}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </form>
 
     {/* Account blockers dialog (disable/delete blocked) */}

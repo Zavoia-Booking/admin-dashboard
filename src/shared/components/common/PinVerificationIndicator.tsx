@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { MapPin, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -41,6 +42,7 @@ export const PinVerificationIndicator: React.FC<PinVerificationIndicatorProps> =
   onVerifyClick,
   className,
 }) => {
+  const { t } = useTranslation('common');
   return (
     <div
       className={cn(
@@ -66,12 +68,10 @@ export const PinVerificationIndicator: React.FC<PinVerificationIndicatorProps> =
               isPinConfirmed ? 'text-green-600' : 'text-primary/80'
             )}
           >
-            {isPinConfirmed ? 'Location pin confirmed' : 'Location pin verification required'}
+            {isPinConfirmed ? t('pinVerification.confirmed') : t('pinVerification.required')}
           </h4>
           <p className="text-sm text-foreground-1 mt-1">
-            {isPinConfirmed
-              ? 'Your location pin has been verified on the map.'
-              : 'Please confirm the exact location of your pin on the map.'}
+            {isPinConfirmed ? t('pinVerification.confirmedDesc') : t('pinVerification.requiredDesc')}
           </p>
         </div>
       </div>
@@ -92,7 +92,7 @@ export const PinVerificationIndicator: React.FC<PinVerificationIndicatorProps> =
         ) : (
           <>
             <MapPin className="h-4 w-4" />
-            {isPinConfirmed ? 'Move Pin' : 'Verify Pin'}
+            {isPinConfirmed ? t('pinVerification.movePin') : t('pinVerification.verifyPin')}
           </>
         )}
       </Button>

@@ -66,8 +66,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const [searchParams] = useSearchParams();
   const bookingSettingsRef = useRef<AdvancedSettingsSectionRef>(null);
   const [bookingSettingsDirty, setBookingSettingsDirty] = useState(false);
-  const [bookingSettingsHasErrors, setBookingSettingsHasErrors] =
-    useState(false);
+  const [bookingSettingsHasErrors, setBookingSettingsHasErrors] = useState(false);
 
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);

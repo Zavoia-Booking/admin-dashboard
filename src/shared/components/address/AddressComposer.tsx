@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import AddressAutocomplete from './AddressAutocomplete';
 import { composeFullAddress } from '../../utils/address';
 import { useAddressManualFields } from '../../hooks/useAddressManualFields';
@@ -38,6 +39,7 @@ type Props = {
 };
 
 export default function AddressComposer({ value, onChange, className, addressComponents, onAddressComponentsChange, onValidityChange, manualMode: externalManualMode, onManualModeChange, preserveInitialData = false, alwaysClearOnSwitch = false, countryCodes }: Props) {
+  const { t } = useTranslation('common');
   const [addressSelected, setAddressSelected] = useState(false);
   const lastSelectedRef = useRef<{ s: string; n: string; c: string; p: string; co: string; display: string } | null>(null);
   const [manualEdited, setManualEdited] = useState(false);
@@ -462,7 +464,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
   return (
     <div className={className}>
       <SegmentedControl
-        options={[{ value: 'search', label: 'Search' }, { value: 'manual', label: 'Manual' }]}
+        options={[{ value: 'search', label: t('address.search') }, { value: 'manual', label: t('address.manual') }]}
         value={manualMode ? 'manual' : 'search'}
         onChange={(v) => (v === 'manual' ? handleSelectManualMode() : handleSelectSearchMode())}
         className="mb-4 w-[224px]"
@@ -478,7 +480,7 @@ export default function AddressComposer({ value, onChange, className, addressCom
             autoFocus={shouldAutoFocus}
             countryCodes={countryCodes}
           />
-          <div className="mt-2 text-sm text-muted-foreground mb-6">Type to search. If you can't find it, switch to Manual.</div>
+          <div className="mt-2 text-sm text-muted-foreground mb-6">{t('address.helperText')}</div>
         </>
       )}
       {(addressSelected || manualMode) && (

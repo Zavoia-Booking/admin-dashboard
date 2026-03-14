@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Wifi } from 'lucide-react';
@@ -16,12 +17,16 @@ export interface RemoteLocationToggleProps {
 export const RemoteLocationToggle: React.FC<RemoteLocationToggleProps> = ({
   isRemote,
   onChange,
-  label = 'I offer remote/online services',
-  descriptionOn = "Meetings happen outside Zavoia. Add your Zoom/Meet/Teams link or instructions, and choose the correct timezone so clients join at the right time.",
-  descriptionOff = 'Turn on if you take sessions via Zoom, Google Meet, Teams, etc.',
+  label,
+  descriptionOn,
+  descriptionOff,
   className = '',
   id = 'isRemote',
 }) => {
+  const { t } = useTranslation('common');
+  const displayLabel = label ?? t('remoteLocation.label');
+  const displayDescriptionOn = descriptionOn ?? t('remoteLocation.descriptionOn');
+  const displayDescriptionOff = descriptionOff ?? t('remoteLocation.descriptionOff');
   return (
     <div
       className={`${
@@ -34,7 +39,7 @@ export const RemoteLocationToggle: React.FC<RemoteLocationToggleProps> = ({
         <div className="flex items-center gap-3">
           <Wifi className={`h-6 w-6 shrink-0 ${isRemote ? 'text-info' : 'text-primary'}`} />
           <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${isRemote ? 'text-neutral-900' : ''}`}>
-            {label}
+            {displayLabel}
           </Label>
         </div>
         <Switch
@@ -45,7 +50,7 @@ export const RemoteLocationToggle: React.FC<RemoteLocationToggleProps> = ({
         />
       </div>
       <p className={`text-sm ${isRemote ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
-        {isRemote ? descriptionOn : descriptionOff}
+        {isRemote ? displayDescriptionOn : displayDescriptionOff}
       </p>
     </div>
   );

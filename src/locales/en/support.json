@@ -1,0 +1,44 @@
+{
+  "page": {
+    "title": "Support"
+  },
+  "status": {
+    "OPEN": "Open",
+    "IN_PROGRESS": "In Progress",
+    "CLOSED": "Closed",
+    "REOPENED": "Reopened",
+    "all": "All"
+  },
+  "category": {
+    "bug": "Bug",
+    "question": "Question",
+    "bugReport": "Bug Report"
+  },
+  "ticket": {
+    "ticketId": "Ticket #{{id}}",
+    "created": "Created {{date}}",
+    "closeTicket": "Close ticket",
+    "closing": "Closing...",
+    "supportTeam": "Support Team",
+    "ticketClosed": "This ticket is closed",
+    "typeMessage": "Type your message...",
+    "newTicket": "New Ticket",
+    "submitTicket": "Submit Ticket",
+    "submitting": "Submitting..."
+  },
+  "dialog": {
+    "title": "New Support Ticket",
+    "description": "Describe your issue and we'll get back to you as soon as possible.",
+    "categoryLabel": "Category",
+    "messageLabel": "Message",
+    "messagePlaceholder": "Describe your issue in detail...",
+    "cancel": "Cancel"
+  },
+  "empty": {
+    "noTickets": "No support tickets",
+    "description": "Need help? Create a support ticket and our team will assist you.",
+    "createFirst": "Create your first ticket",
+    "noMatch": "No tickets match the selected filter",
+    "clearFilter": "Clear filter"
+  }
+}

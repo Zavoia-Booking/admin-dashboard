@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
 import { Button } from '../../../../shared/components/ui/button';
@@ -10,6 +11,7 @@ import { ResponsiveTabs, type ResponsiveTabItem } from '../../../../shared/compo
 type MySettingsTab = 'profile' | 'advanced';
 
 export default function MySettingsPage() {
+  const { t } = useTranslation('mySettings');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
@@ -63,19 +65,19 @@ export default function MySettingsPage() {
   const tabItems: ResponsiveTabItem[] = useMemo(() => [
     {
       id: 'profile',
-      label: 'Profile',
-      mobileLabel: 'Profile',
+      label: t('tabs.profile'),
+      mobileLabel: t('tabs.profileMobile'),
       icon: User,
       content: renderTabContent('profile'),
     },
     {
       id: 'advanced',
-      label: 'Advanced Settings',
-      mobileLabel: 'Advanced',
+      label: t('tabs.advanced'),
+      mobileLabel: t('tabs.advancedMobile'),
       icon: Settings,
       content: renderTabContent('advanced'),
     },
-  ], [activeTab]);
+  ], [activeTab, t]);
 
   const handleSaveProfile = () => {
     (document.getElementById('my-settings-profile-form') as HTMLFormElement | null)?.requestSubmit();
@@ -94,7 +96,7 @@ export default function MySettingsPage() {
         <>
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
           <span>
-            Saving
+            {t('buttons.saving')}
             <span className="inline-block w-4 text-left animate-pulse" aria-hidden>
               ...
             </span>
@@ -102,7 +104,7 @@ export default function MySettingsPage() {
         </>
       ) : (
         <>
-          <span>Save Changes</span>
+          <span>{t('buttons.saveChanges')}</span>
           <Save className="hidden md:inline h-4 w-4" />
         </>
       )}

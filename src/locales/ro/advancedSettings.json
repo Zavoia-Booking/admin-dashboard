@@ -101,6 +101,8 @@
   },
   "leaveOrganisation": {
     "title": "Părăsește organizația",
+    "cardDescription": "Retrage-te din această afacere. Trebuie să anulezi sau să realoci toate programările tale active mai întâi.",
+    "cardHint": "Cere proprietarului afacerii să-ți realoce programările unui alt membru al echipei sau anulează-le tu însuți.",
     "confirmMessage": "Sigur vrei să părăsești această organizație?",
     "confirmHint": "Vei pierde accesul la această afacere și la toate datele asociate. Acțiunea nu poate fi anulată.",
     "confirmButton": "Părăsește organizația",

@@ -1,4 +1,18 @@
 {
+  "breadcrumbs": {
+    "dashboard": "Panou de control",
+    "calendar": "Calendar",
+    "locations": "Locații",
+    "services": "Servicii",
+    "assignments": "Alocări",
+    "teamMembers": "Membri echipă",
+    "customers": "Clienți",
+    "marketplace": "Piață",
+    "support": "Suport",
+    "settings": "Setări",
+    "home": "Acasă",
+    "detail": "Detalii"
+  },
   "sidebar": {
     "dashboard": "Panou de control",
     "calendar": "Calendar",

@@ -1,16 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { 
   MessageSquare, 
   Loader2, 
   ChevronDown, 
   History,
   Zap,
-  TrendingUp,
   Check
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Badge } from '../../../shared/components/ui/badge';
 import {
   createSmsCheckoutAction,
@@ -65,6 +64,7 @@ const getBestValuePackageId = (packages: SmsPackage[]): number | null => {
 };
 
 const SmsCredits = () => {
+  const { t } = useTranslation('settings');
   const dispatch = useDispatch();
   
   // Redux state
@@ -82,10 +82,19 @@ const SmsCredits = () => {
   // Local state
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  
+  const hasInitializedSelection = useRef(false);
+
   // Get best value package
   const bestValueId = getBestValuePackageId(smsPackages);
-  
+
+  // Pre-select best value when packages load
+  useEffect(() => {
+    if (smsPackages.length > 0 && bestValueId != null && !hasInitializedSelection.current) {
+      hasInitializedSelection.current = true;
+      setSelectedPackageId(bestValueId);
+    }
+  }, [smsPackages, bestValueId]);
+
   // Fetch purchases when history is expanded
   useEffect(() => {
     if (showHistory && smsPurchases.length === 0) {
@@ -93,13 +102,15 @@ const SmsCredits = () => {
     }
   }, [showHistory, smsPurchases.length, dispatch]);
   
-  const handleBuyPackage = (pkg: SmsPackage) => {
-    if (checkoutLoading) return;
-    
-    setSelectedPackageId(pkg.id);
-    
+  const handleSelectPackage = (pkg: SmsPackage) => {
+    setSelectedPackageId((prev) => (prev === pkg.id ? null : pkg.id));
+  };
+
+  const handleBuySelected = () => {
+    if (!selectedPackageId || checkoutLoading) return;
+
     dispatch(createSmsCheckoutAction.request({
-      packageId: pkg.id,
+      packageId: selectedPackageId,
       successUrl: `${window.location.origin}/info?type=sms-purchase-success`,
       cancelUrl: `${window.location.origin}/settings?tab=billing`,
     }));
@@ -121,159 +132,135 @@ const SmsCredits = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-          <p className="text-sm text-muted-foreground">Loading SMS information...</p>
+          <p className="text-sm text-muted-foreground">{t('sms.loading')}</p>
         </div>
       ) : (
         <>
-          {/* Combined SMS Section */}
-          <Card className="border border-border bg-card shadow-sm overflow-hidden">
-            <CardContent className="p-0">
-              {/* Header with Balance */}
-              <div className="bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 p-5 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2.5 rounded-xl bg-primary/15 ring-1 ring-primary/20">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-base font-semibold text-foreground-1">SMS Credits</h3>
-                      <p className="text-xs text-muted-foreground">Send appointment reminders & notifications</p>
-                    </div>
-                  </div>
-                  
-                  {smsBalance && (
-                    <div className="text-right">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="text-3xl font-bold text-primary">{smsBalance.smsCredits}</span>
-                        <span className="text-sm text-muted-foreground">credits</span>
-                      </div>
-                      {smsBalance.smsTotalUsed > 0 && (
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {smsBalance.smsTotalUsed} used of {smsBalance.smsTotalPurchased}
-                        </p>
-                      )}
-                    </div>
+          {/* SMS Credits - Compact editorial style */}
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden">
+            {/* Header - minimal bar */}
+            <div className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 border-b border-border/60">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <MessageSquare className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-foreground">{t('sms.title')}</h3>
+                  <p className="text-xs text-muted-foreground">{t('sms.subtitle')}</p>
+                </div>
+              </div>
+              {smsBalance && (
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold tabular-nums text-foreground">{smsBalance.smsCredits}</span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wider">{t('sms.available')}</span>
+                  {smsBalance.smsTotalUsed > 0 && (
+                    <span className="text-xs text-muted-foreground ml-2">
+                      · {t('sms.used', { used: smsBalance.smsTotalUsed, total: smsBalance.smsTotalPurchased })}
+                    </span>
                   )}
                 </div>
-              </div>
-              
-              {/* Packages Grid */}
-              <div className="p-5">
-                {smsPackages.length > 0 ? (
-                  <>
-                    <div className="flex items-center gap-2 mb-4">
-                      <Zap className="h-4 w-4 text-warning" />
-                      <span className="text-sm font-medium text-foreground-1">Top up your credits</span>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {smsPackages.map((pkg) => {
-                        const isBestValue = pkg.id === bestValueId && smsPackages.length > 1;
-                        const pricePerSms = pkg.priceMinor / pkg.smsCount;
-                        const isSelected = checkoutLoading && selectedPackageId === pkg.id;
-                        
-                        return (
-                          <button
-                            key={pkg.id}
-                            onClick={() => handleBuyPackage(pkg)}
-                            disabled={checkoutLoading}
-                            className={`
-                              relative group text-left rounded-xl p-4 transition-all duration-200
-                              border-2 hover:shadow-md
-                              ${isBestValue 
-                                ? 'border-primary bg-primary/5 hover:bg-primary/10' 
-                                : 'border-border hover:border-primary/40 bg-surface hover:bg-muted/50'
-                              }
-                              ${checkoutLoading && !isSelected ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                              disabled:cursor-not-allowed
-                            `}
-                          >
-                            {/* Best Value Badge */}
-                            {isBestValue && (
-                              <div className="absolute -top-2.5 left-3">
-                                <Badge className="bg-primary text-white text-[10px] px-2 py-0.5 font-medium shadow-sm">
-                                  <TrendingUp className="h-3 w-3 mr-1" />
-                                  Best Value
-                                </Badge>
-                              </div>
-                            )}
-                            
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1">
-                                <div className="flex items-baseline gap-1">
-                                  <span className="text-2xl font-bold text-foreground">{pkg.smsCount}</span>
-                                  <span className="text-sm text-muted-foreground">SMS</span>
-                                </div>
-                                <p className="text-xs text-muted-foreground">
-                                  {formatPrice(Math.round(pricePerSms), pkg.currency)}/SMS
-                                </p>
-                              </div>
-                              
-                              <div className="text-right">
-                                <p className={`text-xl font-bold ${isBestValue ? 'text-primary' : 'text-foreground'}`}>
-                                  {formatPrice(pkg.priceMinor, pkg.currency)}
-                                </p>
-                              </div>
+              )}
+            </div>
+
+            {/* Packages */}
+            <div className="p-5">
+              {smsPackages.length > 0 ? (
+                <>
+                  <div className="divide-y divide-border/40">
+                    {smsPackages.map((pkg) => {
+                      const isBestValue = pkg.id === bestValueId && smsPackages.length > 1;
+                      const pricePerSms = pkg.priceMinor / pkg.smsCount;
+                      const isSelected = selectedPackageId === pkg.id;
+
+                      return (
+                        <button
+                          key={pkg.id}
+                          type="button"
+                          onClick={() => handleSelectPackage(pkg)}
+                          disabled={checkoutLoading}
+                          className={`
+                            w-full flex items-center justify-between gap-4 px-4 py-3.5 rounded-lg
+                            text-left transition-all duration-150
+                            ${isSelected
+                              ? 'bg-primary/10 border-l-4 border-l-primary -ml-[1px] pl-[15px]'
+                              : 'bg-muted/30 border-l-4 border-l-transparent hover:bg-muted/60 hover:border-l-primary/40'
+                            }
+                            ${checkoutLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2
+                          `}
+                        >
+                          <div className="flex items-center gap-4 min-w-0">
+                            <div className="w-5 h-5 shrink-0 flex items-center justify-center">
+                              {isSelected && <Check className="h-4 w-4 text-primary" />}
                             </div>
-                            
-                            {/* Buy indicator */}
-                            <div className={`
-                              mt-3 py-2 rounded-lg text-center text-sm font-medium transition-colors
-                              ${isSelected 
-                                ? 'bg-primary text-white' 
-                                : isBestValue
-                                ? 'bg-primary/15 text-primary group-hover:bg-primary group-hover:text-white'
-                                : 'bg-muted text-foreground-2 group-hover:bg-primary group-hover:text-white'
-                              }
-                            `}>
-                              {isSelected ? (
-                                <span className="flex items-center justify-center gap-2">
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                  Processing...
-                                </span>
-                              ) : (
-                                <span className="flex items-center justify-center gap-1.5">
-                                  Buy Now
-                                </span>
-                              )}
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-foreground">{pkg.smsCount} SMS</span>
+                                {isBestValue && (
+                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
+                                    {t('sms.bestValue')}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {t('sms.perSms', { price: formatPrice(Math.round(pricePerSms), pkg.currency) })}
+                              </p>
                             </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-                      <MessageSquare className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <p className="text-foreground-1 font-medium">No packages available</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Check back soon for available SMS packages
-                    </p>
+                          </div>
+                          <span className={`font-semibold tabular-nums shrink-0 ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                            {formatPrice(pkg.priceMinor, pkg.currency)}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
-                )}
+
+                  {selectedPackageId && (
+                    <div className="mt-4 pt-4 border-t border-border/60 flex justify-center">
+                      <Button
+                        onClick={handleBuySelected}
+                        disabled={checkoutLoading}
+                        rounded="full"
+                        size="sm"
+                        className="w-44 bg-primary hover:bg-primary/90 text-primary-foreground"
+                      >
+                        {checkoutLoading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t('sms.processing')}
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="h-4 w-4 mr-2" />
+                            {t('sms.buyCredits', { count: smsPackages.find((p) => p.id === selectedPackageId)?.smsCount ?? 0 })}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center py-12">
+                  <MessageSquare className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-foreground">{t('sms.noPackages')}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{t('sms.checkBackSoon')}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Purchase History */}
+          <div className="rounded-2xl border border-border/80 bg-card overflow-hidden">
+            <button
+              onClick={() => setShowHistory(!showHistory)}
+              className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-muted/20 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <History className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-foreground">{t('sms.purchaseHistory')}</span>
               </div>
-            </CardContent>
-          </Card>
-          
-          {/* Purchase History Section */}
-          <Card className="border border-border bg-card shadow-sm">
-            <CardContent className="p-0">
-              <button
-                onClick={() => setShowHistory(!showHistory)}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted/30 transition-colors rounded-t-lg"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-muted">
-                    <History className="h-4 w-4 text-foreground-2" />
-                  </div>
-                  <span className="text-sm font-medium text-foreground-1">Purchase History</span>
-                </div>
-                <div className={`transition-transform duration-200 ${showHistory ? 'rotate-180' : ''}`}>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </button>
+              <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+            </button>
               
               {showHistory && (
                 <div className="border-t border-border">
@@ -324,7 +311,7 @@ const SmsCredits = () => {
                                 }
                               `}
                             >
-                              {purchase.status}
+                              {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
                             </Badge>
                           </div>
                         </div>
@@ -336,6 +323,7 @@ const SmsCredits = () => {
                           <Button
                             variant="ghost"
                             size="sm"
+                            rounded="full"
                             onClick={handleLoadMorePurchases}
                             disabled={purchasesLoading}
                             className="w-full text-muted-foreground hover:text-foreground"
@@ -343,10 +331,10 @@ const SmsCredits = () => {
                             {purchasesLoading ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                Loading...
+                                {t('billing.loadingShort')}
                               </>
                             ) : (
-                              'Load more'
+                              t('sms.loadMore')
                             )}
                           </Button>
                         </div>
@@ -354,13 +342,12 @@ const SmsCredits = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 px-4">
-                      <p className="text-sm text-muted-foreground">No purchases yet</p>
+                      <p className="text-sm text-muted-foreground">{t('sms.noPurchases')}</p>
                     </div>
                   )}
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </div>
         </>
       )}
     </div>

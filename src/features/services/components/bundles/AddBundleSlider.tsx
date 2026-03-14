@@ -151,26 +151,26 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
   // Validation helpers
   const validateBundleName = (value: string): string | true => {
     const v = (value ?? "").trim();
-    if (!v) return "Bundle name is required";
-    if (v.length < 2) return "Bundle name must be at least 2 characters";
-    if (v.length > 100) return "Bundle name must not exceed 100 characters";
+    if (!v) return text("bundles.addBundle.validation.nameRequired");
+    if (v.length < 2) return text("bundles.addBundle.validation.nameMinLength");
+    if (v.length > 100) return text("bundles.addBundle.validation.nameMaxLength");
     return true;
   };
 
   const validateDescription = (value: string): string | true => {
     if (!value || !value.trim()) return true;
     const v = value.trim();
-    if (v.length > 500) return "Description must not exceed 500 characters";
+    if (v.length > 500) return text("bundles.addBundle.validation.descriptionMaxLength");
     return true;
   };
 
   const validateFixedPrice = (value: number | undefined): string | true => {
     if (priceType === BundlePriceType.FIXED) {
       if (value === undefined || value === null) {
-        return "Fixed price is required";
+        return text("bundles.addBundle.validation.fixedPriceRequired");
       }
       if (value < 0) {
-        return "Fixed price must be greater than or equal to 0";
+        return text("bundles.addBundle.validation.fixedPriceMin");
       }
     }
     return true;
@@ -181,13 +181,13 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
   ): string | true => {
     if (priceType === BundlePriceType.DISCOUNT) {
       if (value === undefined || value === null) {
-        return "Discount percentage is required";
+        return text("bundles.addBundle.validation.discountRequired");
       }
       if (value < 0) {
-        return "Discount percentage must be at least 0";
+        return text("bundles.addBundle.validation.discountMin");
       }
       if (value > 100) {
-        return "Discount percentage must not exceed 100";
+        return text("bundles.addBundle.validation.discountMax");
       }
     }
     return true;
