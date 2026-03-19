@@ -128,7 +128,7 @@ const SmsCredits = () => {
   const isLoading = balanceLoading || packagesLoading;
   
   return (
-    <div className="space-y-6">
+    <div id="sms-credits" className="space-y-6">
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />

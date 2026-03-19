@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/components/ui/button";
 import { Plus, Mail, Phone, Edit, Clock, Send, XCircle, Users } from "lucide-react";
@@ -24,6 +25,7 @@ import TeamMembersListSkeleton from '../components/TeamMembersListSkeleton';
 
 export default function TeamMembersPage() {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const text = useTranslation("teamMembers").t;
   const teamMembers = useSelector(selectTeamMembers);
   const isTeamMembersLoading = useSelector(selectTeamMembersLoading);
@@ -39,10 +41,30 @@ export default function TeamMembersPage() {
     email?: string;
     toggleStatusData?: { id: string; name: string; currentStatus: string; newStatus: string };
   } | null>(null);
+  const deepLinkHandled = useRef(false);
 
   useEffect(() => {
     dispatch(listTeamMembersAction.request());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    const memberIdParam = searchParams.get("memberId");
+    if (!memberIdParam) return;
+    if (isTeamMembersLoading || teamMembers.length === 0) return;
+
+    const memberId = Number(memberIdParam);
+    if (Number.isNaN(memberId)) return;
+
+    deepLinkHandled.current = true;
+    setSearchParams({}, { replace: true });
+
+    const member = teamMembers.find((m) => m.id === memberId);
+    if (member) {
+      setSelectedTeamMember(member);
+      setIsProfileSliderOpen(true);
+    }
+  }, [searchParams, setSearchParams, teamMembers, isTeamMembersLoading]);
 
   const confirmResend = async () => {
     if (!pendingAction || pendingAction.type !== 'resend' || !pendingAction.teamMemberId) return;

@@ -1,5 +1,10 @@
 import { apiClient } from "../../shared/lib/http";
-import type { ListNotificationsResponse, MarkReadResponse, MarkAllReadResponse } from "./types";
+import type {
+  ListNotificationsResponse,
+  MarkReadResponse,
+  MarkAllReadResponse,
+  DeleteNotificationResponse,
+} from "./types";
 
 export const listNotificationsRequest = (offset: number, limit: number) => {
   return apiClient().get<ListNotificationsResponse>(
@@ -16,5 +21,11 @@ export const markNotificationReadRequest = (id: number) => {
 export const markAllNotificationsReadRequest = () => {
   return apiClient().patch<MarkAllReadResponse>(
     `/business-notifications/read-all`
+  );
+};
+
+export const deleteNotificationRequest = (id: number) => {
+  return apiClient().delete<DeleteNotificationResponse>(
+    `/business-notifications/${id}`
   );
 };

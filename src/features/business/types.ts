@@ -18,6 +18,9 @@ export interface Business {
   businessCurrency: string;
   instagramUrl: string | null;
   facebookUrl: string | null;
+  tiktokUrl: string | null;
+  websiteUrl: string | null;
+  pinterestUrl: string | null;
   isActive: boolean;
   industry: Industry | null;
   trialEndsAt?: string | null;
@@ -34,6 +37,9 @@ export interface UpdateBusinessDTO {
   businessCurrency?: string;
   instagramUrl?: string;
   facebookUrl?: string;
+  tiktokUrl?: string;
+  websiteUrl?: string;
+  pinterestUrl?: string;
   industryId?: number;
 }
 

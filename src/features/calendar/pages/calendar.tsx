@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction, setSelectedLocationAction } from "../actions";
+import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction, setSelectedLocationAction, setSelectedDateAction } from "../actions";
+import { getAppointmentDetailRequest } from "../api";
 import {
   getAddFormSelector,
   getEditFormSelector,
@@ -26,6 +28,7 @@ import { Card } from "../../../shared/components/ui/card.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
   const addFormOpen = useSelector(getAddFormSelector);
   const editForm = useSelector(getEditFormSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
@@ -40,6 +43,26 @@ const Calendar = () => {
     dispatch(setViewModeAction(calendarPreferences.getDefaultViewMode()));
     dispatch(setViewTypeAction(calendarPreferences.getDefaultViewType()));
   }, [dispatch]);
+
+  useEffect(() => {
+    const appointmentIdParam = searchParams.get("appointmentId");
+    if (!appointmentIdParam) return;
+
+    const appointmentId = Number(appointmentIdParam);
+    if (Number.isNaN(appointmentId)) return;
+
+    setSearchParams({}, { replace: true });
+
+    getAppointmentDetailRequest(appointmentId)
+      .then((appointment) => {
+        if (appointment) {
+          dispatch(setSelectedDateAction(new Date(appointment.scheduledAt)));
+          dispatch(setViewModeAction(AppointmentViewMode.DAY));
+          dispatch(toggleEditFormAction({ open: true, item: appointment }));
+        }
+      })
+      .catch(() => {});
+  }, [searchParams, setSearchParams, dispatch]);
 
   useEffect(() => {
     // Locations needed for LocationSelector. Services and team are loaded per-location via assignments/full when a location is selected.

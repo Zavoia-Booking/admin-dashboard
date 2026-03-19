@@ -4,6 +4,7 @@ import {
   loadMoreNotificationsAction,
   markNotificationReadAction,
   markAllNotificationsReadAction,
+  deleteNotificationsAction,
   decrementUnreadCount,
   resetUnreadCount,
 } from "./actions";
@@ -11,6 +12,7 @@ import {
   listNotificationsRequest,
   markNotificationReadRequest,
   markAllNotificationsReadRequest,
+  deleteNotificationRequest,
 } from "./api";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
@@ -85,11 +87,45 @@ function* handleMarkAllNotificationsRead(): Generator<any, void, any> {
   }
 }
 
+function* handleDeleteNotifications(
+  action: ActionType<typeof deleteNotificationsAction.request>
+): Generator<any, void, any> {
+  try {
+    const deletedIds: number[] = [];
+    let unreadDeletedCount = 0;
+
+    for (const notification of action.payload.notifications) {
+      yield call(deleteNotificationRequest, notification.id);
+      deletedIds.push(notification.id);
+
+      if (!notification.read) {
+        unreadDeletedCount += 1;
+      }
+    }
+
+    yield put(
+      deleteNotificationsAction.success({
+        ids: deletedIds,
+        unreadDeletedCount,
+      })
+    );
+
+    if (unreadDeletedCount > 0) {
+      yield put(decrementUnreadCount(unreadDeletedCount));
+    }
+  } catch (error: unknown) {
+    const errorMessage = getErrorMessage(error);
+    toast.error(errorMessage);
+    yield put(deleteNotificationsAction.failure({ message: errorMessage }));
+  }
+}
+
 export function* notificationsSaga(): Generator<unknown, void, unknown> {
   yield all([
     takeLatest(listNotificationsAction.request, handleListNotifications),
     takeLatest(loadMoreNotificationsAction.request, handleLoadMoreNotifications),
     takeLatest(markNotificationReadAction.request, handleMarkNotificationRead),
     takeLatest(markAllNotificationsReadAction.request, handleMarkAllNotificationsRead),
+    takeLatest(deleteNotificationsAction.request, handleDeleteNotifications),
   ]);
 }

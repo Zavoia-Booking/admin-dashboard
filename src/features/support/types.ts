@@ -7,8 +7,16 @@ export interface TicketHistoryEntry {
   createdBy: string;
 }
 
+export interface TicketMessageEntry {
+  from: string;
+  text: string;
+  timestamp?: string;
+}
+
 export interface TicketDetails {
-  history: TicketHistoryEntry[];
+  history?: TicketHistoryEntry[];
+  subject?: string;
+  messages?: TicketMessageEntry[];
 }
 
 export interface SupportTicket {
@@ -22,7 +30,7 @@ export interface SupportTicket {
   resolvedAt: string | null;
   createdBy: string;
   priority: TicketPriority;
-  category: TicketCategory;
+  category: TicketCategory | null;
   status: TicketStatus;
   seen: boolean;
   seenByAdmin?: boolean;

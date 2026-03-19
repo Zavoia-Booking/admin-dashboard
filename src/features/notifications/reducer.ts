@@ -15,6 +15,7 @@ const initialState: NotificationsState = {
   isLoadingMore: false,
   isMarkingRead: false,
   isMarkingAllRead: false,
+  isDeleting: false,
   error: null,
   hasMore: true,
 };
@@ -92,6 +93,34 @@ export const NotificationsReducer: Reducer<NotificationsState, any> = (
 
     case getType(actions.markAllNotificationsReadAction.failure):
       return { ...state, isMarkingAllRead: false };
+
+    case getType(actions.deleteNotificationsAction.request):
+      return { ...state, isDeleting: true, error: null };
+
+    case getType(actions.deleteNotificationsAction.success): {
+      const idsToDelete = new Set(action.payload.ids);
+      const nextNotifications = state.notifications.filter(
+        (notification) => !idsToDelete.has(notification.id)
+      );
+      const nextTotal = Math.max(
+        0,
+        state.pagination.total - action.payload.ids.length
+      );
+
+      return {
+        ...state,
+        isDeleting: false,
+        notifications: nextNotifications,
+        pagination: {
+          ...state.pagination,
+          total: nextTotal,
+        },
+        hasMore: nextNotifications.length < nextTotal,
+      };
+    }
+
+    case getType(actions.deleteNotificationsAction.failure):
+      return { ...state, isDeleting: false, error: action.payload.message };
 
     default:
       return state;

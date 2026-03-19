@@ -1,5 +1,10 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
-import type { ListNotificationsResponse, MarkAllReadResponse } from "./types";
+import type {
+  ListNotificationsResponse,
+  MarkAllReadResponse,
+  DeleteNotificationRequestItem,
+  DeleteNotificationsSuccessPayload,
+} from "./types";
 
 export const listNotificationsAction = createAsyncAction(
   "LIST/NOTIFICATIONS/REQUEST",
@@ -24,6 +29,12 @@ export const markAllNotificationsReadAction = createAsyncAction(
   "MARK_ALL_READ/NOTIFICATIONS/SUCCESS",
   "MARK_ALL_READ/NOTIFICATIONS/FAILURE"
 )<void, MarkAllReadResponse, { message: string }>();
+
+export const deleteNotificationsAction = createAsyncAction(
+  "DELETE/NOTIFICATIONS/REQUEST",
+  "DELETE/NOTIFICATIONS/SUCCESS",
+  "DELETE/NOTIFICATIONS/FAILURE"
+)<{ notifications: DeleteNotificationRequestItem[] }, DeleteNotificationsSuccessPayload, { message: string }>();
 
 export const decrementUnreadCount = createAction("NOTIFICATIONS/DECREMENT_UNREAD")<number>();
 export const resetUnreadCount = createAction("NOTIFICATIONS/RESET_UNREAD")();

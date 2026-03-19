@@ -65,6 +65,11 @@ export interface UpdateBusinessInfoPayload {
   bookingSlug?: string;
   logo?: string;
   logoKey?: string;
+  instagramUrl?: string;
+  facebookUrl?: string;
+  tiktokUrl?: string;
+  websiteUrl?: string;
+  pinterestUrl?: string;
 }
 
 export const updateBusinessInfo = async (payload: UpdateBusinessInfoPayload): Promise<{ success: boolean }> => {

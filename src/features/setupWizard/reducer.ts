@@ -58,6 +58,9 @@ const initialState: WizardState = {
       businessCurrency: 'eur' as string, // Default to EUR
       instagramUrl: undefined as unknown as string,
       facebookUrl: undefined as unknown as string,
+      tiktokUrl: undefined as unknown as string,
+      websiteUrl: undefined as unknown as string,
+      pinterestUrl: undefined as unknown as string,
     },
     useAccountEmail: true, // Default: use account email as business email
     location: {

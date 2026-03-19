@@ -46,7 +46,13 @@
       "instagram": "Instagram URL",
       "instagramPlaceholder": "https://instagram.com/yourbusiness",
       "facebook": "Facebook URL",
-      "facebookPlaceholder": "https://facebook.com/yourbusiness"
+      "facebookPlaceholder": "https://facebook.com/yourbusiness",
+      "tiktok": "TikTok URL",
+      "tiktokPlaceholder": "https://tiktok.com/@yourbusiness",
+      "website": "Website URL",
+      "websitePlaceholder": "https://yourbusiness.com",
+      "pinterest": "Pinterest URL",
+      "pinterestPlaceholder": "https://pinterest.com/yourbusiness"
     },
     "security": {
       "title": "Account Security",

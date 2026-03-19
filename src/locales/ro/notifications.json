@@ -4,11 +4,23 @@
   "subtitleEmpty": "Nicio notificare încă",
   "markAllAsRead": "Marchează toate ca citite",
   "markAsRead": "Marchează ca citită",
+  "deleteAllLoaded": "Șterge toate",
+  "deleting": "Se șterge...",
+  "deleteConfirm": {
+    "title": "Ștergi toate notificările încărcate?",
+    "description": "Aceasta va elimina definitiv cele {{count}} notificări încărcate din această listă.",
+    "confirm": "Șterge toate",
+    "cancel": "Anulează"
+  },
   "loadMore": "Încarcă mai multe",
   "loadingMore": "Se încarcă...",
   "empty": {
     "title": "Nicio notificare",
     "description": "Ești la zi! Notificările noi vor apărea aici când va fi ceva important."
+  },
+  "dateGroup": {
+    "today": "Azi",
+    "yesterday": "Ieri"
   },
   "time": {
     "justNow": "Chiar acum",

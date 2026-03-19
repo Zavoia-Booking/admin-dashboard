@@ -32,6 +32,20 @@ export interface MarkAllReadResponse {
   };
 }
 
+export interface DeleteNotificationResponse {
+  message: string;
+}
+
+export interface DeleteNotificationRequestItem {
+  id: number;
+  read: boolean;
+}
+
+export interface DeleteNotificationsSuccessPayload {
+  ids: number[];
+  unreadDeletedCount: number;
+}
+
 export interface NotificationsState {
   notifications: BusinessNotification[];
   pagination: NotificationsPagination;
@@ -39,6 +53,7 @@ export interface NotificationsState {
   isLoadingMore: boolean;
   isMarkingRead: boolean;
   isMarkingAllRead: boolean;
+  isDeleting: boolean;
   error: string | null;
   hasMore: boolean;
 }

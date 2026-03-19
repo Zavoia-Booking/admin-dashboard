@@ -4,11 +4,23 @@
   "subtitleEmpty": "No notifications yet",
   "markAllAsRead": "Mark all as read",
   "markAsRead": "Mark as read",
+  "deleteAllLoaded": "Delete all",
+  "deleting": "Deleting...",
+  "deleteConfirm": {
+    "title": "Delete all loaded notifications?",
+    "description": "This will permanently remove the {{count}} currently loaded notifications from this list.",
+    "confirm": "Delete all",
+    "cancel": "Cancel"
+  },
   "loadMore": "Load more",
   "loadingMore": "Loading...",
   "empty": {
     "title": "No notifications",
     "description": "You're all caught up! New notifications will appear here when there's something important."
+  },
+  "dateGroup": {
+    "today": "Today",
+    "yesterday": "Yesterday"
   },
   "time": {
     "justNow": "Just now",

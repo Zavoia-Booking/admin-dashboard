@@ -1,55 +1,85 @@
 import { useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import {
   MessageSquareWarning,
   Clock,
   CalendarClock,
+  CalendarX2,
+  CalendarSync,
+  ClipboardCheck,
   Info,
-  Check,
+  Headset,
+  UserCheck,
+  UserMinus,
 } from "lucide-react";
 import { markNotificationReadAction } from "../actions";
 import type { BusinessNotification } from "../types";
-import { Button } from "../../../shared/components/ui/button";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "../../../shared/components/ui/tooltip";
 
 const NOTIFICATION_ICONS: Record<string, typeof Info> = {
   sms_credits_low: MessageSquareWarning,
   trial_ending: Clock,
   schedule_updated: CalendarClock,
+  support_reply: Headset,
+  appointment_cancelled_by_customer: CalendarX2,
+  appointment_rescheduled_by_customer: CalendarSync,
+  appointment_status_review: ClipboardCheck,
+  team_member_accepted_invitation: UserCheck,
+  team_member_left_organisation: UserMinus,
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
-  sms_credits_low: "text-amber-500 bg-amber-100/80 dark:bg-amber-950/40",
-  trial_ending: "text-orange-500 bg-orange-100/80 dark:bg-orange-950/40",
-  schedule_updated: "text-blue-500 bg-blue-100/80 dark:bg-blue-950/40",
+  sms_credits_low: "text-amber-500",
+  trial_ending: "text-orange-500",
+  schedule_updated: "text-blue-500",
+  support_reply: "text-violet-500",
+  appointment_cancelled_by_customer: "text-red-500",
+  appointment_rescheduled_by_customer: "text-sky-500",
+  appointment_status_review: "text-amber-500",
+  team_member_accepted_invitation: "text-emerald-500",
+  team_member_left_organisation: "text-neutral-500",
 };
 
-function formatRelativeTime(
-  dateStr: string,
-  t: (key: string, opts?: Record<string, unknown>) => string
-): string {
+function getNavigationPath(notification: BusinessNotification): string | null {
+  const data = notification.data;
+
+  switch (notification.type) {
+    case "support_reply":
+      return data?.ticketId
+        ? `/support?ticketId=${data.ticketId}`
+        : "/support";
+
+    case "appointment_cancelled_by_customer":
+    case "appointment_rescheduled_by_customer":
+      return data?.appointmentId
+        ? `/calendar?appointmentId=${data.appointmentId}`
+        : "/calendar";
+
+    case "appointment_status_review":
+      return "/calendar";
+
+    case "sms_credits_low":
+      return "/settings?tab=billing";
+
+    case "team_member_accepted_invitation":
+      return data?.userId
+        ? `/team-members?memberId=${data.userId}`
+        : "/team-members";
+
+    case "team_member_left_organisation":
+      return null;
+
+    default:
+      return null;
+  }
+}
+
+function formatTime(dateStr: string): string {
   const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return t("time.justNow");
-  if (diffMins < 60) return t("time.minutesAgo", { count: diffMins });
-  if (diffHours < 24) return t("time.hoursAgo", { count: diffHours });
-  if (diffDays < 7) return t("time.daysAgo", { count: diffDays });
-
-  return date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  return date.toLocaleTimeString(undefined, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
   });
 }
 
@@ -60,26 +90,18 @@ interface NotificationItemProps {
 export function NotificationItem({ notification }: NotificationItemProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { t } = useTranslation("notifications");
 
   const Icon = NOTIFICATION_ICONS[notification.type] ?? Info;
   const colorClass =
-    NOTIFICATION_COLORS[notification.type] ??
-    "text-neutral-500 bg-neutral-100/80 dark:bg-neutral-900/40";
-
-  const handleMarkRead = useCallback(() => {
-    if (!notification.read) {
-      dispatch(markNotificationReadAction.request({ id: notification.id }));
-    }
-  }, [dispatch, notification.id, notification.read]);
+    NOTIFICATION_COLORS[notification.type] ?? "text-neutral-500";
 
   const handleClick = useCallback(() => {
     if (!notification.read) {
       dispatch(markNotificationReadAction.request({ id: notification.id }));
     }
-    const screen = notification.data?.screen as string | undefined;
-    if (screen) {
-      navigate(screen);
+    const path = getNavigationPath(notification);
+    if (path) {
+      navigate(path);
     }
   }, [dispatch, navigate, notification]);
 
@@ -91,70 +113,39 @@ export function NotificationItem({ notification }: NotificationItemProps) {
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") handleClick();
       }}
-      className={`group relative flex gap-4 rounded-lg border p-4 transition-all cursor-pointer ${
-        !notification.read
-          ? "border-primary/20 bg-primary/[0.04] shadow-sm hover:border-primary/30 hover:bg-primary/[0.06] dark:bg-primary/[0.08] dark:hover:bg-primary/[0.12]"
-          : "border-border bg-surface hover:bg-surface-hover"
-      }`}
+      className="relative rounded-lg border border-border bg-surface transition-colors cursor-pointer hover:bg-surface-hover overflow-hidden"
     >
-      {/* Icon */}
-      <div
-        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${colorClass}`}
-      >
-        <Icon className="h-5 w-5" />
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <p
-                className={`text-sm leading-snug truncate ${
-                  !notification.read
-                    ? "font-semibold text-foreground-1"
-                    : "font-medium text-foreground-2"
-                }`}
-              >
-                {notification.title}
-              </p>
-              {!notification.read && (
-                <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-primary" />
-              )}
-            </div>
-            <p className="mt-1 text-sm text-foreground-3 leading-relaxed line-clamp-2">
-              {notification.body}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-1 shrink-0 pt-0.5">
-            {/* Mark as read button */}
-            {!notification.read && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleMarkRead();
-                    }}
-                    aria-label={t("markAsRead")}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side="left">{t("markAsRead")}</TooltipContent>
-              </Tooltip>
-            )}
-          </div>
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        <div className={`shrink-0 ${colorClass}`}>
+          <Icon className="h-5 w-5" />
         </div>
 
-        <span className="mt-1.5 block text-xs text-foreground-3">
-          {formatRelativeTime(notification.createdAt, t)}
+        <p
+          className={`flex-1 min-w-0 text-sm truncate ${
+            !notification.read
+              ? "font-semibold text-foreground-1"
+              : "text-foreground-2"
+          }`}
+        >
+          {notification.title}
+        </p>
+
+        <span className="shrink-0 text-xs tabular-nums text-foreground-3">
+          {formatTime(notification.createdAt)}
         </span>
       </div>
+
+      {notification.body && (
+        <div className="px-3 pb-2.5 pl-11">
+          <p className="text-sm text-foreground-3 leading-relaxed">
+            {notification.body}
+          </p>
+        </div>
+      )}
+
+      {!notification.read && (
+        <span className="absolute right-0 top-0 bottom-0 w-1 rounded-l-full bg-primary" />
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { Card, CardContent } from "../../../shared/components/ui/card";
@@ -51,8 +52,19 @@ import {
   Lock,
   LifeBuoy,
 } from "lucide-react";
-import type { SupportTicket, TicketCategory, TicketStatus } from "../types";
+import type { SupportTicket, TicketCategory, TicketStatus, TicketHistoryEntry } from "../types";
 import { cn } from "../../../shared/lib/utils";
+
+function getTicketHistory(ticket: SupportTicket): TicketHistoryEntry[] {
+  if (ticket.details?.history) return ticket.details.history;
+  if (ticket.details?.messages) {
+    return ticket.details.messages.map((m) => ({
+      message: m.text,
+      createdBy: m.from === "admin" ? "admin" : ticket.createdBy,
+    }));
+  }
+  return [];
+}
 
 const STATUS_CLASSES: Record<TicketStatus, string> = {
   OPEN: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
@@ -76,13 +88,14 @@ function StatusBadge({ status }: { status: TicketStatus }) {
   );
 }
 
-function CategoryBadge({ category }: { category: TicketCategory }) {
+function CategoryBadge({ category }: { category: TicketCategory | null }) {
   const { t } = useTranslation("support");
+  if (!category) return null;
   const Icon = CATEGORY_ICONS[category];
   const label = t(`category.${category}`);
   return (
     <Badge variant="outline" className="text-xs gap-1">
-      <Icon className="h-3 w-3" />
+      {Icon && <Icon className="h-3 w-3" />}
       {label}
     </Badge>
   );
@@ -95,7 +108,8 @@ function TicketListItem({
   ticket: SupportTicket;
   onClick: () => void;
 }) {
-  const firstMessage = ticket.details.history[0]?.message || "";
+  const history = getTicketHistory(ticket);
+  const firstMessage = history[0]?.message || ticket.details?.subject || "";
   const preview = firstMessage.length > 120 ? firstMessage.slice(0, 120) + "..." : firstMessage;
   const date = new Date(ticket.createdAt);
   const formattedDate = date.toLocaleDateString(undefined, {
@@ -129,7 +143,7 @@ function TicketListItem({
             <span>{formattedDate}</span>
             <span className="flex items-center gap-1">
               <MessageSquare className="h-3 w-3" />
-              {ticket.details.history.length}
+              {history.length}
             </span>
           </div>
         </div>
@@ -157,10 +171,11 @@ function ConversationView({
   const [message, setMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isClosed = ticket.status === "CLOSED";
+  const history = getTicketHistory(ticket);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [ticket.details.history.length]);
+  }, [history.length]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,7 +220,7 @@ function ConversationView({
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
-        {ticket.details.history.map((entry, i) => {
+        {history.map((entry, i) => {
           const isAdmin = entry.createdBy === "admin";
           const isOwnMessage = !isAdmin;
 
@@ -366,6 +381,7 @@ export default function SupportPage() {
   const isSending = useSelector(getIsSendingMessageSelector);
   const isClosing = useSelector(getIsClosingTicketSelector);
 
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<"all" | TicketStatus>("all");
@@ -373,6 +389,18 @@ export default function SupportPage() {
   useEffect(() => {
     dispatch(listTicketsAction.request());
   }, [dispatch]);
+
+  useEffect(() => {
+    const ticketIdParam = searchParams.get("ticketId");
+    if (ticketIdParam) {
+      const id = Number(ticketIdParam);
+      if (!Number.isNaN(id)) {
+        setSelectedTicketId(id);
+        dispatch(getTicketByIdAction.request({ id }));
+      }
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams, dispatch]);
 
   const handleSelectTicket = useCallback((id: number) => {
     setSelectedTicketId(id);
@@ -420,7 +448,7 @@ export default function SupportPage() {
           <div className="px-4 md:px-0">
             <Card className="overflow-hidden">
               <CardContent className="p-4 md:p-6 h-[calc(100vh-220px)] flex flex-col">
-                {isFetchingTicket || !currentTicket ? (
+                {isFetchingTicket || !currentTicket?.details ? (
                   <div className="flex-1 flex items-center justify-center">
                     <Spinner size="lg" />
                   </div>

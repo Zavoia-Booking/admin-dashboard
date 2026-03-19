@@ -13,4 +13,7 @@ export type BusinessInfo = {
   businessCurrency: string; // Required - for service pricing
   instagramUrl: string;
   facebookUrl: string;
+  tiktokUrl: string;
+  websiteUrl: string;
+  pinterestUrl: string;
 }

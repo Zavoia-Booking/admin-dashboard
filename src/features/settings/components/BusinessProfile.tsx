@@ -36,6 +36,9 @@ interface BusinessFormData {
   businessCurrency: string;
   instagramUrl: string;
   facebookUrl: string;
+  tiktokUrl: string;
+  websiteUrl: string;
+  pinterestUrl: string;
   bookingSlug: string;
   logo?: string | null;
   logoKey?: string | null;
@@ -52,6 +55,9 @@ const initialFormData: BusinessFormData = {
   businessCurrency: 'eur',
   instagramUrl: '',
   facebookUrl: '',
+  tiktokUrl: '',
+  websiteUrl: '',
+  pinterestUrl: '',
   bookingSlug: '',
   logo: null,
   logoKey: null,
@@ -67,6 +73,9 @@ const getUpdatePayloadSnapshot = (data: BusinessFormData) => ({
   businessCurrency: data.businessCurrency,
   instagramUrl: data.instagramUrl,
   facebookUrl: data.facebookUrl,
+  tiktokUrl: data.tiktokUrl,
+  websiteUrl: data.websiteUrl,
+  pinterestUrl: data.pinterestUrl,
 });
 
 interface BusinessProfileProps {
@@ -121,6 +130,9 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
         businessCurrency: currentBusiness.businessCurrency || 'eur',
         instagramUrl: currentBusiness.instagramUrl || '',
         facebookUrl: currentBusiness.facebookUrl || '',
+        tiktokUrl: currentBusiness.tiktokUrl || '',
+        websiteUrl: currentBusiness.websiteUrl || '',
+        pinterestUrl: currentBusiness.pinterestUrl || '',
         bookingSlug: currentBusiness.uuid || '',
         logo: currentBusiness.logo || null,
         logoKey: null,
@@ -141,7 +153,10 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       current.businessPhone !== originalSnapshot.businessPhone ||
       current.businessCurrency !== originalSnapshot.businessCurrency ||
       current.instagramUrl !== originalSnapshot.instagramUrl ||
-      current.facebookUrl !== originalSnapshot.facebookUrl
+      current.facebookUrl !== originalSnapshot.facebookUrl ||
+      current.tiktokUrl !== originalSnapshot.tiktokUrl ||
+      current.websiteUrl !== originalSnapshot.websiteUrl ||
+      current.pinterestUrl !== originalSnapshot.pinterestUrl
     );
   }, [formData, originalSnapshot]);
 
@@ -205,6 +220,9 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       businessCurrency: formData.businessCurrency,
       instagramUrl: formData.instagramUrl,
       facebookUrl: formData.facebookUrl,
+      tiktokUrl: formData.tiktokUrl,
+      websiteUrl: formData.websiteUrl,
+      pinterestUrl: formData.pinterestUrl,
     };
     if (formData.industryId != null) {
       updateData.industryId = formData.industryId;
@@ -433,8 +451,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
             className="mb-6"
           />
           
-          <div className="flex flex-wrap gap-6">
-            <div className="flex-1 min-w-[280px]">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
               <TextField
                 label={t('profile.social.instagram')}
                 placeholder={t('profile.social.instagramPlaceholder')}
@@ -444,7 +462,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               />
             </div>
             
-            <div className="flex-1 min-w-[280px]">
+            <div>
               <TextField
                 label={t('profile.social.facebook')}
                 placeholder={t('profile.social.facebookPlaceholder')}
@@ -453,11 +471,41 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 icon={Facebook}
               />
             </div>
+
+            <div>
+              <TextField
+                label={t('profile.social.tiktok')}
+                placeholder={t('profile.social.tiktokPlaceholder')}
+                value={formData.tiktokUrl}
+                onChange={(value) => setFormData(prev => ({ ...prev, tiktokUrl: value }))}
+                icon={Globe}
+              />
+            </div>
+
+            <div>
+              <TextField
+                label={t('profile.social.website')}
+                placeholder={t('profile.social.websitePlaceholder')}
+                value={formData.websiteUrl}
+                onChange={(value) => setFormData(prev => ({ ...prev, websiteUrl: value }))}
+                icon={Globe}
+              />
+            </div>
+
+            <div>
+              <TextField
+                label={t('profile.social.pinterest')}
+                placeholder={t('profile.social.pinterestPlaceholder')}
+                value={formData.pinterestUrl}
+                onChange={(value) => setFormData(prev => ({ ...prev, pinterestUrl: value }))}
+                icon={Globe}
+              />
+            </div>
           </div>
         </div>
         
         {/* Account Security Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm mb-10">
           <FormSectionHeader
             icon={Shield}
             title={t('profile.security.title')}
