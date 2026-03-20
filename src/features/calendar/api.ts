@@ -9,8 +9,6 @@ import type {
     RescheduleGroupPayload,
     AvailableSlotsRequest,
     AvailableSlotsResponse,
-    CheckSlotRequest,
-    CheckSlotResponse,
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
@@ -87,15 +85,6 @@ export const getAvailableSlotsRequest = async (
     signal?: AbortSignal,
 ): Promise<AvailableSlotsResponse> => {
     const { data } = await apiClient().post<AvailableSlotsResponse>(`/calendar/available-slots`, payload, { signal });
-    return data;
-}
-
-/** POST /calendar/check-slot — validates one concrete start time against item chain */
-export const checkSlotRequest = async (
-    payload: CheckSlotRequest,
-    signal?: AbortSignal,
-): Promise<CheckSlotResponse> => {
-    const { data } = await apiClient().post<CheckSlotResponse>(`/calendar/check-slot`, payload, { signal });
     return data;
 }
 

@@ -365,7 +365,26 @@ function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleA
         toast.success('Booking group rescheduled');
     } catch (error: any) {
         yield put(rescheduleAppointmentGroup.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to reschedule group');
+        const status = error?.response?.status;
+        if (status === 409) {
+            const raw = error?.response?.data?.message;
+            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? 'Time slot not available') : (raw || 'Time slot not available');
+            const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
+            yield put(setUpdateConflictOffer({
+                appointmentId: 0,
+                data: { scheduledAt: payload.scheduledAt, allowOutOfHours: payload.allowOutOfHours },
+                message,
+                conflictType,
+                bookingGroupId,
+            }));
+            if (conflictType === 'staff_appointment') {
+                toast.error('This team member already has an appointment at this time. Choose another time or team member.');
+            } else {
+                toast.info('Slot unavailable', { description: 'You can reschedule anyway with an override.' });
+            }
+        } else {
+            toast.error(error?.response?.data?.message || 'Failed to reschedule group');
+        }
     }
 }
 

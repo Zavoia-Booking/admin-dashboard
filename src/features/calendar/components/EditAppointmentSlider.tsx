@@ -1,11 +1,22 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
-  Ban, CheckCircle2, UserX, Clock, User, Scissors, MapPin,
-  Calendar, Bell, Mail, MessageSquare, Users, Tag,
-  CalendarClock, UserCog, ShieldAlert,
+  Ban,
+  CheckCircle2,
+  UserX,
+  Mail,
+  MessageSquare,
+  Pencil,
+  ShieldAlert,
+  X,
+  User,
+  Copy,
+  ExternalLink,
+  ArrowUpRight,
+  CalendarCheck,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '../../../shared/components/ui/button';
-import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
@@ -21,17 +32,51 @@ import {
   AlertDialogTitle,
 } from '../../../shared/components/ui/alert-dialog';
 import { Switch } from '../../../shared/components/ui/switch';
-import { Popover, PopoverTrigger, PopoverContent } from '../../../shared/components/ui/popover';
 import { cn } from '../../../shared/lib/utils';
-import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import {
+  Dialog,
+  DialogPortal,
+  DialogOverlay,
+  DialogTitle,
+  DialogDescription,
+} from '../../../shared/components/ui/dialog';
+import { DashedDivider } from '../../../shared/components/common/DashedDivider';
+import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateAppointmentStatus, cancelAppointment, updateAppointment, toggleAddForm } from '../actions';
+import { updateAppointmentStatus, cancelAppointment, toggleAddForm } from '../actions';
 import { getLocationStaff, getBookingSettings, getCalendarTimezone } from '../selectors';
 import { getAppointmentGroupRequest } from '../api';
-import { formatTimeKey, formatTimeRange, getStaffDisplayNames, getStatusBadge } from './utils';
+import {
+  formatTimeKey,
+  formatTimeRange,
+  getStaffDisplayNames,
+  getStatusBadge,
+  getBookingSourceLabel,
+  getBookedViaLabel,
+  getBookingSourcePillParts,
+  assignmentStylePillLayout,
+  formatDurationHuman,
+} from './utils';
 import type { Appointment } from '../../../shared/types/calendar';
-import { selectIsTeamMember } from '../../auth/selectors';
-import { buildZonedDateFromDateKey, formatDateInTimezone } from '../timezone';
+import { selectIsTeamMember, selectCurrentUser } from '../../auth/selectors';
+import { getCurrencyDisplay } from '../../../shared/utils/currency';
+import {
+  buildZonedDateFromDateKey,
+  formatDateInTimezone,
+  formatActivityTimelineDateTime,
+  formatDetailOverviewDate,
+} from '../timezone';
+import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
+
+/** Default arrow on copy; pointer on controls; I-beam in fields */
+const APPOINTMENT_DIALOG_CURSOR =
+  'cursor-default [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed [&_a]:cursor-pointer [&_textarea]:cursor-text [&_input]:cursor-text [&_[role=switch]]:cursor-pointer';
+
+/**
+ * Collapsible section shell — matches Calendar → Settings → Advanced (outer bordered panel).
+ */
+const ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS =
+  'border border-border p-3 md:p-4 rounded-2xl bg-surface md:bg-transparent';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -41,18 +86,48 @@ interface EditAppointmentSliderProps {
   isOpen: boolean;
   onClose: () => void;
   appointment: Appointment | null;
+  /** When provided (e.g. from grid group fetch), use instead of fetching group in useEffect. */
+  groupAppointments?: Appointment[] | null;
 }
 
 // ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
 
-const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, onClose, appointment }) => {
+const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, onClose, appointment, groupAppointments: groupAppointmentsProp }) => {
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
   const bookingSettings = useSelector(getBookingSettings);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const isTeamMember = useSelector(selectIsTeamMember);
+  const currentUser = useSelector(selectCurrentUser);
+  const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
+  const currencyDisplay = useMemo(() => getCurrencyDisplay(businessCurrency), [businessCurrency]);
+  const auditTimezone = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
+
+  const activityTimelineItems = useMemo(() => {
+    if (!appointment) return [] as Array<{ id: string; title: string; meta: string }>;
+    const rows: Array<{ id: string; title: string; meta: string }> = [
+      {
+        id: 'created',
+        title: 'Appointment created',
+        meta: `${getBookingSourceLabel(appointment.bookingSource)} · ${formatActivityTimelineDateTime(appointment.createdAt, auditTimezone)}`,
+      },
+    ];
+    if (appointment.overrideReason && appointment.overrideUsedAt) {
+      rows.push({
+        id: 'override',
+        title: 'Admin override applied',
+        meta: `System · ${formatActivityTimelineDateTime(appointment.overrideUsedAt, auditTimezone)}`,
+      });
+    }
+    rows.push({
+      id: 'updated',
+      title: 'Last updated',
+      meta: `System · ${formatActivityTimelineDateTime(appointment.updatedAt, auditTimezone)}`,
+    });
+    return rows;
+  }, [appointment, auditTimezone]);
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -60,13 +135,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   const [notifyCustomer, setNotifyCustomer] = useState(true);
   const [notificationMethod, setNotificationMethod] = useState<'email' | 'sms' | 'both'>('both');
 
-  // Confirmation dialog state (for complete / no-show)
-  const [confirmDialog, setConfirmDialog] = useState<{
-    open: boolean;
-    type: 'complete' | 'no-show' | null;
-    title: string;
-    description: string;
-  }>({ open: false, type: null, title: '', description: '' });
+  // Inline confirmation for complete / no-show (no modal)
+  const [pendingConfirm, setPendingConfirm] = useState<'complete' | 'no_show' | null>(null);
+  const [exitingConfirm, setExitingConfirm] = useState(false);
 
   // Loading state for actions
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -75,6 +146,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   const [groupAppointments, setGroupAppointments] = useState<Appointment[] | null>(null);
   const [groupLoading, setGroupLoading] = useState(false);
 
+  const [accServicesOpen, setAccServicesOpen] = useState(true);
+  const [accHistoryOpen, setAccHistoryOpen] = useState(false);
+  const [accLocationOpen, setAccLocationOpen] = useState(false);
+  const [accNotesOpen, setAccNotesOpen] = useState(false);
+  const [accCancellationOpen, setAccCancellationOpen] = useState(false);
+
   // Reset state when slider closes
   useEffect(() => {
     if (!isOpen) {
@@ -82,17 +159,46 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       setCancelReason('');
       setNotifyCustomer(true);
       setNotificationMethod('both');
-      setConfirmDialog({ open: false, type: null, title: '', description: '' });
+      setPendingConfirm(null);
+      setExitingConfirm(false);
       setActionLoading(null);
       setGroupAppointments(null);
+      setAccServicesOpen(true);
+      setAccHistoryOpen(false);
+      setAccLocationOpen(false);
+      setAccNotesOpen(false);
+      setAccCancellationOpen(false);
     }
   }, [isOpen]);
 
-  // Fetch full group when opening edit for an appointment that belongs to a group
+  useEffect(() => {
+    if (!isOpen || !appointment) return;
+    setAccServicesOpen(true);
+    setAccHistoryOpen(false);
+    setAccLocationOpen(false);
+    setAccNotesOpen(false);
+    setAccCancellationOpen(
+      appointment.status === 'cancelled' && !!appointment.cancellationReason,
+    );
+  }, [isOpen, appointment?.id]);
+
+  // When parent passes preloaded group (e.g. from grid), use it and skip fetch
+  useEffect(() => {
+    if (isOpen && groupAppointmentsProp != null && Array.isArray(groupAppointmentsProp) && groupAppointmentsProp.length > 0) {
+      setGroupAppointments(groupAppointmentsProp);
+      setGroupLoading(false);
+      return;
+    }
+  }, [isOpen, groupAppointmentsProp]);
+
+  // Fetch full group when opening edit for an appointment that belongs to a group (only when not preloaded)
   useEffect(() => {
     const bookingGroupId = (appointment as { bookingGroupId?: string | null })?.bookingGroupId;
     if (!isOpen || !appointment || !bookingGroupId) {
-      setGroupAppointments(null);
+      if (!groupAppointmentsProp?.length) setGroupAppointments(null);
+      return;
+    }
+    if (groupAppointmentsProp != null && Array.isArray(groupAppointmentsProp) && groupAppointmentsProp.length > 0) {
       return;
     }
     setGroupLoading(true);
@@ -101,18 +207,44 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       .then((list) => setGroupAppointments(Array.isArray(list) ? list : []))
       .catch(() => setGroupAppointments([]))
       .finally(() => setGroupLoading(false));
-  }, [isOpen, appointment?.id, (appointment as { bookingGroupId?: string | null })?.bookingGroupId]);
+  }, [isOpen, appointment?.id, (appointment as { bookingGroupId?: string | null })?.bookingGroupId, groupAppointmentsProp]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data from appointment
   // ─────────────────────────────────────────────────────────────
 
-  const customerName = useMemo(() => {
-    if (!appointment) return '';
-    if (appointment.customer) {
-      return `${appointment.customer.firstName ?? ''} ${appointment.customer.lastName ?? ''}`.trim();
+  /** Merged linked customer + booking-time snapshot (name, contact, photo). */
+  const clientDisplay = useMemo(() => {
+    if (!appointment) {
+      return {
+        displayName: '',
+        email: '',
+        phone: '',
+        profileImage: null as string | null,
+        linkedCustomerId: undefined as number | undefined,
+        snapshotOnly: false,
+      };
     }
-    return 'Walk-in';
+    const cust = appointment.customer;
+    const snap = appointment.customerSnapshot;
+    const first = (cust?.firstName ?? snap?.firstName ?? '').trim();
+    const last = (cust?.lastName ?? snap?.lastName ?? '').trim();
+    const name = [first, last].filter(Boolean).join(' ');
+    const email = String(cust?.email ?? snap?.email ?? '').trim();
+    const phone = String(cust?.phone ?? snap?.phone ?? '').trim();
+    const img = (cust?.profileImage ?? snap?.profileImage ?? '').trim();
+    const profileImage = img || null;
+    const hasContact = !!(name || email || phone);
+    const displayName = name || (hasContact ? 'Guest' : 'Walk-in');
+    const snapshotOnly = !cust && !!(snap && hasContact);
+    return {
+      displayName,
+      email,
+      phone,
+      profileImage,
+      linkedCustomerId: cust?.id,
+      snapshotOnly,
+    };
   }, [appointment]);
 
   const staffNames = useMemo(() => {
@@ -122,9 +254,91 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     return getStaffDisplayNames(ids, locationStaff);
   }, [appointment, locationStaff]);
 
+  /** Staff rows from location context (profile images for Visit card). */
+  const assignedStaffMembers = useMemo(() => {
+    if (!appointment?.teamMembers?.length) return [];
+    const ids = appointment.teamMembers.map((tm: { id?: number }) =>
+      typeof tm === 'object' && tm != null ? tm.id : (tm as number),
+    ).filter((id): id is number => id != null);
+    return ids
+      .map((id) => locationStaff.find((s) => s.id === id))
+      .filter((s): s is (typeof locationStaff)[0] => s != null);
+  }, [appointment?.teamMembers, locationStaff]);
+
   const isUnassigned = !appointment?.teamMembers || appointment.teamMembers.length === 0;
+  const headerMetaDateTime = useMemo(() => {
+    if (!appointment) return '';
+    const dateStr = formatDetailOverviewDate(appointment.scheduledAt, auditTimezone, {
+      weekday: 'short',
+    });
+    const timeStr = formatTimeRange(
+      new Date(appointment.scheduledAt).toISOString(),
+      new Date(appointment.endsAt).toISOString(),
+      auditTimezone,
+    );
+    return `${dateStr} · ${timeStr}`;
+  }, [appointment, auditTimezone]);
+
+  const headerMetaStaff = useMemo(() => {
+    if (!appointment) return '';
+    return isUnassigned ? 'Unassigned' : `Assigned to ${staffNames}`;
+  }, [appointment, isUnassigned, staffNames]);
+
+  /** Relative date for header line 2: "Today", "Tomorrow", "Yesterday", "In N days", or "N days ago". */
+  const headerRelativeDate = useMemo(() => {
+    if (!appointment) return '';
+    const tz = auditTimezone;
+    const todayStr = formatDateInTimezone(new Date(), tz);
+    const appStr = formatDateInTimezone(new Date(appointment.scheduledAt), tz);
+    if (todayStr === appStr) return 'Today';
+    const parse = (s: string) => new Date(s + 'T12:00:00Z').getTime();
+    const diffDays = Math.round((parse(appStr) - parse(todayStr)) / 86400000);
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+    if (diffDays > 1 && diffDays <= 365) return `In ${diffDays} days`;
+    if (diffDays < -1 && diffDays >= -365) return `${-diffDays} days ago`;
+    return '';
+  }, [appointment, auditTimezone]);
   const canCancel = !isTeamMember || !!bookingSettings?.allowStaffCancelWithoutConfirmation;
   const canReschedule = !isTeamMember || !!bookingSettings?.allowStaffRescheduleWithoutConfirmation;
+
+  /** Items to show in Services section: all segments (group or single) with name, duration, price, type. */
+  const serviceDetailItems = useMemo(() => {
+    const list = groupAppointments && groupAppointments.length > 1 ? groupAppointments : appointment ? [appointment] : [];
+    return list.map((a) => {
+      const start = new Date(a.scheduledAt).getTime();
+      const end = new Date(a.endsAt).getTime();
+      const durationMinutes = Math.round((end - start) / (60 * 1000));
+      const name = a.bookedItemName ?? a.service?.name ?? a.bundle?.name ?? 'Unknown item';
+      const isBundle = a.bundle != null && !a.service;
+      const priceMajor = (a.price ?? 0) / 100;
+      return { name, durationMinutes, priceMajor, isBundle };
+    });
+  }, [appointment, groupAppointments]);
+
+  const serviceDetailTotalPrice = useMemo(
+    () => serviceDetailItems.reduce((sum, i) => sum + i.priceMajor, 0),
+    [serviceDetailItems],
+  );
+  const serviceDetailTotalDuration = useMemo(
+    () => serviceDetailItems.reduce((sum, i) => sum + i.durationMinutes, 0),
+    [serviceDetailItems],
+  );
+
+  const appointmentSlotMinutes = useMemo(() => {
+    if (!appointment) return 0;
+    const ms =
+      new Date(appointment.endsAt).getTime() - new Date(appointment.scheduledAt).getTime();
+    return Math.max(0, Math.round(ms / 60000));
+  }, [appointment]);
+
+  const isGroupBooking = serviceDetailItems.length > 1;
+
+  /**
+   * Inline link: AddServiceSlider-style hover + arrow; explicit regular weight (not bold) for this modal.
+   */
+  const sliderInlineLinkClass =
+    'inline-flex min-w-0 max-w-full items-center gap-0.5 !font-normal text-foreground-2 transition-colors duration-200 hover:text-primary dark:text-foreground-2 dark:hover:text-primary';
 
   // ─────────────────────────────────────────────────────────────
   // Status Actions
@@ -170,56 +384,71 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     onClose();
   };
 
-  const handleConfirmAction = () => {
-    if (!confirmDialog.type) return;
-    const status = confirmDialog.type === 'complete' ? 'completed' : 'no_show';
+  const handleInlineConfirm = () => {
+    if (!pendingConfirm) return;
+    const status = pendingConfirm === 'complete' ? 'completed' : 'no_show';
     handleStatusChange(status);
-    setConfirmDialog({ open: false, type: null, title: '', description: '' });
+    setPendingConfirm(null);
   };
 
-  const openCompleteDialog = () => {
-    setConfirmDialog({
-      open: true,
-      type: 'complete',
-      title: 'Mark as Complete',
-      description: 'Mark this appointment as completed? This will update the appointment status.',
-    });
-  };
-
-  const openNoShowDialog = () => {
-    setConfirmDialog({
-      open: true,
-      type: 'no-show',
-      title: 'Mark as No-Show',
-      description: 'Mark this appointment as no-show? This will update the appointment status.',
-    });
-  };
+  const openCompleteDialog = () => setPendingConfirm('complete');
+  const openNoShowDialog = () => setPendingConfirm('no_show');
 
   const handleNotificationMethodSelect = useCallback((method: 'email' | 'sms' | 'both') => {
     setNotificationMethod(method);
   }, []);
 
   // ─────────────────────────────────────────────────────────────
-  // Reschedule / Reassign
+  // Reschedule
   // ─────────────────────────────────────────────────────────────
 
   const handleReschedule = useCallback(() => {
     if (!appointment) return;
     // Close the detail drawer and open AddAppointmentSlider with prefill data
     onClose();
-    const customer = appointment.customer
-      ? {
-          firstName: appointment.customer.firstName ?? '',
-          lastName: appointment.customer.lastName ?? '',
-          email: appointment.customer.email ?? '',
-          phone: appointment.customer.phone ?? '',
+    const cust = appointment.customer;
+    const snap = appointment.customerSnapshot;
+    const customer =
+      cust
+        ? {
+          firstName: cust.firstName ?? '',
+          lastName: cust.lastName ?? '',
+          email: cust.email ?? '',
+          phone: cust.phone ?? '',
         }
-      : null;
+        : snap &&
+          (snap.firstName || snap.lastName || snap.email || snap.phone)
+          ? {
+            firstName: snap.firstName ?? '',
+            lastName: snap.lastName ?? '',
+            email: snap.email ?? '',
+            phone: snap.phone ?? '',
+          }
+          : null;
+    const bookingGroupId = appointment.bookingGroupId ?? undefined;
+
+    // Build groupItems for multi-segment groups (same order as API / bookingGroupOrder)
+    let groupItems: Array<{ serviceId?: number; bundleId?: number; staffUserId?: number; itemName?: string }> | undefined;
+    if (groupAppointments && groupAppointments.length > 1) {
+      groupItems = groupAppointments.map((row) => {
+        const staffUserId = (() => {
+          const first = row.teamMembers?.[0];
+          if (first == null) return undefined;
+          return typeof first === 'object' ? (first as { id?: number }).id : first;
+        })();
+        const itemName = row.bookedItemName ?? row.bundle?.name ?? row.service?.name ?? 'Service';
+        if (row.bundle?.id != null) {
+          return { bundleId: row.bundle.id, staffUserId, itemName };
+        }
+        return { serviceId: row.service?.id, staffUserId, itemName };
+      });
+    }
+
     dispatch(toggleAddForm({
       open: true,
       prefill: {
         appointmentId: appointment.id,
-        bookingGroupId: (appointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
+        bookingGroupId,
         date: buildZonedDateFromDateKey(
           formatDateInTimezone(new Date(appointment.scheduledAt), calendarTimezone),
           '00:00',
@@ -229,42 +458,17 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         staffUserId: (() => {
           const first = appointment.teamMembers?.[0];
           if (first == null) return undefined;
-          return typeof first === 'object' ? first.id : first;
+          return typeof first === 'object' ? (first as { id?: number }).id : first;
         })(),
         serviceId: appointment.service?.id,
+        bundleId: appointment.bundle?.id,
         customerId: appointment.customer?.id,
         customerDisplay: customer,
         notes: appointment.notes ?? '',
+        ...(groupItems != null ? { groupItems } : {}),
       },
     }));
-  }, [appointment, calendarTimezone, dispatch, onClose]);
-
-  // Reassign staff via popover
-  const [reassignOpen, setReassignOpen] = useState(false);
-
-  const handleReassignStaff = (staffId: number) => {
-    if (!appointment) return;
-    setActionLoading('reassign');
-    dispatch(updateAppointment.request({
-      appointmentId: appointment.id,
-      data: { staffUserIds: [staffId] },
-      bookingGroupId: (appointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
-    }));
-    setReassignOpen(false);
-    setActionLoading(null);
-    onClose();
-  };
-
-  const handleReassignGroupRow = (rowAppointment: Appointment, staffId: number) => {
-    setActionLoading('reassign');
-    dispatch(updateAppointment.request({
-      appointmentId: rowAppointment.id,
-      data: { staffUserIds: [staffId] },
-      bookingGroupId: (rowAppointment as { bookingGroupId?: string | null }).bookingGroupId ?? undefined,
-    }));
-    setActionLoading(null);
-    onClose();
-  };
+  }, [appointment, calendarTimezone, dispatch, onClose, groupAppointments]);
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -279,389 +483,825 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
 
   return (
     <>
-      <BaseSlider
-        isOpen={isOpen}
-        onClose={onClose}
-        title="Appointment Details"
-        contentClassName="bg-muted/50 scrollbar-hide"
-      >
-        {/* ── Quick Actions ── */}
-        {!isTerminal && (
-          <div className="py-3 bg-background/50">
-            <div className="grid grid-cols-3 gap-2 mb-3">
-              {canCancel ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCancelDialogOpen(true)}
-                  className="flex items-center gap-1 text-xs border-destructive/20 text-destructive hover:bg-destructive/10"
-                  disabled={actionLoading !== null}
-                >
-                  <Ban className="h-3 w-3" />
-                  Cancel
-                </Button>
-              ) : (
-                <div />
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openNoShowDialog}
-                className="flex items-center gap-1 text-xs border-orange-500/20 text-orange-600 hover:bg-orange-50"
-                disabled={actionLoading !== null}
-              >
-                <UserX className="h-3 w-3" />
-                No-Show
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={openCompleteDialog}
-                className="flex items-center gap-1 text-xs border-green-500/20 text-green-600 hover:bg-green-50"
-                disabled={actionLoading !== null}
-              >
-                <CheckCircle2 className="h-3 w-3" />
-                Complete
-              </Button>
-            </div>
-
-            {/* Reschedule & Reassign */}
-            <div className="grid grid-cols-2 gap-2">
-              {canReschedule ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReschedule}
-                  className="flex items-center gap-1 text-xs"
-                  disabled={actionLoading !== null}
-                >
-                  <CalendarClock className="h-3 w-3" />
-                  Reschedule
-                </Button>
-              ) : (
-                <div />
-              )}
-              {locationStaff.length > 0 && (
-                <Popover open={reassignOpen} onOpenChange={setReassignOpen}>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex items-center gap-1 text-xs"
-                      disabled={actionLoading !== null}
-                    >
-                      <UserCog className="h-3 w-3" />
-                      Reassign
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-56 p-1 z-[80]" align="start">
-                    <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">
-                      Select staff member
-                    </div>
-                    {locationStaff.map((staff) => (
-                      <button
-                        key={staff.id}
-                        type="button"
-                        className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center gap-2"
-                        onClick={() => handleReassignStaff(staff.id)}
-                      >
-                        <Avatar className="h-5 w-5">
-                          <AvatarImage src={staff.profileImage ?? undefined} />
-                          <AvatarFallback className="text-[10px]">
-                            {staff.firstName[0]}{staff.lastName[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        {staff.firstName} {staff.lastName}
-                      </button>
-                    ))}
-                  </PopoverContent>
-                </Popover>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Booking group breakdown (when this appointment is part of a multi-item group) */}
-        {groupLoading && (
-          <div className="py-3 px-4 text-sm text-muted-foreground">Loading group...</div>
-        )}
-        {!groupLoading && groupAppointments && groupAppointments.length > 1 && (
-          <Card className="border-0 shadow-sm bg-card/70">
-            <CardContent className="py-4 space-y-3">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Users className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Booking group ({groupAppointments.length} items)</h3>
-              </div>
-              <ul className="space-y-2">
-                {groupAppointments.map((row) => {
-                  const rowStaffIds = row.teamMembers?.map((tm: any) => tm?.id ?? tm) ?? [];
-                  const rowStaffNames = getStaffDisplayNames(rowStaffIds, locationStaff);
-                  const rowItemName = (row as { bookedItemName?: string }).bookedItemName ?? row.service?.name ?? 'Service';
-                  return (
-                    <li
-                      key={row.id}
-                      className="flex items-center justify-between gap-2 py-2 px-3 rounded-lg bg-muted/40 border border-border/50"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium text-sm truncate">{rowItemName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatTimeRange(
-                            new Date(row.scheduledAt).toISOString(),
-                            new Date(row.endsAt).toISOString(),
-                          )}
-                          {' · '}
-                          {rowStaffNames || 'Unassigned'}
-                        </div>
-                      </div>
-                      {!isTerminal && locationStaff.length > 0 && (
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button variant="outline" size="sm" className="shrink-0 text-xs h-8" disabled={actionLoading !== null}>
-                              <UserCog className="h-3 w-3 mr-1" />
-                              Reassign
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-56 p-1 z-[80]" align="end">
-                            <div className="text-xs font-medium text-muted-foreground px-2 py-1.5">Select staff</div>
-                            {locationStaff.map((staff) => (
-                              <button
-                                key={staff.id}
-                                type="button"
-                                className="w-full text-left px-2 py-1.5 text-sm rounded hover:bg-muted transition-colors flex items-center gap-2"
-                                onClick={() => handleReassignGroupRow(row, staff.id)}
-                              >
-                                <Avatar className="h-5 w-5">
-                                  <AvatarImage src={staff.profileImage ?? undefined} />
-                                  <AvatarFallback className="text-[10px]">
-                                    {staff.firstName[0]}{staff.lastName[0]}
-                                  </AvatarFallback>
-                                </Avatar>
-                                {staff.firstName} {staff.lastName}
-                              </button>
-                            ))}
-                          </PopoverContent>
-                        </Popover>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Terminal status banner */}
-        {isTerminal && (
-          <div
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogPortal>
+          <DialogOverlay className="z-[70] bg-black/50" />
+          <DialogPrimitive.Content
             className={cn(
-              'py-3 px-4 text-sm font-medium text-center rounded-lg mx-2 mb-3',
-              isCancelled && 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-              isCompleted && 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400',
-              isNoShow && 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400',
+              'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+              'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200',
+              'fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%]',
+              'flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface',
+              'focus:outline-none focus-visible:outline-none',
+              APPOINTMENT_DIALOG_CURSOR,
             )}
           >
-            {isCancelled && 'This appointment has been cancelled'}
-            {isCompleted && 'This appointment has been completed'}
-            {isNoShow && 'This appointment was marked as no-show'}
-          </div>
-        )}
-
-        {/* ── Appointment Details ── */}
-        <div className="max-w-md mx-auto space-y-4">
-          {/* Status */}
-          <Card className="border-0 shadow-sm bg-card/70">
-            <CardContent className="py-4">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <span className="text-sm text-muted-foreground">Status</span>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {getStatusBadge(appointment.status)}
-                  {appointment.overrideReason && (
-                    <Badge variant="secondary" className="text-amber-700 bg-amber-100 dark:bg-amber-900/30 dark:text-amber-300 border-amber-300/50 gap-1">
-                      <ShieldAlert className="h-3 w-3" />
-                      Override
-                    </Badge>
-                  )}
+            <div className="relative shrink-0 px-5 pt-5 pb-0 md:px-6">
+              <div className="flex items-center gap-4 pr-[4.5rem] sm:pr-52">
+                <div
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border/80 bg-muted/50 dark:bg-muted/30"
+                  aria-hidden
+                >
+                  <CalendarCheck
+                    className="h-6 w-6 text-foreground-1"
+                    strokeWidth={2.25}
+                  />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <DialogTitle className="min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1">
+                      Appointment details
+                    </DialogTitle>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {getStatusBadge(appointment.status)}
+                    </div>
+                  </div>
+                  <DialogDescription asChild>
+                    <div className="min-w-0 space-y-0.5 text-xs leading-relaxed text-foreground-3 dark:text-foreground-2">
+                      <p className="truncate" title={`${headerMetaDateTime} · ${headerMetaStaff}`}>
+                        {headerMetaDateTime} · {headerMetaStaff}
+                      </p>
+                      {headerRelativeDate ? (
+                        <p className="truncate text-foreground-3/90">{headerRelativeDate}</p>
+                      ) : null}
+                    </div>
+                  </DialogDescription>
                 </div>
               </div>
-              {appointment.overrideReason && (
-                <p className="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/50">
-                  Reason: {appointment.overrideReason}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Customer */}
-          <Card className="border-0 shadow-sm bg-card/70">
-            <CardContent className="py-4 space-y-3">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Customer</h3>
-              </div>
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback>
-                    {customerName
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold truncate">{customerName || 'Walk-in'}</div>
-                  {appointment.customer?.email && (
-                    <div className="text-sm text-muted-foreground truncate">{appointment.customer.email}</div>
-                  )}
-                  {appointment.customer?.phone && (
-                    <div className="text-sm text-muted-foreground truncate">{appointment.customer.phone}</div>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Service */}
-          <Card className="border-0 shadow-sm bg-card/70">
-            <CardContent className="py-4 space-y-3">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Scissors className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Service</h3>
-              </div>
-              <div className="space-y-1">
-                <div className="font-medium">{appointment.service?.name ?? 'Unknown service'}</div>
-                <div className="flex gap-2 text-sm text-muted-foreground">
-                  {appointment.service?.duration && (
-                    <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {appointment.service.duration} min
-                    </span>
-                  )}
-                  {appointment.price !== undefined && appointment.price !== null && (
-                    <span className="flex items-center gap-1">
-                      <Tag className="h-3 w-3" />${(appointment.price / 100).toFixed(2)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Date & Time */}
-          <Card className="border-0 shadow-sm bg-card/70">
-            <CardContent className="py-4 space-y-3">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Calendar className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Date & Time</h3>
-              </div>
-              <div className="space-y-1">
-                <div className="font-medium">
-                  {new Date(appointment.scheduledAt).toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </div>
-                <div className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  {formatTimeRange(
-                    new Date(appointment.scheduledAt).toISOString(),
-                    new Date(appointment.endsAt).toISOString(),
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Staff */}
-          <Card className="border-0 shadow-sm bg-card/70">
-            <CardContent className="py-4 space-y-3">
-              <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                <div className="p-2 rounded-xl bg-primary/10">
-                  <Users className="h-4 w-4 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold text-foreground">Staff</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                {isUnassigned ? (
-                  <Badge variant="outline" className="text-orange-600 border-orange-300">
-                    Unassigned
-                  </Badge>
-                ) : (
-                  <span className="font-medium">{staffNames}</span>
+              <div className="absolute right-3 top-4 flex items-center gap-2 sm:right-4 sm:top-5">
+                {!isTerminal && canReschedule && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    rounded="full"
+                    onClick={handleReschedule}
+                    disabled={
+                      actionLoading !== null ||
+                      (!!appointment?.bookingGroupId &&
+                        (groupLoading || groupAppointments === null))
+                    }
+                    className="group h-8 px-3 text-foreground-3 hover:text-foreground-1"
+                  >
+                    <Pencil
+                      className="mr-1.5 h-3.5 w-3.5 shrink-0 transition-colors duration-200 group-hover:text-primary"
+                      aria-hidden
+                    />
+                    Edit
+                  </Button>
                 )}
+                <DialogPrimitive.Close
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground opacity-70 transition-[opacity,color]',
+                    'hover:opacity-100 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                    'disabled:pointer-events-none',
+                  )}
+                  aria-label="Close"
+                >
+                  <X className="h-5 w-5" />
+                </DialogPrimitive.Close>
               </div>
-            </CardContent>
-          </Card>
+              <DashedDivider marginTop="mt-0" paddingTop="pt-3" className="mb-4" dashPattern="1 1" />
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 py-3 dark:bg-background/50 md:px-6 md:py-4">
+              <div className="space-y-4">
+                <div>
+                  {!isTerminal && (
+                    <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
+                      <Label className="text-sm font-semibold text-foreground-1">
+                        Update status
+                      </Label>
+                      {pendingConfirm ? (
+                        <div
+                          className={cn(
+                            'mt-3 flex flex-wrap items-center justify-between gap-4',
+                            exitingConfirm
+                              ? 'pointer-events-none animate-out fade-out-0 slide-out-to-bottom-2 duration-200 fill-mode-forwards'
+                              : 'animate-in fade-in-0 slide-in-from-bottom-2 duration-200',
+                            'motion-reduce:animate-none motion-reduce:translate-y-0 motion-reduce:opacity-100',
+                          )}
+                        >
+                          <p className="min-w-0 text-sm text-foreground-2">
+                            {pendingConfirm === 'complete'
+                              ? 'Mark this appointment as complete?'
+                              : 'Mark this appointment as no-show?'}
+                          </p>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              rounded="full"
+                              onClick={() => {
+                                setExitingConfirm(true);
+                                setTimeout(() => {
+                                  setPendingConfirm(null);
+                                  setExitingConfirm(false);
+                                }, 200);
+                              }}
+                              className="!h-8 !min-h-8 px-3.5 text-xs font-medium text-foreground-3 hover:text-foreground-1"
+                            >
+                              Back
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              rounded="full"
+                              onClick={handleInlineConfirm}
+                              disabled={actionLoading !== null}
+                              className={cn(
+                                'inline-flex !h-8 !min-h-8 px-3.5 text-xs font-medium',
+                                pendingConfirm === 'complete'
+                                  ? 'border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700'
+                                  : 'border-orange-500/20 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700',
+                              )}
+                            >
+                              Confirm
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              rounded="full"
+                              onClick={openCompleteDialog}
+                              className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-green-200 bg-green-50 px-3.5 text-xs font-medium text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700"
+                              disabled={actionLoading !== null}
+                            >
+                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                              Mark as complete
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              rounded="full"
+                              onClick={openNoShowDialog}
+                              className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-orange-500/20 bg-orange-50/50 px-3.5 text-xs font-medium text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700"
+                              disabled={actionLoading !== null}
+                            >
+                              <UserX className="h-3.5 w-3.5 shrink-0" />
+                              No-show
+                            </Button>
+                            <span className="h-5.5 w-px shrink-0 bg-border" aria-hidden />
 
-          {/* Location */}
-          {appointment.location && (
-            <Card className="border-0 shadow-sm bg-card/70">
-              <CardContent className="py-4 space-y-3">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <MapPin className="h-4 w-4 text-primary" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-foreground">Location</h3>
+                          </div>
+                          {canCancel && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                rounded="full"
+                                onClick={() => setCancelDialogOpen(true)}
+                                className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-focus/60"
+                                disabled={actionLoading !== null}
+                              >
+                                <Ban className="h-3.5 w-3.5 shrink-0" />
+                                Cancel appointment
+                              </Button>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {isTerminal && (
+                    <div
+                      className={cn(
+                        'rounded-2xl border px-3 py-2 max-w-128 mx-auto text-center text-xs font-medium',
+                        isCancelled &&
+                        'border-destructive/25 bg-destructive/5 text-destructive dark:border-destructive/40 dark:bg-destructive/10 dark:text-destructive',
+                        isCompleted &&
+                        'border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400',
+                        isNoShow &&
+                        'border-orange-500/20 bg-orange-50/50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200',
+                      )}
+                    >
+                      {isCancelled && 'Appointment cancelled'}
+                      {isCompleted && 'Appointment completed'}
+                      {isNoShow && 'Marked as no-show'}
+                    </div>
+                  )}
                 </div>
-                <div className="font-medium">{appointment.location.name}</div>
-                {appointment.location.address && (
-                  <div className="text-sm text-muted-foreground">{appointment.location.address}</div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Notes */}
-          {appointment.notes && (
-            <Card className="border-0 shadow-sm bg-card/70">
-              <CardContent className="py-4 space-y-3">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <Bell className="h-4 w-4 text-primary" />
-                  </div>
-                  <h3 className="text-sm font-semibold text-foreground">Notes</h3>
-                </div>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{appointment.notes}</p>
-              </CardContent>
-            </Card>
-          )}
+                <div
+                  className={cn(
+                    'relative rounded-2xl border border-border bg-white shadow-sm',
+                    'transition-all duration-300 hover:border-border-strong',
+                    'dark:bg-neutral-900/30 dark:bg-card',
+                  )}
+                >
+                    <div className="relative p-3 md:p-5">
+                      {/* Customer block: avatar, name (capitalize), status, contact rows; booking pill top-right */}
+                      <div className="relative border-b border-border-subtle pb-4">
+                        {appointment.bookingSource ? (
+                          <div className="absolute right-0 top-0 z-[1] pl-2">
+                            {(() => {
+                              const pill = getBookingSourcePillParts(appointment.bookingSource);
+                              const viaLabel = getBookedViaLabel(appointment.bookingSource);
+                              return (
+                                <Badge
+                                  className={cn(pill.badgeClass, 'whitespace-nowrap')}
+                                  title={viaLabel}
+                                  aria-label={viaLabel}
+                                >
+                                  <span className={pill.dotClass} aria-hidden />
+                                  {viaLabel}
+                                </Badge>
+                              );
+                            })()}
+                          </div>
+                        ) : null}
+                        <div className="flex gap-4">
+                          <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border-subtle">
+                            {clientDisplay.profileImage ? (
+                              <AvatarImage
+                                src={clientDisplay.profileImage}
+                                alt=""
+                                className="object-cover"
+                              />
+                            ) : null}
+                            <AvatarFallback className="bg-muted/80 text-sm font-semibold text-foreground-2">
+                              {clientDisplay.displayName
+                                .split(/\s+/)
+                                .map((n) => n[0])
+                                .join('')
+                                .slice(0, 2)
+                                .toUpperCase() || '?'}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div
+                            className={cn(
+                              'min-w-0 flex-1 space-y-1',
+                            )}
+                          >
+                            <p className="truncate text-base font-semibold capitalize leading-tight text-foreground-1">
+                              {clientDisplay.displayName}
+                            </p>
+                            {clientDisplay.snapshotOnly ? (
+                              <p className="truncate text-xs text-foreground-3">
+                                {clientDisplay.email || clientDisplay.phone
+                                  ? 'No profile linked. Contact details were added during booking.'
+                                  : 'No profile linked · No contact details provided'}
+                              </p>
+                            ) : clientDisplay.linkedCustomerId != null ? (
+                              <p className="truncate text-xs text-foreground-3">
+                                Linked profile ID {clientDisplay.linkedCustomerId}
+                              </p>
+                            ) : !clientDisplay.email && !clientDisplay.phone ? (
+                              <p className="truncate text-xs text-foreground-3">
+                                No phone or email on file
+                              </p>
+                            ) : null}
+                            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-foreground-3 dark:text-foreground-2">
+                              {clientDisplay.email ? (
+                                <a
+                                  href={`mailto:${clientDisplay.email}`}
+                                  className={cn(sliderInlineLinkClass, 'py-0.5')}
+                                >
+                                  <span className="min-w-0 truncate">{clientDisplay.email}</span>
+                                  <ArrowUpRight
+                                    className="h-3 w-3 shrink-0 text-primary"
+                                    aria-hidden
+                                  />
+                                </a>
+                              ) : null}
+                              {clientDisplay.email && clientDisplay.phone ? (
+                                <span
+                                  className="h-3.5 w-px shrink-0 bg-border"
+                                  aria-hidden
+                                />
+                              ) : null}
+                              {clientDisplay.phone ? (
+                                <a
+                                  href={`tel:${clientDisplay.phone.replace(/\s/g, '')}`}
+                                  className={cn(sliderInlineLinkClass, 'py-0.5')}
+                                >
+                                  <span className="min-w-0 truncate">{clientDisplay.phone}</span>
+                                  <ArrowUpRight
+                                    className="h-3 w-3 shrink-0 text-primary"
+                                    aria-hidden
+                                  />
+                                </a>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        {/*
+                          Post-MVP: "Link profile" was removed for MVP. Revisit attaching snapshot-only
+                          bookings to CRM (BusinessCustomer) and/or User — picker + API, aligned with
+                          duplicate/merge flows in business-customers; avoid overlapping merge semantics.
+                        */}
+                      </div>
 
-          {/* Cancellation Reason */}
-          {isCancelled && appointment.cancellationReason && (
-            <Card className="border-0 shadow-sm bg-card/70">
-              <CardContent className="py-4 space-y-3">
-                <div className="flex items-center gap-3 pb-2 border-b border-border/50">
-                  <div className="p-2 rounded-xl bg-destructive/10">
-                    <Ban className="h-4 w-4 text-destructive" />
+                      {/* Key–value rows: label column + bold value column (screenshot-style rhythm) */}
+                      <dl className="divide-y divide-border-subtle text-sm">
+                        <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                          <dt className="font-medium text-foreground-3 sm:pt-0.5">Date</dt>
+                          <dd className="min-w-0 font-semibold text-foreground-1">
+                            {formatDetailOverviewDate(appointment.scheduledAt, auditTimezone)}
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                          <dt className="font-medium text-foreground-3 sm:pt-0.5">Time</dt>
+                          <dd className="min-w-0 font-semibold text-foreground-1">
+                            {formatTimeRange(
+                              new Date(appointment.scheduledAt).toISOString(),
+                              new Date(appointment.endsAt).toISOString(),
+                              auditTimezone,
+                            )}
+                          </dd>
+                        </div>
+                        <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                          <dt className="font-medium text-foreground-3 sm:pt-0.5">Reserved time</dt>
+                          <dd className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-foreground-1 tabular-nums">
+                                {formatDurationHuman(appointmentSlotMinutes)}
+                              </span>
+                              <span
+                                className="h-3.5 w-px shrink-0 self-center bg-border"
+                                aria-hidden
+                              />
+                              <span className="min-w-0 text-xs leading-snug text-foreground-3">
+                                Time reserved for this segment in the calendar.
+                              </span>
+                            </div>
+                          </dd>
+                        </div>
+                        {isGroupBooking ? (
+                          <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                            <dt className="font-medium text-foreground-3 sm:pt-0.5">Total booking duration</dt>
+                            <dd className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-semibold text-foreground-1 tabular-nums">
+                                  {formatDurationHuman(serviceDetailTotalDuration)}
+                                </span>
+                                <span
+                                  className="h-5.5 w-px shrink-0 self-center bg-border"
+                                  aria-hidden
+                                />
+                                <span className="min-w-0 text-xs leading-snug text-foreground-3">
+                                  Combined duration of all {serviceDetailItems.length} services in this
+                                  booking group.
+                                </span>
+                              </div>
+                            </dd>
+                          </div>
+                        ) : null}
+                        <div className="grid grid-cols-1 gap-2 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6 sm:gap-y-0">
+                          <dt className="font-medium text-foreground-3 sm:pt-1">Assigned staff</dt>
+                          <dd className="min-w-0">
+                            {isUnassigned ? (
+                              <Badge
+                                className={cn(
+                                  assignmentStylePillLayout,
+                                  'border-orange-200 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300',
+                                )}
+                              >
+                                <span
+                                  className="h-2 w-2 shrink-0 rounded-full bg-orange-500"
+                                  aria-hidden
+                                />
+                                Unassigned
+                              </Badge>
+                            ) : assignedStaffMembers.length > 0 ? (
+                              <div className="flex flex-wrap items-center gap-2.5">
+                                {assignedStaffMembers.length === 1 ? (
+                                  <>
+                                    <Avatar
+                                      className="h-9 w-9 shrink-0 ring-1 ring-border-subtle"
+                                      title={`${assignedStaffMembers[0].firstName} ${assignedStaffMembers[0].lastName}`}
+                                    >
+                                      {assignedStaffMembers[0].profileImage ? (
+                                        <AvatarImage
+                                          src={assignedStaffMembers[0].profileImage}
+                                          alt=""
+                                          className="object-cover"
+                                        />
+                                      ) : null}
+                                      <AvatarFallback
+                                        className="text-[10px] font-semibold text-foreground-1"
+                                        style={{
+                                          backgroundColor: getAvatarBgColor(
+                                            `${assignedStaffMembers[0].id}-${assignedStaffMembers[0].firstName ?? ''}-${assignedStaffMembers[0].lastName ?? ''}`,
+                                          ),
+                                        }}
+                                      >
+                                        {`${assignedStaffMembers[0].firstName?.[0] ?? ''}${assignedStaffMembers[0].lastName?.[0] ?? ''}`.toUpperCase() ||
+                                          '?'}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <span className="font-semibold text-foreground-1">{staffNames}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="flex shrink-0 -space-x-2">
+                                      {assignedStaffMembers.slice(0, 4).map((m) => (
+                                        <Avatar
+                                          key={m.id}
+                                          className="h-9 w-9 border-2 border-white dark:border-card"
+                                          title={`${m.firstName} ${m.lastName}`}
+                                        >
+                                          {m.profileImage ? (
+                                            <AvatarImage
+                                              src={m.profileImage}
+                                              alt=""
+                                              className="object-cover"
+                                            />
+                                          ) : null}
+                                          <AvatarFallback
+                                            className="text-[10px] font-semibold text-foreground-1"
+                                            style={{
+                                              backgroundColor: getAvatarBgColor(
+                                                `${m.id}-${m.firstName ?? ''}-${m.lastName ?? ''}`,
+                                              ),
+                                            }}
+                                          >
+                                            {`${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase() ||
+                                              '?'}
+                                          </AvatarFallback>
+                                        </Avatar>
+                                      ))}
+                                      {assignedStaffMembers.length > 4 ? (
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-muted text-[10px] font-medium dark:border-card">
+                                          +{assignedStaffMembers.length - 4}
+                                        </div>
+                                      ) : null}
+                                    </div>
+                                    <span className="font-semibold text-foreground-1">{staffNames}</span>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="flex items-center gap-2 font-semibold text-foreground-1">
+                                <User className="h-4 w-4 shrink-0 text-foreground-3" />
+                                {staffNames}
+                              </span>
+                            )}
+                          </dd>
+                        </div>
+                      </dl>
+
+                      {appointment.overrideReason ? (
+                        <div
+                          className={cn(
+                            'mt-3 flex items-center gap-2 border-t border-amber-200/70 px-3 py-3 md:px-5 md:py-3.5',
+                            'bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/25',
+                            '-mx-3 -mb-3 rounded-b-2xl md:-mx-5 md:-mb-5',
+                          )}
+                        >
+                          <ShieldAlert
+                            className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                            aria-hidden
+                          />
+                          <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground-2">
+                            <span className="font-medium text-foreground-2">Override:</span>{' '}
+                            {appointment.overrideReason}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
-                  <h3 className="text-sm font-semibold text-foreground">Cancellation Reason</h3>
-                </div>
-                <p className="text-sm text-muted-foreground">{appointment.cancellationReason}</p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </BaseSlider>
+
+                <CollapsibleFormSection
+                  title={`Services (${serviceDetailItems.length})`}
+                  compact
+                  description={
+                    isGroupBooking
+                      ? `${formatDurationHuman(serviceDetailTotalDuration)} total across this booking group`
+                      : 'Booked service or bundle for this appointment'
+                  }
+                  open={accServicesOpen}
+                  onOpenChange={setAccServicesOpen}
+                  className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                >
+                  <div className="space-y-0">
+                    {serviceDetailItems.length === 0 ? (
+                      <p className="py-6 text-center text-sm text-foreground-3">
+                        No booked items in this view
+                      </p>
+                    ) : (
+                      <>
+                        <div className="divide-y divide-border">
+                          {serviceDetailItems.map((item, idx) => (
+                            <div
+                              key={`${item.name}-${idx}`}
+                              className="flex flex-nowrap items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="truncate text-sm font-semibold text-foreground-1">
+                                  {item.name}
+                                </div>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-foreground-3 dark:text-foreground-2">
+                                  <span className="tabular-nums">
+                                    {item.durationMinutes > 0
+                                      ? formatDurationHuman(item.durationMinutes)
+                                      : '—'}
+                                  </span>
+                                  {item.isBundle ? (
+                                    <Badge
+                                      className={cn(
+                                        'rounded-full border px-2.5 py-0.5 text-[11px] font-medium shadow-none',
+                                        'border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-200',
+                                      )}
+                                    >
+                                      Bundle
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div className="flex shrink-0 items-center justify-end text-right text-sm font-semibold tabular-nums text-foreground-1">
+                                {item.priceMajor <= 0 ? (
+                                  <span className="text-foreground-2">Free</span>
+                                ) : currencyDisplay.icon ? (
+                                  <span className="inline-flex items-center gap-0.5">
+                                    <currencyDisplay.icon className="h-3.5 w-3.5" />
+                                    {item.priceMajor.toFixed(2)}
+                                  </span>
+                                ) : (
+                                  <>
+                                    <span>{currencyDisplay.symbol}</span>
+                                    {item.priceMajor.toFixed(2)}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div
+                          className={cn(
+                            'mt-3 flex flex-col gap-2 border-t border-border px-3 py-3 md:px-4 md:py-3.5',
+                            /* Inset panel: same tokens as Add Appointment summary / EditBundleSlider panels */
+                            'dark:border-border dark:bg-neutral-900/30',
+                            '-mx-3 -mb-3 rounded-b-2xl md:-mx-4 md:-mb-4',
+                          )}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="text-sm font-semibold text-foreground-1">Total</span>
+                            <div className="shrink-0 text-sm font-semibold tabular-nums text-foreground-1">
+                              {serviceDetailTotalPrice <= 0 ? (
+                                <span className="text-foreground-2">Free</span>
+                              ) : currencyDisplay.icon ? (
+                                <span className="inline-flex items-center gap-0.5">
+                                  <currencyDisplay.icon className="h-4 w-4" />
+                                  {serviceDetailTotalPrice.toFixed(2)}
+                                </span>
+                              ) : (
+                                <>
+                                  {currencyDisplay.symbol}
+                                  {serviceDetailTotalPrice.toFixed(2)}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                          {isGroupBooking && serviceDetailTotalDuration > 0 ? (
+                            <p className="text-xs leading-relaxed text-foreground-3 dark:text-foreground-2">
+                              Includes all services in this booking group and may exceed this segment’s time block.
+                            </p>
+                          ) : null}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </CollapsibleFormSection>
+
+                <CollapsibleFormSection
+                  title="Activity"
+                  compact
+                  description="Booking history, updates, and admin overrides."
+                  open={accHistoryOpen}
+                  onOpenChange={setAccHistoryOpen}
+                  className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                >
+                  <ul className="m-0 list-none p-0" role="list">
+                    {activityTimelineItems.map((item, index) => {
+                      const isLast = index === activityTimelineItems.length - 1;
+                      return (
+                        <li key={item.id} className="list-none">
+                          {/*
+                            Line sits in the gutter column only, directly under the dot (items-start
+                            so row height doesn’t push the connector below the subtitle).
+                          */}
+                          <div
+                            className={cn(
+                              'flex items-start gap-3',
+                              !isLast && 'pb-3',
+                            )}
+                          >
+                            <div className="flex w-[15px] shrink-0 flex-col items-center pt-0.5">
+                              <div
+                                className={cn(
+                                  'h-3 w-3 shrink-0 rounded-full border-2 bg-background',
+                                  isLast
+                                    ? 'border-border dark:border-neutral-400/80'
+                                    : 'border-orange-300 dark:border-orange-400/75',
+                                )}
+                                aria-hidden
+                              />
+                              {!isLast ? (
+                                <div
+                                  className="mt-1 h-6 w-px shrink-0 bg-border dark:bg-border-strong/80"
+                                  aria-hidden
+                                />
+                              ) : null}
+                            </div>
+                            <div className="min-w-0 flex-1 pt-0.5">
+                              <div className="text-sm font-medium leading-snug text-foreground-1">
+                                {item.title}
+                              </div>
+                              <div className="mt-1 text-xs leading-snug text-foreground-3 dark:text-foreground-2">
+                                {item.meta}
+                              </div>
+                            </div>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </CollapsibleFormSection>
+
+                {appointment.location ? (
+                  <CollapsibleFormSection
+                    title="Location details"
+                    compact
+                    description="Address, maps, and contact details for this location."
+                    open={accLocationOpen}
+                    onOpenChange={setAccLocationOpen}
+                    className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                  >
+                    {(() => {
+                      const loc = appointment.location;
+                      const address = loc.address?.trim() ?? '';
+                      const description = loc.description?.trim() ?? '';
+                      const mapsQuery = [loc.name, address].filter(Boolean).join(' ').trim();
+                      const copyLines = [loc.name, description, address].filter(Boolean);
+                      const copyText = copyLines.join('\n');
+                      const hasAddress = address.length > 0;
+                      const hasContact = !!(loc.phone || loc.email);
+
+                      return (
+                        <div className="space-y-0">
+                          {loc.name ? (
+                            <div>
+                              <h3 className="text-base font-semibold leading-snug text-foreground-1">
+                                {loc.name}
+                              </h3>
+                              {description ? (
+                                <p className="mt-1.5 text-sm leading-relaxed text-foreground-3 dark:text-foreground-2">
+                                  {description}
+                                </p>
+                              ) : null}
+                            </div>
+                          ) : description ? (
+                            <p className="text-sm leading-relaxed text-foreground-3 dark:text-foreground-2">
+                              {description}
+                            </p>
+                          ) : null}
+
+                          {hasAddress ? (
+                            <p
+                              className={cn(
+                                'whitespace-pre-wrap text-sm leading-relaxed text-foreground-2',
+                                loc.name || description ? 'mt-3' : undefined,
+                              )}
+                            >
+                              {address}
+                            </p>
+                          ) : null}
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              rounded="full"
+                              className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium"
+                              onClick={() => {
+                                const q = encodeURIComponent(mapsQuery || loc.name);
+                                window.open(
+                                  `https://www.google.com/maps/search/?api=1&query=${q}`,
+                                  '_blank',
+                                  'noopener,noreferrer',
+                                );
+                              }}
+                            >
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                              Open in Maps
+                            </Button>
+                            {copyText ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                rounded="full"
+                                className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium"
+                                onClick={() => {
+                                  void navigator.clipboard.writeText(copyText);
+                                  toast.success(hasAddress ? 'Address copied' : 'Location details copied');
+                                }}
+                              >
+                                <Copy className="h-3.5 w-3.5 shrink-0" />
+                                {hasAddress ? 'Copy address' : 'Copy details'}
+                              </Button>
+                            ) : null}
+                          </div>
+
+                          {hasContact ? (
+                            <div
+                              className={cn(
+                                'mt-3 flex flex-col gap-2 border-t border-border px-3 py-3 md:px-4 md:py-3.5',
+                                'bg-muted/40 dark:border-border dark:bg-neutral-900/30',
+                                '-mx-3 -mb-3 rounded-b-2xl md:-mx-4 md:-mb-4',
+                              )}
+                            >
+                              <span className="text-xs font-medium text-foreground-2">
+                                Location contact
+                              </span>
+                              <div className="flex flex-wrap items-center gap-2 text-xs text-foreground-3 dark:text-foreground-2">
+                                {loc.email ? (
+                                  <a
+                                    href={`mailto:${loc.email}`}
+                                    className={cn(sliderInlineLinkClass, 'min-w-0 py-0.5')}
+                                  >
+                                    <span className="min-w-0 break-all">{loc.email}</span>
+                                    <ArrowUpRight
+                                      className="h-3 w-3 shrink-0 text-primary"
+                                      aria-hidden
+                                    />
+                                  </a>
+                                ) : null}
+                                {loc.email && loc.phone ? (
+                                  <span
+                                    className="h-3.5 w-px shrink-0 bg-border"
+                                    aria-hidden
+                                  />
+                                ) : null}
+                                {loc.phone ? (
+                                  <a
+                                    href={`tel:${String(loc.phone).replace(/\s/g, '')}`}
+                                    className={cn(sliderInlineLinkClass, 'py-0.5')}
+                                  >
+                                    <span className="min-w-0">{loc.phone}</span>
+                                    <ArrowUpRight
+                                      className="h-3 w-3 shrink-0 text-primary"
+                                      aria-hidden
+                                    />
+                                  </a>
+                                ) : null}
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  </CollapsibleFormSection>
+                ) : null}
+
+                {appointment.notes ? (
+                  <CollapsibleFormSection
+                    title="Notes"
+                    compact
+                    description="Internal or customer-facing notes on this booking."
+                    open={accNotesOpen}
+                    onOpenChange={setAccNotesOpen}
+                    className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                  >
+                    <p className="text-sm leading-relaxed text-foreground-2 whitespace-pre-wrap">
+                      {appointment.notes}
+                    </p>
+                  </CollapsibleFormSection>
+                ) : null}
+
+                {isCancelled && appointment.cancellationReason ? (
+                  <CollapsibleFormSection
+                    title="Cancellation"
+                    compact
+                    description="Reason recorded when this appointment was cancelled."
+                    open={accCancellationOpen}
+                    onOpenChange={setAccCancellationOpen}
+                    className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                  >
+                    <p className="text-sm leading-relaxed text-foreground-2">
+                      {appointment.cancellationReason}
+                    </p>
+                  </CollapsibleFormSection>
+                ) : null}
+              </div>
+            </div>
+          </DialogPrimitive.Content>
+        </DialogPortal>
+      </Dialog>
 
       {/* ── Cancel Dialog ── */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent className="max-w-md">
+        <AlertDialogContent className={cn('max-w-md', APPOINTMENT_DIALOG_CURSOR)}>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-4">
-                {(appointment as { bookingGroupId?: string | null })?.bookingGroupId && (
+                {appointment.bookingGroupId && (
                   <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
                     This will cancel the entire booking (all items in this group).
                   </p>
@@ -746,22 +1386,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* ── Complete / No-Show Confirmation Dialog ── */}
-      <AlertDialog
-        open={confirmDialog.open}
-        onOpenChange={(open) => setConfirmDialog((prev) => ({ ...prev, open }))}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{confirmDialog.description}</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmAction}>Confirm</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };

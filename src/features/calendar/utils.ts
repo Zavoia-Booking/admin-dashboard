@@ -73,7 +73,7 @@ export const STATUS_LIST = [
     { value: 'confirmed', label: 'Confirmed' },
     { value: 'completed', label: 'Completed' },
     { value: 'pending', label: 'Pending' },
-    { value: 'no_show', label: 'No Show' },
+    { value: 'no_show', label: 'No-show' },
     { value: 'cancelled', label: 'Cancelled' },
 ];
 

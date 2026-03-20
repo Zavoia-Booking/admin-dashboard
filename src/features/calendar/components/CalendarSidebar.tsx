@@ -205,8 +205,8 @@ const STATUS_OPTIONS = [
     { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500' },
     { value: 'pending', label: 'Pending', color: 'bg-yellow-500' },
     { value: 'completed', label: 'Completed', color: 'bg-green-500' },
-    { value: 'cancelled', label: 'Cancelled', color: 'bg-gray-500' },
-    { value: 'no_show', label: 'No-Show', color: 'bg-red-500' },
+    { value: 'cancelled', label: 'Cancelled', color: 'bg-destructive' },
+    { value: 'no_show', label: 'No-show', color: 'bg-red-500' },
 ] as const;
 
 const CalendarFilters: FC = () => {

@@ -82,3 +82,75 @@ export function buildZonedDate(date: Date, hhmm: string, timeZone: string): Date
   const [year, month, day] = dateInTz.split('-').map(Number);
   return buildZonedDateFromParts(year, month, day, hour, minute, timeZone);
 }
+
+/** Format instant in business/calendar timezone for audit-style display. */
+export function formatDateTimeInTimezone(
+  date: Date | string | null | undefined,
+  timeZone: string,
+): string {
+  if (date == null || date === '') return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString(undefined, {
+    timeZone,
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+}
+
+/** Long date in TZ (appointment detail overview). Optional short weekday for compact lines. */
+export function formatDetailOverviewDate(
+  date: Date | string,
+  timeZone: string,
+  options?: { weekday?: 'long' | 'short' },
+): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', {
+    timeZone,
+    weekday: options?.weekday === 'short' ? 'short' : 'long',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+/** Consistent date+time for booking history rows (same locale as overview family). */
+export function formatDetailHistoryDateTime(
+  date: Date | string | null | undefined,
+  timeZone: string,
+): string {
+  if (date == null || date === '') return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('en-GB', {
+    timeZone,
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+/** Compact "12 Mar, 14:22" style for activity / timeline rows (no year). */
+export function formatActivityTimelineDateTime(
+  date: Date | string | null | undefined,
+  timeZone: string,
+): string {
+  if (date == null || date === '') return '—';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (Number.isNaN(d.getTime())) return '—';
+  const datePart = d.toLocaleDateString('en-GB', {
+    timeZone,
+    day: 'numeric',
+    month: 'short',
+  });
+  const timePart = d.toLocaleTimeString('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+  return `${datePart}, ${timePart}`;
+}

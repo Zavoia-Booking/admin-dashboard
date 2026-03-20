@@ -7,7 +7,7 @@ import { type FC, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import type { SlimAppointment } from "../../../shared/types/calendar.ts";
-import { getAppointmentDetailRequest } from "../api.ts";
+import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { toggleEditFormAction } from "../actions.ts";
 import { AppointmentBlock } from "./AppointmentBlock.tsx";
 import { getTimePositionForGrid } from "../workingHours.ts";
@@ -72,12 +72,21 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
 
   const handleClick = useCallback(async () => {
     try {
-      const fullAppointment = await getAppointmentDetailRequest(appointment.id);
-      dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
+      const bookingGroupId = (appointment as { bookingGroupId?: string }).bookingGroupId;
+      if (bookingGroupId) {
+        const list = await getAppointmentGroupRequest(bookingGroupId);
+        const item = (Array.isArray(list) ? list : []).find((a: { id: number }) => a.id === appointment.id) ?? (Array.isArray(list) ? list[0] : null);
+        if (item) {
+          dispatch(toggleEditFormAction({ open: true, item, groupAppointments: Array.isArray(list) ? list : [] }));
+        }
+      } else {
+        const fullAppointment = await getAppointmentDetailRequest(appointment.id);
+        dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
+      }
     } catch {
       // silently fail — appointment may have been deleted
     }
-  }, [dispatch, appointment.id]);
+  }, [dispatch, appointment.id, (appointment as { bookingGroupId?: string }).bookingGroupId]);
 
   const pos =
     gridStartMinutes != null && intervalMinutes != null && slotHeight != null
@@ -129,7 +138,6 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      onClick={handleClick}
       style={{ ...wrapperStyle, touchAction: "none" }}
       className={isDragging ? "opacity-50 cursor-grabbing" : "cursor-grab"}
     >
@@ -139,6 +147,7 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
         height={pos.height}
         leftPercent={leftPercent}
         widthPercent={widthPercent}
+        onOpenDetail={handleClick}
       />
     </div>
   );

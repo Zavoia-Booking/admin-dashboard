@@ -49,6 +49,7 @@ const initialState: CalendarViewState = {
     editForm: {
         open: false,
         item: null,
+        groupAppointments: undefined as Appointment[] | undefined,
     },
     blockFormOpen: false,
 
@@ -98,11 +99,15 @@ export const handleOpenAddForm = (state: CalendarViewState, payload: { open: boo
     }
 }
 
-export const handleToggleEditForm = (state: CalendarViewState, payload: {open: boolean, item: Appointment | null}): CalendarViewState => {
-    const { open, item } = payload;
+export const handleToggleEditForm = (state: CalendarViewState, payload: { open: boolean; item: Appointment | null; groupAppointments?: Appointment[] }): CalendarViewState => {
+    const { open, item, groupAppointments } = payload;
     return {
         ...state,
-        editForm: { open, item },
+        editForm: {
+            open,
+            item,
+            groupAppointments: open ? (groupAppointments ?? undefined) : undefined,
+        },
     }
 }
 

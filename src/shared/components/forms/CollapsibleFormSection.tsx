@@ -20,6 +20,8 @@ export interface CollapsibleFormSectionProps {
   defaultOpen?: boolean;
   iconBgColor?: string;
   iconColor?: string;
+  /** Tighter trigger + spacing for dense panels (e.g. appointment details). */
+  compact?: boolean;
 }
 
 export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
@@ -33,6 +35,7 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
   iconBgColor = 'bg-primary/10 dark:bg-primary/20',
   iconColor = 'text-primary',
   defaultOpen = false,
+  compact = false,
 }) => {
   const isMobile = useIsMobile();
   const contentRef = useRef<HTMLDivElement>(null);
@@ -86,33 +89,71 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange} defaultOpen={defaultOpen}>
-      <div className={`space-y-4 ${className}`}>
+      <div className={cn(compact ? 'space-y-2' : 'space-y-4', className)}>
         <CollapsibleTrigger className="w-full cursor-pointer mb-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2 focus-visible:ring-offset-0 rounded-md focus-visible:border transition-colors">
-          <div className="flex items-center justify-between gap-3 pb-2">
-            <div className="flex items-center gap-3">
+          <div
+            className={cn(
+              'flex items-center justify-between gap-3',
+              compact ? 'pb-1' : 'pb-2',
+            )}
+          >
+            <div className={cn('flex items-center', compact ? 'gap-2' : 'gap-3')}>
               {Icon && (
-                <div className={`p-2 rounded-xl ${iconBgColor}`}>
-                  <Icon className={`h-5 w-5 ${iconColor}`} />
+                <div
+                  className={cn(
+                    'rounded-xl',
+                    compact ? 'p-1.5' : 'p-2',
+                    iconBgColor,
+                  )}
+                >
+                  <Icon
+                    className={cn(iconColor, compact ? 'h-4 w-4' : 'h-5 w-5')}
+                  />
                 </div>
               )}
               <div className="text-left">
-                <h3 className="text-base font-semibold text-foreground-1">{title}</h3>
+                <h3
+                  className={cn(
+                    'font-semibold text-foreground-1',
+                    compact ? 'text-sm' : 'text-base',
+                  )}
+                >
+                  {title}
+                </h3>
                 {description && (
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-0.5">{description}</p>
+                  <p
+                    className={cn(
+                      'text-foreground-3 dark:text-foreground-2 mt-0.5',
+                      compact ? 'text-xs' : 'text-sm',
+                    )}
+                  >
+                    {description}
+                  </p>
                 )}
               </div>
             </div>
             {open ? (
               <ChevronUp
-                className={`${isMobile ? 'h-8 w-8' : 'h-5 w-5'} text-foreground-3 dark:text-foreground-2`}
+                className={`${isMobile ? 'h-8 w-8' : compact ? 'h-4 w-4' : 'h-5 w-5'} text-foreground-3 dark:text-foreground-2 shrink-0`}
               />
             ) : (
               <ChevronDown
-                className={`${isMobile ? 'h-8 w-8' : 'h-5 w-5'} text-foreground-3 dark:text-foreground-2`}
+                className={`${isMobile ? 'h-8 w-8' : compact ? 'h-4 w-4' : 'h-5 w-5'} text-foreground-3 dark:text-foreground-2 shrink-0`}
               />
             )}
           </div>
         </CollapsibleTrigger>
+        {open && contentRendered ? (
+          <div
+            className={cn(
+              'w-full shrink-0',
+              compact ? 'pt-3 pb-3' : 'pt-4 pb-5',
+            )}
+            aria-hidden
+          >
+            <div className="w-full border-t border-border dark:border-border-strong" />
+          </div>
+        ) : null}
         {contentRendered && (
           <div
             ref={contentRef}
