@@ -19,6 +19,7 @@ export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: bool
 export const toggleEditFormAction = createAction('CALENDAR/EDIT/TOGGLE')<{
     open: boolean,
     item: Appointment | null,
+    groupAppointments?: Appointment[],
 }>()
 
 export const setViewTypeAction = createAction('CALENDAR/VIEW_TYPE/SET')<AppointmentViewType>()

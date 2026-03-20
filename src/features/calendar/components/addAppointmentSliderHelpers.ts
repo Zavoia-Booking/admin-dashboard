@@ -30,6 +30,8 @@ export interface AppointmentItem {
   serviceId: number | null;
   bundleId: number | null;
   staffUserId: number | null;
+  /** Display name when resolved from API (e.g. bookedItemName); fallback when service/bundle lookup fails. */
+  itemName?: string;
 }
 
 export interface StaffOverride {

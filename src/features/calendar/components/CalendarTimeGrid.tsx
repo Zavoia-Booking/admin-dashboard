@@ -24,6 +24,7 @@ import {
   getCalendarTimezone,
   appointmentsToDisplayBlocks,
 } from "../selectors.ts";
+import { selectIsTeamMember, selectCurrentUserId } from "../../auth/selectors";
 import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop } from "../actions.ts";
 import { AppointmentViewMode } from "../types.ts";
 import type {
@@ -237,6 +238,9 @@ interface BlockDetailPopoverProps {
 
 const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, timezone, children }) => {
   const dispatch = useDispatch();
+  const isTeamMember = useSelector(selectIsTeamMember);
+  const currentUserId = useSelector(selectCurrentUserId);
+  const canDeleteBlock = !isTeamMember || (block.blockScope === 'staff' && block.userId != null && block.userId === currentUserId);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
 
@@ -287,17 +291,19 @@ const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, tim
               </div>
             )}
           </div>
-          <div className="px-3 py-2 border-t border-border">
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full h-8 text-xs"
-              onClick={handleRequestDeleteBlock}
-            >
-              <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-              Delete Block
-            </Button>
-          </div>
+          {canDeleteBlock && (
+            <div className="px-3 py-2 border-t border-border">
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full h-8 text-xs"
+                onClick={handleRequestDeleteBlock}
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                Delete Block
+              </Button>
+            </div>
+          )}
         </PopoverContent>
       </Popover>
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
@@ -1623,14 +1629,15 @@ const WeekGrid: FC = () => {
     const allDisplayAppointments = columnDisplayData.flatMap((col) => col.appointments);
     // Group drop: remove all segments from every day, add all at preview positions on target day
     if (pd.isGroupDrop && pd.segmentsPreview?.length) {
-      const segmentIds = new Set(pd.segmentsPreview.map((s) => s.id));
+      const segmentsPreview = pd.segmentsPreview ?? [];
+      const segmentIds = new Set(segmentsPreview.map((s) => s.id));
       return columnDisplayData.map((col, i) => {
         const dateKey = formatDateInTimezone(weekDays[i], calendarTimezone);
         const withoutSegments = col.appointments.filter((a) => !segmentIds.has(a.id));
         if (dateKey !== pd.dateKey) {
           return { ...col, appointments: withoutSegments };
         }
-        const previewAppointments: SlimAppointment[] = pd.segmentsPreview.map((seg) => {
+        const previewAppointments: SlimAppointment[] = segmentsPreview.map((seg) => {
           const full = allDisplayAppointments.find((a) => a.id === seg.id);
           return full
             ? { ...full, scheduledAt: seg.startIso, endsAt: seg.endIso }

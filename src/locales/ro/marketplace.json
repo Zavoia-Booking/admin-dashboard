@@ -24,7 +24,7 @@
       },
       "preview": {
         "header": "Profil Marketplace",
-        "text": "Acesta este centrul tău de control pentru marketplace. Odată listat, îți vei putea gestiona profilul public, portofoliul și setările de rezervare direct din această pagină."
+        "text": "Acesta este centrul tău de control pentru marketplace. Odată listat, îți vei gestiona profilul public și portofoliul aici. Configurează regulile de rezervare și disponibilitatea în Setări Calendar."
       }
     },
     "benefits": {
@@ -278,6 +278,24 @@
         }
       }
     },
+    "reminders": {
+      "title": "Reamintiri",
+      "sendBefore": {
+        "label": "Trimite reamintire înainte de programare"
+      },
+      "enabled": {
+        "label": "Activează reamintirile"
+      },
+      "hours": {
+        "0": "Dezactivat",
+        "1": "1 oră",
+        "2": "2 ore",
+        "4": "4 ore",
+        "12": "12 ore",
+        "24": "24 ore",
+        "48": "48 ore"
+      }
+    },
     "messaging": {
       "title": "Notificări Clienți",
       "communicationMethods": {
@@ -292,21 +310,13 @@
           "description": "Trimite confirmări și reamintiri prin mesaj text."
         },
         "pushNotificationHelper": "Notificările push sunt trimise automat dacă clienții folosesc aplicația mobilă."
-      },
-      "customMessages": {
-        "title": "Mesaje Personalizate",
-        "description": "Adaugă mesaje personalizate pe care clienții le vor vedea după rezervare sau când revizuiesc politicile de anulare."
-      },
-      "cancellationPolicy": {
-        "label": "Politica de Anulare",
-        "helperText": "Arătat când clienții vizualizează sau solicită să anuleze o programare.",
-        "placeholder": "Introdu politica ta de anulare..."
-      },
-      "reminderMessage": {
-        "label": "Mesaj de Reamintire",
-        "helperText": "Trimis clienților ca reamintire înainte de programarea lor.",
-        "placeholder": "Introdu mesajul tău de reamintire..."
       }
+    },
+    "adminBookingOverride": {
+      "title": "Reguli Rezervări Admin",
+      "description": "Când este activat, administratorii trebuie să respecte rezervarea minimă în avans la crearea programărilor. Când este dezactivat, administratorii pot crea programări oricând.",
+      "label": "Aplică minimul în avans pentru programările create de admin",
+      "helper": "Când este activat, adminii respectă min. în avans; când este dezactivat, pot rezerva oricând."
     },
     "validation": {
       "minAdvanceBooking": "Trebuie să fie mai mic decât rezervarea maximă în avans",

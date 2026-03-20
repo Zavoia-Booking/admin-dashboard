@@ -4,7 +4,7 @@ import type { SlimAppointment, CalendarStaffMember } from "../../../shared/types
 import { getLocationStaff } from "../selectors.ts";
 import { toggleEditFormAction } from "../actions.ts";
 import { formatTimeRange } from "./utils.tsx";
-import { getAppointmentDetailRequest } from "../api.ts";
+import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { User, ShieldAlert } from "lucide-react";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { getAppointmentBlockColors } from "../colors.ts";
@@ -70,6 +70,8 @@ interface AppointmentBlockProps {
   leftPercent?: number;
   /** Width as percentage when side-by-side (otherwise full width) */
   widthPercent?: number;
+  /** When provided, call on click instead of fetching and opening (used by DraggableAppointmentBlock to avoid duplicate fetch). */
+  onOpenDetail?: () => void;
 }
 
 /**
@@ -86,6 +88,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
   top,
   leftPercent,
   widthPercent,
+  onOpenDetail,
 }) => {
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
@@ -93,13 +96,27 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
   const { backgroundColor, color } = getAppointmentBlockColors(appointment, colorCoding);
 
   const handleClick = useCallback(async () => {
+    if (onOpenDetail) {
+      onOpenDetail();
+      return;
+    }
     try {
-      const fullAppointment = await getAppointmentDetailRequest(appointment.id);
-      dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
+      const bookingGroupId = (appointment as { bookingGroupId?: string }).bookingGroupId;
+      if (bookingGroupId) {
+        const list = await getAppointmentGroupRequest(bookingGroupId);
+        const arr = Array.isArray(list) ? list : [];
+        const item = arr.find((a: { id: number }) => a.id === appointment.id) ?? arr[0];
+        if (item) {
+          dispatch(toggleEditFormAction({ open: true, item, groupAppointments: arr }));
+        }
+      } else {
+        const fullAppointment = await getAppointmentDetailRequest(appointment.id);
+        dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
+      }
     } catch {
       // silently fail — appointment may have been deleted
     }
-  }, [dispatch, appointment.id]);
+  }, [dispatch, appointment.id, (appointment as { bookingGroupId?: string }).bookingGroupId, onOpenDetail]);
 
   const style: React.CSSProperties = { top, height, backgroundColor, color };
   if (leftPercent != null && widthPercent != null) {

@@ -44,7 +44,8 @@ import ConfirmDialog from '../../../shared/components/common/ConfirmDialog';
 import { useTimeSlots } from '../hooks/useTimeSlots';
 import { useWorkingHoursForDate } from '../hooks/useWorkingHoursForDate';
 import { isTimeRangeOutsideWorkingHours, doesTimeRangeSpanMidnight } from '../workingHours';
-import { checkSlotRequest, getAvailableSlotsRequest } from '../api';
+import { Skeleton } from '../../../shared/components/ui/skeleton';
+import { getAvailableSlotsRequest } from '../api';
 import {
   type FormState,
   areNumberArraysEqual,
@@ -156,7 +157,7 @@ function AppointmentItemRow({
       : bundleForRow?.staffIds?.length
         ? locationTeamMembers.filter((t) => bundleForRow.staffIds!.includes(t.userId))
         : locationTeamMembers;
-  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : 'Unknown item';
+  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : (item as { itemName?: string }).itemName ?? 'Unknown item';
   const staffOverride = serviceForRow?.staffOverrides?.length && item.staffUserId != null
     ? serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)
     : null;
@@ -416,11 +417,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const [nextAvailableDate, setNextAvailableDate] = useState<string | null>(null);
   const [availableSlotsLoading, setAvailableSlotsLoading] = useState(false);
   const [slotFetchError, setSlotFetchError] = useState<string | null>(null);
-  const [slotValidation, setSlotValidation] = useState<{ loading: boolean; valid: boolean | null; reason?: string }>({
-    loading: false,
-    valid: null,
-  });
-
   // Time picker state
   const [hourOpen, setHourOpen] = useState(false);
   const [hourClosingAnimation, setHourClosingAnimation] = useState(false);
@@ -447,11 +443,27 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       });
       const prefillServiceId = prefill?.serviceId ?? null;
       const prefillStaffId = prefill?.staffUserId ?? null;
-      setAppointmentItems(
-        prefillServiceId != null
-          ? [{ serviceId: prefillServiceId, bundleId: null, staffUserId: prefillStaffId }]
-          : [],
-      );
+      const prefillBundleId = prefill?.bundleId ?? null;
+      if (prefill?.groupItems != null && prefill.groupItems.length > 1) {
+        setAppointmentItems(
+          prefill.groupItems.map((x) => ({
+            serviceId: x.serviceId ?? null,
+            bundleId: x.bundleId ?? null,
+            staffUserId: x.staffUserId ?? null,
+            itemName: x.itemName,
+          })),
+        );
+      } else if (prefillServiceId != null || prefillBundleId != null) {
+        setAppointmentItems([
+          {
+            serviceId: prefillServiceId ?? null,
+            bundleId: prefillBundleId,
+            staffUserId: prefillStaffId ?? null,
+          },
+        ]);
+      } else {
+        setAppointmentItems([]);
+      }
       setError(null);
       setSlotFetchError(null);
     } else {
@@ -465,7 +477,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setNextAvailableDate(null);
       setAvailableSlotsLoading(false);
       setSlotFetchError(null);
-      setSlotValidation({ loading: false, valid: null });
     }
   }, [isOpen, prefill]);
 
@@ -494,7 +505,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [appointmentItems, hasTeamMembersAtLocation]);
 
   useEffect(() => {
-    if (isEditMode || !selectedLocationId || !form.date || !slotFetchItems) {
+    if (!selectedLocationId || !form.date || !slotFetchItems) {
       setAvailableSlots(null);
       setOutOfHoursSlots([]);
       setNextAvailableDate(null);
@@ -510,13 +521,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setOutOfHoursSlots([]);
     setNextAvailableDate(null);
     const slotRequestId = `${Date.now()}-${selectedLocationId}`;
-    console.log('[SLOT] fetch:start', {
-      requestId: slotRequestId,
-      timezone: calendarTimezone,
-      locationId: selectedLocationId,
-      date: dateStr,
-      itemCount: slotFetchItems.length,
-    });
     getAvailableSlotsRequest({
       locationId: selectedLocationId,
       date: dateStr,
@@ -525,13 +529,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     }, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) return;
-        console.log('[SLOT] fetch:result', {
-          requestId: slotRequestId,
-          timezone: calendarTimezone,
-          availableSlots: res.availableSlots?.length ?? 0,
-          outOfHoursSlots: res.outOfHoursSlots?.length ?? 0,
-          nextAvailableDate: res.nextAvailableDate ?? null,
-        });
         setAvailableSlots(res.availableSlots ?? []);
         setOutOfHoursSlots(res.outOfHoursSlots ?? []);
         setNextAvailableDate(res.nextAvailableDate ?? null);
@@ -553,48 +550,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         }
       });
     return () => controller.abort();
-  }, [isEditMode, selectedLocationId, form.date, slotFetchItems, calendarTimezone]);
-
-  const isPrefillTimeMode = !isEditMode && Boolean(prefill?.time) && !userChangedTimeRef.current;
-  useEffect(() => {
-    if (!isPrefillTimeMode || !selectedLocationId || !slotFetchItems || !form.date || !form.time) {
-      setSlotValidation({ loading: false, valid: null });
-      return;
-    }
-    const scheduledDate = buildScheduledDate(form.date, form.time, calendarTimezone);
-    if (!scheduledDate) {
-      setSlotValidation({ loading: false, valid: null });
-      return;
-    }
-
-    const controller = new AbortController();
-    setSlotValidation({ loading: true, valid: null });
-    checkSlotRequest({
-      locationId: selectedLocationId,
-      startTime: scheduledDate.toISOString(),
-      items: slotFetchItems,
-    }, controller.signal)
-      .then((res) => {
-        if (controller.signal.aborted) return;
-        setSlotValidation({
-          loading: false,
-          valid: res.valid,
-          reason: res.conflicts?.[0]?.reason,
-        });
-      })
-      .catch((err) => {
-        if (controller.signal.aborted) return;
-        console.error('[SLOT] check:error', {
-          message: err?.message ?? 'Unknown slot check error',
-        });
-        setSlotValidation({
-          loading: false,
-          valid: false,
-          reason: 'Failed to validate this slot. Please try another time.',
-        });
-      });
-    return () => controller.abort();
-  }, [isPrefillTimeMode, selectedLocationId, slotFetchItems, form.date, form.time, calendarTimezone]);
+  }, [selectedLocationId, form.date, slotFetchItems, calendarTimezone]);
 
   // Services and team for the selected location come from Redux (fetched once when location is selected via assignments/full).
 
@@ -773,13 +729,32 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     // Filter out past slots when the selected date is today (in calendar timezone)
     if (!form.date) return list;
     const now = Date.now();
+    const isSelectedDateToday =
+      formatDateInTimezone(form.date, calendarTimezone) === formatDateInTimezone(new Date(), calendarTimezone);
+    const minAdvanceMs =
+      isSelectedDateToday &&
+      bookingSettings?.enforceMinAdvanceForAdmin &&
+      (bookingSettings?.minAdvanceBookingMinutes ?? 0) > 0
+        ? (bookingSettings.minAdvanceBookingMinutes ?? 0) * 60 * 1000
+        : 0;
+    const earliestStart = now + minAdvanceMs;
     return list.filter((slot) => {
       const slotStart = buildScheduledDate(form.date, slot, calendarTimezone);
       if (!slotStart || slotStart.getTime() < now) return false;
+      if (minAdvanceMs > 0 && slotStart.getTime() < earliestStart) return false;
       if (doesTimeRangeSpanMidnight(slotStart, slotDurationMinutes, calendarTimezone)) return false;
       return true;
     });
-  }, [availableSlots, availableSlotsLoading, timeSlots, calendarTimezone, form.date, slotDurationMinutes]);
+  }, [
+    availableSlots,
+    availableSlotsLoading,
+    timeSlots,
+    calendarTimezone,
+    form.date,
+    slotDurationMinutes,
+    bookingSettings?.enforceMinAdvanceForAdmin,
+    bookingSettings?.minAdvanceBookingMinutes,
+  ]);
   const outOfHoursTimeSet = useMemo(() => {
     return new Set(
       outOfHoursSlots.map((iso) => formatTimeKey(iso, calendarTimezone)),
@@ -851,7 +826,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
     return scheduled !== null && doesTimeRangeSpanMidnight(scheduled, slotDurationMinutes, calendarTimezone);
   }, [form.date, form.time, calendarTimezone, slotDurationMinutes]);
-  const prefillSlotIsValid = !isPrefillTimeMode || form.time === '' || slotValidation.valid !== false;
   const totalPrice = useMemo(
     () => getGroupTotalPriceMajor(appointmentItems, locationServices, locationBundles),
     [appointmentItems, locationServices, locationBundles],
@@ -878,8 +852,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     !isSpanMidnight &&
     !durationExceedsOneDay &&
     isTimeInAvailableSlots &&
-    prefillSlotIsValid &&
-    !slotValidation.loading &&
     !availableSlotsLoading &&
     allCreateItemsValid &&
     !notesError;
@@ -1080,13 +1052,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setError('This appointment would span two days. Please end by midnight and create a separate appointment for the next day.');
       return;
     }
-    console.log('[APPOINTMENT] submit:start', {
-      mode: isEditMode ? 'edit' : 'create-group',
-      locationId: selectedLocationId,
-      timezone: calendarTimezone,
-      scheduledDate: scheduledDate.toISOString(),
-      itemCount: appointmentItems.length,
-    });
 
     if (notesError) return;
 
@@ -1177,10 +1142,42 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             {/* ── Services & Bundles Section ── */}
             <div className="space-y-5">
               <SliderSectionHeader
-                title={isEditMode ? 'Service' : 'Services & Bundles'}
-                description={isEditMode ? 'Choose the service for this appointment.' : 'Choose services and bundles, then assign staff for each item.'}
+                title={
+                  isEditMode && appointmentItems.length > 1
+                    ? 'Rescheduling group'
+                    : isEditMode
+                      ? 'Service'
+                      : 'Services & Bundles'
+                }
+                description={
+                  isEditMode && appointmentItems.length > 1
+                    ? `Rescheduling ${appointmentItems.length} items. Change date/time below; group composition cannot be edited here.`
+                    : isEditMode
+                      ? 'Choose the service for this appointment.'
+                      : 'Choose services and bundles, then assign staff for each item.'
+                }
               />
-              {!isEditMode && locationBundles.length > 0 ? (
+              {isEditMode && appointmentItems.length > 1 ? (
+                <div className="rounded-lg border border-border bg-muted/30 dark:bg-muted/20 px-4 py-3 space-y-2">
+                  <p className="text-sm font-medium text-foreground-1">
+                    Rescheduling {appointmentItems.length} items
+                  </p>
+                  <ul className="text-sm text-foreground-2 list-disc list-inside space-y-0.5">
+                    {appointmentItems.map((item, idx) => {
+                      const svc = locationServices.find((s) => s.serviceId === item.serviceId);
+                      const bundle = locationBundles.find((b) => b.bundleId === item.bundleId);
+                      const label = svc ? svc.serviceName : bundle ? bundle.bundleName : item.itemName ?? '—';
+                      return <li key={`${item.serviceId ?? 0}-${item.bundleId ?? 0}-${idx}`}>{label}</li>;
+                    })}
+                  </ul>
+                  {durationMinutes > 0 && (
+                    <p className="text-sm text-foreground-2 flex items-center gap-1.5 pt-1">
+                      <Clock className="h-3.5 w-3.5 shrink-0" />
+                      Total duration: {durationMinutes} min
+                    </p>
+                  )}
+                </div>
+              ) : !isEditMode && locationBundles.length > 0 ? (
                 <div className="w-full flex items-center gap-3">
                   <Button
                     type="button"
@@ -1518,7 +1515,18 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 </div>
               </div>
 
-              {nextAvailableDate && (() => {
+              {availableSlotsLoading && form.date && slotFetchItems ? (
+                <div className="space-y-2" aria-busy="true" aria-label="Loading next available date">
+                  <div className="flex items-start gap-2">
+                    <Skeleton className="h-4 w-4 mt-0.5 flex-shrink-0 rounded-md" />
+                    <div className="flex-1 min-w-0 space-y-1.5">
+                      <Skeleton className="h-4 w-full max-w-[15rem] rounded-md" />
+                      <Skeleton className="h-3.5 w-full max-w-[18rem] rounded-md" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-10 w-full max-w-[11rem] rounded-full" />
+                </div>
+              ) : nextAvailableDate ? (() => {
                 const nextDateFormatted = (() => {
                   const d = new Date(nextAvailableDate + 'T12:00:00');
                   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -1552,16 +1560,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     </Button>
                   </div>
                 );
-              })()}
+              })() : null}
               {slotFetchError && (
                 <div className="text-xs text-destructive">
                   {slotFetchError}
-                </div>
-              )}
-
-              {isPrefillTimeMode && slotValidation.valid === false && (
-                <div className="text-xs text-destructive">
-                  {slotValidation.reason ?? 'Selected slot is no longer available.'}
                 </div>
               )}
 

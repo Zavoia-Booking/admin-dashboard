@@ -62,6 +62,9 @@ export type AddFormPrefill = {
     time?: string; // "HH:mm"
     staffUserId?: number;
     serviceId?: number;
+    bundleId?: number;
+    /** Full group items when rescheduling a multi-segment booking group; order preserved. */
+    groupItems?: Array<{ serviceId?: number; bundleId?: number; staffUserId?: number; itemName?: string }>;
     customerId?: number;
     customerDisplay?: {
         firstName: string;
@@ -118,6 +121,7 @@ export type CalendarViewState = {
     editForm: {
         open: boolean;
         item: Appointment | null;
+        groupAppointments?: Appointment[] | null;
     };
     blockFormOpen: boolean;
 

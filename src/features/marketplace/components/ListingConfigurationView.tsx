@@ -13,10 +13,6 @@ import type {
   PortfolioImageData,
 } from "../types";
 import { MarketplaceImagesSection } from "./MarketplaceImagesSection";
-import {
-  AdvancedSettingsSection,
-  type AdvancedSettingsSectionRef,
-} from "./AdvancedSettingsSection";
 import { SectionDivider } from "../../../shared/components/common/SectionDivider";
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
@@ -53,7 +49,6 @@ interface ListingConfigurationViewProps {
   industryTags: any[];
   selectedIndustryTags: any[];
   onSave: (data: any) => void;
-  onSaveBookingSettings: (data: any) => void;
 }
 
 export function ListingConfigurationView(props: ListingConfigurationViewProps) {
@@ -64,9 +59,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const bookingSettingsRef = useRef<AdvancedSettingsSectionRef>(null);
-  const [bookingSettingsDirty, setBookingSettingsDirty] = useState(false);
-  const [bookingSettingsHasErrors, setBookingSettingsHasErrors] = useState(false);
 
   // State for unsaved changes confirmation dialog
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
@@ -103,24 +95,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     }
   }, [searchParams, navigate]);
 
-  // Check booking settings dirty state and errors periodically
-  useEffect(() => {
-    const checkBookingState = () => {
-      const isDirty = bookingSettingsRef.current?.isDirty() ?? false;
-      const hasErrors = bookingSettingsRef.current?.hasErrors() ?? false;
-      setBookingSettingsDirty(isDirty);
-      setBookingSettingsHasErrors(hasErrors);
-    };
-
-    // Check immediately
-    checkBookingState();
-
-    // Check every 500ms to detect changes in booking settings
-    const interval = setInterval(checkBookingState, 500);
-
-    return () => clearInterval(interval);
-  }, []);
-
   const form = useMarketplaceForm({
     business: props.business,
     marketplaceName: props.marketplaceName,
@@ -139,8 +113,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     onSave: props.onSave,
   });
 
-  // Combined dirty state
-  const isCombinedDirty = form.isDirty || bookingSettingsDirty;
+  const isCombinedDirty = form.isDirty;
 
   // Warn before closing browser tab/window with unsaved changes
   useEffect(() => {
@@ -299,16 +272,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     navigate(`/marketplace?tab=${tab}`, { replace: true });
   };
 
-  // Combined save handler
   const handleCombinedSave = () => {
-    // Save marketplace listing
     form.handleSave();
-
-    // Save booking settings if they're dirty
-    if (bookingSettingsDirty && bookingSettingsRef.current) {
-      const bookingSettings = bookingSettingsRef.current.getCurrentSettings();
-      props.onSaveBookingSettings(bookingSettings);
-    }
   };
 
   const tabItems: ResponsiveTabItem[] = [
@@ -375,14 +340,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
               {/* Location Catalog Section */}
               <LocationCatalogSection locations={locationsWithAssignments} />
-
-              <div className="pt-4">
-                <SectionDivider
-                  title={t("configuration.sections.preferences")}
-                  className="mt-4 uppercase tracking-wider text-foreground-2"
-                />
-                <AdvancedSettingsSection ref={bookingSettingsRef} />
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -464,7 +421,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         isPublishing ||
         !isCombinedDirty ||
         form.hasValidationErrors ||
-        bookingSettingsHasErrors ||
         form.portfolio.length === 0 ||
         form.selectedIndustryTags.length === 0
       }

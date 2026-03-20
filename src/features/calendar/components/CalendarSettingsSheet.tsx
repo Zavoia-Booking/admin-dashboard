@@ -1,23 +1,15 @@
-import { type FC, useState, useEffect, useCallback } from 'react';
+import { type FC, useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from '../../../shared/components/ui/sheet';
-import { Button } from '../../../shared/components/ui/button';
+import { BaseSlider } from '../../../shared/components/common/BaseSlider';
+import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { Label } from '../../../shared/components/ui/label';
-import { Textarea } from '../../../shared/components/ui/textarea';
 import { Switch } from '../../../shared/components/ui/switch';
-import { Separator } from '../../../shared/components/ui/separator';
-import {
-  Monitor, Clock, Palette, Eye, Users, Bell, MessageSquare,
-  ShieldCheck, Loader2, Save,
-} from 'lucide-react';
-import { cn } from '../../../shared/lib/utils';
-import { getBookingSettings } from '../selectors';
+import { Pill } from '../../../shared/components/ui/pill';
+import { SliderContentDivider } from '../../../shared/components/common/SliderContentDivider';
+import { SliderSectionHeader } from '../../../shared/components/forms/SliderSectionHeader';
+import { Eye, Settings } from 'lucide-react';
+import { selectIsTeamMember } from '../../auth/selectors';
+import { getBookingSettings, getSelectedLocationId } from '../selectors';
 import { AppointmentViewMode, AppointmentViewType } from '../types';
 import {
   calendarPreferences,
@@ -25,10 +17,12 @@ import {
   type ColorCoding,
 } from '../calendarPreferences';
 import { updateBookingSettingsApi } from '../../marketplace/api';
-import type { UpdateBookingSettingsPayload } from '../../marketplace/types';
 import { toast } from 'sonner';
 import { fetchLocationContext } from '../actions';
-import { getSelectedLocationId } from '../selectors';
+import {
+  AdvancedSettingsSection,
+  type AdvancedSettingsSectionRef,
+} from './AdvancedSettingsSection';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -40,70 +34,35 @@ interface CalendarSettingsSheetProps {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Pill selector helper
-// ─────────────────────────────────────────────────────────────
-
-interface PillOption<T extends string> {
-  value: T;
-  label: string;
-}
-
-function PillSelector<T extends string>({
-  options,
-  value,
-  onChange,
-}: {
-  options: PillOption<T>[];
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-1.5">
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          type="button"
-          onClick={() => onChange(opt.value)}
-          className={cn(
-            'px-3 py-1.5 rounded-full text-xs font-medium transition-all border',
-            value === opt.value
-              ? 'bg-primary text-primary-foreground border-primary'
-              : 'bg-muted/50 text-muted-foreground border-border hover:bg-muted',
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────
 // Component
 // ─────────────────────────────────────────────────────────────
 
 export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, onClose }) => {
   const dispatch = useDispatch();
+  const isTeamMember = useSelector(selectIsTeamMember);
   const bookingSettings = useSelector(getBookingSettings);
   const selectedLocationId = useSelector(getSelectedLocationId);
 
-  // --- Display preferences (localStorage) ---
+  // --- Display preferences (persisted to localStorage only on Save) ---
   const [defaultView, setDefaultView] = useState<AppointmentViewMode>(AppointmentViewMode.WEEK);
   const [defaultViewType, setDefaultViewType] = useState<AppointmentViewType>(AppointmentViewType.LIST);
   const [timeFormat, setTimeFormat] = useState<TimeFormat>('24h');
   const [colorCoding, setColorCoding] = useState<ColorCoding>('status');
   const [showCancelled, setShowCancelled] = useState(true);
 
-  // --- Business settings (backend) ---
-  const [allowStaffBlock, setAllowStaffBlock] = useState(true);
-  const [reminderHours, setReminderHours] = useState(24);
-  const [cancellationMessage, setCancellationMessage] = useState('');
-  const [reminderMessage, setReminderMessage] = useState('');
-  const [enforceMinAdvance, setEnforceMinAdvance] = useState(false);
-
   const [saving, setSaving] = useState(false);
+  const [isAdvancedDirty, setIsAdvancedDirty] = useState(false);
+  const [hasAdvancedErrors, setHasAdvancedErrors] = useState(false);
+  const advancedSettingsRef = useRef<AdvancedSettingsSectionRef>(null);
+  const initialDisplayPrefsRef = useRef<{
+    defaultView: AppointmentViewMode;
+    defaultViewType: AppointmentViewType;
+    timeFormat: TimeFormat;
+    colorCoding: ColorCoding;
+    showCancelled: boolean;
+  } | null>(null);
 
-  // Load preferences on open
+  // Load display preferences when sheet opens (snapshot for dirty check)
   useEffect(() => {
     if (open) {
       const prefs = calendarPreferences.getAll();
@@ -112,75 +71,77 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
       setTimeFormat(prefs.timeFormat);
       setColorCoding(prefs.colorCoding);
       setShowCancelled(prefs.showCancelled);
-
-      // Load backend settings
-      if (bookingSettings) {
-        setAllowStaffBlock(bookingSettings.allowStaffBlockCalendarWithoutConfirmation ?? true);
-        setReminderHours(bookingSettings.reminderHoursBefore ?? 24);
-        setCancellationMessage(bookingSettings.cancellationPolicyMessage ?? '');
-        setReminderMessage(bookingSettings.bookingReminderMessage ?? '');
-        setEnforceMinAdvance(bookingSettings.enforceMinAdvanceForAdmin ?? false);
-      }
+      initialDisplayPrefsRef.current = {
+        defaultView: prefs.defaultViewMode,
+        defaultViewType: prefs.defaultViewType,
+        timeFormat: prefs.timeFormat,
+        colorCoding: prefs.colorCoding,
+        showCancelled: prefs.showCancelled,
+      };
     }
-  }, [open, bookingSettings]);
+  }, [open]);
 
-  // Save display preferences instantly to localStorage
+  const isDisplayPrefsDirty =
+    initialDisplayPrefsRef.current !== null &&
+    (defaultView !== initialDisplayPrefsRef.current.defaultView ||
+      defaultViewType !== initialDisplayPrefsRef.current.defaultViewType ||
+      timeFormat !== initialDisplayPrefsRef.current.timeFormat ||
+      colorCoding !== initialDisplayPrefsRef.current.colorCoding ||
+      showCancelled !== initialDisplayPrefsRef.current.showCancelled);
+
+  const isDirty = isTeamMember ? isDisplayPrefsDirty : (isDisplayPrefsDirty || isAdvancedDirty);
+
+  // Display preference handlers (state only; persisted on Save)
   const handleDefaultViewChange = useCallback((mode: AppointmentViewMode) => {
     setDefaultView(mode);
-    calendarPreferences.setDefaultViewMode(mode);
   }, []);
 
   const handleDefaultViewTypeChange = useCallback((type: AppointmentViewType) => {
     setDefaultViewType(type);
-    calendarPreferences.setDefaultViewType(type);
   }, []);
 
   const handleTimeFormatChange = useCallback((format: TimeFormat) => {
     setTimeFormat(format);
-    calendarPreferences.setTimeFormat(format);
   }, []);
 
   const handleColorCodingChange = useCallback((coding: ColorCoding) => {
     setColorCoding(coding);
-    calendarPreferences.setColorCoding(coding);
   }, []);
 
   const handleShowCancelledChange = useCallback((show: boolean) => {
     setShowCancelled(show);
-    calendarPreferences.setShowCancelled(show);
   }, []);
 
-  const handleReminderHoursChange = useCallback((v: string) => {
-    setReminderHours(Number(v));
-  }, []);
-
-  const handleCancellationMessageChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setCancellationMessage(e.target.value);
-  }, []);
-
-  const handleReminderMessageChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setReminderMessage(e.target.value);
-  }, []);
-
-  // Save business settings to backend
-  const handleSaveBusinessSettings = useCallback(async () => {
+  // Save display preferences to localStorage; for owners, also persist advanced settings to backend
+  const handleSave = useCallback(async () => {
+    const ref = advancedSettingsRef.current;
+    if (!isTeamMember && ref?.hasErrors()) return;
     setSaving(true);
     try {
-      const payload: Partial<UpdateBookingSettingsPayload> = {
-        allowStaffBlockCalendarWithoutConfirmation: allowStaffBlock,
-        reminderHoursBefore: reminderHours,
-        cancellationPolicyMessage: cancellationMessage.trim() || null,
-        bookingReminderMessage: reminderMessage.trim() || null,
-        enforceMinAdvanceForAdmin: enforceMinAdvance,
+      // Persist display preferences to localStorage
+      calendarPreferences.setDefaultViewMode(defaultView);
+      calendarPreferences.setDefaultViewType(defaultViewType);
+      calendarPreferences.setTimeFormat(timeFormat);
+      calendarPreferences.setColorCoding(colorCoding);
+      calendarPreferences.setShowCancelled(showCancelled);
+      initialDisplayPrefsRef.current = {
+        defaultView,
+        defaultViewType,
+        timeFormat,
+        colorCoding,
+        showCancelled,
       };
-      await updateBookingSettingsApi(payload);
-      toast.success('Calendar settings saved');
 
-      // Refresh location context to get updated booking settings
-      if (selectedLocationId) {
-        dispatch(fetchLocationContext.request(selectedLocationId));
+      // Persist advanced settings to backend (owners only; team members only save display prefs)
+      if (!isTeamMember && ref) {
+        const payload = ref.getCurrentSettings();
+        await updateBookingSettingsApi(payload);
+        if (selectedLocationId) {
+          dispatch(fetchLocationContext.request(selectedLocationId));
+        }
       }
 
+      toast.success('Calendar settings saved');
       onClose();
     } catch {
       toast.error('Failed to save settings');
@@ -188,267 +149,178 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
       setSaving(false);
     }
   }, [
-    allowStaffBlock, reminderHours, cancellationMessage,
-    reminderMessage, enforceMinAdvance, selectedLocationId,
-    dispatch, onClose,
+    isTeamMember,
+    defaultView,
+    defaultViewType,
+    timeFormat,
+    colorCoding,
+    showCancelled,
+    selectedLocationId,
+    dispatch,
+    onClose,
   ]);
 
   return (
-    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Calendar Settings</SheetTitle>
-          <SheetDescription>
-            Configure display preferences and business calendar rules.
-          </SheetDescription>
-        </SheetHeader>
-
-        <div className="space-y-8 py-6">
-          {/* ─── Section 1: Display Preferences ─── */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Monitor className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="text-sm font-semibold">Display Preferences</h3>
-              <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Saved locally</span>
-            </div>
-
-            {/* Default view */}
-            <div className="space-y-2">
-              <Label className="text-sm">Default view on open</Label>
-              <PillSelector
-                options={[
-                  { value: AppointmentViewMode.DAY, label: 'Day' },
-                  { value: AppointmentViewMode.WEEK, label: 'Week' },
-                  { value: AppointmentViewMode.MONTH, label: 'Month' },
-                ]}
-                value={defaultView}
-                onChange={handleDefaultViewChange}
+    <BaseSlider
+      isOpen={open}
+      onClose={onClose}
+      title="Calendar Settings"
+      subtitle="Configure display preferences and business calendar rules."
+      icon={Settings}
+      iconColor="text-foreground-1"
+      contentClassName="bg-surface scrollbar-hide"
+      footer={
+        <FormFooter
+          onCancel={onClose}
+          onSubmit={handleSave}
+          cancelLabel="Cancel"
+          submitLabel="Save"
+          disabled={saving || !isDirty || (!isTeamMember && hasAdvancedErrors)}
+          isLoading={saving}
+        />
+      }
+    >
+      <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+        <div className="max-w-2xl mx-auto space-y-8">
+          {/* ─── Display Preferences ─── */}
+          <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong overflow-hidden">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500" />
+            <div className="relative p-3 md:p-4 space-y-6">
+              <SliderSectionHeader
+                title="Display Preferences"
+                description="How the calendar looks and behaves for you."
               />
-            </div>
 
-            {/* List vs Grid (day/week layout) */}
-            <div className="space-y-2">
-              <Label className="text-sm">Day &amp; week layout</Label>
-              <PillSelector
-                options={[
-                  { value: AppointmentViewType.LIST, label: 'List' },
-                  { value: AppointmentViewType.GRID, label: 'Calendar grid' },
-                ]}
-                value={defaultViewType}
-                onChange={handleDefaultViewTypeChange}
-              />
-              <p className="text-xs text-muted-foreground">
-                List shows appointments in a list; grid shows the time-slot calendar.
-              </p>
-            </div>
-
-            {/* Time format */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label className="text-sm">Time format</Label>
-              </div>
-              <PillSelector
-                options={[
-                  { value: '24h' as TimeFormat, label: '24-hour (14:00)' },
-                  { value: '12h' as TimeFormat, label: '12-hour (2:00 PM)' },
-                ]}
-                value={timeFormat}
-                onChange={handleTimeFormatChange}
-              />
-            </div>
-
-            {/* Color coding */}
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <Palette className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label className="text-sm">Appointment color coding</Label>
-              </div>
-              <PillSelector
-                options={[
-                  { value: 'status' as ColorCoding, label: 'By Status' },
-                  { value: 'service' as ColorCoding, label: 'By Service' },
-                  { value: 'staff' as ColorCoding, label: 'By Staff' },
-                ]}
-                value={colorCoding}
-                onChange={handleColorCodingChange}
-              />
-            </div>
-
-            {/* Show cancelled */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                <Label htmlFor="show-cancelled" className="text-sm">Show cancelled appointments</Label>
-              </div>
-              <Switch
-                id="show-cancelled"
-                checked={showCancelled}
-                onCheckedChange={handleShowCancelledChange}
-              />
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* ─── Section 2: Team Member Permissions ─── */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Users className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="text-sm font-semibold">Team Permissions</h3>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="staff-block" className="text-sm">Allow staff to block time</Label>
+              {/* Default view */}
+              <div className="space-y-2">
+                <Label className="text-sm">Default view on open</Label>
                 <p className="text-xs text-muted-foreground">
-                  Team members can create time-off blocks without approval
+                  Choose which view (day, week, or month) opens when you load the calendar.
                 </p>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {[
+                    { value: AppointmentViewMode.DAY, label: 'Day' },
+                    { value: AppointmentViewMode.WEEK, label: 'Week' },
+                    { value: AppointmentViewMode.MONTH, label: 'Month' },
+                  ].map((opt) => (
+                    <Pill
+                      key={opt.value}
+                      selected={defaultView === opt.value}
+                      className="w-auto justify-start items-center transition-none active:scale-100 min-h-0 py-2.5 px-4"
+                      showCheckmark={true}
+                      onClick={() => handleDefaultViewChange(opt.value)}
+                    >
+                      <span className="text-sm font-medium">{opt.label}</span>
+                    </Pill>
+                  ))}
+                </div>
               </div>
-              <Switch
-                id="staff-block"
-                checked={allowStaffBlock}
-                onCheckedChange={setAllowStaffBlock}
-              />
-            </div>
-          </section>
 
-          <Separator />
-
-          {/* ─── Section 3: Reminders ─── */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Bell className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="text-sm font-semibold">Reminders</h3>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm">Send reminder before appointment</Label>
-              <PillSelector
-                options={[
-                  { value: '0', label: 'Disabled' },
-                  { value: '1', label: '1 hour' },
-                  { value: '2', label: '2 hours' },
-                  { value: '4', label: '4 hours' },
-                  { value: '12', label: '12 hours' },
-                  { value: '24', label: '24 hours' },
-                  { value: '48', label: '48 hours' },
-                ]}
-                value={String(reminderHours)}
-                onChange={handleReminderHoursChange}
-              />
-              <p className="text-xs text-muted-foreground">
-                Customers will receive a notification this many hours before their appointment.
-                Set to "Disabled" to turn off reminders.
-              </p>
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* ─── Section 4: Custom Messages ─── */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <MessageSquare className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="text-sm font-semibold">Custom Messages</h3>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cancellation-message" className="text-sm">Cancellation policy message</Label>
-              <Textarea
-                id="cancellation-message"
-                placeholder="e.g., Cancellations must be made at least 24 hours in advance..."
-                value={cancellationMessage}
-                onChange={handleCancellationMessageChange}
-                rows={3}
-                maxLength={1000}
-                className="resize-none text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Shown to customers when they view your cancellation policy.
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="reminder-message" className="text-sm">Booking reminder message</Label>
-              <Textarea
-                id="reminder-message"
-                placeholder="e.g., Looking forward to seeing you! Please arrive 10 minutes early..."
-                value={reminderMessage}
-                onChange={handleReminderMessageChange}
-                rows={3}
-                maxLength={1000}
-                className="resize-none text-sm"
-              />
-              <p className="text-xs text-muted-foreground">
-                Included in reminder notifications sent to customers before their appointment.
-              </p>
-            </div>
-          </section>
-
-          <Separator />
-
-          {/* ─── Section 5: Admin Booking Override ─── */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-2.5">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-              </div>
-              <h3 className="text-sm font-semibold">Admin Booking Rules</h3>
-            </div>
-
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1 flex-1">
-                <Label htmlFor="enforce-advance" className="text-sm">Enforce minimum advance booking for admins</Label>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  When enabled, appointments created by admins through the calendar must also
-                  respect the minimum advance booking time ({bookingSettings?.minAdvanceBookingMinutes ?? 60} minutes).
-                  When disabled, admins can create appointments at any time, even for the same day
-                  or past the advance booking window. This is useful if you want to prevent
-                  accidental last-minute bookings.
+              {/* List vs Grid (day/week layout) */}
+              <div className="space-y-2">
+                <Label className="text-sm">Day &amp; week layout</Label>
+                <p className="text-xs text-muted-foreground">
+                  List shows appointments in a list; grid shows the time-slot calendar.
                 </p>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {[
+                    { value: AppointmentViewType.LIST, label: 'List' },
+                    { value: AppointmentViewType.GRID, label: 'Calendar grid' },
+                  ].map((opt) => (
+                    <Pill
+                      key={opt.value}
+                      selected={defaultViewType === opt.value}
+                      className="w-auto justify-start items-center transition-none active:scale-100 min-h-0 py-2.5 px-4"
+                      showCheckmark={true}
+                      onClick={() => handleDefaultViewTypeChange(opt.value)}
+                    >
+                      <span className="text-sm font-medium">{opt.label}</span>
+                    </Pill>
+                  ))}
+                </div>
               </div>
-              <Switch
-                id="enforce-advance"
-                checked={enforceMinAdvance}
-                onCheckedChange={setEnforceMinAdvance}
-              />
-            </div>
-          </section>
 
-          {/* ─── Save Button ─── */}
-          <div className="pt-4">
-            <Button
-              className="w-full"
-              onClick={handleSaveBusinessSettings}
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Business Settings
-                </>
-              )}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center mt-2">
-              Display preferences are saved automatically. Click save to update business settings.
-            </p>
+              {/* Time format */}
+              <div className="space-y-2">
+                <Label className="text-sm">Time format</Label>
+                <p className="text-xs text-muted-foreground">
+                  Display times in 24-hour or 12-hour format.
+                </p>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {[
+                    { value: '24h' as TimeFormat, label: '24-hour (14:00)' },
+                    { value: '12h' as TimeFormat, label: '12-hour (2:00 PM)' },
+                  ].map((opt) => (
+                    <Pill
+                      key={opt.value}
+                      selected={timeFormat === opt.value}
+                      className="w-auto justify-start items-center transition-none active:scale-100 min-h-0 py-2.5 px-4"
+                      showCheckmark={true}
+                      onClick={() => handleTimeFormatChange(opt.value)}
+                    >
+                      <span className="text-sm font-medium">{opt.label}</span>
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Color coding */}
+              <div className="space-y-2">
+                <Label className="text-sm">Appointment color coding</Label>
+                <p className="text-xs text-muted-foreground">
+                  Color appointment blocks by status, service, or staff member.
+                </p>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {[
+                    { value: 'status' as ColorCoding, label: 'By Status' },
+                    { value: 'service' as ColorCoding, label: 'By Service' },
+                    { value: 'staff' as ColorCoding, label: 'By Staff' },
+                  ].map((opt) => (
+                    <Pill
+                      key={opt.value}
+                      selected={colorCoding === opt.value}
+                      className="w-auto justify-start items-center transition-none active:scale-100 min-h-0 py-2.5 px-4"
+                      showCheckmark={true}
+                      onClick={() => handleColorCodingChange(opt.value)}
+                    >
+                      <span className="text-sm font-medium">{opt.label}</span>
+                    </Pill>
+                  ))}
+                </div>
+              </div>
+
+              {/* Show cancelled */}
+              <div className="flex items-center justify-between p-3 md:p-4 rounded-xl border border-border bg-muted/20 hover:border-border-strong transition-colors">
+                <div className="flex items-center gap-2">
+                  <Eye className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <Label htmlFor="show-cancelled" className="text-sm cursor-pointer">Show cancelled appointments</Label>
+                </div>
+                <Switch
+                  id="show-cancelled"
+                  checked={showCancelled}
+                  onCheckedChange={handleShowCancelledChange}
+                />
+              </div>
+            </div>
           </div>
+
+          {!isTeamMember && (
+            <>
+              <SliderContentDivider />
+              {/* ─── Advanced Settings (booking rules, team, messaging) ─── */}
+              {open && (
+                <AdvancedSettingsSection
+                  key={`adv-${selectedLocationId ?? 'none'}`}
+                  initialSettings={bookingSettings ?? undefined}
+                  onDirtyChange={setIsAdvancedDirty}
+                  onErrorsChange={setHasAdvancedErrors}
+                  ref={advancedSettingsRef}
+                />
+              )}
+            </>
+          )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </div>
+    </BaseSlider>
   );
 };

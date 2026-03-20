@@ -4,6 +4,8 @@ export interface Customer {
   firstName: string;
   lastName: string;
   phone: string;
+  /** Present on appointment payloads when loaded from API. */
+  profileImage?: string | null;
   source: 'manual' | 'marketplace' | 'import';
   status: 'active' | 'blocked' | 'archived';
   conflictStatus: 'none' | 'duplicate_detected' | 'merged' | 'ignored';

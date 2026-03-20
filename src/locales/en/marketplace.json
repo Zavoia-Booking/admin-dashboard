@@ -24,7 +24,7 @@
       },
       "preview": {
         "header": "Marketplace Profile",
-        "text": "This is your marketplace control center. Once listed, you'll be able to manage your public profile, portfolio, and booking settings right from this page."
+        "text": "This is your marketplace control center. Once listed, you'll manage your public profile and portfolio here. Configure booking rules and availability in Calendar Settings."
       }
     },
     "benefits": {
@@ -278,6 +278,24 @@
         }
       }
     },
+    "reminders": {
+      "title": "Reminders",
+      "sendBefore": {
+        "label": "Send reminder before appointment"
+      },
+      "enabled": {
+        "label": "Enable reminders"
+      },
+      "hours": {
+        "0": "Disabled",
+        "1": "1 hour",
+        "2": "2 hours",
+        "4": "4 hours",
+        "12": "12 hours",
+        "24": "24 hours",
+        "48": "48 hours"
+      }
+    },
     "messaging": {
       "title": "Customer Notifications",
       "communicationMethods": {
@@ -292,21 +310,13 @@
           "description": "Send confirmations and reminders by text message."
         },
         "pushNotificationHelper": "Push notifications are also sent automatically if customers use the mobile app."
-      },
-      "customMessages": {
-        "title": "Custom Messages",
-        "description": "Add custom messages customers will see after booking or when reviewing cancellation policies."
-      },
-      "cancellationPolicy": {
-        "label": "Cancellation Policy",
-        "helperText": "Shown when customers view or request to cancel an appointment.",
-        "placeholder": "Enter your cancellation policy..."
-      },
-      "reminderMessage": {
-        "label": "Reminder Message",
-        "helperText": "Sent to customers as a reminder before their appointment.",
-        "placeholder": "Enter your reminder message..."
       }
+    },
+    "adminBookingOverride": {
+      "title": "Admin Booking Rules",
+      "description": "When enabled, admins must respect minimum advance booking when creating appointments. When disabled, admins can create appointments at any time.",
+      "label": "Enforce minimum advance for admin-created appointments",
+      "helper": "When on, admins respect min advance; when off, they can book anytime."
     },
     "validation": {
       "minAdvanceBooking": "Must be less than max advance booking",

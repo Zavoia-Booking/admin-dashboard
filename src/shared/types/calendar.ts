@@ -15,11 +15,29 @@ export interface Client {
   avatar: string;
 }
 
+/** Customer fields stored on the appointment at booking time (JSONB snapshot). */
+export interface AppointmentCustomerSnapshot {
+  userId?: number;
+  userUuid?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string | null;
+  phone?: string | null;
+  profileImage?: string | null;
+}
+
 export interface Appointment {
   id: number,
-  customer: Customer,
+  /** Linked user when present; null for some walk-ins / manual bookings. */
+  customer: Customer | null,
+  customerSnapshot?: AppointmentCustomerSnapshot | null,
   teamMembers: Array<any>,
-  service: Service,
+  /** Service when appointment is for a single service; null for bundle-only. */
+  service?: Service | null,
+  /** Bundle when appointment is for a bundle (service may be null). */
+  bundle?: { id: number; name?: string } | null;
+  /** Display name from booking (e.g. service or bundle name at book time). */
+  bookedItemName?: string | null;
   location: {
     id: number,
     name: string,
@@ -41,6 +59,8 @@ export interface Appointment {
   overrideUsedAt?: Date | string;
   /** When set, this appointment is part of a multi-item booking group. */
   bookingGroupId?: string | null;
+  /** How the appointment was booked (admin, phone, walk_in, marketplace). */
+  bookingSource?: string | null;
 }
 
 export interface AppointmentSection {
@@ -105,8 +125,6 @@ export interface CalendarBookingSettings {
   allowStaffRescheduleWithoutConfirmation: boolean;
   allowStaffBlockCalendarWithoutConfirmation: boolean;
   staffBlockCalendarTypes: string[];
-  cancellationPolicyMessage: string | null;
-  bookingReminderMessage: string | null;
   reminderHoursBefore: number;
   enforceMinAdvanceForAdmin: boolean;
   minAdvanceBookingMinutes: number;
@@ -341,26 +359,6 @@ export interface AvailableSlotsResponse {
   availableSlots: string[]; // ISO 8601 date-time strings
   outOfHoursSlots?: string[];
   nextAvailableDate?: string | null;
-}
-
-export interface CheckSlotRequest {
-  locationId: number;
-  startTime: string; // ISO
-  items: Array<{
-    serviceId?: number;
-    bundleId?: number;
-    staffUserId?: number;
-  }>;
-}
-
-export interface CheckSlotResponse {
-  valid: boolean;
-  conflicts?: Array<{
-    itemIndex: number;
-    staffUserId: number;
-    reason: string;
-    conflictType: 'staff_appointment' | 'block';
-  }>;
 }
 
 // --- Day Filters (for calendar/day endpoint) ---

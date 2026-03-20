@@ -11,7 +11,7 @@ import {
     getStaffFilter,
 } from "../selectors.ts";
 import { toggleEditFormAction } from "../actions.ts";
-import { getAppointmentDetailRequest } from "../api.ts";
+import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { formatTimeRange, getStaffDisplayNames, getStatusBadge, getBookingSourceLabel } from "./utils.tsx";
 import { Users, Clock, Loader2, CalendarX } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
@@ -27,12 +27,22 @@ export const AppointmentList: FC = () => {
     const selectedDate = useSelector(getSelectedDate);
     const staffFilter = useSelector(getStaffFilter);
 
-    // Click handler: fetch full appointment detail and open edit drawer
+    // Click handler: fetch full appointment (or group) and open edit drawer
     // (must be declared before early returns to satisfy Rules of Hooks)
-    const handleAppointmentClick = useCallback(async (appointmentId: number) => {
+    const handleAppointmentClick = useCallback(async (appointment: SlimAppointment) => {
         try {
-            const fullAppointment = await getAppointmentDetailRequest(appointmentId);
-            dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
+            const bookingGroupId = (appointment as { bookingGroupId?: string }).bookingGroupId;
+            if (bookingGroupId) {
+                const list = await getAppointmentGroupRequest(bookingGroupId);
+                const arr = Array.isArray(list) ? list : [];
+                const item = arr.find((a: { id: number }) => a.id === appointment.id) ?? arr[0];
+                if (item) {
+                    dispatch(toggleEditFormAction({ open: true, item, groupAppointments: arr }));
+                }
+            } else {
+                const fullAppointment = await getAppointmentDetailRequest(appointment.id);
+                dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
+            }
         } catch {
             // silently fail — appointment may have been deleted
         }
@@ -103,7 +113,7 @@ export const AppointmentList: FC = () => {
                     key={appointment.id}
                     appointment={appointment}
                     staffNames={getStaffDisplayNames(appointment.staffUserIds, locationStaff)}
-                    onClick={() => handleAppointmentClick(appointment.id)}
+                    onClick={() => handleAppointmentClick(appointment)}
                 />
             ))}
         </div>

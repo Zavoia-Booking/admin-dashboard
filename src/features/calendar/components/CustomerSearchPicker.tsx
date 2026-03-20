@@ -12,6 +12,7 @@ import QuickCreateCustomerForm from './QuickCreateCustomerForm';
 import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 import { CustomerSearchPopover, type CustomerSearchResult } from './CustomerSearchPopover';
 import './addAppointmentSliderPopover.css';
+import '../../../shared/components/forms/CollapsibleFormSection.css';
 
 const QUICK_CREATE_ANIMATION_MS = 350;
 
