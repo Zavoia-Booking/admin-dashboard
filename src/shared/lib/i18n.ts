@@ -39,6 +39,8 @@ import enMySettings from '../../locales/en/mySettings.json';
 import roMySettings from '../../locales/ro/mySettings.json';
 import enMyProfile from '../../locales/en/myProfile.json';
 import roMyProfile from '../../locales/ro/myProfile.json';
+import enAuth from '../../locales/en/auth.json';
+import roAuth from '../../locales/ro/auth.json';
 
 const resources = {
   en: {
@@ -60,6 +62,7 @@ const resources = {
     dashboard: enDashboard,
     mySettings: enMySettings,
     myProfile: enMyProfile,
+    auth: enAuth,
   },
   ro: {
     services: roServices,
@@ -80,6 +83,7 @@ const resources = {
     dashboard: roDashboard,
     mySettings: roMySettings,
     myProfile: roMyProfile,
+    auth: roAuth,
   },
 };
 

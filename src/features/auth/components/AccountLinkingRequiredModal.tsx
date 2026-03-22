@@ -15,8 +15,10 @@ import { Button } from "../../../shared/components/ui/button";
 import { Alert, AlertDescription } from "../../../shared/components/ui/alert";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { InfoIcon, Briefcase, Mail, AlertTriangle } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
 
 export default function AccountLinkingRequiredModal() {
+  const { t } = useTranslation('auth');
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const accountLinking = useSelector(selectAccountLinkingRequired);
@@ -67,7 +69,7 @@ export default function AccountLinkingRequiredModal() {
   if (!accountLinking) return null;
 
   const { email, firstName, lastName, existingRoles } = accountLinking;
-  const roleType = existingRoles.customer ? "customer" : "team member";
+  const roleType = existingRoles.customer ? t('accountLinkingRequired.roleCustomer') : t('accountLinkingRequired.roleTeamMember');
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -75,10 +77,10 @@ export default function AccountLinkingRequiredModal() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Briefcase className="h-5 w-5 text-primary" />
-            Account Already Exists
+            {t('accountLinkingRequired.title')}
           </DialogTitle>
           <DialogDescription>
-            We found an existing account with your email
+            {t('accountLinkingRequired.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -91,17 +93,21 @@ export default function AccountLinkingRequiredModal() {
                   <strong>{firstName} {lastName}</strong> ({email})
                 </p>
                 <p className="text-sm">
-                  You already have a <strong>{roleType} account</strong> on our platform. 
-                  We can link it to a new business owner account so you can manage your own business.
+                  <Trans
+                    i18nKey="accountLinkingRequired.existingAccountInfo"
+                    ns="auth"
+                    values={{ role: roleType }}
+                    components={{ strong: <strong /> }}
+                  />
                 </p>
               </div>
             </AlertDescription>
           </Alert>
 
           {authError ? (
-            <Alert className="border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-              <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <Alert className="border-warning-border bg-warning-bg">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <AlertDescription className="text-warning">
                 {authError}
               </AlertDescription>
             </Alert>
@@ -110,11 +116,11 @@ export default function AccountLinkingRequiredModal() {
               <div className="flex items-start gap-2">
                 <Mail className="h-5 w-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="font-medium text-sm">What happens next?</p>
+                  <p className="font-medium text-sm">{t('accountLinkingRequired.whatHappensNext')}</p>
                   <ul className="text-sm text-muted-foreground space-y-1 mt-2 list-disc list-inside">
-                    <li>We'll send a confirmation email to <strong>{email}</strong></li>
-                    <li>Click the link in the email to complete the synchronization</li>
-                    <li>You'll be able to access both accounts with the same email</li>
+                    <li><Trans i18nKey="accountLinkingRequired.stepSendEmail" ns="auth" values={{ email }} components={{ strong: <strong /> }} /></li>
+                    <li>{t('accountLinkingRequired.stepClickLink')}</li>
+                    <li>{t('accountLinkingRequired.stepAccessBoth')}</li>
                   </ul>
                 </div>
               </div>
@@ -123,17 +129,17 @@ export default function AccountLinkingRequiredModal() {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
-            Cancel
+          <Button variant="outline" rounded="full" onClick={handleClose} disabled={isLoading}>
+            {t('accountLinkingRequired.cancel')}
           </Button>
-          <Button onClick={handleConfirm} disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Spinner size="sm" className="mr-2" />
-                Sending...
-              </>
-            ) : (
-              'Send Confirmation Email'
+          <Button rounded="full" onClick={handleConfirm} disabled={isLoading} className="relative">
+            <span className={isLoading ? 'invisible' : ''}>
+              {t('accountLinkingRequired.sendConfirmationEmail')}
+            </span>
+            {isLoading && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <Spinner size="sm" color="white" />
+              </span>
             )}
           </Button>
         </DialogFooter>

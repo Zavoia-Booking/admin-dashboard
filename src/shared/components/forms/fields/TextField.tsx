@@ -19,6 +19,8 @@ export interface TextFieldProps {
   autoFocus?: boolean;
   type?: 'text' | 'password' | 'email';
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
@@ -38,6 +40,8 @@ export const TextField: React.FC<TextFieldProps> = ({
   autoFocus = false,
   type = "text",
   onKeyDown,
+  onFocus,
+  onBlur,
   inputRef,
 }) => {
   const generatedId = useId();
@@ -63,6 +67,8 @@ export const TextField: React.FC<TextFieldProps> = ({
           disabled={disabled}
           autoFocus={autoFocus}
           onKeyDown={onKeyDown}
+          onFocus={onFocus}
+          onBlur={onBlur}
           className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
             error
               ? "border-destructive bg-error-bg focus-visible:ring-error"

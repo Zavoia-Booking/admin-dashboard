@@ -31,9 +31,10 @@
       "resendInvitation": "Retrimite invitația",
       "resendInvitationDescription": "Sigur vrei să retrimiți invitația către {{email}}?",
       "resend": "Retrimite",
-      "cancelInvitation": "Anulează invitația",
-      "cancelInvitationDescription": "Anulezi invitația pentru {{email}}?",
-      "cancel": "Anulează"
+      "cancelInvitation": "Revocă invitația",
+      "cancelInvitationDescription": "Ești sigur că vrei să revoci invitația pentru {{email}}?",
+      "confirmRevoke": "Da, revocă",
+      "cancel": "Înapoi"
     }
   },
   "filters": {
@@ -121,9 +122,7 @@
   },
   "invitationSuccess": {
     "title": "Invitație trimisă!",
-    "description": "Invitația către membru a fost trimisă cu succes",
-    "emailInfo": "Un email de invitație va fi trimis către {{email}}. Vor primi instrucțiuni pentru a-și configura contul și a se alătura echipei tale.",
-    "teamMemberFallback": "membrul echipei",
+    "description": "Vor primi instrucțiuni pentru a-și configura contul și a se alătura echipei tale.",
     "goToTeamMembers": "Mergi la Membri echipă"
   },
   "toasts": {

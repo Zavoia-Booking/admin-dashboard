@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Save, Lock, Info, LogOut } from 'lucide-react';
+import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Save, Lock, Info, LogOut, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -16,11 +16,18 @@ import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector } from '../../business/selectors';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../auth/actions';
-import { setPasswordApi } from '../../auth/api';
+import { setPasswordApi, changeOwnerPasswordApi } from '../../auth/api';
 import { translateMessageCode } from '../../../shared/utils/error';
+import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
+import { PasswordStrength } from '../../auth/components/PasswordStrength';
+import { validatePasswordPolicy } from '../../../shared/utils/validation';
+import { Input } from '../../../shared/components/ui/input';
+import { Popover, PopoverTrigger, PopoverContent } from '../../../shared/components/ui/popover';
+import LegalContentDialog from '../../legal/components/LegalContentDialog';
+import type { LegalPageType } from '../../legal/components/legal-content';
 
 const toTitleCase = (s: string) =>
   s.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -87,6 +94,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
+  const user = useSelector((state: RootState) => state.auth.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   
@@ -95,10 +103,20 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const [industries, setIndustries] = useState<Industry[]>([]);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   
-  // Password setup state
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
+  const [pwInteracted, setPwInteracted] = useState(false);
+  const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
+
+  const userHasPassword = user?.hasPassword === true;
+  const isPasswordPolicyValid = validatePasswordPolicy(newPassword) === true;
+  const passwordsMatch = newPassword === confirmPassword;
+  const canSubmitPassword = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0
+    && (!userHasPassword || currentPassword.trim().length > 0);
 
   // Fetch business data on mount
   useEffect(() => {
@@ -241,13 +259,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     }, 100);
   };
 
-  const handleSetPassword = async () => {
-    if (!newPassword.trim()) {
-      toast.error(t('profile.toast.enterPassword'));
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error(t('profile.toast.passwordMinLength'));
+  const handlePasswordSubmit = async () => {
+    setPwFocused(false);
+    const policyResult = validatePasswordPolicy(newPassword);
+    if (policyResult !== true) {
+      toast.error(t('profile.toast.passwordPolicyFailed'));
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -257,14 +273,21 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
     setIsSettingPassword(true);
     try {
-      await setPasswordApi({ password: newPassword });
-      toast.success(t('profile.toast.passwordSetSuccess'));
+      if (userHasPassword) {
+        await changeOwnerPasswordApi({ currentPassword, newPassword });
+        toast.success(t('profile.toast.passwordChanged'));
+      } else {
+        await setPasswordApi({ password: newPassword });
+        toast.success(t('profile.toast.passwordSetSuccess'));
+      }
+      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      // Refresh user data to update hasPassword
+      setPwInteracted(false);
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
-      const message = error?.response?.data?.message || error?.message || t('profile.toast.passwordSetFailed');
+      const fallback = userHasPassword ? t('profile.toast.passwordChangeFailed') : t('profile.toast.passwordSetFailed');
+      const message = error?.response?.data?.message || error?.message || fallback;
       const translatedMessage = Array.isArray(message) 
         ? translateMessageCode(message[0]) 
         : translateMessageCode(message);
@@ -528,20 +551,67 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   </p>
                 </div>
               </div>
+
+              {userHasPassword && (
+                <div className="flex flex-wrap gap-6">
+                  <div className="flex-1 min-w-[280px]">
+                    <TextField
+                      id="current-password"
+                      label={t('profile.security.currentPassword')}
+                      placeholder={t('profile.security.currentPasswordPlaceholder')}
+                      value={currentPassword}
+                      onChange={setCurrentPassword}
+                      type="password"
+                      icon={Lock}
+                      disabled={isSettingPassword}
+                      inputRef={passwordInputRef}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-[280px]" />
+                </div>
+              )}
               
               <div className="flex flex-wrap gap-6">
-                <div className="flex-1 min-w-[280px]">
-                  <TextField
-                    id="new-password"
-                    label={t('profile.security.newPassword')}
-                    placeholder={t('profile.security.newPasswordPlaceholder')}
-                    value={newPassword}
-                    onChange={setNewPassword}
-                    type="password"
-                    icon={Lock}
-                    disabled={isSettingPassword}
-                    inputRef={passwordInputRef}
-                  />
+                <div className="flex-1 min-w-[280px] space-y-2 pt-2">
+                  <Label htmlFor="new-password" className="text-base font-medium">
+                    {t('profile.security.newPassword')}
+                  </Label>
+                  <Popover open={pwFocused} modal={false}>
+                    <PopoverTrigger asChild>
+                      <div className="relative">
+                        <Input
+                          ref={!userHasPassword ? passwordInputRef : undefined}
+                          id="new-password"
+                          type="password"
+                          placeholder={t('profile.security.newPasswordPlaceholder')}
+                          value={newPassword}
+                          onChange={(e) => { setNewPassword(e.target.value); if (!pwInteracted) setPwInteracted(true); }}
+                          onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
+                          onBlur={() => setPwFocused(false)}
+                          disabled={isSettingPassword}
+                          className="!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                        />
+                        <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="top"
+                      align="start"
+                      sideOffset={8}
+                      avoidCollisions={false}
+                      className="p-0 border-none bg-transparent shadow-none w-auto"
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                    >
+                      <PasswordStrength password={newPassword} variant="panel" />
+                    </PopoverContent>
+                  </Popover>
+                  <div className="min-h-[28px]">
+                    {pwInteracted && newPassword.length > 0 ? (
+                      <PasswordStrength password={newPassword} variant="bar" />
+                    ) : (
+                      <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1 min-w-[280px]">
                   <TextField
@@ -553,10 +623,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                     type="password"
                     icon={Lock}
                     disabled={isSettingPassword}
+                    error={confirmPassword.length > 0 && !passwordsMatch ? t('profile.toast.passwordsNoMatch') : undefined}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') {
                         e.preventDefault();
-                        handleSetPassword();
+                        if (canSubmitPassword) handlePasswordSubmit();
                       }
                     }}
                   />
@@ -569,8 +640,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   size="sm"
                   rounded="full"
                   className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
-                  onClick={handleSetPassword}
-                  disabled={!newPassword.trim() || !confirmPassword.trim() || isSettingPassword}
+                  onClick={handlePasswordSubmit}
+                  disabled={!canSubmitPassword || isSettingPassword}
                 >
                   {isSettingPassword ? (
                     <>
@@ -579,11 +650,37 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                     </>
                   ) : (
                     <>
-                      {t('profile.security.changePasswordButton')}
-                      <Save className="h-4 w-4 mr-2" />
+                      {userHasPassword ? t('profile.security.changePasswordButton') : t('profile.security.setPasswordButton')}
+                      <Save className="h-4 w-4 ml-2" />
                     </>
                   )}
                 </Button>
+              </div>
+            </div>
+
+            {/* Legal Documents */}
+            <div className="pt-4 border-t border-border">
+              <div className="space-y-1 mb-3">
+                <Label className="text-sm font-medium text-foreground">
+                  {t('profile.security.legalTitle')}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('profile.security.legalDescription')}
+                </p>
+              </div>
+              <div className="space-y-1">
+                {(['terms', 'privacy', 'cookies'] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setLegalDialogType(type)}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground-2 transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+                  >
+                    <FileText className="h-4 w-4 shrink-0" />
+                    <span className="flex-1 text-left">{t(`profile.security.legal_${type}`)}</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -603,6 +700,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
           </div>
         </div>
       </div>
+
+      <LegalContentDialog
+        type={legalDialogType}
+        onOpenChange={(open) => { if (!open) setLegalDialogType(null); }}
+      />
     </form>
   );
 };

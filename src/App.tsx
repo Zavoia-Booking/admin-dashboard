@@ -29,6 +29,7 @@ const TeamInvitationPage = lazy(() => import('./features/auth/pages/team-invitat
 const SupportPage = lazy(() => import('./features/support/pages/support'))
 const CustomersPage = lazy(() => import('./features/customers/pages/customers'))
 const MarketplacePage = lazy(() => import('./features/marketplace/pages/marketplace'))
+const LegalPage = lazy(() => import('./features/legal/pages/legal-page'))
 
 // Notifications
 const NotificationsPage = lazy(() => import('./features/notifications/pages/notifications'))
@@ -83,6 +84,11 @@ function App() {
           <Route path="/my-customers" element={<ProtectedRoute element={<MyCustomersPage />} />} />
           <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
           <Route path="/my-settings" element={<ProtectedRoute element={<MySettingsPage />} />} />
+
+          {/* Legal */}
+          <Route path="/terms" element={<LegalPage />} />
+          <Route path="/cookies" element={<LegalPage />} />
+          <Route path="/privacy" element={<LegalPage />} />
 
           {/* Info Pages */}
           <Route path="/info" element={<InfoPageComponent />} />

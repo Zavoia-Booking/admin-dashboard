@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useDispatch } from 'react-redux';
-import { User, Mail, Phone, Shield, Camera, Loader2, Save, Lock } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { RootState } from '../../../../app/providers/store';
+import { User, Mail, Phone, Shield, Camera, Loader2, Save, Lock, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
 import { Label } from '../../../../shared/components/ui/label';
+import { Input } from '../../../../shared/components/ui/input';
 import { toast } from 'sonner';
 import FormSectionHeader from '../../../../shared/components/forms/FormSectionHeader';
 import TextField from '../../../../shared/components/forms/fields/TextField';
@@ -12,6 +14,11 @@ import { setPasswordApi } from '../../../auth/api';
 import { fetchCurrentUserAction } from '../../../auth/actions';
 import GoogleAccountManager from '../../../settings/components/GoogleAccountManager';
 import { translateMessageCode } from '../../../../shared/utils/error';
+import { PasswordStrength } from '../../../auth/components/PasswordStrength';
+import { validatePasswordPolicy } from '../../../../shared/utils/validation';
+import { Popover, PopoverTrigger, PopoverContent } from '../../../../shared/components/ui/popover';
+import LegalContentDialog from '../../../legal/components/LegalContentDialog';
+import type { LegalPageType } from '../../../legal/components/legal-content';
 
 interface ProfileFormData {
   firstName: string;
@@ -37,6 +44,7 @@ interface MySettingsProfileProps {
 const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileProps) => {
   const { t } = useTranslation('mySettings');
   const dispatch = useDispatch();
+  const user = useSelector((state: RootState) => state.auth.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
 
@@ -52,6 +60,15 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [pwFocused, setPwFocused] = useState(false);
+  const [pwInteracted, setPwInteracted] = useState(false);
+  const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
+
+  const userHasPassword = user?.hasPassword === true;
+  const isPasswordPolicyValid = validatePasswordPolicy(newPassword) === true;
+  const passwordsMatch = newPassword === confirmPassword;
+  const canSubmitPassword = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0
+    && (!userHasPassword || currentPassword.trim().length > 0);
 
   // Fetch profile data on mount
   useEffect(() => {
@@ -180,12 +197,10 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
   };
 
   const handleChangePassword = async () => {
-    if (!newPassword.trim()) {
-      toast.error(t('profile.toast.enterPassword'));
-      return;
-    }
-    if (newPassword.length < 8) {
-      toast.error(t('profile.toast.passwordMinLength'));
+    setPwFocused(false);
+    const policyResult = validatePasswordPolicy(newPassword);
+    if (policyResult !== true) {
+      toast.error(t('profile.toast.passwordPolicyFailed'));
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -195,13 +210,8 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
 
     setIsChangingPassword(true);
     try {
-      // If user provides current password, use change password endpoint
-      // If not (Google users setting password for first time), use set password endpoint
-      if (currentPassword.trim()) {
-        await changeTeamMemberPassword({
-          currentPassword,
-          newPassword,
-        });
+      if (userHasPassword) {
+        await changeTeamMemberPassword({ currentPassword, newPassword });
         toast.success(t('profile.toast.passwordChanged'));
       } else {
         await setPasswordApi({ password: newPassword });
@@ -210,7 +220,7 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      // Refresh user data
+      setPwInteracted(false);
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const message = error?.response?.data?.message || error?.message || t('profile.toast.passwordUpdateFailed');
@@ -481,35 +491,67 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-6">
-              <div className="flex-1 min-w-[280px]">
-                <TextField
-                  id="current-password"
-                  label={t('profile.accountSecurity.currentPassword')}
-                  placeholder={t('profile.accountSecurity.currentPasswordPlaceholder')}
-                  value={currentPassword}
-                  onChange={setCurrentPassword}
-                  type="password"
-                  icon={Lock}
-                  disabled={isChangingPassword}
-                  inputRef={passwordInputRef}
-                />
+            {userHasPassword && (
+              <div className="flex flex-wrap gap-6">
+                <div className="flex-1 min-w-[280px]">
+                  <TextField
+                    id="current-password"
+                    label={t('profile.accountSecurity.currentPassword')}
+                    placeholder={t('profile.accountSecurity.currentPasswordPlaceholder')}
+                    value={currentPassword}
+                    onChange={setCurrentPassword}
+                    type="password"
+                    icon={Lock}
+                    disabled={isChangingPassword}
+                    inputRef={passwordInputRef}
+                  />
+                </div>
+                <div className="flex-1 min-w-[280px]" />
               </div>
-              <div className="flex-1 min-w-[280px]">
-                <TextField
-                  id="new-password"
-                  label={t('profile.accountSecurity.newPassword')}
-                  placeholder={t('profile.accountSecurity.newPasswordPlaceholder')}
-                  value={newPassword}
-                  onChange={setNewPassword}
-                  type="password"
-                  icon={Lock}
-                  disabled={isChangingPassword}
-                />
-              </div>
-            </div>
+            )}
 
-            <div className="flex flex-wrap gap-6 mt-2">
+            <div className="flex flex-wrap gap-6">
+              <div className="flex-1 min-w-[280px] space-y-2 pt-2">
+                <Label htmlFor="new-password" className="text-base font-medium">
+                  {t('profile.accountSecurity.newPassword')}
+                </Label>
+                <Popover open={pwFocused} modal={false}>
+                  <PopoverTrigger asChild>
+                    <div className="relative">
+                      <Input
+                        ref={!userHasPassword ? passwordInputRef : undefined}
+                        id="new-password"
+                        type="password"
+                        placeholder={t('profile.accountSecurity.newPasswordPlaceholder')}
+                        value={newPassword}
+                        onChange={(e) => { setNewPassword(e.target.value); if (!pwInteracted) setPwInteracted(true); }}
+                        onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
+                        onBlur={() => setPwFocused(false)}
+                        disabled={isChangingPassword}
+                        className="!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                      />
+                      <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="top"
+                    align="start"
+                    sideOffset={8}
+                    avoidCollisions={false}
+                    className="p-0 border-none bg-transparent shadow-none w-auto"
+                    onOpenAutoFocus={(e) => e.preventDefault()}
+                  >
+                    <PasswordStrength password={newPassword} variant="panel" />
+                  </PopoverContent>
+                </Popover>
+                <div className="min-h-[28px]">
+                  {pwInteracted && newPassword.length > 0 ? (
+                    <PasswordStrength password={newPassword} variant="bar" />
+                  ) : (
+                    <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
+                  )}
+                </div>
+              </div>
               <div className="flex-1 min-w-[280px]">
                 <TextField
                   id="confirm-password"
@@ -520,15 +562,15 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
                   type="password"
                   icon={Lock}
                   disabled={isChangingPassword}
+                  error={confirmPassword.length > 0 && !passwordsMatch ? t('profile.toast.passwordsNoMatch') : undefined}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleChangePassword();
+                      if (canSubmitPassword) handleChangePassword();
                     }
                   }}
                 />
               </div>
-              <div className="flex-1 min-w-[280px]" />
             </div>
 
             <div className="pt-2">
@@ -538,7 +580,7 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
                 rounded="full"
                 className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
                 onClick={handleChangePassword}
-                disabled={!newPassword.trim() || !confirmPassword.trim() || isChangingPassword}
+                disabled={!canSubmitPassword || isChangingPassword}
               >
                 {isChangingPassword ? (
                   <>
@@ -554,9 +596,39 @@ const MySettingsProfile = ({ onDirtyChange, onSavingChange }: MySettingsProfileP
               </Button>
             </div>
           </div>
+
+          {/* Legal Documents */}
+          <div className="pt-4 border-t border-border">
+            <div className="space-y-1 mb-3">
+              <Label className="text-sm font-medium text-foreground">
+                {t('profile.accountSecurity.legalTitle')}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t('profile.accountSecurity.legalDescription')}
+              </p>
+            </div>
+            <div className="space-y-1">
+              {(['terms', 'privacy', 'cookies'] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setLegalDialogType(type)}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground-2 transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+                >
+                  <FileText className="h-4 w-4 shrink-0" />
+                  <span className="flex-1 text-left">{t(`profile.accountSecurity.legal_${type}`)}</span>
+                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
+      <LegalContentDialog
+        type={legalDialogType}
+        onOpenChange={(open) => { if (!open) setLegalDialogType(null); }}
+      />
     </form>
   );
 };

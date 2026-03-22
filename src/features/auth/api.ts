@@ -89,6 +89,11 @@ export const setPasswordApi = async (payload: { password: string }): Promise<{ m
     return data;
 };
 
+export const changeOwnerPasswordApi = async (payload: { currentPassword: string; newPassword: string }): Promise<{ message: string }> => {
+    const { data } = await apiClient().post<{ message: string }>(`/auth/change-password`, payload);
+    return data;
+};
+
 // Account management APIs
 export const deactivateAccountApi = async (): Promise<AccountActionResponse> => {
     const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/deactivate`);

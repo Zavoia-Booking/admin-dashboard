@@ -3,6 +3,7 @@ import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
 import { Button } from "../../components/ui/button";
 import { Mail, Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export type CredentialsFormHandle = {
   reset: () => void;
@@ -25,7 +26,7 @@ type Props = {
 
 function CredentialsFormBase({
   onSubmit,
-  submitLabel = "Continue",
+  submitLabel,
   isLoading,
   defaultEmail,
   autoFocusField = "email",
@@ -33,9 +34,12 @@ function CredentialsFormBase({
   onEmailChange,
   showPasswordField = true,
   emailPattern = /[^@\s]+@[^@\s]+\.[^@\s]+/,
-  emailErrorMessage = 'Enter a valid email',
+  emailErrorMessage,
   passwordValidator,
 }: Props, ref: React.Ref<CredentialsFormHandle>) {
+  const { t } = useTranslation('auth');
+  const resolvedSubmitLabel = submitLabel ?? t('credentials.submitDefault');
+  const resolvedEmailErrorMessage = emailErrorMessage ?? t('credentials.validation.emailInvalid');
   const [email, setEmail] = useState(defaultEmail ?? "");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -47,17 +51,17 @@ function CredentialsFormBase({
   }, [defaultEmail]);
 
   const validateEmailField = (value: string): string | null => {
-    if (!value) return 'Email is required';
-    if (emailPattern && !emailPattern.test(value)) return emailErrorMessage;
+    if (!value) return t('credentials.validation.emailRequired');
+    if (emailPattern && !emailPattern.test(value)) return resolvedEmailErrorMessage;
     return null;
   };
 
   const validatePasswordField = (value: string): string | null => {
     if (!showPasswordField) return null;
-    if (!value) return 'Password is required';
+    if (!value) return t('credentials.validation.passwordRequired');
     if (passwordValidator) {
       const result = passwordValidator(value);
-      if (result !== true) return typeof result === 'string' ? result : 'Invalid password';
+      if (result !== true) return typeof result === 'string' ? result : t('credentials.validation.passwordInvalid');
     }
     return null;
   };
@@ -89,13 +93,13 @@ function CredentialsFormBase({
     <form onSubmit={handleSubmit} noValidate className={className}>
       <div className="space-y-2">
         <Label htmlFor="cred-email" className="text-base font-medium text-foreground-1">
-          Email {!showPasswordField && '*'}
+          {showPasswordField ? t('credentials.email') : t('credentials.emailRequired')}
         </Label>
         <div className="relative">
           <Input
             id="cred-email"
             type="email"
-            placeholder="m@example.com"
+            placeholder={t('credentials.emailPlaceholder')}
             value={email}
             autoFocus={autoFocusField === "email"}
             onChange={(e) => {
@@ -123,7 +127,7 @@ function CredentialsFormBase({
       </div>
       {showPasswordField && (
         <div className="mt-4 space-y-2">
-          <Label htmlFor="cred-password" className="text-base font-medium text-foreground-1">Password *</Label>
+          <Label htmlFor="cred-password" className="text-base font-medium text-foreground-1">{t('credentials.password')}</Label>
           <div className="relative">
             <Input
               id="cred-password"
@@ -145,7 +149,7 @@ function CredentialsFormBase({
               className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-label={showPassword ? t('credentials.hidePassword') : t('credentials.showPassword')}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -159,8 +163,8 @@ function CredentialsFormBase({
           </div>
         </div>
       )}
-      <Button type="submit" className="w-full mt-8" disabled={!!isLoading}>
-        {submitLabel}
+      <Button type="submit" rounded="full" className="w-full mt-8" disabled={!!isLoading}>
+        {resolvedSubmitLabel}
       </Button>
     </form>
   );

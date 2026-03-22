@@ -12,6 +12,7 @@ import {
 import { Button } from "../../../shared/components/ui/button";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { Power, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 /**
  * Dialog shown during Google login/register when the user's account
@@ -19,6 +20,7 @@ import { Power, Trash2 } from "lucide-react";
  * reactivate / cancel deletion, or decline and stay logged out.
  */
 export default function AccountStatusPromptDialog() {
+  const { t, i18n } = useTranslation('auth');
   const dispatch = useDispatch();
   const prompt = useSelector(selectAccountStatusPrompt);
   const isLoading = useSelector(selectAuthIsLoading);
@@ -37,7 +39,7 @@ export default function AccountStatusPromptDialog() {
   };
 
   const deletionDate = user?.deletionScheduledAt
-    ? new Date(user.deletionScheduledAt).toLocaleDateString("en-US", {
+    ? new Date(user.deletionScheduledAt).toLocaleDateString(i18n.language, {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -50,30 +52,30 @@ export default function AccountStatusPromptDialog() {
         <AlertDialogHeader>
           <div className="flex items-center gap-3 mb-1">
             {isDisabled ? (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
-                <Power className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-warning-bg">
+                <Power className="h-5 w-5 text-warning" />
               </div>
             ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/30">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-error-bg">
                 <Trash2 className="h-5 w-5 text-destructive" />
               </div>
             )}
             <AlertDialogTitle>
-              {isDisabled ? "Account Inactive" : "Account Scheduled for Deletion"}
+              {isDisabled ? t('accountStatus.inactive.title') : t('accountStatus.deletion.title')}
             </AlertDialogTitle>
           </div>
           <AlertDialogDescription className="text-sm leading-relaxed">
             {isDisabled ? (
-              "Your account is currently inactive. Would you like to reactivate it and continue to your dashboard?"
+              t('accountStatus.inactive.description')
             ) : (
               <>
-                Your account is scheduled to be permanently deleted
+                {t('accountStatus.deletion.descriptionPrefix')}
                 {deletionDate ? (
                   <>
-                    {" "}on <span className="font-semibold text-foreground">{deletionDate}</span>
+                    {" "}{t('accountStatus.deletion.descriptionOn')}{" "}<span className="font-semibold text-foreground">{deletionDate}</span>
                   </>
                 ) : null}
-                . Would you like to cancel the deletion and keep your account?
+                {t('accountStatus.deletion.descriptionSuffix')}
               </>
             )}
           </AlertDialogDescription>
@@ -81,12 +83,14 @@ export default function AccountStatusPromptDialog() {
         <AlertDialogFooter className="mt-2">
           <Button
             variant="outline"
+            rounded="full"
             onClick={handleDecline}
             disabled={isLoading}
           >
-            {isDisabled ? "No, stay inactive" : "Continue with deletion"}
+            {isDisabled ? t('accountStatus.inactive.decline') : t('accountStatus.deletion.decline')}
           </Button>
           <Button
+            rounded="full"
             onClick={handleAccept}
             disabled={isLoading}
             className="gap-2"
@@ -94,10 +98,10 @@ export default function AccountStatusPromptDialog() {
             {isLoading ? (
               <>
                 <Spinner size="sm" color="white" />
-                {isDisabled ? "Reactivating..." : "Cancelling..."}
+                {isDisabled ? t('accountStatus.inactive.loading') : t('accountStatus.deletion.loading')}
               </>
             ) : (
-              isDisabled ? "Reactivate" : "Keep my account"
+              isDisabled ? t('accountStatus.inactive.accept') : t('accountStatus.deletion.accept')
             )}
           </Button>
         </AlertDialogFooter>

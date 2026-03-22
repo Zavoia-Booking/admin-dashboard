@@ -52,7 +52,14 @@
     "E29": "Fără acces la panou",
     "E30": "Emailul Google nu corespunde cu emailul contului",
     "E31": "Contul există ca și client marketplace - adaugi acces proprietar afacere?",
-    "E32": "Contul există ca și membru al echipei - adaugi acces proprietar afacere?"
+    "E32": "Contul există ca și membru al echipei - adaugi acces proprietar afacere?",
+    "E33": "Emailul este deja utilizat",
+    "E34": "Parola trebuie să conțină cel puțin o literă mare, o literă mică, o cifră și un caracter special",
+    "E35": "Introdu un număr de telefon valid",
+    "E36": "Nicio parolă setată - folosește setarea parolei",
+    "E37": "Parola curentă este incorectă",
+    "E38": "Schimbarea parolei a eșuat",
+    "S22": "Parola a fost schimbată cu succes"
   },
   "ACCOUNT": {
     "E04": "Trebuie să elimini toți membrii echipei înainte de a dezactiva sau șterge contul",
@@ -243,6 +250,35 @@
     "E06": "Marcarea tuturor notificărilor ca citite a eșuat",
     "E07": "Trimiterea notificării a eșuat",
     "E08": "Token push invalid"
+  },
+  "TEAM_MEMBER_ACCOUNT": {
+    "S01": "Profil obținut cu succes",
+    "S02": "Profil actualizat cu succes",
+    "S03": "Imagine de profil încărcată cu succes",
+    "S04": "Parola a fost schimbată cu succes",
+    "S05": "Profil marketplace actualizat cu succes",
+    "S06": "Imagine portofoliu încărcată cu succes",
+    "S07": "Imagine portofoliu ștearsă cu succes",
+    "E01": "Utilizator negăsit",
+    "E02": "Obținerea profilului a eșuat",
+    "E03": "Actualizarea profilului a eșuat",
+    "E04": "Încărcarea imaginii de profil a eșuat",
+    "E05": "Emailul este deja utilizat",
+    "E06": "Nicio parolă setată - folosește setarea parolei",
+    "E07": "Parola curentă este incorectă",
+    "E08": "Schimbarea parolei a eșuat",
+    "E09": "Obținerea profilului marketplace a eșuat",
+    "E10": "Actualizarea profilului marketplace a eșuat",
+    "E11": "Dimensiunea imaginii de portofoliu depășește limita maximă",
+    "E12": "Tip de fișier invalid pentru imaginea de portofoliu",
+    "E13": "Profil marketplace necesar înainte de încărcarea imaginilor de portofoliu",
+    "E14": "Imagine portofoliu negăsită",
+    "E15": "Obținerea imaginilor de portofoliu a eșuat",
+    "E16": "Încărcarea imaginii de portofoliu a eșuat",
+    "E17": "Ștergerea imaginii de portofoliu a eșuat",
+    "E18": "Obținerea locațiilor asignate a eșuat",
+    "E19": "Locație negăsită sau neasignată",
+    "E20": "Obținerea asignărilor de locații a eșuat"
   },
   "fallback": "A apărut o eroare neașteptată"
 }

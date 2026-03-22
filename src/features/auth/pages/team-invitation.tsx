@@ -14,6 +14,11 @@ import {
   selectMemberRegistrationError
 } from "../selectors";
 import { Spinner } from "../../../shared/components/ui/spinner";
+import { InfoPage } from "../../../shared/components/common/InfoPage";
+import { PasswordStrength } from "../components/PasswordStrength";
+import { validatePasswordPolicy } from "../../../shared/utils/validation";
+import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover";
+import { useTranslation, Trans } from "react-i18next";
 
 type FormValues = {
   firstName: string;
@@ -23,6 +28,7 @@ type FormValues = {
 };
 
 export default function TeamInvitationPage() {
+  const { t } = useTranslation('auth');
   const [params] = useSearchParams();
   const token = params.get("token") || "";
   const navigate = useNavigate();
@@ -33,30 +39,31 @@ export default function TeamInvitationPage() {
   const isRegistrationLoading = useSelector(selectIsMemberRegistrationLoading);
   const registrationError = useSelector(selectMemberRegistrationError);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
-    mode: 'onSubmit',
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormValues>({
+    mode: 'onChange',
     defaultValues: { firstName: '', lastName: '', phone: '', password: '' }
   });
 
   const [topError, setTopError] = useState<string | null>(null);
+  const [pwFocused, setPwFocused] = useState(false);
+  const [pwInteracted, setPwInteracted] = useState(false);
 
-  // Check invitation on mount (tokens are cleared before this runs)
+  const passwordValue = watch('password');
+
   useEffect(() => {
-    // First, clear any stale auth state to prevent axios interceptor from adding auth headers
     dispatch(setTokensAction({ accessToken: null, csrfToken: null }));
     
-    // Then check the invitation
     if (!token) {
-      setTopError("Invalid or missing invitation token.");
+      setTopError(t('teamInvitation.errorInvalidToken'));
       return;
     }
     dispatch(checkTeamInvitationAction.request({ token }));
-  }, [dispatch, token]);
-
+  }, [dispatch, token, t]);
 
   const onSubmit = (values: FormValues) => {
+    setPwFocused(false);
     if (!invitationData?.token) {
-      setTopError("Invalid invitation data.");
+      setTopError(t('teamInvitation.errorInvalidData'));
       return;
     }
     setTopError(null);
@@ -69,209 +76,198 @@ export default function TeamInvitationPage() {
     }));
   };
 
-  // Loading state while checking invitation
   if (invitationStatus === 'checking' || invitationStatus === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="flex flex-col items-center justify-center gap-4 py-8">
-              <Spinner size="lg" />
-              <p className="text-sm text-muted-foreground">Verifying invitation...</p>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-muted to-background">
+        <Spinner size="lg" color="info" />
+        <p className="text-sm text-muted-foreground">{t('teamInvitation.verifying')}</p>
       </div>
     );
   }
 
-  // Error state
   if (invitationStatus === 'error') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center text-destructive">Invalid Invitation</CardTitle>
-            <CardDescription className="text-center">
-              This invitation link is invalid or has expired. Please contact your administrator for a new invitation.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex justify-center">
-            <Button onClick={() => navigate('/login')}>Go to Login</Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <InfoPage
+        title={t('teamInvitation.errorTitle')}
+        description={t('teamInvitation.errorDescription')}
+        buttons={[
+          { label: t('teamInvitation.goToLogin'), onClick: () => navigate('/login') },
+        ]}
+      />
     );
   }
 
-  // Success state - registration completed
   if (invitationStatus === 'completed') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                <svg
-                  className="h-8 w-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-            </div>
-            <CardTitle className="text-2xl text-center">Registration Complete!</CardTitle>
-            <CardDescription className="text-center mt-2">
-              Your account has been successfully created. You can now log in to access your dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex justify-center">
-            <Button onClick={() => navigate('/login')} className="w-full">
-              Go to Login
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <InfoPage
+        title={t('teamInvitation.completedTitle')}
+        description={t('teamInvitation.completedDescription')}
+        buttons={[
+          { label: t('teamInvitation.goToLogin'), onClick: () => navigate('/login') },
+        ]}
+      />
     );
   }
 
-  // Accepted - user already existed and was added to business
   if (invitationStatus === 'accepted') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-muted">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center">
-                <svg
-                  className="h-8 w-8 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M5 13l4 4L19 7"
-                  />
-                </svg>
-              </div>
-            </div>
-            <CardTitle className="text-2xl text-center">You're All Set!</CardTitle>
-            <CardDescription className="text-center mt-2">
-              You've been successfully added to the business. Please log in to access your dashboard.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex justify-center">
-            <Button onClick={() => navigate('/login')} className="w-full">
-              Go to Login
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <InfoPage
+        title={t('teamInvitation.acceptedTitle')}
+        description={t('teamInvitation.acceptedDescription')}
+        buttons={[
+          { label: t('teamInvitation.goToLogin'), onClick: () => navigate('/login') },
+        ]}
+      />
     );
   }
 
-  // Registration form (status === 'needs_registration')
+  const isPasswordValid = validatePasswordPolicy(passwordValue) === true;
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-muted">
-      <Card className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-muted to-background">
+      <Card className="w-full max-w-md border-0 shadow-xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Complete your profile</CardTitle>
+          <CardTitle className="text-2xl text-center">{t('teamInvitation.formTitle')}</CardTitle>
           <CardDescription className="text-center">
-            You've been invited to join <strong>{invitationData?.business.name}</strong>
+            <Trans
+              i18nKey="teamInvitation.formDescription"
+              ns="auth"
+              values={{ business: invitationData?.business.name }}
+              components={{ strong: <strong /> }}
+            />
           </CardDescription>
           {invitationData?.email && (
             <p className="text-sm text-center text-muted-foreground mt-2">
-              Email: {invitationData.email}
+              {t('teamInvitation.emailLabel', { email: invitationData.email })}
             </p>
           )}
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)} noValidate>
           <CardContent className="grid gap-4">
-            {(topError || registrationError || errors.firstName || errors.lastName || errors.phone || errors.password) && (
+            {(topError || registrationError) && (
               <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md">
-                {topError || 
-                  (registrationError ? "Something went wrong. Please try again or contact your administrator." : null) ||
-                  errors.firstName?.message || 
-                  errors.lastName?.message || 
-                  errors.phone?.message || 
-                  errors.password?.message}
+                {topError || t('teamInvitation.errorGeneric')}
               </div>
             )}
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">{t('teamInvitation.firstName')}</Label>
                 <Input 
                   id="firstName" 
                   type="text" 
-                  placeholder="First name" 
+                  placeholder={t('teamInvitation.firstNamePlaceholder')}
                   disabled={isRegistrationLoading} 
                   aria-invalid={!!errors.firstName} 
-                  {...register('firstName', { required: 'First name is required' })} 
+                  className={errors.firstName ? 'border-destructive' : ''}
+                  {...register('firstName', { required: t('teamInvitation.validation.firstNameRequired') })} 
                 />
+                {errors.firstName && (
+                  <p className="text-xs text-destructive">{errors.firstName.message}</p>
+                )}
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">{t('teamInvitation.lastName')}</Label>
                 <Input 
                   id="lastName" 
                   type="text" 
-                  placeholder="Last name" 
+                  placeholder={t('teamInvitation.lastNamePlaceholder')}
                   disabled={isRegistrationLoading} 
-                  aria-invalid={!!errors.lastName} 
-                  {...register('lastName', { required: 'Last name is required' })} 
+                  aria-invalid={!!errors.lastName}
+                  className={errors.lastName ? 'border-destructive' : ''}
+                  {...register('lastName', { required: t('teamInvitation.validation.lastNameRequired') })} 
                 />
+                {errors.lastName && (
+                  <p className="text-xs text-destructive">{errors.lastName.message}</p>
+                )}
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="phone">Phone</Label>
+              <Label htmlFor="phone">{t('teamInvitation.phone')}</Label>
               <Input 
                 id="phone" 
                 type="tel" 
-                placeholder="Phone number" 
+                placeholder={t('teamInvitation.phonePlaceholder')}
                 disabled={isRegistrationLoading} 
-                aria-invalid={!!errors.phone} 
-                {...register('phone', { required: 'Phone number is required' })} 
+                aria-invalid={!!errors.phone}
+                className={errors.phone ? 'border-destructive' : ''}
+                {...register('phone', { required: t('teamInvitation.validation.phoneRequired') })} 
               />
+              {errors.phone && (
+                <p className="text-xs text-destructive">{errors.phone.message}</p>
+              )}
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password" 
-                type="password" 
-                placeholder="Create a password" 
-                disabled={isRegistrationLoading} 
-                aria-invalid={!!errors.password} 
-                {...register('password', { required: 'Password is required', minLength: { value: 6, message: 'Min 6 characters' } })} 
-              />
+              <Label htmlFor="password">{t('teamInvitation.password')}</Label>
+              <Popover open={pwFocused} modal={false}>
+                <PopoverTrigger asChild>
+                  <div className="relative">
+                    <Input 
+                      id="password" 
+                      type="password" 
+                      placeholder={t('teamInvitation.passwordPlaceholder')}
+                      disabled={isRegistrationLoading} 
+                      aria-invalid={!!errors.password}
+                      className={`transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
+                        errors.password
+                          ? 'border-destructive bg-error-bg focus-visible:ring-error'
+                          : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
+                      }`}
+                      {...register('password', {
+                        required: t('teamInvitation.validation.passwordRequired'),
+                        validate: (value) => validatePasswordPolicy(value),
+                      })}
+                      onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
+                      onBlur={(e) => { register('password').onBlur(e); setPwFocused(false); }}
+                    />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="start"
+                  sideOffset={8}
+                  avoidCollisions={false}
+                  className="p-0 border-none bg-transparent shadow-none w-auto"
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                >
+                  <PasswordStrength password={passwordValue} variant="panel" />
+                </PopoverContent>
+              </Popover>
+              <div className="min-h-[28px]">
+                {pwInteracted && passwordValue.length > 0 ? (
+                  <PasswordStrength password={passwordValue} variant="bar" />
+                ) : (
+                  errors.password && (
+                    <p className="text-xs text-destructive">{errors.password.message}</p>
+                  )
+                )}
+              </div>
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 mt-4">
-            <Button type="submit" className="w-full" disabled={isRegistrationLoading}>
-              {isRegistrationLoading ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Spinner size="sm" color="info" />
-                </div>
-              ) : (
-                "Complete Registration"
+            <Button
+              type="submit"
+              rounded="full"
+              className="w-full relative"
+              disabled={isRegistrationLoading || !isPasswordValid}
+            >
+              <span className={isRegistrationLoading ? 'invisible' : ''}>
+                {t('teamInvitation.completeRegistration')}
+              </span>
+              {isRegistrationLoading && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <Spinner size="sm" color="white" />
+                </span>
               )}
             </Button>
             <Button 
               type="button" 
-              variant="outline" 
+              variant="outline"
+              rounded="full"
               className="w-full" 
               onClick={() => navigate('/login')}
               disabled={isRegistrationLoading}
             >
-              Back to login
+              {t('teamInvitation.backToLogin')}
             </Button>
           </CardFooter>
         </form>
@@ -279,4 +275,3 @@ export default function TeamInvitationPage() {
     </div>
   );
 }
-

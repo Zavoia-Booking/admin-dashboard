@@ -12,17 +12,10 @@ import {
 import { Button } from "../../../shared/components/ui/button";
 import { Building2, ChevronRight } from "lucide-react";
 import { Spinner } from "../../../shared/components/ui/spinner";
-
-const formatRole = (role: string): string => {
-  const roleMap: Record<string, string> = {
-    owner: "Business Owner",
-    team_member: "Team Member",
-    admin: "Admin",
-  };
-  return roleMap[role] || role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-};
+import { useTranslation } from "react-i18next";
 
 export default function BusinessSelectorModal() {
+  const { t } = useTranslation('auth');
   const dispatch = useDispatch();
   const businessSelection = useSelector((s: RootState) => s.auth.businessSelectionRequired);
   const isLoading = useSelector((s: RootState) => s.auth.isLoading);
@@ -53,9 +46,9 @@ export default function BusinessSelectorModal() {
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl">Select Your Business</DialogTitle>
+          <DialogTitle className="text-xl">{t('businessSelector.title')}</DialogTitle>
           <DialogDescription>
-            You have access to multiple businesses. Please select which one you'd like to access.
+            {t('businessSelector.description')}
           </DialogDescription>
         </DialogHeader>
         
@@ -67,7 +60,7 @@ export default function BusinessSelectorModal() {
               <Button
                 key={business.id}
                 variant="outline"
-                className="w-full h-auto p-4 justify-between hover:bg-accent hover:border-primary transition-all"
+                className="w-full h-auto p-4 rounded-xl justify-between hover:bg-surface-hover hover:border-primary transition-all"
                 onClick={() => handleSelectBusiness(business.id)}
                 disabled={isLoading}
               >
@@ -77,15 +70,15 @@ export default function BusinessSelectorModal() {
                   </div>
                   <div className="text-left">
                     <div className="font-semibold">{business.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {formatRole(business.role)}
+                    <div className="text-xs text-foreground-3">
+                      {t(`businessSelector.roles.${business.role}`, { defaultValue: business.role.replace(/_/g, ' ') })}
                     </div>
                   </div>
                 </div>
                 {isThisBusinessLoading ? (
                   <Spinner size="sm" />
                 ) : (
-                  <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                  <ChevronRight className="h-5 w-5 text-foreground-3" />
                 )}
               </Button>
             );

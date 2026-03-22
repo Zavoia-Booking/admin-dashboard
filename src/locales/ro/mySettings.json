@@ -35,7 +35,12 @@
       "newPasswordPlaceholder": "Introdu parola nouă",
       "confirmPassword": "Confirmă Parola Nouă",
       "confirmPasswordPlaceholder": "Confirmă parola nouă",
-      "updating": "Se actualizează..."
+      "updating": "Se actualizează...",
+      "legalTitle": "Documente Legale",
+      "legalDescription": "Consultă termenii, politica de confidențialitate și politica de cookie-uri",
+      "legal_terms": "Termeni și Condiții",
+      "legal_privacy": "Politica de Confidențialitate",
+      "legal_cookies": "Politica de Cookie-uri"
     },
     "fields": {
       "firstName": "Prenume",
@@ -58,6 +63,7 @@
       "enterPassword": "Introdu o parolă nouă",
       "passwordMinLength": "Parola trebuie să aibă cel puțin 8 caractere",
       "passwordsNoMatch": "Parolele nu coincid",
+      "passwordPolicyFailed": "Parola trebuie să conțină literă mare, literă mică, cifră și caracter special (@$!%*?&)",
       "passwordChanged": "Parola a fost schimbată cu succes!",
       "passwordSet": "Parola a fost setată cu succes!",
       "passwordUpdateFailed": "Nu s-a putut actualiza parola"

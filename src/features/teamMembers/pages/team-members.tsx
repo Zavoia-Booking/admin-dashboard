@@ -130,7 +130,7 @@ export default function TeamMembersPage() {
           description: text('page.confirmDialog.cancelInvitationDescription', {
             email: pendingAction.email,
           }),
-          confirmText: text('page.confirmDialog.cancelInvitation'),
+          confirmText: text('page.confirmDialog.confirmRevoke'),
           onConfirm: confirmCancelInvite,
         };
       default:
@@ -237,12 +237,7 @@ export default function TeamMembersPage() {
                     {memberRoleStatus === 'pending_acceptance' && (
                       <Badge
                         variant="secondary"
-                        className="font-medium text-xs h-8 w-fit py-2 px-3"
-                        style={{
-                          backgroundColor: '#dbeafe',
-                          borderColor: '#bfdbfe',
-                          color: '#1e40af',
-                        }}
+                        className="font-medium text-xs h-8 w-fit py-2 px-3 bg-info-bg border-info-border text-info"
                       >
                         <Clock className="h-3 w-3 mr-1.5 mt-0.5" />
                         {text("page.badges.invitationSent")}
@@ -297,20 +292,15 @@ export default function TeamMembersPage() {
                   {/* Divider with "Invitation Sent" Badge */}
                   {pendingMembers.length > 0 && (
                     <div className="relative flex items-center justify-center my-8">
-                      <div className="flex-grow border-t-2 border-gray-300"></div>
+                      <div className="flex-grow border-t border-border"></div>
                       <Badge
                         variant="secondary"
-                        className="font-medium text-xs h-8 w-fit py-2 px-3"
-                        style={{
-                          backgroundColor: '#dbeafe',
-                          borderColor: '#bfdbfe',
-                          color: '#1e40af',
-                        }}
+                        className="font-medium text-xs h-8 w-fit py-2 px-3 bg-info-bg border-info-border text-info"
                       >
                         <Clock className="h-3 w-3 mr-1.5 mt-0.5" />
                         {text("page.badges.invitationSent")}
                       </Badge>
-                      <div className="flex-grow border-t-2 border-gray-300"></div>
+                      <div className="flex-grow border-t border-border"></div>
                     </div>
                   )}
 
@@ -434,12 +424,14 @@ export default function TeamMembersPage() {
                   <div className="flex gap-2">
                     <Button
                       onClick={confirmDialogContent?.onConfirm}
+                      rounded="full"
                       className="flex-1"
                     >
                       {confirmDialogContent?.confirmText}
                     </Button>
                     <Button
                       variant="outline"
+                      rounded="full"
                       onClick={() => setIsConfirmDialogOpen(false)}
                     >
                       {text("page.confirmDialog.cancel")}

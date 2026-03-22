@@ -52,7 +52,14 @@
     "E29": "No dashboard access",
     "E30": "Google email does not match account email",
     "E31": "Account exists as marketplace customer - add business owner access?",
-    "E32": "Account exists as team member - add business owner access?"
+    "E32": "Account exists as team member - add business owner access?",
+    "E33": "Email is already in use",
+    "E34": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+    "E35": "Enter a valid phone number",
+    "E36": "No password set - use set-password instead",
+    "E37": "Current password is incorrect",
+    "E38": "Failed to change password",
+    "S22": "Password changed successfully"
   },
   "ACCOUNT": {
     "E04": "You must remove all team members before you can disable or delete your account",
@@ -243,6 +250,35 @@
     "E06": "Failed to mark all notifications as read",
     "E07": "Failed to send notification",
     "E08": "Invalid push token"
+  },
+  "TEAM_MEMBER_ACCOUNT": {
+    "S01": "Profile retrieved successfully",
+    "S02": "Profile updated successfully",
+    "S03": "Profile image uploaded successfully",
+    "S04": "Password changed successfully",
+    "S05": "Marketplace profile updated successfully",
+    "S06": "Portfolio image uploaded successfully",
+    "S07": "Portfolio image deleted successfully",
+    "E01": "User not found",
+    "E02": "Failed to get profile",
+    "E03": "Failed to update profile",
+    "E04": "Failed to upload profile image",
+    "E05": "Email is already in use",
+    "E06": "No password set - use set-password instead",
+    "E07": "Current password is incorrect",
+    "E08": "Failed to change password",
+    "E09": "Failed to get marketplace profile",
+    "E10": "Failed to update marketplace profile",
+    "E11": "Portfolio image file size exceeds maximum",
+    "E12": "Invalid portfolio image file type",
+    "E13": "Marketplace profile required before uploading portfolio images",
+    "E14": "Portfolio image not found",
+    "E15": "Failed to get portfolio images",
+    "E16": "Failed to upload portfolio image",
+    "E17": "Failed to delete portfolio image",
+    "E18": "Failed to get assigned locations",
+    "E19": "Location not found or not assigned",
+    "E20": "Failed to get location assignments"
   },
   "fallback": "An unexpected error occurred"
 }

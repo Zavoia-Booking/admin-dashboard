@@ -26,44 +26,37 @@ export const InfoPage: React.FC<InfoPageProps> = ({
   iconColor = 'green',
   buttons,
 }) => {
-  const getIconColorClasses = (color: string) => {
-    switch (color) {
-      case 'green':
-        return 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400';
-      case 'blue':
-        return 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400';
-      case 'red':
-        return 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400';
-      case 'amber':
-        return 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400';
-      default:
-        return 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400';
-    }
-  };
+  // const getIconColorClasses = (color: string) => {
+  //   switch (color) {
+  //     case 'green':
+  //       return 'bg-success-bg text-success';
+  //     case 'blue':
+  //       return 'bg-info-bg text-info';
+  //     case 'red':
+  //       return 'bg-error-bg text-error';
+  //     case 'amber':
+  //       return 'bg-warning-bg text-warning';
+  //     default:
+  //       return 'bg-success-bg text-success';
+  //   }
+  // };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-muted to-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md border-0 shadow-xl bg-card/80 backdrop-blur-sm">
-        <CardContent className="p-8 text-center space-y-6">
-          {/* Icon */}
-          <div className="flex justify-center">
-            <div className={`w-16 h-16 ${getIconColorClasses(iconColor)} rounded-full flex items-center justify-center`}>
-              <Icon className="w-8 h-8" />
+        <CardContent className="p-8 space-y-5">
+          <div className="flex items-start gap-3">
+            <div className="space-y-1 min-w-0">
+              <h1 className="text-xl font-semibold text-foreground-1">
+                {title}
+              </h1>
+              <p className="text-sm text-foreground-3">
+                {description}
+              </p>
             </div>
           </div>
 
-          {/* Message */}
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold text-foreground">
-              {title}
-            </h1>
-            <p className="text-muted-foreground">
-              {description}
-            </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="space-y-3 pt-4">
+          <div className="space-y-3 pt-2">
             {buttons.map((button, index) => {
               const ButtonIcon = button.icon;
               return (
@@ -71,7 +64,8 @@ export const InfoPage: React.FC<InfoPageProps> = ({
                   key={index}
                   onClick={button.onClick}
                   variant={button.variant || 'default'}
-                  className={`w-full ${button.variant === 'outline' ? '' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}`}
+                  rounded="full"
+                  className={`w-full ${button.variant === 'outline' ? '' : 'bg-primary hover:bg-primary-hover text-white'}`}
                 >
                   {ButtonIcon && <ButtonIcon className="w-4 h-4 mr-2" />}
                   {button.label}

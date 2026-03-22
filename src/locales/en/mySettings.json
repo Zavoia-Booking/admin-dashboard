@@ -35,7 +35,12 @@
       "newPasswordPlaceholder": "Enter new password",
       "confirmPassword": "Confirm New Password",
       "confirmPasswordPlaceholder": "Confirm new password",
-      "updating": "Updating..."
+      "updating": "Updating...",
+      "legalTitle": "Legal Documents",
+      "legalDescription": "Review our terms, privacy policy, and cookies policy",
+      "legal_terms": "Terms and Conditions",
+      "legal_privacy": "Confidentiality Policy",
+      "legal_cookies": "Cookies Policy"
     },
     "fields": {
       "firstName": "First Name",
@@ -58,6 +63,7 @@
       "enterPassword": "Please enter a new password",
       "passwordMinLength": "Password must be at least 8 characters",
       "passwordsNoMatch": "Passwords do not match",
+      "passwordPolicyFailed": "Password must include uppercase, lowercase, number, and special character (@$!%*?&)",
       "passwordChanged": "Password changed successfully!",
       "passwordSet": "Password set successfully!",
       "passwordUpdateFailed": "Failed to update password"

@@ -116,7 +116,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
           <div className="flex items-center gap-2 sm:justify-end">
             {isGoogleLinked ? (
               <>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-100 text-green-800 text-xs font-medium ring-1 ring-green-200">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-success-bg text-success text-xs font-medium ring-1 ring-success-border">
                   <LinkIcon className="h-3 w-3" />
                   {t('googleAccount.linked')}
                 </div>
@@ -132,19 +132,19 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   {linkingLoading ? (
                     <>
                       <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                      Unlinking
+                      {t('googleAccount.unlinking')}
                     </>
                   ) : (
                     <>
                       <Unlink className="h-3 w-3 mr-1" />
-                      Unlink
+                      {t('googleAccount.unlink')}
                     </>
                   )}
                 </Button>
               </>
             ) : (
               <>
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-xs font-medium">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted text-foreground-3 text-xs font-medium">
                   <Unlink className="h-3 w-3" />
                   {t('googleAccount.notLinked')}
                 </div>
@@ -189,7 +189,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                  <AlertCircle className="h-5 w-5 text-warning" />
                   {t('googleAccount.passwordRequired')}
                 </DialogTitle>
                 <DialogDescription className="pt-2">
@@ -204,6 +204,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
               <DialogFooter className="flex gap-2">
                 <Button
                   variant="outline"
+                  rounded="full"
                   onClick={() => {
                     setShowUnlinkDialog(false);
                     setPassword('');
@@ -213,6 +214,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   {t('googleAccount.cancel')}
                 </Button>
                 <Button
+                  rounded="full"
                   onClick={() => {
                     setShowUnlinkDialog(false);
                     setPassword('');
@@ -258,6 +260,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
               <DialogFooter className="flex gap-2">
                 <Button
                   variant="outline"
+                  rounded="full"
                   onClick={() => {
                     setShowUnlinkDialog(false);
                     setPassword('');
@@ -269,6 +272,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                 </Button>
                 <Button
                   variant="destructive"
+                  rounded="full"
                   onClick={handleUnlinkConfirm}
                   disabled={!password.trim() || linkingLoading}
                 >

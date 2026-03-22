@@ -31,9 +31,10 @@
       "resendInvitation": "Resend Invitation",
       "resendInvitationDescription": "Are you sure you want to resend the invitation to {{email}}?",
       "resend": "Resend",
-      "cancelInvitation": "Cancel Invitation",
-      "cancelInvitationDescription": "Cancel the invitation for {{email}}?",
-      "cancel": "Cancel"
+      "cancelInvitation": "Revoke Invitation",
+      "cancelInvitationDescription": "Are you sure you want to revoke the invitation for {{email}}?",
+      "confirmRevoke": "Yes, revoke",
+      "cancel": "Go back"
     }
   },
   "filters": {
@@ -121,9 +122,7 @@
   },
   "invitationSuccess": {
     "title": "Invitation Sent!",
-    "description": "Your team member invitation has been sent successfully",
-    "emailInfo": "An invitation email will be sent to {{email}}. They'll receive instructions to set up their account and join your team.",
-    "teamMemberFallback": "the team member",
+    "description": "They'll receive instructions to set up their account and join your team.",
     "goToTeamMembers": "Go to Team Members"
   },
   "toasts": {

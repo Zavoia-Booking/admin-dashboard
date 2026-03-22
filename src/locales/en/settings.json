@@ -59,13 +59,22 @@
       "description": "Manage your account authentication and security",
       "changePassword": "Change Password",
       "changePasswordDescription": "Update your account password",
+      "passwordPolicyHint": "Must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&).",
       "newPassword": "New Password",
       "newPasswordPlaceholder": "Enter new password",
       "confirmPassword": "Confirm Password",
       "confirmPasswordPlaceholder": "Confirm new password",
+      "currentPassword": "Current Password",
+      "currentPasswordPlaceholder": "Enter your current password",
       "changePasswordButton": "Change Password",
+      "setPasswordButton": "Set Password",
       "updating": "Updating...",
-      "logOut": "Log out"
+      "logOut": "Log out",
+      "legalTitle": "Legal Documents",
+      "legalDescription": "Review our terms, privacy policy, and cookies policy",
+      "legal_terms": "Terms and Conditions",
+      "legal_privacy": "Confidentiality Policy",
+      "legal_cookies": "Cookies Policy"
     },
     "toast": {
       "invalidImage": "Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)",
@@ -75,9 +84,12 @@
       "industriesLoadFailed": "Failed to load industries",
       "enterPassword": "Please enter a password",
       "passwordMinLength": "Password must be at least 8 characters",
+      "passwordPolicyFailed": "Password must include uppercase, lowercase, number, and special character (@$!%*?&)",
       "passwordsNoMatch": "Passwords do not match",
       "passwordSetSuccess": "Password set successfully! You can now unlink your Google account.",
-      "passwordSetFailed": "Failed to set password"
+      "passwordSetFailed": "Failed to set password",
+      "passwordChanged": "Password changed successfully!",
+      "passwordChangeFailed": "Failed to change password"
     }
   },
   "googleAccount": {
@@ -187,7 +199,8 @@
       "removingSeatsContent": "You are removing {{count}} seat. Removed seats remain active until the end of the billing period.",
       "removingSeatsContent_other": "You are removing {{count}} seats. Removed seats remain active until the end of the billing period.",
       "addSeats": "Add seats",
-      "removeSeats": "Remove seats"
+      "removeSeats": "Remove seats",
+      "cancel": "Cancel"
     },
     "toast": {
       "alreadyScheduled": "You already have this change scheduled for the next billing period.",
@@ -215,5 +228,42 @@
     "purchaseHistory": "Purchase history",
     "loadMore": "Load more",
     "noPurchases": "No purchases yet"
+  },
+  "infoPages": {
+    "cancelRemovalSuccess": {
+      "title": "Scheduled Cancellation Cancelled",
+      "description": "Your seats are no longer scheduled to be removed. They will remain active for your next billing period.",
+      "goToDashboard": "Go to Dashboard",
+      "backToBilling": "Back to Billing"
+    },
+    "subscriptionSuccess": {
+      "title": "Thank you for your trust!",
+      "description": "Your subscription is active. You can now use the application at its full capabilities.",
+      "goToDashboard": "Go to Dashboard",
+      "backToBilling": "Back to Billing"
+    },
+    "subscriptionCancelled": {
+      "title": "Subscription cancelled",
+      "description": "Your subscription has been cancelled. You will retain access until the end of your current billing period.",
+      "goToDashboard": "Go to dashboard",
+      "backToBilling": "Back to billing"
+    },
+    "seatsUpdateSuccess": {
+      "title": "Team seats updated",
+      "description": "Your subscription has been updated successfully.",
+      "goToTeamMembers": "Go to Team Members",
+      "goToBilling": "Go to Billing"
+    },
+    "smsPurchaseSuccess": {
+      "title": "SMS Credits Added!",
+      "description": "Your SMS credits have been added to your account and are ready to use.",
+      "goToDashboard": "Go to Dashboard",
+      "backToBilling": "Back to Billing"
+    },
+    "notFound": {
+      "title": "Page Not Found",
+      "description": "The requested page could not be found.",
+      "goToDashboard": "Go to Dashboard"
+    }
   }
 }

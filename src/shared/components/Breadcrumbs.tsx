@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { FC } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { Button } from './ui/button';
+import { NotificationBell } from './common/NotificationBell';
 
 export type BreadcrumbItemType = {
   label: string;
@@ -14,13 +15,41 @@ interface BreadcrumbsProps {
   items: BreadcrumbItemType[];
 }
 
+const BELL_ROUTES = new Set([
+  '/dashboard',
+  '/calendar',
+  '/assignments',
+  '/team-members',
+  '/customers',
+  '/services',
+  '/locations',
+  '/support',
+]);
+
+const SETTINGS_BELL_TABS = new Set(['billing', 'advanced']);
+
+function shouldShowBell(pathname: string, search: string): boolean {
+  if (BELL_ROUTES.has(pathname) || pathname.startsWith('/dashboard/')) return true;
+
+  if (pathname === '/settings') {
+    const tab = new URLSearchParams(search).get('tab');
+    return tab !== null && SETTINGS_BELL_TABS.has(tab);
+  }
+
+  return false;
+}
+
 export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const current = items[items.length - 1];
+  const showBell = useMemo(
+    () => shouldShowBell(location.pathname, location.search),
+    [location.pathname, location.search],
+  );
 
   const handleBack = () => {
-    // Always go back in browser history to better match user expectation
     navigate(-1);
   };
 
@@ -40,6 +69,12 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
         <span className="text-lg font-semibold text-foreground-1 truncate min-w-0">
           {current?.label}
         </span>
+
+        {showBell && (
+          <div className="ml-auto">
+            <NotificationBell variant="header" />
+          </div>
+        )}
       </div>
     </div>
   );

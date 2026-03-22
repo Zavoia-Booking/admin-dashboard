@@ -1,6 +1,6 @@
 {
   "breadcrumbs": {
-    "dashboard": "Panou de control",
+    "dashboard": "Acasă",
     "calendar": "Calendar",
     "locations": "Locații",
     "services": "Servicii",
@@ -14,7 +14,7 @@
     "detail": "Detalii"
   },
   "sidebar": {
-    "dashboard": "Panou de control",
+    "dashboard": "Acasă",
     "calendar": "Calendar",
     "assignments": "Atribuiri",
     "teamMembers": "Membri echipă",
@@ -64,6 +64,9 @@
         "advanced": "Setări avansate"
       }
     }
+  },
+  "mobileNav": {
+    "more": "Mai mult"
   },
   "theme": {
     "dark": "Întunecat",

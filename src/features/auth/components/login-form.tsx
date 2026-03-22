@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react"
+import type { LegalPageType } from "../../legal/components/legal-content"
+import LegalContentDialog from "../../legal/components/LegalContentDialog"
 import { cn } from "../../../shared/lib/utils"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../shared/components/ui/card"
 import { Link } from "react-router-dom";
@@ -11,14 +13,17 @@ import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/com
 import { useRef } from "react";
 import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline";
 import { Banner } from "../../../shared/components/ui/banner";
+import { useTranslation } from "react-i18next";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const { t } = useTranslation('auth');
   const [isForgotMode, setIsForgotMode] = useState(false)
   const [forgotSubmitted, setForgotSubmitted] = useState(false)
   const [showNoAccountBanner, setShowNoAccountBanner] = useState(false)
+  const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)
   const dispatch = useDispatch();
   const { isLoading, error: authError } = useSelector((s: RootState) => s.auth)
   const credRef = useRef<CredentialsFormHandle | null>(null);
@@ -66,18 +71,18 @@ export function LoginForm({
             <div className="p-6 md:p-8">
               <div className="flex flex-col gap-6">
                 <CardHeader className="p-0">
-                  <CardTitle className="text-xl md:text-2xl text-center">Welcome back</CardTitle>
-                  <CardDescription className="text-center text-sm">Login to your account</CardDescription>
+                  <CardTitle className="text-xl md:text-2xl text-center">{t('login.title')}</CardTitle>
+                  <CardDescription className="text-center text-sm">{t('login.subtitle')}</CardDescription>
                 </CardHeader>
                 {showNoAccountBanner && (
                   <Banner variant="info" onDismiss={() => setShowNoAccountBanner(false)}>
-                    No account found with this email. Please{' '}
+                    {t('login.noAccountBanner')}{' '}
                     <Link to="/register" className="font-medium underline underline-offset-2">
-                      register first
+                      {t('login.registerFirst')}
                     </Link>.
                   </Banner>
                 )}
-                <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel="Login" isLoading={isLoading} />
+                <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} isLoading={isLoading} />
                 <div className="flex justify-center mt-1">
                   <button
                     type="button"
@@ -85,21 +90,21 @@ export function LoginForm({
                     className="text-sm text-foreground-2 hover:text-primary underline-offset-4 hover:underline transition-colors"
                     aria-label="Forgot your password?"
                   >
-                    Forgot your password?
+                    {t('login.forgotPassword')}
                   </button>
                 </div>
                 <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
                   <span className="bg-card text-muted-foreground relative z-10 px-2">
-                    Or continue with
+                    {t('login.orContinueWith')}
                   </span>
                 </div>
                 <div className="grid grid-cols-1 gap-4">
                   <GoogleSignInButton context="login" disabled={isLoading} />
                 </div>
                 <div className="text-center text-sm">
-                  Don&apos;t have an account?{" "}
+                  {t('login.noAccount')}{" "}
                   <Link to="/register" className="underline underline-offset-4">
-                    Sign up
+                    {t('login.signUp')}
                   </Link>
                 </div>
               </div>
@@ -115,18 +120,25 @@ export function LoginForm({
           <div className="bg-muted relative hidden md:block">
             <img
               src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-              alt="Modern office workspace"
+              alt=""
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
           </div>
         </CardContent>
         <CardFooter className="px-6 md:px-8 pb-6">
-          <div className="text-muted-foreground *:[a]:hover:text-primary text-center text-xs text-balance *:[a]:underline *:[a]:underline-offset-4 w-full">
-            By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-            and <a href="#">Privacy Policy</a>.
+          <div className="text-muted-foreground text-center text-xs text-balance w-full">
+            {t('login.termsNotice')}{" "}
+            <button type="button" onClick={() => setLegalDialog("terms")} className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer">
+              {t('login.termsOfService')}
+            </button>{" "}
+            {t('login.and')}{" "}
+            <button type="button" onClick={() => setLegalDialog("privacy")} className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer">
+              {t('login.privacyPolicy')}
+            </button>.
           </div>
         </CardFooter>
       </Card>
+      <LegalContentDialog type={legalDialog} onOpenChange={(open) => !open && setLegalDialog(null)} />
     </div>
   )
 }

@@ -12,84 +12,96 @@ import {
   MoreHorizontal,
   X,
   ChevronRight,
+  Moon,
+  Sun,
+  LogOut,
   type LucideIcon,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { useDispatch } from 'react-redux';
 import { cn } from '../../lib/utils';
 import { useState, useEffect, useRef } from 'react';
+import { logoutRequestAction } from '../../../features/auth/actions';
 
 interface BottomNavItem {
-  title: string;
+  i18nKey: string;
   url: string;
   icon: LucideIcon;
 }
 
-// Main nav items (always visible)
 const mainNavItems: BottomNavItem[] = [
-  {
-    title: 'Dashboard',
-    url: '/dashboard',
-    icon: LayoutDashboard,
-  },
-  {
-    title: 'Calendar',
-    url: '/calendar',
-    icon: Calendar,
-  },
-  {
-    title: 'Marketplace',
-    url: '/marketplace',
-    icon: Store,
-  },
+  { i18nKey: 'sidebar.dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { i18nKey: 'sidebar.calendar', url: '/calendar', icon: Calendar },
+  { i18nKey: 'sidebar.marketplace', url: '/marketplace', icon: Store },
 ];
 
-// More menu items (shown in FAB expansion)
 const moreNavItems: BottomNavItem[] = [
-  {
-    title: 'Assignments',
-    url: '/assignments',
-    icon: ClipboardList,
-  },
-  {
-    title: 'Team',
-    url: '/team-members',
-    icon: Users,
-  },
-  {
-    title: 'Services',
-    url: '/services',
-    icon: Briefcase,
-  },
-  {
-    title: 'Locations',
-    url: '/locations',
-    icon: MapPin,
-  },
-  {
-    title: 'Customers',
-    url: '/customers',
-    icon: UserCircle,
-  },
-  {
-    title: 'Support',
-    url: '/support',
-    icon: MessageCircle,
-  },
-  {
-    title: 'Settings',
-    url: '/settings',
-    icon: Settings2,
-  },
+  { i18nKey: 'sidebar.assignments', url: '/assignments', icon: ClipboardList },
+  { i18nKey: 'sidebar.teamMembers', url: '/team-members', icon: Users },
+  { i18nKey: 'sidebar.services', url: '/services', icon: Briefcase },
+  { i18nKey: 'sidebar.locations', url: '/locations', icon: MapPin },
+  { i18nKey: 'sidebar.customers', url: '/customers', icon: UserCircle },
+  { i18nKey: 'sidebar.support', url: '/support', icon: MessageCircle },
+  { i18nKey: 'sidebar.settings', url: '/settings', icon: Settings2 },
+];
+
+const USFlag = () => (
+  <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="20" height="15" rx="2" fill="#B22234"/>
+    <rect y="1" width="20" height="1" fill="white"/>
+    <rect y="3" width="20" height="1" fill="white"/>
+    <rect y="5" width="20" height="1" fill="white"/>
+    <rect y="7" width="20" height="1" fill="white"/>
+    <rect y="9" width="20" height="1" fill="white"/>
+    <rect y="11" width="20" height="1" fill="white"/>
+    <rect y="13" width="20" height="1" fill="white"/>
+    <rect width="8" height="8" fill="#3C3B6E"/>
+  </svg>
+);
+
+const ROFlag = () => (
+  <svg width="20" height="15" viewBox="0 0 20 15" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="20" height="15" rx="2" fill="#FCD116"/>
+    <rect width="6.67" height="15" rx="2" fill="#002B7F"/>
+    <rect x="13.33" width="6.67" height="15" rx="2" fill="#CE1126"/>
+  </svg>
+);
+
+const languages = [
+  { code: 'en', name: 'English', flag: <USFlag /> },
+  { code: 'ro', name: 'Română', flag: <ROFlag /> },
 ];
 
 export function MobileBottomNav() {
   const location = useLocation();
   const pathname = location.pathname;
+  const { i18n, t } = useTranslation('navigation');
+  const dispatch = useDispatch();
   const [isOpen, setIsOpen] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef(0);
+
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains('dark')
+  );
+
+  const toggleDarkMode = () => {
+    const next = !isDark;
+    setIsDark(next);
+    document.documentElement.classList.toggle('dark', next);
+    localStorage.setItem('theme', next ? 'dark' : 'light');
+  };
+
+  const currentLang = languages.find(l => l.code === i18n.language) || languages[0];
+
+  const cycleLang = () => {
+    const idx = languages.findIndex(l => l.code === i18n.language);
+    const next = languages[(idx + 1) % languages.length];
+    i18n.changeLanguage(next.code);
+  };
 
   // Close drawer when route changes
   useEffect(() => {
@@ -164,12 +176,11 @@ export function MobileBottomNav() {
         </div>
         <div className="overflow-y-auto max-h-[calc(100vh-144px)]">
           <div className="px-2 py-2 space-y-2">
-            {moreNavItems.map((item, index) => {
+            {moreNavItems.map((item) => {
               const isActive = pathname === item.url;
-              const isLast = index === moreNavItems.length - 1;
               return (
               <Link
-                key={item.title}
+                key={item.i18nKey}
                 to={item.url}
                 onClick={() => setIsOpen(false)}
                 data-slot="sidebar-menu-button"
@@ -179,17 +190,53 @@ export function MobileBottomNav() {
                   isActive
                     ? 'bg-surface-active font-medium border-border'
                     : 'bg-surface border-border hover:bg-surface-hover text-sidebar-foreground',
-                  isLast && 'mb-[5px]'
                 )}
               >
                   <div className="flex items-center gap-2">
                     <item.icon className="h-4 w-4" />
-                    <span className="font-medium">{item.title}</span>
+                    <span className="font-medium">{t(item.i18nKey)}</span>
                   </div>
                   <ChevronRight className="h-4 w-4 text-foreground-3" />
                 </Link>
               );
             })}
+
+            {/* Dark mode & Language controls */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={toggleDarkMode}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-border bg-surface hover:bg-surface-hover transition-all duration-200 cursor-pointer"
+              >
+                {isDark ? (
+                  <Moon className="h-4 w-4" />
+                ) : (
+                  <Sun className="h-4 w-4" />
+                )}
+                <span className="font-medium text-sm">
+                  {isDark ? t('theme.dark') : t('theme.light')}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={cycleLang}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg border border-border bg-surface hover:bg-surface-hover transition-all duration-200 cursor-pointer"
+              >
+                {currentLang.flag}
+                <span className="font-medium text-sm">{currentLang.name}</span>
+              </button>
+            </div>
+
+            {/* Log out */}
+            <button
+              type="button"
+              onClick={() => dispatch(logoutRequestAction.request())}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 mb-[5px] rounded-lg border border-border bg-surface hover:bg-surface-hover transition-all duration-200 cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="font-medium text-sm">{t('sidebar.logOut')}</span>
+            </button>
           </div>
         </div>
       </div>
@@ -211,7 +258,7 @@ export function MobileBottomNav() {
             const isActive = pathname === item.url;
             return (
               <Link
-                key={item.title}
+                key={item.i18nKey}
                 to={item.url}
                 data-slot="sidebar-menu-button"
                 data-active={isActive}
@@ -224,7 +271,7 @@ export function MobileBottomNav() {
               >
                 <item.icon className="h-6 w-6 mb-1" />
                 <span className="text-xs font-medium">
-                  {item.title}
+                  {t(item.i18nKey)}
                 </span>
               </Link>
             );
@@ -257,7 +304,7 @@ export function MobileBottomNav() {
               />
             </div>
             <span className="text-xs font-medium">
-              More
+              {t('mobileNav.more')}
             </span>
           </button>
         </div>

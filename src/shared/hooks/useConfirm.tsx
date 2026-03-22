@@ -2,6 +2,7 @@
 import * as React from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Dialog from '@radix-ui/react-dialog';
+import { useTranslation } from 'react-i18next';
 
 type MaybeNode = React.ReactNode | string | null | undefined;
 
@@ -59,6 +60,14 @@ const defaults: ConfirmOptions = {
 };
 
 export function useConfirmRadix() {
+    const { t } = useTranslation('auth');
+    const translatedDefaults = React.useMemo<ConfirmOptions>(() => ({
+        ...defaults,
+        title: t('common.areYouSure'),
+        confirmationText: t('common.yes'),
+        cancellationText: t('common.no'),
+    }), [t]);
+
     const [state, setState] = React.useState<State>({
         open: false,
         options: defaults,
@@ -71,11 +80,11 @@ export function useConfirmRadix() {
         return new Promise<boolean>((resolve, reject) => {
             setState({
                 open: true,
-                options: { ...defaults, ...(opts ?? {}) },
+                options: { ...translatedDefaults, ...(opts ?? {}) },
                 resolver: { resolve, reject },
             });
         });
-    }, []);
+    }, [translatedDefaults]);
 
     const finish = React.useCallback(
         async (result: boolean) => {
@@ -90,7 +99,7 @@ export function useConfirmRadix() {
 
             // Optionally close first for a snappy UI
             if (closeBeforeCallbacks) {
-                setState({ open: false, options: defaults, resolver: undefined });
+                setState({ open: false, options: translatedDefaults, resolver: undefined });
             }
 
             try {
@@ -102,17 +111,17 @@ export function useConfirmRadix() {
                 await onClose?.(result);
 
                 if (!closeBeforeCallbacks) {
-                    setState({ open: false, options: defaults, resolver: undefined });
+                    setState({ open: false, options: translatedDefaults, resolver: undefined });
                 }
                 resolver?.resolve(result);
             } catch (err) {
                 if (!closeBeforeCallbacks) {
-                    setState({ open: false, options: defaults, resolver: undefined });
+                    setState({ open: false, options: translatedDefaults, resolver: undefined });
                 }
                 resolver?.reject(err);
             }
         },
-        [state]
+        [state, translatedDefaults]
     );
 
     const onConfirmClick = React.useCallback(() => {
@@ -165,8 +174,7 @@ export function useConfirmRadix() {
         const baseContentProps = attachDismissHandlers({
             className:
                 `fixed left-1/2 top-1/2 z-[10000] w-[95vw] max-w-md -translate-x-1/2 -translate-y-1/2
-         rounded-2xl bg-white p-6 shadow-xl outline-none
-         dark:bg-neutral-900
+         rounded-2xl bg-surface border border-border p-6 shadow-xl outline-none
          data-[state=open]:animate-in data-[state=closed]:animate-out
          data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0`,
         });
@@ -184,12 +192,12 @@ export function useConfirmRadix() {
                     <Overlay {...overlayProps} />
                     <Content {...baseContentProps} className={`${baseContentProps.className} ${className ?? ''}`}>
                         {title != null && (
-                            <Title className="text-lg font-semibold leading-6 text-neutral-900 dark:text-neutral-50">
+                            <Title className="text-lg font-semibold leading-6 text-foreground-1">
                                 {title}
                             </Title>
                         )}
                         {content != null && (
-                            <Description className="mt-2 text-sm text-neutral-600 dark:text-neutral-300">
+                            <Description className="mt-2 text-sm text-foreground-3 dark:text-foreground-2">
                                 {typeof content === 'string' ? content : content}
                             </Description>
                         )}
@@ -207,7 +215,7 @@ export function useConfirmRadix() {
                                         <Cancel asChild>
                                             <button
                                                 onClick={onCancelClick}
-                                                className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                                                className="rounded-full h-11 px-6 border border-border bg-surface-hover hover:bg-surface-active text-sm font-medium text-foreground-1 cursor-pointer"
                                             >
                                                 {cancellationText}
                                             </button>
@@ -216,7 +224,7 @@ export function useConfirmRadix() {
                                         <Close asChild>
                                             <button
                                                 onClick={onCancelClick}
-                                                className="rounded-xl border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+                                                className="rounded-full h-11 px-6 border border-border bg-surface-hover hover:bg-surface-active text-sm font-medium text-foreground-1 cursor-pointer"
                                             >
                                                 {cancellationText}
                                             </button>
@@ -228,10 +236,10 @@ export function useConfirmRadix() {
                                             <button
                                                 onClick={onConfirmClick}
                                                 autoFocus
-                                                className={`rounded-xl px-4 py-2 text-sm font-semibold text-white
+                                                className={`rounded-full h-11 px-6 text-sm font-semibold text-white cursor-pointer
                           ${destructive
-                                                    ? 'bg-red-600 hover:bg-red-700 focus-visible:outline-red-600'
-                                                    : 'bg-blue-600 hover:bg-blue-700 focus-visible:outline-blue-600'}`}
+                                                    ? 'bg-destructive hover:bg-destructive/90'
+                                                    : 'bg-primary hover:bg-primary-hover'}`}
                                             >
                                                 {confirmationText}
                                             </button>
@@ -241,10 +249,10 @@ export function useConfirmRadix() {
                                             <button
                                                 onClick={onConfirmClick}
                                                 autoFocus
-                                                className={`rounded-xl px-4 py-2 text-sm font-semibold text-white
+                                                className={`rounded-full h-11 px-6 text-sm font-semibold text-white cursor-pointer
                           ${destructive
-                                                    ? 'bg-red-600 hover:bg-red-700 focus-visible:outline-red-600'
-                                                    : 'bg-blue-600 hover:bg-blue-700 focus-visible:outline-blue-600'}`}
+                                                    ? 'bg-destructive hover:bg-destructive/90'
+                                                    : 'bg-primary hover:bg-primary-hover'}`}
                                             >
                                                 {confirmationText}
                                             </button>
@@ -266,8 +274,8 @@ export function useConfirmRadix() {
         const {
             title,
             content,
-            confirmationText = 'Yes',
-            cancellationText = 'No',
+            confirmationText = translatedDefaults.confirmationText!,
+            cancellationText = translatedDefaults.cancellationText!,
             showCancel = true,
             dismissible = false,
             destructive = false,

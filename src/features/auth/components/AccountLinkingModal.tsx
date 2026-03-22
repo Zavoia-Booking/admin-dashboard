@@ -2,12 +2,21 @@ import { useDispatch, useSelector } from "react-redux";
 import type { RootState } from "../../../app/providers/store";
 import { closeAccountLinkingModal, reauthForLinkAction } from "../actions";
 import { Button } from "../../../shared/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../../../shared/components/ui/dialog";
 import CredentialsForm from "../../../shared/components/auth/CredentialsForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCallback } from "react";
+import { useTranslation } from "react-i18next";
 
 export default function AccountLinkingModal() {
+  const { t } = useTranslation('auth');
   const dispatch = useDispatch();
   const open = useSelector((s: RootState) => (s as any).auth.isAccountLinkingModalOpen);
   const isLinking = useSelector((s: RootState) => (s as any).auth.linkingLoading) as boolean | undefined;
@@ -36,35 +45,36 @@ export default function AccountLinkingModal() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="space-y-1 px-6 py-4 md:px-8 md:py-6">
-          <CardTitle className="text-xl md:text-2xl text-center">Link Google to your account</CardTitle>
-          <CardDescription className="text-center text-sm">
-            To finish connecting Google, please confirm your account password. This helps keep your account secure.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 px-6 md:px-8">
+    <Dialog open onOpenChange={(isOpen) => !isOpen && handleCancel()}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-xl md:text-2xl text-center">{t('accountLinking.title')}</DialogTitle>
+          <DialogDescription className="text-center text-sm">
+            {t('accountLinking.description')}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-3 px-2">
           <CredentialsForm
             onSubmit={({ email, password }) => {
               dispatch(reauthForLinkAction.request({ email, password }));
             }}
-            submitLabel="Link account"
+            submitLabel={t('accountLinking.submitLabel')}
             isLoading={!!isLinking}
           />
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3 pt-0 md:pt-6 px-6 md:px-8 pb-4 md:pb-6">
+        </div>
+        <DialogFooter className="flex flex-col gap-3 sm:flex-col">
           <Button
             variant="outline"
+            rounded="full"
             onClick={handleCancel}
-            className="w-full bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+            className="w-full"
             disabled={!!isLinking}
           >
-            Cancel
+            {t('accountLinking.cancel')}
           </Button>
-        </CardFooter>
-      </Card>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

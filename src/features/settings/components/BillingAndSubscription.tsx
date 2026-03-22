@@ -93,7 +93,7 @@ const BillingAndSubscription = () => {
         ? t('billing.confirm.proceedWithSeats', { count: totalSeats, amount: estimated.toFixed(2) })
         : t('billing.confirm.proceedSubscribe', { amount: estimated.toFixed(2) }),
       confirmationText: t('billing.confirm.continue'),
-      cancellationText: t('advancedSettings.common.cancel'),
+      cancellationText: t('billing.confirm.cancel'),
     });
 
     if (!confirmed) return;
@@ -155,7 +155,7 @@ const BillingAndSubscription = () => {
           ? t('billing.confirm.proceedWithSeats', { count: totalSeats, amount: estimated.toFixed(2) })
           : t('billing.confirm.proceedSubscribe', { amount: estimated.toFixed(2) }),
         confirmationText: t('billing.confirm.continue'),
-        cancellationText: t('advancedSettings.common.cancel'),
+        cancellationText: t('billing.confirm.cancel'),
       });
 
       if (!confirmed) return;
@@ -198,7 +198,7 @@ const BillingAndSubscription = () => {
           ? t('billing.confirm.addingSeatsContent', { count: delta, amount: additionalCost.toFixed(2) })
           : t('billing.confirm.removingSeatsContent', { count: Math.abs(delta) }),
         confirmationText: isAdding ? t('billing.confirm.addSeats') : t('billing.confirm.removeSeats'),
-        cancellationText: t('advancedSettings.common.cancel'),
+        cancellationText: t('billing.confirm.cancel'),
       });
       setIsConfirming(false);
 
@@ -785,7 +785,7 @@ const BillingAndSubscription = () => {
           </Card>
 
           {/* Seat Usage Summary */}
-          <Card className="border border-border/60 bg-white dark:bg-card overflow-hidden">
+          <Card className="border border-border/60 bg-card overflow-hidden">
             <CardContent className="p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -833,7 +833,7 @@ const BillingAndSubscription = () => {
 
           {/* Plan Features - Last section */}
           {currentUser?.entitlements && (
-            <Card className="border border-border/60 bg-white dark:bg-card overflow-hidden mb-12">
+            <Card className="border border-border/60 bg-card overflow-hidden mb-12">
               <CardContent className="p-0">
                 <div className="p-4">
                   <div className="flex items-center gap-3 mb-4">

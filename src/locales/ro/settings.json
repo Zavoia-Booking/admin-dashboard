@@ -59,13 +59,22 @@
       "description": "Gestionează autentificarea și securitatea contului",
       "changePassword": "Schimbă Parola",
       "changePasswordDescription": "Actualizează parola contului",
+      "passwordPolicyHint": "Minimum 8 caractere cu literă mare, literă mică, cifră și caracter special (@$!%*?&).",
       "newPassword": "Parolă Nouă",
       "newPasswordPlaceholder": "Introdu parola nouă",
       "confirmPassword": "Confirmă Parola",
       "confirmPasswordPlaceholder": "Confirmă parola nouă",
+      "currentPassword": "Parola Curentă",
+      "currentPasswordPlaceholder": "Introdu parola curentă",
       "changePasswordButton": "Schimbă Parola",
+      "setPasswordButton": "Setează Parola",
       "updating": "Se actualizează...",
-      "logOut": "Deconectare"
+      "logOut": "Deconectare",
+      "legalTitle": "Documente Legale",
+      "legalDescription": "Consultă termenii, politica de confidențialitate și politica de cookie-uri",
+      "legal_terms": "Termeni și Condiții",
+      "legal_privacy": "Politica de Confidențialitate",
+      "legal_cookies": "Politica de Cookie-uri"
     },
     "toast": {
       "invalidImage": "Te rugăm selectează un fișier imagine valid (JPEG, PNG, WebP, SVG sau AVIF)",
@@ -75,9 +84,12 @@
       "industriesLoadFailed": "Eșec la încărcarea industriilor",
       "enterPassword": "Te rugăm introdu o parolă",
       "passwordMinLength": "Parola trebuie să aibă cel puțin 8 caractere",
+      "passwordPolicyFailed": "Parola trebuie să conțină literă mare, literă mică, cifră și caracter special (@$!%*?&)",
       "passwordsNoMatch": "Parolele nu coincid",
       "passwordSetSuccess": "Parola a fost setată cu succes! Acum poți deconecta contul Google.",
-      "passwordSetFailed": "Eșec la setarea parolei"
+      "passwordSetFailed": "Eșec la setarea parolei",
+      "passwordChanged": "Parola a fost schimbată cu succes!",
+      "passwordChangeFailed": "Eșec la schimbarea parolei"
     }
   },
   "googleAccount": {
@@ -187,7 +199,8 @@
       "removingSeatsContent": "Elimini {{count}} loc. Locurile eliminate rămân active până la sfârșitul perioadei de facturare.",
       "removingSeatsContent_other": "Elimini {{count}} locuri. Locurile eliminate rămân active până la sfârșitul perioadei de facturare.",
       "addSeats": "Adaugă locuri",
-      "removeSeats": "Elimină locuri"
+      "removeSeats": "Elimină locuri",
+      "cancel": "Anulează"
     },
     "toast": {
       "alreadyScheduled": "Ai deja această modificare programată pentru perioada următoare de facturare.",
@@ -215,5 +228,42 @@
     "purchaseHistory": "Istoric achiziții",
     "loadMore": "Încarcă mai multe",
     "noPurchases": "Nicio achiziție încă"
+  },
+  "infoPages": {
+    "cancelRemovalSuccess": {
+      "title": "Anulare programată anulată",
+      "description": "Locurile tale nu mai sunt programate pentru eliminare. Vor rămâne active pentru următoarea perioadă de facturare.",
+      "goToDashboard": "Mergi la Tabloul de Bord",
+      "backToBilling": "Înapoi la Facturare"
+    },
+    "subscriptionSuccess": {
+      "title": "Mulțumim pentru încredere!",
+      "description": "Abonamentul tău este activ. Poți folosi acum aplicația la capacitate maximă.",
+      "goToDashboard": "Mergi la Tabloul de Bord",
+      "backToBilling": "Înapoi la Facturare"
+    },
+    "subscriptionCancelled": {
+      "title": "Abonament anulat",
+      "description": "Abonamentul tău a fost anulat. Vei avea acces până la sfârșitul perioadei curente de facturare.",
+      "goToDashboard": "Mergi la tabloul de bord",
+      "backToBilling": "Înapoi la facturare"
+    },
+    "seatsUpdateSuccess": {
+      "title": "Locuri echipă actualizate",
+      "description": "Abonamentul tău a fost actualizat cu succes.",
+      "goToTeamMembers": "Mergi la Membri Echipă",
+      "goToBilling": "Mergi la Facturare"
+    },
+    "smsPurchaseSuccess": {
+      "title": "Credite SMS Adăugate!",
+      "description": "Creditele SMS au fost adăugate în contul tău și sunt gata de utilizare.",
+      "goToDashboard": "Mergi la Tabloul de Bord",
+      "backToBilling": "Înapoi la Facturare"
+    },
+    "notFound": {
+      "title": "Pagina nu a fost găsită",
+      "description": "Pagina solicitată nu a fost găsită.",
+      "goToDashboard": "Mergi la Tabloul de Bord"
+    }
   }
 }

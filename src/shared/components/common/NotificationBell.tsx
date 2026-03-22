@@ -5,7 +5,11 @@ import { useTranslation } from "react-i18next"
 import type { RootState } from "../../../app/providers/store"
 import { Button } from "../ui/button"
 
-export function NotificationBell() {
+interface NotificationBellProps {
+  variant?: "sidebar" | "header"
+}
+
+export function NotificationBell({ variant = "sidebar" }: NotificationBellProps) {
   const navigate = useNavigate()
   const location = useLocation()
   const { t } = useTranslation('notifications')
@@ -17,6 +21,28 @@ export function NotificationBell() {
 
   const handleClick = () => {
     navigate("/notifications")
+  }
+
+  if (variant === "header") {
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        rounded="full"
+        onClick={handleClick}
+        className="h-8 !w-8"
+        aria-label={t("title")}
+      >
+        <div className="relative">
+          <Bell className="h-4 w-4" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-4 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none">
+              {unreadCount > 99 ? "99+" : unreadCount}
+            </span>
+          )}
+        </div>
+      </Button>
+    )
   }
 
   return (
