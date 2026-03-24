@@ -1,7 +1,7 @@
 import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import { dayNames } from "../utils.ts";
+import { buildMonthCalendarGridCells, dayNames, toLocalDateString } from "../utils.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { CalendarTimeGrid } from "./CalendarTimeGrid.tsx";
 import { AppointmentList } from "./AppointmentList.tsx";
@@ -17,9 +17,11 @@ import {
     getSelectedLocationId,
     getViewTypeSelector,
     getMonthViewDisplayStart,
+    getHasActiveCalendarFilters,
 } from "../selectors.ts";
-import { setSelectedDateAction, setViewModeAction } from "../actions.ts";
+import { setSelectedDateAction, setViewModeAction, setDayFiltersAction, setStaffFilter } from "../actions.ts";
 import { Loader2 } from "lucide-react";
+import { Button } from "../../../shared/components/ui/button.tsx";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { getAppointmentBlockColors } from "../colors.ts";
 
@@ -73,6 +75,7 @@ const SummaryGrid: FC = () => {
     const monthViewDisplayStart = useSelector(getMonthViewDisplayStart);
     const summary = useSelector(getCalendarSummary);
     const isLoading = useSelector(getSummaryLoading);
+    const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
     const colorCoding = calendarPreferences.getColorCoding();
 
     const handleDayClick = useCallback((day: Date) => {
@@ -80,32 +83,19 @@ const SummaryGrid: FC = () => {
         dispatch(setViewModeAction(AppointmentViewMode.DAY));
     }, [dispatch]);
 
-    // Build month calendar cells from displayed month (not selected date, so prev/next don't move selection)
-    const dayCells = useMemo(() => {
-        const base = monthViewDisplayStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-        const year = base.getFullYear();
-        const month = base.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        // Monday-first week: Mon=0, Sun=6
-        const firstDayOfWeek = (firstDay.getDay() + 6) % 7;
-        const lastDayOfWeek = (lastDay.getDay() + 6) % 7;
-        const start = new Date(firstDay);
-        start.setDate(firstDay.getDate() - firstDayOfWeek);
-        const end = new Date(lastDay);
-        end.setDate(lastDay.getDate() + (6 - lastDayOfWeek));
+    const dayCells = useMemo(
+        () => buildMonthCalendarGridCells(monthViewDisplayStart, selectedDate),
+        [monthViewDisplayStart, selectedDate],
+    );
 
-        const cells = [];
-        const current = new Date(start);
-        while (current <= end) {
-            cells.push({
-                date: new Date(current),
-                isCurrentMonth: current.getMonth() === month,
-            });
-            current.setDate(current.getDate() + 1);
+    const monthHasNoMatchingAppointments = useMemo(() => {
+        for (const { date, isCurrentMonth } of dayCells) {
+            if (!isCurrentMonth) continue;
+            const ds = summary[toLocalDateString(date)];
+            if (ds && ds.appointmentCount > 0) return false;
         }
-        return cells;
-    }, [monthViewDisplayStart, selectedDate]);
+        return true;
+    }, [summary, dayCells]);
 
     if (isLoading) {
         return (
@@ -120,6 +110,24 @@ const SummaryGrid: FC = () => {
 
     return (
         <div className="p-4">
+            {hasActiveFilters && monthHasNoMatchingAppointments && (
+                <div className="flex flex-wrap items-center justify-between gap-3 mb-4 p-3 rounded-lg bg-muted/40 border border-border">
+                    <span className="text-sm text-muted-foreground">
+                        No appointments match your filters in this month.
+                    </span>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            dispatch(setDayFiltersAction({}));
+                            dispatch(setStaffFilter([]));
+                        }}
+                    >
+                        Clear filters
+                    </Button>
+                </div>
+            )}
             {/* Day-of-week header */}
             <div className="grid grid-cols-7 gap-px mb-1">
                 {dayNames.map((day) => (
@@ -132,7 +140,7 @@ const SummaryGrid: FC = () => {
             {/* Calendar grid */}
             <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
                 {dayCells.map(({ date, isCurrentMonth }) => {
-                    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    const dateKey = toLocalDateString(date);
                     const daySummary: DaySummary | undefined = summary[dateKey];
                     const isToday = date.toDateString() === todayStr;
                     const isSelected = date.toDateString() === selectedDate.toDateString();

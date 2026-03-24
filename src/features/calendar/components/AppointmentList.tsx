@@ -8,13 +8,15 @@ import {
     getLocationStaff,
     getSelectedDate,
     getSelectedLocationId,
-    getStaffFilter,
+    getEffectiveStaffFilterIds,
+    getHasActiveCalendarFilters,
 } from "../selectors.ts";
-import { toggleEditFormAction } from "../actions.ts";
+import { toggleEditFormAction, setDayFiltersAction, setStaffFilter } from "../actions.ts";
 import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { formatTimeRange, getStaffDisplayNames, getStatusBadge, getBookingSourceLabel } from "./utils.tsx";
 import { Users, Clock, Loader2, CalendarX } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
+import { Button } from "../../../shared/components/ui/button.tsx";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { getAppointmentBlockColors } from "../colors.ts";
 
@@ -25,7 +27,8 @@ export const AppointmentList: FC = () => {
     const isDayLoading = useSelector(getDayDataLoading);
     const locationStaff = useSelector(getLocationStaff);
     const selectedDate = useSelector(getSelectedDate);
-    const staffFilter = useSelector(getStaffFilter);
+    const staffFilter = useSelector(getEffectiveStaffFilterIds);
+    const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
 
     // Click handler: fetch full appointment (or group) and open edit drawer
     // (must be declared before early returns to satisfy Rules of Hooks)
@@ -100,9 +103,28 @@ export const AppointmentList: FC = () => {
             {/* Empty state */}
             {visibleAppointments.length === 0 && (
                 <Card>
-                    <CardContent className="p-8 flex flex-col items-center gap-2">
+                    <CardContent className="p-8 flex flex-col items-center gap-3 text-center">
                         <CalendarX className="h-8 w-8 text-muted-foreground/50" />
-                        <p className="text-sm text-muted-foreground">No appointments for this day.</p>
+                        {hasActiveFilters ? (
+                            <>
+                                <p className="text-sm text-muted-foreground">
+                                    No appointments match your filters for this day.
+                                </p>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                        dispatch(setDayFiltersAction({}));
+                                        dispatch(setStaffFilter([]));
+                                    }}
+                                >
+                                    Clear filters
+                                </Button>
+                            </>
+                        ) : (
+                            <p className="text-sm text-muted-foreground">No appointments for this day.</p>
+                        )}
                     </CardContent>
                 </Card>
             )}

@@ -18,7 +18,6 @@ import {
     setUpdateConflictOffer,
     cancelAppointment,
     createCalendarBlock,
-    updateCalendarBlock,
     deleteCalendarBlock,
 } from "./actions.ts";
 import {
@@ -31,7 +30,6 @@ import {
     updateAppointmentRequest,
     cancelAppointmentRequest,
     createCalendarBlockRequest,
-    updateCalendarBlockRequest,
     deleteCalendarBlockRequest,
 } from "./api.ts";
 import { AppointmentViewMode } from "./types.ts";
@@ -464,20 +462,6 @@ function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBloc
     }
 }
 
-function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBlock.request>): Generator<any, void, any> {
-    const { blockId, data } = action.payload;
-
-    try {
-        const result: any = yield call(updateCalendarBlockRequest, blockId, data);
-        yield put(updateCalendarBlock.success(result));
-        yield call(refreshCalendarData);
-        toast.success('Block updated');
-    } catch (error: any) {
-        yield put(updateCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to update block');
-    }
-}
-
 function* handleDeleteCalendarBlock(action: ActionType<typeof deleteCalendarBlock.request>): Generator<any, void, any> {
     try {
         yield call(deleteCalendarBlockRequest, action.payload);
@@ -517,7 +501,6 @@ export function* calendarSaga(): Generator<any, void, any> {
 
         // Calendar block CRUD
         takeLatest(createCalendarBlock.request, handleCreateCalendarBlock),
-        takeLatest(updateCalendarBlock.request, handleUpdateCalendarBlock),
         takeLatest(deleteCalendarBlock.request, handleDeleteCalendarBlock),
     ]);
 }

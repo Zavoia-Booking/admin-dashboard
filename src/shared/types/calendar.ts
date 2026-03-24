@@ -2,19 +2,6 @@ import type { Customer } from "./customer.ts";
 import type { Service } from "./service.ts";
 import type { WorkingHours } from "./location.ts";
 
-// ─────────────────────────────────────────────────────────────
-// Legacy types (kept during migration, used by existing components)
-// ─────────────────────────────────────────────────────────────
-
-export interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  avatar: string;
-}
-
 /** Customer fields stored on the appointment at booking time (JSONB snapshot). */
 export interface AppointmentCustomerSnapshot {
   userId?: number;
@@ -63,13 +50,8 @@ export interface Appointment {
   bookingSource?: string | null;
 }
 
-export interface AppointmentSection {
-  date: Date,
-  appointments: Array<Appointment>
-}
-
 // ─────────────────────────────────────────────────────────────
-// New types matching backend calendar API responses
+// Types matching backend calendar API responses
 // ─────────────────────────────────────────────────────────────
 
 // --- Enums (mirror backend) ---
@@ -301,15 +283,6 @@ export interface CalendarBlockCreatePayload {
   notes?: string;
 }
 
-export interface CalendarBlockUpdatePayload {
-  startsAt?: string;
-  endsAt?: string;
-  isAllDay?: boolean;
-  reason?: CalendarBlockReason;
-  title?: string;
-  notes?: string;
-}
-
 // --- POST /appointments/admin-create-group ---
 
 export interface AdminCreateGroupItemPayload {
@@ -363,13 +336,24 @@ export interface AvailableSlotsResponse {
 
 // --- Day Filters (for calendar/day endpoint) ---
 
+/**
+ * Request body for filtered calendar endpoints. Legacy single-value `staffUserId` and `status`
+ * remain accepted by the API for compatibility; the app should prefer `staffUserIds` and `statuses`.
+ */
 export interface CalendarDayFilters {
   staffUserId?: number;
+  /** Appointments involving any of these staff. Omit or empty = all staff at location. */
+  staffUserIds?: number[];
   serviceId?: number;
+  bundleId?: number;
   status?: string;
+  statuses?: string[];
+  bookingSources?: AppointmentBookingSource[];
   clientName?: string;
   customerId?: number;
   customerEmail?: string;
   customerPhone?: string;
   customerFullName?: string;
+  /** Only appointments with no assigned staff (exclusive with staffUserIds on API). */
+  unassignedOnly?: boolean;
 }

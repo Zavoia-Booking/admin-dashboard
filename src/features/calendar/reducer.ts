@@ -16,7 +16,6 @@ const initialState: CalendarViewState = {
     selectedLocationId: null,
     locationContext: null,
     locationContextLoading: false,
-    locationAssignmentLoading: false,
     locationServices: [],
     locationTeamMembers: [],
     locationBundles: [],
@@ -147,7 +146,6 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         // Clear stale data when switching locations
         locationContext: null,
         locationContextLoading: payload !== null,
-        locationAssignmentLoading: false,
         locationServices: [],
         locationTeamMembers: [],
         summary: {},
@@ -164,8 +162,6 @@ const handleSetLocationContext = (state: CalendarViewState, payload: LocationCon
         ...state,
         locationContext: payload,
         locationContextLoading: false,
-        // When backend extends location-context with services + teamMembers + bundles, store them so sidebar and add form don't need a second call
-        locationAssignmentLoading: false,
         locationServices: (payload?.services ?? []) as LocationService[],
         locationTeamMembers: (payload?.teamMembers ?? []) as LocationTeamMember[],
         locationBundles: payload?.bundles ?? [],
@@ -177,26 +173,6 @@ const handleSetLocationContextLoading = (state: CalendarViewState, payload: bool
         ...state,
         locationContextLoading: payload,
     }
-}
-
-const handleLocationAssignmentRequest = (state: CalendarViewState): CalendarViewState => {
-    return { ...state, locationAssignmentLoading: true };
-}
-
-const handleLocationAssignmentSuccess = (
-    state: CalendarViewState,
-    payload: { services: LocationService[]; teamMembers: LocationTeamMember[] },
-): CalendarViewState => {
-    return {
-        ...state,
-        locationAssignmentLoading: false,
-        locationServices: payload.services ?? [],
-        locationTeamMembers: payload.teamMembers ?? [],
-    };
-}
-
-const handleLocationAssignmentFailure = (state: CalendarViewState): CalendarViewState => {
-    return { ...state, locationAssignmentLoading: false };
 }
 
 const handleSetSummary = (state: CalendarViewState, payload: Record<string, DaySummary>): CalendarViewState => {
@@ -337,13 +313,6 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetLocationContext(state, action.payload);
         case getType(actions.fetchLocationContext.failure):
             return handleSetLocationContextLoading(state, false);
-
-        case getType(actions.fetchLocationAssignment.request):
-            return handleLocationAssignmentRequest(state);
-        case getType(actions.fetchLocationAssignment.success):
-            return handleLocationAssignmentSuccess(state, action.payload);
-        case getType(actions.fetchLocationAssignment.failure):
-            return handleLocationAssignmentFailure(state);
 
         case getType(actions.fetchCalendarSummary.request):
             return handleSetSummaryLoading(state, true);

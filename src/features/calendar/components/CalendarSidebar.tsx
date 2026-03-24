@@ -2,20 +2,13 @@ import { type FC, useCallback, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { LocationSelector } from "./LocationSelector.tsx";
 import { MiniMonthCalendar } from "./MiniMonthCalendar.tsx";
+import { CalendarFiltersPanel } from "./CalendarFiltersPanel.tsx";
 import { CustomerFilterPicker } from "./CustomerFilterPicker.tsx";
-import { getLocationStaff, getStaffFilter, getDayFilters, getSelectedLocationId, getLocationServices, getLocationAssignmentLoading } from "../selectors.ts";
+import { getLocationStaff, getStaffFilter, getDayFilters, getHasActiveCalendarFilters, getSelectedDate } from "../selectors.ts";
 import { setStaffFilter, setDayFiltersAction } from "../actions.ts";
-import type { CalendarStaffMember, CalendarDayFilters } from "../../../shared/types/calendar.ts";
+import { type CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import type { Customer } from "../../../shared/types/customer.ts";
-import { User, X, Check, ChevronDown } from "lucide-react";
-import { Label } from "../../../shared/components/ui/label.tsx";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "../../../shared/components/ui/select.tsx";
+import { User, Check, ChevronDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../../../shared/components/ui/popover.tsx";
 import { Button } from "../../../shared/components/ui/button.tsx";
 import {
@@ -24,10 +17,12 @@ import {
     CommandGroup,
     CommandItem,
 } from "../../../shared/components/ui/command.tsx";
+import { Label } from "../../../shared/components/ui/label.tsx";
 import { cn } from "../../../shared/lib/utils";
+import { CALENDAR_COMBO_TRIGGER } from "./calendarSidebarStyles.ts";
 
 // ─────────────────────────────────────────────────────────────
-// Staff Filter (multi-select, TimezoneSelect-style)
+// Staff Filter (multi-select) — trigger matches other sidebar combos
 // ─────────────────────────────────────────────────────────────
 
 const StaffFilterSelect: FC = () => {
@@ -37,29 +32,31 @@ const StaffFilterSelect: FC = () => {
     const dayFilters = useSelector(getDayFilters);
     const [open, setOpen] = useState(false);
 
-    // Normalize: only IDs that exist in current staff list
     const staffFilter = useMemo(
         () => staffFilterRaw.filter((id) => staff.some((s) => s.id === id)),
-        [staffFilterRaw, staff]
+        [staffFilterRaw, staff],
     );
 
     const syncStaffFilterToDayPayload = useCallback(
         (visibleStaffIds: number[]) => {
+            const allSelected =
+                visibleStaffIds.length === 0 || visibleStaffIds.length === staff.length;
             dispatch(
                 setDayFiltersAction({
                     ...dayFilters,
-                    staffUserId: visibleStaffIds.length === 1 ? visibleStaffIds[0] : undefined,
-                })
+                    staffUserIds: allSelected ? undefined : visibleStaffIds,
+                    staffUserId: undefined,
+                    unassignedOnly: false,
+                }),
             );
         },
-        [dispatch, dayFilters]
+        [dispatch, dayFilters, staff.length],
     );
 
     const handleToggleStaff = useCallback(
         (staffId: number) => {
             const isAll = staffFilter.length === 0;
             if (staffId === -1) {
-                // "All staff" clicked
                 dispatch(setStaffFilter([]));
                 syncStaffFilterToDayPayload([]);
                 setOpen(false);
@@ -87,7 +84,7 @@ const StaffFilterSelect: FC = () => {
                 }
             }
         },
-        [dispatch, staff, staffFilter, syncStaffFilterToDayPayload]
+        [dispatch, staff, staffFilter, syncStaffFilterToDayPayload],
     );
 
     const displayLabel = useMemo(() => {
@@ -101,16 +98,21 @@ const StaffFilterSelect: FC = () => {
 
     if (staff.length === 0) {
         return (
-            <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-foreground-1">Staff</h3>
-                <div className="text-xs text-muted-foreground py-2">No staff assigned to this location.</div>
+            <div className="text-xs text-muted-foreground py-1">
+                No staff assigned to this location.
             </div>
         );
     }
 
+    const staffDisabled = dayFilters.unassignedOnly === true;
+
     return (
         <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground-1">Staff</h3>
+            {staffDisabled ? (
+                <p className="text-xs text-muted-foreground">
+                    Turn off &quot;Unassigned only&quot; in Filters to narrow by team member.
+                </p>
+            ) : null}
             <Popover open={open} onOpenChange={setOpen}>
                 <PopoverTrigger asChild>
                     <Button
@@ -118,20 +120,20 @@ const StaffFilterSelect: FC = () => {
                         role="combobox"
                         aria-haspopup="listbox"
                         aria-expanded={open}
+                        disabled={staffDisabled}
                         className={cn(
-                            "w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
-                            "border-border bg-info-100 dark:bg-info-100 hover:bg-info-100 dark:hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus",
-                            staffFilter.length === 0 && "text-muted-foreground"
+                            CALENDAR_COMBO_TRIGGER,
+                            staffFilter.length === 0 && "text-muted-foreground",
                         )}
                     >
                         <span className="flex items-center gap-2 min-w-0">
-                            <User className="h-4 w-4 text-primary shrink-0" />
+                            <User className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                             <span className="truncate text-left">{displayLabel}</span>
                         </span>
                         <ChevronDown
                             className={cn(
                                 "h-4 w-4 text-foreground-3 dark:text-foreground-2 transition-transform shrink-0",
-                                open && "rotate-180"
+                                open && "rotate-180",
                             )}
                         />
                     </Button>
@@ -153,7 +155,10 @@ const StaffFilterSelect: FC = () => {
                                     className="cursor-pointer"
                                 >
                                     <Check
-                                        className={cn("mr-2 h-4 w-4", staffFilter.length === 0 ? "opacity-100" : "opacity-0")}
+                                        className={cn(
+                                            "mr-2 h-4 w-4",
+                                            staffFilter.length === 0 ? "opacity-100" : "opacity-0",
+                                        )}
                                     />
                                     <span className="text-sm font-medium text-foreground">All staff</span>
                                 </CommandItem>
@@ -167,7 +172,10 @@ const StaffFilterSelect: FC = () => {
                                             className="cursor-pointer"
                                         >
                                             <Check
-                                                className={cn("mr-2 h-4 w-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")}
+                                                className={cn(
+                                                    "mr-2 h-4 w-4 shrink-0",
+                                                    isSelected ? "opacity-100" : "opacity-0",
+                                                )}
                                             />
                                             <div className="flex items-center gap-2 min-w-0">
                                                 {member.profileImage ? (
@@ -198,193 +206,99 @@ const StaffFilterSelect: FC = () => {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Calendar Filters (Status + Customer Search)
-// ─────────────────────────────────────────────────────────────
-
-const STATUS_OPTIONS = [
-    { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500' },
-    { value: 'pending', label: 'Pending', color: 'bg-yellow-500' },
-    { value: 'completed', label: 'Completed', color: 'bg-green-500' },
-    { value: 'cancelled', label: 'Cancelled', color: 'bg-destructive' },
-    { value: 'no_show', label: 'No-show', color: 'bg-red-500' },
-] as const;
-
-const CalendarFilters: FC = () => {
-    const dispatch = useDispatch();
-    const selectedLocationId = useSelector(getSelectedLocationId);
-    const dayFilters = useSelector(getDayFilters);
-    const staffFilter = useSelector(getStaffFilter);
-    const locationServices = useSelector(getLocationServices);
-    const servicesLoading = useSelector(getLocationAssignmentLoading);
-
-    const activeStatus = dayFilters.status ?? null;
-    const selectedCustomer = useMemo<Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone"> | null>(() => {
-        if (dayFilters.customerId == null) return null;
-        const [firstName = '', ...rest] = (dayFilters.customerFullName ?? '').trim().split(' ').filter(Boolean);
-        return {
-            id: dayFilters.customerId,
-            firstName,
-            lastName: rest.join(' '),
-            email: dayFilters.customerEmail ?? '',
-            phone: dayFilters.customerPhone ?? '',
-        };
-    }, [dayFilters.customerId, dayFilters.customerFullName, dayFilters.customerEmail, dayFilters.customerPhone]);
-
-    const handleStatusToggle = useCallback((status: string) => {
-        const newFilters: CalendarDayFilters = {
-            ...dayFilters,
-            status: dayFilters.status === status ? undefined : status,
-        };
-        dispatch(setDayFiltersAction(newFilters));
-    }, [dispatch, dayFilters]);
-
-    const handleSelectCustomer = useCallback((customer: Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone">) => {
-        dispatch(setDayFiltersAction({
-            ...dayFilters,
-            clientName: undefined,
-            customerId: customer.id,
-            customerEmail: customer.email || undefined,
-            customerPhone: customer.phone || undefined,
-            customerFullName: `${customer.firstName ?? ''} ${customer.lastName ?? ''}`.trim() || undefined,
-        }));
-    }, [dispatch, dayFilters]);
-
-    const handleClearCustomerFilter = useCallback(() => {
-        dispatch(setDayFiltersAction({
-            ...dayFilters,
-            clientName: undefined,
-            customerId: undefined,
-            customerEmail: undefined,
-            customerPhone: undefined,
-            customerFullName: undefined,
-        }));
-    }, [dispatch, dayFilters]);
-
-    const handleClearFilters = useCallback(() => {
-        dispatch(setDayFiltersAction({}));
-        dispatch(setStaffFilter([]));
-    }, [dispatch]);
-
-    const hasActiveFilters =
-        activeStatus ||
-        (dayFilters.clientName ?? '').trim() ||
-        dayFilters.customerId != null ||
-        (dayFilters.customerEmail ?? '').trim() ||
-        (dayFilters.customerPhone ?? '').trim() ||
-        (dayFilters.customerFullName ?? '').trim() ||
-        staffFilter.length > 0 ||
-        dayFilters.serviceId != null;
-
-    return (
-        <div className="space-y-4">
-            {/* Section header (matches assignments list panel) */}
-            <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold text-foreground-1">
-                    Filters
-                </h3>
-                {hasActiveFilters && (
-                    <button
-                        onClick={handleClearFilters}
-                        className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 shrink-0"
-                    >
-                        <X className="h-3 w-3" />
-                        Clear
-                    </button>
-                )}
-            </div>
-
-            {/* Status pills (same pattern as assignment badges) */}
-            <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Status</Label>
-                <div className="flex flex-wrap gap-1.5">
-                    {STATUS_OPTIONS.map((opt) => (
-                        <button
-                            key={opt.value}
-                            onClick={() => handleStatusToggle(opt.value)}
-                            className={`
-                                flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all border border-transparent
-                                ${activeStatus === opt.value
-                                    ? 'bg-primary/20 text-primary ring-1 ring-primary/30 border-primary/30'
-                                    : 'bg-muted/60 text-muted-foreground hover:bg-muted border-border'
-                                }
-                            `}
-                        >
-                            <span className={`h-1.5 w-1.5 rounded-full ${opt.color}`} />
-                            {opt.label}
-                        </button>
-                    ))}
-                </div>
-            </div>
-
-            {/* Service filter (shared Select) */}
-            {selectedLocationId && (
-                <div className="space-y-1.5">
-                    <Label className="text-xs font-medium text-muted-foreground">Service</Label>
-                    <Select
-                        value={dayFilters.serviceId != null ? String(dayFilters.serviceId) : 'all'}
-                        onValueChange={(value) => {
-                            const serviceId = value === 'all' ? undefined : Number(value);
-                            dispatch(setDayFiltersAction({ ...dayFilters, serviceId }));
-                        }}
-                        disabled={servicesLoading}
-                    >
-                        <SelectTrigger className="w-full h-9 text-sm border-border bg-background text-foreground-1 hover:bg-muted/50 data-[placeholder]:text-muted-foreground">
-                            <SelectValue placeholder="All services" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="all">All services</SelectItem>
-                            {locationServices.map((s) => (
-                                <SelectItem key={s.serviceId} value={String(s.serviceId)}>
-                                    {s.serviceName}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
-
-            {/* Customer entity picker */}
-            <div className="space-y-1.5">
-                <Label className="text-xs font-medium text-muted-foreground">Customer</Label>
-                <CustomerFilterPicker
-                    selectedCustomer={selectedCustomer}
-                    onSelectCustomer={handleSelectCustomer}
-                    onClearCustomer={handleClearCustomerFilter}
-                />
-            </div>
-        </div>
-    );
-};
-
-// ─────────────────────────────────────────────────────────────
 // CalendarSidebar
 // ─────────────────────────────────────────────────────────────
 
 /**
- * CalendarSidebar — left panel for location, date, filters, and staff.
- * Uses same theme and layout patterns as assignments/marketplace (no forced dark).
+ * CalendarSidebar — left panel for location, team, month, and filters.
+ * Sections are separated by horizontal dividers (no inset cards).
  */
 export const CalendarSidebar: FC = () => {
+    const dispatch = useDispatch();
+    const dayFilters = useSelector(getDayFilters);
+    const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
+    const selectedDate = useSelector(getSelectedDate);
+
+    const selectedCustomer = useMemo<Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone"> | null>(() => {
+        if (dayFilters.customerId == null) return null;
+        const [firstName = "", ...rest] = (dayFilters.customerFullName ?? "").trim().split(" ").filter(Boolean);
+        return {
+            id: dayFilters.customerId,
+            firstName,
+            lastName: rest.join(" "),
+            email: dayFilters.customerEmail ?? "",
+            phone: dayFilters.customerPhone ?? "",
+        };
+    }, [dayFilters.customerId, dayFilters.customerFullName, dayFilters.customerEmail, dayFilters.customerPhone]);
+
+    const handleSelectCustomer = useCallback((customer: Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone">) => {
+        dispatch(
+            setDayFiltersAction({
+                ...dayFilters,
+                clientName: undefined,
+                customerId: customer.id,
+                customerEmail: customer.email || undefined,
+                customerPhone: customer.phone || undefined,
+                customerFullName: `${customer.firstName ?? ""} ${customer.lastName ?? ""}`.trim() || undefined,
+            }),
+        );
+    }, [dispatch, dayFilters]);
+
+    const handleClearCustomerFilter = useCallback(() => {
+        dispatch(
+            setDayFiltersAction({
+                ...dayFilters,
+                clientName: undefined,
+                customerId: undefined,
+                customerEmail: undefined,
+                customerPhone: undefined,
+                customerFullName: undefined,
+            }),
+        );
+    }, [dispatch, dayFilters]);
+
+    const footerDateLabel = useMemo(
+        () =>
+            selectedDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+            }),
+        [selectedDate],
+    );
+
     return (
-        <aside className="w-72 flex-shrink-0 border-r border-border bg-background flex flex-col hidden md:flex">
-            {/* Location selector */}
-            <div className="p-3 border-b border-border shrink-0">
-                <LocationSelector />
+        <aside className="w-72 flex-shrink-0 border-r border-border bg-white dark:bg-surface flex flex-col hidden md:flex min-h-0">
+            <div className="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-y-auto scrollbar-hide">
+                <div className="px-3 py-4">
+                    <LocationSelector />
+                </div>
+                <div className="px-3 py-4">
+                    <Label className="mb-2 block text-xs font-medium text-muted-foreground">Staff</Label>
+                    <StaffFilterSelect />
+                </div>
+                <div className="px-3 py-4">
+                    <MiniMonthCalendar />
+                </div>
+                <div className="px-3 py-4">
+                    <Label className="mb-2 block text-xs font-medium text-muted-foreground">Customer</Label>
+                    <CustomerFilterPicker
+                        selectedCustomer={selectedCustomer}
+                        onSelectCustomer={handleSelectCustomer}
+                        onClearCustomer={handleClearCustomerFilter}
+                    />
+                </div>
+                <div className="min-h-0 flex-1 px-3 py-4">
+                    <CalendarFiltersPanel />
+                </div>
             </div>
-
-            {/* Staff filter (multi-select, under Location) */}
-            <div className="p-3 border-b border-border shrink-0">
-                <StaffFilterSelect />
-            </div>
-
-            {/* Mini month calendar */}
-            <div className="p-3 border-b border-border shrink-0">
-                <MiniMonthCalendar />
-            </div>
-
-            {/* Filters */}
-            <div className="p-3 border-b border-border shrink-0">
-                <CalendarFilters />
+            <div className="shrink-0 border-t border-border bg-white dark:bg-surface px-3 py-3">
+                <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs text-muted-foreground">
+                        {hasActiveFilters ? "Filters active" : "No filters applied"}
+                    </span>
+                    <span className="text-xs font-medium tabular-nums text-foreground-1">{footerDateLabel}</span>
+                </div>
             </div>
         </aside>
     );

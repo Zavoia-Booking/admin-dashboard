@@ -228,6 +228,42 @@ export const getMonthRange = (selectedDate: Date): {startDate: Date, endDate: Da
  * For MONTH view, pass monthViewStart (first day of displayed month) so prev/next don't use selectedDate's month.
  * For WEEK view, pass weekViewStart (Monday of displayed week) so prev/next don't change selectedDate.
  */
+/** One cell in the month-view grid (includes leading/trailing days from adjacent months). */
+export type MonthCalendarCell = { date: Date; isCurrentMonth: boolean };
+
+/**
+ * Builds the full month calendar grid (Mon-first weeks) for the displayed month.
+ * Same shape as used by month summary UI — reuse for date keys and layout.
+ */
+export function buildMonthCalendarGridCells(
+    monthViewDisplayStart: Date | null | undefined,
+    selectedDate: Date,
+): MonthCalendarCell[] {
+    const base =
+        monthViewDisplayStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+    const year = base.getFullYear();
+    const month = base.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const firstDayOfWeek = (firstDay.getDay() + 6) % 7;
+    const lastDayOfWeek = (lastDay.getDay() + 6) % 7;
+    const start = new Date(firstDay);
+    start.setDate(firstDay.getDate() - firstDayOfWeek);
+    const end = new Date(lastDay);
+    end.setDate(lastDay.getDate() + (6 - lastDayOfWeek));
+
+    const cells: MonthCalendarCell[] = [];
+    const current = new Date(start);
+    while (current <= end) {
+        cells.push({
+            date: new Date(current),
+            isCurrentMonth: current.getMonth() === month,
+        });
+        current.setDate(current.getDate() + 1);
+    }
+    return cells;
+}
+
 export const getDateRangeForMode = (
     selectedDate: Date,
     viewMode: AppointmentViewMode,

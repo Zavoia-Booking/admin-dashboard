@@ -86,8 +86,7 @@ export type CalendarViewState = {
     locationContext: LocationContextData | null;
     locationContextLoading: boolean;
 
-    /** Per-location services and team from GET /assignments/locations/:id/full (fetched once when location is selected). */
-    locationAssignmentLoading: boolean;
+    /** Per-location services, team, and bundles from GET /calendar/location-context (same request as locationContext). */
     locationServices: LocationService[];
     locationTeamMembers: LocationTeamMember[];
     /** Bundles at location (from GET /calendar/location-context when backend includes bundles). */

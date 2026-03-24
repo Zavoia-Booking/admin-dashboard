@@ -34,7 +34,7 @@ import {
   getLocationServices,
   getLocationTeamMembers,
   getLocationBundles,
-  getLocationAssignmentLoading,
+  getLocationContextLoading,
   getCalendarTimezone,
 } from '../selectors';
 import type { AppointmentBookingSource } from '../../../shared/types/calendar';
@@ -379,7 +379,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const locationServices = useSelector(getLocationServices);
   const locationTeamMembers = useSelector(getLocationTeamMembers);
   const locationBundles = useSelector(getLocationBundles);
-  const servicesLoading = useSelector(getLocationAssignmentLoading);
+  const servicesLoading = useSelector(getLocationContextLoading);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';

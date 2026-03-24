@@ -13,7 +13,8 @@ import {
   getSelectedDate,
   getWeekData,
   getWeekDataLoading,
-  getStaffFilter,
+  getEffectiveStaffFilterIds,
+  getHasActiveCalendarFilters,
   getSelectedLocationId,
   getUpdateConflictOffer,
   getPendingDrop,
@@ -25,7 +26,7 @@ import {
   appointmentsToDisplayBlocks,
 } from "../selectors.ts";
 import { selectIsTeamMember, selectCurrentUserId } from "../../auth/selectors";
-import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop } from "../actions.ts";
+import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop, setDayFiltersAction, setStaffFilter } from "../actions.ts";
 import { AppointmentViewMode } from "../types.ts";
 import type {
   SlimAppointment,
@@ -597,12 +598,13 @@ const DayGrid: FC = () => {
   const dayAppointments = useSelector(getDayAppointments);
   const dayDisplayBlocks = useSelector(getDayDisplayBlocks);
   const dayBlocks = useSelector(getDayBlocks);
+  const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
   const isLoading = useSelector(getDayDataLoading);
   const locationStaff = useSelector(getLocationStaff);
   const locationContext = useSelector(getLocationContext);
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
-  const staffFilter = useSelector(getStaffFilter);
+  const staffFilter = useSelector(getEffectiveStaffFilterIds);
   const updateConflictOffer = useSelector(getUpdateConflictOffer);
   const pendingDrop = useSelector(getPendingDrop);
   const bookingSettings = useSelector(getBookingSettings);
@@ -645,6 +647,13 @@ const DayGrid: FC = () => {
   const daySlotHeight = daySlotMinutes.length > 0
     ? (GRID_HEIGHT_PER_HOUR / (60 / slotIntervalMinutes))
     : HOUR_HEIGHT;
+
+  const showFilterEmptyBanner =
+    !isLoading &&
+    isOpen &&
+    hasActiveFilters &&
+    dayAppointments.length === 0 &&
+    dayBlocks.length === 0;
 
   // When pendingDrop is cleared (after refresh), hide confirm-in-progress so modal doesn't reappear
   useEffect(() => {
@@ -1148,6 +1157,25 @@ const DayGrid: FC = () => {
         </div>
       )}
 
+      {showFilterEmptyBanner && (
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-muted/40 border-b border-border">
+          <span className="text-sm text-muted-foreground">
+            No appointments match your filters for this day.
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              dispatch(setDayFiltersAction({}));
+              dispatch(setStaffFilter([]));
+            }}
+          >
+            Clear filters
+          </Button>
+        </div>
+      )}
+
       <DndContext
         sensors={dndSensors}
         collisionDetection={pointerWithin}
@@ -1507,7 +1535,7 @@ const WeekGrid: FC = () => {
   const locationStaff = useSelector(getLocationStaff);
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
-  const staffFilter = useSelector(getStaffFilter);
+  const staffFilter = useSelector(getEffectiveStaffFilterIds);
   const optimisticBlocks = useSelector(getOptimisticBlocks);
   const pendingDrop = useSelector(getPendingDrop);
   const updateConflictOffer = useSelector(getUpdateConflictOffer);

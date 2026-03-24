@@ -7,15 +7,17 @@ import {
     getWeekDataLoading,
     getLocationStaff,
     getSelectedLocationId,
-    getStaffFilter,
+    getEffectiveStaffFilterIds,
+    getHasActiveCalendarFilters,
     getWeekViewDisplayStart,
     getSelectedDate,
 } from "../selectors.ts";
-import { toggleEditFormAction } from "../actions.ts";
+import { toggleEditFormAction, setDayFiltersAction, setStaffFilter } from "../actions.ts";
 import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { formatTimeRange, getStaffDisplayNames, getStatusBadge, getBookingSourceLabel } from "./utils.tsx";
 import { Users, Clock, Loader2, CalendarX } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
+import { Button } from "../../../shared/components/ui/button.tsx";
 import { getWeekStart } from "../utils.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { getAppointmentBlockColors } from "../colors.ts";
@@ -26,7 +28,8 @@ export const WeekAppointmentList: FC = () => {
     const weekData = useSelector(getWeekData);
     const isLoading = useSelector(getWeekDataLoading);
     const locationStaff = useSelector(getLocationStaff);
-    const staffFilter = useSelector(getStaffFilter);
+    const staffFilter = useSelector(getEffectiveStaffFilterIds);
+    const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
     const weekDisplayStart = useSelector(getWeekViewDisplayStart);
     const selectedDate = useSelector(getSelectedDate);
 
@@ -111,9 +114,29 @@ export const WeekAppointmentList: FC = () => {
                         </div>
 
                         {appointments.length === 0 ? (
-                            <div className="py-4 px-3 rounded-lg bg-muted/30 flex items-center gap-2 text-muted-foreground text-sm">
-                                <CalendarX className="h-4 w-4 flex-shrink-0" />
-                                <span>No appointments</span>
+                            <div className="py-4 px-3 rounded-lg bg-muted/30 flex flex-col gap-2 text-muted-foreground text-sm">
+                                <div className="flex items-center gap-2">
+                                    <CalendarX className="h-4 w-4 flex-shrink-0" />
+                                    <span>
+                                        {hasActiveFilters
+                                            ? "No appointments match your filters for this day."
+                                            : "No appointments"}
+                                    </span>
+                                </div>
+                                {hasActiveFilters ? (
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="self-start"
+                                        onClick={() => {
+                                            dispatch(setDayFiltersAction({}));
+                                            dispatch(setStaffFilter([]));
+                                        }}
+                                    >
+                                        Clear filters
+                                    </Button>
+                                ) : null}
                             </div>
                         ) : (
                             <div className="space-y-2">

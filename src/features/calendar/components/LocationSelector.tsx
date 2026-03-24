@@ -62,9 +62,13 @@ export const LocationSelector: FC = () => {
     // Loading state while locations are fetching
     if (isLoadingLocations) {
         return (
-            <div className="flex items-center gap-2 h-9">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Loading locations...</span>
+            <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 dark:bg-primary/25">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1 pt-0.5">
+                    <span className="text-sm text-muted-foreground">Loading locations...</span>
+                </div>
             </div>
         );
     }
@@ -72,34 +76,46 @@ export const LocationSelector: FC = () => {
     // No locations available
     if (locations.length === 0) {
         return (
-            <div className="flex items-center gap-2 h-9">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">No locations available</span>
+            <div className="flex items-start gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <div className="min-w-0 flex-1 space-y-1">
+                    <p className="text-sm font-semibold text-foreground-1">No locations</p>
+                    <p className="text-xs text-muted-foreground">Location</p>
+                </div>
             </div>
         );
     }
 
     return (
-        <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            <Select
-                value={selectedLocationId !== null ? String(selectedLocationId) : ''}
-                onValueChange={handleLocationChange}
-            >
-                <SelectTrigger className="w-auto min-w-[200px] h-9 text-sm font-semibold border-none shadow-none px-0 focus:ring-0">
-                    <SelectValue placeholder="Select a location" />
-                </SelectTrigger>
-                <SelectContent>
-                    {locations.map((location) => (
-                        <SelectItem key={location.id} value={String(location.id)}>
-                            {location.name}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-            {isLoadingContext && (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
-            )}
+        <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+                <MapPin className="h-5 w-5" aria-hidden />
+            </div>
+            <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-center gap-1.5">
+                    <Select
+                        value={selectedLocationId !== null ? String(selectedLocationId) : ""}
+                        onValueChange={handleLocationChange}
+                    >
+                        <SelectTrigger className="h-auto min-h-0 w-full min-w-0 flex-1 border-0 bg-transparent p-0 text-base font-semibold text-foreground-1 shadow-none focus:ring-0 [&>svg]:ml-0.5 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0 [&>svg]:text-foreground-2">
+                            <SelectValue placeholder="Select a location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {locations.map((location) => (
+                                <SelectItem key={location.id} value={String(location.id)}>
+                                    {location.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    {isLoadingContext ? (
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
+                    ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground">Location</p>
+            </div>
         </div>
     );
 };

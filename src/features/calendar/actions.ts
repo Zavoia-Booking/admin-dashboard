@@ -9,9 +9,7 @@ import type {
     AdminCreateGroupAppointmentPayload,
     RescheduleGroupPayload,
     CalendarBlockCreatePayload,
-    CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
-import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop } from "./types.ts";
 
 export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: boolean; prefill?: AddFormPrefill }>()
@@ -40,13 +38,6 @@ export const fetchLocationContext = createAsyncAction(
     'CALENDAR/LOCATION_CONTEXT/SUCCESS',
     'CALENDAR/LOCATION_CONTEXT/FAILURE',
 )<number, LocationContextData, any>()
-
-/** Fetch location assignment (services + team for selected location). Fired after location context success; stored for sidebar and add form. */
-export const fetchLocationAssignment = createAsyncAction(
-    'CALENDAR/LOCATION_ASSIGNMENT/REQUEST',
-    'CALENDAR/LOCATION_ASSIGNMENT/SUCCESS',
-    'CALENDAR/LOCATION_ASSIGNMENT/FAILURE',
-)<number, { services: LocationService[]; teamMembers: LocationTeamMember[] }, any>()
 
 /** Fetch calendar summary for a date range (month/week overview) */
 export const fetchCalendarSummary = createAsyncAction(
@@ -170,12 +161,6 @@ export const createCalendarBlock = createAsyncAction(
     'CALENDAR/BLOCK/CREATE/SUCCESS',
     'CALENDAR/BLOCK/CREATE/FAILURE',
 )<CalendarBlockCreatePayload, any, any>()
-
-export const updateCalendarBlock = createAsyncAction(
-    'CALENDAR/BLOCK/UPDATE/REQUEST',
-    'CALENDAR/BLOCK/UPDATE/SUCCESS',
-    'CALENDAR/BLOCK/UPDATE/FAILURE',
-)<{ blockId: number; data: CalendarBlockUpdatePayload }, any, any>()
 
 export const deleteCalendarBlock = createAsyncAction(
     'CALENDAR/BLOCK/DELETE/REQUEST',

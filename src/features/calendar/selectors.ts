@@ -2,6 +2,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
 import { AppointmentViewMode, type CalendarViewState } from "./types.ts";
 import { getWeekStart, toLocalDateString } from "./utils.ts";
+import { areCalendarFiltersActive } from "./calendarFilters.ts";
 import type { CalendarBlockDto, SlimAppointment, CalendarDisplayBlock } from "../../shared/types/calendar.ts";
 import { getCurrentBusinessSelector } from "../business/selectors.ts";
 
@@ -93,17 +94,12 @@ export const getBookingSettings = createSelector(getLocationContext, (context) =
     return context?.bookingSettings ?? null;
 })
 
-/** Location assignment (services + team) loading — from GET /assignments/locations/:id/full */
-export const getLocationAssignmentLoading = createSelector(getCalendarViewStateSelector, (state) => {
-    return state.locationAssignmentLoading ?? false;
-})
-
-/** Services enabled at the selected location (from assignments full). */
+/** Services enabled at the selected location (from GET /calendar/location-context). */
 export const getLocationServices = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationServices ?? [];
 })
 
-/** Team members assigned to the selected location (from assignments full). */
+/** Team members assigned to the selected location (from GET /calendar/location-context). */
 export const getLocationTeamMembers = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationTeamMembers ?? [];
 })
@@ -313,6 +309,24 @@ export const getSidebarOpen = createSelector(getCalendarViewStateSelector, (stat
 export const getStaffFilter = createSelector(getCalendarViewStateSelector, (state) => {
     return state.staffFilter;
 })
+
+/** Staff IDs for column/list narrowing: prefer API filter `staffUserIds` when set, else Redux `staffFilter`. */
+export const getEffectiveStaffFilterIds = createSelector(
+    getStaffFilter,
+    getDayFilters,
+    (staffFilter, dayFilters) => {
+        if (dayFilters.staffUserIds != null && dayFilters.staffUserIds.length > 0) {
+            return dayFilters.staffUserIds;
+        }
+        return staffFilter;
+    },
+)
+
+/** True when any calendar data filter is active (for empty states). */
+export const getHasActiveCalendarFilters = createSelector(
+    getCalendarViewStateSelector,
+    (state) => areCalendarFiltersActive(state.dayFilters, state.staffFilter ?? []),
+)
 
 /** Pending 409 conflict offer (retry update with override). */
 export const getUpdateConflictOffer = createSelector(

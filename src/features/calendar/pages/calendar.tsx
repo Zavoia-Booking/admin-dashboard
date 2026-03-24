@@ -24,7 +24,9 @@ import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
 import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
+import { CalendarFiltersPanel } from "../components/CalendarFiltersPanel.tsx";
 import { Card } from "../../../shared/components/ui/card.tsx";
+import { Sheet, SheetContent } from "../../../shared/components/ui/sheet.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -38,6 +40,7 @@ const Calendar = () => {
   const locationTeamMembers = useSelector(getLocationTeamMembers);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
 
   useEffect(() => {
     // Apply saved display preferences on calendar load
@@ -122,7 +125,10 @@ const Calendar = () => {
               <div className="p-0 md:p-4 lg:p-6 flex flex-col">
                 <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
                   {/* Top header bar */}
-                  <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
+                  <CalendarHeader
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    onOpenFiltersSheet={() => setFiltersSheetOpen(true)}
+                  />
 
                   {/* Content area — height driven by grid/list for single page scroll */}
                   <div className="relative">

@@ -4,18 +4,20 @@ import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSide
 import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
-import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings, ListFilter } from "lucide-react";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
 
 interface CalendarHeaderProps {
   onOpenSettings?: () => void;
+  /** Opens mobile filters sheet (sidebar is hidden below `md`). */
+  onOpenFiltersSheet?: () => void;
 }
 
 /**
  * CalendarHeader — replaces the old DateTab + Filters top bar.
  * Contains month/year title, Day/Week/Month pill tabs, navigation arrows, action buttons.
  */
-export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
+export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings, onOpenFiltersSheet }) => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const displayedMonthStart = useSelector(getDisplayedMonthStart);
@@ -117,6 +119,18 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
         >
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </Button>
+        {onOpenFiltersSheet ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 flex-shrink-0 md:hidden"
+            type="button"
+            onClick={onOpenFiltersSheet}
+            title="Filters"
+          >
+            <ListFilter className="h-4 w-4" />
+          </Button>
+        ) : null}
         <h1 className="text-3xl font-bold text-foreground truncate tracking-tight">{title}</h1>
       </div>
 
