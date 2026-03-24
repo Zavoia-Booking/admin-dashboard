@@ -9,8 +9,7 @@ import { TextareaField } from '../../../shared/components/forms/fields/TextareaF
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Button } from '../../../shared/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
-import { fetchCustomerByIdAction, updateCustomerAction, removeCustomerAction, mergeCustomerAction, clearCurrentCustomerAction } from '../actions';
+import { fetchCustomerByIdAction, updateCustomerAction } from '../actions';
 import type { EditCustomerPayload } from '../types';
 import { useForm, useController } from 'react-hook-form';
 import { 
@@ -23,8 +22,6 @@ import {
   getCustomersErrorSelector,
   getCurrentCustomerSelector,
   getIsFetchingCustomerSelector,
-  getIsRemovingCustomerSelector,
-  getIsMergingCustomerSelector
 } from '../selectors';
 import { toast } from 'sonner';
 
@@ -32,27 +29,23 @@ interface EditCustomerSliderProps {
   isOpen: boolean;
   onClose: () => void;
   customerId: number | null;
+  elevated?: boolean;
 }
 
 const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({ 
   isOpen, 
   onClose,
-  customerId 
+  customerId,
+  elevated = false,
 }) => {
   const { t } = useTranslation('customers');
   const dispatch = useDispatch();
   const customerError = useSelector(getCustomersErrorSelector);
   const isCustomerLoading = useSelector(getCustomersLoadingSelector);
   const isFetchingCustomer = useSelector(getIsFetchingCustomerSelector);
-  const isRemoving = useSelector(getIsRemovingCustomerSelector);
-  const isMerging = useSelector(getIsMergingCustomerSelector);
   const customer = useSelector(getCurrentCustomerSelector);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showRemoveDialog, setShowRemoveDialog] = useState(false);
-  const [showMergeDialog, setShowMergeDialog] = useState(false);
   const justOpenedRef = useRef(false);
-  const prevIsRemovingRef = useRef(false);
-  const prevIsMergingRef = useRef(false);
 
   const {
     control,
@@ -125,12 +118,12 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     },
   });
 
-  // Fetch customer data when slider opens
+  // Fetch only when we do not already have this customer (e.g. opened from details uses currentCustomer)
   useEffect(() => {
-    if (isOpen && customerId) {
-      dispatch(fetchCustomerByIdAction.request({ id: customerId }));
-    }
-  }, [isOpen, customerId, dispatch]);
+    if (!isOpen || !customerId) return;
+    if (customer?.id === customerId) return;
+    dispatch(fetchCustomerByIdAction.request({ id: customerId }));
+  }, [isOpen, customerId, customer?.id, dispatch]);
 
   // Initialize form with customer data when it's fetched
   useEffect(() => {
@@ -146,25 +139,11 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     }
   }, [customer, isOpen, reset]);
 
-  // Reset when slider closes
-  useEffect(() => {
-    if (!isOpen) {
-      // Clear the current customer to prevent stale data
-      dispatch(clearCurrentCustomerAction());
-      // Do NOT reset isSubmitting here - keep it true during closing animation
-      // to prevent button from being re-enabled
-    }
-  }, [isOpen, dispatch]);
-
   // When slider opens, reset submission state for a fresh form
   useEffect(() => {
     if (isOpen) {
       setIsSubmitting(false);
-      setShowRemoveDialog(false);
-      setShowMergeDialog(false);
       justOpenedRef.current = true;
-      prevIsRemovingRef.current = false;
-      prevIsMergingRef.current = false;
       // Clear the flag after a brief delay to allow effects to run
       setTimeout(() => {
         justOpenedRef.current = false;
@@ -187,11 +166,13 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
   useEffect(() => {
     // Don't close if slider just opened (prevents race condition with isSubmitting reset)
     if (!isCustomerLoading && isSubmitting && !customerError && !justOpenedRef.current) {
-      // Success - close form and reset
-      // Don't set isSubmitting to false here - let it stay true until slider closes
+      setIsSubmitting(false);
+      if (customerId != null) {
+        dispatch(fetchCustomerByIdAction.request({ id: customerId }));
+      }
       onClose();
     }
-  }, [isCustomerLoading, isSubmitting, customerError, onClose]);
+  }, [isCustomerLoading, isSubmitting, customerError, customerId, dispatch, onClose]);
 
   // Check if required fields are filled
   const firstNameValue = watch("firstName");
@@ -236,47 +217,7 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
     onClose();
   };
 
-  const handleRemoveClick = () => {
-    setShowRemoveDialog(true);
-  };
-
-  const handleConfirmRemove = () => {
-    if (!customer) return;
-    prevIsRemovingRef.current = true;
-    dispatch(removeCustomerAction.request({ id: customer.id }));
-    setShowRemoveDialog(false);
-  };
-
-  // Watch for remove success and close slider
-  useEffect(() => {
-    if (prevIsRemovingRef.current && !isRemoving && !customerError) {
-      // Successfully removed
-      prevIsRemovingRef.current = false;
-      onClose();
-    }
-  }, [isRemoving, customerError, onClose]);
-
-  const handleMergeClick = () => {
-    setShowMergeDialog(true);
-  };
-
-  const handleConfirmMerge = () => {
-    if (!customer) return;
-    prevIsMergingRef.current = true;
-    dispatch(mergeCustomerAction.request({ sourceId: customer.id }));
-    setShowMergeDialog(false);
-  };
-
-  // Watch for merge success and close slider
-  useEffect(() => {
-    if (prevIsMergingRef.current && !isMerging && !customerError) {
-      prevIsMergingRef.current = false;
-      onClose();
-    }
-  }, [isMerging, customerError, onClose]);
-
   return (
-    <>
       <BaseSlider
         isOpen={isOpen}
         onClose={onClose}
@@ -285,6 +226,10 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
         icon={UserCircle}
         iconColor="text-foreground-1"
         contentClassName="bg-surface scrollbar-hide"
+        {...(elevated && {
+          backdropClassName: 'z-[80]',
+          panelClassName: 'z-[90]',
+        })}
         footer={
           <FormFooter
             onCancel={handleCancel}
@@ -305,6 +250,14 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
             {isFetchingCustomer || !customer ? (
               <div className="flex items-center justify-center h-64">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : customer.status === 'merged' ? (
+              <div className="flex flex-col items-center justify-center h-64 gap-3 text-center px-6">
+                <GitMerge className="h-8 w-8 text-foreground-3/50" />
+                <p className="text-sm font-medium text-foreground-2">{t('details.merged.cannotEdit')}</p>
+                <Button type="button" variant="ghost" size="sm" rounded="full" onClick={onClose}>
+                  {t('details.close')}
+                </Button>
               </div>
             ) : (
               <div className="max-w-2xl mx-auto space-y-6 cursor-default">
@@ -445,147 +398,11 @@ const EditCustomerSlider: React.FC<EditCustomerSliderProps> = ({
                   rows={4}
                 />
               </div>
-
-              {/* Divider */}
-              <div className="flex items-end gap-2 mb-6 pt-4">
-                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
-              </div>
-
-              {/* Merge Duplicate */}
-              <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                <div className="space-y-1">
-                  <h3 className="text-base font-medium text-foreground-1">
-                    {t("editCustomer.form.mergeDuplicateTitle")}
-                  </h3>
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    {t("editCustomer.form.mergeDuplicateDescription")}
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3 items-center">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    rounded="full"
-                    onClick={handleMergeClick}
-                    className="w-1/2"
-                    disabled={isMerging}
-                  >
-                    {isMerging ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {t("editCustomer.form.merging")}
-                      </>
-                    ) : (
-                      <>
-                        <GitMerge className="h-4 w-4 mr-2" />
-                        {t("editCustomer.form.mergeDuplicatesButton")}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              {/* Divider */}
-              <div className="flex items-end gap-2 mb-6 pt-4">
-                <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
-              </div>
-
-              {/* Remove Customer */}
-              <div className="space-y-4 rounded-lg border border-border dark:border-border-strong bg-surface-2 p-6">
-                <div className="space-y-1">
-                  <h3 className="text-base font-medium text-foreground-1">
-                    {t("editCustomer.form.removeCustomerTitle")}
-                  </h3>
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                    {t("editCustomer.form.removeCustomerDescription")}
-                  </p>
-                </div>
-                
-                <div className="flex flex-col gap-3 items-center">
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    rounded="full"
-                    onClick={handleRemoveClick}
-                    className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                    disabled={isRemoving}
-                  >
-                    {isRemoving ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        {t("editCustomer.form.removing")}
-                      </>
-                    ) : (
-                      t("editCustomer.form.removeCustomerButton")
-                    )}
-                  </Button>
-                </div>
-              </div>
               </div>
             )}
           </div>
         </form>
       </BaseSlider>
-
-      {/* Remove Confirmation Dialog */}
-      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("editCustomer.removeDialog.title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("editCustomer.removeDialog.description", {
-                name: customer ? `${customer.firstName} ${customer.lastName}`.trim() : '',
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isRemoving}>{t("editCustomer.removeDialog.cancel")}</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleConfirmRemove}
-              className="bg-destructive hover:bg-destructive/90"
-              disabled={isRemoving}
-            >
-              {isRemoving ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t("editCustomer.form.removing")}
-                </>
-              ) : (
-                t("editCustomer.removeDialog.remove")
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Merge Duplicate Confirmation Dialog */}
-      <AlertDialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("editCustomer.mergeDialog.title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("editCustomer.mergeDialog.description", {
-                name: customer ? `${customer.firstName} ${customer.lastName}`.trim() : '',
-              })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isMerging}>{t("editCustomer.mergeDialog.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmMerge} disabled={isMerging}>
-              {isMerging ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t("editCustomer.form.merging")}
-                </>
-              ) : (
-                t("editCustomer.mergeDialog.merge")
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
   );
 };
 

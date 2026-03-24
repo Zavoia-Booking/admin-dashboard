@@ -1,4 +1,4 @@
-import type { Customer, CustomersListResponse } from "../../shared/types/customer";
+import type { Customer, CustomerHistoryResponse, CustomersListResponse } from "../../shared/types/customer";
 import type {
   AddCustomerPayload,
   CustomerPickerSearchPayload,
@@ -45,5 +45,16 @@ export const searchCustomersForPickerApi = async (
 
 export const mergeCustomersApi = async (marketplaceCustomerId: number): Promise<void> => {
   await apiClient().post('/business-customers/merge', { marketplaceCustomerId });
+};
+
+export const fetchCustomerHistoryApi = async (
+  customerId: number,
+  params: { offset: number; limit: number },
+): Promise<CustomerHistoryResponse> => {
+  const { data } = await apiClient().get<CustomerHistoryResponse>(
+    `/business-customers/${customerId}/history`,
+    { params },
+  );
+  return data;
 };
 

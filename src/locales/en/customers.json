@@ -118,6 +118,54 @@
       "updateFailedDescription": "Please check your information and try again."
     }
   },
+  "details": {
+    "title": "Customer details",
+    "edit": "Edit",
+    "close": "Close",
+    "email": "Email",
+    "phone": "Phone",
+    "source": "Source",
+    "customerSince": "Customer since",
+    "notProvided": "Not provided",
+    "sourceManual": "Manually added",
+    "sourceMarketplace": "Marketplace",
+    "sourceImport": "Import",
+    "notes": {
+      "title": "Notes",
+      "description": "Internal notes regarding this customer."
+    },
+    "activity": {
+      "title": "Recent activity",
+      "description": "Latest appointments and history.",
+      "seeHistory": "See history"
+    },
+    "duplicate": {
+      "title": "Duplicate detected",
+      "description": "This customer has duplicated profile data in your business.",
+      "explanation": "You manually added this customer, but they also have a marketplace account with the same email. You can resolve this by combining both profiles into a single one.",
+      "badge": "Duplicate detected",
+      "benefit1": "Unified appointment history in one place",
+      "benefit2": "No more duplicate entries in your customer list",
+      "benefit3": "Notes and details are combined automatically",
+      "resolveButton": "Resolve duplicate",
+      "resolving": "Resolving..."
+    },
+    "mergeDialog": {
+      "title": "Resolve duplicate?",
+      "description": "The manually added profile for {{name}} will be combined into their marketplace profile. Notes and appointment history will be unified into one customer profile.",
+      "cancel": "Cancel",
+      "confirm": "Resolve duplicate"
+    },
+    "merged": {
+      "cannotEdit": "This customer has been merged and can no longer be edited."
+    }
+  },
+  "toasts": {
+    "addSuccess": "Customer added successfully",
+    "updateSuccess": "Customer updated successfully",
+    "removeSuccess": "Customer removed successfully",
+    "mergeSuccess": "Customers merged successfully"
+  },
   "myCustomers": {
     "pageTitle": "My Customers",
     "cardTitle": "Your Customers",

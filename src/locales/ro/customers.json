@@ -118,6 +118,54 @@
       "updateFailedDescription": "Verifică informațiile și încearcă din nou."
     }
   },
+  "details": {
+    "title": "Detalii client",
+    "edit": "Editează",
+    "close": "Închide",
+    "email": "Email",
+    "phone": "Telefon",
+    "source": "Sursă",
+    "customerSince": "Client din",
+    "notProvided": "Nespecificat",
+    "sourceManual": "Adăugat manual",
+    "sourceMarketplace": "Marketplace",
+    "sourceImport": "Import",
+    "notes": {
+      "title": "Note",
+      "description": "Note interne despre acest client."
+    },
+    "activity": {
+      "title": "Activitate recentă",
+      "description": "Ultimele programări și istoric.",
+      "seeHistory": "Vezi istoricul"
+    },
+    "duplicate": {
+      "title": "Duplicat detectat",
+      "description": "Acest client are date de profil duplicate în afacerea ta.",
+      "explanation": "Ai adăugat manual acest client, dar acesta are și un cont pe marketplace cu același email. Poți rezolva acest lucru combinând ambele profiluri într-unul singur.",
+      "badge": "Duplicat detectat",
+      "benefit1": "Istoric unificat al programărilor într-un singur loc",
+      "benefit2": "Fără intrări duplicate în lista ta de clienți",
+      "benefit3": "Notele și detaliile sunt combinate automat",
+      "resolveButton": "Rezolvă duplicatul",
+      "resolving": "Se rezolvă..."
+    },
+    "mergeDialog": {
+      "title": "Rezolvă duplicatul?",
+      "description": "Profilul adăugat manual pentru {{name}} va fi combinat cu profilul din marketplace. Notele și istoricul programărilor vor fi unificate într-un singur profil de client.",
+      "cancel": "Anulează",
+      "confirm": "Rezolvă duplicatul"
+    },
+    "merged": {
+      "cannotEdit": "Acest client a fost combinat și nu mai poate fi editat."
+    }
+  },
+  "toasts": {
+    "addSuccess": "Client adăugat cu succes",
+    "updateSuccess": "Client actualizat cu succes",
+    "removeSuccess": "Client eliminat cu succes",
+    "mergeSuccess": "Clienți combinați cu succes"
+  },
   "myCustomers": {
     "pageTitle": "Clienții mei",
     "cardTitle": "Clienții tăi",

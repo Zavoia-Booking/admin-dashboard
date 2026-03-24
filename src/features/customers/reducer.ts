@@ -27,8 +27,19 @@ export const CustomersReducer: Reducer<CustomerState, any> = (
     case getType(logoutRequestAction.success):
       return { ...initialState };
 
-    case getType(actions.fetchCustomerByIdAction.request):
-      return { ...state, isFetchingCustomer: true, error: null, currentCustomer: null };
+    case getType(actions.fetchCustomerByIdAction.request): {
+      const requestedId = action.payload.id;
+      const sameAsCurrent =
+        state.currentCustomer != null && state.currentCustomer.id === requestedId;
+      // Keep showing the current customer while refetching the same id (e.g. edit slider, refresh)
+      // so the details dialog does not flash empty/skeleton.
+      return {
+        ...state,
+        isFetchingCustomer: true,
+        error: null,
+        ...(sameAsCurrent ? {} : { currentCustomer: null }),
+      };
+    }
 
     case getType(actions.fetchCustomerByIdAction.success):
       return { 

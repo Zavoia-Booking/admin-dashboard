@@ -163,7 +163,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           backdropClassName
         )}
-        onClick={onClose}
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
       />
 
       {/* Sliding Panel */}

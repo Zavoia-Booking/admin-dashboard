@@ -4,6 +4,7 @@ import { fetchCustomerByIdApi, addCustomerApi, updateCustomerApi, removeCustomer
 import type { Customer, CustomersListResponse } from "../../shared/types/customer";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
+import i18n from "../../shared/lib/i18n";
 
 function* handleFetchCustomerById(action: ActionType<typeof fetchCustomerByIdAction.request>) {
   try {
@@ -19,7 +20,7 @@ function* handleAddCustomer(action: ActionType<typeof addCustomerAction.request>
   try {
     const customer: Customer = yield call(addCustomerApi, action.payload);
     yield put(addCustomerAction.success({ customer }));
-    toast.success('Customer added successfully');
+    toast.success(i18n.t('toasts.addSuccess', { ns: 'customers' }));
     // Refresh the list after adding
     yield put(listCustomersAction.request({ 
       filters: [], 
@@ -35,7 +36,7 @@ function* handleUpdateCustomer(action: ActionType<typeof updateCustomerAction.re
   try {
     yield call(updateCustomerApi, action.payload);
     yield put(updateCustomerAction.success());
-    toast.success('Customer updated successfully');
+    toast.success(i18n.t('toasts.updateSuccess', { ns: 'customers' }));
     // Refresh the list after updating
     yield put(listCustomersAction.request({ 
       filters: [], 
@@ -51,7 +52,7 @@ function* handleRemoveCustomer(action: ActionType<typeof removeCustomerAction.re
   try {
     yield call(removeCustomerApi, action.payload.id);
     yield put(removeCustomerAction.success());
-    toast.success('Customer removed successfully');
+    toast.success(i18n.t('toasts.removeSuccess', { ns: 'customers' }));
     // Refresh the list after removing
     yield put(listCustomersAction.request({ 
       filters: [], 
@@ -67,7 +68,7 @@ function* handleMergeCustomer(action: ActionType<typeof mergeCustomerAction.requ
   try {
     yield call(mergeCustomersApi, action.payload.sourceId);
     yield put(mergeCustomerAction.success());
-    toast.success('Customers merged successfully');
+    toast.success(i18n.t('toasts.mergeSuccess', { ns: 'customers' }));
     // Refresh the list after merging
     yield put(listCustomersAction.request({ 
       filters: [], 

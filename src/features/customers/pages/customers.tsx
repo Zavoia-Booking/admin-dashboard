@@ -1,15 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import { UserCircle, Plus, Mail, Phone, Edit } from 'lucide-react';
+import { Badge } from '../../../shared/components/ui/badge';
 import AddCustomerSlider from '../components/AddCustomerSlider';
 import EditCustomerSlider from '../components/EditCustomerSlider';
+import CustomerDetailsPopup from '../components/CustomerDetailsPopup';
+import CustomerHistorySlider from '../components/CustomerHistorySlider';
 import { CustomerFilters } from '../components/CustomerFilters';
-import { listCustomersAction } from '../actions';
+import { listCustomersAction, fetchCustomerByIdAction, clearCurrentCustomerAction, mergeCustomerAction } from '../actions';
 import {
     getAllCustomersSelector,
     getCustomersLoadingSelector,
+    getCurrentCustomerSelector,
+    getIsFetchingCustomerSelector,
+    getIsMergingCustomerSelector,
 } from '../selectors';
 import { ItemCard } from '../../../shared/components/common/ItemCard';
 import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
@@ -23,13 +29,18 @@ export default function CustomersPage() {
   const text = useTranslation("customers").t;
   const [isAddCustomerSliderOpen, setIsAddCustomerSliderOpen] = useState(false);
   const [isEditCustomerSliderOpen, setIsEditCustomerSliderOpen] = useState(false);
+  const [isDetailsPopupOpen, setIsDetailsPopupOpen] = useState(false);
+  const [isHistorySliderOpen, setIsHistorySliderOpen] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
   const customers = useSelector(getAllCustomersSelector);
   const isLoading = useSelector(getCustomersLoadingSelector);
+  const currentCustomer = useSelector(getCurrentCustomerSelector);
+  const isFetchingCustomer = useSelector(getIsFetchingCustomerSelector);
+  const isMerging = useSelector(getIsMergingCustomerSelector);
+  const wasMergingRef = useRef(false);
   
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch customers on mount
   useEffect(() => {
     dispatch(listCustomersAction.request({
       filters: [],
@@ -37,22 +48,54 @@ export default function CustomersPage() {
     }));
   }, [dispatch]);
 
-  const handleEditCustomer = (customerId: number) => {
+  useEffect(() => {
+    if (isMerging) {
+      wasMergingRef.current = true;
+    } else if (wasMergingRef.current) {
+      wasMergingRef.current = false;
+      if (selectedCustomerId) {
+        dispatch(fetchCustomerByIdAction.request({ id: selectedCustomerId }));
+      }
+    }
+  }, [isMerging]);
+
+  const currentCustomerId = currentCustomer?.id;
+  const currentCustomerStatus = currentCustomer?.status;
+  const mergedIntoCustomerId = currentCustomer?.mergedIntoCustomerId ?? null;
+
+  useEffect(() => {
+    if (currentCustomerStatus !== 'merged' || mergedIntoCustomerId == null) return;
+    if (mergedIntoCustomerId === currentCustomerId) return;
+
+    setSelectedCustomerId(mergedIntoCustomerId);
+    dispatch(fetchCustomerByIdAction.request({ id: mergedIntoCustomerId }));
+  }, [currentCustomerId, currentCustomerStatus, mergedIntoCustomerId, dispatch]);
+
+  const handleCustomerClick = (customerId: number) => {
     setSelectedCustomerId(customerId);
+    setIsDetailsPopupOpen(true);
+    dispatch(fetchCustomerByIdAction.request({ id: customerId }));
+  };
+
+  const handleCloseDetailsPopup = () => {
+    setIsDetailsPopupOpen(false);
+    setIsHistorySliderOpen(false);
+    setSelectedCustomerId(null);
+    dispatch(clearCurrentCustomerAction());
+  };
+
+  const handleEditFromPopup = () => {
     setIsEditCustomerSliderOpen(true);
   };
 
-  const handleCloseEditSlider = () => {
+  const handleCloseEditSlider = useCallback(() => {
     setIsEditCustomerSliderOpen(false);
-    setSelectedCustomerId(null);
-  };
+  }, []);
 
-  // Highlight helper using shared utility
   const highlightMatches = (text: string) => {
     return highlight(text, searchTerm);
   };
 
-  // Filter customers based on search (name or email)
   const filteredCustomers = customers.filter((customer) => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
@@ -65,26 +108,22 @@ export default function CustomersPage() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:block">
           <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
             {text("page.title")}
           </h1>
         </div>
 
-        {/* While customers are loading, show full-page skeleton (including filters) */}
         {isLoading ? (
           <CustomersListSkeleton />
         ) : (
           <>
-            {/* Customer Filters */}
             <CustomerFilters
               searchTerm={searchTerm}
               onSearchChange={setSearchTerm}
               onAddClick={() => setIsAddCustomerSliderOpen(true)}
             />
 
-            {/* Main Content */}
             {filteredCustomers.length === 0 ? (
           <EmptyState
             title={searchTerm 
@@ -105,12 +144,10 @@ export default function CustomersPage() {
             {filteredCustomers.map((customer) => {
               const displayName = `${customer.firstName} ${customer.lastName}`.trim();
               
-              // Create initials for avatar
               const initials = customer.firstName && customer.lastName
                 ? `${customer.firstName[0]}${customer.lastName[0]}`.toUpperCase()
                 : (customer.email?.[0] || '?').toUpperCase();
 
-              // Create avatar/thumbnail
               const thumbnail = (
                 <Avatar className="h-12 w-12 shrink-0">
                   <AvatarFallback 
@@ -122,7 +159,6 @@ export default function CustomersPage() {
                 </Avatar>
               );
 
-              // Build custom description with email and phone
               const customContent = (
                 <div className="flex flex-col gap-1 mt-1">
                   {customer.email && (
@@ -137,22 +173,23 @@ export default function CustomersPage() {
                       <span className="truncate">{customer.phone}</span>
                     </div>
                   )}
+                  {customer.hasConflict && (
+                    <div className="mt-0.5">
+                      <Badge className="whitespace-nowrap border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-950/50">
+                        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" aria-hidden />
+                        {text("page.badges.duplicate")}
+                      </Badge>
+                    </div>
+                  )}
                 </div>
               );
 
-              // Build category for duplicate badge
-              const category = customer.hasConflict ? {
-                name: text("page.badges.duplicate"),
-                color: '#fecaca',
-              } : null;
-
-              // Build actions array
               const actions = [{
                 icon: Edit,
                 label: text("page.actionsLabel.editCustomer"),
                 onClick: (e: React.MouseEvent) => {
                   e.stopPropagation();
-                  handleEditCustomer(customer.id);
+                  handleCustomerClick(customer.id);
                 },
               }];
 
@@ -161,10 +198,9 @@ export default function CustomersPage() {
                   key={customer.id}
                   title={highlightMatches(displayName)}
                   customContent={customContent}
-                  category={category}
                   actions={actions}
                   thumbnail={thumbnail}
-                  onClick={() => handleEditCustomer(customer.id)}
+                  onClick={() => handleCustomerClick(customer.id)}
                 />
               );
               })}
@@ -174,20 +210,40 @@ export default function CustomersPage() {
         )}
       </div>
 
-      {/* Add Customer Slider */}
       <AddCustomerSlider
         isOpen={isAddCustomerSliderOpen}
         onClose={() => setIsAddCustomerSliderOpen(false)}
       />
 
-      {/* Edit Customer Slider */}
+      <CustomerDetailsPopup
+        isOpen={isDetailsPopupOpen}
+        onClose={handleCloseDetailsPopup}
+        customer={currentCustomer}
+        isLoading={isFetchingCustomer && !currentCustomer}
+        onEdit={handleEditFromPopup}
+        onViewHistory={() => setIsHistorySliderOpen(true)}
+        onMerge={() => {
+          if (currentCustomer) {
+            dispatch(mergeCustomerAction.request({ sourceId: currentCustomer.id }));
+          }
+        }}
+        isMerging={isMerging}
+        hasOverlayOpen={isHistorySliderOpen || isEditCustomerSliderOpen}
+      />
+
+      <CustomerHistorySlider
+        isOpen={isHistorySliderOpen}
+        onClose={() => setIsHistorySliderOpen(false)}
+        customerId={selectedCustomerId}
+        elevated={isDetailsPopupOpen}
+      />
+
       <EditCustomerSlider
         isOpen={isEditCustomerSliderOpen}
         onClose={handleCloseEditSlider}
         customerId={selectedCustomerId}
+        elevated={isDetailsPopupOpen}
       />
     </AppLayout>
   );
 }
-
-
