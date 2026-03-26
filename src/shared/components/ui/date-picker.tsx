@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
@@ -15,6 +15,13 @@ interface DatePickerProps {
   connectedPopover?: boolean;
   /** Optional class for popover content when connectedPopover (e.g. add-appointment-popover-expand). */
   contentClassName?: string;
+  /**
+   * Renders at the top of the calendar popover, above month navigation (e.g. “No end date” switch).
+   * Full width; wrapper adds a bottom divider from the nav header.
+   */
+  popoverHeaderSlot?: ReactNode;
+  /** When true, month navigation, Today, and date selection are non-interactive and visually muted (e.g. “No end date” on). */
+  calendarDisabled?: boolean;
 }
 
 const DatePicker: React.FC<DatePickerProps> = ({
@@ -26,6 +33,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
   minDate,
   connectedPopover = false,
   contentClassName,
+  popoverHeaderSlot,
+  calendarDisabled = false,
 }) => {
   const fallbackDate = value ?? new Date();
   const [isOpen, setIsOpen] = useState(false);
@@ -295,48 +304,65 @@ const DatePicker: React.FC<DatePickerProps> = ({
         avoidCollisions={connectedPopover ? false : undefined}
       >
         <div className={cn("p-3 overflow-y-auto min-h-0", connectedPopover && "flex-1")}>
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={viewMode === 'month' ? goToPreviousYear : goToPreviousMonth}
-              className="h-8 w-8 p-0 hover:bg-muted"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <div className="text-sm font-semibold">
-              {viewMode === 'month' 
-                ? currentYear.toString()
-                : currentMonth.toLocaleDateString('en-US', { 
-                    month: 'long', 
-                    year: 'numeric' 
-                  })}
+          {popoverHeaderSlot != null ? (
+            <div className="-mx-3 -mt-1 border-b border-border px-3 pb-3 pt-1 mb-3">
+              {popoverHeaderSlot}
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={viewMode === 'month' ? goToNextYear : goToNextMonth}
-              className="h-8 w-8 p-0 hover:bg-muted"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+          ) : null}
+          <div
+            className={cn(
+              calendarDisabled && "pointer-events-none select-none opacity-45 grayscale",
+            )}
+            aria-hidden={calendarDisabled ? true : undefined}
+          >
+            {/* Month / year navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={viewMode === 'month' ? goToPreviousYear : goToPreviousMonth}
+                className="h-8 w-8 p-0 hover:bg-muted"
+                disabled={calendarDisabled}
+                tabIndex={calendarDisabled ? -1 : undefined}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <div className="text-sm font-semibold">
+                {viewMode === 'month'
+                  ? currentYear.toString()
+                  : currentMonth.toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={viewMode === 'month' ? goToNextYear : goToNextMonth}
+                className="h-8 w-8 p-0 hover:bg-muted"
+                disabled={calendarDisabled}
+                tabIndex={calendarDisabled ? -1 : undefined}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
 
-          {/* Today Button */}
-          <div className="mb-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToToday}
-              className="w-full text-xs"
-            >
-              Today
-            </Button>
-          </div>
+            {/* Today Button */}
+            <div className="mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToToday}
+                className="w-full text-xs"
+                disabled={calendarDisabled}
+                tabIndex={calendarDisabled ? -1 : undefined}
+              >
+                Today
+              </Button>
+            </div>
 
-          {/* Day View - Calendar Grid */}
-          {viewMode === 'day' && (
+            {/* Day View - Calendar Grid */}
+            {viewMode === 'day' && (
             <>
               {/* Week Days Header */}
               <div className="grid grid-cols-7 gap-1 mb-2">
@@ -375,10 +401,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 })}
               </div>
             </>
-          )}
+            )}
 
-          {/* Week View - Week Selection */}
-          {viewMode === 'week' && (
+            {/* Week View - Week Selection */}
+            {viewMode === 'week' && (
             <div className="space-y-1">
               {weeks.map((week, index) => {
                 const isSelected = isSelectedWeek(week.start);
@@ -412,10 +438,10 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 );
               })}
             </div>
-          )}
+            )}
 
-          {/* Month View - Month Selection */}
-          {viewMode === 'month' && (
+            {/* Month View - Month Selection */}
+            {viewMode === 'month' && (
             <div className="grid grid-cols-3 gap-2">
               {months.map((month, index) => {
                 const isSelected = isSelectedMonth(month);
@@ -436,7 +462,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 );
               })}
             </div>
-          )}
+            )}
+          </div>
         </div>
       </PopoverContent>
     </Popover>

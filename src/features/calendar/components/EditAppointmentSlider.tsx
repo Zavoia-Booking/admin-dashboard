@@ -65,6 +65,7 @@ import {
   formatDateInTimezone,
   formatActivityTimelineDateTime,
   formatDetailOverviewDate,
+  isAppointmentEndInPast,
 } from '../timezone';
 import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 
@@ -299,7 +300,22 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     if (diffDays < -1 && diffDays >= -365) return `${-diffDays} days ago`;
     return '';
   }, [appointment, auditTimezone]);
-  const canCancel = !isTeamMember || !!bookingSettings?.allowStaffCancelWithoutConfirmation;
+
+  const bookingLastEndMs = useMemo(() => {
+    const list =
+      groupAppointments && groupAppointments.length > 0
+        ? groupAppointments
+        : appointment
+          ? [appointment]
+          : [];
+    if (list.length === 0) return null;
+    return Math.max(...list.map((a) => new Date(a.endsAt).getTime()));
+  }, [appointment, groupAppointments]);
+
+  const isBookingInPast =
+    bookingLastEndMs != null && isAppointmentEndInPast(new Date(bookingLastEndMs), new Date());
+
+  const canCancel = (!isTeamMember || !!bookingSettings?.allowStaffCancelWithoutConfirmation) && !isBookingInPast;
   const canReschedule = !isTeamMember || !!bookingSettings?.allowStaffRescheduleWithoutConfirmation;
 
   /** Items to show in Services section: all segments (group or single) with name, duration, price, type. */

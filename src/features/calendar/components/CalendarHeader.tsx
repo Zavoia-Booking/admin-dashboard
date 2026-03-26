@@ -1,7 +1,7 @@
 import { type FC, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSidebarOpen, getViewModeSelector, getViewTypeSelector } from "../selectors.ts";
-import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
+import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
 import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings } from "lucide-react";
@@ -98,6 +98,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   }, [dispatch, viewType]);
 
   const handleOpenBlockForm = useCallback(() => {
+    dispatch(setBlockFormEditingAction(null));
     dispatch(toggleBlockFormAction(true));
   }, [dispatch]);
 

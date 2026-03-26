@@ -287,6 +287,11 @@ export const getBlockFormOpen = createSelector(getCalendarViewStateSelector, (st
     return state.blockFormOpen;
 })
 
+/** Block being edited in drawer (null = create) */
+export const getBlockFormEditingBlock = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.blockFormEditingBlock ?? null;
+})
+
 // ─────────────────────────────────────────────────────────────
 // New selectors: Week data, sidebar, staff filter
 // ─────────────────────────────────────────────────────────────

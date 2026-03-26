@@ -51,6 +51,7 @@ const initialState: CalendarViewState = {
         groupAppointments: undefined as Appointment[] | undefined,
     },
     blockFormOpen: false,
+    blockFormEditingBlock: null,
 
     // --- Calendar sidebar ---
     sidebarOpen: true,
@@ -235,6 +236,7 @@ const handleToggleBlockForm = (state: CalendarViewState, payload: boolean): Cale
     return {
         ...state,
         blockFormOpen: payload,
+        blockFormEditingBlock: payload ? state.blockFormEditingBlock : null,
     }
 }
 
@@ -345,6 +347,9 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetSelectedAppointment(state, action.payload);
         case getType(actions.toggleBlockFormAction):
             return handleToggleBlockForm(state, action.payload);
+
+        case getType(actions.setBlockFormEditingAction):
+            return { ...state, blockFormEditingBlock: action.payload };
 
         // --- Week data ---
         case getType(actions.fetchWeekData.request):

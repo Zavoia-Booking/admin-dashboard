@@ -26,7 +26,7 @@ import {
   appointmentsToDisplayBlocks,
 } from "../selectors.ts";
 import { selectIsTeamMember, selectCurrentUserId } from "../../auth/selectors";
-import { deleteCalendarBlock, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop, setDayFiltersAction, setStaffFilter } from "../actions.ts";
+import { deleteCalendarBlock, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop, setDayFiltersAction, setStaffFilter } from "../actions.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { AppointmentViewMode } from "../types.ts";
 import type {
@@ -51,7 +51,7 @@ import { WeekDayStrip } from "./WeekDayStrip.tsx";
 import { DraggableAppointmentBlock, DroppableSlot } from "./CalendarDnD.tsx";
 import type { AppointmentDragData, TimeSlotDropData, StaffColumnDropData } from "./CalendarDnD.tsx";
 import { formatTimeRange, getStaffDisplayNames } from "./utils.tsx";
-import { Loader2, Clock, MapPin, User, Trash2, ShieldAlert } from "lucide-react";
+import { Loader2, Clock, MapPin, User, Trash2, ShieldAlert, Pencil } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover.tsx";
 import { Button } from "../../../shared/components/ui/button.tsx";
 import {
@@ -243,8 +243,15 @@ const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, tim
   const isTeamMember = useSelector(selectIsTeamMember);
   const currentUserId = useSelector(selectCurrentUserId);
   const canDeleteBlock = !isTeamMember || (block.blockScope === 'staff' && block.userId != null && block.userId === currentUserId);
+  const canEditBlock = canDeleteBlock;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
+
+  const handleEditBlock = useCallback(() => {
+    dispatch(setBlockFormEditingAction(block));
+    dispatch(toggleBlockFormAction(true));
+    setPopoverOpen(false);
+  }, [dispatch, block]);
 
   const handleRequestDeleteBlock = useCallback(() => {
     setShowDeleteConfirm(true);
@@ -293,17 +300,30 @@ const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, tim
               </div>
             )}
           </div>
-          {canDeleteBlock && (
-            <div className="px-3 py-2 border-t border-border">
-              <Button
-                variant="destructive"
-                size="sm"
-                className="w-full h-8 text-xs"
-                onClick={handleRequestDeleteBlock}
-              >
-                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                Delete Block
-              </Button>
+          {(canEditBlock || canDeleteBlock) && (
+            <div className="px-3 py-2 border-t border-border space-y-2">
+              {canEditBlock && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={handleEditBlock}
+                >
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit block
+                </Button>
+              )}
+              {canDeleteBlock && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="w-full h-8 text-xs"
+                  onClick={handleRequestDeleteBlock}
+                >
+                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                  Delete Block
+                </Button>
+              )}
             </div>
           )}
         </PopoverContent>

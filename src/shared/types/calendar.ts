@@ -275,12 +275,26 @@ export interface CalendarBlockCreatePayload {
   endsAt: string;
   isAllDay?: boolean;
   isRecurring?: boolean;
-  repeatFrequency?: 'daily' | 'weekly';
+  repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   repeatDaysOfWeek?: number[];
   repeatEndDate?: string;
   reason: CalendarBlockReason;
   title?: string;
   notes?: string;
+}
+
+/** Body for PUT /calendar-blocks/:id (matches admin-api UpdateCalendarBlockDto). */
+export interface CalendarBlockUpdatePayload {
+  startsAt?: string;
+  endsAt?: string;
+  isAllDay?: boolean;
+  reason?: CalendarBlockReason;
+  title?: string;
+  notes?: string;
+  isRecurring?: boolean;
+  repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  repeatDaysOfWeek?: number[];
+  repeatEndDate?: string;
 }
 
 // --- POST /appointments/admin-create-group ---

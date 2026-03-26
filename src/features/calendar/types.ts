@@ -123,6 +123,8 @@ export type CalendarViewState = {
         groupAppointments?: Appointment[] | null;
     };
     blockFormOpen: boolean;
+    /** When set, block drawer opens in edit mode for this block (create flow clears this). */
+    blockFormEditingBlock: CalendarBlockDto | null;
 
     // --- Calendar sidebar (mobile collapse) ---
     sidebarOpen: boolean;

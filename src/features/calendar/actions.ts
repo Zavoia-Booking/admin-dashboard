@@ -9,6 +9,8 @@ import type {
     AdminCreateGroupAppointmentPayload,
     RescheduleGroupPayload,
     CalendarBlockCreatePayload,
+    CalendarBlockUpdatePayload,
+    CalendarBlockDto,
 } from "../../shared/types/calendar.ts";
 import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop } from "./types.ts";
 
@@ -95,6 +97,11 @@ export const toggleBlockFormAction = createAction(
     'CALENDAR/BLOCK_FORM/TOGGLE'
 )<boolean>()
 
+/** Block being edited in the drawer; null = create mode. Cleared when drawer closes. */
+export const setBlockFormEditingAction = createAction(
+    'CALENDAR/BLOCK_FORM/EDITING_SET',
+)<CalendarBlockDto | null>()
+
 /** Toggle the calendar sidebar (mobile collapse) */
 export const toggleCalendarSidebar = createAction(
     'CALENDAR/SIDEBAR/TOGGLE'
@@ -175,3 +182,9 @@ export const deleteCalendarBlock = createAsyncAction(
     'CALENDAR/BLOCK/DELETE/SUCCESS',
     'CALENDAR/BLOCK/DELETE/FAILURE',
 )<number, any, any>()
+
+export const updateCalendarBlock = createAsyncAction(
+    'CALENDAR/BLOCK/UPDATE/REQUEST',
+    'CALENDAR/BLOCK/UPDATE/SUCCESS',
+    'CALENDAR/BLOCK/UPDATE/FAILURE',
+)<{ id: number; payload: CalendarBlockUpdatePayload }, any, any>()

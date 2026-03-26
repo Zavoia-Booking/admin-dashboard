@@ -34,6 +34,38 @@ export function formatDateInTimezone(date: Date, timeZone: string): string {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+/**
+ * Parses `YYYY-MM-DD` as a calendar day at local midnight (browser local).
+ * Pairs with {@link formatDateInTimezone} for wall dates and with pickers that compare y/m/d.
+ */
+export function localCalendarDateFromDateKey(dateKey: string): Date {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** “Today” in `timeZone` as a local `Date` for date-picker `minDate` / disabling past days. */
+export function minSelectableCalendarDateForTimezone(now: Date, timeZone: string): Date {
+  const tz = timeZone?.trim() || 'UTC';
+  return localCalendarDateFromDateKey(formatDateInTimezone(now, tz));
+}
+
+/** Later of two instants by local calendar day (year / month / date). */
+export function laterCalendarWallDate(a: Date, b: Date): Date {
+  const ta = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
+  const tb = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  return ta >= tb ? a : b;
+}
+
+/** True when `endsAt` (ISO instant) is on or before `now` — use for gating cancel on past bookings. */
+export function isAppointmentEndInPast(
+  endsAt: string | Date,
+  now: Date = new Date(),
+): boolean {
+  const end = typeof endsAt === 'string' ? new Date(endsAt) : endsAt;
+  if (Number.isNaN(end.getTime())) return false;
+  return end.getTime() <= now.getTime();
+}
+
 export function getMinutesInTimezone(iso: string, timeZone: string): number {
   const parts = getPartMap(new Date(iso), timeZone);
   return Number(parts.hour) * 60 + Number(parts.minute);
@@ -81,6 +113,52 @@ export function buildZonedDate(date: Date, hhmm: string, timeZone: string): Date
   const dateInTz = formatDateInTimezone(date, timeZone);
   const [year, month, day] = dateInTz.split('-').map(Number);
   return buildZonedDateFromParts(year, month, day, hour, minute, timeZone);
+}
+
+/** Start of calendar day (00:00) in `timeZone`, as UTC `Date`. */
+export function zonedStartOfDayUtc(wallDate: Date, timeZone: string): Date {
+  const dateKey = formatDateInTimezone(wallDate, timeZone);
+  return buildZonedDateFromDateKey(dateKey, '00:00', timeZone);
+}
+
+/** End of calendar day in `timeZone` (last ms of 23:59), as UTC `Date`. */
+export function zonedEndOfDayUtc(wallDate: Date, timeZone: string): Date {
+  const dateKey = formatDateInTimezone(wallDate, timeZone);
+  const lastMinute = buildZonedDateFromDateKey(dateKey, '23:59', timeZone);
+  return new Date(lastMinute.getTime() + 59_999);
+}
+
+/** Map `en-US` short weekday → JS Sunday=0 … Saturday=6 (matches API `repeatDaysOfWeek`). */
+const WEEKDAY_SHORT_TO_SUN0: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+/**
+ * Weekday index for the wall calendar day of `wallDate` in `timeZone` (0 = Sunday … 6 = Saturday).
+ * Uses noon on that wall day to avoid DST edge cases.
+ */
+export function weekdaySun0ForWallDateInTimezone(wallDate: Date, timeZone: string): number {
+  const atNoon = buildZonedDate(wallDate, '12:00', timeZone);
+  const parts = new Intl.DateTimeFormat('en-US', { timeZone, weekday: 'short' }).formatToParts(atNoon);
+  const wd = parts.find((p) => p.type === 'weekday')?.value;
+  if (wd != null && wd in WEEKDAY_SHORT_TO_SUN0) return WEEKDAY_SHORT_TO_SUN0[wd]!;
+  return 0;
+}
+
+/** "HH:mm" 24h for an instant interpreted in `timeZone` (for block forms, prefill). */
+export function formatWallHmInTimezone(isoOrDate: string | Date, timeZone: string): string {
+  const d = typeof isoOrDate === 'string' ? new Date(isoOrDate) : isoOrDate;
+  if (Number.isNaN(d.getTime())) return '00:00';
+  const parts = getPartMap(d, timeZone);
+  const h = parts.hour?.padStart(2, '0') ?? '00';
+  const m = parts.minute?.padStart(2, '0') ?? '00';
+  return `${h}:${m}`;
 }
 
 /** Format instant in business/calendar timezone for audit-style display. */

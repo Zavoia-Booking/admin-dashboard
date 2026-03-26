@@ -12,6 +12,12 @@ export const CALENDAR_FILTER_SECTION_TITLE =
 /** Full-bleed wrapper (cancels parent horizontal padding). */
 export const CALENDAR_FILTER_DIVIDER_OUTER = "-mx-4 px-4 mb-0";
 
+/**
+ * Same full-bleed idea as {@link CALENDAR_FILTER_DIVIDER_OUTER} for slider bodies that use
+ * `p-1 md:p-6` horizontal padding (e.g. block drawer), so the rule matches the Filters popover line.
+ */
+export const CALENDAR_FILTER_DIVIDER_OUTER_SLIDER = "-mx-1 px-1 mb-0 md:-mx-6 md:px-6";
+
 /** Vertical space above and below the gradient rule. */
 export const CALENDAR_FILTER_DIVIDER_GUTTER = "pt-4 pb-6";
 

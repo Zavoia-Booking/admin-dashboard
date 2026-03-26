@@ -196,7 +196,7 @@ const CalendarServiceBundleMultiPicker: FC<{
   const lastBundleIdx = filteredBundles.length - 1;
 
   return (
-    <div ref={rootRef} className={cn(disabled && "pointer-events-none opacity-50")}>
+    <div ref={rootRef} className={cn("relative", disabled && "pointer-events-none opacity-50")}>
       <div
         ref={anchorRef}
         className="block w-full min-w-0 cursor-text outline-none focus:outline-none"
@@ -222,9 +222,8 @@ const CalendarServiceBundleMultiPicker: FC<{
         <div
           data-state={open ? "open" : "closed"}
           className={cn(
-            "w-full max-h-[min(320px,50vh)] box-border -mt-px overflow-hidden border border-t-0 bg-surface p-0 shadow-none z-[20] rounded-t-none rounded-b-[22px] dark:bg-neutral-900",
+            "absolute left-0 right-0 top-full z-[60] w-full max-h-[min(320px,50vh)] box-border -mt-px overflow-hidden rounded-t-none rounded-b-[22px] border border-t-0 border-border-strong bg-surface p-0 shadow-md dark:border-border-strong dark:bg-neutral-900",
             "add-appointment-popover-expand",
-            "border-border-strong dark:border-border-strong",
           )}
         >
           <Command shouldFilter={false} className="w-full min-w-0 max-w-full">

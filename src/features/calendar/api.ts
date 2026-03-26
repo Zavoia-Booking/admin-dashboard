@@ -10,6 +10,7 @@ import type {
     AvailableSlotsRequest,
     AvailableSlotsResponse,
     CalendarBlockCreatePayload,
+    CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
 import { serializeCalendarDayFilters } from "./calendarFilters.ts";
 
@@ -144,5 +145,14 @@ export const createCalendarBlockRequest = async (payload: CalendarBlockCreatePay
 /** DELETE /calendar-blocks/:id */
 export const deleteCalendarBlockRequest = async (blockId: number): Promise<any> => {
     const { data } = await apiClient().delete(`/calendar-blocks/${blockId}`);
+    return data;
+}
+
+/** PUT /calendar-blocks/:id */
+export const updateCalendarBlockRequest = async (
+    blockId: number,
+    payload: CalendarBlockUpdatePayload,
+): Promise<any> => {
+    const { data } = await apiClient().put(`/calendar-blocks/${blockId}`, payload);
     return data;
 }
