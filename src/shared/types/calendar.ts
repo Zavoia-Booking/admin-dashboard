@@ -344,7 +344,16 @@ export interface CalendarDayFilters {
   staffUserId?: number;
   /** Appointments involving any of these staff. Omit or empty = all staff at location. */
   staffUserIds?: number[];
+  /**
+   * Product filters; API expands `bookingGroupId` groups in the requested date window.
+   * Prefer `serviceIds` / `bundleIds` (OR within each dimension; AND across dimensions when both non-empty).
+   * Legacy `serviceId` / `bundleId` are still accepted by the API and merged server-side.
+   */
+  serviceIds?: number[];
+  bundleIds?: number[];
+  /** @deprecated Prefer `serviceIds`; still serialized when arrays are empty. */
   serviceId?: number;
+  /** @deprecated Prefer `bundleIds`; still serialized when arrays are empty. */
   bundleId?: number;
   status?: string;
   statuses?: string[];
@@ -356,4 +365,6 @@ export interface CalendarDayFilters {
   customerFullName?: string;
   /** Only appointments with no assigned staff (exclusive with staffUserIds on API). */
   unassignedOnly?: boolean;
+  /** Service category IDs (appointments whose service belongs to any of these categories). Omit or empty = all. */
+  categoryIds?: number[];
 }

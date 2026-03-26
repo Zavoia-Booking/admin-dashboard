@@ -300,6 +300,11 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleToggleEditForm(state, action.payload);
         case getType(actions.setViewTypeAction):
             return handleSetViewType(state, action.payload);
+        case getType(actions.hydrateCalendarDisplayPreferencesAction): {
+            const { viewMode, viewType } = action.payload;
+            const withMode = handleViewMode(state, viewMode);
+            return handleSetViewType(withMode, viewType);
+        }
         case getType(actions.setViewModeAction):
             return handleViewMode(state, action.payload);
 

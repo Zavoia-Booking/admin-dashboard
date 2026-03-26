@@ -4,20 +4,19 @@ import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSide
 import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
-import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings, ListFilter } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings } from "lucide-react";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
+import { CalendarHeaderFilters } from "./CalendarHeaderFilters.tsx";
 
 interface CalendarHeaderProps {
   onOpenSettings?: () => void;
-  /** Opens mobile filters sheet (sidebar is hidden below `md`). */
-  onOpenFiltersSheet?: () => void;
 }
 
 /**
  * CalendarHeader — replaces the old DateTab + Filters top bar.
  * Contains month/year title, Day/Week/Month pill tabs, navigation arrows, action buttons.
  */
-export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings, onOpenFiltersSheet }) => {
+export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const displayedMonthStart = useSelector(getDisplayedMonthStart);
@@ -119,18 +118,6 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings, onOpen
         >
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </Button>
-        {onOpenFiltersSheet ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 flex-shrink-0 md:hidden"
-            type="button"
-            onClick={onOpenFiltersSheet}
-            title="Filters"
-          >
-            <ListFilter className="h-4 w-4" />
-          </Button>
-        ) : null}
         <h1 className="text-3xl font-bold text-foreground truncate tracking-tight">{title}</h1>
       </div>
 
@@ -155,54 +142,55 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings, onOpen
         ))}
       </div>
 
-      {/* Right: navigation + actions */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        <div className="flex items-center bg-white dark:bg-surface rounded-full border shadow-sm p-0.5">
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handlePrev}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="ghost" size="sm" className="h-8 text-xs font-medium px-3" onClick={handleToday}>
-            Today
-          </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleNext}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Right: navigation + actions + filters (filters row below primary actions) */}
+      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-white dark:bg-surface rounded-full border shadow-sm p-0.5">
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handlePrev}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-xs font-medium px-3" onClick={handleToday}>
+              Today
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleNext}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
 
-        {/* List / Grid toggle */}
-        {(viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) && (
+          {(viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full"
+              onClick={handleToggleViewType}
+              title={viewType === AppointmentViewType.GRID ? 'Switch to list view' : 'Switch to grid view'}
+            >
+              {viewType === AppointmentViewType.GRID ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+            </Button>
+          )}
+
           <Button
             variant="ghost"
             size="icon"
             className="h-9 w-9 rounded-full"
-            onClick={handleToggleViewType}
-            title={viewType === AppointmentViewType.GRID ? 'Switch to list view' : 'Switch to grid view'}
+            onClick={onOpenSettings}
+            title="Calendar Settings"
           >
-            {viewType === AppointmentViewType.GRID ? <List className="h-4 w-4" /> : <LayoutGrid className="h-4 w-4" />}
+            <Settings className="h-4 w-4" />
           </Button>
-        )}
 
-        {/* Settings */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-9 w-9 rounded-full"
-          onClick={onOpenSettings}
-          title="Calendar Settings"
-        >
-          <Settings className="h-4 w-4" />
-        </Button>
+          <div className="w-2" />
 
-        <div className="w-2" /> {/* Spacer */}
-
-        <Button variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-medium border-dashed border-2" onClick={handleOpenBlockForm}>
-          <ShieldBan className="h-3.5 w-3.5 mr-1.5" />
-          Block
-        </Button>
-        <Button size="sm" className="h-9 rounded-full px-4 text-xs font-bold shadow-lg shadow-primary/20" onClick={handleOpenAddForm}>
-          <Plus className="h-3.5 w-3.5 mr-1.5" />
-          Add Event
-        </Button>
+          <Button variant="outline" size="sm" className="h-9 rounded-full px-4 text-xs font-medium border-dashed border-2" onClick={handleOpenBlockForm}>
+            <ShieldBan className="h-3.5 w-3.5 mr-1.5" />
+            Block
+          </Button>
+          <Button size="sm" className="h-9 rounded-full px-4 text-xs font-bold shadow-lg shadow-primary/20" onClick={handleOpenAddForm}>
+            <Plus className="h-3.5 w-3.5 mr-1.5" />
+            Add Event
+          </Button>
+        </div>
+        <CalendarHeaderFilters />
       </div>
     </div>
   );

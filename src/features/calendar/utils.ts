@@ -69,7 +69,7 @@ export const getWeekDays = (currentWeekStart: Date) => {
 };
 
 export const STATUS_LIST = [
-    { value: 'all', label: 'All statuses' },
+    { value: 'all', label: 'Any status' },
     { value: 'confirmed', label: 'Confirmed' },
     { value: 'completed', label: 'Completed' },
     { value: 'pending', label: 'Pending' },

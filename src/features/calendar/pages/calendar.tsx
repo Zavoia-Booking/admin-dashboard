@@ -24,9 +24,7 @@ import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
 import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
-import { CalendarFiltersPanel } from "../components/CalendarFiltersPanel.tsx";
 import { Card } from "../../../shared/components/ui/card.tsx";
-import { Sheet, SheetContent } from "../../../shared/components/ui/sheet.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -40,12 +38,15 @@ const Calendar = () => {
   const locationTeamMembers = useSelector(getLocationTeamMembers);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [filtersSheetOpen, setFiltersSheetOpen] = useState(false);
 
   useEffect(() => {
-    // Apply saved display preferences on calendar load
-    dispatch(setViewModeAction(calendarPreferences.getDefaultViewMode()));
-    dispatch(setViewTypeAction(calendarPreferences.getDefaultViewType()));
+    // Apply saved display preferences without triggering view-mode saga (avoids duplicate week/day/summary fetch when location selection runs next).
+    dispatch(
+      hydrateCalendarDisplayPreferencesAction({
+        viewMode: calendarPreferences.getDefaultViewMode(),
+        viewType: calendarPreferences.getDefaultViewType(),
+      }),
+    );
   }, [dispatch]);
 
   useEffect(() => {
@@ -60,8 +61,11 @@ const Calendar = () => {
     getAppointmentDetailRequest(appointmentId)
       .then((appointment) => {
         if (appointment) {
-          dispatch(setSelectedDateAction(new Date(appointment.scheduledAt)));
-          dispatch(setViewModeAction(AppointmentViewMode.DAY));
+          dispatchSelectDateAndDayView(
+            dispatch,
+            new Date(appointment.scheduledAt),
+            store.getState().calendarView.viewMode,
+          );
           dispatch(toggleEditFormAction({ open: true, item: appointment }));
         }
       })
@@ -92,6 +96,39 @@ const Calendar = () => {
     // Locations needed for LocationSelector. Services and team are loaded per-location via assignments/full when a location is selected.
     dispatch(listLocationsAction.request());
   }, [dispatch]);
+
+  /** Single-staff locations: preselect that member (no “all staff” UX); keep Redux/day filters aligned. */
+  useEffect(() => {
+    if (locationStaff.length !== 1) return;
+    const loneId = locationStaff[0].id;
+    if (dayFilters.unassignedOnly === true) return;
+    if (
+      dayFilters.staffUserIds != null &&
+      dayFilters.staffUserIds.length > 0 &&
+      (dayFilters.staffUserIds.length > 1 || dayFilters.staffUserIds[0] !== loneId)
+    ) {
+      return;
+    }
+    if (dayFilters.staffUserId != null && dayFilters.staffUserId !== loneId) return;
+
+    const normalized = staffFilter.filter((id) => locationStaff.some((s) => s.id === id));
+    const needsStaffFilter = normalized.length !== 1 || normalized[0] !== loneId;
+    const needsDayStaffClear =
+      dayFilters.staffUserIds != null || dayFilters.staffUserId != null;
+
+    if (needsStaffFilter) {
+      dispatch(setStaffFilter([loneId]));
+    }
+    if (needsDayStaffClear) {
+      dispatch(
+        setDayFiltersAction({
+          ...dayFilters,
+          staffUserIds: undefined,
+          staffUserId: undefined,
+        }),
+      );
+    }
+  }, [dispatch, locationStaff, staffFilter, dayFilters]);
 
   // Refetch location context and current view when re-entering the calendar (already have a selected location and cached context)
   useEffect(() => {
@@ -125,10 +162,7 @@ const Calendar = () => {
               <div className="p-0 md:p-4 lg:p-6 flex flex-col">
                 <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
                   {/* Top header bar */}
-                  <CalendarHeader
-                    onOpenSettings={() => setSettingsOpen(true)}
-                    onOpenFiltersSheet={() => setFiltersSheetOpen(true)}
-                  />
+                  <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 
                   {/* Content area — height driven by grid/list for single page scroll */}
                   <div className="relative">

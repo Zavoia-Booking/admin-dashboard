@@ -1,9 +1,8 @@
 import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSelectedDate, getWeekViewDisplayStart } from "../selectors.ts";
+import { getSelectedDate, getWeekViewDisplayStart, getViewModeSelector } from "../selectors.ts";
 import { getWeekStart } from "../utils.ts";
-import { setSelectedDateAction, setViewModeAction } from "../actions.ts";
-import { AppointmentViewMode } from "../types.ts";
+import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 
 const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -16,6 +15,7 @@ export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const weekDisplayStart = useSelector(getWeekViewDisplayStart);
+  const viewMode = useSelector(getViewModeSelector);
 
   const days = useMemo(() => {
     const ws = weekDisplayStart ?? getWeekStart(selectedDate);
@@ -28,10 +28,9 @@ export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
 
   const handleDayClick = useCallback(
     (day: Date) => {
-      dispatch(setSelectedDateAction(day));
-      dispatch(setViewModeAction(AppointmentViewMode.DAY));
+      dispatchSelectDateAndDayView(dispatch, day, viewMode);
     },
-    [dispatch]
+    [dispatch, viewMode],
   );
 
   const selectedStr = selectedDate.toDateString();

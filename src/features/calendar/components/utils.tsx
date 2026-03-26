@@ -117,10 +117,10 @@ export const getStatusBadge = (status: string): ReactElement => {
         <Badge
           className={cn(
             assignmentStylePillLayout,
-            'border-orange-500/20 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-300 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700',
+            'border-red-200 bg-red-50 text-red-900 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40',
           )}
         >
-          {dot('bg-orange-500')}
+          {dot('bg-red-500')}
           No-show
         </Badge>
       );

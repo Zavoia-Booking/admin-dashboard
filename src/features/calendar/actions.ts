@@ -23,6 +23,14 @@ export const toggleEditFormAction = createAction('CALENDAR/EDIT/TOGGLE')<{
 export const setViewTypeAction = createAction('CALENDAR/VIEW_TYPE/SET')<AppointmentViewType>()
 export const setViewModeAction = createAction('CALENDAR/VIEW_MODE/SET')<AppointmentViewMode>()
 
+/**
+ * Apply saved view mode + list/grid type without refetching calendar data.
+ * Use on calendar page mount; user-driven changes use {@link setViewModeAction} (saga loads data).
+ */
+export const hydrateCalendarDisplayPreferencesAction = createAction(
+    'CALENDAR/DISPLAY_PREFERENCES/HYDRATE',
+)<{ viewMode: AppointmentViewMode; viewType: AppointmentViewType }>()
+
 // ─────────────────────────────────────────────────────────────
 // New actions: Location-first calendar
 // ─────────────────────────────────────────────────────────────

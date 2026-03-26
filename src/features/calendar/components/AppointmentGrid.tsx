@@ -18,8 +18,10 @@ import {
     getViewTypeSelector,
     getMonthViewDisplayStart,
     getHasActiveCalendarFilters,
+    getViewModeSelector,
 } from "../selectors.ts";
-import { setSelectedDateAction, setViewModeAction, setDayFiltersAction, setStaffFilter } from "../actions.ts";
+import { setDayFiltersAction, setStaffFilter } from "../actions.ts";
+import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { Loader2 } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button.tsx";
 import { calendarPreferences } from "../calendarPreferences.ts";
@@ -76,12 +78,15 @@ const SummaryGrid: FC = () => {
     const summary = useSelector(getCalendarSummary);
     const isLoading = useSelector(getSummaryLoading);
     const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
+    const viewMode = useSelector(getViewModeSelector);
     const colorCoding = calendarPreferences.getColorCoding();
 
-    const handleDayClick = useCallback((day: Date) => {
-        dispatch(setSelectedDateAction(day));
-        dispatch(setViewModeAction(AppointmentViewMode.DAY));
-    }, [dispatch]);
+    const handleDayClick = useCallback(
+        (day: Date) => {
+            dispatchSelectDateAndDayView(dispatch, day, viewMode);
+        },
+        [dispatch, viewMode],
+    );
 
     const dayCells = useMemo(
         () => buildMonthCalendarGridCells(monthViewDisplayStart, selectedDate),

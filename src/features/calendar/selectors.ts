@@ -2,7 +2,7 @@ import { createSelector } from "@reduxjs/toolkit";
 import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
 import { AppointmentViewMode, type CalendarViewState } from "./types.ts";
 import { getWeekStart, toLocalDateString } from "./utils.ts";
-import { areCalendarFiltersActive } from "./calendarFilters.ts";
+import { areCalendarFiltersActive, countActiveCalendarFilters } from "./calendarFilters.ts";
 import type { CalendarBlockDto, SlimAppointment, CalendarDisplayBlock } from "../../shared/types/calendar.ts";
 import { getCurrentBusinessSelector } from "../business/selectors.ts";
 
@@ -325,7 +325,25 @@ export const getEffectiveStaffFilterIds = createSelector(
 /** True when any calendar data filter is active (for empty states). */
 export const getHasActiveCalendarFilters = createSelector(
     getCalendarViewStateSelector,
-    (state) => areCalendarFiltersActive(state.dayFilters, state.staffFilter ?? []),
+    getLocationStaff,
+    (state, locationStaff) =>
+        areCalendarFiltersActive(
+            state.dayFilters,
+            state.staffFilter ?? [],
+            locationStaff.map((s) => s.id),
+        ),
+)
+
+/** Distinct active filter dimensions (header filters badge). */
+export const getActiveCalendarFiltersCount = createSelector(
+    getCalendarViewStateSelector,
+    getLocationStaff,
+    (state, locationStaff) =>
+        countActiveCalendarFilters(
+            state.dayFilters,
+            state.staffFilter ?? [],
+            locationStaff.map((s) => s.id),
+        ),
 )
 
 /** Pending 409 conflict offer (retry update with override). */

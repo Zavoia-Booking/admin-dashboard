@@ -26,7 +26,8 @@ import {
   appointmentsToDisplayBlocks,
 } from "../selectors.ts";
 import { selectIsTeamMember, selectCurrentUserId } from "../../auth/selectors";
-import { deleteCalendarBlock, setSelectedDateAction, setViewModeAction, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop, setDayFiltersAction, setStaffFilter } from "../actions.ts";
+import { deleteCalendarBlock, toggleAddForm, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop, setDayFiltersAction, setStaffFilter } from "../actions.ts";
+import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { AppointmentViewMode } from "../types.ts";
 import type {
   SlimAppointment,
@@ -1372,6 +1373,7 @@ interface WeekDayColumnSummaryProps {
   isToday: boolean;
   day: Date;
   dateKey: string;
+  calendarViewMode: AppointmentViewMode;
   onSlotClick?: (hour: number) => void;
   timezone?: string;
 }
@@ -1386,6 +1388,7 @@ const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
   isToday,
   day,
   dateKey,
+  calendarViewMode,
   onSlotClick,
   timezone,
 }) => {
@@ -1394,9 +1397,8 @@ const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
   const overlapGroups = useMemo(() => getOverlapGroups(appointments), [appointments]);
 
   const handleViewDay = useCallback(() => {
-    dispatch(setSelectedDateAction(day));
-    dispatch(setViewModeAction(AppointmentViewMode.DAY));
-  }, [dispatch, day]);
+    dispatchSelectDateAndDayView(dispatch, day, calendarViewMode);
+  }, [dispatch, day, calendarViewMode]);
 
   return (
     <div className="relative" style={{ height: gridHeight }}>
@@ -2008,8 +2010,7 @@ const WeekGrid: FC = () => {
                   key={day.toDateString()}
                   className="flex-1 min-w-[100px] cursor-pointer"
                   onDoubleClick={() => {
-                    dispatch(setSelectedDateAction(day));
-                    dispatch(setViewModeAction(AppointmentViewMode.DAY));
+                    dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
                   }}
                 >
                   <div className="mx-1">
@@ -2056,8 +2057,7 @@ const WeekGrid: FC = () => {
                   key={day.toDateString()}
                   className="flex-1 min-w-[100px] cursor-pointer"
                   onDoubleClick={() => {
-                    dispatch(setSelectedDateAction(day));
-                    dispatch(setViewModeAction(AppointmentViewMode.DAY));
+                    dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
                   }}
                 >
                   <div className="mx-1">
@@ -2071,6 +2071,7 @@ const WeekGrid: FC = () => {
                       isToday={isToday}
                       day={day}
                       dateKey={dateKey}
+                      calendarViewMode={AppointmentViewMode.WEEK}
                       timezone={calendarTimezone}
                       onSlotClick={(hour) => {
                         const hh = String(hour).padStart(2, '0');

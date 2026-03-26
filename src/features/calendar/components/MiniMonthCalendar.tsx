@@ -1,11 +1,10 @@
 import { type FC, useMemo, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSelectedDate, getCalendarSummary } from "../selectors.ts";
-import { setSelectedDateAction, setViewModeAction } from "../actions.ts";
+import { getSelectedDate, getCalendarSummary, getViewModeSelector } from "../selectors.ts";
+import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../../shared/lib/utils";
 import type { DaySummary } from "../../../shared/types/calendar.ts";
-import { AppointmentViewMode } from "../types.ts";
 
 const DAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
 
@@ -80,6 +79,7 @@ export const MiniMonthCalendar: FC = () => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const summary = useSelector(getCalendarSummary);
+  const viewMode = useSelector(getViewModeSelector);
 
   // The mini calendar can navigate independently from the main calendar
   const [displayMonth, setDisplayMonth] = useState(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
@@ -92,10 +92,12 @@ export const MiniMonthCalendar: FC = () => {
     setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   }, []);
 
-  const handleDayClick = useCallback((day: Date) => {
-    dispatch(setSelectedDateAction(day));
-    dispatch(setViewModeAction(AppointmentViewMode.DAY));
-  }, [dispatch]);
+  const handleDayClick = useCallback(
+    (day: Date) => {
+      dispatchSelectDateAndDayView(dispatch, day, viewMode);
+    },
+    [dispatch, viewMode],
+  );
 
   // Build calendar cells
   const cells = useMemo(() => {
