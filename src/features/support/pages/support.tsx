@@ -3,27 +3,18 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
-import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Textarea } from "../../../shared/components/ui/textarea";
 import { Spinner } from "../../../shared/components/ui/spinner";
+import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { EmptyState } from "../../../shared/components/common/EmptyState";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter,
 } from "../../../shared/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../shared/components/ui/select";
 import {
   listTicketsAction,
   getTicketByIdAction,
@@ -47,30 +38,52 @@ import {
   MessageSquare,
   Bug,
   HelpCircle,
-  CircleDot,
   Send,
   Lock,
   LifeBuoy,
+  Clock,
+  AlertTriangle,
+  ChevronRight,
 } from "lucide-react";
 import type { SupportTicket, TicketCategory, TicketStatus, TicketHistoryEntry } from "../types";
 import { cn } from "../../../shared/lib/utils";
 
-function getTicketHistory(ticket: SupportTicket): TicketHistoryEntry[] {
+interface EnrichedHistoryEntry extends TicketHistoryEntry {
+  timestamp?: string;
+}
+
+function formatRelativeDate(isoString: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
+  const date = new Date(isoString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return t("dates.today");
+  if (diffDays === 1) return t("dates.yesterday");
+  if (diffDays < 7) return t("dates.daysAgo", { count: diffDays });
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined,
+  });
+}
+
+function getTicketHistory(ticket: SupportTicket): EnrichedHistoryEntry[] {
   if (ticket.details?.history) return ticket.details.history;
   if (ticket.details?.messages) {
     return ticket.details.messages.map((m) => ({
       message: m.text,
       createdBy: m.from === "admin" ? "admin" : ticket.createdBy,
+      timestamp: m.timestamp,
     }));
   }
   return [];
 }
 
 const STATUS_CLASSES: Record<TicketStatus, string> = {
-  OPEN: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border-blue-200 dark:border-blue-800",
-  IN_PROGRESS: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 border-amber-200 dark:border-amber-800",
-  CLOSED: "bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400 border-neutral-200 dark:border-neutral-700",
-  REOPENED: "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 border-purple-200 dark:border-purple-800",
+  OPEN: "bg-info-bg text-info hover:bg-info-bg border border-info-border",
+  IN_PROGRESS: "bg-warning-bg text-warning hover:bg-warning-bg border border-warning-border",
+  CLOSED: "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 border-neutral-200 dark:border-neutral-700",
+  REOPENED: "bg-purple-100 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/40 border-purple-200 dark:border-purple-800",
 };
 
 const CATEGORY_ICONS: Record<TicketCategory, typeof Bug> = {
@@ -94,10 +107,99 @@ function CategoryBadge({ category }: { category: TicketCategory | null }) {
   const Icon = CATEGORY_ICONS[category];
   const label = t(`category.${category}`);
   return (
-    <Badge variant="outline" className="text-xs gap-1">
+    <Badge variant="outline" className="text-xs gap-1 text-foreground-2 border-border">
       {Icon && <Icon className="h-3 w-3" />}
       {label}
     </Badge>
+  );
+}
+
+const STATUS_ICONS: Record<TicketStatus, typeof Bug> = {
+  OPEN: AlertTriangle,
+  IN_PROGRESS: Clock,
+  CLOSED: Lock,
+  REOPENED: AlertTriangle,
+};
+
+function TicketCardSkeleton() {
+  return (
+    <div className="rounded-xl ring-1 ring-border bg-surface overflow-hidden">
+      <div className="p-4 space-y-3">
+        {/* Header: icon + id + date */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-7 rounded-lg" />
+            <Skeleton className="h-3.5 w-16 rounded" />
+          </div>
+          <Skeleton className="h-3.5 w-14 rounded" />
+        </div>
+        {/* Subject */}
+        <Skeleton className="h-4 w-3/4 rounded" />
+        {/* Preview */}
+        <Skeleton className="h-3.5 w-full rounded" />
+        {/* Footer */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3.5 w-8 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TicketListSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <TicketCardSkeleton key={i} />
+      ))}
+    </div>
+  );
+}
+
+function ConversationSkeleton() {
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header skeleton */}
+      <div className="border-b border-border bg-surface-hover/40 flex-shrink-0 px-3 py-2.5 md:px-4 md:py-3 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-4 w-20 rounded" />
+          </div>
+          <Skeleton className="h-8 w-24 rounded-md" />
+        </div>
+        <div className="flex items-center justify-between gap-2 pl-8 md:pl-9">
+          <div className="flex items-center gap-1.5">
+            <Skeleton className="h-5 w-14 rounded-full" />
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </div>
+          <Skeleton className="h-3 w-20 rounded" />
+        </div>
+      </div>
+      {/* Messages skeleton */}
+      <div className="flex-1 py-4 px-4 space-y-4">
+        <div className="flex justify-end">
+          <Skeleton className="h-16 w-3/5 rounded-2xl" />
+        </div>
+        <div className="flex justify-start">
+          <Skeleton className="h-20 w-2/3 rounded-2xl" />
+        </div>
+        <div className="flex justify-end">
+          <Skeleton className="h-12 w-1/2 rounded-2xl" />
+        </div>
+      </div>
+      {/* Input skeleton */}
+      <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border">
+        <div className="flex items-end gap-2">
+          <Skeleton className="h-10 flex-1 rounded-md" />
+          <Skeleton className="h-10 w-10 rounded-md" />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -108,43 +210,95 @@ function TicketListItem({
   ticket: SupportTicket;
   onClick: () => void;
 }) {
-  const history = getTicketHistory(ticket);
-  const firstMessage = history[0]?.message || ticket.details?.subject || "";
-  const preview = firstMessage.length > 120 ? firstMessage.slice(0, 120) + "..." : firstMessage;
-  const date = new Date(ticket.createdAt);
-  const formattedDate = date.toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
-  });
+  const { t } = useTranslation("support");
+  const messagesCount = ticket.messagesCount ?? getTicketHistory(ticket).length;
+  const lastMsg = ticket.lastMessage?.message ?? getTicketHistory(ticket).at(-1)?.message ?? "";
+  const subject = ticket.details?.subject || lastMsg;
+  const subjectLine = subject.length > 80 ? subject.slice(0, 80) + "..." : subject;
+  const hasExplicitSubject = !!ticket.details?.subject;
+  const previewLine = hasExplicitSubject && lastMsg
+    ? (lastMsg.length > 120 ? lastMsg.slice(0, 120) + "..." : lastMsg)
+    : null;
+  const StatusIcon = STATUS_ICONS[ticket.status];
+  const isClosed = ticket.status === "CLOSED";
 
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full text-left p-4 rounded-xl border transition-colors cursor-pointer",
-        "hover:bg-surface-hover hover:border-border-strong",
-        "bg-card",
-        ticket.hasUnread && "border-primary/40 bg-primary/[0.03] dark:bg-primary/[0.06]",
+        "group w-full text-left rounded-xl transition-all duration-200 cursor-pointer overflow-hidden",
+        "bg-surface hover:bg-surface-hover",
+        ticket.hasUnread
+          ? "ring-1 ring-primary/30 hover:ring-primary/50"
+          : "ring-1 ring-border hover:ring-border-strong",
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0 space-y-1.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <CategoryBadge category={ticket.category} />
-            <StatusBadge status={ticket.status} />
-            {ticket.hasUnread && (
-              <span className="flex h-2 w-2 rounded-full bg-primary" />
-            )}
+      {/* Top accent bar for unread tickets */}
+      {ticket.hasUnread && (
+        <div className="h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+      )}
+
+      <div className="p-4 space-y-3">
+        {/* Header: Status icon + ID + Date */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className={cn(
+              "flex-shrink-0 flex items-center justify-center h-7 w-7 rounded-lg",
+              isClosed
+                ? "bg-neutral-100 dark:bg-neutral-800"
+                : ticket.status === "IN_PROGRESS"
+                  ? "bg-warning-bg"
+                  : "bg-info-bg",
+            )}>
+              <StatusIcon className={cn(
+                "h-3.5 w-3.5",
+                isClosed
+                  ? "text-neutral-500 dark:text-neutral-400"
+                  : ticket.status === "IN_PROGRESS"
+                    ? "text-warning"
+                    : "text-info",
+              )} />
+            </div>
+            <span className="text-xs font-medium text-foreground-3 tabular-nums">
+              {t("ticket.ticketId", { id: ticket.id })}
+            </span>
           </div>
-          <p className="text-sm text-foreground-1 line-clamp-2">{preview}</p>
+          <div className="flex items-center gap-2">
+            {ticket.hasUnread && (
+              <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+            )}
+            <span className="text-xs text-foreground-3">{formatRelativeDate(ticket.createdAt, t)}</span>
+          </div>
+        </div>
+
+        {/* Subject */}
+        <p className={cn(
+          "text-sm font-semibold leading-snug line-clamp-2",
+          isClosed ? "text-foreground-2" : "text-foreground-1",
+        )}>
+          {subjectLine}
+        </p>
+
+        {/* Preview */}
+        {previewLine && (
+          <p className="text-[13px] text-foreground-3 leading-relaxed line-clamp-2">
+            {previewLine}
+          </p>
+        )}
+
+        {/* Footer: Badges + Meta */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-border/60">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <StatusBadge status={ticket.status} />
+            <CategoryBadge category={ticket.category} />
+          </div>
           <div className="flex items-center gap-3 text-xs text-foreground-3">
-            <span>{formattedDate}</span>
             <span className="flex items-center gap-1">
               <MessageSquare className="h-3 w-3" />
-              {history.length}
+              {messagesCount}
             </span>
+            <ChevronRight className="h-3.5 w-3.5 text-foreground-3/50 transition-transform group-hover:translate-x-0.5" />
           </div>
         </div>
       </div>
@@ -188,38 +342,43 @@ function ConversationView({
   return (
     <div className="flex flex-col h-full">
       {/* Conversation Header */}
-      <div className="flex items-center justify-between gap-3 pb-4 border-b border-border">
-        <div className="flex items-center gap-3 min-w-0">
-          <Button variant="ghost" size="icon" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-            <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-medium text-foreground-1">{t("ticket.ticketId", { id: ticket.id })}</span>
-              <CategoryBadge category={ticket.category} />
-              <StatusBadge status={ticket.status} />
-            </div>
-            <p className="text-xs text-foreground-3 mt-0.5">
-              {t("ticket.created", {
-                date: new Date(ticket.createdAt).toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }),
-              })}
-            </p>
+      <div className="border-b border-border bg-surface-hover/40 flex-shrink-0 px-3 py-2.5 md:px-4 md:py-3 space-y-2">
+        {/* Row 1: Back + Ticket ID + Close button */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Button variant="ghost" size="icon" className="flex-shrink-0 -ml-1 h-8 w-8" onClick={onBack}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-semibold text-foreground-1 truncate">
+              {t("ticket.ticketId", { id: ticket.id })}
+            </span>
           </div>
+          {!isClosed && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onClose}
+              disabled={isClosing}
+              className="flex-shrink-0 h-8 text-xs"
+            >
+              {isClosing ? t("ticket.closing") : t("ticket.closeTicket")}
+            </Button>
+          )}
         </div>
-        {!isClosed && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onClose}
-            disabled={isClosing}
-          >
-            {isClosing ? t("ticket.closing") : t("ticket.closeTicket")}
-          </Button>
-        )}
+        {/* Row 2: Badges + Date */}
+        <div className="flex items-center justify-between gap-2 pl-8 md:pl-9">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <StatusBadge status={ticket.status} />
+            <CategoryBadge category={ticket.category} />
+          </div>
+          <span className="text-[11px] text-foreground-3 flex-shrink-0">
+            {new Date(ticket.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+          </span>
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto py-4 space-y-3 min-h-0">
+      <div className="flex-1 overflow-y-auto py-4 px-4 space-y-3 min-h-0">
         {history.map((entry, i) => {
           const isAdmin = entry.createdBy === "admin";
           const isOwnMessage = !isAdmin;
@@ -232,18 +391,33 @@ function ConversationView({
                 isOwnMessage ? "justify-end" : "justify-start",
               )}
             >
-              <div
-                className={cn(
-                  "max-w-[80%] rounded-2xl px-4 py-2.5",
-                  isOwnMessage
-                    ? "bg-primary text-white rounded-br-md"
-                    : "bg-surface-hover dark:bg-neutral-800 text-foreground-1 rounded-bl-md",
+              <div className={cn(
+                "max-w-[80%] flex flex-col gap-0.5",
+                isOwnMessage ? "items-end" : "items-start",
+              )}>
+                <div
+                  className={cn(
+                    "rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap break-words",
+                    isOwnMessage
+                      ? "bg-primary text-white rounded-br-sm"
+                      : "bg-surface-active text-foreground-1 rounded-bl-sm",
+                  )}
+                >
+                  {isAdmin && (
+                    <p className="text-[10px] font-semibold mb-1 opacity-60 uppercase tracking-wide">
+                      {t("ticket.supportTeam")}
+                    </p>
+                  )}
+                  {entry.message}
+                </div>
+                {entry.timestamp && (
+                  <span className="text-[10px] text-foreground-3 px-1">
+                    {new Date(entry.timestamp).toLocaleTimeString(undefined, {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
                 )}
-              >
-                {isAdmin && (
-                  <p className="text-xs font-medium mb-1 opacity-70">{t("ticket.supportTeam")}</p>
-                )}
-                <p className="text-sm whitespace-pre-wrap break-words">{entry.message}</p>
               </div>
             </div>
           );
@@ -251,31 +425,33 @@ function ConversationView({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      {isClosed ? (
-        <div className="flex items-center justify-center gap-2 py-4 border-t border-border text-foreground-3 text-sm">
-          <Lock className="h-4 w-4" />
-          {t("ticket.ticketClosed")}
-        </div>
-      ) : (
-        <form onSubmit={handleSubmit} className="flex items-end gap-2 pt-4 border-t border-border">
-          <Textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={t("ticket.typeMessage")}
-            className="min-h-10 max-h-32 resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit(e);
-              }
-            }}
-          />
-          <Button type="submit" size="icon" disabled={!message.trim() || isSending}>
-            <Send className="h-4 w-4" />
-          </Button>
-        </form>
-      )}
+      {/* Input Area */}
+      <div className="flex-shrink-0 px-4 pb-4 pt-3 border-t border-border">
+        {isClosed ? (
+          <div className="flex items-center justify-center gap-2 py-3 text-foreground-3 text-sm">
+            <Lock className="h-4 w-4" />
+            {t("ticket.ticketClosed")}
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="flex items-end gap-2">
+            <Textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder={t("ticket.typeMessage")}
+              className="min-h-10 max-h-32 resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+            />
+            <Button type="submit" size="icon" disabled={!message.trim() || isSending}>
+              <Send className="h-4 w-4" />
+            </Button>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -310,60 +486,101 @@ function NewTicketDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md !rounded-2xl !p-0 overflow-hidden">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>{t("dialog.title")}</DialogTitle>
-            <DialogDescription>
-              {t("dialog.description")}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
+          {/* Header */}
+          <div className="px-5 pt-5 pb-4 sm:px-6 sm:pt-6">
+            <div className="space-y-1">
+              <DialogTitle className="text-lg font-semibold text-foreground-1">
+                {t("dialog.title")}
+              </DialogTitle>
+              <DialogDescription className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                {t("dialog.description")}
+              </DialogDescription>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-border dark:bg-border-strong" />
+
+          {/* Form body */}
+          <div className="px-5 py-5 sm:px-6 space-y-5">
+            {/* Category */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground-1">{t("dialog.categoryLabel")}</label>
-              <Select value={category} onValueChange={(v) => setCategory(v as TicketCategory)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="question">
-                    <div className="flex items-center gap-2">
-                      <HelpCircle className="h-4 w-4" />
-                      {t("category.question")}
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="bug">
-                    <div className="flex items-center gap-2">
-                      <Bug className="h-4 w-4" />
-                      {t("category.bugReport")}
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCategory("question")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 rounded-full !px-3 !py-1.5 !min-h-0 !h-auto text-sm font-medium border transition-colors cursor-pointer",
+                    category === "question"
+                      ? "bg-primary/10 text-primary border-primary/20 font-semibold"
+                      : "border-border bg-surface text-foreground-2 hover:bg-surface-hover",
+                  )}
+                >
+                  <HelpCircle className="h-4 w-4" />
+                  {t("category.question")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCategory("bug")}
+                  className={cn(
+                    "flex-1 flex items-center justify-center gap-2 rounded-full !px-3 !py-1.5 !min-h-0 !h-auto text-sm font-medium border transition-colors cursor-pointer",
+                    category === "bug"
+                      ? "bg-primary/10 text-primary border-primary/20 font-semibold"
+                      : "border-border bg-surface text-foreground-2 hover:bg-surface-hover",
+                  )}
+                >
+                  <Bug className="h-4 w-4" />
+                  {t("category.bugReport")}
+                </button>
+              </div>
             </div>
+
+            {/* Message */}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground-1">{t("dialog.messageLabel")}</label>
               <Textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder={t("dialog.messagePlaceholder")}
-                className="min-h-28"
+                className="min-h-32 resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                 maxLength={10000}
               />
             </div>
           </div>
-          <DialogFooter>
+
+          {/* Divider */}
+          <div className="h-px bg-border dark:bg-border-strong" />
+
+          {/* Footer */}
+          <div className="px-5 py-4 sm:px-6 flex justify-between gap-3">
             <Button
               type="button"
               variant="outline"
+              rounded="full"
               onClick={() => onOpenChange(false)}
+              className="h-11 w-32 cursor-pointer"
             >
               {t("dialog.cancel")}
             </Button>
-            <Button type="submit" disabled={!message.trim() || isCreating}>
-              {isCreating ? t("ticket.submitting") : t("ticket.submitTicket")}
+            <Button
+              type="submit"
+              rounded="full"
+              disabled={!message.trim() || isCreating}
+              className="group h-11 flex-1 cursor-pointer gap-2"
+            >
+              {isCreating ? (
+                <Spinner size="sm" color="white" />
+              ) : (
+                <>
+                  {t("ticket.submitTicket")}
+                  <Send className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-0.5" />
+                </>
+              )}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
@@ -384,7 +601,6 @@ export default function SupportPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null);
   const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
-  const [statusFilter, setStatusFilter] = useState<"all" | TicketStatus>("all");
 
   useEffect(() => {
     dispatch(listTicketsAction.request());
@@ -428,101 +644,90 @@ export default function SupportPage() {
     dispatch(closeTicketAction.request({ id: selectedTicketId }));
   }, [dispatch, selectedTicketId]);
 
-  const filteredTickets = statusFilter === "all"
-    ? tickets
-    : tickets.filter((t) => t.status === statusFilter);
+  // Navigate back to the list after a ticket is successfully closed
+  const prevIsClosing = useRef(false);
+  useEffect(() => {
+    if (prevIsClosing.current && !isClosing && selectedTicketId !== null) {
+      setSelectedTicketId(null);
+      dispatch(clearCurrentTicketAction());
+    }
+    prevIsClosing.current = isClosing;
+  }, [isClosing, selectedTicketId, dispatch]);
+
+  const filteredTickets = tickets;
 
   const showConversation = selectedTicketId !== null;
 
+  const newTicketButton = !showConversation ? (
+    <Button
+      onClick={() => setIsNewTicketOpen(true)}
+      size="sm"
+      rounded="full"
+      className="btn-primary shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold gap-1.5 !px-3.5 text-xs"
+    >
+      <Plus className="size-3.5 shrink-0" />
+      {t("ticket.newTicket")}
+    </Button>
+  ) : undefined;
+
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <AppLayout headerRightContent={newTicketButton}>
+      <div className="space-y-4 px-2 py-4 md:px-0 md:py-0 md:space-y-6">
         {/* Page Header */}
-        <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+        <div className="mb-4 w-full border-b border-border-strong hidden md:flex items-center justify-between pr-4">
           <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
             {t("page.title")}
           </h1>
+          {!showConversation && (
+            <Button
+              onClick={() => setIsNewTicketOpen(true)}
+              className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto"
+            >
+              <Plus className="h-4 w-4" />
+              <span>{t("ticket.newTicket")}</span>
+            </Button>
+          )}
         </div>
 
         {showConversation ? (
-          <div className="px-4 md:px-0">
-            <Card className="overflow-hidden">
-              <CardContent className="p-4 md:p-6 h-[calc(100vh-220px)] flex flex-col">
-                {isFetchingTicket || !currentTicket?.details ? (
-                  <div className="flex-1 flex items-center justify-center">
-                    <Spinner size="lg" />
-                  </div>
-                ) : (
-                  <ConversationView
-                    ticket={currentTicket}
-                    isSending={isSending}
-                    isClosing={isClosing}
-                    onSendMessage={handleSendMessage}
-                    onClose={handleCloseTicket}
-                    onBack={handleBack}
-                  />
-                )}
-              </CardContent>
-            </Card>
+          <div className="px-2 md:px-0">
+            <div
+              className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col"
+              style={{ height: "calc(100dvh - 140px)" }}
+            >
+              {isFetchingTicket || !currentTicket?.details ? (
+                <ConversationSkeleton />
+              ) : (
+                <ConversationView
+                  ticket={currentTicket}
+                  isSending={isSending}
+                  isClosing={isClosing}
+                  onSendMessage={handleSendMessage}
+                  onClose={handleCloseTicket}
+                  onBack={handleBack}
+                />
+              )}
+            </div>
           </div>
         ) : (
           <>
-            {/* Toolbar */}
-            <div className="flex items-center justify-between gap-3 px-4 md:px-0">
-              <div className="flex items-center gap-2 overflow-x-auto">
-                {(["all", "OPEN", "IN_PROGRESS", "REOPENED", "CLOSED"] as const).map((s) => (
-                  <Button
-                    key={s}
-                    variant={statusFilter === s ? "default" : "outline"}
-                    size="sm"
-                    rounded="full"
-                    onClick={() => setStatusFilter(s)}
-                  >
-                    {t(`status.${s}`)}
-                  </Button>
-                ))}
-              </div>
-              <Button size="sm" onClick={() => setIsNewTicketOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t("ticket.newTicket")}
-              </Button>
-            </div>
-
             {/* Ticket List */}
-            <div className="px-4 md:px-0">
+            <div className="px-2 md:px-0">
               {isLoading ? (
-                <div className="flex items-center justify-center py-20">
-                  <Spinner size="lg" />
-                </div>
+                <TicketListSkeleton />
               ) : filteredTickets.length === 0 ? (
-                tickets.length === 0 ? (
-                  <EmptyState
-                    title={t("empty.noTickets")}
-                    description={t("empty.description")}
-                    icon={LifeBuoy}
-                    actionButton={{
-                      label: t("empty.createFirst"),
-                      onClick: () => setIsNewTicketOpen(true),
-                      icon: Plus,
-                    }}
-                  />
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-20 text-center gap-2">
-                    <CircleDot className="h-10 w-10 text-foreground-3" />
-                    <p className="text-sm text-foreground-3">
-                      {t("empty.noMatch")}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setStatusFilter("all")}
-                    >
-                      {t("empty.clearFilter")}
-                    </Button>
-                  </div>
-                )
+                <EmptyState
+                  title={t("empty.noTickets")}
+                  description={t("empty.description")}
+                  icon={LifeBuoy}
+                  actionButton={{
+                    label: t("empty.createFirst"),
+                    onClick: () => setIsNewTicketOpen(true),
+                    icon: Plus,
+                  }}
+                />
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {filteredTickets.map((ticket) => (
                     <TicketListItem
                       key={ticket.id}

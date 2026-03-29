@@ -1,11 +1,6 @@
-export { BusinessStatusWidget } from './BusinessStatusWidget';
-export { TodayPerformanceWidget } from './TodayPerformanceWidget';
+export { TodayOverviewWidget } from './TodayOverviewWidget';
+export { NeedsAttentionWidget } from './NeedsAttentionWidget';
 export { AppointmentBreakdownWidget } from './AppointmentBreakdownWidget';
-export { AppointmentsVolumeWidget } from './AppointmentsVolumeWidget';
 export { CapacityUtilizationWidget } from './CapacityUtilizationWidget';
-export { RevenueSnapshotWidget } from './RevenueSnapshotWidget';
-export { StaffUtilizationWidget } from './StaffUtilizationWidget';
 export { ReviewsWidget } from './ReviewsWidget';
-export { WorkingHoursWidget } from './WorkingHoursWidget';
-export { BusinessHealthSummaryWidget } from './BusinessHealthSummaryWidget';
 export { RadialGauge } from './RadialGauge';

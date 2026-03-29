@@ -49,6 +49,13 @@ export default function TeamMembersPage() {
 
   useEffect(() => {
     if (deepLinkHandled.current) return;
+    const actionParam = searchParams.get("action");
+    if (actionParam === "invite") {
+      deepLinkHandled.current = true;
+      setSearchParams({}, { replace: true });
+      setIsInviteSliderOpen(true);
+      return;
+    }
     const memberIdParam = searchParams.get("memberId");
     if (!memberIdParam) return;
     if (isTeamMembersLoading || teamMembers.length === 0) return;
@@ -385,7 +392,7 @@ export default function TeamMembersPage() {
                               className="flex-1"
                             >
                               <XCircle className="h-4 w-4" />
-                              {text("page.confirmDialog.cancel")}
+                              {text("page.confirmDialog.cancelInvitationBtn")}
                             </Button>
                           </div>
                         );

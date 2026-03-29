@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Star, MessageSquare } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowUpRight } from 'lucide-react';
 
 interface RatingDistribution {
   '5': number;
@@ -15,104 +16,180 @@ interface ReviewsWidgetProps {
   ratingDistribution: RatingDistribution;
 }
 
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map(s => (
-        <Star
-          key={s}
-          className={`h-3.5 w-3.5 ${s <= rating ? 'text-warning fill-warning' : 'text-foreground-3'}`}
-        />
-      ))}
-    </div>
-  );
+const GAUGE_COLORS = ['#E8785E', '#E8B44C', '#D6CE5C', '#5CC4A8', '#2EA88E'];
+const GRADIENT = 'linear-gradient(to right, #E8907A, #F2C87A, #ECE0A0, #A8D8C8, #58B5A9)';
+
+function toXY(cx: number, cy: number, r: number, deg: number) {
+  const rad = (deg * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+}
+
+function arc(cx: number, cy: number, r: number, from: number, to: number) {
+  const s = toXY(cx, cy, r, from);
+  const e = toXY(cx, cy, r, to);
+  return `M ${s.x} ${s.y} A ${r} ${r} 0 0 1 ${e.x} ${e.y}`;
 }
 
 export function ReviewsWidget({
   averageRating,
   totalReviews,
-  ratingDistribution,
 }: ReviewsWidgetProps) {
   const { t } = useTranslation('dashboard');
+  const navigate = useNavigate();
   const isEmpty = totalReviews === 0;
-  const maxCount = Math.max(...Object.values(ratingDistribution), 1);
+
+  const cx = 100;
+  const cy = 100;
+  const r = 64;
+  const sw = 18;
+  const gap = 3;
+  const seg = 36; // 180° / 5
+
+  // Indicator is always fixed dead-center under the 3rd wedge (90°)
+  const dotX = cx;
+  const dotY = cy - r + sw;
+
+  // Which wedge the rating falls into (0–4)
+  const clampedRating = Math.min(Math.max(averageRating, 0), 5);
+  const activeWedge = Math.min(Math.floor(clampedRating), 4);
 
   return (
-    <div className="flex flex-col gap-4 h-full">
+    <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <div className="h-7 w-7 rounded-lg bg-warning-bg flex items-center justify-center">
-          <Star className="h-3.5 w-3.5 text-warning" />
-        </div>
+      <div className="flex items-center justify-between mb-1">
         <p className="text-xs font-semibold uppercase tracking-wide text-foreground-3">
           {t('reviews.title')}
         </p>
+        <button
+          onClick={() => navigate('/marketplace?tab=reviews')}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
+        >
+          <span className="text-[11px] font-medium">{t('reviews.seeAll')}</span>
+          <ArrowUpRight className="h-3 w-3" />
+        </button>
       </div>
 
-      {isEmpty ? (
-        /* Empty state */
-        <div className="flex-1 flex flex-col items-center justify-center gap-3 py-4">
-          <div className="flex items-center gap-0.5 opacity-30">
-            {[1, 2, 3, 4, 5].map(s => (
-              <Star key={s} className="h-5 w-5 text-foreground-3" />
-            ))}
+      {/* Gauge */}
+      <div className="flex-1 flex flex-col items-center justify-center">
+        <svg viewBox="0 0 200 116" className="w-full max-w-[240px]">
+          {/* Shadow filter for indicator */}
+          <defs>
+            <filter id="dot-shadow" x="-50%" y="-50%" width="200%" height="200%">
+              <feDropShadow dx="0" dy="1" stdDeviation="2" floodOpacity="0.18" />
+            </filter>
+          </defs>
+
+          {/* Arc segments */}
+          {GAUGE_COLORS.map((color, i) => (
+            <path
+              key={i}
+              d={arc(cx, cy, r, 180 - i * seg - gap / 2, 180 - (i + 1) * seg + gap / 2)}
+              fill="none"
+              stroke={isEmpty ? '#D6D9DE' : color}
+              strokeWidth={sw}
+              strokeLinecap="butt"
+              opacity={isEmpty ? 0.5 : i === activeWedge ? 1 : 0.35}
+            />
+          ))}
+
+          {/* Number labels: 0, 2, 3, 4, 5 at 45° intervals */}
+          {[0, 2, 3, 4, 5].map((n, i) => {
+            const p = toXY(cx, cy, r + sw / 2 + 12, 180 - i * 45);
+            return (
+              <text
+                key={n}
+                x={p.x}
+                y={p.y}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize="10.5"
+                fontWeight="500"
+                fill="currentColor"
+                opacity={0.38}
+              >
+                {n}
+              </text>
+            );
+          })}
+
+          {/* Rating indicator pill */}
+          {!isEmpty && (
+            <g filter="url(#dot-shadow)">
+              <rect
+                x={dotX - 14}
+                y={dotY - 9}
+                width={28}
+                height={18}
+                rx={6}
+                fill={GAUGE_COLORS[activeWedge]}
+              />
+              <rect
+                x={dotX - 14}
+                y={dotY - 9}
+                width={28}
+                height={18}
+                rx={6}
+                fill="none"
+                stroke="white"
+                strokeWidth={2.5}
+              />
+              <text
+                x={dotX}
+                y={dotY + 0.5}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize="10"
+                fontWeight="700"
+                fill="white"
+              >
+                {averageRating.toFixed(1)}
+              </text>
+            </g>
+          )}
+
+          {/* Center text — review count or empty label */}
+          <text
+            x={cx}
+            y={cy}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontSize="10"
+            fill="currentColor"
+            opacity={0.38}
+          >
+            {isEmpty
+              ? t('reviews.noReviews')
+              : `${totalReviews} ${totalReviews === 1 ? t('reviews.review') : t('reviews.reviews')}`}
+          </text>
+        </svg>
+
+        {/* Gradient bar + Worst / Amazing labels */}
+        <div className="w-full max-w-[160px] flex flex-col gap-1 -mt-2">
+          <div className="relative">
+            <div
+              className="h-[5px] rounded-full"
+              style={{
+                background: isEmpty ? '#D6D9DE' : GRADIENT,
+                opacity: isEmpty ? 0.5 : 1,
+              }}
+            />
+            {!isEmpty && (
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-[3px] h-3 rounded-full"
+                style={{
+                  left: `${(clampedRating / 5) * 100}%`,
+                  marginLeft: '-1.5px',
+                  backgroundColor: GAUGE_COLORS[activeWedge],
+                }}
+              />
+            )}
           </div>
-          <div className="text-center space-y-1">
-            <p className="text-sm font-semibold text-foreground-2">{t('reviews.noReviews')}</p>
-            <p className="text-xs text-foreground-3 max-w-[180px] leading-relaxed">
-              {t('reviews.noReviewsDescription')}
-            </p>
-          </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-surface-active border border-border-subtle">
-            <MessageSquare className="h-3 w-3 text-foreground-3" />
-            <span className="text-[10px] text-foreground-3">{t('reviews.totalReviews')}</span>
+          <div className="flex justify-between">
+            <span className="text-[10px] text-foreground-3">{t('reviews.worst')}</span>
+            <span className="text-[10px] text-foreground-3">{t('reviews.amazing')}</span>
           </div>
         </div>
-      ) : (
-        <>
-          {/* Rating hero */}
-          <div className="flex items-center gap-3">
-            <div className="h-14 w-14 rounded-2xl bg-warning-bg border border-warning-border flex flex-col items-center justify-center shrink-0">
-              <p className="text-xl font-bold text-warning tabular-nums leading-none">
-                {averageRating.toFixed(1)}
-              </p>
-              <Star className="h-3 w-3 text-warning fill-warning mt-0.5" />
-            </div>
-            <div className="flex flex-col gap-1">
-              <StarRating rating={Math.round(averageRating)} />
-              <p className="text-[10px] text-foreground-3">
-                {totalReviews === 1 ? t('reviews.basedOnReview', { count: totalReviews }) : t('reviews.basedOnReviews', { count: totalReviews })}
-              </p>
-            </div>
-          </div>
-
-          {/* Distribution bars */}
-          <div className="flex flex-col gap-1.5">
-            {[5, 4, 3, 2, 1].map(star => {
-              const count = ratingDistribution[String(star) as keyof RatingDistribution];
-              const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
-              const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
-              return (
-                <div key={star} className="flex items-center gap-2">
-                  <div className="flex items-center gap-0.5 w-8 shrink-0">
-                    <span className="text-[10px] font-medium text-foreground-2">{star}</span>
-                    <Star className="h-2.5 w-2.5 text-warning fill-warning" />
-                  </div>
-                  <div className="flex-1 h-1.5 rounded-full bg-surface-active overflow-hidden">
-                    <div
-                      className="h-full bg-warning rounded-full transition-all duration-700"
-                      style={{ width: `${barWidth}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-foreground-3 tabular-nums w-7 text-right">
-                    {pct}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </>
-      )}
+      </div>
     </div>
   );
 }

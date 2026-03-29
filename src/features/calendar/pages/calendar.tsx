@@ -4,7 +4,7 @@ import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction, setSelectedLocationAction, setSelectedDateAction } from "../actions";
+import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction, setSelectedLocationAction, setSelectedDateAction, setStaffFilter } from "../actions";
 import { getAppointmentDetailRequest } from "../api";
 import {
   getAddFormSelector,
@@ -13,6 +13,7 @@ import {
   getSidebarOpen,
   getSelectedLocationId,
   getLocationContext,
+  getLocationTeamMembers,
 } from "../selectors.ts";
 import { AppointmentViewMode } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
@@ -35,6 +36,7 @@ const Calendar = () => {
   const sidebarOpen = useSelector(getSidebarOpen);
   const selectedLocationId = useSelector(getSelectedLocationId);
   const locationContext = useSelector(getLocationContext);
+  const locationTeamMembers = useSelector(getLocationTeamMembers);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -63,6 +65,26 @@ const Calendar = () => {
       })
       .catch(() => {});
   }, [searchParams, setSearchParams, dispatch]);
+
+  const pendingStaffEmail = useRef<string | null>(null);
+
+  useEffect(() => {
+    const staffEmailParam = searchParams.get("staffEmail");
+    if (!staffEmailParam) return;
+
+    setSearchParams({}, { replace: true });
+    pendingStaffEmail.current = staffEmailParam;
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!pendingStaffEmail.current || locationTeamMembers.length === 0) return;
+
+    const match = locationTeamMembers.find((m) => m.email === pendingStaffEmail.current);
+    if (match) {
+      dispatch(setStaffFilter([match.userId]));
+      pendingStaffEmail.current = null;
+    }
+  }, [locationTeamMembers, dispatch]);
 
   useEffect(() => {
     // Locations needed for LocationSelector. Services and team are loaded per-location via assignments/full when a location is selected.

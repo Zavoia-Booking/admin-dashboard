@@ -117,8 +117,14 @@ export const rescheduleGroupRequest = async (bookingGroupId: string, payload: Re
 }
 
 /** PUT /appointments/:id (update status, reschedule, reassign, etc.) */
-export const updateAppointmentRequest = async (appointmentId: number, payload: any): Promise<any> => {
+export const updateAppointmentRequest = async (appointmentId: string | number, payload: any): Promise<any> => {
     const { data } = await apiClient().put(`/appointments/${appointmentId}`, payload);
+    return data;
+}
+
+/** PUT /appointments/bulk-status (bulk update status for multiple appointments) */
+export const bulkUpdateAppointmentStatusRequest = async (ids: number[], status: string): Promise<any> => {
+    const { data } = await apiClient().put('/appointments/bulk-status', { ids, status });
     return data;
 }
 

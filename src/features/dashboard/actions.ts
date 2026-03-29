@@ -1,55 +1,92 @@
 import { createAsyncAction } from "typesafe-actions";
 
-// Dashboard data types for the API response
+export interface StaffSnapshot {
+  userId: number;
+  lastName: string;
+  userUuid: string;
+  firstName: string;
+  profileImage: string | null;
+  professionalTitle?: string | null;
+}
+
+export interface CustomerSnapshot {
+  email: string;
+  phone: string;
+  userId: number;
+  lastName: string;
+  userUuid: string;
+  firstName: string;
+  profileImage: string | null;
+}
+
+export interface AppointmentDistribution {
+  pending: number;
+  confirmed: number;
+  completed: number;
+  no_show: number;
+  cancelled: number;
+}
+
+export interface UpcomingAppointment {
+  uuid: string;
+  bookedItemName: string;
+  scheduledAt: string;
+  endsAt: string;
+  duration: number;
+  price: number;
+  status: string;
+  staffSnapshot: StaffSnapshot[];
+  customerSnapshot: CustomerSnapshot;
+}
+
+export interface LocationStaffMember {
+  firstName: string;
+  lastName: string;
+  profileImage: string | null;
+  email: string;
+  phone: string;
+}
+
+export interface UnresolvedAppointment {
+  id: number;
+  uuid: string;
+  bookedItemName: string;
+  scheduledAt: string;
+  endsAt: string;
+  status: string;
+  customerSnapshot: CustomerSnapshot;
+  staffSnapshot: StaffSnapshot[];
+}
+
+export interface NeedsAttentionItem {
+  type: string;
+  count: number;
+  appointments: UnresolvedAppointment[];
+}
+
 export interface DashboardApiResponse {
-  location: {
+  locationWidget: {
     name: string;
     id: number;
     isCurrentlyOpen: boolean;
-    open247: boolean;
-    timezone: string;
-    workingHours:
-      | Array<{ day: string; isOpen: boolean; openTime?: string; closeTime?: string }>
-      | Record<string, { open?: string; close?: string; isOpen?: boolean }>;
+    staff: LocationStaffMember[];
+    appointmentsToday: number;
+    appointmentsThisWeek: number;
+    appointmentsThisMonth: number;
+    potentialRevenueToday: number;
+    potentialRevenueThisWeek: number;
+    potentialRevenueThisMonth: number;
   };
-  todayWidget: {
-    appointments: number;
-    revenue: number;
-    staffAvailable: number;
-    staffLoadPercentage: number;
-    todayDistribution: {
-      pending: number;
-      confirmed: number;
-      completed: number;
-      no_show: number;
-      cancelled: number;
-    };
+  capacityUtilizationWidget: {
+    today: { filledPercentage: number; availablePercentage: number };
+    week: { filledPercentage: number; availablePercentage: number };
+    month: { filledPercentage: number; availablePercentage: number };
   };
   appointmentWidget: {
-    monthlyAppointments: number;
-    weeklyAppointments: number;
-    monthlyLoadPercentage: number;
-    weeklyLoadPercentage: number;
-    weeklyDistribution: {
-      pending: number;
-      confirmed: number;
-      completed: number;
-      no_show: number;
-      cancelled: number;
-    };
-    monthlyDistribution: {
-      pending: number;
-      confirmed: number;
-      completed: number;
-      no_show: number;
-      cancelled: number;
-    };
-  };
-  revenueWidget: {
-    revenueThisWeek: number;
-    revenueThisMonth: number;
-    monthlyLoadPercentage: number;
-    weeklyLoadPercentage: number;
+    today: AppointmentDistribution;
+    week: AppointmentDistribution;
+    month: AppointmentDistribution;
+    upcoming: UpcomingAppointment[];
   };
   reviewWidget: {
     averageRating: number;
@@ -62,6 +99,7 @@ export interface DashboardApiResponse {
       "1": number;
     };
   };
+  needsAttentionWidget: NeedsAttentionItem[];
 }
 
 export const fetchDashboardDataAction = createAsyncAction(

@@ -13,6 +13,7 @@ export type BreadcrumbItemType = {
 
 interface BreadcrumbsProps {
   items: BreadcrumbItemType[];
+  rightContent?: React.ReactNode;
 }
 
 const BELL_ROUTES = new Set([
@@ -23,7 +24,6 @@ const BELL_ROUTES = new Set([
   '/customers',
   '/services',
   '/locations',
-  '/support',
 ]);
 
 const SETTINGS_BELL_TABS = new Set(['billing', 'advanced']);
@@ -39,7 +39,7 @@ function shouldShowBell(pathname: string, search: string): boolean {
   return false;
 }
 
-export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
+export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -70,11 +70,15 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items }) => {
           {current?.label}
         </span>
 
-        {showBell && (
+        {rightContent ? (
+          <div className="ml-auto">
+            {rightContent}
+          </div>
+        ) : showBell ? (
           <div className="ml-auto">
             <NotificationBell variant="header" />
           </div>
-        )}
+        ) : null}
       </div>
     </div>
   );

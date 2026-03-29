@@ -34,7 +34,8 @@
       "cancelInvitation": "Revocă invitația",
       "cancelInvitationDescription": "Ești sigur că vrei să revoci invitația pentru {{email}}?",
       "confirmRevoke": "Da, revocă",
-      "cancel": "Înapoi"
+      "cancel": "Înapoi",
+      "cancelInvitationBtn": "Anulează"
     }
   },
   "filters": {

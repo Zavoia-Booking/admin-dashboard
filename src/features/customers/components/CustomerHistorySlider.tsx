@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
-import { History, Loader2, MapPin, Clock, ChevronDown } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { History, Loader2, MapPin, Clock, ChevronDown, Download } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { Button } from '../../../shared/components/ui/button';
 import { cn } from '../../../shared/lib/utils';
 import { getStatusBadge } from '../../calendar/components/utils';
 import { formatActivityTimelineDateTime } from '../../calendar/timezone';
 import { getCalendarTimezone } from '../../calendar/selectors';
-import { fetchCustomerHistoryApi } from '../api';
+import { fetchAllCustomerHistoryApi, fetchCustomerHistoryApi } from '../api';
+import { buildCustomerHistoryPdfBlob } from '../buildCustomerHistoryPdf';
 import { priceFromStorage } from '../../../shared/utils/currency';
 import type {
   FullActivityItem,
@@ -16,10 +19,35 @@ import type {
   CustomersPagination,
 } from '../../../shared/types/customer';
 
+function sanitizeFilenameSegment(value: string | undefined): string {
+  if (!value) return '';
+  return value
+    .trim()
+    .replace(/[/\\?%*:|"<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildHistoryPdfFilename(
+  customerId: number,
+  firstName: string | undefined,
+  lastName: string | undefined,
+): string {
+  const first = sanitizeFilenameSegment(firstName);
+  const last = sanitizeFilenameSegment(lastName);
+  if (first && last) return `${first}-${last}.pdf`;
+  if (first) return `${first}.pdf`;
+  if (last) return `${last}.pdf`;
+  return `customer-${customerId}.pdf`;
+}
+
 interface CustomerHistorySliderProps {
   isOpen: boolean;
   onClose: () => void;
   customerId: number | null;
+  /** Used for download filename: firstName-lastName.pdf */
+  customerFirstName?: string;
+  customerLastName?: string;
   elevated?: boolean;
 }
 
@@ -70,8 +98,11 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
   isOpen,
   onClose,
   customerId,
+  customerFirstName,
+  customerLastName,
   elevated,
 }) => {
+  const { t, i18n } = useTranslation('customers');
   const calendarTimezone = useSelector(getCalendarTimezone);
   const timezone = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
 
@@ -79,6 +110,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
   const [pagination, setPagination] = useState<CustomersPagination | null>(null);
   const [isLoadingInitial, setIsLoadingInitial] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isDownloadingHistory, setIsDownloadingHistory] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
 
@@ -140,6 +172,63 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
     loadHistory(pagination.offset + pagination.limit, true);
   };
 
+  const handleDownloadHistory = async () => {
+    if (!customerId || isDownloadingHistory) return;
+
+    try {
+      setIsDownloadingHistory(true);
+      const allItems = await fetchAllCustomerHistoryApi(customerId);
+      const nameParts = [customerFirstName, customerLastName].map((s) => s?.trim()).filter(Boolean);
+      const heading =
+        nameParts.length > 0
+          ? `${t('details.history.pdf.heading')} — ${nameParts.join(' ')}`
+          : t('details.history.pdf.heading');
+      const generatedAt = new Intl.DateTimeFormat(i18n.language, {
+        dateStyle: 'long',
+        timeStyle: 'short',
+      }).format(new Date());
+      const pdfBlob = buildCustomerHistoryPdfBlob(allItems, {
+        timezone,
+        locale: i18n.language,
+        heading,
+        translations: {
+          headingDefault: t('details.history.pdf.heading'),
+          emptyState: t('details.history.pdf.emptyState'),
+          locationLabel: t('details.history.pdf.location'),
+          durationLabel: t('details.history.pdf.duration'),
+          priceLabel: t('details.history.pdf.price'),
+          sourceLabel: t('details.history.pdf.source'),
+          sourceManual: t('details.sourceManual'),
+          sourceMarketplace: t('details.sourceMarketplace'),
+          sourceImport: t('details.sourceImport'),
+          typeAppointment: t('details.history.pdf.typeAppointment'),
+          typeMilestone: t('details.history.pdf.typeMilestone'),
+          metaLine: t('details.history.pdf.metaLine', {
+            date: generatedAt,
+            count: allItems.length,
+          }),
+          pageFooter: t('details.history.pdf.pageFooter'),
+        },
+      });
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = buildHistoryPdfFilename(customerId, customerFirstName, customerLastName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(pdfUrl);
+    } catch (err) {
+      const description =
+        err instanceof Error && err.message
+          ? err.message
+          : t('details.history.downloadFailedDescription');
+      toast.error(t('details.history.downloadFailed'), { description });
+    } finally {
+      setIsDownloadingHistory(false);
+    }
+  };
+
   return (
     <BaseSlider
       isOpen={isOpen}
@@ -155,6 +244,24 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
       })}
     >
       <div className="p-4 md:p-5">
+        <div className="-mt-1 mb-3 flex justify-end md:mb-4">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            rounded="full"
+            onClick={handleDownloadHistory}
+            disabled={!customerId || isDownloadingHistory}
+            className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium text-primary hover:bg-primary/10 focus-visible:ring-focus/60 md:text-sm"
+          >
+            {isDownloadingHistory ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            <span>Download history</span>
+          </Button>
+        </div>
         {isLoadingInitial ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-7 w-7 animate-spin text-primary" />

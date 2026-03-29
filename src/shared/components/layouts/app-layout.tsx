@@ -10,9 +10,11 @@ interface AppLayoutProps {
   children: React.ReactNode;
   /** Optional class for the main content container (e.g. calendar uses md:max-w-[1400px]) */
   contentClassName?: string;
+  /** Optional content to render on the right side of the mobile breadcrumb header (replaces notification bell) */
+  headerRightContent?: React.ReactNode;
 }
 
-export function AppLayout({ children, contentClassName }: AppLayoutProps) {
+export function AppLayout({ children, contentClassName, headerRightContent }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
 
@@ -35,7 +37,7 @@ export function AppLayout({ children, contentClassName }: AppLayoutProps) {
           <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-20' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
             <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
               <div className="sticky top-0 z-30 md:hidden">
-                <Breadcrumbs items={breadcrumbs} />
+                <Breadcrumbs items={breadcrumbs} rightContent={headerRightContent} />
               </div>
               <div className="px-2 py-4 md:px-4">
                 {children}

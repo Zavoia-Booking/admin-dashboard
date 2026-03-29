@@ -35,6 +35,10 @@ export interface SupportTicket {
   seen: boolean;
   seenByAdmin?: boolean;
   hasUnread?: boolean;
+  /** Available on list response (details omitted) */
+  messagesCount?: number;
+  /** Available on list response (details omitted) */
+  lastMessage?: TicketHistoryEntry | null;
 }
 
 export interface CreateTicketPayload {

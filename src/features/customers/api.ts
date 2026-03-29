@@ -1,4 +1,9 @@
-import type { Customer, CustomerHistoryResponse, CustomersListResponse } from "../../shared/types/customer";
+import type {
+  Customer,
+  CustomerHistoryResponse,
+  CustomersListResponse,
+  FullActivityItem,
+} from "../../shared/types/customer";
 import type {
   AddCustomerPayload,
   CustomerPickerSearchPayload,
@@ -49,12 +54,27 @@ export const mergeCustomersApi = async (marketplaceCustomerId: number): Promise<
 
 export const fetchCustomerHistoryApi = async (
   customerId: number,
-  params: { offset: number; limit: number },
+  params?: { offset: number; limit: number },
 ): Promise<CustomerHistoryResponse> => {
   const { data } = await apiClient().get<CustomerHistoryResponse>(
     `/business-customers/${customerId}/history`,
     { params },
   );
   return data;
+};
+
+/** Loads every history page until `hasMore` is false (same JSON endpoint as the list). */
+export const fetchAllCustomerHistoryApi = async (customerId: number): Promise<FullActivityItem[]> => {
+  const pageSize = 100;
+  const all: FullActivityItem[] = [];
+  let offset = 0;
+  let hasMore = true;
+  while (hasMore) {
+    const res = await fetchCustomerHistoryApi(customerId, { offset, limit: pageSize });
+    all.push(...res.data);
+    hasMore = res.pagination.hasMore;
+    offset = res.pagination.offset + res.pagination.limit;
+  }
+  return all;
 };
 

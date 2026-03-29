@@ -18,13 +18,13 @@ export function ServicesAnalytics({
   topServices,
   servicesByBookingType
 }: ServicesAnalyticsProps) {
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(cents / 100);
   };
 
   const totalBookings = servicesByBookingType.single + servicesByBookingType.bundle;

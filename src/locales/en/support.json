@@ -24,7 +24,13 @@
     "typeMessage": "Type your message...",
     "newTicket": "New Ticket",
     "submitTicket": "Submit Ticket",
-    "submitting": "Submitting..."
+    "submitting": "Submitting...",
+    "searchPlaceholder": "Search tickets..."
+  },
+  "priority": {
+    "MEDIUM": "Medium",
+    "HIGH": "High",
+    "URGENT": "Urgent"
   },
   "dialog": {
     "title": "New Support Ticket",
@@ -38,7 +44,13 @@
     "noTickets": "No support tickets",
     "description": "Need help? Create a support ticket and our team will assist you.",
     "createFirst": "Create your first ticket",
-    "noMatch": "No tickets match the selected filter",
-    "clearFilter": "Clear filter"
+    "noMatch": "No tickets match your search",
+    "clearFilter": "Clear filter",
+    "clearSearch": "Clear search"
+  },
+  "dates": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}}d ago"
   }
 }

@@ -1,41 +1,42 @@
 import { useTranslation } from 'react-i18next';
 import { RadialGauge } from './RadialGauge';
-import { Info } from 'lucide-react';
+
+interface PeriodCapacity {
+  filledPercentage: number;
+  availablePercentage: number;
+}
 
 interface CapacityUtilizationWidgetProps {
-  staffLoadPercentage: number;
-  weeklyLoadPercentage: number;
-  monthlyLoadPercentage: number;
+  today: PeriodCapacity;
+  week: PeriodCapacity;
+  month: PeriodCapacity;
 }
 
-function getUtilizationLabel(pct: number, t: (key: string) => string): { label: string; color: string } {
-  if (pct <= 25) return { label: t('capacityUtilization.low'), color: 'var(--warning)' };
-  if (pct <= 60) return { label: t('capacityUtilization.moderate'), color: 'var(--info)' };
-  if (pct <= 85) return { label: t('capacityUtilization.healthy'), color: 'var(--success)' };
-  return { label: t('capacityUtilization.high'), color: 'var(--error)' };
+function getUtilizationColor(pct: number): string {
+  if (pct <= 25) return 'var(--warning)';
+  if (pct <= 60) return 'var(--info)';
+  if (pct <= 85) return 'var(--success)';
+  return 'var(--error)';
 }
 
-function getInsight(today: number, weekly: number, monthly: number, t: (key: string) => string): string {
-  const avg = (today + weekly + monthly) / 3;
-  if (avg < 15) return t('capacityUtilization.insightUnderutilized');
-  if (avg < 30) return t('capacityUtilization.insightLow');
-  if (avg < 60) return t('capacityUtilization.insightModerate');
-  if (avg < 85) return t('capacityUtilization.insightHealthy');
-  return t('capacityUtilization.insightFull');
+function getUtilizationLabel(pct: number, t: (key: string) => string): string {
+  if (pct <= 25) return t('capacityUtilization.low');
+  if (pct <= 60) return t('capacityUtilization.moderate');
+  if (pct <= 85) return t('capacityUtilization.healthy');
+  return t('capacityUtilization.high');
 }
 
 export function CapacityUtilizationWidget({
-  staffLoadPercentage,
-  weeklyLoadPercentage,
-  monthlyLoadPercentage,
+  today,
+  week,
+  month,
 }: CapacityUtilizationWidgetProps) {
   const { t } = useTranslation('dashboard');
-  const insight = getInsight(staffLoadPercentage, weeklyLoadPercentage, monthlyLoadPercentage, t);
 
   const gauges = [
-    { value: staffLoadPercentage, period: t('capacityUtilization.today'), ...getUtilizationLabel(staffLoadPercentage, t) },
-    { value: weeklyLoadPercentage, period: t('capacityUtilization.thisWeek'), ...getUtilizationLabel(weeklyLoadPercentage, t) },
-    { value: monthlyLoadPercentage, period: t('capacityUtilization.thisMonth'), ...getUtilizationLabel(monthlyLoadPercentage, t) },
+    { filled: today.filledPercentage, available: today.availablePercentage, period: t('capacityUtilization.today') },
+    { filled: week.filledPercentage, available: week.availablePercentage, period: t('capacityUtilization.thisWeek') },
+    { filled: month.filledPercentage, available: month.availablePercentage, period: t('capacityUtilization.thisMonth') },
   ];
 
   return (
@@ -44,24 +45,33 @@ export function CapacityUtilizationWidget({
         {t('capacityUtilization.title')}
       </p>
 
-      {/* Three gauges */}
-      <div className="flex flex-col items-center gap-3 flex-1">
-        {gauges.map(g => (
-          <div key={g.period} className="flex items-center gap-3 w-full">
-            <RadialGauge
-              value={g.value}
-              size={56}
-              strokeWidth={6}
-              color={g.color}
-            />
-            <div className="flex flex-col min-w-0 flex-1">
-              <span className="text-xs font-semibold text-foreground-1">{g.period}</span>
-              <span className="text-[9px]" style={{ color: g.color }}>
-                {g.label}
-              </span>
+      {/* Three gauges — row on mobile, column on desktop */}
+      <div className="flex flex-row md:flex-col items-center gap-4 md:gap-3 flex-1">
+        {gauges.map(g => {
+          const color = getUtilizationColor(g.filled);
+          const label = getUtilizationLabel(g.filled, t);
+          return (
+            <div key={g.period} className="flex flex-col md:flex-row items-center gap-1.5 md:gap-3 flex-1 md:w-full">
+              <RadialGauge
+                value={g.filled}
+                size={56}
+                strokeWidth={6}
+                color={color}
+              />
+              <div className="flex flex-col items-center md:items-start min-w-0">
+                <span className="text-xs md:text-sm font-semibold text-foreground-1">{g.period}</span>
+                <div className="flex flex-col md:flex-row items-center gap-0 md:gap-2">
+                  <span className="text-[10px] md:text-xs" style={{ color }}>
+                    {label}
+                  </span>
+                  <span className="text-[10px] md:text-xs text-foreground-3">
+                    {g.available}% {t('capacityUtilization.available')}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Utilization scale legend */}
@@ -74,15 +84,9 @@ export function CapacityUtilizationWidget({
         ].map(l => (
           <div key={l.labelKey} className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: l.color }} />
-            <span className="text-[9px] text-foreground-3">{t(l.labelKey)}</span>
+            <span className="text-[11px] text-foreground-3">{t(l.labelKey)}</span>
           </div>
         ))}
-      </div>
-
-      {/* Insight */}
-      <div className="flex items-start gap-1.5 border-t border-border-subtle pt-2">
-        <Info className="h-3 w-3 text-foreground-3 mt-0.5 shrink-0" />
-        <p className="text-[10px] text-foreground-3 leading-relaxed">{insight}</p>
       </div>
     </div>
   );

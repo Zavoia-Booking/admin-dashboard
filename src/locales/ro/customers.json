@@ -158,6 +158,22 @@
     },
     "merged": {
       "cannotEdit": "Acest client a fost combinat și nu mai poate fi editat."
+    },
+    "history": {
+      "downloadFailed": "Nu s-a putut genera PDF-ul",
+      "downloadFailedDescription": "A apărut o problemă la crearea fișierului. Încearcă din nou.",
+      "pdf": {
+        "heading": "Istoric client",
+        "emptyState": "Nu există activitate încă.",
+        "location": "Locație",
+        "duration": "Durată",
+        "price": "Preț",
+        "source": "Sursă",
+        "typeAppointment": "Programare",
+        "typeMilestone": "Reper",
+        "metaLine": "{{date}} · {{count}} înregistrări",
+        "pageFooter": "Pagina {{page}} din {{pages}}"
+      }
     }
   },
   "toasts": {

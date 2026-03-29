@@ -158,6 +158,22 @@
     },
     "merged": {
       "cannotEdit": "This customer has been merged and can no longer be edited."
+    },
+    "history": {
+      "downloadFailed": "Couldn't create PDF",
+      "downloadFailedDescription": "Something went wrong while building the file. Try again.",
+      "pdf": {
+        "heading": "Customer history",
+        "emptyState": "No activity yet.",
+        "location": "Location",
+        "duration": "Duration",
+        "price": "Price",
+        "source": "Source",
+        "typeAppointment": "Appointment",
+        "typeMilestone": "Milestone",
+        "metaLine": "{{date}} · {{count}} entries",
+        "pageFooter": "Page {{page}} of {{pages}}"
+      }
     }
   },
   "toasts": {

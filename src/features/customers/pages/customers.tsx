@@ -43,10 +43,11 @@ export default function CustomersPage() {
 
   useEffect(() => {
     dispatch(listCustomersAction.request({
+      search: searchTerm || undefined,
       filters: [],
       pagination: { offset: 0, limit: 20 }
     }));
-  }, [dispatch]);
+  }, [dispatch, searchTerm]);
 
   useEffect(() => {
     if (isMerging) {
@@ -96,14 +97,7 @@ export default function CustomersPage() {
     return highlight(text, searchTerm);
   };
 
-  const filteredCustomers = customers.filter((customer) => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      (customer.firstName || '').toLowerCase().includes(searchLower) ||
-      (customer.lastName || '').toLowerCase().includes(searchLower) ||
-      (customer.email || '').toLowerCase().includes(searchLower);
-    return matchesSearch;
-  });
+  const filteredCustomers = customers;
 
   return (
     <AppLayout>
@@ -235,6 +229,12 @@ export default function CustomersPage() {
         isOpen={isHistorySliderOpen}
         onClose={() => setIsHistorySliderOpen(false)}
         customerId={selectedCustomerId}
+        customerFirstName={
+          currentCustomer?.id === selectedCustomerId ? currentCustomer.firstName : undefined
+        }
+        customerLastName={
+          currentCustomer?.id === selectedCustomerId ? currentCustomer.lastName : undefined
+        }
         elevated={isDetailsPopupOpen}
       />
 

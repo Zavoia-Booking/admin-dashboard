@@ -24,7 +24,13 @@
     "typeMessage": "Scrie mesajul tău...",
     "newTicket": "Tichet Nou",
     "submitTicket": "Trimite Tichet",
-    "submitting": "Se trimite..."
+    "submitting": "Se trimite...",
+    "searchPlaceholder": "Caută tichete..."
+  },
+  "priority": {
+    "MEDIUM": "Mediu",
+    "HIGH": "Ridicat",
+    "URGENT": "Urgent"
   },
   "dialog": {
     "title": "Tichet Suport Nou",
@@ -38,7 +44,13 @@
     "noTickets": "Niciun tichet suport",
     "description": "Ai nevoie de ajutor? Creează un tichet suport și echipa noastră te va asista.",
     "createFirst": "Creează primul tichet",
-    "noMatch": "Niciun tichet nu corespunde filtrului selectat",
-    "clearFilter": "Resetează filtrul"
+    "noMatch": "Niciun tichet nu corespunde căutării tale",
+    "clearFilter": "Resetează filtrul",
+    "clearSearch": "Șterge căutarea"
+  },
+  "dates": {
+    "today": "Astăzi",
+    "yesterday": "Ieri",
+    "daysAgo": "acum {{count}}z"
   }
 }

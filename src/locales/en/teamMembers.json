@@ -34,7 +34,8 @@
       "cancelInvitation": "Revoke Invitation",
       "cancelInvitationDescription": "Are you sure you want to revoke the invitation for {{email}}?",
       "confirmRevoke": "Yes, revoke",
-      "cancel": "Go back"
+      "cancel": "Go back",
+      "cancelInvitationBtn": "Cancel"
     }
   },
   "filters": {
