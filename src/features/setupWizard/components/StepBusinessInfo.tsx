@@ -521,7 +521,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
                       ? "border-destructive bg-error-bg focus-visible:ring-0"
                       : "border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus"
                   }`}
-                  autoComplete="tel"
+                  autoComplete="off"
                   inputMode="tel"
                   value={(businessPhoneField.value as string) || ""}
                   onChange={handleBusinessPhoneChange}

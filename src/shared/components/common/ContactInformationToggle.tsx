@@ -136,7 +136,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                         ? 'border-destructive bg-error-bg focus-visible:ring-error'
                         : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
                     }`}
-                    autoComplete="email"
+                    autoComplete="off"
                     aria-invalid={!!emailError}
                   />
                   <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
@@ -172,7 +172,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
                         ? 'border-destructive bg-error-bg focus-visible:ring-error'
                         : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
                     }`}
-                    autoComplete="tel"
+                    autoComplete="off"
                     inputMode="tel"
                     aria-invalid={!!phoneError}
                   />

@@ -1,5 +1,8 @@
 import { getType } from "typesafe-actions";
-import { fetchDashboardDataAction, type DashboardApiResponse } from "./actions";
+import {
+  fetchDashboardDataAction,
+  type DashboardApiResponse,
+} from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 
 type DashboardState = {
@@ -24,7 +27,12 @@ export default function dashboardReducer(state: DashboardState = initialState, a
       return { ...state, isLoading: true, error: null };
 
     case getType(fetchDashboardDataAction.success):
-      return { ...state, isLoading: false, data: action.payload, error: null };
+      return {
+        ...state,
+        isLoading: false,
+        data: action.payload,
+        error: null,
+      };
 
     case getType(fetchDashboardDataAction.failure):
       return { ...state, isLoading: false, error: action.payload.message };

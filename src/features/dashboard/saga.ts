@@ -1,6 +1,9 @@
 import { takeLatest, call, put } from "redux-saga/effects";
 import type { ActionType } from "typesafe-actions";
-import { fetchDashboardDataAction, type DashboardApiResponse } from "./actions";
+import {
+  fetchDashboardDataAction,
+  type DashboardApiResponse,
+} from "./actions";
 import { fetchDashboardData } from "./api";
 
 function* handleFetchDashboardData(

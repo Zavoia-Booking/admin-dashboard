@@ -1,8 +1,8 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
 import { getSubscriptionSummaryAction } from "../settings/actions";
-import { cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, inviteTeamMemberAction, listTeamMembersAction, resendInvitationAction } from "./actions";
+import { cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, inviteTeamMemberAction, listTeamMembersAction, resendInvitationAction, offboardTeamMemberAction } from "./actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
-import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi } from "./api";
+import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi, offboardTeamMemberApi } from "./api";
 import type { InviteTeamMemberResponse } from "./types";
 import { toast } from "sonner";
 import type { DeleteResponse } from "../../shared/types/delete-response";
@@ -37,12 +37,13 @@ function* handleListTeamMembers() {
 
 export function* teamMembersSaga() {
   yield all([
-    takeLatest(listTeamMembersAction.request, handleListTeamMembers), 
+    takeLatest(listTeamMembersAction.request, handleListTeamMembers),
     takeLatest(inviteTeamMemberAction.request, handleInviteTeamMember),
     takeLatest(cancelInvitationAction.request, handleCancelInvitation),
     takeLatest(resendInvitationAction.request, handleResendInvitation),
     takeLatest(deleteTeamMemberAction.request, handleDeleteTeamMember),
     takeLatest(fetchTeamMemberByIdAction.request, handleFetchTeamMemberById),
+    takeLatest(offboardTeamMemberAction.request, handleOffboardTeamMember),
   ]);
 }
 
@@ -102,5 +103,19 @@ function* handleFetchTeamMemberById(action: ReturnType<typeof fetchTeamMemberByI
     const message = error?.response?.data?.error || error?.message || i18n.t('teamMembers:toasts.fetchFailed');
     toast.error(message);
     yield put(fetchTeamMemberByIdAction.failure({ message }));
+  }
+}
+
+function* handleOffboardTeamMember(action: ReturnType<typeof offboardTeamMemberAction.request>) {
+  try {
+    yield call(offboardTeamMemberApi, action.payload.id, action.payload.appointmentActions);
+    yield put(offboardTeamMemberAction.success());
+    toast.success(i18n.t('teamMembers:seatOverflow.offboardSuccess'));
+    yield put(getSubscriptionSummaryAction.request()); // gate disappears on usedSeats <= paidSeats
+    yield put(listTeamMembersAction.request());
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    toast.error(message);
+    yield put(offboardTeamMemberAction.failure({ message }));
   }
 }

@@ -77,16 +77,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     }
   }, [isOpen, reset, dispatch]);
 
-  // Initialize all locations as selected by default when locations are loaded
-  useEffect(() => {
-    if (isOpen && allLocations.length > 0) {
-      const currentIds = getValues('locationIds');
-      if (currentIds.length === 0) {
-        const allLocationIds = allLocations.map(loc => loc.id);
-        setValue('locationIds', allLocationIds, { shouldValidate: true });
-      }
-    }
-  }, [isOpen, allLocations, getValues, setValue]);
 
   // Register email with validation
   useEffect(() => {
@@ -239,7 +229,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
             formId="invite-team-member-form"
             cancelLabel={t('inviteSlider.buttons.cancel')}
             submitLabel={getTextForButton()}
-            disabled={isInviting}
+            disabled={isInviting || locationIds.length === 0}
             isLoading={isInviting}
           />
         }
@@ -391,21 +381,6 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
                         );
                       })}
                     </div>
-                  )}
-                  {allLocations.length > 0 && (
-                    <p className="text-xs text-foreground-3 dark:text-foreground-2">
-                      {locationIds.length === 0
-                        ? t('inviteSlider.locationAssignment.noLocationsSelected')
-                        : locationIds.length === 1
-                        ? t('inviteSlider.locationAssignment.oneLocationSelected')
-                        : t('inviteSlider.locationAssignment.locationsSelected', { count: locationIds.length })}
-                    </p>
-                  )}
-                  {errors.locationIds && (
-                    <p className="text-sm text-destructive flex items-center gap-1.5">
-                      <AlertCircle className="h-3.5 w-3.5" />
-                      <span>{errors.locationIds.message as string}</span>
-                    </p>
                   )}
                 </div>
               </div>

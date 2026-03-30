@@ -42,3 +42,12 @@ export const selectTeamMembersLoading = createSelector(
   (state: any): boolean => state.isLoading ?? false
 );
 
+export const selectIsOffboarding = createSelector(
+  getTeamMembersStateSelector,
+  (state: any): boolean => state.isOffboarding ?? false
+);
+
+export const selectOffboardError = createSelector(
+  getTeamMembersStateSelector,
+  (state: any): string | null => state.offboardError ?? null
+);

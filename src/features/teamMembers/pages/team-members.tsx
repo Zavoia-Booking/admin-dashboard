@@ -6,6 +6,7 @@ import { Plus, Mail, Phone, Edit, Clock, Send, XCircle, Users } from "lucide-rea
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
 import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
+import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
 import { Badge } from "../../../shared/components/ui/badge";
 import InviteTeamMemberSlider from '../components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '../components/TeamMemberProfileSlider';
@@ -163,33 +164,34 @@ export default function TeamMembersPage() {
   const confirmDialogContent = getConfirmDialogContent();
 
   return (
-    <AppLayout>
-      <BusinessSetupGate>
-        <div className="space-y-4 max-w-7xl mx-auto">
-          {/* Page Header */}
-          <div className="mb-4 w-full border-b border-border-strong hidden md:block">
-            <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
-              {text("page.title")}
-            </h1>
-          </div>
+    <AccessGuard>
+      <AppLayout>
+        <BusinessSetupGate>
+          <div className="space-y-4 max-w-7xl mx-auto">
+            {/* Page Header */}
+            <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+              <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
+                {text("page.title")}
+              </h1>
+            </div>
 
-          {/* Trial Banner */}
-          <TrialBanner />
+            {/* Trial Banner */}
+            <TrialBanner />
 
-          {/* While team members are loading, show full-page skeleton (including filters) */}
-          {isTeamMembersLoading ? (
-            <TeamMembersListSkeleton />
-          ) : (
-            <>
-              {/* Team Member Filters */}
-              <TeamMemberFilters
-                searchTerm={searchTerm}
-                onSearchChange={setSearchTerm}
-                onAddClick={() => setIsInviteSliderOpen(true)}
-              />
+            {/* While team members are loading, show full-page skeleton (including filters) */}
+            {isTeamMembersLoading ? (
+              <TeamMembersListSkeleton />
+            ) : (
+              <>
+                {/* Team Member Filters */}
+                <TeamMemberFilters
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                  onAddClick={() => setIsInviteSliderOpen(true)}
+                />
 
-              {/* Empty State */}
-              {filteredTeamMembers.length === 0 && (
+                {/* Empty State */}
+                {filteredTeamMembers.length === 0 && (
                 <EmptyState
                   title={searchTerm 
                     ? text("page.emptyState.noResults")
@@ -448,22 +450,23 @@ export default function TeamMembersPage() {
               </Dialog>
             </>
           )}
-        </div>
+          </div>
 
-        {/* Invite Team Member Slider - Outside conditional to prevent unmounting */}
-        <InviteTeamMemberSlider
-          isOpen={isInviteSliderOpen}
-          onClose={() => setIsInviteSliderOpen(false)}
-        />
+          {/* Invite Team Member Slider - Outside conditional to prevent unmounting */}
+          <InviteTeamMemberSlider
+            isOpen={isInviteSliderOpen}
+            onClose={() => setIsInviteSliderOpen(false)}
+          />
 
-        {/* Team Member Profile Slider - Outside conditional to prevent unmounting */}
-        <TeamMemberProfileSlider
-          isOpen={isProfileSliderOpen}
-          onClose={() => setIsProfileSliderOpen(false)}
-          teamMember={selectedTeamMember as TeamMember}
-        />
-      </BusinessSetupGate>
-    </AppLayout>
+          {/* Team Member Profile Slider - Outside conditional to prevent unmounting */}
+          <TeamMemberProfileSlider
+            isOpen={isProfileSliderOpen}
+            onClose={() => setIsProfileSliderOpen(false)}
+            teamMember={selectedTeamMember as TeamMember}
+          />
+        </BusinessSetupGate>
+      </AppLayout>
+    </AccessGuard>
   );
 }
 

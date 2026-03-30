@@ -307,6 +307,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     <Input
                       type="email"
                       placeholder="e.g. colleague@company.com"
+                      autoComplete="off"
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                         errors.email
                           ? "border-destructive bg-error-bg focus-visible:ring-0"

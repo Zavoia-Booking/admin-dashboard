@@ -72,6 +72,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
         rows={rows}
         maxLength={maxLength}
         autoFocus={autoFocus}
+        autoComplete="off"
         disabled={disabled}
         className={`resize-none transition-all focus-visible:ring-1 focus-visible:ring-offset-0 h-28 sm:h-auto ${
           error

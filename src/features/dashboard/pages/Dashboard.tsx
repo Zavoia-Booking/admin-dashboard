@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
+import { AccessGuard } from "../../../shared/components/guards/AccessGuard";
 import {
   Select,
   SelectContent,
@@ -19,31 +20,21 @@ import {
   CapacityUtilizationWidget,
   ReviewsWidget,
 } from "../components";
-import { fetchDashboardDataAction } from "../actions";
+import {
+  fetchDashboardDataAction,
+} from "../actions";
 import { listLocationsAction } from "../../locations/actions";
 import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors";
 import type { RootState } from "../../../app/providers/store";
 
-interface AnalyticsCardProps {
-  children: React.ReactNode;
-  className?: string;
-}
+const WIDGET_CONFIG: Record<string, { label: string; span: number }> = {
+  todayOverview: { label: "Today Overview", span: 2 },
+  capacityUtilization: { label: "Capacity Utilization", span: 1 },
+  appointmentBreakdown: { label: "Appointment Breakdown", span: 3 },
+  reviews: { label: "Reviews", span: 1 },
+  needsAttention: { label: "Needs Attention", span: 2 },
+};
 
-function AnalyticsCard({ children, className = '' }: AnalyticsCardProps) {
-  return (
-    <div
-      className={`
-        bg-surface border border-border rounded-2xl p-5
-        shadow-sm
-        transition-all duration-200
-        hover:-translate-y-0.5 hover:shadow-md hover:border-border-strong
-        ${className}
-      `}
-    >
-      {children}
-    </div>
-  );
-}
 
 function DashboardSkeleton() {
   return (
@@ -62,13 +53,13 @@ function DashboardSkeleton() {
           </div>
           {/* Metrics grid: 2 columns */}
           <div className="grid grid-cols-2 gap-5 mb-4">
-            {[0, 1].map(col => (
+            {[0, 1].map((col) => (
               <div key={col} className="space-y-2.5">
                 <div className="flex items-center gap-1.5">
                   <Skeleton className="h-3.5 w-3.5 rounded" />
                   <Skeleton className="h-2.5 w-20" />
                 </div>
-                {[0, 1, 2].map(row => (
+                {[0, 1, 2].map((row) => (
                   <div key={row} className="flex items-center gap-2">
                     <Skeleton className="h-2.5 w-[88px] shrink-0" />
                     <Skeleton className="h-2 flex-1 rounded-full" />
@@ -81,7 +72,7 @@ function DashboardSkeleton() {
           {/* Staff table */}
           <Skeleton className="h-px w-full mb-3" />
           <div className="space-y-2.5">
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-7 w-7 rounded-full shrink-0" />
                 <Skeleton className="h-3 w-24" />
@@ -96,7 +87,7 @@ function DashboardSkeleton() {
         <div className="bg-surface border border-border rounded-2xl p-5">
           <Skeleton className="h-3 w-36 mb-5" />
           <div className="flex flex-row md:flex-col gap-4">
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2].map((i) => (
               <div key={i} className="flex items-center gap-3 flex-1">
                 <Skeleton className="h-14 w-14 rounded-full shrink-0" />
                 <div className="space-y-1.5">
@@ -109,7 +100,7 @@ function DashboardSkeleton() {
           </div>
           {/* Legend */}
           <div className="flex flex-wrap gap-3 mt-5">
-            {[0, 1, 2, 3].map(i => (
+            {[0, 1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-1">
                 <Skeleton className="h-1.5 w-1.5 rounded-full" />
                 <Skeleton className="h-2 w-10" />
@@ -127,7 +118,7 @@ function DashboardSkeleton() {
           <div className="md:w-[30%] space-y-4">
             {/* Tabs */}
             <div className="flex gap-3">
-              {[0, 1, 2].map(i => (
+              {[0, 1, 2].map((i) => (
                 <Skeleton key={i} className="h-7 w-16 rounded" />
               ))}
             </div>
@@ -142,7 +133,7 @@ function DashboardSkeleton() {
             </div>
             {/* Legend */}
             <div className="flex flex-wrap gap-3 justify-center">
-              {[0, 1, 2, 3, 4].map(i => (
+              {[0, 1, 2, 3, 4].map((i) => (
                 <div key={i} className="flex items-center gap-1">
                   <Skeleton className="h-2 w-2 rounded-full" />
                   <Skeleton className="h-2 w-14" />
@@ -159,7 +150,7 @@ function DashboardSkeleton() {
               <Skeleton className="h-3.5 w-3.5 rounded" />
               <Skeleton className="h-3 w-40" />
             </div>
-            {[0, 1, 2, 3, 4].map(i => (
+            {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} className="flex items-center gap-3">
                 <Skeleton className="h-6 w-6 rounded-full shrink-0" />
                 <div className="flex-1 space-y-1">
@@ -204,7 +195,7 @@ function DashboardSkeleton() {
             <Skeleton className="h-5 w-16 rounded" />
           </div>
           <div className="space-y-3">
-            {[0, 1].map(i => (
+            {[0, 1].map((i) => (
               <div key={i} className="flex items-center gap-3 py-2">
                 <Skeleton className="h-2 w-2 rounded-full shrink-0" />
                 <Skeleton className="h-4 w-4 rounded shrink-0" />
@@ -216,7 +207,7 @@ function DashboardSkeleton() {
               </div>
             ))}
             {/* Unresolved appointment rows */}
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2].map((i) => (
               <div key={`appt-${i}`} className="flex items-center gap-2 py-2">
                 <Skeleton className="h-6 w-6 rounded-full shrink-0" />
                 <div className="flex-1 space-y-1">
@@ -236,6 +227,99 @@ function DashboardSkeleton() {
   );
 }
 
+function groupWidgetsIntoRows(widgetIds: string[]): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentSpan = 0;
+
+  for (const widgetId of widgetIds) {
+    const span = WIDGET_CONFIG[widgetId]?.span || 1;
+
+    if (currentSpan + span > 3) {
+      if (currentRow.length > 0) {
+        rows.push(currentRow);
+      }
+      currentRow = [widgetId];
+      currentSpan = span;
+    } else {
+      currentRow.push(widgetId);
+      currentSpan += span;
+    }
+  }
+
+  if (currentRow.length > 0) {
+    rows.push(currentRow);
+  }
+
+  return rows;
+}
+
+function renderWidget(
+  widgetId: string,
+  data: any,
+  locationId: number,
+  onRefresh: () => void
+) {
+  const {
+    locationWidget,
+    capacityUtilizationWidget,
+    appointmentWidget,
+    reviewWidget,
+    needsAttentionWidget,
+  } = data;
+
+  const pendingTotal =
+    appointmentWidget.today.pending + appointmentWidget.week.pending;
+
+  const widgets: Record<string, React.ReactNode> = {
+    todayOverview: (
+      <TodayOverviewWidget
+        locationId={locationId}
+        locationName={locationWidget.name}
+        isCurrentlyOpen={locationWidget.isCurrentlyOpen}
+        staff={locationWidget.staff}
+        appointmentsToday={locationWidget.appointmentsToday}
+        appointmentsThisWeek={locationWidget.appointmentsThisWeek}
+        appointmentsThisMonth={locationWidget.appointmentsThisMonth}
+        potentialRevenueToday={locationWidget.potentialRevenueToday}
+        potentialRevenueThisWeek={locationWidget.potentialRevenueThisWeek}
+        potentialRevenueThisMonth={locationWidget.potentialRevenueThisMonth}
+      />
+    ),
+    capacityUtilization: (
+      <CapacityUtilizationWidget
+        today={capacityUtilizationWidget.today}
+        week={capacityUtilizationWidget.week}
+        month={capacityUtilizationWidget.month}
+      />
+    ),
+    appointmentBreakdown: (
+      <AppointmentBreakdownWidget
+        todayDistribution={appointmentWidget.today}
+        weeklyDistribution={appointmentWidget.week}
+        monthlyDistribution={appointmentWidget.month}
+        upcomingAppointments={appointmentWidget.upcoming}
+      />
+    ),
+    reviews: (
+      <ReviewsWidget
+        averageRating={reviewWidget.averageRating}
+        totalReviews={reviewWidget.totalReviews}
+        ratingDistribution={reviewWidget.ratingDistribution}
+      />
+    ),
+    needsAttention: (
+      <NeedsAttentionWidget
+        pendingAppointments={pendingTotal}
+        needsAttentionItems={needsAttentionWidget ?? []}
+        onAppointmentUpdated={onRefresh}
+      />
+    ),
+  };
+
+  return widgets[widgetId] || null;
+}
+
 export default function DashboardPage() {
   const { t, i18n } = useTranslation("dashboard");
   const dispatch = useDispatch();
@@ -248,6 +332,8 @@ export default function DashboardPage() {
 
   const locations = useSelector(getAllLocationsSelector);
   const isLoadingLocations = useSelector(getLocationLoadingSelector);
+
+  const defaultWidgetOrder = ["todayOverview", "capacityUtilization", "appointmentBreakdown", "reviews", "needsAttention"];
 
   useEffect(() => {
     dispatch(listLocationsAction.request());
@@ -269,6 +355,12 @@ export default function DashboardPage() {
     navigate(`/dashboard/${value}`);
   };
 
+  const handleRefreshDashboard = () => {
+    if (locationId) {
+      dispatch(fetchDashboardDataAction.request({ locationId: parseInt(locationId, 10) }));
+    }
+  };
+
   const renderContent = () => {
     if (isLoadingLocations || isLoading) {
       return <DashboardSkeleton />;
@@ -285,9 +377,7 @@ export default function DashboardPage() {
     if (locations.length === 0) {
       return (
         <div className="flex items-center justify-center h-64">
-          <p className="text-foreground-3 text-sm">
-            {t("page.noLocations")}
-          </p>
+          <p className="text-foreground-3 text-sm">{t("page.noLocations")}</p>
         </div>
       );
     }
@@ -300,79 +390,45 @@ export default function DashboardPage() {
       );
     }
 
-    const { locationWidget, capacityUtilizationWidget, appointmentWidget, reviewWidget, needsAttentionWidget } = data;
-
-    const pendingTotal =
-      appointmentWidget.today.pending + appointmentWidget.week.pending;
+    // Show grid layout with default widget order
+    const rows = groupWidgetsIntoRows(defaultWidgetOrder);
 
     return (
       <div className="space-y-4">
-        {/* Row 1: Today Overview (wide) + Capacity Utilization */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <AnalyticsCard className="lg:col-span-2">
-            <TodayOverviewWidget
-              locationId={parseInt(locationId!, 10)}
-              locationName={locationWidget.name}
-              isCurrentlyOpen={locationWidget.isCurrentlyOpen}
-              staff={locationWidget.staff}
-              appointmentsToday={locationWidget.appointmentsToday}
-              appointmentsThisWeek={locationWidget.appointmentsThisWeek}
-              appointmentsThisMonth={locationWidget.appointmentsThisMonth}
-              potentialRevenueToday={locationWidget.potentialRevenueToday}
-              potentialRevenueThisWeek={locationWidget.potentialRevenueThisWeek}
-              potentialRevenueThisMonth={locationWidget.potentialRevenueThisMonth}
-            />
-          </AnalyticsCard>
+        {rows.map((row, rowIndex) => {
+          const totalSpan = row.reduce((sum, widgetId) => sum + (WIDGET_CONFIG[widgetId]?.span || 1), 0);
+          const colSpanClass = totalSpan === 3 ? "lg:grid-cols-3" : "grid-cols-1";
 
-          <AnalyticsCard>
-            <CapacityUtilizationWidget
-              today={capacityUtilizationWidget.today}
-              week={capacityUtilizationWidget.week}
-              month={capacityUtilizationWidget.month}
-            />
-          </AnalyticsCard>
-        </div>
+          return (
+            <div key={rowIndex} className={`grid grid-cols-1 ${colSpanClass} gap-4`}>
+              {row.map((widgetId) => {
+                const span = WIDGET_CONFIG[widgetId]?.span || 1;
+                const colSpanUtil = span === 2 ? "lg:col-span-2" : span === 3 ? "lg:col-span-3" : "";
 
-        {/* Row 2: Appointment Breakdown (full width) */}
-        <AnalyticsCard>
-          <AppointmentBreakdownWidget
-            todayDistribution={appointmentWidget.today}
-            weeklyDistribution={appointmentWidget.week}
-            monthlyDistribution={appointmentWidget.month}
-            upcomingAppointments={appointmentWidget.upcoming}
-          />
-        </AnalyticsCard>
-
-        {/* Row 3: Reviews + Needs Attention */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <AnalyticsCard>
-            <ReviewsWidget
-              averageRating={reviewWidget.averageRating}
-              totalReviews={reviewWidget.totalReviews}
-              ratingDistribution={reviewWidget.ratingDistribution}
-            />
-          </AnalyticsCard>
-
-          <AnalyticsCard className="lg:col-span-2">
-            <NeedsAttentionWidget
-              pendingAppointments={pendingTotal}
-              needsAttentionItems={needsAttentionWidget ?? []}
-              onAppointmentUpdated={() => {
-                if (locationId) {
-                  dispatch(fetchDashboardDataAction.request({ locationId: parseInt(locationId, 10) }));
-                }
-              }}
-            />
-          </AnalyticsCard>
-        </div>
+                return (
+                  <div key={widgetId} className={`
+                    bg-surface border border-border rounded-2xl p-5
+                    shadow-sm
+                    transition-all duration-200
+                    hover:-translate-y-0.5 hover:shadow-md hover:border-border-strong
+                    ${colSpanUtil}
+                  `}>
+                    {renderWidget(widgetId, data, parseInt(locationId!, 10), handleRefreshDashboard)}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })}
       </div>
     );
   };
 
   return (
-    <AppLayout>
-      <div className="space-y-5">
-        {/* Page header */}
+    <AccessGuard>
+      <AppLayout>
+        <div className="space-y-5">
+          {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -404,10 +460,12 @@ export default function DashboardPage() {
               })}
             </p>
           </div>
+
         </div>
 
         {renderContent()}
       </div>
     </AppLayout>
+    </AccessGuard>
   );
 }

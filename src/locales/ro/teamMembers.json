@@ -132,5 +132,21 @@
     "removeSuccess": "Membrul echipei a fost eliminat cu succes",
     "removeFailed": "Nu s-a putut elimina membrul echipei",
     "fetchFailed": "Nu s-a putut încărca membrul echipei"
+  },
+  "seatOverflow": {
+    "title": "Limită de locuri depășită",
+    "subtitle": "Planul tău include {{paidSeats}} loc(uri), dar ai {{usedSeats}} membri activi ai echipei. Te rugăm să elimini un membru pentru a continua.",
+    "step1Title": "Selectează un membru de eliminat",
+    "step2Title": "Gestionează programările viitoare",
+    "step2Subtitle": "Reatribuie sau anulează programările viitoare ale {{name}} înainte de a-l elimina.",
+    "noAppointments": "Acest membru nu are programări viitoare.",
+    "assignStaff": "Atribuie personal",
+    "cancelAppointment": "Anulează programarea",
+    "confirmRemove": "Confirmă și elimină membrul",
+    "removing": "Se elimină...",
+    "next": "Următorul",
+    "back": "Înapoi",
+    "offboardSuccess": "Membrul echipei a fost eliminat cu succes",
+    "offboardFailed": "Nu s-a putut elimina membrul echipei"
   }
 }

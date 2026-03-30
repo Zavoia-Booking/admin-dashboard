@@ -3,6 +3,7 @@ import { useLocation, useSearchParams } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
+import { AccessGuard } from "../../../shared/components/guards/AccessGuard";
 import { LocationAssignmentsView } from "../components/LocationAssignmentsView";
 import { selectLocationAction } from "../actions";
 
@@ -29,15 +30,17 @@ export default function AssignmentsPage() {
   }, [location.pathname, location.key, searchParams, dispatch]);
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="mb-4 w-full border-b border-border-strong hidden md:block">
-          <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
-            {t("page.title")}
-          </h1>
+    <AccessGuard>
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+            <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
+              {t("page.title")}
+            </h1>
+          </div>
+          <LocationAssignmentsView />
         </div>
-        <LocationAssignmentsView />
-      </div>
-    </AppLayout>
+      </AppLayout>
+    </AccessGuard>
   );
 }

@@ -66,6 +66,7 @@ export const TextField: React.FC<TextFieldProps> = ({
           maxLength={type === 'password' ? undefined : maxLength}
           disabled={disabled}
           autoFocus={autoFocus}
+          autoComplete="off"
           onKeyDown={onKeyDown}
           onFocus={onFocus}
           onBlur={onBlur}

@@ -1,5 +1,5 @@
 import { getType } from "typesafe-actions";
-import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction } from "./actions";
+import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, offboardTeamMemberAction } from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import type { InviteTeamMemberResponse } from "./types";
@@ -18,6 +18,8 @@ type TeamMembersState = {
   deleteResponse?: any | null;
   isFetchingTeamMember: boolean;
   fetchTeamMemberError: string | null;
+  isOffboarding: boolean;
+  offboardError: string | null;
   isLoading: boolean;
 };
 
@@ -35,6 +37,8 @@ const initialState: TeamMembersState = {
   deleteResponse: null,
   isFetchingTeamMember: false,
   fetchTeamMemberError: null,
+  isOffboarding: false,
+  offboardError: null,
   isLoading: false,
 };
 
@@ -100,6 +104,15 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
 
     case getType(fetchTeamMemberByIdAction.failure):
       return { ...state, isFetchingTeamMember: false, fetchTeamMemberError: action.payload.message, currentTeamMember: null };
+
+    case getType(offboardTeamMemberAction.request):
+      return { ...state, isOffboarding: true, offboardError: null };
+
+    case getType(offboardTeamMemberAction.success):
+      return { ...state, isOffboarding: false, offboardError: null };
+
+    case getType(offboardTeamMemberAction.failure):
+      return { ...state, isOffboarding: false, offboardError: action.payload.message };
 
     default:
       return state;

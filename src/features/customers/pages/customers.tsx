@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
+import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
 import { UserCircle, Plus, Mail, Phone, Edit } from 'lucide-react';
 import { Badge } from '../../../shared/components/ui/badge';
 import AddCustomerSlider from '../components/AddCustomerSlider';
@@ -100,23 +101,24 @@ export default function CustomersPage() {
   const filteredCustomers = customers;
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        <div className="mb-4 w-full border-b border-border-strong hidden md:block">
-          <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
-            {text("page.title")}
-          </h1>
-        </div>
+    <AccessGuard>
+      <AppLayout>
+        <div className="space-y-6">
+          <div className="mb-4 w-full border-b border-border-strong hidden md:block">
+            <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
+              {text("page.title")}
+            </h1>
+          </div>
 
-        {isLoading ? (
-          <CustomersListSkeleton />
-        ) : (
-          <>
-            <CustomerFilters
-              searchTerm={searchTerm}
-              onSearchChange={setSearchTerm}
-              onAddClick={() => setIsAddCustomerSliderOpen(true)}
-            />
+          {isLoading ? (
+            <CustomersListSkeleton />
+          ) : (
+            <>
+              <CustomerFilters
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                onAddClick={() => setIsAddCustomerSliderOpen(true)}
+              />
 
             {filteredCustomers.length === 0 ? (
           <EmptyState
@@ -235,15 +237,16 @@ export default function CustomersPage() {
         customerLastName={
           currentCustomer?.id === selectedCustomerId ? currentCustomer.lastName : undefined
         }
-        elevated={isDetailsPopupOpen}
-      />
+            elevated={isDetailsPopupOpen}
+          />
 
-      <EditCustomerSlider
-        isOpen={isEditCustomerSliderOpen}
-        onClose={handleCloseEditSlider}
-        customerId={selectedCustomerId}
-        elevated={isDetailsPopupOpen}
-      />
-    </AppLayout>
+          <EditCustomerSlider
+            isOpen={isEditCustomerSliderOpen}
+            onClose={handleCloseEditSlider}
+            customerId={selectedCustomerId}
+            elevated={isDetailsPopupOpen}
+          />
+      </AppLayout>
+    </AccessGuard>
   );
 }

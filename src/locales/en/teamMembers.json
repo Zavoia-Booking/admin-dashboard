@@ -132,5 +132,21 @@
     "removeSuccess": "Team member removed successfully",
     "removeFailed": "Failed to remove team member",
     "fetchFailed": "Failed to fetch team member"
+  },
+  "seatOverflow": {
+    "title": "Seat Limit Exceeded",
+    "subtitle": "Your plan includes {{paidSeats}} seat(s), but you have {{usedSeats}} active team members. Please remove one member to continue.",
+    "step1Title": "Select a member to remove",
+    "step2Title": "Handle upcoming appointments",
+    "step2Subtitle": "Reassign or cancel {{name}}'s upcoming appointments before removing them.",
+    "noAppointments": "This member has no upcoming appointments.",
+    "assignStaff": "Assign staff",
+    "cancelAppointment": "Cancel appointment",
+    "confirmRemove": "Confirm & Remove Member",
+    "removing": "Removing...",
+    "next": "Next",
+    "back": "Back",
+    "offboardSuccess": "Team member removed successfully",
+    "offboardFailed": "Failed to remove team member"
   }
 }

@@ -39,3 +39,15 @@ export const fetchTeamMemberByIdAction = createAsyncAction(
   'teamMembers/FETCH_BY_ID_SUCCESS',
   'teamMembers/FETCH_BY_ID_FAILURE',
 )<{ id: number }, { teamMember: TeamMember }, { message: string }>();
+
+export interface AppointmentActionItem {
+  appointmentId: number;
+  newStaffUserId?: number | null;
+  cancel?: boolean;
+}
+
+export const offboardTeamMemberAction = createAsyncAction(
+  'teamMembers/OFFBOARD_REQUEST',
+  'teamMembers/OFFBOARD_SUCCESS',
+  'teamMembers/OFFBOARD_FAILURE',
+)<{ id: number; appointmentActions: AppointmentActionItem[] }, void, { message: string }>();

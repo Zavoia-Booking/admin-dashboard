@@ -30,3 +30,13 @@ export const fetchTeamMemberByIdApi = async (id: number): Promise<TeamMember> =>
   const { data } = await apiClient().get<{ teamMember: TeamMember }>(`/team-members/${id}`);
   return data.teamMember;
 };
+
+export interface AppointmentActionItem {
+  appointmentId: number;
+  newStaffUserId?: number | null;
+  cancel?: boolean;
+}
+
+export const offboardTeamMemberApi = async (id: number, appointmentActions: AppointmentActionItem[]): Promise<void> => {
+  await apiClient().post(`/team-members/${id}/offboard`, { appointmentActions });
+};

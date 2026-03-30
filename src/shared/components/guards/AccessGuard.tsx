@@ -57,7 +57,7 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({
   }
 
   // Not entitled - determine the blocking strategy
-  const isExpiredTrial = status === 'expired' || status === 'no_subscription';
+  const isExpiredTrial = status === 'expired' || status === 'no_subscription' || status === 'past_due';
   const isCancelledSubscription = currentUser.subscription?.status === 'canceled';
 
   // For expired trials or cancelled subscriptions, show full-page blocking
@@ -98,7 +98,7 @@ export const useAccessControl = () => {
   const status = currentUser?.entitlements?.status;
   const reason = currentUser?.entitlements?.reason;
   
-  const isExpiredTrial = status === 'expired' || status === 'no_subscription';
+  const isExpiredTrial = status === 'expired' || status === 'no_subscription' || status === 'past_due';
   const isCancelledSubscription = currentUser?.subscription?.status === 'canceled';
   const isTrial = status === 'trial';
   const isActive = status === 'active';

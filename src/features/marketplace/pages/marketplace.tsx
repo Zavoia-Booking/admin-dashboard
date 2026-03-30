@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
+import { AccessGuard } from "../../../shared/components/guards/AccessGuard";
 import { useTranslation } from "react-i18next";
 import {
   fetchMarketplaceListingAction,
@@ -94,20 +95,23 @@ export default function MarketplacePage() {
   // Show loading state
   if (isLoading) {
     return (
-      <AppLayout>
-        {listing && !listing.isListed ? (
-          <MarketplaceSkeleton />
-        ) : (
-          <ListingConfigurationSkeleton />
-        )}
-      </AppLayout>
+      <AccessGuard>
+        <AppLayout>
+          {listing && !listing.isListed ? (
+            <MarketplaceSkeleton />
+          ) : (
+            <ListingConfigurationSkeleton />
+          )}
+        </AppLayout>
+      </AccessGuard>
     );
   }
 
   // Show configuration view when listing is published OR user clicked "Start Listing"
   if (listing && (listing.isListed || showConfiguration)) {
     return (
-      <AppLayout>
+      <AccessGuard>
+        <AppLayout>
         <ListingConfigurationView
           business={business}
           locationsWithAssignments={locationCatalog}
@@ -130,14 +134,16 @@ export default function MarketplacePage() {
           selectedIndustryTags={selectedIndustryTags}
           onSave={handleSaveConfiguration}
         />
-      </AppLayout>
+        </AppLayout>
+      </AccessGuard>
     );
   }
 
   // Show "Not Listed Yet" marketing view when not listed and configuration not started
   if (listing && !listing.isListed) {
     return (
-      <AppLayout>
+      <AccessGuard>
+        <AppLayout>
         <NotListedYetView
           onStartListing={handleStartListing}
           business={business}
@@ -146,16 +152,19 @@ export default function MarketplacePage() {
           services={locationCatalog.flatMap((loc) => loc.services)}
           teamMembers={locationCatalog.flatMap((loc) => loc.teamMembers)}
         />
-      </AppLayout>
+        </AppLayout>
+      </AccessGuard>
     );
   }
 
   // Fallback (should not reach here if listing data is loaded)
   return (
-    <AppLayout>
-      <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)] cursor-default">
-        <p className="text-muted-foreground">{t("page.noListingData")}</p>
-      </div>
-    </AppLayout>
+    <AccessGuard>
+      <AppLayout>
+        <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)] cursor-default">
+          <p className="text-muted-foreground">{t("page.noListingData")}</p>
+        </div>
+      </AppLayout>
+    </AccessGuard>
   );
 }
