@@ -9,7 +9,6 @@ import { ResponsiveTabs, type ResponsiveTabItem } from "../../../shared/componen
 import { ServicesListTab } from "../components/services/ServicesListTab.tsx";
 import { BundlesTab } from "../components/bundles/BundlesTab.tsx";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate.tsx";
-import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 
 type ServicesTab = "services" | "bundles";
 
@@ -63,8 +62,7 @@ export default function ServicesPage() {
   return (
     <AppLayout>
       <BusinessSetupGate>
-        <AccessGuard>
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Responsive Tabs */}
             <ResponsiveTabs
               items={tabItems}
@@ -72,8 +70,7 @@ export default function ServicesPage() {
               onValueChange={handleTabChange}
               stickyHeader={true}
             />
-          </div>
-        </AccessGuard>
+        </div>
       </BusinessSetupGate>
     </AppLayout>
   );

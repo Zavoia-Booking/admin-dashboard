@@ -229,6 +229,35 @@
     "loadMore": "Încarcă mai multe",
     "noPurchases": "Nicio achiziție încă"
   },
+  "subscriptionGate": {
+    "nonOwner": {
+      "title": "Serviciu Indisponibil",
+      "subtitle": "Acces Cont Restricționat",
+      "message": "Abonamentul afacerii tale este în prezent inactiv. Te rugăm contactează administratorul pentru a rezolva această problemă.",
+      "contactAdmin": "Dacă crezi că aceasta este o greșeală, te rugăm contactează-ți administratorul."
+    },
+    "paymentIssue": {
+      "title": "Problemă de Plată",
+      "subtitle": "Plată în Reîncercare",
+      "message": "Metoda ta de plată este în reîncercare. Actualizează-ți informațiile de plată pentru a restabili accesul deplin.",
+      "button": "Actualizează Metoda de Plată"
+    },
+    "setupIncomplete": {
+      "title": "Configurare Incompletă",
+      "subtitle": "Abonament Neactivat",
+      "messageIncomplete": "Configurarea abonamentului tău este incompletă. Finalizează plata pentru a activa contul.",
+      "messageExpired": "Configurarea plății tale a expirat. Pornește un nou abonament pentru a activa contul.",
+      "buttonIncomplete": "Finalizează Configurarea",
+      "buttonExpired": "Pornește Nou Abonament"
+    },
+    "subscriptionRequired": {
+      "title": "Abonament Necesar",
+      "subtitle": "Acces Pagină Indisponibil",
+      "message": "Abonamentul tău nu este activ. Pentru a recupera accesul la datele afacerii tale, te rugăm gestionează abonamentul.",
+      "button": "Gestionează Abonamentul"
+    },
+    "ownerFooter": "Toate datele tale sunt în siguranță și vor fi restaurate odată ce vei reînnoi."
+  },
   "infoPages": {
     "cancelRemovalSuccess": {
       "title": "Anulare programată anulată",

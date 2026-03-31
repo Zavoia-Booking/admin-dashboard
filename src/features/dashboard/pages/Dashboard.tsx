@@ -3,7 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
-import { AccessGuard } from "../../../shared/components/guards/AccessGuard";
 import {
   Select,
   SelectContent,
@@ -425,10 +424,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <AccessGuard>
-      <AppLayout>
-        <div className="space-y-5">
-          {/* Page header */}
+    <AppLayout>
+      <div className="space-y-5">
+        {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -460,12 +458,10 @@ export default function DashboardPage() {
               })}
             </p>
           </div>
-
         </div>
 
         {renderContent()}
       </div>
     </AppLayout>
-    </AccessGuard>
   );
 }

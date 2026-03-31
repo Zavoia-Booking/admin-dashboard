@@ -20,7 +20,6 @@ import { calendarPreferences } from "../calendarPreferences.ts";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
 import { listLocationsAction } from "../../locations/actions.ts";
-import { AccessGuard } from "../../../shared/components/guards/AccessGuard.tsx";
 import { CreateBlockDrawer } from "../components/CreateBlockDrawer.tsx";
 import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
@@ -114,8 +113,7 @@ const Calendar = () => {
   return (
     <AppLayout contentClassName="md:max-w-[1400px]">
       <BusinessSetupGate>
-        <AccessGuard>
-          <div className="flex min-h-[calc(100vh-64px)] items-start">
+        <div className="flex min-h-[calc(100vh-64px)] items-start">
             {/* ─── Left Sidebar ─── */}
             {sidebarOpen && <CalendarSidebar />}
 
@@ -152,8 +150,7 @@ const Calendar = () => {
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
           />
-        </AccessGuard>
-      </BusinessSetupGate>
+        </BusinessSetupGate>
     </AppLayout>
   );
 };

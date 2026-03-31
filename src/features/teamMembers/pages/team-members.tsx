@@ -6,7 +6,6 @@ import { Plus, Mail, Phone, Edit, Clock, Send, XCircle, Users } from "lucide-rea
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../../shared/components/ui/dialog";
 import { toast } from 'sonner';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
-import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
 import { Badge } from "../../../shared/components/ui/badge";
 import InviteTeamMemberSlider from '../components/InviteTeamMemberSlider';
 import TeamMemberProfileSlider from '../components/TeamMemberProfileSlider';
@@ -164,9 +163,8 @@ export default function TeamMembersPage() {
   const confirmDialogContent = getConfirmDialogContent();
 
   return (
-    <AccessGuard>
-      <AppLayout>
-        <BusinessSetupGate>
+    <AppLayout>
+      <BusinessSetupGate>
           <div className="space-y-4 max-w-7xl mx-auto">
             {/* Page Header */}
             <div className="mb-4 w-full border-b border-border-strong hidden md:block">
@@ -466,7 +464,6 @@ export default function TeamMembersPage() {
           />
         </BusinessSetupGate>
       </AppLayout>
-    </AccessGuard>
   );
 }
 

@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { Bell, CheckCheck, Loader2, Trash2 } from "lucide-react";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
-import { AccessGuard } from "../../../shared/components/guards/AccessGuard";
 import { Button } from "../../../shared/components/ui/button";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { EmptyState } from "../../../shared/components/common/EmptyState";
@@ -123,9 +122,8 @@ export default function NotificationsPage() {
   );
 
   return (
-    <AccessGuard>
-      <AppLayout>
-        <div className="space-y-6 max-w-4xl mx-auto">
+    <AppLayout>
+      <div className="space-y-6 max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:block">
           <h1 className="px-4 pb-3 text-xl font-medium text-foreground">
@@ -215,7 +213,6 @@ export default function NotificationsPage() {
             )}
           </div>
         )}
-      </div>
 
       <ConfirmDialog
         open={showDeleteConfirm}
@@ -226,14 +223,13 @@ export default function NotificationsPage() {
         description={t("deleteConfirm.description", {
           count: notifications.length,
         })}
-          confirmTitle={t("deleteConfirm.confirm")}
-          cancelTitle={t("deleteConfirm.cancel")}
-          variant="destructive"
-          showCloseButton
-        />
-        </div>
-      </AppLayout>
-    </AccessGuard>
+        confirmTitle={t("deleteConfirm.confirm")}
+        cancelTitle={t("deleteConfirm.cancel")}
+        variant="destructive"
+        showCloseButton
+      />
+      </div>
+    </AppLayout>
   );
 }
 

@@ -229,6 +229,35 @@
     "loadMore": "Load more",
     "noPurchases": "No purchases yet"
   },
+  "subscriptionGate": {
+    "nonOwner": {
+      "title": "Service Unavailable",
+      "subtitle": "Account Access Restricted",
+      "message": "Your business subscription is currently inactive. Please contact your administrator to resolve this.",
+      "contactAdmin": "If you believe this is a mistake, please reach out to your administrator."
+    },
+    "paymentIssue": {
+      "title": "Payment Issue",
+      "subtitle": "Payment Retrying",
+      "message": "Your payment method is being retried. Update your payment information to restore full access.",
+      "button": "Update Payment Method"
+    },
+    "setupIncomplete": {
+      "title": "Setup Incomplete",
+      "subtitle": "Subscription Not Activated",
+      "messageIncomplete": "Your subscription setup is incomplete. Complete payment to activate your account.",
+      "messageExpired": "Your payment setup has expired. Start a new subscription to activate your account.",
+      "buttonIncomplete": "Complete Setup",
+      "buttonExpired": "Start New Subscription"
+    },
+    "subscriptionRequired": {
+      "title": "Subscription Required",
+      "subtitle": "Page Access Unavailable",
+      "message": "Your subscription is not active. To regain access to your business data, please manage your subscription.",
+      "button": "Manage Subscription"
+    },
+    "ownerFooter": "All your data is safe and will be restored once you renew."
+  },
   "infoPages": {
     "cancelRemovalSuccess": {
       "title": "Scheduled Cancellation Cancelled",

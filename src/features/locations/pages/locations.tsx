@@ -12,7 +12,6 @@ import EditLocationSlider from '../components/EditLocationSlider';
 import { LocationFilters } from '../components/LocationFilters';
 import type { LocationType } from '../../../shared/types/location';
 import { getAllLocationsSelector, getLocationLoadingSelector } from '../selectors';
-import { AccessGuard } from '../../../shared/components/guards/AccessGuard';
 import { ItemCard, type ItemCardMetadata, type ItemCardBadge } from '../../../shared/components/common/ItemCard';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
 import LocationsListSkeleton from '../components/LocationsListSkeleton';
@@ -79,8 +78,7 @@ export default function LocationsPage() {
   return (
     <AppLayout>
       <BusinessSetupGate>
-        <AccessGuard>
-          <div className="space-y-6">
+        <div className="space-y-6">
             {/* Page Header */}
             <div className="mb-4 w-full border-b border-border-strong hidden md:block">
               <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
@@ -187,7 +185,6 @@ export default function LocationsPage() {
                 )}
               </>
             )}
-          </div>
 
           {/* Add Location Slider - Outside conditional to prevent unmounting */}
           <AddLocationSlider
@@ -201,7 +198,7 @@ export default function LocationsPage() {
             onClose={() => setIsEditSliderOpen(false)}
             location={editingLocation}
           />
-        </AccessGuard>
+        </div>
       </BusinessSetupGate>
     </AppLayout>
   );

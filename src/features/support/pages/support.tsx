@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
-import { AccessGuard } from "../../../shared/components/guards/AccessGuard";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Textarea } from "../../../shared/components/ui/textarea";
@@ -672,9 +671,8 @@ export default function SupportPage() {
   ) : undefined;
 
   return (
-    <AccessGuard>
-      <AppLayout headerRightContent={newTicketButton}>
-        <div className="space-y-4 px-2 py-4 md:px-0 md:py-0 md:space-y-6">
+    <AppLayout headerRightContent={newTicketButton}>
+      <div className="space-y-4 px-2 py-4 md:px-0 md:py-0 md:space-y-6">
         {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:flex items-center justify-between pr-4">
           <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
@@ -750,7 +748,6 @@ export default function SupportPage() {
           isCreating={isCreating}
           onSubmit={handleCreateTicket}
         />
-      </AppLayout>
-    </AccessGuard>
+    </AppLayout>
   );
 }
