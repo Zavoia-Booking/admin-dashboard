@@ -1,22 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import DatePicker from '../../../shared/components/ui/date-picker';
-import type { LucideIcon } from 'lucide-react';
 import {
   AlertCircle,
   CalendarClock,
   Check,
   ChevronDown,
   Clock,
-  Coffee,
   MapPin,
-  MoreHorizontal,
-  Palmtree,
-  Plane,
-  Thermometer,
   User,
-  UsersRound,
-  UtensilsCrossed,
-  Wrench,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
@@ -67,6 +58,7 @@ import {
   CalendarBlockReason,
   type CalendarBlockCreatePayload,
 } from '../../../shared/types/calendar';
+import { CALENDAR_BLOCK_REASON_OPTIONS } from './blockReasonMeta';
 import {
   buildZonedDate,
   formatDateInTimezone,
@@ -405,7 +397,7 @@ function BlockRepeatWeekdaysCombo({
           'relative flex h-11 w-full min-w-0 items-center justify-between gap-2 bg-surface px-4 text-left text-base font-normal text-foreground-1 transition-colors dark:bg-neutral-900',
           'cursor-pointer disabled:cursor-not-allowed',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
-          showListShell
+          showListContainer
             ? '!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong'
             : '!rounded-full border border-border-strong dark:border-border-strong',
         )}
@@ -503,20 +495,6 @@ const STAFF_BLOCK_TYPE_TO_REASON: Record<string, CalendarBlockReason> = {
   sickDays: CalendarBlockReason.SICK,
 };
 
-type BlockReasonOption = { value: CalendarBlockReason; label: string; Icon: LucideIcon };
-
-const reasonOptions: BlockReasonOption[] = [
-  { value: CalendarBlockReason.HOLIDAY, label: 'Holiday', Icon: Palmtree },
-  { value: CalendarBlockReason.VACATION, label: 'Vacation', Icon: Plane },
-  { value: CalendarBlockReason.SICK, label: 'Sick leave', Icon: Thermometer },
-  { value: CalendarBlockReason.LUNCH_BREAK, label: 'Lunch break', Icon: UtensilsCrossed },
-  { value: CalendarBlockReason.BREAK, label: 'Short break', Icon: Coffee },
-  { value: CalendarBlockReason.MEETING, label: 'Meeting', Icon: UsersRound },
-  { value: CalendarBlockReason.PERSONAL, label: 'Personal time', Icon: User },
-  { value: CalendarBlockReason.MAINTENANCE, label: 'Maintenance', Icon: Wrench },
-  { value: CalendarBlockReason.OTHER, label: 'Other', Icon: MoreHorizontal },
-];
-
 /** Matches `calendar_block.title` column (varchar 100). */
 const BLOCK_TITLE_MAX_LEN = 100;
 /** Aligned with notes validation elsewhere (e.g. Add appointment). */
@@ -552,7 +530,7 @@ export const CreateBlockDrawer: React.FC = () => {
     !isTeamMember || !!bookingSettings?.allowStaffBlockCalendarWithoutConfirmation;
   const allowedReasonOptions = useMemo(() => {
     if (!isTeamMember) {
-      return reasonOptions;
+      return CALENDAR_BLOCK_REASON_OPTIONS;
     }
     const types = bookingSettings?.staffBlockCalendarTypes ?? [];
     const allowedReasons = new Set<CalendarBlockReason>(
@@ -561,7 +539,7 @@ export const CreateBlockDrawer: React.FC = () => {
         .filter((r): r is CalendarBlockReason => r != null),
     );
     if (allowedReasons.size === 0) return [];
-    return reasonOptions.filter((option) => allowedReasons.has(option.value));
+    return CALENDAR_BLOCK_REASON_OPTIONS.filter((option) => allowedReasons.has(option.value));
   }, [isTeamMember, bookingSettings]);
 
   const blockTz = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
@@ -612,9 +590,12 @@ export const CreateBlockDrawer: React.FC = () => {
         reason: editingBlock.reason,
         title: editingBlock.title ?? '',
         notes: '',
-        isRecurring: false,
-        repeatDaysOfWeek: [],
-        repeatEndDate: null,
+        isRecurring: editingBlock.isRecurring ?? false,
+        repeatFrequency: (editingBlock.repeatFrequency as BlockRepeatFrequency | undefined) ?? 'weekly',
+        repeatDaysOfWeek: editingBlock.repeatDaysOfWeek ?? [],
+        repeatEndDate: editingBlock.repeatEndDate
+          ? localCalendarDateFromDateKey(formatDateInTimezone(new Date(editingBlock.repeatEndDate), tz))
+          : null,
       });
       return;
     }
@@ -926,7 +907,8 @@ export const CreateBlockDrawer: React.FC = () => {
           payload.repeatDaysOfWeek = form.repeatDaysOfWeek;
         }
         if (form.repeatEndDate) {
-          payload.repeatEndDate = form.repeatEndDate.toISOString().slice(0, 10);
+          const d = form.repeatEndDate;
+          payload.repeatEndDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
       }
 

@@ -33,6 +33,8 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
   const [customerHasMore, setCustomerHasMore] = useState(false);
   const [customerOffset, setCustomerOffset] = useState(0);
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [panelClosing, setPanelClosing] = useState(false);
+  const panelCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const customerSearchInputRef = useRef<HTMLInputElement>(null);
   const customerSearchAnchorRef = useRef<HTMLDivElement>(null);
@@ -42,8 +44,29 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
 
   const normalizeCustomerSearch = useCallback((query: string) => query.trim().replace(/\s+/g, " "), []);
 
+  const startPanelClosing = useCallback(() => {
+    setPanelClosing(true);
+    if (panelCloseTimerRef.current) clearTimeout(panelCloseTimerRef.current);
+    panelCloseTimerRef.current = setTimeout(() => {
+      setPanelClosing(false);
+      panelCloseTimerRef.current = null;
+    }, 250);
+  }, []);
+
   const closePopover = useCallback(() => {
     setCustomerOpen(false);
+    startPanelClosing();
+  }, [startPanelClosing]);
+
+  const handlePopoverOpenChange = useCallback((open: boolean) => {
+    setCustomerOpen(open);
+    if (!open) startPanelClosing();
+  }, [startPanelClosing]);
+
+  useEffect(() => {
+    return () => {
+      if (panelCloseTimerRef.current) clearTimeout(panelCloseTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -204,7 +227,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
   );
   const hasCustomerSearchQuery = highlightedCustomerSearch.length >= 2;
   const showCustomerSearchPopoverShell =
-    customerOpen &&
+    (customerOpen || panelClosing) &&
     (customerLoading ||
       customerLoadingMore ||
       customerResults.length > 0 ||
@@ -220,7 +243,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
   );
 
   return (
-    <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+      <Popover open={customerOpen} onOpenChange={handlePopoverOpenChange}>
       <div className="flex gap-2 w-full">
         <PopoverAnchor asChild>
           <div

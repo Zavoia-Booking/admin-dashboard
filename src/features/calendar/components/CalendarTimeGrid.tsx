@@ -1,4 +1,4 @@
-import { type FC, useCallback, useEffect, useMemo, useState } from "react";
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -24,6 +24,8 @@ import {
   getBookingSettings,
   getCalendarTimezone,
   appointmentsToDisplayBlocks,
+  getLocationServices,
+  getLocationBundles,
 } from "../selectors.ts";
 import { selectIsTeamMember, selectCurrentUserId } from "../../auth/selectors";
 import { deleteCalendarBlock, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, updateAppointment, rescheduleAppointmentGroup, setUpdateConflictOffer, setCalendarPendingDrop, setDayFiltersAction, setStaffFilter } from "../actions.ts";
@@ -46,14 +48,31 @@ import {
   isTimeRangeOutsideWorkingHours,
 } from "../workingHours.ts";
 import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey } from "../timezone.ts";
+import { isSlimAppointmentSchedulingLocked } from "../calendarScheduling.ts";
+import {
+  timeRangesOverlap,
+  countSegmentsSameBookingGroup,
+  isMultiSegmentGroupDrag,
+  evaluateDayTimeSlotDrop,
+  evaluateDayStaffColumnDrop,
+  evaluateWeekTimeSlotDrop,
+  isDayTimeSlotForbiddenForPreview,
+  isDayStaffColumnDropDisabled,
+  isWeekTimeSlotForbiddenForPreview,
+} from "../dndDropEligibility.ts";
 import { AppointmentBlock } from "./AppointmentBlock.tsx";
 import { WeekDayStrip } from "./WeekDayStrip.tsx";
 import { DraggableAppointmentBlock, DroppableSlot } from "./CalendarDnD.tsx";
 import type { AppointmentDragData, TimeSlotDropData, StaffColumnDropData } from "./CalendarDnD.tsx";
-import { formatTimeRange, getStaffDisplayNames } from "./utils.tsx";
-import { Loader2, Clock, MapPin, User, Trash2, ShieldAlert, Pencil } from "lucide-react";
+import { formatTimeRange, getStaffDisplayNames, NO_CUSTOMER_DISPLAY_LABEL } from "./utils.tsx";
+import { getCalendarBlockReasonLabel } from "./blockReasonMeta.ts";
+import { BlockSummaryDialogShell, getBlockScopeLabel } from "./BlockSummaryPopoverPanel.tsx";
+import { buildCalendarColorMap, getGroupDotColor } from "../colors.ts";
+import { calendarPreferences } from "../calendarPreferences.ts";
+import { Loader2, ShieldAlert } from "lucide-react";
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover.tsx";
 import { Button } from "../../../shared/components/ui/button.tsx";
+import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -62,6 +81,8 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
   AlertDialogTitle,
 } from "../../../shared/components/ui/alert-dialog.tsx";
 import {
@@ -76,7 +97,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { snapCenterToCursor } from "@dnd-kit/modifiers";
+import { restrictToVerticalAxis, snapCenterToCursor } from "@dnd-kit/modifiers";
 import { Label } from "../../../shared/components/ui/label.tsx";
 import { Input } from "../../../shared/components/ui/input.tsx";
 import { toast } from "sonner";
@@ -91,6 +112,10 @@ const GRID_START_HOUR = 6; // 6 AM
 const GRID_END_HOUR = 22; // 10 PM
 const GRID_HOURS = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) => GRID_START_HOUR + i);
 const GUTTER_WIDTH = 60; // px - slightly wider for cleaner look
+/** Delay before opening reschedule confirm dialog so the card can settle after drop. */
+const CONFIRM_MODAL_DELAY_MS = 320;
+
+const EMPTY_FORBIDDEN_SLOT_SET: ReadonlySet<string> = new Set();
 
 const formatHourLabel = (hour: number): string => {
   if (hour === 0) return '12 AM';
@@ -99,9 +124,14 @@ const formatHourLabel = (hour: number): string => {
   return `${hour - 12} PM`;
 };
 
-/** True if two time ranges overlap (startA < endB && endA > startB). */
-function timeRangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
-  return startA < endB && endA > startB;
+/** Parse appointment id from dnd-kit active id (`appointment-{columnId}-{id}` or legacy `appointment-{id}`). */
+function parseDraggableActiveAppointmentId(activeId: string): number | null {
+  if (!activeId.startsWith("appointment-")) return null;
+  const rest = activeId.slice("appointment-".length);
+  const lastDash = rest.lastIndexOf("-");
+  const idPart = lastDash === -1 ? rest : rest.slice(lastDash + 1);
+  const n = parseInt(idPart, 10);
+  return Number.isNaN(n) ? null : n;
 }
 
 /** Calculate top offset and height (px) for a time range on the grid */
@@ -123,36 +153,38 @@ const getTimePosition = (isoStart: string, isoEnd: string, timezone?: string) =>
  * Assign lane index and total lanes for overlapping appointments so they can be shown side-by-side.
  * Returns for each appointment { laneIndex, totalLanes } (0-based lane, 1-based total).
  * totalLanes is the count of appointments that overlap this one's time range (so a standalone block gets full width).
+ *
+ * Uses real start/end instants — not {@link getTimePosition} pixels — because the grid applies a minimum
+ * block height (px) that can extend past the true end time and would falsely treat back-to-back bookings as overlapping.
  */
-function getOverlapLanes(
-  appointments: SlimAppointment[],
-  timezone?: string,
-): Map<number, { laneIndex: number; totalLanes: number }> {
+function getOverlapLanes(appointments: SlimAppointment[]): Map<number, { laneIndex: number; totalLanes: number }> {
   const result = new Map<number, { laneIndex: number; totalLanes: number }>();
   if (appointments.length === 0) return result;
 
-  const positions = appointments.map((a) => getTimePosition(a.scheduledAt, a.endsAt, timezone));
   const indexed = appointments
-    .map((appt, i) => ({ id: appt.id, top: positions[i].top, bottom: positions[i].top + positions[i].height }))
-    .sort((a, b) => a.top - b.top || a.bottom - b.bottom);
+    .map((appt) => ({
+      id: appt.id,
+      startMs: new Date(appt.scheduledAt).getTime(),
+      endMs: new Date(appt.endsAt).getTime(),
+    }))
+    .sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
 
-  const laneEnds: number[] = [];
+  const laneEndsMs: number[] = [];
 
-  for (const { id, top, bottom } of indexed) {
+  for (const { id, startMs, endMs } of indexed) {
     let lane = 0;
-    while (lane < laneEnds.length && laneEnds[lane] > top) lane++;
-    if (lane === laneEnds.length) laneEnds.push(bottom);
-    else laneEnds[lane] = bottom;
+    while (lane < laneEndsMs.length && laneEndsMs[lane] > startMs) lane++;
+    if (lane === laneEndsMs.length) laneEndsMs.push(endMs);
+    else laneEndsMs[lane] = endMs;
     result.set(id, { laneIndex: lane, totalLanes: 0 });
   }
 
-  // Per appointment: totalLanes = how many appointments overlap this one (so standalone blocks get full width)
   for (let i = 0; i < indexed.length; i++) {
-    const { id, top, bottom } = indexed[i];
+    const { id, startMs, endMs } = indexed[i];
     let count = 0;
     for (let j = 0; j < indexed.length; j++) {
       const o = indexed[j];
-      if (top < o.bottom && bottom > o.top) count++;
+      if (timeRangesOverlap(startMs, endMs, o.startMs, o.endMs)) count++;
     }
     const entry = result.get(id);
     if (entry) entry.totalLanes = count;
@@ -203,54 +235,30 @@ function getOverlapGroups(appointments: SlimAppointment[]): OverlapGroup[] {
   return groups;
 }
 
-const getBlockReasonLabel = (reason: string): string => {
-  switch (reason) {
-    case 'holiday': return 'Holiday';
-    case 'vacation': return 'Vacation';
-    case 'sick': return 'Sick';
-    case 'lunch_break': return 'Lunch Break';
-    case 'break': return 'Break';
-    case 'meeting': return 'Meeting';
-    case 'personal': return 'Personal';
-    case 'maintenance': return 'Maintenance';
-    case 'other': return 'Other';
-    default: return reason;
-  }
-};
-
-const getBlockScopeLabel = (scope: string): string => {
-  switch (scope) {
-    case 'location': return 'Location Block';
-    case 'staff': return 'Staff Time Off';
-    case 'business': return 'Business Block';
-    default: return scope;
-  }
-};
-
 // ─────────────────────────────────────────────────────────────
-// Block Detail Popover
+// Block detail dialog (centered, same as appointment summary)
 // ─────────────────────────────────────────────────────────────
 
 interface BlockDetailPopoverProps {
   block: CalendarBlockDto;
   staffName: string | null;
+  locationStaff: CalendarStaffMember[];
   timezone?: string;
   children: React.ReactNode;
 }
 
-const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, timezone, children }) => {
+const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, locationStaff, timezone, children }) => {
   const dispatch = useDispatch();
   const isTeamMember = useSelector(selectIsTeamMember);
   const currentUserId = useSelector(selectCurrentUserId);
   const canDeleteBlock = !isTeamMember || (block.blockScope === 'staff' && block.userId != null && block.userId === currentUserId);
   const canEditBlock = canDeleteBlock;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [blockSummaryOpen, setBlockSummaryOpen] = useState(false);
 
   const handleEditBlock = useCallback(() => {
     dispatch(setBlockFormEditingAction(block));
     dispatch(toggleBlockFormAction(true));
-    setPopoverOpen(false);
   }, [dispatch, block]);
 
   const handleRequestDeleteBlock = useCallback(() => {
@@ -260,94 +268,48 @@ const BlockDetailPopover: FC<BlockDetailPopoverProps> = ({ block, staffName, tim
   const handleDelete = useCallback(() => {
     dispatch(deleteCalendarBlock.request(block.id));
     setShowDeleteConfirm(false);
-    setPopoverOpen(false);
+    setBlockSummaryOpen(false);
   }, [dispatch, block.id]);
-
-  const timeDisplay = block.isAllDay
-    ? 'All day'
-    : formatTimeRange(block.startsAt, block.endsAt, timezone);
 
   return (
     <>
-      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-        <PopoverTrigger asChild>
-          {children}
-        </PopoverTrigger>
-        <PopoverContent side="right" align="start" className="w-64 p-0">
-          <div className="px-3 py-2.5 border-b border-border bg-red-50/50 dark:bg-red-900/20 rounded-t-md">
-            <div className="font-medium text-sm text-foreground">
-              {block.title || getBlockReasonLabel(block.reason)}
-            </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {getBlockScopeLabel(block.blockScope)}
-            </div>
-          </div>
-          <div className="px-3 py-2.5 space-y-2">
-            <div className="flex items-center gap-2 text-xs text-foreground">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              <span>{timeDisplay}</span>
-            </div>
-            {block.title && (
-              <div className="flex items-center gap-2 text-xs text-foreground">
-                <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span>{getBlockReasonLabel(block.reason)}</span>
-              </div>
-            )}
-            {block.blockScope === 'staff' && staffName && (
-              <div className="flex items-center gap-2 text-xs text-foreground">
-                <User className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                <span>{staffName}</span>
-              </div>
-            )}
-          </div>
-          {(canEditBlock || canDeleteBlock) && (
-            <div className="px-3 py-2 border-t border-border space-y-2">
-              {canEditBlock && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-8 text-xs"
-                  onClick={handleEditBlock}
-                >
-                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                  Edit block
-                </Button>
-              )}
-              {canDeleteBlock && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="w-full h-8 text-xs"
-                  onClick={handleRequestDeleteBlock}
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                  Delete Block
-                </Button>
-              )}
-            </div>
-          )}
-        </PopoverContent>
-      </Popover>
+      <BlockSummaryDialogShell
+        open={blockSummaryOpen}
+        onOpenChange={setBlockSummaryOpen}
+        preventDismiss={showDeleteConfirm}
+        trigger={children}
+        block={block}
+        staffName={staffName}
+        locationStaff={locationStaff}
+        timezone={timezone}
+        canEditBlock={canEditBlock}
+        canDeleteBlock={canDeleteBlock}
+        onEditBlock={handleEditBlock}
+        onRequestDeleteBlock={handleRequestDeleteBlock}
+      />
       <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete block?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove the {getBlockScopeLabel(block.blockScope).toLowerCase()}
-              {block.title ? ` "${block.title}"` : ''}.
-              This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+        <AlertDialogPortal>
+          <AlertDialogOverlay onClick={() => setShowDeleteConfirm(false)} />
+          <AlertDialogPrimitive.Content className="fixed left-4 right-4 top-[50%] z-[100] grid translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:left-[50%] sm:right-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] rounded-xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete block?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently remove the {getBlockScopeLabel(block.blockScope).toLowerCase()}
+                {block.title ? ` "${block.title}"` : ''}.
+                This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogPrimitive.Content>
+        </AlertDialogPortal>
       </AlertDialog>
     </>
   );
@@ -377,6 +339,14 @@ interface TimeColumnProps {
   gridStartMinutes?: number;
   intervalMinutes?: number;
   timezone?: string;
+  /** Pre-built color map from the parent (all appointments for the day/week, not just this column). */
+  colorMap?: Map<string, import("../colors.ts").AppointmentBlockColorPair> | null;
+  /** Appointment ids that cannot be dragged (e.g. past / ended booking). */
+  schedulingLockedAppointmentIds?: ReadonlySet<number>;
+  /** While dragging, slot ids that must not accept drops (invalid targets). */
+  forbiddenSlotIds?: ReadonlySet<string>;
+  /** True while an appointment is being dragged on this grid (valid slots show muted info tint). */
+  dndActive?: boolean;
 }
 
 const TimeColumn: FC<TimeColumnProps> = ({
@@ -396,6 +366,10 @@ const TimeColumn: FC<TimeColumnProps> = ({
   gridStartMinutes,
   intervalMinutes,
   timezone,
+  colorMap: appointmentColorMap,
+  schedulingLockedAppointmentIds,
+  forbiddenSlotIds,
+  dndActive = false,
 }) => {
   const useSlots = gridSlotStarts != null && gridSlotStarts.length > 0 && slotHeightProp != null && gridStartMinutes != null && intervalMinutes != null;
   const slotHeight = slotHeightProp ?? HOUR_HEIGHT;
@@ -421,9 +395,9 @@ const TimeColumn: FC<TimeColumnProps> = ({
           : ((getMinutesInTimezone(new Date().toISOString(), timezone) - GRID_START_HOUR * 60) / 60) * HOUR_HEIGHT
       )
       :
-    useSlots && gridStartMinutes != null && intervalMinutes != null
-      ? ((new Date().getHours() * 60 + new Date().getMinutes() - gridStartMinutes) / intervalMinutes) * slotHeight
-      : ((new Date().getHours() * 60 + new Date().getMinutes()) - GRID_START_HOUR * 60) / 60 * HOUR_HEIGHT;
+      useSlots && gridStartMinutes != null && intervalMinutes != null
+        ? ((new Date().getHours() * 60 + new Date().getMinutes() - gridStartMinutes) / intervalMinutes) * slotHeight
+        : ((new Date().getHours() * 60 + new Date().getMinutes()) - GRID_START_HOUR * 60) / 60 * HOUR_HEIGHT;
 
   return (
     <div className="relative" style={{ height: gridHeight }}>
@@ -431,6 +405,7 @@ const TimeColumn: FC<TimeColumnProps> = ({
         const isOutsideHours = !open247 && (slot.hour < openHour || (slot.hour === closeHour && slot.minute > 0) || slot.hour >= closeHour);
         const slotId = useSlots ? `slot-${columnId}-${dateKey}-${slot.hour}-${slot.minute}` : `slot-${columnId}-${dateKey}-${slot.hour}`;
         if (enableDnd && dateKey) {
+          const dropDisabled = Boolean(forbiddenSlotIds?.has(slotId));
           return (
             <DroppableSlot
               key={slotId}
@@ -441,6 +416,8 @@ const TimeColumn: FC<TimeColumnProps> = ({
               minute={slot.minute}
               isOutsideHours={isOutsideHours}
               slotHeight={slotHeight}
+              dropDisabled={dropDisabled}
+              dndActive={dndActive}
               onSlotClick={onSlotClick ? () => onSlotClick(slot.hour, slot.minute) : undefined}
             />
           );
@@ -449,8 +426,8 @@ const TimeColumn: FC<TimeColumnProps> = ({
           <div
             key={slotId}
             className={`${slot.minute === 0 ? "border-b border-border" : "border-b border-dashed border-border/60"} ${isOutsideHours
-                ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                : "cursor-pointer hover:bg-primary/5 transition-colors"
+              ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+              : "cursor-pointer hover:bg-primary/5 transition-colors"
               }`}
             style={{ height: slotHeight }}
             onClick={onSlotClick ? () => onSlotClick(slot.hour, slot.minute) : undefined}
@@ -475,7 +452,13 @@ const TimeColumn: FC<TimeColumnProps> = ({
 
         if (block.isAllDay) {
           return (
-            <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName} timezone={timezone}>
+            <BlockDetailPopover
+              key={`block-${block.id}`}
+              block={block}
+              staffName={staffName}
+              locationStaff={locationStaff}
+              timezone={timezone}
+            >
               <div
                 className="absolute inset-x-0 bg-gray-100/80 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600 z-[5] cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-800/70 transition-colors"
                 style={{ top: 0, height: gridHeight }}
@@ -486,14 +469,20 @@ const TimeColumn: FC<TimeColumnProps> = ({
         }
         const pos = getPos(block.startsAt, block.endsAt);
         return (
-          <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName} timezone={timezone}>
+          <BlockDetailPopover
+            key={`block-${block.id}`}
+            block={block}
+            staffName={staffName}
+            locationStaff={locationStaff}
+            timezone={timezone}
+          >
             <div
               className="absolute inset-x-1 bg-gray-100/80 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600 rounded-sm z-[5] cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-800/70 transition-colors"
               style={{ top: pos.top, height: pos.height }}
-              title={block.title || getBlockReasonLabel(block.reason)}
+              title={block.title || getCalendarBlockReasonLabel(block.reason)}
             >
               <span className="text-[10px] text-gray-600 dark:text-gray-400 px-1 truncate block">
-                {block.title || getBlockReasonLabel(block.reason)}
+                {block.title || getCalendarBlockReasonLabel(block.reason)}
               </span>
             </div>
           </BlockDetailPopover>
@@ -501,7 +490,7 @@ const TimeColumn: FC<TimeColumnProps> = ({
       })}
 
       {(() => {
-        const overlapLanes = getOverlapLanes(appointments, timezone);
+        const overlapLanes = getOverlapLanes(appointments);
         return appointments.map(appt => {
           const pos = getPos(appt.scheduledAt, appt.endsAt);
           const lanes = overlapLanes.get(appt.id);
@@ -512,7 +501,7 @@ const TimeColumn: FC<TimeColumnProps> = ({
           if (enableDnd && dateKey) {
             return (
               <DraggableAppointmentBlock
-                key={`appt-${appt.id}`}
+                key={`appt-${columnId}-${appt.id}`}
                 appointment={appt}
                 columnId={columnId}
                 dateKey={dateKey}
@@ -521,6 +510,9 @@ const TimeColumn: FC<TimeColumnProps> = ({
                 gridStartMinutes={gridStartMinutes}
                 intervalMinutes={intervalMinutes}
                 slotHeight={useSlots ? slotHeight : undefined}
+                timezone={timezone}
+                colorMap={appointmentColorMap}
+                disableDrag={schedulingLockedAppointmentIds?.has(appt.id) ?? false}
               />
             );
           }
@@ -532,6 +524,7 @@ const TimeColumn: FC<TimeColumnProps> = ({
               height={pos.height}
               leftPercent={totalLanes > 1 ? leftPercent : undefined}
               widthPercent={totalLanes > 1 ? widthPercent : undefined}
+              colorMap={appointmentColorMap}
             />
           );
         });
@@ -550,15 +543,34 @@ const DroppableColumn: FC<{
   label: string;
   isOver?: boolean;
   children: React.ReactNode;
-}> = ({ id, staffId, label, children }) => {
+  dropDisabled?: boolean;
+  dndActive?: boolean;
+  /**
+   * When true, valid-target tint comes only from per-slot droppables (TimeColumn); the column wrapper
+   * does not add a second info background (avoids double tint + header tint). Column hover still shows a ring.
+   */
+  slotBasedDragHighlight?: boolean;
+}> = ({ id, staffId, label, children, dropDisabled = false, dndActive = false, slotBasedDragHighlight = false }) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
     data: { type: "staff-column", staffId, label } satisfies StaffColumnDropData,
+    disabled: dropDisabled,
   });
+  const validDropHighlight = Boolean(dndActive && !dropDisabled);
+  const dragTintClass =
+    validDropHighlight && slotBasedDragHighlight
+      ? isOver
+        ? "ring-1 ring-inset ring-primary/40"
+        : ""
+      : validDropHighlight
+        ? isOver
+          ? "bg-info/18 dark:bg-info/26 ring-1 ring-inset ring-primary/40"
+          : "bg-info/10 dark:bg-info/16"
+        : "";
   return (
     <div
       ref={setNodeRef}
-      className={`flex-1 min-w-[140px] border-l border-border transition-colors ${isOver ? "bg-primary/10 ring-1 ring-primary/30" : ""}`}
+      className={`flex flex-1 min-w-[140px] flex-col border-l border-border transition-colors ${dragTintClass}`}
     >
       {children}
     </div>
@@ -610,6 +622,9 @@ function displayBlockToSlim(block: CalendarDisplayBlock): SlimAppointment {
     isUnassigned: block.isUnassigned,
     overrideReason: block.overrideReason,
     bookingGroupId: block.bookingGroupId ?? undefined,
+    bookingGroupOrder: block.bookingGroupOrder ?? undefined,
+    groupSize: block.groupSize,
+    notes: block.notes ?? undefined,
   };
 }
 
@@ -622,6 +637,8 @@ const DayGrid: FC = () => {
   const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
   const isLoading = useSelector(getDayDataLoading);
   const locationStaff = useSelector(getLocationStaff);
+  const locationServices = useSelector(getLocationServices);
+  const locationBundles = useSelector(getLocationBundles);
   const locationContext = useSelector(getLocationContext);
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
@@ -630,8 +647,11 @@ const DayGrid: FC = () => {
   const pendingDrop = useSelector(getPendingDrop);
   const bookingSettings = useSelector(getBookingSettings);
   const calendarTimezone = useSelector(getCalendarTimezone);
+  const bufferTimeMinutes = bookingSettings?.bufferTimeMinutes ?? 0;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  /** Drag-start time + payload for forbidden-slot preview (`useMemo` reads ref; not listed as a dependency). */
+  const dndDaySessionRef = useRef<{ nowMs: number; dragData: AppointmentDragData } | null>(null);
   const [dropConfirmInProgress, setDropConfirmInProgress] = useState(false);
   const [confirmModalDelayedOpen, setConfirmModalDelayedOpen] = useState(false);
   const [overrideReasonText, setOverrideReasonText] = useState("");
@@ -676,9 +696,9 @@ const DayGrid: FC = () => {
     dayAppointments.length === 0 &&
     dayBlocks.length === 0;
 
-  // When pendingDrop is cleared (after refresh), hide confirm-in-progress so modal doesn't reappear
+  // Clear "confirm clicked" when drop is cleared or a new pending drop is set (new drag), so the delayed confirm modal can open again.
   useEffect(() => {
-    if (!pendingDrop) setDropConfirmInProgress(false);
+    setDropConfirmInProgress(false);
   }, [pendingDrop]);
 
   // Staff double-book conflict: do not allow override; clear pending drop and offer so card snaps back
@@ -690,7 +710,6 @@ const DayGrid: FC = () => {
   }, [updateConflictOffer?.conflictType, dispatch, updateConflictOffer]);
 
   // Short delay before showing confirm modal so the card can finish animating to its dropped position
-  const CONFIRM_MODAL_DELAY_MS = 320;
   useEffect(() => {
     if (!pendingDrop || dropConfirmInProgress) {
       setConfirmModalDelayedOpen(false);
@@ -782,18 +801,19 @@ const DayGrid: FC = () => {
         const previewAppt: SlimAppointment = full
           ? { ...full, scheduledAt: seg.startIso, endsAt: seg.endIso }
           : {
-              id: seg.id,
-              scheduledAt: seg.startIso,
-              endsAt: seg.endIso,
-              status: pd.appointment.status,
-              bookedItemName: pd.appointment.bookedItemName,
-              duration: Math.round((new Date(seg.endIso).getTime() - new Date(seg.startIso).getTime()) / 60000),
-              staffUserIds: seg.staffUserIds,
-              customerName: pd.appointment.customerName,
-              bookingSource: pd.appointment.bookingSource,
-              isUnassigned: false,
-              bookingGroupId: pd.bookingGroupId ?? undefined,
-            };
+            id: seg.id,
+            scheduledAt: seg.startIso,
+            endsAt: seg.endIso,
+            status: pd.appointment.status,
+            bookedItemName: pd.appointment.bookedItemName,
+            duration: Math.round((new Date(seg.endIso).getTime() - new Date(seg.startIso).getTime()) / 60000),
+            staffUserIds: seg.staffUserIds,
+            customerName: pd.appointment.customerName,
+            bookingSource: pd.appointment.bookingSource,
+            isUnassigned: false,
+            bookingGroupId: pd.bookingGroupId ?? undefined,
+            notes: pd.appointment.notes ?? undefined,
+          };
         const list = map.get(colId)!;
         map.set(colId, [...list, previewAppt]);
       }
@@ -802,7 +822,6 @@ const DayGrid: FC = () => {
 
     const appointment = pd.appointment;
     const appointmentId = appointment.id;
-    const sourceCol = appointment.staffUserIds.length === 0 ? 0 : appointment.staffUserIds[0];
     const targetCol = pd.type === "reassign" ? pd.staffId : pd.columnId;
 
     const removeFrom = (colId: number) => {
@@ -814,7 +833,7 @@ const DayGrid: FC = () => {
       map.set(colId, [...list, appt]);
     };
 
-    removeFrom(sourceCol);
+    columns.forEach((col) => removeFrom(col.id));
     if (pd.type === "reschedule") {
       const minute = pd.minute ?? 0;
       const previewStartsAt = buildZonedDateFromDateKey(
@@ -851,148 +870,230 @@ const DayGrid: FC = () => {
     return map;
   }, [dayBlocks, columns]);
 
+  const colorCoding = calendarPreferences.getColorCoding();
+  const dayKnownColorKeys = useMemo(() => {
+    if (colorCoding === "staff") return columns.map(c => c.id);
+    if (colorCoding === "service") return locationServices.map(s => s.serviceName);
+    return undefined;
+  }, [colorCoding, columns, locationServices]);
+  const dayColorMap = useMemo(() => {
+    const allAppts: SlimAppointment[] = [];
+    for (const list of appointmentsByColumn.values()) {
+      allAppts.push(...list);
+    }
+    return buildCalendarColorMap(allAppts, colorCoding, dayKnownColorKeys);
+  }, [appointmentsByColumn, colorCoding, dayKnownColorKeys]);
+
   const activeAppointment = useMemo(() => {
-    if (!activeId || String(activeId).startsWith("appointment-") === false) return null;
-    const id = parseInt(String(activeId).replace("appointment-", ""), 10);
+    if (!activeId) return null;
+    const id = parseDraggableActiveAppointmentId(String(activeId));
+    if (id == null) return null;
     return dayAppointments.find((a) => a.id === id) ?? null;
   }, [activeId, dayAppointments]);
 
+  const activeDragIsGroupRestricted = useMemo(() => {
+    if (!activeAppointment) return false;
+    const n = countSegmentsSameBookingGroup(dayAppointments, activeAppointment.bookingGroupId);
+    return isMultiSegmentGroupDrag(activeAppointment, n);
+  }, [activeAppointment, dayAppointments]);
+
+  const daySlotRowsForForbidden = useMemo(
+    () =>
+      dayGridSlotStarts.length > 0
+        ? dayGridSlotStarts
+        : GRID_HOURS.map((hour) => ({ hour, minute: 0 as const })),
+    [dayGridSlotStarts],
+  );
+
+  const dayForbiddenSlotIds = useMemo(() => {
+    if (!activeId || !activeAppointment) return EMPTY_FORBIDDEN_SLOT_SET;
+    if (activeAppointment.status === "cancelled") return EMPTY_FORBIDDEN_SLOT_SET;
+    if (isSlimAppointmentSchedulingLocked(activeAppointment, dayAppointments)) {
+      return EMPTY_FORBIDDEN_SLOT_SET;
+    }
+    const session = dndDaySessionRef.current;
+    if (!session || session.dragData.appointment.id !== activeAppointment.id) {
+      return EMPTY_FORBIDDEN_SLOT_SET;
+    }
+    const { nowMs, dragData } = session;
+    const useSlots = dayGridSlotStarts.length > 0;
+    const forbidden = new Set<string>();
+    for (const col of columns) {
+      for (const slot of daySlotRowsForForbidden) {
+        const slotId = useSlots
+          ? `slot-${col.id}-${dateKey}-${slot.hour}-${slot.minute}`
+          : `slot-${col.id}-${dateKey}-${slot.hour}`;
+        if (
+          isDayTimeSlotForbiddenForPreview({
+            appointment: activeAppointment,
+            sourceColumnId: dragData.columnId,
+            sourceDateKey: dragData.dateKey,
+            targetColumnId: col.id,
+            targetDateKey: dateKey,
+            targetHour: slot.hour,
+            targetMinute: slot.minute,
+            nowMs,
+            calendarTimezone,
+            dayAppointments,
+            appointmentsByColumn,
+            blocksByColumn,
+            locationServices,
+            locationBundles,
+            targetColumnLabel: col.label,
+            bufferTimeMinutes,
+          })
+        ) {
+          forbidden.add(slotId);
+        }
+      }
+    }
+    return forbidden;
+  }, [
+    activeId,
+    activeAppointment,
+    columns,
+    daySlotRowsForForbidden,
+    dayGridSlotStarts.length,
+    dateKey,
+    calendarTimezone,
+    dayAppointments,
+    appointmentsByColumn,
+    blocksByColumn,
+    locationServices,
+    locationBundles,
+    bufferTimeMinutes,
+  ]);
+
+  const schedulingLockedAppointmentIds = useMemo(() => {
+    const ids = new Set<number>();
+    for (const a of dayAppointments) {
+      if (isSlimAppointmentSchedulingLocked(a, dayAppointments)) {
+        ids.add(a.id);
+      }
+    }
+    return ids;
+  }, [dayAppointments]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    const raw = event.active.data?.current as AppointmentDragData | undefined;
+    if (raw?.type === "appointment") {
+      dndDaySessionRef.current = { nowMs: Date.now(), dragData: raw };
+    } else {
+      dndDaySessionRef.current = null;
+    }
     setActiveId(String(event.active.id));
   }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    dndDaySessionRef.current = null;
     setActiveId(null);
+    const nowMs = Date.now();
     const data = event.active.data?.current as AppointmentDragData | null;
     const overData = event.over?.data?.current as TimeSlotDropData | StaffColumnDropData | null;
     if (!data || data.type !== "appointment" || !overData) return;
     const appointment = data.appointment;
     if (appointment.status === "cancelled") return;
+    if (isSlimAppointmentSchedulingLocked(appointment, dayAppointments)) return;
 
-    const isUnassignedTarget =
-      (overData.type === "time-slot" && overData.columnId === 0) ||
-      (overData.type === "staff-column" && overData.staffId === 0);
-    if (isUnassignedTarget) {
-      toast.error("Appointments must be assigned to a team member.");
-      return;
-    }
+    const groupSegCountOnDay = countSegmentsSameBookingGroup(dayAppointments, appointment.bookingGroupId);
+    const isGroupDragRestricted = isMultiSegmentGroupDrag(appointment, groupSegCountOnDay);
 
-    const staffConflictMessage = "This team member already has an appointment at this time. Choose another time or team member.";
-    const bookingGroupId = appointment.bookingGroupId ?? undefined;
-
-    // Group drag: do not allow staff reassignment (drop on another column)
-    if (bookingGroupId && overData.type === "staff-column") {
-      toast.error("Cannot reassign a group via drag. Open the appointment to change staff.");
+    if (overData.type === "staff-column") {
+      const r = evaluateDayStaffColumnDrop({
+        appointment,
+        staffId: overData.staffId,
+        staffLabel: overData.label,
+        isGroupDragRestricted,
+        appointmentsByColumn,
+        locationServices,
+        locationBundles,
+        bufferTimeMinutes,
+      });
+      if (!r.allowed) {
+        if (r.toastMessage) toast.error(r.toastMessage);
+        return;
+      }
+      dispatch(
+        setCalendarPendingDrop({
+          type: "reassign",
+          appointment,
+          staffId: overData.staffId,
+          staffLabel: overData.label,
+        }),
+      );
       return;
     }
 
     if (overData.type === "time-slot") {
-      const { columnId, dateKey, hour } = overData;
-      const minute = overData.minute ?? 0;
-      const droppedSlotStartMs = buildZonedDateFromDateKey(
-        dateKey,
-        `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      const label = columns.find((c) => c.id === overData.columnId)?.label ?? "This team member";
+      const slotResult = evaluateDayTimeSlotDrop({
+        appointment,
+        sourceColumnId: data.columnId,
+        sourceDateKey: data.dateKey,
+        targetColumnId: overData.columnId,
+        targetDateKey: overData.dateKey,
+        targetHour: overData.hour,
+        targetMinute: overData.minute ?? 0,
+        nowMs,
         calendarTimezone,
-      ).getTime();
-      const apptStartMs = new Date(appointment.scheduledAt).getTime();
-      if (data.columnId === columnId && data.dateKey === dateKey && droppedSlotStartMs === apptStartMs) {
+        dayAppointments,
+        appointmentsByColumn,
+        blocksByColumn,
+        locationServices,
+        locationBundles,
+        targetColumnLabel: label,
+        bufferTimeMinutes,
+      });
+      if (!slotResult.ok) {
+        if (slotResult.toastMessage) toast.error(slotResult.toastMessage);
         return;
       }
-
-      // Group drag: compute new first-segment start and segment previews (ignore columnId for staff)
-      if (bookingGroupId) {
-        const groupSegments = dayAppointments
-          .filter((a) => (a.bookingGroupId ?? null) === bookingGroupId)
-          .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-        if (groupSegments.length === 0) return;
-        const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-        const draggedStartMs = new Date(appointment.scheduledAt).getTime();
-        const draggedOffsetMs = draggedStartMs - groupFirstStartMs;
-        const newGroupStartMs = droppedSlotStartMs - draggedOffsetMs;
-        const newGroupStartIso = new Date(newGroupStartMs).toISOString();
-        const segmentsPreview = groupSegments.map((seg) => {
-          const segStartMs = new Date(seg.scheduledAt).getTime();
-          const segOffsetMs = segStartMs - groupFirstStartMs;
-          const previewStartMs = newGroupStartMs + segOffsetMs;
-          const durationMs = (seg.endsAt ? new Date(seg.endsAt).getTime() : new Date(seg.scheduledAt).getTime() + seg.duration * 60 * 1000) - new Date(seg.scheduledAt).getTime();
-          return {
-            id: seg.id,
-            startIso: new Date(previewStartMs).toISOString(),
-            endIso: new Date(previewStartMs + durationMs).toISOString(),
-            staffUserIds: seg.staffUserIds || [],
-          };
-        });
-        dispatch(setCalendarPendingDrop({
+      if (slotResult.action === "noop") return;
+      if (slotResult.action === "reschedule_single") {
+        dispatch(
+          setCalendarPendingDrop({
+            type: "reschedule",
+            appointment,
+            dateKey: slotResult.dateKey,
+            hour: slotResult.hour,
+            minute: slotResult.minute,
+            columnId: slotResult.columnId,
+          }),
+        );
+        return;
+      }
+      dispatch(
+        setCalendarPendingDrop({
           type: "reschedule",
           appointment,
-          dateKey: overData.dateKey,
-          hour: overData.hour,
-          minute: overData.minute ?? 0,
-          columnId: overData.columnId,
+          dateKey: slotResult.dateKey,
+          hour: slotResult.hour,
+          minute: slotResult.minute,
+          columnId: slotResult.columnId,
           isGroupDrop: true,
-          bookingGroupId,
-          newGroupStartIso,
-          segmentsPreview,
-        }));
-        return;
-      }
-
-      // Non-group: existing conflict check and single-card pending drop
-      if (columnId !== 0) {
-        const columnApps = (appointmentsByColumn.get(columnId) ?? []).filter((a) => a.id !== appointment.id);
-        const slotStart = droppedSlotStartMs;
-        const slotEnd = slotStart + appointment.duration * 60 * 1000;
-        const hasConflict = columnApps.some((other) => {
-          const otherStart = new Date(other.scheduledAt).getTime();
-          const otherEnd = new Date(other.endsAt).getTime();
-          return timeRangesOverlap(slotStart, slotEnd, otherStart, otherEnd);
-        });
-        if (hasConflict) {
-          toast.error(staffConflictMessage);
-          return;
-        }
-      }
-      dispatch(setCalendarPendingDrop({
-        type: "reschedule",
-        appointment,
-        dateKey: overData.dateKey,
-        hour: overData.hour,
-        minute: overData.minute ?? 0,
-        columnId: overData.columnId,
-      }));
-    } else if (overData.type === "staff-column") {
-      const { staffId } = overData;
-      if (appointment.staffUserIds.length > 0 && appointment.staffUserIds[0] === staffId) {
-        return;
-      }
-      {
-        const columnApps = (appointmentsByColumn.get(staffId) ?? []).filter((a) => a.id !== appointment.id);
-        const apptStart = new Date(appointment.scheduledAt).getTime();
-        const apptEnd = new Date(appointment.endsAt).getTime();
-        const hasConflict = columnApps.some((other) => {
-          const otherStart = new Date(other.scheduledAt).getTime();
-          const otherEnd = new Date(other.endsAt).getTime();
-          return timeRangesOverlap(apptStart, apptEnd, otherStart, otherEnd);
-        });
-        if (hasConflict) {
-          toast.error(staffConflictMessage);
-          return;
-        }
-      }
-      dispatch(setCalendarPendingDrop({
-        type: "reassign",
-        appointment,
-        staffId: overData.staffId,
-        staffLabel: overData.label,
-      }));
+          bookingGroupId: slotResult.bookingGroupId,
+          newGroupStartIso: slotResult.newGroupStartIso,
+          segmentsPreview: slotResult.segmentsPreview,
+        }),
+      );
     }
-  }, [dispatch, appointmentsByColumn, dayAppointments, calendarTimezone]);
+  }, [
+    dispatch,
+    appointmentsByColumn,
+    blocksByColumn,
+    dayAppointments,
+    calendarTimezone,
+    locationServices,
+    locationBundles,
+    columns,
+    bufferTimeMinutes,
+  ]);
 
   const handleConfirmDrop = useCallback(() => {
     if (!pendingDrop) return;
-    setDropConfirmInProgress(true);
     const toConfirm = pendingDrop;
     if (toConfirm.type === "reassign") {
+      setDropConfirmInProgress(true);
       dispatch(
         updateAppointment.request({
           appointmentId: toConfirm.appointment.id,
@@ -1012,7 +1113,7 @@ const DayGrid: FC = () => {
         : newScheduledAt.getTime() + toConfirm.appointment.duration * 60 * 1000;
       const totalGroupDurationMinutes = Math.round((groupEndMs - newScheduledAt.getTime()) / 60000);
       const newEndsAt = new Date(groupEndMs);
-      const isOutOfHours = !open247 && dayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, totalGroupDurationMinutes, dayWorkingHours, open247);
+      const isOutOfHours = !open247 && dayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, totalGroupDurationMinutes, dayWorkingHours, open247, calendarTimezone);
       if (isOutOfHours) {
         setPendingReschedulePayload({
           appointmentId: toConfirm.appointment.id,
@@ -1024,6 +1125,7 @@ const DayGrid: FC = () => {
         setOverrideDialogOpen(true);
         return;
       }
+      setDropConfirmInProgress(true);
       dispatch(
         rescheduleAppointmentGroup.request({
           bookingGroupId: toConfirm.bookingGroupId,
@@ -1040,7 +1142,7 @@ const DayGrid: FC = () => {
       calendarTimezone,
     );
     const newEndsAt = new Date(newScheduledAt.getTime() + appointment.duration * 60 * 1000);
-    const isOutOfHours = !open247 && dayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, appointment.duration, dayWorkingHours, open247);
+    const isOutOfHours = !open247 && dayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, appointment.duration, dayWorkingHours, open247, calendarTimezone);
     const sourceColumnId = appointment.staffUserIds.length === 0 ? 0 : appointment.staffUserIds[0];
     const changingColumn = sourceColumnId !== targetColumnId;
     const payload: { scheduledAt?: string; staffUserIds?: number[] } = {};
@@ -1059,13 +1161,42 @@ const DayGrid: FC = () => {
       return;
     }
     payload.scheduledAt = newScheduledAt.toISOString();
-    if (appointment.bookingGroupId) {
-      dispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: appointment.bookingGroupId,
-          payload: { scheduledAt: payload.scheduledAt! },
-        }),
-      );
+    const gid = appointment.bookingGroupId;
+    const timeChanged =
+      newScheduledAt.getTime() !== new Date(appointment.scheduledAt).getTime();
+    setDropConfirmInProgress(true);
+    if (gid) {
+      const staffIds = payload.staffUserIds;
+      if (changingColumn && staffIds != null && staffIds.length > 0) {
+        if (timeChanged) {
+          dispatch(
+            updateAppointment.request({
+              appointmentId: appointment.id,
+              data: { staffUserIds: staffIds },
+              bookingGroupId: gid,
+              chainReschedule: {
+                bookingGroupId: gid,
+                payload: { scheduledAt: payload.scheduledAt! },
+              },
+            }),
+          );
+        } else {
+          dispatch(
+            updateAppointment.request({
+              appointmentId: appointment.id,
+              data: { staffUserIds: staffIds },
+              bookingGroupId: gid,
+            }),
+          );
+        }
+      } else {
+        dispatch(
+          rescheduleAppointmentGroup.request({
+            bookingGroupId: gid,
+            payload: { scheduledAt: payload.scheduledAt! },
+          }),
+        );
+      }
     } else {
       dispatch(
         updateAppointment.request({
@@ -1080,18 +1211,34 @@ const DayGrid: FC = () => {
   const handleConfirmOverride = useCallback(() => {
     if (!pendingReschedulePayload) return;
     const reason = overrideReasonText.trim() || undefined;
+    const overrideGroupPayload = {
+      scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
+      allowOutOfHours: true as const,
+      overrideConflicts: true as const,
+      overrideReason: reason,
+    };
     if (pendingReschedulePayload.bookingGroupId) {
-      dispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: pendingReschedulePayload.bookingGroupId,
-          payload: {
-            scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
-            allowOutOfHours: true,
-            overrideConflicts: true,
-            overrideReason: reason,
-          },
-        }),
-      );
+      const sid = pendingReschedulePayload.staffUserIds;
+      if (sid != null && sid.length > 0) {
+        dispatch(
+          updateAppointment.request({
+            appointmentId: pendingReschedulePayload.appointmentId,
+            data: { staffUserIds: sid },
+            bookingGroupId: pendingReschedulePayload.bookingGroupId,
+            chainReschedule: {
+              bookingGroupId: pendingReschedulePayload.bookingGroupId,
+              payload: overrideGroupPayload,
+            },
+          }),
+        );
+      } else {
+        dispatch(
+          rescheduleAppointmentGroup.request({
+            bookingGroupId: pendingReschedulePayload.bookingGroupId,
+            payload: overrideGroupPayload,
+          }),
+        );
+      }
     } else {
       const data: Record<string, unknown> = {
         scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
@@ -1211,15 +1358,15 @@ const DayGrid: FC = () => {
               <div className="h-8 flex-shrink-0" />
               {dayGridSlotStarts.length > 0
                 ? dayGridSlotStarts.map((slot) => (
-                    <div key={`${slot.hour}-${slot.minute}`} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: daySlotHeight }}>
-                      {slot.minute === 0 ? formatHourLabel(slot.hour) : null}
-                    </div>
-                  ))
+                  <div key={`${slot.hour}-${slot.minute}`} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: daySlotHeight }}>
+                    {slot.minute === 0 ? formatHourLabel(slot.hour) : null}
+                  </div>
+                ))
                 : GRID_HOURS.map((hour) => (
-                    <div key={hour} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
-                      {formatHourLabel(hour)}
-                    </div>
-                  ))}
+                  <div key={hour} className="text-[11px] text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
+                    {formatHourLabel(hour)}
+                  </div>
+                ))}
             </div>
 
             {/* Staff columns (droppable for reassign) */}
@@ -1229,6 +1376,21 @@ const DayGrid: FC = () => {
                 id={`column-${col.id}`}
                 staffId={col.id}
                 label={col.label}
+                slotBasedDragHighlight
+                dndActive={!!activeId}
+                dropDisabled={
+                  !!activeId &&
+                  !!activeAppointment &&
+                  isDayStaffColumnDropDisabled({
+                    appointment: activeAppointment,
+                    staffId: col.id,
+                    staffLabel: col.label,
+                    isGroupDragRestricted: activeDragIsGroupRestricted,
+                    appointmentsByColumn,
+                    locationServices,
+                    locationBundles,
+                  })
+                }
               >
                 <div className="h-8 flex items-center justify-center text-xs font-medium text-muted-foreground border-b border-border truncate px-1">
                   {col.label}
@@ -1249,6 +1411,10 @@ const DayGrid: FC = () => {
                   gridStartMinutes={dayGridSlotStarts.length > 0 ? dayGridStartMinutes : undefined}
                   intervalMinutes={dayGridSlotStarts.length > 0 ? slotIntervalMinutes : undefined}
                   timezone={calendarTimezone}
+                  colorMap={dayColorMap}
+                  schedulingLockedAppointmentIds={schedulingLockedAppointmentIds}
+                  forbiddenSlotIds={activeId ? dayForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
+                  dndActive={!!activeId}
                   onSlotClick={(hour, minute) => {
                     const hh = String(hour).padStart(2, "0");
                     const mm = String(minute ?? 0).padStart(2, "0");
@@ -1270,7 +1436,13 @@ const DayGrid: FC = () => {
         </div>
 
         {createPortal(
-          <DragOverlay modifiers={[snapCenterToCursor]}>
+          <DragOverlay
+            modifiers={
+              activeDragIsGroupRestricted
+                ? [snapCenterToCursor, restrictToVerticalAxis]
+                : [snapCenterToCursor]
+            }
+          >
             {activeAppointment ? (
               <div className="rounded-xl px-3 py-2 shadow-lg border border-border bg-card cursor-grabbing">
                 <div className="font-bold text-xs truncate">{activeAppointment.bookedItemName}</div>
@@ -1293,7 +1465,12 @@ const DayGrid: FC = () => {
               {pendingDrop?.type === "reschedule" && (() => {
                 const min = pendingDrop.minute ?? 0;
                 const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
-                const isGroup = !!pendingDrop.appointment.bookingGroupId;
+                const isGroup =
+                  !!pendingDrop.appointment.bookingGroupId?.trim() &&
+                  isMultiSegmentGroupDrag(
+                    pendingDrop.appointment,
+                    countSegmentsSameBookingGroup(dayAppointments, pendingDrop.appointment.bookingGroupId),
+                  );
                 if (isGroup) {
                   return (
                     <>
@@ -1433,7 +1610,7 @@ const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
             className={`border-b border-dashed border-border ${isOutsideHours
               ? "bg-muted/30 cursor-default"
               : "cursor-pointer hover:bg-primary/5 transition-colors"
-            }`}
+              }`}
             style={{ height: HOUR_HEIGHT }}
             onClick={onSlotClick ? () => onSlotClick(hour) : undefined}
             onKeyDown={onSlotClick ? (e) => e.key === "Enter" && onSlotClick(hour) : undefined}
@@ -1464,7 +1641,13 @@ const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
             : null;
         if (block.isAllDay) {
           return (
-            <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName} timezone={timezone}>
+            <BlockDetailPopover
+              key={`block-${block.id}`}
+              block={block}
+              staffName={staffName}
+              locationStaff={locationStaff}
+              timezone={timezone}
+            >
               <div
                 className="absolute inset-x-0 bg-gray-100/80 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600 z-[5] cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-800/70 transition-colors"
                 style={{ top: 0, height: gridHeight }}
@@ -1475,14 +1658,20 @@ const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
         }
         const pos = getTimePosition(block.startsAt, block.endsAt, timezone);
         return (
-          <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName} timezone={timezone}>
+          <BlockDetailPopover
+            key={`block-${block.id}`}
+            block={block}
+            staffName={staffName}
+            locationStaff={locationStaff}
+            timezone={timezone}
+          >
             <div
               className="absolute inset-x-1 bg-gray-100/80 dark:bg-gray-800/50 border-l-2 border-gray-300 dark:border-gray-600 rounded-sm z-[5] cursor-pointer hover:bg-gray-200/80 dark:hover:bg-gray-800/70 transition-colors"
               style={{ top: pos.top, height: pos.height }}
-              title={block.title || getBlockReasonLabel(block.reason)}
+              title={block.title || getCalendarBlockReasonLabel(block.reason)}
             >
               <span className="text-[10px] text-gray-600 dark:text-gray-400 px-1 truncate block">
-                {block.title || getBlockReasonLabel(block.reason)}
+                {block.title || getCalendarBlockReasonLabel(block.reason)}
               </span>
             </div>
           </BlockDetailPopover>
@@ -1521,9 +1710,19 @@ const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
                     className="px-3 py-1.5 text-xs border-b border-border/50 last:border-b-0 flex flex-col gap-0.5"
                   >
                     <span className="font-medium text-foreground truncate">{appt.bookedItemName}</span>
-                    <span className="text-muted-foreground">
-                      {formatTimeRange(appt.scheduledAt, appt.endsAt, timezone)}
-                      {appt.customerName ? ` · ${appt.customerName}` : ""}
+                    <span className="text-muted-foreground flex items-center gap-1 flex-wrap">
+                      <span>{formatTimeRange(appt.scheduledAt, appt.endsAt, timezone)}</span>
+                      <span>· {appt.customerName ?? NO_CUSTOMER_DISPLAY_LABEL}</span>
+                      {appt.bookingGroupId && (appt.groupSize ?? 1) > 1 && (
+                        <span className="inline-flex items-center gap-0.5">
+                          ·
+                          <span
+                            className="h-1.5 w-1.5 rounded-full shrink-0 mx-0.5"
+                            style={{ backgroundColor: getGroupDotColor(appt.bookingGroupId) }}
+                          />
+                          <span>{appt.bookingGroupOrder ?? 1}/{appt.groupSize}</span>
+                        </span>
+                      )}
                     </span>
                     <span className="text-muted-foreground">
                       {getStaffDisplayNames(appt.staffUserIds ?? [], locationStaff)}
@@ -1555,6 +1754,7 @@ const WeekGrid: FC = () => {
   const weekData = useSelector(getWeekData);
   const isLoading = useSelector(getWeekDataLoading);
   const locationStaff = useSelector(getLocationStaff);
+  const locationServicesWeek = useSelector(getLocationServices);
   const workingHours = useSelector(getLocationWorkingHours);
   const open247 = useSelector(getLocationOpen247);
   const staffFilter = useSelector(getEffectiveStaffFilterIds);
@@ -1563,8 +1763,10 @@ const WeekGrid: FC = () => {
   const updateConflictOffer = useSelector(getUpdateConflictOffer);
   const bookingSettings = useSelector(getBookingSettings);
   const calendarTimezone = useSelector(getCalendarTimezone);
+  const bufferTimeMinutes = bookingSettings?.bufferTimeMinutes ?? 0;
 
   const [activeId, setActiveId] = useState<string | null>(null);
+  const dndWeekSessionRef = useRef<{ nowMs: number; dragData: AppointmentDragData } | null>(null);
   const [dropConfirmInProgress, setDropConfirmInProgress] = useState(false);
   const [confirmModalDelayedOpen, setConfirmModalDelayedOpen] = useState(false);
   const [overrideReasonText, setOverrideReasonText] = useState("");
@@ -1576,6 +1778,10 @@ const WeekGrid: FC = () => {
     staffUserIds?: number[];
     bookingGroupId?: string;
   } | null>(null);
+
+  useEffect(() => {
+    setDropConfirmInProgress(false);
+  }, [pendingDrop]);
 
   const dndSensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -1634,7 +1840,7 @@ const WeekGrid: FC = () => {
 
       let appointments = dayData?.appointments ?? [];
       const serverBlocks = dayData?.blocks ?? [];
-      const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, dateKey));
+      const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, dateKey, calendarTimezone));
       const blocks = [...serverBlocks, ...forDay];
 
       // Apply staff filter
@@ -1648,6 +1854,16 @@ const WeekGrid: FC = () => {
       return { appointments, blocks };
     });
   }, [weekDays, weekData, staffFilter, optimisticBlocks, calendarTimezone]);
+
+  // Map from dateKey to raw column data for per-segment block validation in week group drag
+  const columnDataByDateKey = useMemo(() => {
+    const map: Record<string, typeof columnData[number]> = {};
+    weekDays.forEach((day, i) => {
+      const dateKey = formatDateInTimezone(day, calendarTimezone);
+      map[dateKey] = columnData[i];
+    });
+    return map;
+  }, [weekDays, columnData, calendarTimezone]);
 
   // Convert each column's appointments to display blocks (grouped by bookingGroupId) then to SlimAppointment for rendering
   const columnDisplayData = useMemo(() => {
@@ -1666,6 +1882,7 @@ const WeekGrid: FC = () => {
         isUnassigned: block.isUnassigned,
         overrideReason: block.overrideReason,
         bookingGroupId: block.bookingGroupId ?? undefined,
+        notes: block.notes ?? undefined,
       })),
     }));
   }, [columnData]);
@@ -1692,18 +1909,19 @@ const WeekGrid: FC = () => {
           return full
             ? { ...full, scheduledAt: seg.startIso, endsAt: seg.endIso }
             : {
-                id: seg.id,
-                scheduledAt: seg.startIso,
-                endsAt: seg.endIso,
-                status: appointment.status,
-                bookedItemName: appointment.bookedItemName,
-                duration: Math.round((new Date(seg.endIso).getTime() - new Date(seg.startIso).getTime()) / 60000),
-                staffUserIds: seg.staffUserIds,
-                customerName: appointment.customerName,
-                bookingSource: appointment.bookingSource,
-                isUnassigned: false,
-                bookingGroupId: pd.bookingGroupId ?? undefined,
-              };
+              id: seg.id,
+              scheduledAt: seg.startIso,
+              endsAt: seg.endIso,
+              status: appointment.status,
+              bookedItemName: appointment.bookedItemName,
+              duration: Math.round((new Date(seg.endIso).getTime() - new Date(seg.startIso).getTime()) / 60000),
+              staffUserIds: seg.staffUserIds,
+              customerName: appointment.customerName,
+              bookingSource: appointment.bookingSource,
+              isUnassigned: false,
+              bookingGroupId: pd.bookingGroupId ?? undefined,
+              notes: appointment.notes ?? undefined,
+            };
         });
         return { ...col, appointments: [...withoutSegments, ...previewAppointments] };
       });
@@ -1734,9 +1952,26 @@ const WeekGrid: FC = () => {
     });
   }, [columnDisplayData, pendingDrop, weekDays, calendarTimezone]);
 
+  const weekColorCoding = calendarPreferences.getColorCoding();
+  const weekKnownColorKeys = useMemo(() => {
+    if (weekColorCoding === "staff")
+      return staffFilter.length > 0 ? staffFilter : locationStaff.map(s => s.id);
+    if (weekColorCoding === "service")
+      return locationServicesWeek.map(s => s.serviceName);
+    return undefined;
+  }, [weekColorCoding, staffFilter, locationStaff, locationServicesWeek]);
+  const weekColorMap = useMemo(() => {
+    const allAppts: SlimAppointment[] = [];
+    for (const col of columnDataWithPreview) {
+      allAppts.push(...col.appointments);
+    }
+    return buildCalendarColorMap(allAppts, weekColorCoding, weekKnownColorKeys);
+  }, [columnDataWithPreview, weekColorCoding, weekKnownColorKeys]);
+
   const activeAppointment = useMemo(() => {
-    if (!activeId || String(activeId).startsWith("appointment-") === false) return null;
-    const id = parseInt(String(activeId).replace("appointment-", ""), 10);
+    if (!activeId) return null;
+    const id = parseDraggableActiveAppointmentId(String(activeId));
+    if (id == null) return null;
     for (const col of columnDataWithPreview) {
       const found = col.appointments.find((a) => a.id === id);
       if (found) return found;
@@ -1744,91 +1979,161 @@ const WeekGrid: FC = () => {
     return null;
   }, [activeId, columnDataWithPreview]);
 
+  const activeDragIsGroupRestricted = useMemo(() => {
+    if (!activeAppointment) return false;
+    const flat = columnData.flatMap((c) => c.appointments);
+    const n = countSegmentsSameBookingGroup(flat, activeAppointment.bookingGroupId);
+    return isMultiSegmentGroupDrag(activeAppointment, n);
+  }, [activeAppointment, columnData]);
+
+  const weekSchedulingLockedIds = useMemo(() => {
+    const flat = columnData.flatMap((c) => c.appointments);
+    const ids = new Set<number>();
+    for (const a of flat) {
+      if (isSlimAppointmentSchedulingLocked(a, flat)) {
+        ids.add(a.id);
+      }
+    }
+    return ids;
+  }, [columnData]);
+
+  const weekSlotRowsForForbidden = useMemo(
+    () =>
+      weekGridSlotStarts.length > 0
+        ? weekGridSlotStarts
+        : GRID_HOURS.map((hour) => ({ hour, minute: 0 as const })),
+    [weekGridSlotStarts],
+  );
+
+  const weekForbiddenSlotIds = useMemo(() => {
+    if (!isSingleStaff || !activeId || !activeAppointment) return EMPTY_FORBIDDEN_SLOT_SET;
+    if (activeAppointment.status === "cancelled") return EMPTY_FORBIDDEN_SLOT_SET;
+    const weekFlatForLock = columnData.flatMap((c) => c.appointments);
+    if (isSlimAppointmentSchedulingLocked(activeAppointment, weekFlatForLock)) {
+      return EMPTY_FORBIDDEN_SLOT_SET;
+    }
+    const session = dndWeekSessionRef.current;
+    if (!session || session.dragData.appointment.id !== activeAppointment.id) {
+      return EMPTY_FORBIDDEN_SLOT_SET;
+    }
+    const { nowMs, dragData } = session;
+    const useSlots = weekGridSlotStarts.length > 0;
+    const forbidden = new Set<string>();
+    for (let i = 0; i < weekDays.length; i++) {
+      const dayDateKey = formatDateInTimezone(weekDays[i], calendarTimezone);
+      for (const slot of weekSlotRowsForForbidden) {
+        const slotId = useSlots
+          ? `slot-${i}-${dayDateKey}-${slot.hour}-${slot.minute}`
+          : `slot-${i}-${dayDateKey}-${slot.hour}`;
+        if (
+          isWeekTimeSlotForbiddenForPreview({
+            appointment: activeAppointment,
+            sourceColumnId: dragData.columnId,
+            sourceDateKey: dragData.dateKey,
+            targetColumnId: i,
+            targetDateKey: dayDateKey,
+            targetHour: slot.hour,
+            targetMinute: slot.minute,
+            nowMs,
+            calendarTimezone,
+            columnData,
+            columnDataByDateKey,
+            columnDataWithPreview,
+            bufferTimeMinutes,
+          })
+        ) {
+          forbidden.add(slotId);
+        }
+      }
+    }
+    return forbidden;
+  }, [
+    isSingleStaff,
+    activeId,
+    activeAppointment,
+    weekDays,
+    weekSlotRowsForForbidden,
+    weekGridSlotStarts.length,
+    calendarTimezone,
+    columnData,
+    columnDataByDateKey,
+    columnDataWithPreview,
+    bufferTimeMinutes,
+  ]);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    const raw = event.active.data?.current as AppointmentDragData | undefined;
+    if (raw?.type === "appointment") {
+      dndWeekSessionRef.current = { nowMs: Date.now(), dragData: raw };
+    } else {
+      dndWeekSessionRef.current = null;
+    }
     setActiveId(String(event.active.id));
   }, []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    dndWeekSessionRef.current = null;
     setActiveId(null);
+    const nowMs = Date.now();
     const data = event.active.data?.current as AppointmentDragData | null;
     const overData = event.over?.data?.current as TimeSlotDropData | null;
     if (!data || data.type !== "appointment" || !overData || overData.type !== "time-slot") return;
     const appointment = data.appointment;
     if (appointment.status === "cancelled") return;
+    const weekFlatForLock = columnData.flatMap((c) => c.appointments);
+    if (isSlimAppointmentSchedulingLocked(appointment, weekFlatForLock)) return;
 
-    const { columnId, dateKey, hour } = overData;
-    const minute = overData.minute ?? 0;
-    const droppedSlotStartMs = buildZonedDateFromDateKey(
-      dateKey,
-      `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+    const slotResult = evaluateWeekTimeSlotDrop({
+      appointment,
+      sourceColumnId: data.columnId,
+      sourceDateKey: data.dateKey,
+      targetColumnId: overData.columnId,
+      targetDateKey: overData.dateKey,
+      targetHour: overData.hour,
+      targetMinute: overData.minute ?? 0,
+      nowMs,
       calendarTimezone,
-    ).getTime();
-    const apptStartMs = new Date(appointment.scheduledAt).getTime();
-    if (data.columnId === columnId && data.dateKey === dateKey && droppedSlotStartMs === apptStartMs) {
+      columnData,
+      columnDataByDateKey,
+      columnDataWithPreview,
+      bufferTimeMinutes,
+    });
+    if (!slotResult.ok) {
+      if (slotResult.toastMessage) toast.error(slotResult.toastMessage);
       return;
     }
-    const bookingGroupId = appointment.bookingGroupId ?? undefined;
-    // Week view group drag: move whole group to dropped day/time (first-segment start)
-    if (bookingGroupId) {
-      const allWeekAppointments = columnData.flatMap((col) => col.appointments);
-      const groupSegments = allWeekAppointments
-        .filter((a) => (a.bookingGroupId ?? null) === bookingGroupId)
-        .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-      if (groupSegments.length === 0) return;
-      const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-      const draggedOffsetMs = apptStartMs - groupFirstStartMs;
-      const newGroupStartMs = droppedSlotStartMs - draggedOffsetMs;
-      const newGroupStartIso = new Date(newGroupStartMs).toISOString();
-      const segmentsPreview = groupSegments.map((seg) => {
-        const segStartMs = new Date(seg.scheduledAt).getTime();
-        const segOffsetMs = segStartMs - groupFirstStartMs;
-        const previewStartMs = newGroupStartMs + segOffsetMs;
-        const durationMs = (seg.endsAt ? new Date(seg.endsAt).getTime() : new Date(seg.scheduledAt).getTime() + seg.duration * 60 * 1000) - new Date(seg.scheduledAt).getTime();
-        return {
-          id: seg.id,
-          startIso: new Date(previewStartMs).toISOString(),
-          endIso: new Date(previewStartMs + durationMs).toISOString(),
-          staffUserIds: seg.staffUserIds || [],
-        };
-      });
-      dispatch(setCalendarPendingDrop({
+    if (slotResult.action === "noop") return;
+    if (slotResult.action === "reschedule_single") {
+      dispatch(
+        setCalendarPendingDrop({
+          type: "reschedule",
+          appointment,
+          dateKey: slotResult.dateKey,
+          hour: slotResult.hour,
+          minute: slotResult.minute,
+          columnId: slotResult.columnId,
+        }),
+      );
+      return;
+    }
+    dispatch(
+      setCalendarPendingDrop({
         type: "reschedule",
         appointment,
-        dateKey,
-        hour,
-        minute: minute ?? 0,
-        columnId,
+        dateKey: slotResult.dateKey,
+        hour: slotResult.hour,
+        minute: slotResult.minute,
+        columnId: slotResult.columnId,
         isGroupDrop: true,
-        bookingGroupId,
-        newGroupStartIso,
-        segmentsPreview,
-      }));
-      return;
-    }
-    const columnApps = (columnDataWithPreview[columnId]?.appointments ?? []).filter((a) => a.id !== appointment.id);
-    const slotEnd = droppedSlotStartMs + appointment.duration * 60 * 1000;
-    const hasConflict = columnApps.some((other) => {
-      const otherStart = new Date(other.scheduledAt).getTime();
-      const otherEnd = new Date(other.endsAt).getTime();
-      return timeRangesOverlap(droppedSlotStartMs, slotEnd, otherStart, otherEnd);
-    });
-    if (hasConflict) {
-      toast.error("This team member already has an appointment at this time. Choose another time or team member.");
-      return;
-    }
-    dispatch(setCalendarPendingDrop({
-      type: "reschedule",
-      appointment,
-      dateKey,
-      hour,
-      minute,
-      columnId,
-    }));
-  }, [dispatch, columnDataWithPreview, columnData, calendarTimezone]);
+        bookingGroupId: slotResult.bookingGroupId,
+        newGroupStartIso: slotResult.newGroupStartIso,
+        segmentsPreview: slotResult.segmentsPreview,
+      }),
+    );
+  }, [dispatch, columnDataWithPreview, columnData, calendarTimezone, bufferTimeMinutes]);
 
   const handleConfirmDrop = useCallback(() => {
     if (!pendingDrop || pendingDrop.type !== "reschedule") return;
-    setDropConfirmInProgress(true);
     const toConfirm = pendingDrop;
     const { appointment, dateKey: dKey, hour } = toConfirm;
     const minute = toConfirm.minute ?? 0;
@@ -1844,7 +2149,7 @@ const WeekGrid: FC = () => {
       const newEndsAt = new Date(groupEndMs);
       const dayIndex = weekDays.findIndex((d) => formatDateInTimezone(d, calendarTimezone) === dKey);
       const targetDayWorkingHours = dayIndex >= 0 ? getWorkingHoursForDate(weekDays[dayIndex], workingHours, open247) : null;
-      const isOutOfHours = !open247 && targetDayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, totalGroupDurationMinutes, targetDayWorkingHours, open247);
+      const isOutOfHours = !open247 && targetDayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, totalGroupDurationMinutes, targetDayWorkingHours, open247, calendarTimezone);
       if (isOutOfHours) {
         setPendingReschedulePayload({
           appointmentId: appointment.id,
@@ -1856,6 +2161,7 @@ const WeekGrid: FC = () => {
         setOverrideDialogOpen(true);
         return;
       }
+      setDropConfirmInProgress(true);
       dispatch(
         rescheduleAppointmentGroup.request({
           bookingGroupId: toConfirm.bookingGroupId,
@@ -1872,7 +2178,7 @@ const WeekGrid: FC = () => {
       calendarTimezone,
     );
     const newEndsAt = new Date(newScheduledAt.getTime() + appointment.duration * 60 * 1000);
-    const isOutOfHours = !open247 && targetDayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, appointment.duration, targetDayWorkingHours, open247);
+    const isOutOfHours = !open247 && targetDayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, appointment.duration, targetDayWorkingHours, open247, calendarTimezone);
     const payload: { scheduledAt?: string; staffUserIds?: number[] } = {};
     if (isOutOfHours) {
       setPendingReschedulePayload({
@@ -1885,6 +2191,7 @@ const WeekGrid: FC = () => {
       return;
     }
     payload.scheduledAt = newScheduledAt.toISOString();
+    setDropConfirmInProgress(true);
     if (appointment.bookingGroupId) {
       dispatch(
         rescheduleAppointmentGroup.request({
@@ -1906,18 +2213,34 @@ const WeekGrid: FC = () => {
   const handleConfirmOverride = useCallback(() => {
     if (!pendingReschedulePayload) return;
     const reason = overrideReasonText.trim() || undefined;
+    const overrideGroupPayload = {
+      scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
+      allowOutOfHours: true as const,
+      overrideConflicts: true as const,
+      overrideReason: reason,
+    };
     if (pendingReschedulePayload.bookingGroupId) {
-      dispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: pendingReschedulePayload.bookingGroupId,
-          payload: {
-            scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
-            allowOutOfHours: true,
-            overrideConflicts: true,
-            overrideReason: reason,
-          },
-        }),
-      );
+      const sid = pendingReschedulePayload.staffUserIds;
+      if (sid != null && sid.length > 0) {
+        dispatch(
+          updateAppointment.request({
+            appointmentId: pendingReschedulePayload.appointmentId,
+            data: { staffUserIds: sid },
+            bookingGroupId: pendingReschedulePayload.bookingGroupId,
+            chainReschedule: {
+              bookingGroupId: pendingReschedulePayload.bookingGroupId,
+              payload: overrideGroupPayload,
+            },
+          }),
+        );
+      } else {
+        dispatch(
+          rescheduleAppointmentGroup.request({
+            bookingGroupId: pendingReschedulePayload.bookingGroupId,
+            payload: overrideGroupPayload,
+          }),
+        );
+      }
     } else {
       const data: Record<string, unknown> = {
         scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
@@ -1985,14 +2308,13 @@ const WeekGrid: FC = () => {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!pendingDrop) {
+    if (!pendingDrop || dropConfirmInProgress) {
       setConfirmModalDelayedOpen(false);
-      setDropConfirmInProgress(false);
       return;
     }
-    const t = setTimeout(() => setConfirmModalDelayedOpen(true), 50);
+    const t = setTimeout(() => setConfirmModalDelayedOpen(true), CONFIRM_MODAL_DELAY_MS);
     return () => clearTimeout(t);
-  }, [pendingDrop]);
+  }, [pendingDrop, dropConfirmInProgress]);
 
   if (isLoading) {
     return (
@@ -2009,105 +2331,109 @@ const WeekGrid: FC = () => {
         <div className="flex flex-col items-end pr-4 select-none flex-shrink-0" style={{ width: GUTTER_WIDTH }}>
           {weekGridSlotStarts.length > 0
             ? weekGridSlotStarts.map((slot) => (
-                <div key={`${slot.hour}-${slot.minute}`} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: weekSlotHeight }}>
-                  {slot.minute === 0 ? formatHourLabel(slot.hour) : null}
-                </div>
-              ))
+              <div key={`${slot.hour}-${slot.minute}`} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: weekSlotHeight }}>
+                {slot.minute === 0 ? formatHourLabel(slot.hour) : null}
+              </div>
+            ))
             : GRID_HOURS.map((hour) => (
-                <div key={hour} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
-                  {formatHourLabel(hour)}
-                </div>
-              ))}
+              <div key={hour} className="text-xs font-medium text-muted-foreground flex items-start justify-end" style={{ height: HOUR_HEIGHT }}>
+                {formatHourLabel(hour)}
+              </div>
+            ))}
         </div>
         {isSingleStaff
           ? weekDays.map((day, i) => {
-              const { appointments, blocks } = columnDataWithPreview[i];
-              const { openHour, closeHour } = dayWorkingHours[i];
-              const isToday = formatDateInTimezone(day, calendarTimezone) === todayStr;
-              const dateKey = formatDateInTimezone(day, calendarTimezone);
-              return (
-                <div
-                  key={day.toDateString()}
-                  className="flex-1 min-w-[100px] cursor-pointer"
-                  onDoubleClick={() => {
-                    dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
-                  }}
-                >
-                  <div className="mx-1">
-                    <TimeColumn
-                      appointments={appointments}
-                      blocks={blocks}
-                      locationStaff={locationStaff}
-                      openHour={openHour}
-                      closeHour={closeHour}
-                      open247={open247}
-                      isToday={isToday}
-                      enableDnd
-                      columnId={i}
-                      dateKey={dateKey}
-                      gridSlotStarts={weekGridSlotStarts.length > 0 ? weekGridSlotStarts : undefined}
-                      slotHeight={weekGridSlotStarts.length > 0 ? weekSlotHeight : undefined}
-                      gridStartMinutes={weekGridSlotStarts.length > 0 ? weekGridStartMinutes : undefined}
-                      intervalMinutes={weekGridSlotStarts.length > 0 ? weekSlotIntervalMinutes : undefined}
-                      timezone={calendarTimezone}
-                      onSlotClick={(hour, minute) => {
-                        const hh = String(hour).padStart(2, '0');
-                        const mm = String(minute ?? 0).padStart(2, '0');
-                        dispatch(toggleAddForm({
-                          open: true,
-                          prefill: {
-                            date: day,
-                            time: `${hh}:${mm}`,
-                            staffUserId: staffFilter.length === 1 ? staffFilter[0] : undefined,
-                          },
-                        }));
-                      }}
-                    />
-                  </div>
+            const { appointments, blocks } = columnDataWithPreview[i];
+            const { openHour, closeHour } = dayWorkingHours[i];
+            const isToday = formatDateInTimezone(day, calendarTimezone) === todayStr;
+            const dateKey = formatDateInTimezone(day, calendarTimezone);
+            return (
+              <div
+                key={day.toDateString()}
+                className="flex-1 min-w-[100px] cursor-pointer"
+                onDoubleClick={() => {
+                  dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
+                }}
+              >
+                <div className="mx-1">
+                  <TimeColumn
+                    appointments={appointments}
+                    blocks={blocks}
+                    locationStaff={locationStaff}
+                    openHour={openHour}
+                    closeHour={closeHour}
+                    open247={open247}
+                    isToday={isToday}
+                    enableDnd
+                    columnId={i}
+                    dateKey={dateKey}
+                    gridSlotStarts={weekGridSlotStarts.length > 0 ? weekGridSlotStarts : undefined}
+                    slotHeight={weekGridSlotStarts.length > 0 ? weekSlotHeight : undefined}
+                    gridStartMinutes={weekGridSlotStarts.length > 0 ? weekGridStartMinutes : undefined}
+                    intervalMinutes={weekGridSlotStarts.length > 0 ? weekSlotIntervalMinutes : undefined}
+                    timezone={calendarTimezone}
+                    colorMap={weekColorMap}
+                    schedulingLockedAppointmentIds={weekSchedulingLockedIds}
+                    forbiddenSlotIds={activeId ? weekForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
+                    dndActive={!!activeId}
+                    onSlotClick={(hour, minute) => {
+                      const hh = String(hour).padStart(2, '0');
+                      const mm = String(minute ?? 0).padStart(2, '0');
+                      dispatch(toggleAddForm({
+                        open: true,
+                        prefill: {
+                          date: day,
+                          time: `${hh}:${mm}`,
+                          staffUserId: staffFilter.length === 1 ? staffFilter[0] : undefined,
+                        },
+                      }));
+                    }}
+                  />
                 </div>
-              );
-            })
+              </div>
+            );
+          })
           : weekDays.map((day, i) => {
-              const { appointments, blocks } = columnDataWithPreview[i];
-              const { openHour, closeHour } = dayWorkingHours[i];
-              const isToday = formatDateInTimezone(day, calendarTimezone) === todayStr;
-              const dateKey = formatDateInTimezone(day, calendarTimezone);
-              return (
-                <div
-                  key={day.toDateString()}
-                  className="flex-1 min-w-[100px] cursor-pointer"
-                  onDoubleClick={() => {
-                    dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
-                  }}
-                >
-                  <div className="mx-1">
-                    <WeekDayColumnSummary
-                      appointments={appointments}
-                      blocks={blocks}
-                      locationStaff={locationStaff}
-                      openHour={openHour}
-                      closeHour={closeHour}
-                      open247={open247}
-                      isToday={isToday}
-                      day={day}
-                      dateKey={dateKey}
-                      calendarViewMode={AppointmentViewMode.WEEK}
-                      timezone={calendarTimezone}
-                      onSlotClick={(hour) => {
-                        const hh = String(hour).padStart(2, '0');
-                        dispatch(toggleAddForm({
-                          open: true,
-                          prefill: {
-                            date: day,
-                            time: `${hh}:00`,
-                          },
-                        }));
-                      }}
-                    />
-                  </div>
+            const { appointments, blocks } = columnDataWithPreview[i];
+            const { openHour, closeHour } = dayWorkingHours[i];
+            const isToday = formatDateInTimezone(day, calendarTimezone) === todayStr;
+            const dateKey = formatDateInTimezone(day, calendarTimezone);
+            return (
+              <div
+                key={day.toDateString()}
+                className="flex-1 min-w-[100px] cursor-pointer"
+                onDoubleClick={() => {
+                  dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
+                }}
+              >
+                <div className="mx-1">
+                  <WeekDayColumnSummary
+                    appointments={appointments}
+                    blocks={blocks}
+                    locationStaff={locationStaff}
+                    openHour={openHour}
+                    closeHour={closeHour}
+                    open247={open247}
+                    isToday={isToday}
+                    day={day}
+                    dateKey={dateKey}
+                    calendarViewMode={AppointmentViewMode.WEEK}
+                    timezone={calendarTimezone}
+                    onSlotClick={(hour) => {
+                      const hh = String(hour).padStart(2, '0');
+                      dispatch(toggleAddForm({
+                        open: true,
+                        prefill: {
+                          date: day,
+                          time: `${hh}:00`,
+                        },
+                      }));
+                    }}
+                  />
                 </div>
-              );
-            })}
+              </div>
+            );
+          })}
       </div>
     </div>
   );
@@ -2124,7 +2450,13 @@ const WeekGrid: FC = () => {
         >
           {gridContent}
           {createPortal(
-            <DragOverlay modifiers={[snapCenterToCursor]}>
+            <DragOverlay
+              modifiers={
+                activeDragIsGroupRestricted
+                  ? [snapCenterToCursor, restrictToVerticalAxis]
+                  : [snapCenterToCursor]
+              }
+            >
               {activeAppointment ? (
                 <div className="rounded-xl px-3 py-2 shadow-lg border border-border bg-card cursor-grabbing">
                   <div className="font-bold text-xs truncate">{activeAppointment.bookedItemName}</div>
@@ -2149,7 +2481,15 @@ const WeekGrid: FC = () => {
               {pendingDrop?.type === "reschedule" && (() => {
                 const min = pendingDrop.minute ?? 0;
                 const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
-                const isGroup = !!pendingDrop.appointment.bookingGroupId;
+                const isGroup =
+                  !!pendingDrop.appointment.bookingGroupId?.trim() &&
+                  isMultiSegmentGroupDrag(
+                    pendingDrop.appointment,
+                    countSegmentsSameBookingGroup(
+                      columnData.flatMap((c) => c.appointments),
+                      pendingDrop.appointment.bookingGroupId,
+                    ),
+                  );
                 if (isGroup) {
                   return (
                     <>

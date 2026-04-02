@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
@@ -130,18 +130,6 @@ const Calendar = () => {
     }
   }, [dispatch, locationStaff, staffFilter, dayFilters]);
 
-  // Refetch location context and current view when re-entering the calendar (already have a selected location and cached context)
-  useEffect(() => {
-    if (
-      selectedLocationId != null &&
-      locationContext != null &&
-      !hasRefetchedOnEnter.current
-    ) {
-      hasRefetchedOnEnter.current = true;
-      dispatch(setSelectedLocationAction(selectedLocationId));
-    }
-  }, [dispatch, selectedLocationId, locationContext]);
-
   const handleCloseAddForm = useCallback(() => {
     dispatch(toggleAddForm({ open: false }))
   },[dispatch])
@@ -159,8 +147,8 @@ const Calendar = () => {
 
             {/* ─── Main Content ─── */}
             <div className="flex-1 flex flex-col min-w-0 bg-muted/10 dark:bg-transparent">
-              <div className="p-0 md:p-4 lg:p-6 flex flex-col">
-                <Card className="flex flex-col border-none shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
+              <div className="p-0 md:p-4 lg:p-6 !pl-4 !pt-0 !pb-0 flex flex-col">
+                <Card className="flex flex-col !gap-2 border-none pt-0.5 shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
                   {/* Top header bar */}
                   <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 

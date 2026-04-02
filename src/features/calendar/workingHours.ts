@@ -154,18 +154,22 @@ export function isSlotOutsideWorkingHours(
  * True if the time range (scheduledAt + durationMinutes) falls outside working hours.
  * open247 or no dayWorkingHours → false (no "out of hours").
  * Closed day → true.
+ * When `timezone` is set, start time is interpreted in that IANA zone (matches location calendar).
  */
 export function isTimeRangeOutsideWorkingHours(
   scheduledAt: Date,
   durationMinutes: number,
   dayWorkingHours: WorkingHoursDay | null,
-  open247: boolean
+  open247: boolean,
+  timezone?: string,
 ): boolean {
   if (open247 || !dayWorkingHours) return false;
   if (!dayWorkingHours.isOpen) return true;
   const bounds = getDayOpenCloseMinutes(dayWorkingHours, false);
   if (!bounds) return true;
-  const startMinutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
+  const startMinutes = timezone?.trim()
+    ? getMinutesInTimezone(scheduledAt.toISOString(), timezone.trim())
+    : scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
   const endMinutes = startMinutes + durationMinutes;
   return startMinutes < bounds.start || endMinutes > bounds.end;
 }

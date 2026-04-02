@@ -10,6 +10,7 @@ import type { SlimAppointment } from "../../../shared/types/calendar.ts";
 import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { toggleEditFormAction } from "../actions.ts";
 import { AppointmentBlock } from "./AppointmentBlock.tsx";
+import type { AppointmentBlockColorPair } from "../colors.ts";
 import { getTimePositionForGrid } from "../workingHours.ts";
 
 const HOUR_HEIGHT = 80;
@@ -47,6 +48,11 @@ interface DraggableAppointmentBlockProps {
   gridStartMinutes?: number;
   intervalMinutes?: number;
   slotHeight?: number;
+  /** Location/business calendar IANA timezone; aligns draggable position with TimeColumn.getPos. */
+  timezone?: string;
+  colorMap?: Map<string, AppointmentBlockColorPair> | null;
+  /** Past booking (or group fully ended): no drag; click still opens detail like Edit slider without Edit. */
+  disableDrag?: boolean;
 }
 
 export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
@@ -58,10 +64,15 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
   gridStartMinutes,
   intervalMinutes,
   slotHeight,
+  timezone,
+  colorMap,
+  disableDrag = false,
 }) => {
   const dispatch = useDispatch();
+  const dragDisabled = appointment.status === "cancelled" || disableDrag;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
-    id: `appointment-${appointment.id}`,
+    id: `appointment-${columnId}-${appointment.id}`,
+    disabled: dragDisabled,
     data: {
       type: "appointment",
       appointment,
@@ -95,7 +106,8 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
           appointment.endsAt,
           gridStartMinutes,
           intervalMinutes,
-          slotHeight
+          slotHeight,
+          timezone,
         )
       : (() => {
           const start = new Date(appointment.scheduledAt);
@@ -129,7 +141,24 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
         height={pos.height}
         leftPercent={leftPercent}
         widthPercent={widthPercent}
+        colorMap={colorMap}
       />
+    );
+  }
+
+  if (disableDrag) {
+    return (
+      <div ref={setNodeRef} style={wrapperStyle} className="cursor-pointer">
+        <AppointmentBlock
+          appointment={appointment}
+          top={0}
+          height={pos.height}
+          leftPercent={leftPercent}
+          widthPercent={widthPercent}
+          onOpenDetail={handleClick}
+          colorMap={colorMap}
+        />
+      </div>
     );
   }
 
@@ -148,6 +177,7 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
         leftPercent={leftPercent}
         widthPercent={widthPercent}
         onOpenDetail={handleClick}
+        colorMap={colorMap}
       />
     </div>
   );
@@ -162,6 +192,10 @@ interface DroppableSlotProps {
   minute?: number;
   isOutsideHours: boolean;
   slotHeight?: number;
+  /** When true, dnd-kit ignores this target (no visual change vs a normal slot). */
+  dropDisabled?: boolean;
+  /** While a grid drag is active: valid targets get a muted info tint (see `--info` / `bg-info-*`). */
+  dndActive?: boolean;
   onSlotClick?: (hour: number, minute?: number) => void;
 }
 
@@ -173,21 +207,40 @@ export const DroppableSlot: FC<DroppableSlotProps> = ({
   minute = 0,
   isOutsideHours,
   slotHeight = HOUR_HEIGHT,
+  dropDisabled = false,
+  dndActive = false,
   onSlotClick,
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id,
     data: { type: "time-slot", columnId, dateKey, hour, minute } satisfies TimeSlotDropData,
+    disabled: dropDisabled,
   });
   const isHourBoundary = minute === 0;
+  const validDropHighlight = Boolean(dndActive && !dropDisabled);
+  const borderClass = isHourBoundary ? "border-b border-border" : "border-b border-dashed border-border/60";
+
+  const interactClass = dropDisabled
+    ? isOutsideHours
+      ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+      : "cursor-pointer hover:bg-muted/25 transition-colors"
+    : validDropHighlight
+      ? "cursor-pointer bg-info/10 dark:bg-info/18 transition-colors hover:bg-info/16 dark:hover:bg-info/24"
+      : isOutsideHours
+        ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+        : "cursor-pointer hover:bg-primary/5 transition-colors";
+
+  const overClass =
+    !dropDisabled && isOver
+      ? validDropHighlight
+        ? "ring-2 ring-primary/40 bg-info/20 dark:bg-info/28"
+        : "ring-2 ring-primary/50 bg-info/12 dark:bg-info/18"
+      : "";
+
   return (
     <div
       ref={setNodeRef}
-      className={`${isHourBoundary ? "border-b border-border" : "border-b border-dashed border-border/60"} ${isOver ? "ring-2 ring-primary/50 bg-primary/10" : ""} ${
-        isOutsideHours
-          ? "bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-          : "cursor-pointer hover:bg-primary/5 transition-colors"
-      }`}
+      className={`relative ${borderClass} ${interactClass} ${overClass}`}
       style={{ height: slotHeight }}
       onClick={onSlotClick ? () => onSlotClick(hour, minute) : undefined}
     />

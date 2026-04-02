@@ -158,7 +158,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       {/* Backdrop - Overlay on both mobile and desktop */}
       <div
         className={cn(
-          "fixed inset-0 z-60 transition-opacity duration-300 mb-0",
+          "fixed inset-0 z-[75] transition-opacity duration-300 mb-0",
           "bg-black/30",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none",
           backdropClassName
@@ -170,7 +170,7 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       <div
         ref={panelRef}
         className={cn(
-          "fixed bg-surface z-70 overflow-hidden",
+          "fixed z-[80] overflow-hidden bg-surface",
           // Mobile: full width, slides from right
           "top-0 left-0 h-full w-full",
           // Desktop: positioned on right side with spacing and rounded corners

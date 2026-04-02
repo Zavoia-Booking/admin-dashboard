@@ -3,11 +3,15 @@ import { useDispatch, useSelector } from "react-redux";
 import type { SlimAppointment, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { getLocationStaff } from "../selectors.ts";
 import { toggleEditFormAction } from "../actions.ts";
-import { formatTimeRange } from "./utils.tsx";
+import { formatTimeRange, NO_CUSTOMER_DISPLAY_LABEL } from "./utils.tsx";
 import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
 import { User, ShieldAlert } from "lucide-react";
 import { calendarPreferences } from "../calendarPreferences.ts";
-import { getAppointmentBlockColors } from "../colors.ts";
+import {
+  getAppointmentBlockColors,
+  getGroupDotColor,
+  type AppointmentBlockColorPair,
+} from "../colors.ts";
 
 // ─────────────────────────────────────────────────────────────
 // Staff Avatar Cluster
@@ -72,6 +76,8 @@ interface AppointmentBlockProps {
   widthPercent?: number;
   /** When provided, call on click instead of fetching and opening (used by DraggableAppointmentBlock to avoid duplicate fetch). */
   onOpenDetail?: () => void;
+  /** From {@link buildCalendarColorMap} for this column/day’s appointments (service/staff coding). */
+  colorMap?: Map<string, AppointmentBlockColorPair> | null;
 }
 
 /**
@@ -89,11 +95,12 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
   leftPercent,
   widthPercent,
   onOpenDetail,
+  colorMap,
 }) => {
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
   const colorCoding = calendarPreferences.getColorCoding();
-  const { backgroundColor, color } = getAppointmentBlockColors(appointment, colorCoding);
+  const { backgroundColor, color } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
 
   const handleClick = useCallback(async () => {
     if (onOpenDetail) {
@@ -131,19 +138,38 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
                 hover:shadow-lg hover:scale-[1.02] transition-all duration-200
                 ${leftPercent == null ? 'left-1 right-1' : ''}`}
       style={style}
-      title={`${appointment.customerName} – ${appointment.bookedItemName}`}
+      title={(() => {
+        const isGroup = !!appointment.bookingGroupId && (appointment.groupSize ?? 1) > 1;
+        const groupSuffix = isGroup
+          ? ` (${appointment.bookingGroupOrder ?? 1}/${appointment.groupSize})`
+          : '';
+        const head = appointment.customerName
+          ? `${appointment.customerName} – ${appointment.bookedItemName}${groupSuffix}`
+          : `${NO_CUSTOMER_DISPLAY_LABEL} – ${appointment.bookedItemName}${groupSuffix}`;
+        const n = appointment.notes?.trim();
+        return n ? `${head}\n\nNotes: ${n}` : head;
+      })()}
       onClick={handleClick}
     >
-      {/* Service name + override indicator */}
+      {/* Service name + group/override indicators */}
       <div className="flex items-start justify-between gap-1">
         <div className="font-bold text-xs leading-tight truncate min-w-0 flex-1">
           {appointment.bookedItemName}
         </div>
-        {appointment.overrideReason && (
-          <span title={appointment.overrideReason} className="flex-shrink-0">
-            <ShieldAlert className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400 opacity-90" />
-          </span>
-        )}
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {!!appointment.bookingGroupId && (appointment.groupSize ?? 1) > 1 && (
+            <span
+              className="h-2 w-2 rounded-full shrink-0 opacity-90"
+              style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
+              title={`Booking ${appointment.bookingGroupOrder ?? 1} of ${appointment.groupSize}`}
+            />
+          )}
+          {appointment.overrideReason && (
+            <span title={appointment.overrideReason}>
+              <ShieldAlert className="h-3.5 w-3.5 text-amber-700 dark:text-amber-400 opacity-90" />
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Time range — shown when block is tall enough */}
@@ -152,6 +178,15 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
           {formatTimeRange(appointment.scheduledAt, appointment.endsAt)}
         </div>
       )}
+
+      {height > 44 && appointment.notes?.trim() ? (
+        <div
+          className="mt-0.5 truncate text-[10px] leading-tight opacity-80 text-foreground-2"
+          title={appointment.notes.trim()}
+        >
+          {appointment.notes.trim()}
+        </div>
+      ) : null}
 
       {/* Customer + staff avatars — shown when even taller */}
       {height > 56 && (

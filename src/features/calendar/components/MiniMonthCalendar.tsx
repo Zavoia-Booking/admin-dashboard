@@ -1,7 +1,8 @@
-import { type FC, useMemo, useState, useCallback } from "react";
+import { type FC, useMemo, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getSelectedDate, getCalendarSummary, getViewModeSelector } from "../selectors.ts";
+import { getSelectedDate, getCalendarSummary, getViewModeSelector, getSidebarMiniCalendarMonthStart } from "../selectors.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
+import { setSidebarMiniCalendarMonthAction } from "../actions.ts";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../../shared/lib/utils";
 import type { DaySummary } from "../../../shared/types/calendar.ts";
@@ -11,31 +12,47 @@ const DAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
 /** Appointment density under the day number (matches reference: dot / double / bar). */
 type DayMarker = "none" | "dot" | "double" | "triple" | "bar";
 
-function dayMarkerFromSummary(ds: DaySummary | undefined): DayMarker {
-  if (!ds) return "none";
+/** Appointments use primary; block-only days use warning (amber) — gray reads as “disabled” on date cells; grid blocks use large gray panels, not 4px dots. */
+type MarkerTone = "primary" | "blocked";
+
+function dayMarkerFromSummary(ds: DaySummary | undefined): { kind: DayMarker; tone: MarkerTone } {
+  if (!ds) return { kind: "none", tone: "primary" };
   const c = ds.appointmentCount;
   const b = ds.blockedSlots ?? 0;
-  if (c === 0 && b === 0) return "none";
-  if (c > 3) return "bar";
-  if (c === 3) return "triple";
-  if (c === 2) return "double";
-  if (c === 1) return "dot";
-  // Blocks only (no appointments)
-  if (b >= 2) return "double";
-  return "dot";
+  if (c === 0 && b === 0) return { kind: "none", tone: "primary" };
+  const blockOnly = c === 0 && b > 0;
+  const tone: MarkerTone = blockOnly ? "blocked" : "primary";
+  if (c > 3) return { kind: "bar", tone };
+  if (c === 3) return { kind: "triple", tone };
+  if (c === 2) return { kind: "double", tone };
+  if (c === 1) return { kind: "dot", tone };
+  // Blocks only (no appointments): same density scale as appointments (was capped at double for any b≥2).
+  if (b > 3) return { kind: "bar", tone };
+  if (b === 3) return { kind: "triple", tone };
+  if (b === 2) return { kind: "double", tone };
+  return { kind: "dot", tone };
 }
 
 /** Bottom marker glyph for appointment density. */
 function DayMarkerGlyph({
   kind,
+  tone,
   selected,
 }: {
   kind: DayMarker;
+  tone: MarkerTone;
   selected: boolean;
 }) {
   if (kind === "none") return null;
 
-  const dotFill = selected ? "bg-primary-foreground" : "bg-primary";
+  const dotFill =
+    tone === "blocked"
+      ? selected
+        ? "bg-primary-foreground"
+        : "bg-warning"
+      : selected
+        ? "bg-primary-foreground"
+        : "bg-primary";
 
   if (kind === "dot") {
     return <span className={cn("h-1 w-1 shrink-0 rounded-full", dotFill)} aria-hidden />;
@@ -61,9 +78,13 @@ function DayMarkerGlyph({
     <span
       className={cn(
         "h-1 w-5.5 shrink-0 rounded-full",
-        selected
-          ? "bg-primary-foreground"
-          : "bg-gradient-to-r from-primary via-primary/70 to-primary/35",
+        tone === "blocked"
+          ? selected
+            ? "bg-primary-foreground"
+            : "bg-gradient-to-r from-warning via-warning/70 to-warning/40"
+          : selected
+            ? "bg-primary-foreground"
+            : "bg-gradient-to-r from-primary via-primary/70 to-primary/35",
       )}
       aria-hidden
     />
@@ -80,17 +101,36 @@ export const MiniMonthCalendar: FC = () => {
   const selectedDate = useSelector(getSelectedDate);
   const summary = useSelector(getCalendarSummary);
   const viewMode = useSelector(getViewModeSelector);
+  const storedMiniMonth = useSelector(getSidebarMiniCalendarMonthStart);
+  const anchorYear = selectedDate.getFullYear();
+  const anchorMonth = selectedDate.getMonth();
 
-  // The mini calendar can navigate independently from the main calendar
-  const [displayMonth, setDisplayMonth] = useState(() => new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1));
+  const displayMonth = useMemo(
+    () => storedMiniMonth ?? new Date(anchorYear, anchorMonth, 1),
+    [storedMiniMonth, anchorYear, anchorMonth],
+  );
+
+  useEffect(() => {
+    if (!storedMiniMonth) {
+      dispatch(setSidebarMiniCalendarMonthAction(new Date(anchorYear, anchorMonth, 1)));
+    }
+  }, [dispatch, storedMiniMonth, anchorYear, anchorMonth]);
 
   const handlePrevMonth = useCallback(() => {
-    setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
-  }, []);
+    dispatch(
+      setSidebarMiniCalendarMonthAction(
+        new Date(displayMonth.getFullYear(), displayMonth.getMonth() - 1, 1),
+      ),
+    );
+  }, [dispatch, displayMonth]);
 
   const handleNextMonth = useCallback(() => {
-    setDisplayMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-  }, []);
+    dispatch(
+      setSidebarMiniCalendarMonthAction(
+        new Date(displayMonth.getFullYear(), displayMonth.getMonth() + 1, 1),
+      ),
+    );
+  }, [dispatch, displayMonth]);
 
   const handleDayClick = useCallback(
     (day: Date) => {
@@ -139,7 +179,7 @@ export const MiniMonthCalendar: FC = () => {
   return (
     <div>
       {/* Month header with nav */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-2 pl-2">
         <span className="text-sm font-medium text-foreground-1">{monthLabel}</span>
         <div className="flex items-center gap-0.5">
           <button
@@ -173,7 +213,7 @@ export const MiniMonthCalendar: FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-x-1.5 gap-y-1">
+      <div className="grid grid-cols-7 gap-x-3 gap-y-3">
         {cells.map((cell, i) => {
           if (!cell) {
             return <div key={i} className="flex min-h-[2.25rem] min-w-0 items-center justify-center" />;
@@ -184,7 +224,7 @@ export const MiniMonthCalendar: FC = () => {
 
           const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
           const daySummary = summary[dateKey];
-          const marker = dayMarkerFromSummary(daySummary);
+          const { kind: marker, tone: markerTone } = dayMarkerFromSummary(daySummary);
           const hasMarker = marker !== "none";
 
           return (
@@ -193,7 +233,7 @@ export const MiniMonthCalendar: FC = () => {
                 type="button"
                 onClick={() => handleDayClick(date)}
                 className={cn(
-                  "relative flex h-9 w-full max-w-[1.75rem] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md text-xs font-medium leading-none transition-colors tabular-nums",
+                  "relative flex !h-10.5 !min-h-0 w-full !w-10.5 !min-w-0 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-md text-xs font-medium leading-none transition-colors tabular-nums",
                   !isCurrentMonth && "text-muted-foreground/45",
                   isCurrentMonth && !isToday && !isSelected && "text-foreground-1 hover:bg-primary/15",
                   isToday && !isSelected && "bg-primary/15 font-semibold text-primary",
@@ -203,7 +243,7 @@ export const MiniMonthCalendar: FC = () => {
                 <span className="flex items-center justify-center">{date.getDate()}</span>
                 {hasMarker ? (
                   <span className="pointer-events-none absolute bottom-1 left-1/2 flex -translate-x-1/2 items-center justify-center">
-                    <DayMarkerGlyph kind={marker} selected={isSelected} />
+                    <DayMarkerGlyph kind={marker} tone={markerTone} selected={isSelected} />
                   </span>
                 ) : null}
               </button>

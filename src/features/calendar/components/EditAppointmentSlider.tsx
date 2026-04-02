@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import {
   Ban,
@@ -14,6 +14,7 @@ import {
   ExternalLink,
   ArrowUpRight,
   CalendarCheck,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '../../../shared/components/ui/button';
@@ -21,14 +22,16 @@ import { Label } from '../../../shared/components/ui/label';
 import { Textarea } from '../../../shared/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
 import { Badge } from '../../../shared/components/ui/badge';
+import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
-  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogOverlay,
+  AlertDialogPortal,
   AlertDialogTitle,
 } from '../../../shared/components/ui/alert-dialog';
 import { Switch } from '../../../shared/components/ui/switch';
@@ -36,7 +39,6 @@ import { cn } from '../../../shared/lib/utils';
 import {
   Dialog,
   DialogPortal,
-  DialogOverlay,
   DialogTitle,
   DialogDescription,
 } from '../../../shared/components/ui/dialog';
@@ -44,8 +46,9 @@ import { DashedDivider } from '../../../shared/components/common/DashedDivider';
 import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
 import { useDispatch, useSelector } from 'react-redux';
 import { updateAppointmentStatus, cancelAppointment, toggleAddForm } from '../actions';
-import { getLocationStaff, getBookingSettings, getCalendarTimezone } from '../selectors';
+import { getLocationStaff, getBookingSettings, getCalendarTimezone, getAddFormSelector } from '../selectors';
 import { getAppointmentGroupRequest } from '../api';
+import { getGroupDotColor } from '../colors';
 import {
   formatTimeKey,
   formatTimeRange,
@@ -56,6 +59,7 @@ import {
   getBookingSourcePillParts,
   assignmentStylePillLayout,
   formatDurationHuman,
+  NO_CUSTOMER_DISPLAY_LABEL,
 } from './utils';
 import type { Appointment } from '../../../shared/types/calendar';
 import { selectIsTeamMember, selectCurrentUser } from '../../auth/selectors';
@@ -96,12 +100,14 @@ interface EditAppointmentSliderProps {
 // ─────────────────────────────────────────────────────────────
 
 const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, onClose, appointment, groupAppointments: groupAppointmentsProp }) => {
+  const servicesSectionRef = useRef<HTMLDivElement>(null);
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
   const bookingSettings = useSelector(getBookingSettings);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const isTeamMember = useSelector(selectIsTeamMember);
   const currentUser = useSelector(selectCurrentUser);
+  const addFormOpen = useSelector(getAddFormSelector);
   const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
   const currencyDisplay = useMemo(() => getCurrencyDisplay(businessCurrency), [businessCurrency]);
   const auditTimezone = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
@@ -150,8 +156,16 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
   const [accServicesOpen, setAccServicesOpen] = useState(true);
   const [accHistoryOpen, setAccHistoryOpen] = useState(false);
   const [accLocationOpen, setAccLocationOpen] = useState(false);
-  const [accNotesOpen, setAccNotesOpen] = useState(false);
   const [accCancellationOpen, setAccCancellationOpen] = useState(false);
+
+  // Body scroll lock — replaces Radix modal's built-in lock (we use modal={false} so
+  // the slider can receive pointer events when layered on top of this dialog).
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [isOpen]);
 
   // Reset state when slider closes
   useEffect(() => {
@@ -167,7 +181,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
       setAccServicesOpen(true);
       setAccHistoryOpen(false);
       setAccLocationOpen(false);
-      setAccNotesOpen(false);
       setAccCancellationOpen(false);
     }
   }, [isOpen]);
@@ -177,7 +190,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     setAccServicesOpen(true);
     setAccHistoryOpen(false);
     setAccLocationOpen(false);
-    setAccNotesOpen(false);
     setAccCancellationOpen(
       appointment.status === 'cancelled' && !!appointment.cancellationReason,
     );
@@ -236,7 +248,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     const img = (cust?.profileImage ?? snap?.profileImage ?? '').trim();
     const profileImage = img || null;
     const hasContact = !!(name || email || phone);
-    const displayName = name || (hasContact ? 'Guest' : 'Walk-in');
+    const displayName = name || NO_CUSTOMER_DISPLAY_LABEL;
     const snapshotOnly = !cust && !!(snap && hasContact);
     return {
       displayName,
@@ -350,11 +362,30 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
 
   const isGroupBooking = serviceDetailItems.length > 1;
 
+  /** Wall-clock span from earliest segment start to latest segment end (group bookings only). */
+  const groupBookingWallTimeRange = useMemo(() => {
+    if (!groupAppointments || groupAppointments.length < 2) return null;
+    const starts = groupAppointments.map((a) => new Date(a.scheduledAt).getTime());
+    const ends = groupAppointments.map((a) => new Date(a.endsAt).getTime());
+    const minStart = Math.min(...starts);
+    const maxEnd = Math.max(...ends);
+    return formatTimeRange(new Date(minStart).toISOString(), new Date(maxEnd).toISOString(), auditTimezone);
+  }, [groupAppointments, auditTimezone]);
+
   /**
    * Inline link: AddServiceSlider-style hover + arrow; explicit regular weight (not bold) for this modal.
    */
   const sliderInlineLinkClass =
     'inline-flex min-w-0 max-w-full items-center gap-0.5 !font-normal text-foreground-2 transition-colors duration-200 hover:text-primary dark:text-foreground-2 dark:hover:text-primary';
+
+  const scrollToServicesSection = useCallback(() => {
+    setAccServicesOpen(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        servicesSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }, []);
 
   // ─────────────────────────────────────────────────────────────
   // Status Actions
@@ -420,8 +451,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
 
   const handleReschedule = useCallback(() => {
     if (!appointment) return;
-    // Close the detail drawer and open AddAppointmentSlider with prefill data
-    onClose();
+    // Keep the detail dialog open behind the edit slider so the user can return to it.
     const cust = appointment.customer;
     const snap = appointment.customerSnapshot;
     const customer =
@@ -444,7 +474,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
     const bookingGroupId = appointment.bookingGroupId ?? undefined;
 
     // Build groupItems for multi-segment groups (same order as API / bookingGroupOrder)
-    let groupItems: Array<{ serviceId?: number; bundleId?: number; staffUserId?: number; itemName?: string }> | undefined;
+    let groupItems: Array<{ appointmentId?: number; serviceId?: number; bundleId?: number; staffUserId?: number; itemName?: string }> | undefined;
     if (groupAppointments && groupAppointments.length > 1) {
       groupItems = groupAppointments.map((row) => {
         const staffUserId = (() => {
@@ -454,9 +484,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         })();
         const itemName = row.bookedItemName ?? row.bundle?.name ?? row.service?.name ?? 'Service';
         if (row.bundle?.id != null) {
-          return { bundleId: row.bundle.id, staffUserId, itemName };
+          return { appointmentId: row.id, bundleId: row.bundle.id, staffUserId, itemName };
         }
-        return { serviceId: row.service?.id, staffUserId, itemName };
+        return { appointmentId: row.id, serviceId: row.service?.id, staffUserId, itemName };
       });
     }
 
@@ -484,7 +514,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
         ...(groupItems != null ? { groupItems } : {}),
       },
     }));
-  }, [appointment, calendarTimezone, dispatch, onClose, groupAppointments]);
+  }, [appointment, calendarTimezone, dispatch, groupAppointments]);
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -499,10 +529,17 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <Dialog open={isOpen} modal={false} onOpenChange={(open) => { if (!open && !addFormOpen && !cancelDialogOpen) onClose(); }}>
         <DialogPortal>
-          <DialogOverlay className="z-[70] bg-black/50" />
+          <div
+            className="fixed inset-0 z-[70] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+            data-state={isOpen ? 'open' : 'closed'}
+            onClick={() => { if (!addFormOpen && !cancelDialogOpen) onClose(); }}
+          />
           <DialogPrimitive.Content
+            onPointerDownOutside={(e) => { if (addFormOpen || cancelDialogOpen) e.preventDefault(); }}
+            onInteractOutside={(e) => { if (addFormOpen || cancelDialogOpen) e.preventDefault(); }}
+            onEscapeKeyDown={(e) => { if (addFormOpen || cancelDialogOpen) e.preventDefault(); }}
             className={cn(
               'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
               'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200',
@@ -545,7 +582,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                 </div>
               </div>
               <div className="absolute right-3 top-4 flex items-center gap-2 sm:right-4 sm:top-5">
-                {!isTerminal && canReschedule && (
+                {!isTerminal && canReschedule && !isBookingInPast && (
                   <Button
                     variant="ghost"
                     size="sm"
@@ -581,7 +618,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
             <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 py-3 dark:bg-background/50 md:px-6 md:py-4">
               <div className="space-y-4">
                 <div>
-                  {!isTerminal && (
+                  {!isTerminal && (isBookingInPast || canCancel) && (
                     <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
                       <Label className="text-sm font-semibold text-foreground-1">
                         Update status
@@ -635,47 +672,46 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                           </div>
                         </div>
                       ) : (
-                        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              rounded="full"
-                              onClick={openCompleteDialog}
-                              className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-green-200 bg-green-50 px-3.5 text-xs font-medium text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700"
-                              disabled={actionLoading !== null}
-                            >
-                              <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                              Mark as complete
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              rounded="full"
-                              onClick={openNoShowDialog}
-                              className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-orange-500/20 bg-orange-50/50 px-3.5 text-xs font-medium text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700"
-                              disabled={actionLoading !== null}
-                            >
-                              <UserX className="h-3.5 w-3.5 shrink-0" />
-                              No-show
-                            </Button>
-                            <span className="h-5.5 w-px shrink-0 bg-border" aria-hidden />
-
-                          </div>
-                          {canCancel && (
-                            <>
+                        <div className={cn('mt-3 flex flex-wrap items-center gap-2', isBookingInPast ? 'justify-between' : 'justify-start')}>
+                          {isBookingInPast && (
+                            <div className="flex flex-wrap items-center gap-2">
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
                                 rounded="full"
-                                onClick={() => setCancelDialogOpen(true)}
-                                className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-focus/60"
+                                onClick={openCompleteDialog}
+                                className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-green-200 bg-green-50 px-3.5 text-xs font-medium text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700"
                                 disabled={actionLoading !== null}
                               >
-                                <Ban className="h-3.5 w-3.5 shrink-0" />
-                                Cancel appointment
+                                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                                Mark as complete
                               </Button>
-                            </>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                rounded="full"
+                                onClick={openNoShowDialog}
+                                className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-orange-500/20 bg-orange-50/50 px-3.5 text-xs font-medium text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700"
+                                disabled={actionLoading !== null}
+                              >
+                                <UserX className="h-3.5 w-3.5 shrink-0" />
+                                No-show
+                              </Button>
+                              {canCancel && <span className="h-5.5 w-px shrink-0 bg-border" aria-hidden />}
+                            </div>
+                          )}
+                          {canCancel && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              rounded="full"
+                              onClick={() => setCancelDialogOpen(true)}
+                              className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-focus/60"
+                              disabled={actionLoading !== null}
+                            >
+                              <Ban className="h-3.5 w-3.5 shrink-0" />
+                              Cancel appointment
+                            </Button>
                           )}
                         </div>
                       )}
@@ -707,291 +743,342 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                     'dark:bg-neutral-900/30 dark:bg-card',
                   )}
                 >
-                    <div className="relative p-3 md:p-5">
-                      {/* Customer block: avatar, name (capitalize), status, contact rows; booking pill top-right */}
-                      <div className="relative border-b border-border-subtle pb-4">
-                        {appointment.bookingSource ? (
-                          <div className="absolute right-0 top-0 z-[1] pl-2">
-                            {(() => {
-                              const pill = getBookingSourcePillParts(appointment.bookingSource);
-                              const viaLabel = getBookedViaLabel(appointment.bookingSource);
-                              return (
-                                <Badge
-                                  className={cn(pill.badgeClass, 'whitespace-nowrap')}
-                                  title={viaLabel}
-                                  aria-label={viaLabel}
-                                >
-                                  <span className={pill.dotClass} aria-hidden />
-                                  {viaLabel}
-                                </Badge>
-                              );
-                            })()}
-                          </div>
-                        ) : null}
-                        <div className="flex gap-4">
-                          <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border-subtle">
-                            {clientDisplay.profileImage ? (
-                              <AvatarImage
-                                src={clientDisplay.profileImage}
-                                alt=""
-                                className="object-cover"
-                              />
-                            ) : null}
-                            <AvatarFallback className="bg-muted/80 text-sm font-semibold text-foreground-2">
-                              {clientDisplay.displayName
-                                .split(/\s+/)
-                                .map((n) => n[0])
-                                .join('')
-                                .slice(0, 2)
-                                .toUpperCase() || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div
-                            className={cn(
-                              'min-w-0 flex-1 space-y-1',
-                            )}
-                          >
-                            <p className="truncate text-base font-semibold capitalize leading-tight text-foreground-1">
-                              {clientDisplay.displayName}
+                  <div className="relative p-3 md:p-5">
+                    {/* Customer block: avatar, name (capitalize), status, contact rows; booking pill top-right */}
+                    <div className="relative border-b border-border-subtle pb-4">
+                      {appointment.bookingSource ? (
+                        <div className="absolute right-0 top-0 z-[1] pl-2">
+                          {(() => {
+                            const pill = getBookingSourcePillParts(appointment.bookingSource);
+                            const viaLabel = getBookedViaLabel(appointment.bookingSource);
+                            return (
+                              <Badge
+                                className={cn(pill.badgeClass, 'whitespace-nowrap')}
+                                title={viaLabel}
+                                aria-label={viaLabel}
+                              >
+                                <span className={pill.dotClass} aria-hidden />
+                                {viaLabel}
+                              </Badge>
+                            );
+                          })()}
+                        </div>
+                      ) : null}
+                      <div className="flex gap-4">
+                        <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border-subtle">
+                          {clientDisplay.profileImage ? (
+                            <AvatarImage
+                              src={clientDisplay.profileImage}
+                              alt=""
+                              className="object-cover"
+                            />
+                          ) : null}
+                          <AvatarFallback className="bg-muted/80 text-sm font-semibold text-foreground-2">
+                            {clientDisplay.displayName
+                              .split(/\s+/)
+                              .map((n) => n[0])
+                              .join('')
+                              .slice(0, 2)
+                              .toUpperCase() || '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div
+                          className={cn(
+                            'min-w-0 flex-1 space-y-1',
+                          )}
+                        >
+                          <p className="truncate text-base font-semibold capitalize leading-tight text-foreground-1">
+                            {clientDisplay.displayName}
+                          </p>
+                          {clientDisplay.snapshotOnly ? (
+                            <p className="truncate text-xs text-foreground-3">
+                              {clientDisplay.email || clientDisplay.phone
+                                ? 'No profile linked. Contact details were added during booking.'
+                                : 'No profile linked · No contact details provided'}
                             </p>
-                            {clientDisplay.snapshotOnly ? (
-                              <p className="truncate text-xs text-foreground-3">
-                                {clientDisplay.email || clientDisplay.phone
-                                  ? 'No profile linked. Contact details were added during booking.'
-                                  : 'No profile linked · No contact details provided'}
-                              </p>
-                            ) : clientDisplay.linkedCustomerId != null ? (
-                              <p className="truncate text-xs text-foreground-3">
-                                Linked profile ID {clientDisplay.linkedCustomerId}
-                              </p>
-                            ) : !clientDisplay.email && !clientDisplay.phone ? (
-                              <p className="truncate text-xs text-foreground-3">
-                                No phone or email on file
-                              </p>
-                            ) : null}
-                            <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-foreground-3 dark:text-foreground-2">
-                              {clientDisplay.email ? (
-                                <a
-                                  href={`mailto:${clientDisplay.email}`}
-                                  className={cn(sliderInlineLinkClass, 'py-0.5')}
-                                >
-                                  <span className="min-w-0 truncate">{clientDisplay.email}</span>
-                                  <ArrowUpRight
-                                    className="h-3 w-3 shrink-0 text-primary"
-                                    aria-hidden
-                                  />
-                                </a>
-                              ) : null}
-                              {clientDisplay.email && clientDisplay.phone ? (
-                                <span
-                                  className="h-3.5 w-px shrink-0 bg-border"
+                          ) : clientDisplay.linkedCustomerId != null ? (
+                            <p className="truncate text-xs text-foreground-3">
+                              Linked profile ID {clientDisplay.linkedCustomerId}
+                            </p>
+                          ) : !clientDisplay.email && !clientDisplay.phone ? (
+                            <p className="truncate text-xs text-foreground-3">
+                              No phone or email on file
+                            </p>
+                          ) : null}
+                          <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-foreground-3 dark:text-foreground-2">
+                            {clientDisplay.email ? (
+                              <a
+                                href={`mailto:${clientDisplay.email}`}
+                                className={cn(sliderInlineLinkClass, 'py-0.5')}
+                              >
+                                <span className="min-w-0 truncate">{clientDisplay.email}</span>
+                                <ArrowUpRight
+                                  className="h-3 w-3 shrink-0 text-primary"
                                   aria-hidden
                                 />
-                              ) : null}
-                              {clientDisplay.phone ? (
-                                <a
-                                  href={`tel:${clientDisplay.phone.replace(/\s/g, '')}`}
-                                  className={cn(sliderInlineLinkClass, 'py-0.5')}
-                                >
-                                  <span className="min-w-0 truncate">{clientDisplay.phone}</span>
-                                  <ArrowUpRight
-                                    className="h-3 w-3 shrink-0 text-primary"
-                                    aria-hidden
-                                  />
-                                </a>
-                              ) : null}
-                            </div>
+                              </a>
+                            ) : null}
+                            {clientDisplay.email && clientDisplay.phone ? (
+                              <span
+                                className="h-3.5 w-px shrink-0 bg-border"
+                                aria-hidden
+                              />
+                            ) : null}
+                            {clientDisplay.phone ? (
+                              <a
+                                href={`tel:${clientDisplay.phone.replace(/\s/g, '')}`}
+                                className={cn(sliderInlineLinkClass, 'py-0.5')}
+                              >
+                                <span className="min-w-0 truncate">{clientDisplay.phone}</span>
+                                <ArrowUpRight
+                                  className="h-3 w-3 shrink-0 text-primary"
+                                  aria-hidden
+                                />
+                              </a>
+                            ) : null}
                           </div>
                         </div>
-                        {/*
+                      </div>
+                      {/*
                           Post-MVP: "Link profile" was removed for MVP. Revisit attaching snapshot-only
                           bookings to CRM (BusinessCustomer) and/or User — picker + API, aligned with
                           duplicate/merge flows in business-customers; avoid overlapping merge semantics.
                         */}
-                      </div>
+                    </div>
 
-                      {/* Key–value rows: label column + bold value column (screenshot-style rhythm) */}
-                      <dl className="divide-y divide-border-subtle text-sm">
-                        <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
-                          <dt className="font-medium text-foreground-3 sm:pt-0.5">Date</dt>
-                          <dd className="min-w-0 font-semibold text-foreground-1">
-                            {formatDetailOverviewDate(appointment.scheduledAt, auditTimezone)}
-                          </dd>
-                        </div>
-                        <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
-                          <dt className="font-medium text-foreground-3 sm:pt-0.5">Time</dt>
-                          <dd className="min-w-0 font-semibold text-foreground-1">
-                            {formatTimeRange(
-                              new Date(appointment.scheduledAt).toISOString(),
-                              new Date(appointment.endsAt).toISOString(),
-                              auditTimezone,
-                            )}
-                          </dd>
-                        </div>
-                        <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
-                          <dt className="font-medium text-foreground-3 sm:pt-0.5">Reserved time</dt>
-                          <dd className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-semibold text-foreground-1 tabular-nums">
-                                {formatDurationHuman(appointmentSlotMinutes)}
-                              </span>
-                              <span
-                                className="h-3.5 w-px shrink-0 self-center bg-border"
-                                aria-hidden
-                              />
-                              <span className="min-w-0 text-xs leading-snug text-foreground-3">
-                                Time reserved for this segment in the calendar.
-                              </span>
-                            </div>
-                          </dd>
-                        </div>
-                        {isGroupBooking ? (
-                          <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
-                            <dt className="font-medium text-foreground-3 sm:pt-0.5">Total booking duration</dt>
-                            <dd className="min-w-0">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-semibold text-foreground-1 tabular-nums">
-                                  {formatDurationHuman(serviceDetailTotalDuration)}
-                                </span>
-                                <span
-                                  className="h-5.5 w-px shrink-0 self-center bg-border"
-                                  aria-hidden
-                                />
-                                <span className="min-w-0 text-xs leading-snug text-foreground-3">
-                                  Combined duration of all {serviceDetailItems.length} services in this
-                                  booking group.
-                                </span>
-                              </div>
-                            </dd>
-                          </div>
-                        ) : null}
-                        <div className="grid grid-cols-1 gap-2 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6 sm:gap-y-0">
-                          <dt className="font-medium text-foreground-3 sm:pt-1">Assigned staff</dt>
-                          <dd className="min-w-0">
-                            {isUnassigned ? (
-                              <Badge
-                                className={cn(
-                                  assignmentStylePillLayout,
-                                  'border-orange-200 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300',
-                                )}
-                              >
-                                <span
-                                  className="h-2 w-2 shrink-0 rounded-full bg-orange-500"
-                                  aria-hidden
-                                />
-                                Unassigned
-                              </Badge>
-                            ) : assignedStaffMembers.length > 0 ? (
-                              <div className="flex flex-wrap items-center gap-2.5">
-                                {assignedStaffMembers.length === 1 ? (
-                                  <>
-                                    <Avatar
-                                      className="h-9 w-9 shrink-0 ring-1 ring-border-subtle"
-                                      title={`${assignedStaffMembers[0].firstName} ${assignedStaffMembers[0].lastName}`}
-                                    >
-                                      {assignedStaffMembers[0].profileImage ? (
-                                        <AvatarImage
-                                          src={assignedStaffMembers[0].profileImage}
-                                          alt=""
-                                          className="object-cover"
-                                        />
-                                      ) : null}
-                                      <AvatarFallback
-                                        className="text-[10px] font-semibold text-foreground-1"
-                                        style={{
-                                          backgroundColor: getAvatarBgColor(
-                                            `${assignedStaffMembers[0].id}-${assignedStaffMembers[0].firstName ?? ''}-${assignedStaffMembers[0].lastName ?? ''}`,
-                                          ),
-                                        }}
-                                      >
-                                        {`${assignedStaffMembers[0].firstName?.[0] ?? ''}${assignedStaffMembers[0].lastName?.[0] ?? ''}`.toUpperCase() ||
-                                          '?'}
-                                      </AvatarFallback>
-                                    </Avatar>
-                                    <span className="font-semibold text-foreground-1">{staffNames}</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <div className="flex shrink-0 -space-x-2">
-                                      {assignedStaffMembers.slice(0, 4).map((m) => (
-                                        <Avatar
-                                          key={m.id}
-                                          className="h-9 w-9 border-2 border-white dark:border-card"
-                                          title={`${m.firstName} ${m.lastName}`}
-                                        >
-                                          {m.profileImage ? (
-                                            <AvatarImage
-                                              src={m.profileImage}
-                                              alt=""
-                                              className="object-cover"
-                                            />
-                                          ) : null}
-                                          <AvatarFallback
-                                            className="text-[10px] font-semibold text-foreground-1"
-                                            style={{
-                                              backgroundColor: getAvatarBgColor(
-                                                `${m.id}-${m.firstName ?? ''}-${m.lastName ?? ''}`,
-                                              ),
-                                            }}
-                                          >
-                                            {`${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase() ||
-                                              '?'}
-                                          </AvatarFallback>
-                                        </Avatar>
-                                      ))}
-                                      {assignedStaffMembers.length > 4 ? (
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-muted text-[10px] font-medium dark:border-card">
-                                          +{assignedStaffMembers.length - 4}
-                                        </div>
-                                      ) : null}
-                                    </div>
-                                    <span className="font-semibold text-foreground-1">{staffNames}</span>
-                                  </>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="flex items-center gap-2 font-semibold text-foreground-1">
-                                <User className="h-4 w-4 shrink-0 text-foreground-3" />
-                                {staffNames}
-                              </span>
-                            )}
-                          </dd>
-                        </div>
-                      </dl>
-
-                      {appointment.overrideReason ? (
-                        <div
+                    {/* Group booking indicator — pill matches assignments “Customized for N team members” */}
+                    {isGroupBooking && (
+                      <div className="group mt-0 border-b border-border-subtle py-3">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          rounded="full"
+                          size="sm"
+                          onClick={scrollToServicesSection}
                           className={cn(
-                            'mt-3 flex items-center gap-2 border-t border-amber-200/70 px-3 py-3 md:px-5 md:py-3.5',
-                            'bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/25',
-                            '-mx-3 -mb-3 rounded-b-2xl md:-mx-5 md:-mb-5',
+                            'h-auto bg-info-100 text-xs !min-h-0 h-6 py-3.5 text-primary hover:text-primary md:text-foreground-1 md:text-foreground-3 md:dark:text-foreground-2 md:hover:bg-info-100 dark:border dark:bg-surface dark:hover:bg-surface group-hover:bg-info-100 dark:group-hover:border-border-strong dark:group-hover:bg-surface dark:group-hover:text-primary group-hover:text-primary max-w-full justify-start text-left',
                           )}
+                          aria-label="Scroll to services for this booking group"
                         >
-                          <ShieldAlert
-                            className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                          <span
+                            className="h-2.5 w-2.5 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor: appointment.bookingGroupId
+                                ? getGroupDotColor(appointment.bookingGroupId)
+                                : 'var(--muted-foreground)',
+                            }}
                             aria-hidden
                           />
-                          <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground-2">
-                            <span className="font-medium text-foreground-2">Override:</span>{' '}
-                            {appointment.overrideReason}
-                          </p>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
+                          <span className="min-w-0 text-xs text-foreground-1 group-hover:text-foreground-1 md:text-foreground-3 md:dark:text-foreground-2 dark:group-hover:text-foreground-1">
+                            {appointment.bookingGroupOrder != null ? (
+                              <>
+                                Appointment{' '}
+                                <span className="font-semibold text-foreground-1">
+                                  {appointment.bookingGroupOrder}
+                                </span>
+                                {' of '}
+                                <span className="font-semibold text-foreground-1">
+                                  {serviceDetailItems.length}
+                                </span>
+                                {' in this group'}
+                              </>
+                            ) : (
+                              <>
+                                Part of a multi-service booking &mdash;{' '}
+                                <span className="font-semibold text-foreground-1">
+                                  {serviceDetailItems.length}
+                                </span>{' '}
+                                services
+                              </>
+                            )}
+                          </span>
+                          <ChevronRight className="h-3 w-3 shrink-0 pt-0.5" aria-hidden />
+                        </Button>
+                      </div>
+                    )}
 
-                <CollapsibleFormSection
-                  title={`Services (${serviceDetailItems.length})`}
-                  compact
-                  description={
-                    isGroupBooking
-                      ? `${formatDurationHuman(serviceDetailTotalDuration)} total across this booking group`
-                      : 'Booked service or bundle for this appointment'
-                  }
-                  open={accServicesOpen}
-                  onOpenChange={setAccServicesOpen}
-                  className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                    {/* Key–value rows: label column + bold value column (screenshot-style rhythm) */}
+                    <dl className="divide-y divide-border-subtle text-sm">
+                      <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                        <dt className="font-medium text-foreground-3 sm:pt-0.5">Date</dt>
+                        <dd className="min-w-0 font-semibold text-foreground-1">
+                          {formatDetailOverviewDate(appointment.scheduledAt, auditTimezone)}
+                        </dd>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                        <dt className="font-medium text-foreground-3 sm:pt-0.5">Slot time</dt>
+                        <dd className="min-w-0 font-semibold text-foreground-1 tabular-nums">
+                          {formatTimeRange(
+                            new Date(appointment.scheduledAt).toISOString(),
+                            new Date(appointment.endsAt).toISOString(),
+                            auditTimezone,
+                          )}
+                          {appointmentSlotMinutes > 0
+                            ? ` (${formatDurationHuman(appointmentSlotMinutes)})`
+                            : ''}
+                        </dd>
+                      </div>
+                      <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                        <dt className="font-medium text-foreground-3 sm:pt-0.5">Notes</dt>
+                        <dd className="min-w-0">
+                          {appointment.notes?.trim() ? (
+                            <p className="m-0 text-sm leading-relaxed text-foreground-2 whitespace-pre-wrap">
+                              {appointment.notes}
+                            </p>
+                          ) : (
+                            <p className="m-0 text-sm text-muted-foreground">No notes on this booking.</p>
+                          )}
+                        </dd>
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6 sm:gap-y-0">
+                        <dt className="font-medium text-foreground-3 sm:pt-1">Assigned staff</dt>
+                        <dd className="min-w-0">
+                          {isUnassigned ? (
+                            <Badge
+                              className={cn(
+                                assignmentStylePillLayout,
+                                'border-orange-200 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300',
+                              )}
+                            >
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full bg-orange-500"
+                                aria-hidden
+                              />
+                              Unassigned
+                            </Badge>
+                          ) : assignedStaffMembers.length > 0 ? (
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              {assignedStaffMembers.length === 1 ? (
+                                <>
+                                  <Avatar
+                                    className="h-9 w-9 shrink-0 ring-1 ring-border-subtle"
+                                    title={`${assignedStaffMembers[0].firstName} ${assignedStaffMembers[0].lastName}`}
+                                  >
+                                    {assignedStaffMembers[0].profileImage ? (
+                                      <AvatarImage
+                                        src={assignedStaffMembers[0].profileImage}
+                                        alt=""
+                                        className="object-cover"
+                                      />
+                                    ) : null}
+                                    <AvatarFallback
+                                      className="text-[10px] font-semibold text-foreground-1"
+                                      style={{
+                                        backgroundColor: getAvatarBgColor(
+                                          `${assignedStaffMembers[0].id}-${assignedStaffMembers[0].firstName ?? ''}-${assignedStaffMembers[0].lastName ?? ''}`,
+                                        ),
+                                      }}
+                                    >
+                                      {`${assignedStaffMembers[0].firstName?.[0] ?? ''}${assignedStaffMembers[0].lastName?.[0] ?? ''}`.toUpperCase() ||
+                                        '?'}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="font-semibold text-foreground-1">{staffNames}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex shrink-0 -space-x-2">
+                                    {assignedStaffMembers.slice(0, 4).map((m) => (
+                                      <Avatar
+                                        key={m.id}
+                                        className="h-9 w-9 border-2 border-white dark:border-card"
+                                        title={`${m.firstName} ${m.lastName}`}
+                                      >
+                                        {m.profileImage ? (
+                                          <AvatarImage
+                                            src={m.profileImage}
+                                            alt=""
+                                            className="object-cover"
+                                          />
+                                        ) : null}
+                                        <AvatarFallback
+                                          className="text-[10px] font-semibold text-foreground-1"
+                                          style={{
+                                            backgroundColor: getAvatarBgColor(
+                                              `${m.id}-${m.firstName ?? ''}-${m.lastName ?? ''}`,
+                                            ),
+                                          }}
+                                        >
+                                          {`${m.firstName?.[0] ?? ''}${m.lastName?.[0] ?? ''}`.toUpperCase() ||
+                                            '?'}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                    ))}
+                                    {assignedStaffMembers.length > 4 ? (
+                                      <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-muted text-[10px] font-medium dark:border-card">
+                                        +{assignedStaffMembers.length - 4}
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                  <span className="font-semibold text-foreground-1">{staffNames}</span>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="flex items-center gap-2 font-semibold text-foreground-1">
+                              <User className="h-4 w-4 shrink-0 text-foreground-3" />
+                              {staffNames}
+                            </span>
+                          )}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {appointment.overrideReason ? (
+                      <div
+                        className={cn(
+                          'mt-3 flex items-center gap-2 border-t border-amber-200/70 px-3 py-3 md:px-5 md:py-3.5',
+                          'bg-amber-50 dark:border-amber-800/40 dark:bg-amber-950/25',
+                          '-mx-3 -mb-3 rounded-b-2xl md:-mx-5 md:-mb-5',
+                        )}
+                      >
+                        <ShieldAlert
+                          className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400"
+                          aria-hidden
+                        />
+                        <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground-2">
+                          <span className="font-medium text-foreground-2">Override:</span>{' '}
+                          {appointment.overrideReason}
+                        </p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div
+                  ref={servicesSectionRef}
+                  id="appointment-detail-services"
+                  className="scroll-mt-4"
                 >
+                  <CollapsibleFormSection
+                    title={`Services (${serviceDetailItems.length})`}
+                    compact
+                    description={
+                      isGroupBooking ? (
+                        <>
+                          <span
+                            className="h-2 w-2 shrink-0 rounded-full"
+                            style={{
+                              backgroundColor: appointment.bookingGroupId
+                                ? getGroupDotColor(appointment.bookingGroupId)
+                                : 'var(--muted-foreground)',
+                            }}
+                            aria-hidden
+                          />
+                          <span className="min-w-0">
+                            {groupBookingWallTimeRange
+                              ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration)} - across this appointment group`
+                              : `${formatDurationHuman(serviceDetailTotalDuration)} - across this appointment group`}
+                          </span>
+                        </>
+                      ) : (
+                        'Booked service or bundle for this appointment'
+                      )
+                    }
+                    open={accServicesOpen}
+                    onOpenChange={setAccServicesOpen}
+                    className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
+                  >
                   <div className="space-y-0">
                     {serviceDetailItems.length === 0 ? (
                       <p className="py-6 text-center text-sm text-foreground-3">
@@ -1074,7 +1161,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                           </div>
                           {isGroupBooking && serviceDetailTotalDuration > 0 ? (
                             <p className="text-xs leading-relaxed text-foreground-3 dark:text-foreground-2">
-                              Includes all services in this booking group and may exceed this segment’s time block.
+                              Includes all services in this booking group.
                             </p>
                           ) : null}
                         </div>
@@ -1082,6 +1169,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                     )}
                   </div>
                 </CollapsibleFormSection>
+                </div>
 
                 <CollapsibleFormSection
                   title="Activity"
@@ -1275,21 +1363,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
                   </CollapsibleFormSection>
                 ) : null}
 
-                {appointment.notes ? (
-                  <CollapsibleFormSection
-                    title="Notes"
-                    compact
-                    description="Internal or customer-facing notes on this booking."
-                    open={accNotesOpen}
-                    onOpenChange={setAccNotesOpen}
-                    className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
-                  >
-                    <p className="text-sm leading-relaxed text-foreground-2 whitespace-pre-wrap">
-                      {appointment.notes}
-                    </p>
-                  </CollapsibleFormSection>
-                ) : null}
-
                 {isCancelled && appointment.cancellationReason ? (
                   <CollapsibleFormSection
                     title="Cancellation"
@@ -1312,94 +1385,103 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({ isOpen, o
 
       {/* ── Cancel Dialog ── */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
-        <AlertDialogContent className={cn('max-w-md', APPOINTMENT_DIALOG_CURSOR)}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-4">
-                {appointment.bookingGroupId && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                    This will cancel the entire booking (all items in this group).
-                  </p>
-                )}
-                <div>
-                  <Label htmlFor="cancelReason" className="text-base font-medium">
-                    Reason for cancellation
-                  </Label>
-                  <Textarea
-                    id="cancelReason"
-                    placeholder="Enter reason for cancelling..."
-                    value={cancelReason}
-                    onChange={(e) => setCancelReason(e.target.value)}
-                    className="min-h-[80px] resize-none mt-2"
-                  />
-                </div>
+        <AlertDialogPortal>
+          <AlertDialogOverlay onClick={() => setCancelDialogOpen(false)} />
+          <AlertDialogPrimitive.Content
+            className={cn(
+              'fixed left-4 right-4 top-[50%] z-[100] grid translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:left-[50%] sm:right-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] rounded-xl',
+              'max-w-md',
+              APPOINTMENT_DIALOG_CURSOR,
+            )}
+          >
+            <AlertDialogHeader>
+              <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
+              <AlertDialogDescription asChild>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="notify-customer"
-                        checked={notifyCustomer}
-                        onCheckedChange={setNotifyCustomer}
-                        className="!h-5 !w-9 !min-h-0 !min-w-0"
-                      />
-                      <Label htmlFor="notify-customer" className="text-sm font-medium">
-                        Notify customer
-                      </Label>
-                    </div>
+                  {appointment.bookingGroupId && (
+                    <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
+                      This will cancel the entire booking (all items in this group).
+                    </p>
+                  )}
+                  <div>
+                    <Label htmlFor="cancelReason" className="text-base font-medium">
+                      Reason for cancellation
+                    </Label>
+                    <Textarea
+                      id="cancelReason"
+                      placeholder="Enter reason for cancelling..."
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      className="min-h-[80px] resize-none mt-2"
+                    />
                   </div>
-                  {notifyCustomer && (
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Notification method</Label>
-                      <div className="flex gap-2">
-                        {(['email', 'sms', 'both'] as const).map((method) => (
-                          <button
-                            key={method}
-                            type="button"
-                            onClick={() => handleNotificationMethodSelect(method)}
-                            className={cn(
-                              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors',
-                              notificationMethod === method
-                                ? 'bg-primary text-primary-foreground border-primary'
-                                : 'bg-background border-border hover:bg-muted',
-                            )}
-                          >
-                            {method === 'email' && <Mail className="h-3 w-3" />}
-                            {method === 'sms' && <MessageSquare className="h-3 w-3" />}
-                            {method === 'both' && (
-                              <div className="flex gap-0.5">
-                                <Mail className="h-2.5 w-2.5" />
-                                <MessageSquare className="h-2.5 w-2.5" />
-                              </div>
-                            )}
-                            {method.charAt(0).toUpperCase() + method.slice(1)}
-                          </button>
-                        ))}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="notify-customer"
+                          checked={notifyCustomer}
+                          onCheckedChange={setNotifyCustomer}
+                          className="!h-5 !w-9 !min-h-0 !min-w-0"
+                        />
+                        <Label htmlFor="notify-customer" className="text-sm font-medium">
+                          Notify customer
+                        </Label>
                       </div>
                     </div>
-                  )}
+                    {notifyCustomer && (
+                      <div className="space-y-3">
+                        <Label className="text-sm font-medium">Notification method</Label>
+                        <div className="flex gap-2">
+                          {(['email', 'sms', 'both'] as const).map((method) => (
+                            <button
+                              key={method}
+                              type="button"
+                              onClick={() => handleNotificationMethodSelect(method)}
+                              className={cn(
+                                'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors',
+                                notificationMethod === method
+                                  ? 'bg-primary text-primary-foreground border-primary'
+                                  : 'bg-background border-border hover:bg-muted',
+                              )}
+                            >
+                              {method === 'email' && <Mail className="h-3 w-3" />}
+                              {method === 'sms' && <MessageSquare className="h-3 w-3" />}
+                              {method === 'both' && (
+                                <div className="flex gap-0.5">
+                                  <Mail className="h-2.5 w-2.5" />
+                                  <MessageSquare className="h-2.5 w-2.5" />
+                                </div>
+                              )}
+                              {method.charAt(0).toUpperCase() + method.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel
-              onClick={() => {
-                setCancelReason('');
-                setNotifyCustomer(true);
-                setNotificationMethod('both');
-              }}
-            >
-              Back
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Cancel Appointment
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel
+                onClick={() => {
+                  setCancelReason('');
+                  setNotifyCustomer(true);
+                  setNotificationMethod('both');
+                }}
+              >
+                Back
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleCancelConfirm}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Cancel Appointment
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogPrimitive.Content>
+        </AlertDialogPortal>
       </AlertDialog>
 
     </>

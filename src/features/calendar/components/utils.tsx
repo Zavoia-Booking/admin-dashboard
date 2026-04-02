@@ -4,6 +4,9 @@ import { cn } from "../../../shared/lib/utils";
 import type { CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 
+/** Shown when an appointment has no customer name; booking channel is in “Booked via …”. */
+export const NO_CUSTOMER_DISPLAY_LABEL = "No customer data";
+
 /** Human label for API bookingSource (admin, phone, walk_in, marketplace). */
 export function getBookingSourceLabel(source: string | null | undefined): string {
   if (source == null || source === '') return '—';
@@ -34,7 +37,7 @@ export function getBookedViaLabel(source: string | null | undefined): string {
  */
 /** Exported for calendar UI pills that should match assignments (dot + label). */
 export const assignmentStylePillLayout =
-  'text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 shrink-0 border shadow-none';
+  'text-xs min-w-24 px-3 py-1 rounded-full font-medium flex items-center gap-1.5 shrink-0 border shadow-none';
 
 /** Booking source chip: container + dot colors (assignments-style bullet pills). */
 export function getBookingSourcePillParts(source: string | null | undefined): {

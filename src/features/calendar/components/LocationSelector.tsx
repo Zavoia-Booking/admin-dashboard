@@ -1,13 +1,13 @@
-import { type FC, useEffect, useCallback } from "react";
+import { type FC, useEffect, useCallback, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { MapPin, Loader2 } from "lucide-react";
+import { Check, ChevronDown, Loader2, MapPin } from "lucide-react";
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "../../../shared/components/ui/select.tsx";
+    Command,
+    CommandGroup,
+    CommandItem,
+    CommandList,
+} from "../../../shared/components/ui/command.tsx";
+import { cn } from "../../../shared/lib/utils.ts";
 import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors.ts";
 import { getSelectedLocationId, getLocationContextLoading } from "../selectors.ts";
 import { setSelectedLocationAction } from "../actions.ts";
@@ -31,11 +31,14 @@ export const LocationSelector: FC = () => {
     const selectedLocationId = useSelector(getSelectedLocationId);
     const isLoadingContext = useSelector(getLocationContextLoading);
 
+    const [open, setOpen] = useState(false);
+    const [listMounted, setListMounted] = useState(false);
+    const rootRef = useRef<HTMLDivElement>(null);
+
     // Auto-select on mount (or when locations load)
     useEffect(() => {
         if (locations.length === 0 || selectedLocationId !== null) return;
 
-        // Try to restore from localStorage
         const stored = localStorage.getItem(STORAGE_KEY);
         if (stored) {
             const storedId = parseInt(stored, 10);
@@ -46,76 +49,136 @@ export const LocationSelector: FC = () => {
             }
         }
 
-        // Fallback: select the first location and persist
         localStorage.setItem(STORAGE_KEY, String(locations[0].id));
         dispatch(setSelectedLocationAction(locations[0].id));
     }, [locations, selectedLocationId, dispatch]);
 
-    const handleLocationChange = useCallback((value: string) => {
-        const id = parseInt(value, 10);
-        if (isNaN(id)) return;
+    // Mount/unmount list with animation delay on close
+    useEffect(() => {
+        if (open) {
+            setListMounted(true);
+            return;
+        }
+        const timer = window.setTimeout(() => setListMounted(false), 250);
+        return () => window.clearTimeout(timer);
+    }, [open]);
 
+    // Close on outside click
+    useEffect(() => {
+        if (!open) return;
+        const onPointerDown = (e: MouseEvent | TouchEvent) => {
+            const target = e.target as Node | null;
+            if (!target) return;
+            if (rootRef.current?.contains(target)) return;
+            setOpen(false);
+        };
+        document.addEventListener("mousedown", onPointerDown);
+        document.addEventListener("touchstart", onPointerDown);
+        return () => {
+            document.removeEventListener("mousedown", onPointerDown);
+            document.removeEventListener("touchstart", onPointerDown);
+        };
+    }, [open]);
+
+    const handleSelect = useCallback((id: number) => {
         localStorage.setItem(STORAGE_KEY, String(id));
         dispatch(setSelectedLocationAction(id));
+        setOpen(false);
     }, [dispatch]);
 
-    // Loading state while locations are fetching
+    const selectedLocation = locations.find((l) => l.id === selectedLocationId);
+    const showListShell = open && !isLoadingLocations && locations.length > 0;
+    const showListContainer = listMounted && !isLoadingLocations && locations.length > 0;
+    const lastIdx = locations.length - 1;
+
     if (isLoadingLocations) {
         return (
-            <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 dark:bg-primary/25">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1 pt-0.5">
-                    <span className="text-sm text-muted-foreground">Loading locations...</span>
-                </div>
+            <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-4">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">Loading locations…</span>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
             </div>
         );
     }
 
-    // No locations available
     if (locations.length === 0) {
         return (
-            <div className="flex items-start gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div className="min-w-0 flex-1 space-y-1">
-                    <p className="text-sm font-semibold text-foreground-1">No locations</p>
-                    <p className="text-xs text-muted-foreground">Location</p>
-                </div>
+            <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-4">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">No locations</span>
             </div>
         );
     }
 
     return (
-        <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-                <MapPin className="h-5 w-5" aria-hidden />
-            </div>
-            <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex items-center gap-1.5">
-                    <Select
-                        value={selectedLocationId !== null ? String(selectedLocationId) : ""}
-                        onValueChange={handleLocationChange}
-                    >
-                        <SelectTrigger className="h-auto min-h-0 w-full min-w-0 flex-1 border-0 bg-transparent p-0 text-base font-semibold text-foreground-1 shadow-none focus:ring-0 [&>svg]:ml-0.5 [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0 [&>svg]:text-foreground-2">
-                            <SelectValue placeholder="Select a location" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {locations.map((location) => (
-                                <SelectItem key={location.id} value={String(location.id)}>
-                                    {location.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {isLoadingContext ? (
-                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" />
-                    ) : null}
+        <div ref={rootRef} className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                aria-expanded={open}
+                aria-haspopup="listbox"
+                className={cn(
+                    "group relative flex h-11 w-full min-w-0 items-center justify-between gap-2 bg-surface px-4 text-left text-base font-normal text-foreground-1 transition-colors dark:bg-neutral-900",
+                    "cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    showListContainer
+                        ? "!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong"
+                        : "!rounded-full border border-border hover:border-border-strong dark:border-border dark:hover:border-border-strong",
+                )}
+            >
+                <MapPin className={cn("h-4 w-4 shrink-0 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground-1">
+                    {selectedLocation?.name ?? "Select a location"}
+                </span>
+                {isLoadingContext ? (
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+                ) : (
+                    <ChevronDown
+                        className={cn("h-4 w-4 shrink-0 text-foreground-3 transition-transform", open && "rotate-180")}
+                        aria-hidden
+                    />
+                )}
+            </button>
+
+            {showListContainer ? (
+                <div
+                    data-state={open ? "open" : "closed"}
+                    className={cn(
+                        "add-appointment-popover-expand absolute left-0 right-0 top-full z-[85] -mt-px box-border max-h-[min(320px,50vh)] w-full overflow-hidden rounded-b-[22px] rounded-t-none border border-t-0 border-border-strong bg-surface p-0 shadow-md dark:border-border-strong dark:bg-neutral-900",
+                    )}
+                >
+                    <Command shouldFilter={false} className="w-full min-w-0 max-w-full">
+                        <CommandList className="max-h-[min(260px,40vh)] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto">
+                            <CommandGroup heading="Location">
+                                {locations.map((location, index) => {
+                                    const isSelected = location.id === selectedLocationId;
+                                    return (
+                                        <CommandItem
+                                            key={location.id}
+                                            value={`loc-${location.id}`}
+                                            onSelect={() => handleSelect(location.id)}
+                                            className={cn(
+                                                "flex cursor-pointer items-center gap-2 p-3",
+                                                isSelected && "bg-muted/50",
+                                                index === lastIdx && "rounded-b-[18px]",
+                                            )}
+                                        >
+                                            <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>
+                                                {isSelected ? (
+                                                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" strokeWidth={2.75} />
+                                                ) : null}
+                                            </span>
+                                            <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">
+                                                {location.name}
+                                            </span>
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
                 </div>
-                <p className="text-xs text-muted-foreground">Location</p>
-            </div>
+            ) : null}
         </div>
     );
 };

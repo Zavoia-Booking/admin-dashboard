@@ -46,6 +46,8 @@ export interface Appointment {
   overrideUsedAt?: Date | string;
   /** When set, this appointment is part of a multi-item booking group. */
   bookingGroupId?: string | null;
+  /** 1-based position of this appointment within its booking group. */
+  bookingGroupOrder?: number | null;
   /** How the appointment was booked (admin, phone, walk_in, marketplace). */
   bookingSource?: string | null;
 }
@@ -182,7 +184,8 @@ export interface AppointmentPreview {
   endsAt: string;
   status: string;
   bookedItemName: string;
-  customerName: string;
+  /** Null when no customer was linked at booking time. */
+  customerName: string | null;
   isUnassigned: boolean;
 }
 
@@ -207,7 +210,8 @@ export interface SlimAppointment {
   bookedItemName: string;
   duration: number;
   staffUserIds: number[];
-  customerName: string;
+  /** Null when no customer was linked at booking time. Use bookingSource + this to derive display label. */
+  customerName: string | null;
   bookingSource: string;
   isUnassigned: boolean;
   /** Set when admin overrode working hours or conflict (for grid badge). */
@@ -215,6 +219,10 @@ export interface SlimAppointment {
   /** When set, this appointment is part of a multi-item booking group; UI may show as one combined block. */
   bookingGroupId?: string | null;
   bookingGroupOrder?: number | null;
+  /** Total number of segments in the booking group (only set when coming from a display block). */
+  groupSize?: number;
+  /** From POST /calendar/day and /week when backend includes it. */
+  notes?: string | null;
 }
 
 /** One display block: single appointment, merged group (legacy), or one segment of a group (group_segment). */
@@ -230,7 +238,8 @@ export interface CalendarDisplayBlock {
   label: string;
   duration: number;
   staffUserIds: number[];
-  customerName: string;
+  /** Null when no customer was linked at booking time. */
+  customerName: string | null;
   bookingSource: string;
   isUnassigned: boolean;
   overrideReason?: string;
@@ -239,6 +248,8 @@ export interface CalendarDisplayBlock {
   bookingGroupOrder?: number;
   /** Number of segments in the group (for group_segment). */
   groupSize?: number;
+  /** Carried from {@link SlimAppointment}. */
+  notes?: string | null;
 }
 
 export interface CalendarBlockDto {
@@ -250,6 +261,16 @@ export interface CalendarBlockDto {
   isAllDay: boolean;
   reason: CalendarBlockReason;
   title: string | null;
+  /** Internal notes (from entity); included in day/week calendar payloads. */
+  notes?: string | null;
+  /** True when this block is a recurring series (one-time rows still false). */
+  isRecurring?: boolean;
+  /** Recurrence frequency (only present when isRecurring is true). */
+  repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  /** Days of week for recurring block (0=Sun … 6=Sat); only when isRecurring is true. */
+  repeatDaysOfWeek?: number[];
+  /** Inclusive end date for recurrence (YYYY-MM-DD); null means indefinite. */
+  repeatEndDate?: string | null;
 }
 
 export interface DayDataResponse {

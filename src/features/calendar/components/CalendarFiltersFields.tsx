@@ -213,8 +213,8 @@ const CalendarServiceBundleMultiPicker: FC<{
           className="w-full"
           inputClassName={cn(
             "border-border hover:border-border-strong focus-visible:border-border-strong focus-visible:ring-0",
-            showListShell &&
-              "!rounded-b-none !rounded-t-[22px] border-x border-t border-b-0 border-border-strong shadow-none dark:border-border-strong",
+            showListContainer &&
+            "!rounded-b-none !rounded-t-[22px] border-x border-t border-b-0 border-border-strong shadow-none dark:border-border-strong",
           )}
         />
       </div>
@@ -238,8 +238,8 @@ const CalendarServiceBundleMultiPicker: FC<{
                     "flex cursor-pointer items-center gap-2 p-3",
                     !hasSelection && "bg-muted/40",
                     filteredServices.length === 0 &&
-                      filteredBundles.length === 0 &&
-                      "rounded-b-[18px]",
+                    filteredBundles.length === 0 &&
+                    "rounded-b-[18px]",
                   )}
                 >
                   <LineItemSelectedCheck visible={!hasSelection} />
@@ -536,7 +536,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
                   CALENDAR_FILTER_CHIP_ITEM_BASE,
                   "border-border bg-surface text-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
                   isSelected &&
-                    "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
+                  "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
                 )}
               >
                 <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", dotClass)} aria-hidden />
@@ -554,28 +554,28 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
             <div className={CALENDAR_FILTER_DIVIDER_LINE} aria-hidden />
           </div>
           <div className="space-y-2">
-          <div className="flex min-w-0 items-center justify-between gap-3">
-            <div className={cn(CALENDAR_FILTER_SECTION_TITLE, "min-w-0 flex-1 truncate")}>
-              {servicesT("filters.byServices")}
+            <div className="flex min-w-0 items-center justify-between gap-3">
+              <div className={cn(CALENDAR_FILTER_SECTION_TITLE, "min-w-0 flex-1 truncate")}>
+                {servicesT("filters.byServices")}
+              </div>
+              {serviceBundleSelectionPill}
             </div>
-            {serviceBundleSelectionPill}
-          </div>
-          <CalendarServiceBundleMultiPicker
-            serviceOptions={serviceOptions}
-            bundleOptions={bundleOptions}
-            serviceIds={serviceIdsForPicker}
-            bundleIds={bundleIdsForPicker}
-            onApplyProductFilters={({ serviceIds: nextSvc, bundleIds: nextBnd }) => {
-              patchDay({
-                ...dayFilters,
-                serviceIds: nextSvc,
-                bundleIds: nextBnd,
-                serviceId: undefined,
-                bundleId: undefined,
-              });
-            }}
-            disabled={servicesLoading}
-          />
+            <CalendarServiceBundleMultiPicker
+              serviceOptions={serviceOptions}
+              bundleOptions={bundleOptions}
+              serviceIds={serviceIdsForPicker}
+              bundleIds={bundleIdsForPicker}
+              onApplyProductFilters={({ serviceIds: nextSvc, bundleIds: nextBnd }) => {
+                patchDay({
+                  ...dayFilters,
+                  serviceIds: nextSvc,
+                  bundleIds: nextBnd,
+                  serviceId: undefined,
+                  bundleId: undefined,
+                });
+              }}
+              disabled={servicesLoading}
+            />
           </div>
         </div>
       ) : null}
@@ -586,87 +586,87 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
             <div className={CALENDAR_FILTER_DIVIDER_LINE} aria-hidden />
           </div>
           <div className="space-y-2">
-          <div className={CALENDAR_FILTER_SECTION_TITLE}>{servicesT("filters.byCategory")}</div>
-          {categoryChips.length === 0 ? (
-            <p className="text-xs text-muted-foreground">{servicesT("filters.noCategories")}</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {(showAllCategories
-                ? categoryChips
-                : categoryChips.slice(0, MAX_VISIBLE_CATEGORIES)
-              ).map((category) => {
-                const isSelected = (dayFilters.categoryIds ?? []).includes(category.id);
-                const bgColor = getDisplayColor(category);
-                const textColor = getReadableTextColor(bgColor);
-                return (
+            <div className={CALENDAR_FILTER_SECTION_TITLE}>{servicesT("filters.byCategory")}</div>
+            {categoryChips.length === 0 ? (
+              <p className="text-xs text-muted-foreground">{servicesT("filters.noCategories")}</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {(showAllCategories
+                  ? categoryChips
+                  : categoryChips.slice(0, MAX_VISIBLE_CATEGORIES)
+                ).map((category) => {
+                  const isSelected = (dayFilters.categoryIds ?? []).includes(category.id);
+                  const bgColor = getDisplayColor(category);
+                  const textColor = getReadableTextColor(bgColor);
+                  return (
+                    <Button
+                      key={category.id}
+                      type="button"
+                      variant="outline"
+                      rounded="full"
+                      className={cn(
+                        "h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium",
+                        isSelected
+                          ? "border-neutral-500 text-neutral-900 dark:text-neutral-900 shadow-xs focus-visible:!border-neutral-500"
+                          : "border-border opacity-100",
+                        "hover:!border-border",
+                        isSelected && "hover:!border-neutral-500",
+                      )}
+                      onClick={() => toggleCategory(category.id)}
+                      style={{
+                        backgroundColor: bgColor,
+                        color: isSelected ? undefined : textColor,
+                      }}
+                    >
+                      {isSelected ? (
+                        <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-400 dark:bg-success shadow-sm flex items-center justify-center">
+                          <svg
+                            className="h-3 w-3 text-foreground-inverse"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        </div>
+                      ) : null}
+                      <span className="truncate max-w-[130px]">{category.name}</span>
+                    </Button>
+                  );
+                })}
+
+                {categoryChips.length > MAX_VISIBLE_CATEGORIES && !showAllCategories ? (
                   <Button
-                    key={category.id}
                     type="button"
                     variant="outline"
                     rounded="full"
-                    className={cn(
-                      "h-auto px-5 py-1.5 gap-2 relative !transition-none text-xs font-medium",
-                      isSelected
-                        ? "border-neutral-500 text-neutral-900 dark:text-neutral-900 shadow-xs focus-visible:!border-neutral-500"
-                        : "border-border opacity-100",
-                      "hover:!border-border",
-                      isSelected && "hover:!border-neutral-500",
-                    )}
-                    onClick={() => toggleCategory(category.id)}
-                    style={{
-                      backgroundColor: bgColor,
-                      color: isSelected ? undefined : textColor,
-                    }}
+                    onClick={() => setShowAllCategories(true)}
+                    className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
                   >
-                    {isSelected ? (
-                      <div className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-green-400 dark:bg-success shadow-sm flex items-center justify-center">
-                        <svg
-                          className="h-3 w-3 text-foreground-inverse"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={3}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      </div>
-                    ) : null}
-                    <span className="truncate max-w-[130px]">{category.name}</span>
+                    {servicesT("addService.form.category.showMore", {
+                      count: categoryChips.length - MAX_VISIBLE_CATEGORIES,
+                    })}
                   </Button>
-                );
-              })}
+                ) : null}
 
-              {categoryChips.length > MAX_VISIBLE_CATEGORIES && !showAllCategories ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  rounded="full"
-                  onClick={() => setShowAllCategories(true)}
-                  className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
-                >
-                  {servicesT("addService.form.category.showMore", {
-                    count: categoryChips.length - MAX_VISIBLE_CATEGORIES,
-                  })}
-                </Button>
-              ) : null}
-
-              {categoryChips.length > MAX_VISIBLE_CATEGORIES && showAllCategories ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  rounded="full"
-                  onClick={() => setShowAllCategories(false)}
-                  className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
-                >
-                  {servicesT("addService.form.category.showLess")}
-                </Button>
-              ) : null}
-            </div>
-          )}
+                {categoryChips.length > MAX_VISIBLE_CATEGORIES && showAllCategories ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    rounded="full"
+                    onClick={() => setShowAllCategories(false)}
+                    className="h-auto px-3 py-1.5 gap-1.5 border-dashed"
+                  >
+                    {servicesT("addService.form.category.showLess")}
+                  </Button>
+                ) : null}
+              </div>
+            )}
           </div>
         </div>
       ) : null}
@@ -676,68 +676,68 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
           <div className={CALENDAR_FILTER_DIVIDER_LINE} aria-hidden />
         </div>
         <div className="space-y-2">
-        <div className={CALENDAR_FILTER_SECTION_TITLE}>{servicesT("filters.bySource")}</div>
-        <div
-          className="flex flex-wrap items-center gap-1.5"
-          role="group"
-          aria-label="Filter by booking source"
-        >
-          <button
-            type="button"
-            onClick={clearAllBookingSources}
-            title="Any source"
-            aria-pressed={selectedBookingSources.length === 0}
-            className={cn(
-              CALENDAR_FILTER_CHIP_ALL_BASE,
-              selectedBookingSources.length === 0
-                ? "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900 hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900"
-                : "border-border bg-surface-hover text-muted-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
-            )}
+          <div className={CALENDAR_FILTER_SECTION_TITLE}>{servicesT("filters.bySource")}</div>
+          <div
+            className="flex flex-wrap items-center gap-1.5"
+            role="group"
+            aria-label="Filter by booking source"
           >
-            <Globe
+            <button
+              type="button"
+              onClick={clearAllBookingSources}
+              title="Any source"
+              aria-pressed={selectedBookingSources.length === 0}
               className={cn(
-                "size-3.5 shrink-0",
+                CALENDAR_FILTER_CHIP_ALL_BASE,
                 selectedBookingSources.length === 0
-                  ? "text-primary"
-                  : "text-muted-foreground group-hover:text-primary",
+                  ? "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900 hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900"
+                  : "border-border bg-surface-hover text-muted-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
               )}
-              aria-hidden
-            />
-            <span className={CALENDAR_FILTER_CHIP_LABEL}>Any source</span>
-            {selectedBookingSources.length === 0 ? <CalendarFilterPillCheckmark /> : null}
-          </button>
-          {BOOKING_SOURCE_OPTIONS.map((opt) => {
-            const isAllSources = selectedBookingSources.length === 0;
-            const isSelected = !isAllSources && selectedBookingSources.includes(opt.value);
-            const Icon = opt.Icon;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => toggleBookingSource(opt.value)}
-                title={opt.label}
-                aria-label={opt.label}
-                aria-pressed={isSelected}
+            >
+              <Globe
                 className={cn(
-                  CALENDAR_FILTER_CHIP_ITEM_BASE,
-                  "border-border bg-surface text-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
-                  isSelected &&
-                    "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
+                  "size-3.5 shrink-0",
+                  selectedBookingSources.length === 0
+                    ? "text-primary"
+                    : "text-muted-foreground group-hover:text-primary",
                 )}
-              >
-                <Icon
+                aria-hidden
+              />
+              <span className={CALENDAR_FILTER_CHIP_LABEL}>Any source</span>
+              {selectedBookingSources.length === 0 ? <CalendarFilterPillCheckmark /> : null}
+            </button>
+            {BOOKING_SOURCE_OPTIONS.map((opt) => {
+              const isAllSources = selectedBookingSources.length === 0;
+              const isSelected = !isAllSources && selectedBookingSources.includes(opt.value);
+              const Icon = opt.Icon;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => toggleBookingSource(opt.value)}
+                  title={opt.label}
+                  aria-label={opt.label}
+                  aria-pressed={isSelected}
                   className={cn(
-                    "size-3.5 shrink-0",
-                    isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary",
+                    CALENDAR_FILTER_CHIP_ITEM_BASE,
+                    "border-border bg-surface text-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
+                    isSelected &&
+                    "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
                   )}
-                  aria-hidden
-                />
-                <span className={CALENDAR_FILTER_CHIP_LABEL}>{opt.label}</span>
-                {isSelected ? <CalendarFilterPillCheckmark /> : null}
-              </button>
-            );
-          })}
-        </div>
+                >
+                  <Icon
+                    className={cn(
+                      "size-3.5 shrink-0",
+                      isSelected ? "text-primary" : "text-muted-foreground group-hover:text-primary",
+                    )}
+                    aria-hidden
+                  />
+                  <span className={CALENDAR_FILTER_CHIP_LABEL}>{opt.label}</span>
+                  {isSelected ? <CalendarFilterPillCheckmark /> : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

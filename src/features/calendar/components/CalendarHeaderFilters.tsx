@@ -1,6 +1,6 @@
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Filter, RotateCcw } from "lucide-react";
+import { SlidersHorizontal, RotateCcw } from "lucide-react";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import {
   Popover,
@@ -32,9 +32,9 @@ import {
 } from "./calendarSidebarStyles.ts";
 import type { CalendarDayFilters } from "../../../shared/types/calendar.ts";
 import {
-    areCalendarFiltersActive,
-    areCalendarHeaderFilterDraftsEqual,
-    dayFiltersWithoutUnassignedOnly,
+  areCalendarFiltersActive,
+  areCalendarHeaderFilterDraftsEqual,
+  dayFiltersWithoutUnassignedOnly,
 } from "../calendarFilters.ts";
 
 const filterPillClass = (isOpen: boolean) =>
@@ -46,11 +46,22 @@ const filterPillClass = (isOpen: boolean) =>
       : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong",
   );
 
+const filterSlimClass = (isOpen: boolean) =>
+  cn(
+    "relative flex w-full items-center justify-center h-8 px-3 gap-1.5 rounded-none",
+    "transition-colors duration-200 ease-out cursor-pointer",
+    isOpen ? "bg-muted/60" : "hover:bg-muted/50",
+  );
+
 /**
  * Header filters entry: services-style pill + Popover (desktop) or Drawer (mobile).
  * Draft edits commit on Apply; Clear all (when any draft filter is active) resets Redux and draft but keeps the menu open.
  */
-export const CalendarHeaderFilters: FC = () => {
+interface CalendarHeaderFiltersProps {
+  slim?: boolean;
+}
+
+export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) => {
   const dispatch = useDispatch();
   const isMobile = useIsMobile();
   const activeCount = useSelector(getActiveCalendarFiltersCount);
@@ -86,19 +97,19 @@ export const CalendarHeaderFilters: FC = () => {
     wasOpenRef.current = open;
   }, [open, appliedDayFilters, appliedStaffFilter, staffList]);
 
-    const handleStaffDraftChange = useCallback(
-        (nextIds: number[]) => {
-            const allSelectedForApi =
-                nextIds.length === 0 || nextIds.length === staffList.length;
-            setDraftStaff(nextIds);
-            setDraftDay((prev) => ({
-                ...dayFiltersWithoutUnassignedOnly(prev),
-                staffUserIds: allSelectedForApi ? undefined : nextIds,
-                staffUserId: undefined,
-            }));
-        },
-        [staffList],
-    );
+  const handleStaffDraftChange = useCallback(
+    (nextIds: number[]) => {
+      const allSelectedForApi =
+        nextIds.length === 0 || nextIds.length === staffList.length;
+      setDraftStaff(nextIds);
+      setDraftDay((prev) => ({
+        ...dayFiltersWithoutUnassignedOnly(prev),
+        staffUserIds: allSelectedForApi ? undefined : nextIds,
+        staffUserId: undefined,
+      }));
+    },
+    [staffList],
+  );
 
   const handleApply = useCallback(() => {
     const allSelected = draftStaff.length === 0 || draftStaff.length === staffList.length;
@@ -163,13 +174,27 @@ export const CalendarHeaderFilters: FC = () => {
     setBaselineStaff([]);
   }, [dispatch, hasDraftChanges, staffList]);
 
-  const trigger = (
+  const trigger = slim ? (
+    <button
+      type="button"
+      className={cn(filterSlimClass(open), "group")}
+      aria-label="Open calendar filters"
+    >
+      <SlidersHorizontal className="!h-4 !w-4 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
+      <span className="text-xs font-medium text-foreground">Filters</span>
+      {activeCount > 0 ? (
+        <span className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 py-0.5 text-[10px] font-bold text-primary-foreground shadow">
+          {activeCount}
+        </span>
+      ) : null}
+    </button>
+  ) : (
     <button
       type="button"
       className={filterPillClass(open)}
       aria-label="Open calendar filters"
     >
-      <Filter className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+      <SlidersHorizontal className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
       <span className="text-xs font-medium">Filters</span>
       {activeCount > 0 ? (
         <span className="absolute -top-1 -right-1 flex min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground shadow">

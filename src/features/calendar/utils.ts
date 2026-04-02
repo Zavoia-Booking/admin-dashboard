@@ -1,5 +1,6 @@
 // Helper functions to get date ranges based on selected date
 import { AppointmentViewMode } from "./types.ts";
+import { formatDateInTimezone } from "./timezone.ts";
 
 /** Format a Date as YYYY-MM-DD using local date (avoids timezone shifting the calendar day). */
 export const toLocalDateString = (d: Date): string => {
@@ -268,10 +269,13 @@ export const getDateRangeForMode = (
     selectedDate: Date,
     viewMode: AppointmentViewMode,
     monthViewStart?: Date | null,
-    weekViewStart?: Date | null
+    weekViewStart?: Date | null,
+    timezone?: string,
 ): { startDate: string; endDate: string } => {
+    const fmt = (d: Date) => timezone ? formatDateInTimezone(d, timezone) : toLocalDateString(d);
+
     if (viewMode === AppointmentViewMode.DAY) {
-        const dateStr = toLocalDateString(selectedDate);
+        const dateStr = fmt(selectedDate);
         return { startDate: dateStr, endDate: dateStr };
     }
 
@@ -279,8 +283,8 @@ export const getDateRangeForMode = (
         const ref = weekViewStart ?? getWeekStart(selectedDate);
         const { startDate, endDate } = getWeekRange(ref);
         return {
-            startDate: toLocalDateString(startDate),
-            endDate: toLocalDateString(endDate),
+            startDate: fmt(startDate),
+            endDate: fmt(endDate),
         };
     }
 
@@ -288,7 +292,7 @@ export const getDateRangeForMode = (
     const monthRef = monthViewStart ?? selectedDate;
     const { startDate, endDate } = getMonthRange(monthRef);
     return {
-        startDate: toLocalDateString(startDate),
-        endDate: toLocalDateString(endDate),
+        startDate: fmt(startDate),
+        endDate: fmt(endDate),
     };
 }

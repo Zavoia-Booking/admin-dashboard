@@ -58,6 +58,16 @@ export const fetchCalendarSummary = createAsyncAction(
     Record<string, DaySummary>,
     any>()
 
+/** Merge summary rows into {@link CalendarViewState.summary} (e.g. after block CRUD so the sidebar mini month updates). */
+export const mergeCalendarSummaryAction = createAction(
+    'CALENDAR/SUMMARY/MERGE',
+)<Record<string, DaySummary>>()
+
+/** First day of the month shown in the sidebar mini calendar (independent from main month view). */
+export const setSidebarMiniCalendarMonthAction = createAction(
+    'CALENDAR/SIDEBAR_MINI_MONTH/SET',
+)<Date>()
+
 /** Fetch full day data (appointments + blocks for a single day) */
 export const fetchDayData = createAsyncAction(
     'CALENDAR/DAY_DATA/REQUEST',
@@ -76,6 +86,13 @@ export const setDayFiltersAction = createAction(
 export const setSelectedDateAction = createAction(
     'CALENDAR/SELECTED_DATE/SET'
 )<Date>()
+
+/**
+ * Atomically set selected date + view mode and trigger a single data fetch (avoids week+day double fetch when switching from week/month to day).
+ */
+export const navigateToCalendarDateAction = createAction(
+    'CALENDAR/NAVIGATE_DATE',
+)<{ date: Date; viewMode: AppointmentViewMode }>()
 
 /** Set the displayed month (month view only; first day of that month). */
 export const setDisplayedMonthAction = createAction(
@@ -153,12 +170,32 @@ export const setCalendarPendingDrop = createAction(
     'CALENDAR/PENDING_DROP/SET',
 )<PendingDrop>()
 
-/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). When rescheduling a group, pass bookingGroupId so conflict offer can use group reschedule. */
+/** Add appointment slider: expect this many successful update/reschedule mutations before reducer auto-closes the form. */
+export const beginAddFormCloseAfterMutations = createAction(
+    'CALENDAR/ADD_FORM/BEGIN_CLOSE_AFTER_MUTATIONS',
+)<number>()
+
+/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). When rescheduling a group, pass bookingGroupId so conflict offer can use group reschedule. chainReschedule: saga will dispatch rescheduleAppointmentGroup after this update succeeds (avoids race condition when staff + time both change). */
 export const updateAppointment = createAsyncAction(
     'CALENDAR/UPDATE_APPOINTMENT/REQUEST',
     'CALENDAR/UPDATE_APPOINTMENT/SUCCESS',
     'CALENDAR/UPDATE_APPOINTMENT/FAILURE',
-)<{ appointmentId: number; data: Record<string, any>; bookingGroupId?: string }, any, any>()
+)<{ appointmentId: number; data: Record<string, any>; bookingGroupId?: string; chainReschedule?: { bookingGroupId: string; payload: RescheduleGroupPayload } }, any, any>()
+
+/**
+ * Sequential PUTs for per-segment staff in a booking group (avoids takeLatest cancelling multiple updateAppointment requests).
+ * Optionally applies primary row notes/service/location, then group reschedule — all in one saga success for the add-form mutation counter.
+ */
+export const updateGroupItemsStaff = createAsyncAction(
+    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/REQUEST',
+    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/SUCCESS',
+    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/FAILURE',
+)<{
+    updates: Array<{ appointmentId: number; staffUserIds: number[] }>;
+    bookingGroupId?: string;
+    primaryNonSchedulePatch?: { appointmentId: number; data: Record<string, unknown> };
+    chainReschedule?: { bookingGroupId: string; payload: RescheduleGroupPayload };
+}, any, any>()
 
 /** Cancel appointment with reason and notification preferences (POST /appointments/:id/cancel) */
 export const cancelAppointment = createAsyncAction(

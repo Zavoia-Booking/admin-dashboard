@@ -191,7 +191,7 @@ export const CalendarStaffFilter: FC<CalendarStaffFilterProps> = ({
                 CALENDAR_FILTER_CHIP_ITEM_BASE,
                 "border-border bg-surface text-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
                 selected &&
-                  "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
+                "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
               )}
             >
               <Avatar className="size-6 shrink-0 border border-border transition-none">
