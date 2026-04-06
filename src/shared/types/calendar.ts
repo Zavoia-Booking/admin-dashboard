@@ -2,19 +2,6 @@ import type { Customer } from "./customer.ts";
 import type { Service } from "./service.ts";
 import type { WorkingHours } from "./location.ts";
 
-// ─────────────────────────────────────────────────────────────
-// Legacy types (kept during migration, used by existing components)
-// ─────────────────────────────────────────────────────────────
-
-export interface Client {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  avatar: string;
-}
-
 /** Customer fields stored on the appointment at booking time (JSONB snapshot). */
 export interface AppointmentCustomerSnapshot {
   userId?: number;
@@ -59,17 +46,14 @@ export interface Appointment {
   overrideUsedAt?: Date | string;
   /** When set, this appointment is part of a multi-item booking group. */
   bookingGroupId?: string | null;
+  /** 1-based position of this appointment within its booking group. */
+  bookingGroupOrder?: number | null;
   /** How the appointment was booked (admin, phone, walk_in, marketplace). */
   bookingSource?: string | null;
 }
 
-export interface AppointmentSection {
-  date: Date,
-  appointments: Array<Appointment>
-}
-
 // ─────────────────────────────────────────────────────────────
-// New types matching backend calendar API responses
+// Types matching backend calendar API responses
 // ─────────────────────────────────────────────────────────────
 
 // --- Enums (mirror backend) ---
@@ -200,7 +184,8 @@ export interface AppointmentPreview {
   endsAt: string;
   status: string;
   bookedItemName: string;
-  customerName: string;
+  /** Null when no customer was linked at booking time. */
+  customerName: string | null;
   isUnassigned: boolean;
 }
 
@@ -225,7 +210,8 @@ export interface SlimAppointment {
   bookedItemName: string;
   duration: number;
   staffUserIds: number[];
-  customerName: string;
+  /** Null when no customer was linked at booking time. Use bookingSource + this to derive display label. */
+  customerName: string | null;
   bookingSource: string;
   isUnassigned: boolean;
   /** Set when admin overrode working hours or conflict (for grid badge). */
@@ -233,6 +219,13 @@ export interface SlimAppointment {
   /** When set, this appointment is part of a multi-item booking group; UI may show as one combined block. */
   bookingGroupId?: string | null;
   bookingGroupOrder?: number | null;
+  /** Total number of segments in the booking group (only set when coming from a display block). */
+  groupSize?: number;
+  /** From POST /calendar/day and /week when backend includes it. */
+  notes?: string | null;
+  /** Customer contact info — included when backend sends it. */
+  customerPhone?: string | null;
+  customerEmail?: string | null;
 }
 
 /** One display block: single appointment, merged group (legacy), or one segment of a group (group_segment). */
@@ -248,7 +241,8 @@ export interface CalendarDisplayBlock {
   label: string;
   duration: number;
   staffUserIds: number[];
-  customerName: string;
+  /** Null when no customer was linked at booking time. */
+  customerName: string | null;
   bookingSource: string;
   isUnassigned: boolean;
   overrideReason?: string;
@@ -257,6 +251,8 @@ export interface CalendarDisplayBlock {
   bookingGroupOrder?: number;
   /** Number of segments in the group (for group_segment). */
   groupSize?: number;
+  /** Carried from {@link SlimAppointment}. */
+  notes?: string | null;
 }
 
 export interface CalendarBlockDto {
@@ -268,6 +264,16 @@ export interface CalendarBlockDto {
   isAllDay: boolean;
   reason: CalendarBlockReason;
   title: string | null;
+  /** Internal notes (from entity); included in day/week calendar payloads. */
+  notes?: string | null;
+  /** True when this block is a recurring series (one-time rows still false). */
+  isRecurring?: boolean;
+  /** Recurrence frequency (only present when isRecurring is true). */
+  repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  /** Days of week for recurring block (0=Sun … 6=Sat); only when isRecurring is true. */
+  repeatDaysOfWeek?: number[];
+  /** Inclusive end date for recurrence (YYYY-MM-DD); null means indefinite. */
+  repeatEndDate?: string | null;
 }
 
 export interface DayDataResponse {
@@ -293,7 +299,7 @@ export interface CalendarBlockCreatePayload {
   endsAt: string;
   isAllDay?: boolean;
   isRecurring?: boolean;
-  repeatFrequency?: 'daily' | 'weekly';
+  repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
   repeatDaysOfWeek?: number[];
   repeatEndDate?: string;
   reason: CalendarBlockReason;
@@ -301,6 +307,7 @@ export interface CalendarBlockCreatePayload {
   notes?: string;
 }
 
+/** Body for PUT /calendar-blocks/:id (matches admin-api UpdateCalendarBlockDto). */
 export interface CalendarBlockUpdatePayload {
   startsAt?: string;
   endsAt?: string;
@@ -308,6 +315,10 @@ export interface CalendarBlockUpdatePayload {
   reason?: CalendarBlockReason;
   title?: string;
   notes?: string;
+  isRecurring?: boolean;
+  repeatFrequency?: 'daily' | 'weekly' | 'biweekly' | 'monthly';
+  repeatDaysOfWeek?: number[];
+  repeatEndDate?: string;
 }
 
 // --- POST /appointments/admin-create-group ---
@@ -363,13 +374,35 @@ export interface AvailableSlotsResponse {
 
 // --- Day Filters (for calendar/day endpoint) ---
 
+/**
+ * Request body for filtered calendar endpoints. Legacy single-value `staffUserId` and `status`
+ * remain accepted by the API for compatibility; the app should prefer `staffUserIds` and `statuses`.
+ */
 export interface CalendarDayFilters {
   staffUserId?: number;
+  /** Appointments involving any of these staff. Omit or empty = all staff at location. */
+  staffUserIds?: number[];
+  /**
+   * Product filters; API expands `bookingGroupId` groups in the requested date window.
+   * Prefer `serviceIds` / `bundleIds` (OR within each dimension; AND across dimensions when both non-empty).
+   * Legacy `serviceId` / `bundleId` are still accepted by the API and merged server-side.
+   */
+  serviceIds?: number[];
+  bundleIds?: number[];
+  /** @deprecated Prefer `serviceIds`; still serialized when arrays are empty. */
   serviceId?: number;
+  /** @deprecated Prefer `bundleIds`; still serialized when arrays are empty. */
+  bundleId?: number;
   status?: string;
+  statuses?: string[];
+  bookingSources?: AppointmentBookingSource[];
   clientName?: string;
   customerId?: number;
   customerEmail?: string;
   customerPhone?: string;
   customerFullName?: string;
+  /** Only appointments with no assigned staff (exclusive with staffUserIds on API). */
+  unassignedOnly?: boolean;
+  /** Service category IDs (appointments whose service belongs to any of these categories). Omit or empty = all. */
+  categoryIds?: number[];
 }

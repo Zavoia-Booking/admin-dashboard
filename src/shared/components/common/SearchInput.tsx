@@ -79,7 +79,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   const hasValue = internalValue.trim().length > 0;
 
   return (
-    <div className={cn("relative w-full", className)}>
+    <div className={cn("group relative w-full", className)}>
       <Input
         ref={ref}
         placeholder={placeholder}
@@ -107,7 +107,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
       ) : (
         <div className="absolute mr-2 inset-y-0 right-3 flex items-center justify-center pointer-events-none">
           <Search
-            className="h-5 w-5 text-foreground-3 dark:text-foreground-2"
+            className="h-5 w-5 text-foreground-3 transition-colors group-hover:text-primary group-focus-within:text-primary dark:text-foreground-2 dark:group-hover:text-primary dark:group-focus-within:text-primary"
             aria-hidden="true"
           />
         </div>

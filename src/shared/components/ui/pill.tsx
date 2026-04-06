@@ -8,6 +8,8 @@ export interface PillProps
   icon?: LucideIcon;
   logo?: React.ReactNode;
   showCheckmark?: boolean;
+  /** When set, inner content aligns to the start (e.g. title + helper text stacked). */
+  contentAlign?: "center" | "start";
   children: React.ReactNode;
 }
 
@@ -18,6 +20,7 @@ export const Pill = React.forwardRef<HTMLButtonElement, PillProps>(
       icon: Icon,
       logo,
       showCheckmark = false,
+      contentAlign = "center",
       children,
       className,
       ...props
@@ -29,7 +32,8 @@ export const Pill = React.forwardRef<HTMLButtonElement, PillProps>(
         ref={ref}
         type="button"
         className={cn(
-          "group relative flex items-center min-h-14 px-3 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer overflow-visible",
+          "group relative flex min-h-14 px-3 py-2 rounded-lg border text-sm font-medium transition-colors cursor-pointer overflow-visible",
+          contentAlign === "start" ? "items-start" : "items-center",
           "focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0",
           selected
             ? "border-neutral-500 bg-info-100 text-neutral-900 dark:text-neutral-900 shadow-xs"
@@ -39,7 +43,12 @@ export const Pill = React.forwardRef<HTMLButtonElement, PillProps>(
         )}
         {...props}
       >
-        <span className="flex items-center leading-tight select-none w-full h-full">
+        <span
+          className={cn(
+            "flex w-full min-w-0 leading-tight select-none",
+            contentAlign === "start" ? "items-start" : "items-center",
+          )}
+        >
           {logo && <span className="mr-1.5 shrink-0">{logo}</span>}
           {/* {!logo && Icon && <Icon className="h-3.5 w-3.5 mr-1.5 shrink-0 text-primary" />} */}
           {children}

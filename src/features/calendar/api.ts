@@ -12,6 +12,10 @@ import type {
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
 } from "../../shared/types/calendar.ts";
+import { serializeCalendarDayFilters } from "./calendarFilters.ts";
+
+/** Re-export for callers that import from api.ts */
+export { serializeCalendarDayFilters };
 
 // ─────────────────────────────────────────────────────────────
 // Calendar API layer (view-driven data loading)
@@ -36,17 +40,8 @@ export const getCalendarSummaryRequest = async (
         startDate,
         endDate,
         includePreview,
+        ...serializeCalendarDayFilters(filters),
     };
-    if (filters) {
-        if (filters.staffUserId != null) body.staffUserId = filters.staffUserId;
-        if (filters.serviceId != null) body.serviceId = filters.serviceId;
-        if (filters.status != null) body.status = filters.status;
-        if (filters.clientName != null) body.clientName = filters.clientName;
-        if (filters.customerId != null) body.customerId = filters.customerId;
-        if (filters.customerEmail != null) body.customerEmail = filters.customerEmail;
-        if (filters.customerPhone != null) body.customerPhone = filters.customerPhone;
-        if (filters.customerFullName != null) body.customerFullName = filters.customerFullName;
-    }
     const { data } = await apiClient().post<CalendarSummaryResponse>(`/calendar/summary`, body);
     return data;
 }
@@ -60,7 +55,7 @@ export const getDayDataRequest = async (
     const { data } = await apiClient().post<DayDataResponse>(`/calendar/day`, {
         locationId,
         date,
-        ...filters,
+        ...serializeCalendarDayFilters(filters),
     });
     return data;
 }
@@ -74,7 +69,7 @@ export const getWeekDataRequest = async (
     const { data } = await apiClient().post<CalendarWeekResponse>(`/calendar/week`, {
         locationId,
         weekStart,
-        ...filters,
+        ...serializeCalendarDayFilters(filters),
     });
     return data;
 }
@@ -147,14 +142,17 @@ export const createCalendarBlockRequest = async (payload: CalendarBlockCreatePay
     return data;
 }
 
-/** PUT /calendar-blocks/:id */
-export const updateCalendarBlockRequest = async (blockId: number, payload: CalendarBlockUpdatePayload): Promise<any> => {
-    const { data } = await apiClient().put(`/calendar-blocks/${blockId}`, payload);
-    return data;
-}
-
 /** DELETE /calendar-blocks/:id */
 export const deleteCalendarBlockRequest = async (blockId: number): Promise<any> => {
     const { data } = await apiClient().delete(`/calendar-blocks/${blockId}`);
+    return data;
+}
+
+/** PUT /calendar-blocks/:id */
+export const updateCalendarBlockRequest = async (
+    blockId: number,
+    payload: CalendarBlockUpdatePayload,
+): Promise<any> => {
+    const { data } = await apiClient().put(`/calendar-blocks/${blockId}`, payload);
     return data;
 }

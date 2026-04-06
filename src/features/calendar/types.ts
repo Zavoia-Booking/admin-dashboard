@@ -64,7 +64,13 @@ export type AddFormPrefill = {
     serviceId?: number;
     bundleId?: number;
     /** Full group items when rescheduling a multi-segment booking group; order preserved. */
-    groupItems?: Array<{ serviceId?: number; bundleId?: number; staffUserId?: number; itemName?: string }>;
+    groupItems?: Array<{
+        appointmentId?: number;
+        serviceId?: number;
+        bundleId?: number;
+        staffUserId?: number;
+        itemName?: string;
+    }>;
     customerId?: number;
     customerDisplay?: {
         firstName: string;
@@ -86,8 +92,7 @@ export type CalendarViewState = {
     locationContext: LocationContextData | null;
     locationContextLoading: boolean;
 
-    /** Per-location services and team from GET /assignments/locations/:id/full (fetched once when location is selected). */
-    locationAssignmentLoading: boolean;
+    /** Per-location services, team, and bundles from GET /calendar/location-context (same request as locationContext). */
     locationServices: LocationService[];
     locationTeamMembers: LocationTeamMember[];
     /** Bundles at location (from GET /calendar/location-context when backend includes bundles). */
@@ -124,6 +129,8 @@ export type CalendarViewState = {
         groupAppointments?: Appointment[] | null;
     };
     blockFormOpen: boolean;
+    /** When set, block drawer opens in edit mode for this block (create flow clears this). */
+    blockFormEditingBlock: CalendarBlockDto | null;
 
     // --- Calendar sidebar (mobile collapse) ---
     sidebarOpen: boolean;
@@ -141,6 +148,12 @@ export type CalendarViewState = {
     /** When in week view, the Monday of the displayed week (prev/next don't change selectedDate). */
     displayedWeekStart: Date | null;
 
+    /**
+     * Sidebar mini calendar month (first of month). Null until the mini calendar mounts or user navigates.
+     * Used to refetch summary for the visible mini month after mutations (day/week fetch may only merge another month).
+     */
+    sidebarMiniCalendarMonthStart: Date | null;
+
     /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). Only for non–staff conflicts; staff_appointment must not show override. */
     updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block'; bookingGroupId?: string } | null;
 
@@ -149,4 +162,13 @@ export type CalendarViewState = {
 
     /** Blocks created in this session, shown until next day/week fetch (optimistic UI). */
     optimisticBlocks: CalendarBlockDto[];
+
+    /**
+     * Add appointment slider: decremented on each successful update/reschedule mutation; when it hits 0, add form closes.
+     * Used to avoid closing the slider before API completes.
+     */
+    addFormCloseAfterMutationsRemaining: number;
+
+    /** When true, the grid should scroll to the "now" line after the next load completes. Set by "Today" button and initial load; cleared after scrolling. */
+    scrollToNow: boolean;
 }

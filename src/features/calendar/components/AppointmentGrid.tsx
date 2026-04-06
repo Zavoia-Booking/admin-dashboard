@@ -1,66 +1,76 @@
-import { type FC, useCallback, useMemo } from "react";
+import { type FC, useCallback, useMemo, useState } from "react";
+import { cn } from "../../../shared/lib/utils.ts";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import { dayNames } from "../utils.ts";
+import { buildMonthCalendarGridCells, dayNames } from "../utils.ts";
+import { formatDateInTimezone } from "../timezone.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { CalendarTimeGrid } from "./CalendarTimeGrid.tsx";
 import { AppointmentList } from "./AppointmentList.tsx";
 import { WeekAppointmentList } from "./WeekAppointmentList.tsx";
 import type {
-    DaySummary,
-    AppointmentPreview,
+  DaySummary,
 } from "../../../shared/types/calendar.ts";
 import {
-    getCalendarSummary,
-    getSummaryLoading,
-    getSelectedDate,
-    getSelectedLocationId,
-    getViewTypeSelector,
-    getMonthViewDisplayStart,
+  getCalendarSummary,
+  getSummaryLoading,
+  getSelectedDate,
+  getSelectedLocationId,
+  getViewTypeSelector,
+  getMonthViewDisplayStart,
+  getHasActiveCalendarFilters,
+  getViewModeSelector,
+  getCalendarTimezone,
+  getLocationStaff,
+  getDayFilters,
 } from "../selectors.ts";
-import { setSelectedDateAction, setViewModeAction } from "../actions.ts";
-import { Loader2 } from "lucide-react";
-import { calendarPreferences } from "../calendarPreferences.ts";
-import { getAppointmentBlockColors } from "../colors.ts";
+import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
+import { getDayDataRequest } from "../api.ts";
+import { AppointmentGroupDialog } from "./timeGrid/AppointmentGroupDialog.tsx";
+import type { SlimAppointment, CalendarBlockDto } from "../../../shared/types/calendar.ts";
+import { MonthGridSkeleton } from "./MonthGridSkeleton.tsx";
+import { SlidersHorizontal } from "lucide-react";
+import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
+import { dayMarkerFromSummary, DayMarkerGlyph } from "./MiniMonthCalendar.tsx";
 
 // ─────────────────────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────────────────────
 
 interface IProps {
-    viewMode: AppointmentViewMode;
+  viewMode: AppointmentViewMode;
 }
 
 export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
-    const selectedLocationId = useSelector(getSelectedLocationId);
-    const viewType = useSelector(getViewTypeSelector);
+  const selectedLocationId = useSelector(getSelectedLocationId);
+  const viewType = useSelector(getViewTypeSelector);
 
-    if (!selectedLocationId) {
-        return (
-            <Card>
-                <CardContent className="p-8 text-center">
-                    <p className="text-sm text-muted-foreground">Select a location to view the calendar.</p>
-                </CardContent>
-            </Card>
-        );
+  if (!selectedLocationId) {
+    return (
+      <Card>
+        <CardContent className="p-8 text-center">
+          <p className="text-sm text-muted-foreground">Select a location to view the calendar.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Day & Week views: list view or time grid
+  if (viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) {
+    if (viewType === AppointmentViewType.LIST) {
+      return viewMode === AppointmentViewMode.WEEK ? (
+        <WeekAppointmentList />
+      ) : (
+        <div className="p-4 pt-0 min-h-[86vh]">
+          <AppointmentList />
+        </div>
+      );
     }
+    return <CalendarTimeGrid viewMode={viewMode} />;
+  }
 
-    // Day & Week views: list view or time grid
-    if (viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) {
-        if (viewType === AppointmentViewType.LIST) {
-            return viewMode === AppointmentViewMode.WEEK ? (
-                <WeekAppointmentList />
-            ) : (
-                <div className="p-4">
-                    <AppointmentList />
-                </div>
-            );
-        }
-        return <CalendarTimeGrid viewMode={viewMode} />;
-    }
-
-    // Month view always uses summary grid
-    return <SummaryGrid />;
+  // Month view always uses summary grid — wrap in full-height container
+  return <SummaryGrid />;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -68,155 +78,171 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
 // ─────────────────────────────────────────────────────────────
 
 const SummaryGrid: FC = () => {
-    const dispatch = useDispatch();
-    const selectedDate = useSelector(getSelectedDate);
-    const monthViewDisplayStart = useSelector(getMonthViewDisplayStart);
-    const summary = useSelector(getCalendarSummary);
-    const isLoading = useSelector(getSummaryLoading);
-    const colorCoding = calendarPreferences.getColorCoding();
+  const dispatch = useDispatch();
+  const selectedDate = useSelector(getSelectedDate);
+  const monthViewDisplayStart = useSelector(getMonthViewDisplayStart);
+  const summary = useSelector(getCalendarSummary);
+  const isLoading = useSelector(getSummaryLoading);
+  const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
+  const viewMode = useSelector(getViewModeSelector);
+  const calendarTimezone = useSelector(getCalendarTimezone);
+  const selectedLocationId = useSelector(getSelectedLocationId);
+  const locationStaff = useSelector(getLocationStaff);
+  const dayFilters = useSelector(getDayFilters);
 
-    const handleDayClick = useCallback((day: Date) => {
-        dispatch(setSelectedDateAction(day));
-        dispatch(setViewModeAction(AppointmentViewMode.DAY));
-    }, [dispatch]);
+  // Day preview dialog state
+  const [previewDay, setPreviewDay] = useState<{ day: Date; appointments: SlimAppointment[]; blocks: CalendarBlockDto[] } | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
-    // Build month calendar cells from displayed month (not selected date, so prev/next don't move selection)
-    const dayCells = useMemo(() => {
-        const base = monthViewDisplayStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
-        const year = base.getFullYear();
-        const month = base.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        // Monday-first week: Mon=0, Sun=6
-        const firstDayOfWeek = (firstDay.getDay() + 6) % 7;
-        const lastDayOfWeek = (lastDay.getDay() + 6) % 7;
-        const start = new Date(firstDay);
-        start.setDate(firstDay.getDate() - firstDayOfWeek);
-        const end = new Date(lastDay);
-        end.setDate(lastDay.getDate() + (6 - lastDayOfWeek));
+  const handleDayClick = useCallback(
+    async (day: Date, hasItems: boolean) => {
+      if (!hasItems) {
+        dispatchSelectDateAndDayView(dispatch, day, viewMode);
+        return;
+      }
+      // Fetch full day data and open dialog
+      setPreviewLoading(true);
+      setPreviewDay({ day, appointments: [], blocks: [] });
+      try {
+        const dateKey = formatDateInTimezone(day, calendarTimezone);
+        const data = await getDayDataRequest(selectedLocationId!, dateKey, dayFilters);
+        setPreviewDay({ day, appointments: data.appointments, blocks: data.blocks });
+      } catch {
+        dispatchSelectDateAndDayView(dispatch, day, viewMode);
+        setPreviewDay(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    },
+    [dispatch, viewMode, calendarTimezone, selectedLocationId, dayFilters],
+  );
 
-        const cells = [];
-        const current = new Date(start);
-        while (current <= end) {
-            cells.push({
-                date: new Date(current),
-                isCurrentMonth: current.getMonth() === month,
-            });
-            current.setDate(current.getDate() + 1);
-        }
-        return cells;
-    }, [monthViewDisplayStart, selectedDate]);
+  const dayCells = useMemo(
+    () => buildMonthCalendarGridCells(monthViewDisplayStart, selectedDate),
+    [monthViewDisplayStart, selectedDate],
+  );
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-64 gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                <span className="text-sm text-muted-foreground">Loading calendar...</span>
-            </div>
-        );
+  const monthHasNoMatchingAppointments = useMemo(() => {
+    for (const { date, isCurrentMonth } of dayCells) {
+      if (!isCurrentMonth) continue;
+      const ds = summary[formatDateInTimezone(date, calendarTimezone)];
+      if (ds && ds.appointmentCount > 0) return false;
     }
+    return true;
+  }, [summary, dayCells, calendarTimezone]);
 
-    const todayStr = new Date().toDateString();
+  if (isLoading) {
+    return <MonthGridSkeleton />;
+  }
 
-    return (
-        <div className="p-4">
-            {/* Day-of-week header */}
-            <div className="grid grid-cols-7 gap-px mb-1">
-                {dayNames.map((day) => (
-                    <div key={day} className="text-center text-xs font-semibold text-muted-foreground py-2 uppercase tracking-wider">
-                        {day}
-                    </div>
-                ))}
-            </div>
+  const todayStr = new Date().toDateString();
 
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
-                {dayCells.map(({ date, isCurrentMonth }) => {
-                    const dateKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                    const daySummary: DaySummary | undefined = summary[dateKey];
-                    const isToday = date.toDateString() === todayStr;
-                    const isSelected = date.toDateString() === selectedDate.toDateString();
-                    const isClosed = daySummary && !daySummary.isOpen;
+  return (
+    <div className="p-4 pb-0">
+      {hasActiveFilters && monthHasNoMatchingAppointments ? (
+        <EmptyState
+          icon={SlidersHorizontal}
+          title="No appointments match your filters"
+          description="Try adjusting your filters or clearing them to see all appointments for this month."
+          className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
+        />
+      ) : (
+        <>
+          {/* Day-of-week header */}
+          <div className="grid grid-cols-7 gap-px mb-1">
+            {dayNames.map((day) => (
+              <div key={day} className="text-center text-xs font-medium text-foreground-2 py-2 cursor-default">
+                {day}
+              </div>
+            ))}
+          </div>
 
-                    return (
-                        <div
-                            key={dateKey}
-                            className={`relative isolate min-h-[100px] min-w-0 bg-background transition-colors cursor-pointer p-1.5 overflow-hidden
-                                ${!isCurrentMonth ? 'bg-muted/30 dark:bg-muted/10' : 'hover:bg-muted/20 dark:hover:bg-muted/10'}
-                                ${isSelected ? 'bg-primary/5 dark:bg-primary/10' : ''}
-                                ${isClosed ? 'bg-muted/20 dark:bg-muted/10' : ''}
-                            `}
-                            onClick={() => handleDayClick(date)}
-                        >
-                            {/* Day number */}
-                            <div className="flex items-center justify-between mb-1">
-                                <span
-                                    className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full
+          {/* Calendar grid */}
+          <div
+            className="grid grid-cols-7 gap-px bg-border rounded-xl overflow-hidden border border-border"
+            style={{
+              gridTemplateRows: `repeat(${Math.ceil(dayCells.length / 7)}, 1fr)`,
+              height: 'calc(100dvh - 168px)',
+            }}
+          >
+            {dayCells.map(({ date, isCurrentMonth }) => {
+              const dateKey = formatDateInTimezone(date, calendarTimezone);
+              const daySummary: DaySummary | undefined = summary[dateKey];
+              const isToday = date.toDateString() === todayStr;
+              const isSelected = date.toDateString() === selectedDate.toDateString();
+              const isClosed = daySummary && !daySummary.isOpen;
+
+              return (
+                <div
+                  key={dateKey}
+                  className={cn(
+                    "relative isolate min-w-0 p-2 overflow-hidden outline-none flex flex-col cursor-pointer",
+                    // Base background
+                    isCurrentMonth ? "bg-white dark:bg-surface" : "bg-muted/80 dark:bg-muted/10",
+                    // Closed overlay
+                    isCurrentMonth && isClosed && "bg-neutral-50 dark:bg-neutral-900/40",
+                    // Selected overlay
+                    isCurrentMonth && isSelected && "bg-primary/5 dark:bg-primary/10",
+                    // Hover (only on non-selected current month cells)
+                    isCurrentMonth && !isSelected && "hover:bg-primary/5 dark:hover:bg-primary/5",
+                  )}
+                  onClick={() => handleDayClick(date, (daySummary?.appointmentCount ?? 0) > 0 || (daySummary?.blockedSlots ?? 0) > 0)}
+                  tabIndex={0}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleDayClick(date, (daySummary?.appointmentCount ?? 0) > 0 || (daySummary?.blockedSlots ?? 0) > 0); }}
+                >
+                  {/* Day number — centered */}
+                  <div className="flex-1 flex items-center justify-center">
+                    <span
+                      className={`text-sm font-medium size-8 flex items-center justify-center rounded-full tabular-nums
                                         ${isToday
-                                            ? 'bg-primary text-primary-foreground font-bold'
-                                            : isCurrentMonth
-                                                ? 'text-foreground'
-                                                : 'text-muted-foreground/50'
-                                        }
-                                        ${isSelected && !isToday ? 'ring-2 ring-primary' : ''}
+                          ? 'bg-primary text-primary-foreground font-bold'
+                          : isSelected
+                            ? 'bg-primary/15 text-foreground font-semibold'
+                            : isCurrentMonth
+                              ? 'text-foreground'
+                              : 'text-muted-foreground/40'
+                        }
                                     `}
-                                >
-                                    {date.getDate()}
-                                </span>
+                    >
+                      {date.getDate()}
+                    </span>
+                  </div>
 
-                                {/* Dot indicators */}
-                                {daySummary && (
-                                    <div className="flex items-center gap-0.5">
-                                        {daySummary.appointmentCount > 0 && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" title={`${daySummary.appointmentCount} appointment(s)`} />
-                                        )}
-                                        {daySummary.blockedSlots > 0 && (
-                                            <span className="w-1.5 h-1.5 rounded-full bg-gray-400" title={`${daySummary.blockedSlots} block(s)`} />
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                  {/* Closed label — absolute so it doesn't push the date off center */}
+                  {isClosed && daySummary && (
+                    <div className="absolute bottom-5 left-0 right-0 text-[10px] text-muted-foreground/60 font-medium cursor-default text-center">Closed</div>
+                  )}
 
-                            {/* Summary content */}
-                            <div className="space-y-0.5">
-                                {daySummary && (
-                                    <>
-                                        {isClosed && (
-                                            <div className="text-[10px] text-muted-foreground italic">Closed</div>
-                                        )}
-                                        {daySummary.appointmentCount > 0 && !isClosed && (
-                                            <div className="text-[10px] font-medium text-muted-foreground">
-                                                {daySummary.appointmentCount} appt{daySummary.appointmentCount !== 1 ? 's' : ''}
-                                            </div>
-                                        )}
-                                        {/* Preview appointments — use same color coding as grid (staff mode: no staff ids in summary, so falls back to 'unassigned' tint) */}
-                                        {daySummary.firstAppointments?.slice(0, 3).map((preview: AppointmentPreview) => {
-                                            const { backgroundColor, color } = getAppointmentBlockColors(
-                                                { status: preview.status, bookedItemName: preview.bookedItemName, staffUserIds: [] },
-                                                colorCoding
-                                            );
-                                            return (
-                                                <div
-                                                    key={preview.id}
-                                                    className="text-[10px] truncate rounded px-1 py-px font-medium"
-                                                    style={{ backgroundColor, color }}
-                                                >
-                                                    {preview.bookedItemName || preview.customerName}
-                                                </div>
-                                            );
-                                        })}
-                                        {(daySummary.firstAppointments?.length ?? 0) > 3 && (
-                                            <div className="text-[10px] text-muted-foreground pl-1">
-                                                +{(daySummary.firstAppointments?.length ?? 0) - 3} more
-                                            </div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-        </div>
-    );
+                  {/* Density marker — pinned to bottom */}
+                  <div className="absolute bottom-2.5 left-0 right-0 flex items-center justify-center min-h-[8px]">
+                    {(() => {
+                      const { kind, tone } = dayMarkerFromSummary(daySummary);
+                      if (kind === "none") return null;
+                      return <DayMarkerGlyph kind={kind} tone={tone} selected={isSelected} large />;
+                    })()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* Day preview dialog — opens when clicking a day with appointments */}
+      <AppointmentGroupDialog
+        appointments={previewDay?.appointments ?? []}
+        timeRangeStr={
+          previewDay?.day.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) ?? ''
+        }
+        locationStaff={locationStaff}
+        timezone={calendarTimezone}
+        day={previewDay?.day ?? new Date()}
+        calendarViewMode={AppointmentViewMode.MONTH}
+        externalOpen={!!previewDay}
+        onExternalClose={() => setPreviewDay(null)}
+        loading={previewLoading}
+        blocks={previewDay?.blocks}
+      />
+    </div>
+  );
 };

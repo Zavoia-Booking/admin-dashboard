@@ -283,7 +283,7 @@ export const MapDialog: React.FC<MapDialogProps> = ({
           
           {desktopContentElement}
           
-          <DialogPrimitive.Close className="flex items-center !min-h-0 !h-9 !min-w-0 !w-9 justify-center ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
+          <DialogPrimitive.Close className="flex items-center !min-h-0 !h-9 !min-w-0 !w-9 justify-center ring-offset-background focus-visible:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
             <X className="!h-5 !w-5" />
             <span className="sr-only">{t('common:close')}</span>
           </DialogPrimitive.Close>

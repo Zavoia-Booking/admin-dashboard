@@ -10,8 +10,8 @@ import type {
     RescheduleGroupPayload,
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
+    CalendarBlockDto,
 } from "../../shared/types/calendar.ts";
-import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 import { AppointmentViewMode, AppointmentViewType, type AddFormPrefill, type PendingDrop } from "./types.ts";
 
 export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: boolean; prefill?: AddFormPrefill }>()
@@ -24,6 +24,14 @@ export const toggleEditFormAction = createAction('CALENDAR/EDIT/TOGGLE')<{
 
 export const setViewTypeAction = createAction('CALENDAR/VIEW_TYPE/SET')<AppointmentViewType>()
 export const setViewModeAction = createAction('CALENDAR/VIEW_MODE/SET')<AppointmentViewMode>()
+
+/**
+ * Apply saved view mode + list/grid type without refetching calendar data.
+ * Use on calendar page mount; user-driven changes use {@link setViewModeAction} (saga loads data).
+ */
+export const hydrateCalendarDisplayPreferencesAction = createAction(
+    'CALENDAR/DISPLAY_PREFERENCES/HYDRATE',
+)<{ viewMode: AppointmentViewMode; viewType: AppointmentViewType }>()
 
 // ─────────────────────────────────────────────────────────────
 // New actions: Location-first calendar
@@ -41,13 +49,6 @@ export const fetchLocationContext = createAsyncAction(
     'CALENDAR/LOCATION_CONTEXT/FAILURE',
 )<number, LocationContextData, any>()
 
-/** Fetch location assignment (services + team for selected location). Fired after location context success; stored for sidebar and add form. */
-export const fetchLocationAssignment = createAsyncAction(
-    'CALENDAR/LOCATION_ASSIGNMENT/REQUEST',
-    'CALENDAR/LOCATION_ASSIGNMENT/SUCCESS',
-    'CALENDAR/LOCATION_ASSIGNMENT/FAILURE',
-)<number, { services: LocationService[]; teamMembers: LocationTeamMember[] }, any>()
-
 /** Fetch calendar summary for a date range (month/week overview) */
 export const fetchCalendarSummary = createAsyncAction(
     'CALENDAR/SUMMARY/REQUEST',
@@ -56,6 +57,16 @@ export const fetchCalendarSummary = createAsyncAction(
 )<{ locationId: number; startDate: string; endDate: string; includePreview?: boolean; filters?: CalendarDayFilters },
     Record<string, DaySummary>,
     any>()
+
+/** Merge summary rows into {@link CalendarViewState.summary} (e.g. after block CRUD so the sidebar mini month updates). */
+export const mergeCalendarSummaryAction = createAction(
+    'CALENDAR/SUMMARY/MERGE',
+)<Record<string, DaySummary>>()
+
+/** First day of the month shown in the sidebar mini calendar (independent from main month view). */
+export const setSidebarMiniCalendarMonthAction = createAction(
+    'CALENDAR/SIDEBAR_MINI_MONTH/SET',
+)<Date>()
 
 /** Fetch full day data (appointments + blocks for a single day) */
 export const fetchDayData = createAsyncAction(
@@ -76,6 +87,18 @@ export const setSelectedDateAction = createAction(
     'CALENDAR/SELECTED_DATE/SET'
 )<Date>()
 
+/** Signal the grid to scroll to "now" after the next load (set by Today button, cleared after scrolling). */
+export const setScrollToNow = createAction(
+    'CALENDAR/SCROLL_TO_NOW/SET'
+)<boolean>()
+
+/**
+ * Atomically set selected date + view mode and trigger a single data fetch (avoids week+day double fetch when switching from week/month to day).
+ */
+export const navigateToCalendarDateAction = createAction(
+    'CALENDAR/NAVIGATE_DATE',
+)<{ date: Date; viewMode: AppointmentViewMode }>()
+
 /** Set the displayed month (month view only; first day of that month). */
 export const setDisplayedMonthAction = createAction(
     'CALENDAR/DISPLAYED_MONTH/SET'
@@ -95,6 +118,11 @@ export const setSelectedAppointmentAction = createAction(
 export const toggleBlockFormAction = createAction(
     'CALENDAR/BLOCK_FORM/TOGGLE'
 )<boolean>()
+
+/** Block being edited in the drawer; null = create mode. Cleared when drawer closes. */
+export const setBlockFormEditingAction = createAction(
+    'CALENDAR/BLOCK_FORM/EDITING_SET',
+)<CalendarBlockDto | null>()
 
 /** Toggle the calendar sidebar (mobile collapse) */
 export const toggleCalendarSidebar = createAction(
@@ -147,12 +175,32 @@ export const setCalendarPendingDrop = createAction(
     'CALENDAR/PENDING_DROP/SET',
 )<PendingDrop>()
 
-/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). When rescheduling a group, pass bookingGroupId so conflict offer can use group reschedule. */
+/** Add appointment slider: expect this many successful update/reschedule mutations before reducer auto-closes the form. */
+export const beginAddFormCloseAfterMutations = createAction(
+    'CALENDAR/ADD_FORM/BEGIN_CLOSE_AFTER_MUTATIONS',
+)<number>()
+
+/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). When rescheduling a group, pass bookingGroupId so conflict offer can use group reschedule. chainReschedule: saga will dispatch rescheduleAppointmentGroup after this update succeeds (avoids race condition when staff + time both change). */
 export const updateAppointment = createAsyncAction(
     'CALENDAR/UPDATE_APPOINTMENT/REQUEST',
     'CALENDAR/UPDATE_APPOINTMENT/SUCCESS',
     'CALENDAR/UPDATE_APPOINTMENT/FAILURE',
-)<{ appointmentId: number; data: Record<string, any>; bookingGroupId?: string }, any, any>()
+)<{ appointmentId: number; data: Record<string, any>; bookingGroupId?: string; chainReschedule?: { bookingGroupId: string; payload: RescheduleGroupPayload } }, any, any>()
+
+/**
+ * Sequential PUTs for per-segment staff in a booking group (avoids takeLatest cancelling multiple updateAppointment requests).
+ * Optionally applies primary row notes/service/location, then group reschedule — all in one saga success for the add-form mutation counter.
+ */
+export const updateGroupItemsStaff = createAsyncAction(
+    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/REQUEST',
+    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/SUCCESS',
+    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/FAILURE',
+)<{
+    updates: Array<{ appointmentId: number; staffUserIds: number[] }>;
+    bookingGroupId?: string;
+    primaryNonSchedulePatch?: { appointmentId: number; data: Record<string, unknown> };
+    chainReschedule?: { bookingGroupId: string; payload: RescheduleGroupPayload };
+}, any, any>()
 
 /** Cancel appointment with reason and notification preferences (POST /appointments/:id/cancel) */
 export const cancelAppointment = createAsyncAction(
@@ -171,14 +219,14 @@ export const createCalendarBlock = createAsyncAction(
     'CALENDAR/BLOCK/CREATE/FAILURE',
 )<CalendarBlockCreatePayload, any, any>()
 
-export const updateCalendarBlock = createAsyncAction(
-    'CALENDAR/BLOCK/UPDATE/REQUEST',
-    'CALENDAR/BLOCK/UPDATE/SUCCESS',
-    'CALENDAR/BLOCK/UPDATE/FAILURE',
-)<{ blockId: number; data: CalendarBlockUpdatePayload }, any, any>()
-
 export const deleteCalendarBlock = createAsyncAction(
     'CALENDAR/BLOCK/DELETE/REQUEST',
     'CALENDAR/BLOCK/DELETE/SUCCESS',
     'CALENDAR/BLOCK/DELETE/FAILURE',
 )<number, any, any>()
+
+export const updateCalendarBlock = createAsyncAction(
+    'CALENDAR/BLOCK/UPDATE/REQUEST',
+    'CALENDAR/BLOCK/UPDATE/SUCCESS',
+    'CALENDAR/BLOCK/UPDATE/FAILURE',
+)<{ id: number; payload: CalendarBlockUpdatePayload }, any, any>()

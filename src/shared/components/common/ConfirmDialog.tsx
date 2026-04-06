@@ -82,7 +82,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
               "text-foreground-2 hover:text-foreground-1",
               "active:bg-surface-active",
               "transition-colors duration-200",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               "disabled:pointer-events-none",
               "cursor-pointer"
             )}

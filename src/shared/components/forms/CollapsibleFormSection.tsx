@@ -12,7 +12,7 @@ const ANIMATION_MS = 300;
 export interface CollapsibleFormSectionProps {
   icon?: LucideIcon;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   children: React.ReactNode;
@@ -120,10 +120,10 @@ export const CollapsibleFormSection: React.FC<CollapsibleFormSectionProps> = ({
                 >
                   {title}
                 </h3>
-                {description && (
+                {description != null && description !== '' && (
                   <p
                     className={cn(
-                      'text-foreground-3 dark:text-foreground-2 mt-0.5',
+                      'mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-foreground-3 dark:text-foreground-2',
                       compact ? 'text-xs' : 'text-sm',
                     )}
                   >

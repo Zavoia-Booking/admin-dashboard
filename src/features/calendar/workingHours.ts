@@ -60,7 +60,7 @@ export function getSlotStartsInRange(
   return slots;
 }
 
-const MIN_APPOINTMENT_HEIGHT_PX = 24;
+const MIN_APPOINTMENT_HEIGHT_PX = 32;
 
 /**
  * Convert appointment time range (ISO start/end) to grid position (top, height in px).
@@ -77,9 +77,11 @@ export function getTimePositionForGrid(
   const startMinutes = timezone
     ? getMinutesInTimezone(isoStart, timezone)
     : (new Date(isoStart).getHours() * 60 + new Date(isoStart).getMinutes());
-  const endMinutes = timezone
+  let endMinutes = timezone
     ? getMinutesInTimezone(isoEnd, timezone)
     : (new Date(isoEnd).getHours() * 60 + new Date(isoEnd).getMinutes());
+  // When end crosses midnight (00:00 = 0 min), cap at end of day so the block renders correctly
+  if (endMinutes <= startMinutes) endMinutes = 24 * 60;
   const top = ((startMinutes - gridStartMinutes) / intervalMinutes) * slotHeight;
   const height = Math.max(
     ((endMinutes - startMinutes) / intervalMinutes) * slotHeight,
@@ -154,18 +156,22 @@ export function isSlotOutsideWorkingHours(
  * True if the time range (scheduledAt + durationMinutes) falls outside working hours.
  * open247 or no dayWorkingHours → false (no "out of hours").
  * Closed day → true.
+ * When `timezone` is set, start time is interpreted in that IANA zone (matches location calendar).
  */
 export function isTimeRangeOutsideWorkingHours(
   scheduledAt: Date,
   durationMinutes: number,
   dayWorkingHours: WorkingHoursDay | null,
-  open247: boolean
+  open247: boolean,
+  timezone?: string,
 ): boolean {
   if (open247 || !dayWorkingHours) return false;
   if (!dayWorkingHours.isOpen) return true;
   const bounds = getDayOpenCloseMinutes(dayWorkingHours, false);
   if (!bounds) return true;
-  const startMinutes = scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
+  const startMinutes = timezone?.trim()
+    ? getMinutesInTimezone(scheduledAt.toISOString(), timezone.trim())
+    : scheduledAt.getHours() * 60 + scheduledAt.getMinutes();
   const endMinutes = startMinutes + durationMinutes;
   return startMinutes < bounds.start || endMinutes > bounds.end;
 }

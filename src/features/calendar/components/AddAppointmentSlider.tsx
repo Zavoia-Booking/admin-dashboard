@@ -22,7 +22,13 @@ import { ManageBundlesSheet } from '../../../shared/components/common/ManageBund
 import { useDispatch, useSelector } from 'react-redux';
 import { getCurrencyDisplay } from '../../../shared/utils/currency';
 import { selectCurrentUser } from '../../auth/selectors';
-import { adminCreateAppointmentGroup, updateAppointment, rescheduleAppointmentGroup } from '../actions';
+import {
+  adminCreateAppointmentGroup,
+  beginAddFormCloseAfterMutations,
+  updateAppointment,
+  updateGroupItemsStaff,
+  rescheduleAppointmentGroup,
+} from '../actions';
 import {
   getSelectedLocationId,
   getLocationStaff,
@@ -34,7 +40,7 @@ import {
   getLocationServices,
   getLocationTeamMembers,
   getLocationBundles,
-  getLocationAssignmentLoading,
+  getLocationContextLoading,
   getCalendarTimezone,
 } from '../selectors';
 import type { AppointmentBookingSource } from '../../../shared/types/calendar';
@@ -59,6 +65,16 @@ import {
   getGroupItemsForPayload,
   getGroupTotalDurationMinutes,
   getGroupTotalPriceMajor,
+  buildEditSnapshotFromPrefill,
+  buildMinimalEditAppointmentPayload,
+  buildPerItemStaffUpdates,
+  getEditMutationDispatchCount,
+  pickPrimaryNonSchedulePatch,
+  pickUpdateAppointmentRequestBody,
+  hasItemStaffChanged,
+  type EditFormSnapshot,
+  type EditAppointmentPayload,
+  type PerItemStaffUpdate,
 } from './addAppointmentSliderHelpers';
 import CustomerSearchPicker from './CustomerSearchPicker';
 import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
@@ -379,7 +395,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const locationServices = useSelector(getLocationServices);
   const locationTeamMembers = useSelector(getLocationTeamMembers);
   const locationBundles = useSelector(getLocationBundles);
-  const servicesLoading = useSelector(getLocationAssignmentLoading);
+  const servicesLoading = useSelector(getLocationContextLoading);
   const calendarTimezone = useSelector(getCalendarTimezone);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
@@ -389,13 +405,26 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   );
 
   const pendingGroupSubmitRef = useRef<Parameters<typeof adminCreateAppointmentGroup.request>[0] | null>(null);
-  const pendingUpdateRef = useRef<{ appointmentId: number; data: Record<string, unknown> } | null>(null);
+  const pendingUpdateRef = useRef<{
+    appointmentId: number;
+    data: Record<string, unknown>;
+    perItemStaffUpdates: PerItemStaffUpdate[];
+  } | null>(null);
   const rescheduleAppointmentIdRef = useRef<number | null>(null);
   const userChangedTimeRef = useRef(false);
+  /** Prefilled time when opening edit; kept valid even if availability omits past slots. */
+  const [editInitialTime, setEditInitialTime] = useState('');
+  /** Initial field values when opening edit (for dirty check + minimal PUT payload). */
+  const [editSnapshot, setEditSnapshot] = useState<EditFormSnapshot | null>(null);
 
   /** Use ref first so reschedule always updates the appointment that was opened, even if prefill is later overwritten (e.g. by clicking a slot). */
   const editingAppointmentId = rescheduleAppointmentIdRef.current ?? prefill?.appointmentId ?? null;
   const isEditMode = editingAppointmentId !== null;
+
+  /** When opening from a staff column click (not editing, no service pre-selected), filter services/bundles to only those the staff can perform. */
+  const prefillStaffFilter = (!isEditMode && prefill?.staffUserId && !prefill?.serviceId && !prefill?.bundleId)
+    ? prefill.staffUserId
+    : null;
 
   // Form state
   const [form, setForm] = useState<FormState>(initialForm);
@@ -431,6 +460,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       userChangedTimeRef.current = false;
       if (prefill?.appointmentId != null) {
         rescheduleAppointmentIdRef.current = prefill.appointmentId;
+        setEditInitialTime(prefill?.time ?? '');
+      } else {
+        setEditInitialTime('');
       }
       setForm({
         ...initialForm,
@@ -447,6 +479,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       if (prefill?.groupItems != null && prefill.groupItems.length > 1) {
         setAppointmentItems(
           prefill.groupItems.map((x) => ({
+            appointmentId: x.appointmentId ?? null,
             serviceId: x.serviceId ?? null,
             bundleId: x.bundleId ?? null,
             staffUserId: x.staffUserId ?? null,
@@ -464,11 +497,18 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       } else {
         setAppointmentItems([]);
       }
+      if (prefill?.appointmentId != null) {
+        setEditSnapshot(buildEditSnapshotFromPrefill(prefill, selectedLocationId));
+      } else {
+        setEditSnapshot(null);
+      }
       setError(null);
       setSlotFetchError(null);
     } else {
       userChangedTimeRef.current = false;
       rescheduleAppointmentIdRef.current = null;
+      setEditInitialTime('');
+      setEditSnapshot(null);
       setIsManageServicesSheetOpen(false);
       setIsManageBundlesSheetOpen(false);
       setAppointmentItems([]);
@@ -478,7 +518,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setAvailableSlotsLoading(false);
       setSlotFetchError(null);
     }
-  }, [isOpen, prefill]);
+  }, [isOpen, prefill, selectedLocationId]);
 
   // Fetch available slots when location, date, and service chain are set (create mode only)
   const slotDurationMinutes = useMemo(
@@ -521,6 +561,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setOutOfHoursSlots([]);
     setNextAvailableDate(null);
     const slotRequestId = `${Date.now()}-${selectedLocationId}`;
+    console.log('[SLOT] fetch:request', { locationId: selectedLocationId, date: dateStr, items: JSON.parse(JSON.stringify(slotFetchItems)) });
     getAvailableSlotsRequest({
       locationId: selectedLocationId,
       date: dateStr,
@@ -529,6 +570,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     }, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) return;
+        console.log('[SLOT] fetch:response', { availableSlots: res.availableSlots, outOfHoursSlots: res.outOfHoursSlots });
         setAvailableSlots(res.availableSlots ?? []);
         setOutOfHoursSlots(res.outOfHoursSlots ?? []);
         setNextAvailableDate(res.nextAvailableDate ?? null);
@@ -592,17 +634,23 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, []);
 
   const servicesForSheet = useMemo<ManageSheetService[]>(() => {
-    return locationServices.map((service) => ({
+    const filtered = prefillStaffFilter
+      ? locationServices.filter((s) => !s.staffIds?.length || s.staffIds.includes(prefillStaffFilter))
+      : locationServices;
+    return filtered.map((service) => ({
       id: service.serviceId,
       name: service.serviceName,
       price: (service.customPrice ?? service.defaultPrice) / 100,
       duration: service.customDuration ?? service.defaultDuration,
       category: service.category ?? null,
     }));
-  }, [locationServices]);
+  }, [locationServices, prefillStaffFilter]);
 
   const bundlesForSheet = useMemo<ManageSheetBundle[]>(() => {
-    return locationBundles.map((bundle) => ({
+    const filtered = prefillStaffFilter
+      ? locationBundles.filter((b) => !b.staffIds?.length || b.staffIds.includes(prefillStaffFilter))
+      : locationBundles;
+    return filtered.map((bundle) => ({
       bundleId: bundle.bundleId,
       bundleName: bundle.bundleName,
       priceType: bundle.priceType,
@@ -612,7 +660,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       displayPrice: bundle.calculatedDisplayPrice,
       serviceCount: bundle.serviceCount ?? bundle.serviceIds.length,
     }));
-  }, [locationBundles]);
+  }, [locationBundles, prefillStaffFilter]);
 
   const getAutoStaffForService = useCallback((serviceId: number): number | null => {
     if (!hasTeamMembersAtLocation) return null;
@@ -663,16 +711,21 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         const allowedStaffIds = service?.staffIds ?? [];
         const existingStaff = existing?.staffUserId ?? null;
         const isExistingStaffValid = existingStaff != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(existingStaff));
+        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(prefillStaffFilter));
         return {
           serviceId,
           bundleId: null,
-          staffUserId: isExistingStaffValid ? existingStaff : getAutoStaffForService(serviceId),
+          staffUserId: isExistingStaffValid
+            ? existingStaff
+            : isPrefillStaffValid
+              ? prefillStaffFilter
+              : getAutoStaffForService(serviceId),
         };
       });
       const nextItems = [...nextServiceItems, ...bundleItems];
       return nextItems;
     });
-  }, [getAutoStaffForService, locationServices]);
+  }, [getAutoStaffForService, locationServices, prefillStaffFilter]);
 
   const handleSelectSingleService = useCallback((serviceId: number) => {
     applySelectedServices([serviceId]);
@@ -680,9 +733,13 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [applySelectedServices]);
 
   const handleUpdateItemStaff = useCallback((index: number, staffUserId: number | null) => {
-    setAppointmentItems((prev) => prev.map((item, itemIndex) => (
-      itemIndex === index ? { ...item, staffUserId } : item
-    )));
+    setAppointmentItems((prev) => {
+      const next = prev.map((item, itemIndex) => (
+        itemIndex === index ? { ...item, staffUserId } : item
+      ));
+      return next;
+    });
+    setForm((prev) => ({ ...prev, time: '' }));
   }, []);
 
   const handleRemoveItem = useCallback((index: number) => {
@@ -695,17 +752,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const existingBundleItems = prev.filter((item) => item.bundleId != null && item.serviceId == null);
       const nextBundleItems: AppointmentItem[] = bundleIds.map((bundleId) => {
         const existing = existingBundleItems.find((item) => item.bundleId === bundleId);
+        const bundle = locationBundles.find((b) => b.bundleId === bundleId);
+        const allowedStaffIds = bundle?.staffIds ?? [];
+        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(prefillStaffFilter));
         return {
           serviceId: null,
           bundleId,
-          staffUserId: existing?.staffUserId ?? getAutoStaffForBundle(bundleId),
+          staffUserId: existing?.staffUserId ?? (isPrefillStaffValid ? prefillStaffFilter : getAutoStaffForBundle(bundleId)),
         };
       });
       const nextItems = [...serviceItems, ...nextBundleItems];
       return nextItems;
     });
     setIsManageBundlesSheetOpen(false);
-  }, [getAutoStaffForBundle]);
+  }, [getAutoStaffForBundle, locationBundles, prefillStaffFilter]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data
@@ -761,13 +821,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     );
   }, [calendarTimezone, outOfHoursSlots]);
 
-  // When we switch to showing only available slots, clear time if current selection is not in the list
-  useEffect(() => {
-    if (availableSlots != null && availableSlots.length > 0 && form.time && !displayTimeSlots.includes(form.time)) {
-      setForm((prev) => ({ ...prev, time: '' }));
-    }
-  }, [availableSlots, displayTimeSlots, form.time]);
-
   const { dayWorkingHours, isSlotOutsideHours } = useWorkingHoursForDate(
     form.date,
     workingHours,
@@ -812,15 +865,53 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     () => appointmentItems.length > 0 && appointmentItems.every((item) => isValidAppointmentItem(item, hasTeamMembersAtLocation)),
     [appointmentItems, hasTeamMembersAtLocation],
   );
+
+  const isDirty = useMemo(() => {
+    if (!isEditMode || editSnapshot == null) return true;
+    if (form.date?.toDateString() !== editSnapshot.date?.toDateString()) return true;
+    if (form.time !== editSnapshot.time) return true;
+    if (form.notes.trim() !== editSnapshot.notes.trim()) return true;
+    if (selectedLocationId !== editSnapshot.locationId) return true;
+    const editItem = appointmentItems.find((item) => item.serviceId != null);
+    if ((editItem?.serviceId ?? null) !== editSnapshot.serviceId) return true;
+    if (hasItemStaffChanged(appointmentItems, editSnapshot)) return true;
+    return false;
+  }, [isEditMode, editSnapshot, form.date, form.time, form.notes, selectedLocationId, appointmentItems]);
+
+  /** True when staff/service/location/date/time differ from snapshot (excludes notes). Used to narrow edit-mode slot bypasses. */
+  const hasSchedulingFieldChanged = useMemo(() => {
+    if (!isEditMode || editSnapshot == null) return false;
+    if (form.date?.toDateString() !== editSnapshot.date?.toDateString()) return true;
+    if (form.time !== editSnapshot.time) return true;
+    if (selectedLocationId !== editSnapshot.locationId) return true;
+    const editItem = appointmentItems.find((item) => item.serviceId != null);
+    if ((editItem?.serviceId ?? null) !== editSnapshot.serviceId) return true;
+    if (hasItemStaffChanged(appointmentItems, editSnapshot)) return true;
+    return false;
+  }, [isEditMode, editSnapshot, form.date, form.time, selectedLocationId, appointmentItems]);
+
   const isTimeInAvailableSlots = useMemo(() => {
     if (form.time === '') return false;
     if (availableSlots == null) return isEditMode;
+    if (isEditMode && editInitialTime !== '' && form.time === editInitialTime && !hasSchedulingFieldChanged) return true;
     return displayTimeSlots.includes(form.time);
-  }, [availableSlots, displayTimeSlots, form.time, isEditMode]);
+  }, [availableSlots, displayTimeSlots, form.time, isEditMode, editInitialTime, hasSchedulingFieldChanged]);
   const isScheduledInPast = useMemo(() => {
     const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
-    return scheduled !== null && scheduled.getTime() < Date.now();
-  }, [form.date, form.time, calendarTimezone]);
+    if (scheduled === null) return false;
+    if (
+      isEditMode &&
+      editSnapshot &&
+      editInitialTime !== '' &&
+      form.time === editInitialTime &&
+      form.date != null &&
+      editSnapshot.date != null &&
+      form.date.toDateString() === editSnapshot.date.toDateString()
+    ) {
+      return false;
+    }
+    return scheduled.getTime() < Date.now();
+  }, [form.date, form.time, calendarTimezone, isEditMode, editSnapshot, editInitialTime]);
   const isSpanMidnight = useMemo(() => {
     if (!form.date || !form.time) return false;
     const scheduled = buildScheduledDate(form.date, form.time, calendarTimezone);
@@ -844,6 +935,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     [form.notes],
   );
 
+  const allowSubmitWhileSlotsLoading =
+    isEditMode &&
+    editInitialTime !== '' &&
+    form.time === editInitialTime &&
+    !hasSchedulingFieldChanged;
+
+  // When we switch to showing only available slots, clear time if current selection is not in the list
+  useEffect(() => {
+    if (availableSlots != null && availableSlots.length > 0 && form.time && !displayTimeSlots.includes(form.time)) {
+      if (isEditMode && editInitialTime !== '' && form.time === editInitialTime && !hasSchedulingFieldChanged) return;
+      setForm((prev) => ({ ...prev, time: '' }));
+    }
+  }, [availableSlots, displayTimeSlots, form.time, isEditMode, editInitialTime, hasSchedulingFieldChanged]);
+
   const canSubmit =
     form.date !== null &&
     form.time !== '' &&
@@ -852,9 +957,102 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     !isSpanMidnight &&
     !durationExceedsOneDay &&
     isTimeInAvailableSlots &&
-    !availableSlotsLoading &&
+    (allowSubmitWhileSlotsLoading || !availableSlotsLoading) &&
     allCreateItemsValid &&
-    !notesError;
+    !notesError &&
+    (!isEditMode || isDirty);
+
+  const runEditAppointmentMutations = useCallback(
+    (
+      appointmentId: number,
+      rawPayload: EditAppointmentPayload & Record<string, unknown>,
+      perItemStaffUpdates: PerItemStaffUpdate[],
+    ) => {
+      const count = getEditMutationDispatchCount(
+        prefill?.bookingGroupId,
+        rawPayload,
+        perItemStaffUpdates.length,
+      );
+      if (count <= 0) return false;
+      dispatch(beginAddFormCloseAfterMutations(count));
+      const bookingGroupId = prefill?.bookingGroupId;
+
+      if (perItemStaffUpdates.length > 0) {
+        const primaryPatch = pickPrimaryNonSchedulePatch(rawPayload);
+        const primaryNonSchedulePatch =
+          Object.keys(primaryPatch).length > 0
+            ? { appointmentId, data: primaryPatch }
+            : undefined;
+        const chainReschedule =
+          bookingGroupId && rawPayload.scheduledAt
+            ? {
+                bookingGroupId,
+                payload: {
+                  scheduledAt: rawPayload.scheduledAt,
+                  overrideConflicts: !!rawPayload.overrideConflicts,
+                  allowOutOfHours: !!rawPayload.allowOutOfHours,
+                  overrideReason:
+                    typeof rawPayload.overrideReason === 'string'
+                      ? rawPayload.overrideReason
+                      : undefined,
+                },
+              }
+            : undefined;
+        dispatch(
+          updateGroupItemsStaff.request({
+            updates: perItemStaffUpdates,
+            bookingGroupId,
+            primaryNonSchedulePatch,
+            chainReschedule,
+          }),
+        );
+        return true;
+      }
+
+      if (bookingGroupId && rawPayload.scheduledAt) {
+        const reschedulePayload = {
+          scheduledAt: rawPayload.scheduledAt,
+          overrideConflicts: !!rawPayload.overrideConflicts,
+          allowOutOfHours: !!rawPayload.allowOutOfHours,
+          overrideReason:
+            typeof rawPayload.overrideReason === 'string' ? rawPayload.overrideReason : undefined,
+        };
+        const nonScheduleFields: Record<string, unknown> = {};
+        if (rawPayload.notes !== undefined) nonScheduleFields.notes = rawPayload.notes;
+        if (rawPayload.serviceId !== undefined) nonScheduleFields.serviceId = rawPayload.serviceId;
+        if (rawPayload.locationId !== undefined) nonScheduleFields.locationId = rawPayload.locationId;
+        if (rawPayload.staffUserIds !== undefined) nonScheduleFields.staffUserIds = rawPayload.staffUserIds;
+        if (Object.keys(nonScheduleFields).length > 0) {
+          dispatch(
+            updateAppointment.request({
+              appointmentId,
+              data: nonScheduleFields,
+              bookingGroupId,
+              chainReschedule: { bookingGroupId, payload: reschedulePayload },
+            }),
+          );
+        } else {
+          dispatch(
+            rescheduleAppointmentGroup.request({
+              bookingGroupId,
+              payload: reschedulePayload,
+            }),
+          );
+        }
+      } else {
+        const updateData = pickUpdateAppointmentRequestBody(rawPayload);
+        dispatch(
+          updateAppointment.request({
+            appointmentId,
+            data: updateData,
+            bookingGroupId,
+          }),
+        );
+      }
+      return true;
+    },
+    [dispatch, prefill?.bookingGroupId],
+  );
 
   const doUpdateAppointment = useCallback(() => {
     const pending = pendingUpdateRef.current;
@@ -862,36 +1060,31 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setSubmitting(true);
     setError(null);
     const reason = overrideReasonText.trim() || undefined;
-    const dataWithOverride = { ...pending.data, overrideReason: reason };
+    const dataWithOverride = { ...pending.data, overrideReason: reason } as EditAppointmentPayload & Record<string, unknown>;
     try {
-      if (prefill?.bookingGroupId && pending.data?.scheduledAt) {
-        dispatch(rescheduleAppointmentGroup.request({
-          bookingGroupId: prefill.bookingGroupId,
-          payload: {
-            scheduledAt: typeof pending.data.scheduledAt === 'string' ? pending.data.scheduledAt : '',
-            overrideConflicts: !!pending.data.overrideConflicts,
-            allowOutOfHours: !!pending.data.allowOutOfHours,
-            overrideReason: reason,
-          },
-        }));
-      } else {
-        dispatch(updateAppointment.request({
-          appointmentId: pending.appointmentId,
-          data: dataWithOverride,
-          bookingGroupId: prefill?.bookingGroupId,
-        }));
+      const ran = runEditAppointmentMutations(
+        pending.appointmentId,
+        dataWithOverride,
+        pending.perItemStaffUpdates,
+      );
+      if (!ran) {
+        setError('Nothing to update.');
+        pendingUpdateRef.current = null;
+        setConfirmOpen(false);
+        setConfirmReason(null);
+        setOverrideReasonText('');
+        return;
       }
       pendingUpdateRef.current = null;
       setConfirmOpen(false);
       setConfirmReason(null);
       setOverrideReasonText('');
-      onClose();
     } catch {
       setError('Failed to update appointment');
     } finally {
       setSubmitting(false);
     }
-  }, [dispatch, onClose, overrideReasonText, prefill?.bookingGroupId]);
+  }, [overrideReasonText, runEditAppointmentMutations]);
 
   const doCreateGroupAppointment = useCallback(() => {
     const pending = pendingGroupSubmitRef.current;
@@ -937,42 +1130,33 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   const submitEdit = useCallback(
     (
-      scheduledDate: Date,
-      payload: {
-        serviceId: number;
-        locationId: number;
-        staffUserIds: number[];
-        scheduledAt: string;
-        notes?: string;
-      },
+      scheduledDate: Date | null,
+      payload: EditAppointmentPayload,
+      perItemStaffUpdates: PerItemStaffUpdate[],
     ) => {
-      const isOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247);
+      const hasScheduledAt = payload.scheduledAt != null;
+      const isOutOfHours =
+        hasScheduledAt &&
+        scheduledDate != null &&
+        isTimeRangeOutsideWorkingHours(scheduledDate, durationMinutes, dayWorkingHours, open247, calendarTimezone);
       if (isOutOfHours) {
         pendingUpdateRef.current = {
           appointmentId: editingAppointmentId!,
           data: {
             ...payload,
-            allowOutOfHours: isOutOfHours,
+            allowOutOfHours: true,
           },
+          perItemStaffUpdates,
         };
         openConfirmDialog('out_of_hours');
         return;
       }
       setSubmitting(true);
       try {
-        if (prefill?.bookingGroupId && payload.scheduledAt) {
-          dispatch(rescheduleAppointmentGroup.request({
-            bookingGroupId: prefill.bookingGroupId,
-            payload: { scheduledAt: payload.scheduledAt },
-          }));
-        } else {
-          dispatch(updateAppointment.request({
-            appointmentId: editingAppointmentId!,
-            data: payload,
-            bookingGroupId: prefill?.bookingGroupId,
-          }));
+        const ran = runEditAppointmentMutations(editingAppointmentId!, payload, perItemStaffUpdates);
+        if (!ran) {
+          setError('Nothing to update.');
         }
-        onClose();
       } catch {
         setError('Failed to update appointment');
       } finally {
@@ -983,11 +1167,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       durationMinutes,
       dayWorkingHours,
       open247,
+      calendarTimezone,
       editingAppointmentId,
       openConfirmDialog,
-      prefill?.bookingGroupId,
-      dispatch,
-      onClose,
+      runEditAppointmentMutations,
     ],
   );
 
@@ -1003,7 +1186,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         bookingSource: form.bookingSource,
       };
       const totalDurationMinutes = getGroupTotalDurationMinutes(items, locationServices, locationBundles);
-      const groupOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, totalDurationMinutes, dayWorkingHours, open247);
+      const groupOutOfHours = isTimeRangeOutsideWorkingHours(scheduledDate, totalDurationMinutes, dayWorkingHours, open247, calendarTimezone);
       if (groupOutOfHours) {
         pendingGroupSubmitRef.current = {
           ...groupPayload,
@@ -1030,6 +1213,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       locationBundles,
       dayWorkingHours,
       open247,
+      calendarTimezone,
       openConfirmDialog,
       dispatch,
       onClose,
@@ -1044,8 +1228,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
     const scheduledDate = buildScheduledDate(form.date, form.time, calendarTimezone);
     if (!scheduledDate) return;
-    if (scheduledDate.getTime() < Date.now()) {
-      setError('Cannot create an appointment in the past.');
+    const editScheduleUnchanged =
+      isEditMode &&
+      editSnapshot &&
+      editInitialTime !== '' &&
+      form.time === editInitialTime &&
+      form.date != null &&
+      editSnapshot.date != null &&
+      form.date.toDateString() === editSnapshot.date.toDateString();
+    if (!editScheduleUnchanged && scheduledDate.getTime() < Date.now()) {
+      setError(
+        isEditMode
+          ? 'Cannot reschedule an appointment to the past.'
+          : 'Cannot create an appointment in the past.',
+      );
       return;
     }
     if (doesTimeRangeSpanMidnight(scheduledDate, slotDurationMinutes, calendarTimezone)) {
@@ -1061,14 +1257,29 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         setError('Please select a service before saving this appointment.');
         return;
       }
-      const payload = {
-        serviceId: editItem.serviceId,
-        locationId: selectedLocationId,
-        staffUserIds: hasTeamMembersAtLocation && editItem.staffUserId != null ? [editItem.staffUserId] : [],
-        scheduledAt: scheduledDate.toISOString(),
-        notes: form.notes.trim() || undefined,
-      };
-      submitEdit(scheduledDate, payload);
+      if (!editSnapshot) {
+        setError('Could not load appointment data. Close and try again.');
+        return;
+      }
+      const perItemStaffUpdates = buildPerItemStaffUpdates(
+        appointmentItems,
+        editSnapshot,
+        hasTeamMembersAtLocation,
+      );
+      const payload = buildMinimalEditAppointmentPayload({
+        snapshot: editSnapshot,
+        form,
+        appointmentItems,
+        selectedLocationId,
+        hasTeamMembersAtLocation,
+        scheduledDate,
+      });
+      if (Object.keys(payload).length === 0 && perItemStaffUpdates.length === 0) {
+        return;
+      }
+      const scheduledForOoh =
+        payload.scheduledAt != null ? scheduledDate : null;
+      submitEdit(scheduledForOoh, payload, perItemStaffUpdates);
       return;
     }
 

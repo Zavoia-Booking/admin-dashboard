@@ -16,7 +16,6 @@ const initialState: CalendarViewState = {
     selectedLocationId: null,
     locationContext: null,
     locationContextLoading: false,
-    locationAssignmentLoading: false,
     locationServices: [],
     locationTeamMembers: [],
     locationBundles: [],
@@ -52,6 +51,7 @@ const initialState: CalendarViewState = {
         groupAppointments: undefined as Appointment[] | undefined,
     },
     blockFormOpen: false,
+    blockFormEditingBlock: null,
 
     // --- Calendar sidebar ---
     sidebarOpen: true,
@@ -64,11 +64,16 @@ const initialState: CalendarViewState = {
     selectedDate: new Date(),
     displayedMonthStart: null,
     displayedWeekStart: null,
+    sidebarMiniCalendarMonthStart: null,
 
     updateConflictOffer: null,
     pendingDrop: null as PendingDrop,
 
     optimisticBlocks: [],
+
+    addFormCloseAfterMutationsRemaining: 0,
+
+    scrollToNow: true,
 };
 
 /** Normalize API block payload to CalendarBlockDto (startsAt/endsAt as ISO strings). */
@@ -84,6 +89,11 @@ function blockPayloadToDto(payload: any): CalendarBlockDto {
         isAllDay: payload.isAllDay ?? false,
         reason: payload.reason ?? 'other',
         title: payload.title ?? null,
+        notes: payload.notes ?? null,
+        isRecurring: payload.isRecurring ?? false,
+        repeatFrequency: payload.repeatFrequency ?? undefined,
+        repeatDaysOfWeek: payload.repeatDaysOfWeek ?? undefined,
+        repeatEndDate: payload.repeatEndDate ?? undefined,
     };
 }
 
@@ -96,6 +106,7 @@ export const handleOpenAddForm = (state: CalendarViewState, payload: { open: boo
         ...state,
         addFormOpen: payload.open,
         addFormPrefill: payload.open ? (payload.prefill ?? null) : null,
+        addFormCloseAfterMutationsRemaining: 0,
     }
 }
 
@@ -131,11 +142,13 @@ export const handleViewMode = (state: CalendarViewState, payload: AppointmentVie
 }
 
 const handleSetDisplayedMonth = (state: CalendarViewState, payload: Date): CalendarViewState => {
-    return { ...state, displayedMonthStart: payload };
+    return { ...state, displayedMonthStart: payload, sidebarMiniCalendarMonthStart: payload };
 }
 
 const handleSetDisplayedWeek = (state: CalendarViewState, payload: Date): CalendarViewState => {
-    return { ...state, displayedWeekStart: payload };
+    // Sync mini calendar to the month that contains the new week
+    const miniMonth = new Date(payload.getFullYear(), payload.getMonth(), 1);
+    return { ...state, displayedWeekStart: payload, sidebarMiniCalendarMonthStart: miniMonth };
 }
 
 // --- Location-first design handlers ---
@@ -147,7 +160,6 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         // Clear stale data when switching locations
         locationContext: null,
         locationContextLoading: payload !== null,
-        locationAssignmentLoading: false,
         locationServices: [],
         locationTeamMembers: [],
         summary: {},
@@ -156,6 +168,8 @@ const handleSetSelectedLocation = (state: CalendarViewState, payload: number | n
         dayFilters: initialDayFilters,
         staffFilter: [],
         optimisticBlocks: [],
+        sidebarMiniCalendarMonthStart: null,
+        pendingDrop: null,
     }
 }
 
@@ -164,8 +178,6 @@ const handleSetLocationContext = (state: CalendarViewState, payload: LocationCon
         ...state,
         locationContext: payload,
         locationContextLoading: false,
-        // When backend extends location-context with services + teamMembers + bundles, store them so sidebar and add form don't need a second call
-        locationAssignmentLoading: false,
         locationServices: (payload?.services ?? []) as LocationService[],
         locationTeamMembers: (payload?.teamMembers ?? []) as LocationTeamMember[],
         locationBundles: payload?.bundles ?? [],
@@ -177,26 +189,6 @@ const handleSetLocationContextLoading = (state: CalendarViewState, payload: bool
         ...state,
         locationContextLoading: payload,
     }
-}
-
-const handleLocationAssignmentRequest = (state: CalendarViewState): CalendarViewState => {
-    return { ...state, locationAssignmentLoading: true };
-}
-
-const handleLocationAssignmentSuccess = (
-    state: CalendarViewState,
-    payload: { services: LocationService[]; teamMembers: LocationTeamMember[] },
-): CalendarViewState => {
-    return {
-        ...state,
-        locationAssignmentLoading: false,
-        locationServices: payload.services ?? [],
-        locationTeamMembers: payload.teamMembers ?? [],
-    };
-}
-
-const handleLocationAssignmentFailure = (state: CalendarViewState): CalendarViewState => {
-    return { ...state, locationAssignmentLoading: false };
 }
 
 const handleSetSummary = (state: CalendarViewState, payload: Record<string, DaySummary>): CalendarViewState => {
@@ -241,9 +233,13 @@ const handleSetDayFilters = (state: CalendarViewState, payload: CalendarDayFilte
 }
 
 const handleSetSelectedDate = (state: CalendarViewState, payload: Date): CalendarViewState => {
+    const miniMonth = new Date(payload.getFullYear(), payload.getMonth(), 1);
     return {
         ...state,
         selectedDate: payload,
+        displayedWeekStart: getWeekStart(payload),
+        displayedMonthStart: miniMonth,
+        sidebarMiniCalendarMonthStart: miniMonth,
     }
 }
 
@@ -259,6 +255,7 @@ const handleToggleBlockForm = (state: CalendarViewState, payload: boolean): Cale
     return {
         ...state,
         blockFormOpen: payload,
+        blockFormEditingBlock: payload ? state.blockFormEditingBlock : null,
     }
 }
 
@@ -307,6 +304,26 @@ const clearUpdateConflictOffer = (state: CalendarViewState): CalendarViewState =
     return state.updateConflictOffer === null ? state : { ...state, updateConflictOffer: null };
 }
 
+/** After a successful appointment mutation, count down and close add form when the counter reaches 0. */
+const decrementAddFormCloseAfterMutations = (state: CalendarViewState): CalendarViewState => {
+    if (state.addFormCloseAfterMutationsRemaining <= 0) return state;
+    const remaining = state.addFormCloseAfterMutationsRemaining - 1;
+    if (remaining === 0 && state.addFormOpen) {
+        return {
+            ...state,
+            addFormCloseAfterMutationsRemaining: 0,
+            addFormOpen: false,
+            addFormPrefill: null,
+        };
+    }
+    return { ...state, addFormCloseAfterMutationsRemaining: remaining };
+};
+
+const clearAddFormMutationWait = (state: CalendarViewState): CalendarViewState => {
+    if (state.addFormCloseAfterMutationsRemaining <= 0) return state;
+    return { ...state, addFormCloseAfterMutationsRemaining: 0 };
+};
+
 // ─────────────────────────────────────────────────────────────
 // Reducer
 // ─────────────────────────────────────────────────────────────
@@ -324,6 +341,11 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleToggleEditForm(state, action.payload);
         case getType(actions.setViewTypeAction):
             return handleSetViewType(state, action.payload);
+        case getType(actions.hydrateCalendarDisplayPreferencesAction): {
+            const { viewMode, viewType } = action.payload;
+            const withMode = handleViewMode(state, viewMode);
+            return handleSetViewType(withMode, viewType);
+        }
         case getType(actions.setViewModeAction):
             return handleViewMode(state, action.payload);
 
@@ -338,13 +360,6 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.fetchLocationContext.failure):
             return handleSetLocationContextLoading(state, false);
 
-        case getType(actions.fetchLocationAssignment.request):
-            return handleLocationAssignmentRequest(state);
-        case getType(actions.fetchLocationAssignment.success):
-            return handleLocationAssignmentSuccess(state, action.payload);
-        case getType(actions.fetchLocationAssignment.failure):
-            return handleLocationAssignmentFailure(state);
-
         case getType(actions.fetchCalendarSummary.request):
             return handleSetSummaryLoading(state, true);
         case getType(actions.fetchCalendarSummary.success):
@@ -352,17 +367,41 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.fetchCalendarSummary.failure):
             return handleSetSummaryLoading(state, false);
 
+        case getType(actions.mergeCalendarSummaryAction):
+            return {
+                ...state,
+                summary: { ...state.summary, ...action.payload },
+            };
+
+        case getType(actions.setSidebarMiniCalendarMonthAction):
+            return { ...state, sidebarMiniCalendarMonthStart: action.payload };
+
         case getType(actions.fetchDayData.request):
             return handleSetDayDataLoading(state, true);
         case getType(actions.fetchDayData.success):
             return { ...handleSetDayData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
         case getType(actions.fetchDayData.failure):
-            return handleSetDayDataLoading(state, false);
+            return {
+                ...handleSetDayDataLoading(state, false),
+                pendingDrop: null,
+                optimisticBlocks: [],
+            };
 
         case getType(actions.setDayFiltersAction):
             return handleSetDayFilters(state, action.payload);
         case getType(actions.setSelectedDateAction):
             return handleSetSelectedDate(state, action.payload);
+        case getType(actions.navigateToCalendarDateAction): {
+            const { date, viewMode: vm } = action.payload;
+            const next: CalendarViewState = { ...state, selectedDate: date, viewMode: vm };
+            if (vm === AppointmentViewMode.MONTH) {
+                next.displayedMonthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+            }
+            if (vm === AppointmentViewMode.WEEK) {
+                next.displayedWeekStart = getWeekStart(date);
+            }
+            return next;
+        }
         case getType(actions.setDisplayedMonthAction):
             return handleSetDisplayedMonth(state, action.payload);
         case getType(actions.setDisplayedWeekAction):
@@ -372,13 +411,20 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
         case getType(actions.toggleBlockFormAction):
             return handleToggleBlockForm(state, action.payload);
 
+        case getType(actions.setBlockFormEditingAction):
+            return { ...state, blockFormEditingBlock: action.payload };
+
         // --- Week data ---
         case getType(actions.fetchWeekData.request):
             return handleSetWeekDataLoading(state, true);
         case getType(actions.fetchWeekData.success):
             return { ...handleSetWeekData(state, action.payload), pendingDrop: null, optimisticBlocks: [] };
         case getType(actions.fetchWeekData.failure):
-            return handleSetWeekDataLoading(state, false);
+            return {
+                ...handleSetWeekDataLoading(state, false),
+                pendingDrop: null,
+                optimisticBlocks: [],
+            };
 
         // --- Sidebar / Staff filter ---
         case getType(actions.toggleCalendarSidebar):
@@ -391,20 +437,43 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return handleSetUpdateConflictOffer(state, action.payload);
         case getType(actions.setCalendarPendingDrop):
             return { ...state, pendingDrop: action.payload };
+        case getType(actions.beginAddFormCloseAfterMutations):
+            return { ...state, addFormCloseAfterMutationsRemaining: action.payload };
         case getType(actions.updateAppointment.request):
-        case getType(actions.updateAppointment.success):
             return clearUpdateConflictOffer(state);
+        case getType(actions.updateAppointment.success): {
+            const cleared = clearUpdateConflictOffer(state);
+            return decrementAddFormCloseAfterMutations(cleared);
+        }
+        case getType(actions.updateAppointment.failure):
+            return clearAddFormMutationWait(state);
+        case getType(actions.updateGroupItemsStaff.request):
+            return clearUpdateConflictOffer(state);
+        case getType(actions.updateGroupItemsStaff.success): {
+            const cleared = clearUpdateConflictOffer(state);
+            return decrementAddFormCloseAfterMutations(cleared);
+        }
+        case getType(actions.updateGroupItemsStaff.failure):
+            return clearAddFormMutationWait(state);
+        case getType(actions.rescheduleAppointmentGroup.success):
+            return decrementAddFormCloseAfterMutations(state);
+        case getType(actions.rescheduleAppointmentGroup.failure):
+            return clearAddFormMutationWait(state);
 
         // --- CRUD result handling ---
         case getType(actions.adminCreateAppointmentGroup.success):
             return { ...state, addFormOpen: false, addFormPrefill: null };
 
-        case getType(actions.createCalendarBlock.success):
+        case getType(actions.createCalendarBlock.success): {
             const createdBlock = action.payload?.block ?? action.payload;
             return {
                 ...state,
                 optimisticBlocks: [...state.optimisticBlocks, blockPayloadToDto(createdBlock)],
             };
+        }
+
+        case getType(actions.setScrollToNow):
+            return { ...state, scrollToNow: action.payload };
 
         default:
             return state;

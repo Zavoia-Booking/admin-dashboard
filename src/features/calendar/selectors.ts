@@ -1,15 +1,16 @@
 import { createSelector } from "@reduxjs/toolkit";
 import { getCalendarViewStateSelector } from "../../app/providers/selectors.ts";
 import { AppointmentViewMode, type CalendarViewState } from "./types.ts";
-import { getWeekStart, toLocalDateString } from "./utils.ts";
+import { getWeekStart } from "./utils.ts";
+import { areCalendarFiltersActive, countActiveCalendarFilters } from "./calendarFilters.ts";
 import type { CalendarBlockDto, SlimAppointment, CalendarDisplayBlock } from "../../shared/types/calendar.ts";
 import { getCurrentBusinessSelector } from "../business/selectors.ts";
+import { buildZonedDateFromDateKey, formatDateInTimezone } from "./timezone.ts";
 
-/** True if block's time range overlaps the given date (YYYY-MM-DD). */
-export function blockOverlapsDate(block: CalendarBlockDto, dateKey: string): boolean {
-    const [y, m, d] = dateKey.split("-").map(Number);
-    const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
-    const dayEnd = new Date(y, m - 1, d, 23, 59, 59, 999).getTime();
+/** True if block's time range overlaps the given wall date (YYYY-MM-DD) in the given timezone. */
+export function blockOverlapsDate(block: CalendarBlockDto, dateKey: string, timezone: string): boolean {
+    const dayStart = buildZonedDateFromDateKey(dateKey, '00:00', timezone).getTime();
+    const dayEnd = buildZonedDateFromDateKey(dateKey, '23:59', timezone).getTime() + 59_999;
     const blockStart = new Date(block.startsAt).getTime();
     const blockEnd = new Date(block.endsAt).getTime();
     return blockStart < dayEnd && blockEnd > dayStart;
@@ -93,17 +94,12 @@ export const getBookingSettings = createSelector(getLocationContext, (context) =
     return context?.bookingSettings ?? null;
 })
 
-/** Location assignment (services + team) loading — from GET /assignments/locations/:id/full */
-export const getLocationAssignmentLoading = createSelector(getCalendarViewStateSelector, (state) => {
-    return state.locationAssignmentLoading ?? false;
-})
-
-/** Services enabled at the selected location (from assignments full). */
+/** Services enabled at the selected location (from GET /calendar/location-context). */
 export const getLocationServices = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationServices ?? [];
 })
 
-/** Team members assigned to the selected location (from assignments full). */
+/** Team members assigned to the selected location (from GET /calendar/location-context). */
 export const getLocationTeamMembers = createSelector(getCalendarViewStateSelector, (state) => {
     return state.locationTeamMembers ?? [];
 })
@@ -134,6 +130,11 @@ export const getDayDataLoading = createSelector(getCalendarViewStateSelector, (s
 /** The selected date for navigation */
 export const getSelectedDate = createSelector(getCalendarViewStateSelector, (state) => {
     return state.selectedDate;
+})
+
+/** Whether the grid should scroll to the "now" line after loading */
+export const getScrollToNow = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.scrollToNow;
 })
 
 /** Day-level appointments from the day data response */
@@ -174,10 +175,11 @@ export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): Ca
                 isUnassigned: a.isUnassigned,
                 overrideReason: a.overrideReason,
                 bookingGroupId: a.bookingGroupId ?? undefined,
+                notes: a.notes ?? undefined,
             });
         } else {
             const sorted = [...group].sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-            const groupSize = sorted.length;
+            const groupSize = sorted[0]?.groupSize ?? sorted.length;
             for (let i = 0; i < sorted.length; i++) {
                 const a = sorted[i];
                 blocks.push({
@@ -197,6 +199,7 @@ export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): Ca
                     bookingGroupId: a.bookingGroupId ?? undefined,
                     bookingGroupOrder: a.bookingGroupOrder ?? i + 1,
                     groupSize,
+                    notes: a.notes ?? undefined,
                 });
             }
         }
@@ -219,10 +222,11 @@ export const getDayBlocks = createSelector(
     getDayData,
     getSelectedDate,
     getOptimisticBlocks,
-    (dayData, selectedDate, optimisticBlocks) => {
-        const key = toLocalDateString(selectedDate);
+    getCalendarTimezone,
+    (dayData, selectedDate, optimisticBlocks, timezone) => {
+        const key = formatDateInTimezone(selectedDate, timezone);
         const server = dayData?.blocks ?? [];
-        const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, key));
+        const forDay = optimisticBlocks.filter((b) => blockOverlapsDate(b, key, timezone));
         return [...server, ...forDay];
     }
 );
@@ -230,9 +234,10 @@ export const getDayBlocks = createSelector(
 /** Blocks for a specific date key (for week view). Use with useSelector(state => getBlocksForDateKey(state, dateKey)). */
 export function getBlocksForDateKey(state: unknown, dateKey: string): CalendarBlockDto[] {
     const cal = getCalendarViewStateSelector(state as any);
-    const selectedKey = toLocalDateString(cal.selectedDate);
+    const timezone = getCalendarTimezone(state as any);
+    const selectedKey = formatDateInTimezone(cal.selectedDate, timezone);
     const serverBlocks = (dateKey === selectedKey ? cal.dayData?.blocks : cal.weekData?.[dateKey]?.blocks) ?? [];
-    const forDay = (cal.optimisticBlocks ?? []).filter((b) => blockOverlapsDate(b, dateKey));
+    const forDay = (cal.optimisticBlocks ?? []).filter((b) => blockOverlapsDate(b, dateKey, timezone));
     return [...serverBlocks, ...forDay];
 }
 
@@ -249,6 +254,11 @@ export const getDisplayedMonthStart = createSelector(getCalendarViewStateSelecto
 /** Monday of the displayed week (week view only). When null, week view uses selectedDate's week. */
 export const getDisplayedWeekStart = createSelector(getCalendarViewStateSelector, (state) => {
     return state.displayedWeekStart;
+})
+
+/** First day of the month shown in the sidebar mini calendar. */
+export const getSidebarMiniCalendarMonthStart = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.sidebarMiniCalendarMonthStart;
 })
 
 /** For month view grid/fetch: first day of the month to display. */
@@ -291,6 +301,11 @@ export const getBlockFormOpen = createSelector(getCalendarViewStateSelector, (st
     return state.blockFormOpen;
 })
 
+/** Block being edited in drawer (null = create) */
+export const getBlockFormEditingBlock = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.blockFormEditingBlock ?? null;
+})
+
 // ─────────────────────────────────────────────────────────────
 // New selectors: Week data, sidebar, staff filter
 // ─────────────────────────────────────────────────────────────
@@ -313,6 +328,42 @@ export const getSidebarOpen = createSelector(getCalendarViewStateSelector, (stat
 export const getStaffFilter = createSelector(getCalendarViewStateSelector, (state) => {
     return state.staffFilter;
 })
+
+/** Staff IDs for column/list narrowing: prefer API filter `staffUserIds` when set, else Redux `staffFilter`. */
+export const getEffectiveStaffFilterIds = createSelector(
+    getStaffFilter,
+    getDayFilters,
+    (staffFilter, dayFilters) => {
+        if (dayFilters.staffUserIds != null && dayFilters.staffUserIds.length > 0) {
+            return dayFilters.staffUserIds;
+        }
+        return staffFilter;
+    },
+)
+
+/** True when any calendar data filter is active (for empty states). */
+export const getHasActiveCalendarFilters = createSelector(
+    getCalendarViewStateSelector,
+    getLocationStaff,
+    (state, locationStaff) =>
+        areCalendarFiltersActive(
+            state.dayFilters,
+            state.staffFilter ?? [],
+            locationStaff.map((s) => s.id),
+        ),
+)
+
+/** Distinct active filter dimensions (header filters badge). */
+export const getActiveCalendarFiltersCount = createSelector(
+    getCalendarViewStateSelector,
+    getLocationStaff,
+    (state, locationStaff) =>
+        countActiveCalendarFilters(
+            state.dayFilters,
+            state.staffFilter ?? [],
+            locationStaff.map((s) => s.id),
+        ),
+)
 
 /** Pending 409 conflict offer (retry update with override). */
 export const getUpdateConflictOffer = createSelector(
