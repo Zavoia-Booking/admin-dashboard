@@ -1,22 +1,33 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
-import { toggleAddForm, toggleEditFormAction, setViewModeAction, setViewTypeAction, setSelectedLocationAction, setSelectedDateAction, setStaffFilter } from "../actions";
+import {
+  toggleAddForm,
+  toggleEditFormAction,
+  hydrateCalendarDisplayPreferencesAction,
+  setStaffFilter,
+  setDayFiltersAction,
+  setSelectedLocationAction,
+} from "../actions";
 import { getAppointmentDetailRequest } from "../api";
 import {
   getAddFormSelector,
   getEditFormSelector,
   getViewModeSelector,
-  getSidebarOpen,
   getSelectedLocationId,
   getLocationContext,
+  getLocationStaff,
+  getStaffFilter,
+  getDayFilters,
   getLocationTeamMembers,
 } from "../selectors.ts";
 import { AppointmentViewMode } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
+import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
+import { store } from "../../../app/providers/store";
 import EditAppointmentSlider from "../components/EditAppointmentSlider.tsx";
 import { AppointmentGrid } from "../components/AppointmentGrid.tsx";
 import { listLocationsAction } from "../../locations/actions.ts";
@@ -32,10 +43,12 @@ const Calendar = () => {
   const addFormOpen = useSelector(getAddFormSelector);
   const editForm = useSelector(getEditFormSelector);
   const viewMode: AppointmentViewMode = useSelector(getViewModeSelector);
-  const sidebarOpen = useSelector(getSidebarOpen);
   const selectedLocationId = useSelector(getSelectedLocationId);
   const locationContext = useSelector(getLocationContext);
   const locationTeamMembers = useSelector(getLocationTeamMembers);
+  const locationStaff = useSelector(getLocationStaff);
+  const staffFilter = useSelector(getStaffFilter);
+  const dayFilters = useSelector(getDayFilters);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -48,14 +61,6 @@ const Calendar = () => {
       }),
     );
   }, [dispatch]);
-
-  // Re-fetch location context (services, team, bundles) on mount so changes made
-  // in other sections (e.g. creating a service + assigning it) are picked up.
-  useEffect(() => {
-    if (selectedLocationId) {
-      dispatch(fetchLocationContext.request(selectedLocationId));
-    }
-  }, [dispatch, selectedLocationId]);
 
   useEffect(() => {
     const appointmentIdParam = searchParams.get("appointmentId");
@@ -105,7 +110,7 @@ const Calendar = () => {
     dispatch(listLocationsAction.request());
   }, [dispatch]);
 
-  /** Single-staff locations: preselect that member (no “all staff” UX); keep Redux/day filters aligned. */
+  /** Single-staff locations: preselect that member (no "all staff" UX); keep Redux/day filters aligned. */
   useEffect(() => {
     if (locationStaff.length !== 1) return;
     const loneId = locationStaff[0].id;
@@ -138,6 +143,18 @@ const Calendar = () => {
     }
   }, [dispatch, locationStaff, staffFilter, dayFilters]);
 
+  // Refetch location context and current view when re-entering the calendar (already have a selected location and cached context)
+  useEffect(() => {
+    if (
+      selectedLocationId != null &&
+      locationContext != null &&
+      !hasRefetchedOnEnter.current
+    ) {
+      hasRefetchedOnEnter.current = true;
+      dispatch(setSelectedLocationAction(selectedLocationId));
+    }
+  }, [dispatch, selectedLocationId, locationContext]);
+
   const handleCloseAddForm = useCallback(() => {
     dispatch(toggleAddForm({ open: false }))
   },[dispatch])
@@ -149,7 +166,8 @@ const Calendar = () => {
   return (
     <AppLayout contentClassName="max-w-[2000px]">
       <BusinessSetupGate>
-        <div className="flex min-h-[calc(100vh-64px)] items-start">
+        <>
+          <div className="flex min-h-[calc(100vh-64px)] items-start">
             {/* ─── Left Sidebar ─── */}
             <CalendarSidebar />
 
@@ -186,7 +204,8 @@ const Calendar = () => {
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
           />
-        </BusinessSetupGate>
+        </>
+      </BusinessSetupGate>
     </AppLayout>
   );
 };
