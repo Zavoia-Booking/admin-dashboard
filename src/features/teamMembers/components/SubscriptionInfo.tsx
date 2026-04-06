@@ -55,6 +55,31 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
     );
   }
 
+  // Case 1.5: LTD user - show LTD-specific messaging
+  const isLtd = entStatus === 'ltd';
+  if (isLtd) {
+    if (paidSeats === 0) {
+      return (
+        <div className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-4 rounded-lg space-y-3">
+          <p className="font-semibold text-base">{t('subscriptionInfo.ltdActive')}</p>
+          <p>{t('subscriptionInfo.ltdNoSeats')}</p>
+          <Button
+            onClick={() => {
+              onClose();
+              navigate('/settings?tab=billing');
+            }}
+            variant="outline"
+            className="w-full"
+          >
+            {t('subscriptionInfo.ltdPurchaseSeats')}
+          </Button>
+        </div>
+      );
+    }
+
+    // LTD with seats — fall through to Case 4 (active subscription) display
+  }
+
   // Case 2: Expired trial or no subscription - must subscribe
   if (isExpiredOrNoSubscription) {
     return (

@@ -90,7 +90,10 @@
     "availableSeats": "Ai {{count}} loc disponibil. Fără cost suplimentar pentru această invitație.",
     "availableSeats_other": "Ai {{count}} locuri disponibile. Fără cost suplimentar pentru această invitație.",
     "allSeatsInUse": "Toate locurile sunt ocupate",
-    "allSeatsInUseDescription": "Momentan ai toate locurile ocupate. Pentru a invita un nou membru, va trebui să achiziționezi mai întâi un loc suplimentar."
+    "allSeatsInUseDescription": "Momentan ai toate locurile ocupate. Pentru a invita un nou membru, va trebui să achiziționezi mai întâi un loc suplimentar.",
+    "ltdActive": "Lifetime Deal Activ",
+    "ltdNoSeats": "Lifetime Deal-ul tău include acces gratuit la platformă. Achiziționează locuri pentru membri echipei pentru a începe să-i inviți.",
+    "ltdPurchaseSeats": "Achiziționează Locuri"
   },
   "trialBanner": {
     "title": "Perioadă de probă activă",

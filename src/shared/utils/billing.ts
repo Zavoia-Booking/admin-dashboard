@@ -50,10 +50,11 @@ export function computeSeatContext(params: {
   const hasAvailableSeats = availableSeats > 0;
 
   const subscriptionStatus = currentUser?.subscription?.status ?? null;
-  const isCancelled = subscriptionStatus === 'canceled';
   const status = currentUser?.entitlements?.status;
-  const hasSubscription = status !== 'no_subscription';
-  
+  const isLtd = status === 'ltd';
+  const isCancelled = subscriptionStatus === 'canceled' && !isLtd;
+  const hasSubscription = status !== 'no_subscription' || isLtd;
+
   // Check if in trial - using both entitlements status and trialEndsAt
   const isTrial = status === 'trial' || (!!currentUser?.subscription?.trialEndsAt && new Date(currentUser.subscription.trialEndsAt) > new Date());
 
@@ -65,5 +66,6 @@ export function computeSeatContext(params: {
     isCancelled,
     hasSubscription,
     isTrial,
+    isLtd,
   };
 }

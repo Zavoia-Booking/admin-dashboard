@@ -211,6 +211,17 @@
       "paymentConfirmed": "Payment confirmed! Seats updated successfully.",
       "seatsUpdated": "Seats updated successfully!",
       "updateFailed": "Failed to update seats"
+    },
+    "pendingPayment": {
+      "title": "Payment Required",
+      "requiresAction": "Your recent payment requires additional authentication. Please complete the payment to apply your changes.",
+      "requiresPaymentMethod": "Your recent payment failed. Please update your payment method or try again.",
+      "amount": "Amount due: {{amount}} {{currency}}",
+      "completePayment": "Complete Payment",
+      "updatePaymentMethod": "Update Payment Method",
+      "abortPayment": "Cancel Payment",
+      "aborted": "Payment cancelled. You can now make new seat changes.",
+      "retrying": "Processing..."
     }
   },
   "sms": {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Crown, ExternalLink, Loader2, Users, Calendar, CheckCircle, TrendingUp, ArrowRight } from 'lucide-react';
+import { Crown, ExternalLink, Loader2, Users, Calendar, CheckCircle, TrendingUp, ArrowRight, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '../../../shared/components/ui/skeleton';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
@@ -11,7 +11,7 @@ import { Separator } from '../../../shared/components/ui/separator';
 import { toast } from 'sonner';
 import { selectCurrentUser } from '../../auth/selectors';
 import { getSubscriptionSummaryAction, getCustomerPortalUrlAction, createCheckoutSessionAction, modifySubscriptionAction, cancelRemovalAction, getSmsBalanceAction, getSmsPackagesAction } from '../actions';
-import { updateSeats } from '../api';
+import { updateSeats, createLtdSeatsCheckoutSession, abortPendingPayment } from '../api';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -38,6 +38,8 @@ const BillingAndSubscription = () => {
 
   const [updatingSeats, setUpdatingSeats] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [retryingPayment, setRetryingPayment] = useState(false);
+  const hasPendingPayment = !!subscriptionSummary?.pendingPayment;
   const [totalSeats, setTotalSeats] = useState<number>(0);
   const { ConfirmDialog, confirm } = useConfirmRadix();
   const navigate = useNavigate();
@@ -54,6 +56,10 @@ const BillingAndSubscription = () => {
 
     if (currentUser?.entitlements?.status === 'expired') {
       setTotalSeats(subscriptionSummary?.currentTeamMembersCount || 0);
+    }
+
+    if (currentUser?.entitlements?.status === 'ltd') {
+      setTotalSeats(subscriptionSummary?.paidSeats || 0);
     }
 
     // cancelled subscription
@@ -140,6 +146,33 @@ const BillingAndSubscription = () => {
   };
 
   const handleUpgrade = async () => {
+    const isLtd = currentUser?.entitlements?.status === 'ltd';
+    const ltdHasNoSeats = isLtd && (subscriptionSummary?.paidSeats ?? 0) === 0;
+
+    // Handle first-time seat purchase for LTD user
+    if (ltdHasNoSeats) {
+      setUpdatingSeats(true);
+      try {
+        const response = await createLtdSeatsCheckoutSession({
+          seats: totalSeats,
+          successUrl: `${window.location.origin}/info?type=subscription-success`,
+          cancelUrl: `${window.location.origin}/settings`,
+        });
+
+        if (response.url) {
+          window.location.href = response.url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+      } catch (err: any) {
+        toast.error(err?.response?.data?.message || err?.message || t('billing.toast.updateFailed'));
+      } finally {
+        setUpdatingSeats(false);
+      }
+      return;
+    }
+
+    // LTD with existing seats falls through to active subscription handling (updateSeats)
     const isTrial = currentUser?.entitlements?.status === 'trial';
     const isExpiredTrial = currentUser?.entitlements?.status === 'expired' || currentUser?.entitlements?.status === 'no_subscription';
 
@@ -250,9 +283,67 @@ const BillingAndSubscription = () => {
     }
   };
 
+  const handleRetryPayment = async () => {
+    const pending = subscriptionSummary?.pendingPayment;
+    if (!pending) return;
+
+    // If card failed / missing, redirect to Stripe hosted invoice page to update payment method
+    if (pending.status === 'requires_payment_method') {
+      if (pending.invoiceUrl) {
+        window.location.href = pending.invoiceUrl;
+      } else {
+        // Fallback: open customer portal
+        dispatch(getCustomerPortalUrlAction.request());
+      }
+      return;
+    }
+
+    // If requires 3DS authentication, use Stripe.js to confirm
+    if (pending.status === 'requires_action' && pending.clientSecret) {
+      try {
+        setRetryingPayment(true);
+        const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+        if (!publishableKey) throw new Error('Stripe publishable key not configured');
+
+        const stripe = await loadStripe(publishableKey);
+        if (!stripe) throw new Error('Failed to load Stripe');
+
+        const { error } = await stripe.confirmCardPayment(pending.clientSecret);
+        if (error) {
+          toast.error(error.message || t('billing.toast.paymentFailed'));
+        } else {
+          toast.success(t('billing.toast.paymentConfirmed'));
+          // Refresh to pick up updated state
+          dispatch(getSubscriptionSummaryAction.request());
+        }
+      } catch (err: any) {
+        toast.error(err?.message || t('billing.toast.paymentFailed'));
+      } finally {
+        setRetryingPayment(false);
+      }
+    }
+  };
+
+  const handleAbortPayment = async () => {
+    try {
+      setRetryingPayment(true);
+      await abortPendingPayment();
+      toast.success(t('billing.pendingPayment.aborted'));
+      dispatch(getSubscriptionSummaryAction.request());
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || t('billing.toast.updateFailed'));
+    } finally {
+      setRetryingPayment(false);
+    }
+  };
+
   const getStatusBadge = () => {
     const status = currentUser?.subscription?.status;
     const cancelAtPeriodEnd = currentUser?.subscription?.cancelAtPeriodEnd;
+
+    if (currentUser?.entitlements?.status === 'ltd') {
+      return <Badge className="bg-success-bg text-success border-success-border">Lifetime Deal</Badge>;
+    }
 
     if (currentUser?.entitlements?.status === 'trial') {
       return <Badge className="bg-info-bg text-info border-info-border">{t('billing.status.trial')}</Badge>;
@@ -430,6 +521,63 @@ const BillingAndSubscription = () => {
         </div>
       ) : (
         <>
+          {/* Pending Payment Banner */}
+          {subscriptionSummary?.pendingPayment && (
+            <Card className="border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/50 shrink-0">
+                    <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <h4 className="font-semibold text-amber-900 dark:text-amber-100">
+                      {t('billing.pendingPayment.title')}
+                    </h4>
+                    <p className="text-sm text-amber-800 dark:text-amber-200">
+                      {subscriptionSummary.pendingPayment.status === 'requires_action'
+                        ? t('billing.pendingPayment.requiresAction')
+                        : t('billing.pendingPayment.requiresPaymentMethod')}
+                    </p>
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                      {t('billing.pendingPayment.amount', {
+                        amount: subscriptionSummary.pendingPayment.amount.toFixed(2),
+                        currency: subscriptionSummary.pendingPayment.currency,
+                      })}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleRetryPayment}
+                        disabled={retryingPayment}
+                        className="bg-amber-600 hover:bg-amber-700 text-white"
+                        size="sm"
+                      >
+                        {retryingPayment ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t('billing.pendingPayment.retrying')}
+                          </>
+                        ) : subscriptionSummary.pendingPayment.status === 'requires_action' ? (
+                          t('billing.pendingPayment.completePayment')
+                        ) : (
+                          t('billing.pendingPayment.updatePaymentMethod')
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleAbortPayment}
+                        disabled={retryingPayment}
+                        variant="outline"
+                        size="sm"
+                        className="border-amber-400 text-amber-700 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                      >
+                        {t('billing.pendingPayment.abortPayment')}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Current Subscription Card */}
           <Card className="border border-border bg-card shadow-sm">
             <CardContent className="space-y-4">
@@ -556,7 +704,7 @@ const BillingAndSubscription = () => {
                         type="button"
                         variant="outline"
                         rounded="full"
-                        disabled={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation}
+                        disabled={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation || hasPendingPayment}
                         onClick={() => {
                           const used = subscriptionSummary?.usedSeats || 0;
                           const desired = (Number(totalSeats) || 0) - 1;
@@ -584,7 +732,7 @@ const BillingAndSubscription = () => {
                         min={subscriptionSummary?.usedSeats || 0}
                         step={1}
                         value={totalSeats}
-                        readOnly={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation}
+                        readOnly={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation || hasPendingPayment}
                         onChange={(e) => {
                           const sanitized = e.target.value.replace(/[^0-9]/g, '');
                           const nextVal = sanitized === '' ? 0 : Number(sanitized);
@@ -608,7 +756,7 @@ const BillingAndSubscription = () => {
                         type="button"
                         variant="outline"
                         rounded="full"
-                        disabled={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation}
+                        disabled={isConfirming || hasScheduledChange || isSubscriptionScheduledForCancellation || hasPendingPayment}
                         onClick={() => {
                           const next = (Number(totalSeats) || 0) + 1;
                           setTotalSeats(next);
@@ -687,7 +835,7 @@ const BillingAndSubscription = () => {
                       <Button
                         onClick={handleUpgrade}
                         rounded="full"
-                        disabled={currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats || isSubscriptionScheduledForCancellation}
+                        disabled={currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats || isSubscriptionScheduledForCancellation || hasPendingPayment}
                         className="w-full bg-success hover:bg-success-border text-white"
                       >
                         {(currentUser?.entitlements?.status === 'trial' ? checkoutLoading : updatingSeats) ? (

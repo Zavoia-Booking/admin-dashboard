@@ -98,17 +98,17 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     });
   }, [register, isInviteAllowed, seatCtx.isTrial, t]);
 
-  // Register locationIds with validation
+  // Register locationIds with validation — only require locations when invite is possible
   useEffect(() => {
     register('locationIds', {
       validate: (value) => {
-        if (!value || value.length === 0) {
+        if ((isInviteAllowed || seatCtx.isTrial) && (!value || value.length === 0)) {
           return t('inviteSlider.validation.locationRequired');
         }
         return true;
       }
     });
-  }, [register, t]);
+  }, [register, t, isInviteAllowed, seatCtx.isTrial]);
 
   // Fetch pricing summary when slider opens
   useEffect(() => {
@@ -141,20 +141,16 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       return;
     }
 
+    // If user can't invite (no seats, cancelled, no subscription), go straight to billing
+    if (!isInviteAllowed && !seatCtx.isTrial) {
+      navigate('/settings?tab=billing');
+      return;
+    }
+
     const isValid = await trigger('locationIds');
     if (!isValid) {
       return;
     }
-
-    if (seatCtx.isTrial) {
-      setShowConfirmDialog(true);
-      return;
-    }
-
-    if (!isInviteAllowed) {
-      navigate('/settings?tab=billing');
-      return;
-    };
 
     setShowConfirmDialog(true);
   };
@@ -229,7 +225,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
             formId="invite-team-member-form"
             cancelLabel={t('inviteSlider.buttons.cancel')}
             submitLabel={getTextForButton()}
-            disabled={isInviting || locationIds.length === 0}
+            disabled={isInviting || ((isInviteAllowed || seatCtx.isTrial) && locationIds.length === 0)}
             isLoading={isInviting}
           />
         }

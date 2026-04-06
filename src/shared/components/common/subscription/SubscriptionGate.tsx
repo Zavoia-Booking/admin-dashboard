@@ -33,6 +33,9 @@ export const SubscriptionGate: React.FC = () => {
   if (authStatus !== AuthStatusEnum.AUTHENTICATED) return null;
   if (isRegistration) return null;
 
+  // LTD users are always entitled — defense-in-depth against backend inconsistency
+  if (currentUser.entitlements?.status === 'ltd') return null;
+
   const isEntitled = currentUser.entitlements?.entitled ?? false;
   if (isEntitled) return null;
 

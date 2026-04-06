@@ -22,6 +22,11 @@ export const createCheckoutSession = async (payload: CheckoutPayload): Promise<C
   return response.data;
 };
 
+export const createLtdSeatsCheckoutSession = async (payload: CheckoutPayload): Promise<CheckoutResponse> => {
+  const response = await apiClient().post<CheckoutResponse>('/billing/ltd-seats-checkout', payload);
+  return response.data;
+};
+
 export const updateSeats = async (payload: UpdateSeatsPayload): Promise<UpdateSeatsResponse> => {
   const response = await apiClient().post<UpdateSeatsResponse>('/billing/update-seats', payload);
   return response.data;
@@ -39,6 +44,11 @@ export const modifySubscription = async (action: 'cancel' | 'keep'): Promise<{ s
 
 export const cancelRemoval = async (): Promise<{ success: boolean }> => {
   const response = await apiClient().post<{ success: boolean }>('/billing/cancel-removal');
+  return response.data;
+};
+
+export const abortPendingPayment = async (): Promise<{ success: boolean }> => {
+  const response = await apiClient().post<{ success: boolean }>('/billing/abort-pending-payment');
   return response.data;
 };
 

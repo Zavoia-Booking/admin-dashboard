@@ -40,7 +40,7 @@ export type AuthUser = {
   };
   entitlements?: {
     entitled: boolean;
-    status: 'trial' | 'active' | 'expired' | 'no_subscription' | 'past_due' | null;
+    status: 'trial' | 'active' | 'expired' | 'no_subscription' | 'past_due' | 'ltd' | null;
     reason?: string;
     daysRemaining: number;
     maxLocations: number;

@@ -27,3 +27,12 @@ export const selectIsOwner = (s: { auth: AuthState }) => s.auth.user?.role === U
 export const selectIsTeamMember = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.TEAM_MEMBER;
 export const selectIsDashboardUser = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.DASHBOARD_USER;
 export const selectIsLimitedAccess = (s: { auth: AuthState }) => s.auth.user?.limitedAccess === true;
+
+// Entitlement selectors
+export const selectEntitlements = (s: { auth: AuthState }) => s.auth.user?.entitlements;
+export const selectIsEntitled = (s: { auth: AuthState }) => s.auth.user?.entitlements?.entitled ?? false;
+export const selectEntitlementStatus = (s: { auth: AuthState }) => s.auth.user?.entitlements?.status ?? null;
+export const selectIsLtd = (s: { auth: AuthState }) => s.auth.user?.entitlements?.status === 'ltd';
+export const selectIsOnTrial = (s: { auth: AuthState }) => s.auth.user?.entitlements?.status === 'trial';
+export const selectTrialDaysRemaining = (s: { auth: AuthState }) => s.auth.user?.entitlements?.daysRemaining ?? 0;
+export const selectPaidTeamSeats = (s: { auth: AuthState }) => s.auth.user?.entitlements?.paidTeamSeats ?? 0;

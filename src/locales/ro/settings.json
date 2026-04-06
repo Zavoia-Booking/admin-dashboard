@@ -211,6 +211,17 @@
       "paymentConfirmed": "Plata confirmată! Locurile au fost actualizate cu succes.",
       "seatsUpdated": "Locurile au fost actualizate cu succes!",
       "updateFailed": "Eșec la actualizarea locurilor"
+    },
+    "pendingPayment": {
+      "title": "Plată necesară",
+      "requiresAction": "Plata recentă necesită autentificare suplimentară. Te rugăm să finalizezi plata pentru a aplica modificările.",
+      "requiresPaymentMethod": "Plata recentă a eșuat. Te rugăm să actualizezi metoda de plată sau să încerci din nou.",
+      "amount": "Sumă de plată: {{amount}} {{currency}}",
+      "completePayment": "Finalizează plata",
+      "updatePaymentMethod": "Actualizează metoda de plată",
+      "abortPayment": "Anulează plata",
+      "aborted": "Plata a fost anulată. Acum poți face modificări noi la locuri.",
+      "retrying": "Se procesează..."
     }
   },
   "sms": {

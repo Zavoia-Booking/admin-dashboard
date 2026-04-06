@@ -24,6 +24,15 @@ export type SubscriptionSummary = {
     nextPeriodTeamMembersCost: number | null;
     nextPeriodTotalMonthlyCost: number | null;
   };
+  isLtd?: boolean;        // True if this is a Life Time Deal account
+  ltdSince?: string;      // When LTD was granted
+  pendingPayment?: {
+    status: string;           // 'requires_action' | 'requires_payment_method'
+    clientSecret: string | null;
+    amount: number;
+    currency: string;
+    invoiceUrl: string | null;
+  } | null;
 };
 
 export type CheckoutPayload = {
