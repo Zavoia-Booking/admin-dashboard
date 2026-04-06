@@ -60,7 +60,7 @@ export function getSlotStartsInRange(
   return slots;
 }
 
-const MIN_APPOINTMENT_HEIGHT_PX = 24;
+const MIN_APPOINTMENT_HEIGHT_PX = 32;
 
 /**
  * Convert appointment time range (ISO start/end) to grid position (top, height in px).
@@ -77,9 +77,11 @@ export function getTimePositionForGrid(
   const startMinutes = timezone
     ? getMinutesInTimezone(isoStart, timezone)
     : (new Date(isoStart).getHours() * 60 + new Date(isoStart).getMinutes());
-  const endMinutes = timezone
+  let endMinutes = timezone
     ? getMinutesInTimezone(isoEnd, timezone)
     : (new Date(isoEnd).getHours() * 60 + new Date(isoEnd).getMinutes());
+  // When end crosses midnight (00:00 = 0 min), cap at end of day so the block renders correctly
+  if (endMinutes <= startMinutes) endMinutes = 24 * 60;
   const top = ((startMinutes - gridStartMinutes) / intervalMinutes) * slotHeight;
   const height = Math.max(
     ((endMinutes - startMinutes) / intervalMinutes) * slotHeight,

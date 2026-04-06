@@ -15,8 +15,8 @@ import {
   getAppointmentBlockColors,
   getGroupDotColor,
   type AppointmentBlockColorPair,
+  getStaffAvatarColor,
 } from "../colors.ts";
-import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
 
 // ─────────────────────────────────────────────────────────────
 // Helpers
@@ -38,8 +38,8 @@ function staffAvatarColorKey(member: CalendarStaffMember): string {
 export const CALENDAR_LIST_ROW_GRID_TEMPLATE =
   "minmax(7.2rem, 3fr) minmax(6rem, 3fr) minmax(7rem, 3fr) minmax(7rem, 3fr) minmax(6.5rem, 2.5fr) minmax(6.75rem, 0.85fr) 1rem";
 
-export const StaffAvatarCluster: FC<{ staffIds: number[]; staff: CalendarStaffMember[]; maxVisible?: number }> = ({
-  staffIds, staff, maxVisible = 2,
+export const StaffAvatarCluster: FC<{ staffIds: number[]; staff: CalendarStaffMember[]; maxVisible?: number; staffColorMap?: Map<string, AppointmentBlockColorPair> | null }> = ({
+  staffIds, staff, maxVisible = 2, staffColorMap,
 }) => {
   const resolved = staffIds
     .map((id) => staff.find((s) => s.id === id))
@@ -63,7 +63,7 @@ export const StaffAvatarCluster: FC<{ staffIds: number[]; staff: CalendarStaffMe
           ) : null}
           <AvatarFallback
             className="text-[10px] font-semibold leading-none text-foreground-1"
-            style={{ backgroundColor: getAvatarBgColor(staffAvatarColorKey(member)) }}
+            style={{ backgroundColor: getStaffAvatarColor(member.id, staffAvatarColorKey(member), staffColorMap) }}
           >
             {staffInitials(member)}
           </AvatarFallback>
@@ -192,6 +192,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
             staffIds={appointment.staffUserIds}
             staff={locationStaff}
             maxVisible={2}
+            staffColorMap={colorCoding === 'staff' ? colorMap : null}
           />
         ) : (
           <User className="h-4 w-4 shrink-0 text-muted-foreground" />

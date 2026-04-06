@@ -72,6 +72,8 @@ const initialState: CalendarViewState = {
     optimisticBlocks: [],
 
     addFormCloseAfterMutationsRemaining: 0,
+
+    scrollToNow: true,
 };
 
 /** Normalize API block payload to CalendarBlockDto (startsAt/endsAt as ISO strings). */
@@ -469,6 +471,9 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
                 optimisticBlocks: [...state.optimisticBlocks, blockPayloadToDto(createdBlock)],
             };
         }
+
+        case getType(actions.setScrollToNow):
+            return { ...state, scrollToNow: action.payload };
 
         default:
             return state;

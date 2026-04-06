@@ -168,4 +168,7 @@ export type CalendarViewState = {
      * Used to avoid closing the slider before API completes.
      */
     addFormCloseAfterMutationsRemaining: number;
+
+    /** When true, the grid should scroll to the "now" line after the next load completes. Set by "Today" button and initial load; cleared after scrolling. */
+    scrollToNow: boolean;
 }

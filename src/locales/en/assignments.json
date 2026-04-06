@@ -111,6 +111,8 @@
           "title": "No bundles created yet",
           "description": "Create your first bundle to get started. Once created, you can assign it to this location."
         },
+        "noBundles": "No bundles available",
+        "noBundlesDescription": "There are no bundles available to select.",
         "noResults": "No bundles found",
         "noResultsDescription": "Try adjusting your search to find what you're looking for."
       },

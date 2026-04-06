@@ -421,6 +421,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const editingAppointmentId = rescheduleAppointmentIdRef.current ?? prefill?.appointmentId ?? null;
   const isEditMode = editingAppointmentId !== null;
 
+  /** When opening from a staff column click (not editing, no service pre-selected), filter services/bundles to only those the staff can perform. */
+  const prefillStaffFilter = (!isEditMode && prefill?.staffUserId && !prefill?.serviceId && !prefill?.bundleId)
+    ? prefill.staffUserId
+    : null;
+
   // Form state
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
@@ -629,17 +634,23 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, []);
 
   const servicesForSheet = useMemo<ManageSheetService[]>(() => {
-    return locationServices.map((service) => ({
+    const filtered = prefillStaffFilter
+      ? locationServices.filter((s) => !s.staffIds?.length || s.staffIds.includes(prefillStaffFilter))
+      : locationServices;
+    return filtered.map((service) => ({
       id: service.serviceId,
       name: service.serviceName,
       price: (service.customPrice ?? service.defaultPrice) / 100,
       duration: service.customDuration ?? service.defaultDuration,
       category: service.category ?? null,
     }));
-  }, [locationServices]);
+  }, [locationServices, prefillStaffFilter]);
 
   const bundlesForSheet = useMemo<ManageSheetBundle[]>(() => {
-    return locationBundles.map((bundle) => ({
+    const filtered = prefillStaffFilter
+      ? locationBundles.filter((b) => !b.staffIds?.length || b.staffIds.includes(prefillStaffFilter))
+      : locationBundles;
+    return filtered.map((bundle) => ({
       bundleId: bundle.bundleId,
       bundleName: bundle.bundleName,
       priceType: bundle.priceType,
@@ -649,7 +660,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       displayPrice: bundle.calculatedDisplayPrice,
       serviceCount: bundle.serviceCount ?? bundle.serviceIds.length,
     }));
-  }, [locationBundles]);
+  }, [locationBundles, prefillStaffFilter]);
 
   const getAutoStaffForService = useCallback((serviceId: number): number | null => {
     if (!hasTeamMembersAtLocation) return null;
@@ -700,16 +711,21 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         const allowedStaffIds = service?.staffIds ?? [];
         const existingStaff = existing?.staffUserId ?? null;
         const isExistingStaffValid = existingStaff != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(existingStaff));
+        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(prefillStaffFilter));
         return {
           serviceId,
           bundleId: null,
-          staffUserId: isExistingStaffValid ? existingStaff : getAutoStaffForService(serviceId),
+          staffUserId: isExistingStaffValid
+            ? existingStaff
+            : isPrefillStaffValid
+              ? prefillStaffFilter
+              : getAutoStaffForService(serviceId),
         };
       });
       const nextItems = [...nextServiceItems, ...bundleItems];
       return nextItems;
     });
-  }, [getAutoStaffForService, locationServices]);
+  }, [getAutoStaffForService, locationServices, prefillStaffFilter]);
 
   const handleSelectSingleService = useCallback((serviceId: number) => {
     applySelectedServices([serviceId]);
@@ -736,17 +752,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const existingBundleItems = prev.filter((item) => item.bundleId != null && item.serviceId == null);
       const nextBundleItems: AppointmentItem[] = bundleIds.map((bundleId) => {
         const existing = existingBundleItems.find((item) => item.bundleId === bundleId);
+        const bundle = locationBundles.find((b) => b.bundleId === bundleId);
+        const allowedStaffIds = bundle?.staffIds ?? [];
+        const isPrefillStaffValid = prefillStaffFilter != null && (allowedStaffIds.length === 0 || allowedStaffIds.includes(prefillStaffFilter));
         return {
           serviceId: null,
           bundleId,
-          staffUserId: existing?.staffUserId ?? getAutoStaffForBundle(bundleId),
+          staffUserId: existing?.staffUserId ?? (isPrefillStaffValid ? prefillStaffFilter : getAutoStaffForBundle(bundleId)),
         };
       });
       const nextItems = [...serviceItems, ...nextBundleItems];
       return nextItems;
     });
     setIsManageBundlesSheetOpen(false);
-  }, [getAutoStaffForBundle]);
+  }, [getAutoStaffForBundle, locationBundles, prefillStaffFilter]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data

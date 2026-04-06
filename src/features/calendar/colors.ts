@@ -143,6 +143,22 @@ export function getGroupDotColor(bookingGroupId: string): string {
 }
 
 /**
+ * Avatar background color for a staff member.
+ * When color coding is "staff" and a colorMap is provided, returns the same color
+ * used on appointment cards so avatars and cards visually match.
+ * Falls back to the hash-based `getAvatarBgColor` otherwise.
+ */
+export function getStaffAvatarColor(
+    staffId: number,
+    avatarFallbackKey: string,
+    colorMap?: Map<string, AppointmentBlockColorPair> | null,
+): string {
+    const mapped = colorMap?.get(String(staffId));
+    if (mapped) return mapped.backgroundColor;
+    return getAvatarBgColor(avatarFallbackKey);
+}
+
+/**
  * Returns background and text color for an appointment block/chip based on
  * the current "Appointment color coding" setting.
  *

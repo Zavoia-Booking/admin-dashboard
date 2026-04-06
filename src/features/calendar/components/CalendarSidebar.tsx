@@ -1,10 +1,11 @@
 import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { RotateCcw } from "lucide-react";
 import { LocationSelector } from "./LocationSelector.tsx";
 import { MiniMonthCalendar } from "./MiniMonthCalendar.tsx";
 import { CustomerFilterPicker } from "./CustomerFilterPicker.tsx";
-import { getDayFilters } from "../selectors.ts";
-import { setDayFiltersAction } from "../actions.ts";
+import { getDayFilters, getActiveCalendarFiltersCount, getLocationStaff, getSidebarOpen } from "../selectors.ts";
+import { setDayFiltersAction, setStaffFilter } from "../actions.ts";
 import type { Customer } from "../../../shared/types/customer.ts";
 import { Label } from "../../../shared/components/ui/label.tsx";
 
@@ -13,7 +14,19 @@ import { Label } from "../../../shared/components/ui/label.tsx";
  */
 export const CalendarSidebar: FC = () => {
   const dispatch = useDispatch();
+  const sidebarOpen = useSelector(getSidebarOpen);
   const dayFilters = useSelector(getDayFilters);
+  const activeFilterCount = useSelector(getActiveCalendarFiltersCount);
+  const locationStaff = useSelector(getLocationStaff);
+
+  const handleClearAllFilters = useCallback(() => {
+    dispatch(setDayFiltersAction({}));
+    if (locationStaff.length === 1) {
+      dispatch(setStaffFilter([locationStaff[0].id]));
+    } else {
+      dispatch(setStaffFilter([]));
+    }
+  }, [dispatch, locationStaff]);
 
   const selectedCustomer = useMemo<Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone"> | null>(() => {
     if (dayFilters.customerId == null) return null;
@@ -54,7 +67,11 @@ export const CalendarSidebar: FC = () => {
   }, [dispatch, dayFilters]);
 
   return (
-    <aside className="w-78 flex-shrink-0 rounded-xl sticky top-4 border-r border-border bg-white dark:bg-surface flex flex-col hidden md:flex min-h-0">
+    <div
+      className="flex-shrink-0 sticky top-4 hidden md:flex flex-col min-h-0 transition-[width] duration-200 ease-linear overflow-hidden"
+      style={{ width: sidebarOpen ? '19.5rem' : '0px' }}
+    >
+    <aside className="rounded-xl border-r border-border bg-white dark:bg-surface flex flex-col min-h-0">
       <div className="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-y-auto scrollbar-hide">
         <div className="px-3 py-4">
           <Label className="mb-2 block text-xs font-medium text-muted-foreground">Location</Label>
@@ -73,5 +90,21 @@ export const CalendarSidebar: FC = () => {
         </div>
       </div>
     </aside>
+    {activeFilterCount > 0 && (
+      <div className="flex justify-end px-2 pt-1.5">
+        <button
+          type="button"
+          onClick={handleClearAllFilters}
+          className="group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+        >
+          <RotateCcw className="h-3 w-3 shrink-0 transition-colors group-hover:text-primary" />
+          Clear filters
+          <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold leading-none text-primary-foreground">
+            {activeFilterCount}
+          </span>
+        </button>
+      </div>
+    )}
+    </div>
   );
 };

@@ -132,6 +132,11 @@ export const getSelectedDate = createSelector(getCalendarViewStateSelector, (sta
     return state.selectedDate;
 })
 
+/** Whether the grid should scroll to the "now" line after loading */
+export const getScrollToNow = createSelector(getCalendarViewStateSelector, (state) => {
+    return state.scrollToNow;
+})
+
 /** Day-level appointments from the day data response */
 export const getDayAppointments = createSelector(getDayData, (dayData) => {
     return dayData?.appointments ?? [];

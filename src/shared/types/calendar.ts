@@ -223,6 +223,9 @@ export interface SlimAppointment {
   groupSize?: number;
   /** From POST /calendar/day and /week when backend includes it. */
   notes?: string | null;
+  /** Customer contact info — included when backend sends it. */
+  customerPhone?: string | null;
+  customerEmail?: string | null;
 }
 
 /** One display block: single appointment, merged group (legacy), or one segment of a group (group_segment). */

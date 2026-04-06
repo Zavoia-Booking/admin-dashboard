@@ -217,6 +217,16 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     return { ok: true, action: "noop" };
   }
 
+  // Appointment must not extend past midnight (end of calendar day)
+  {
+    const dropEndMs = droppedSlotStartMs + appointment.duration * 60 * 1000;
+    const dayStart = new Date(droppedSlotStartMs);
+    dayStart.setHours(0, 0, 0, 0);
+    if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
+      return { ok: false, toastMessage: "Appointment would extend past midnight." };
+    }
+  }
+
   const groupSegCountOnDay = countSegmentsSameBookingGroup(dayAppointments, appointment.bookingGroupId);
   const isGroupDragRestricted = isMultiSegmentGroupDrag(appointment, groupSegCountOnDay);
   const groupId = appointment.bookingGroupId?.trim();
@@ -474,6 +484,16 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
 
   if (droppedSlotStartMs < nowMs) {
     return { ok: false, toastMessage: MSG_PAST };
+  }
+
+  // Appointment must not extend past midnight
+  {
+    const dropEndMs = droppedSlotStartMs + appointment.duration * 60 * 1000;
+    const dayStart = new Date(droppedSlotStartMs);
+    dayStart.setHours(0, 0, 0, 0);
+    if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
+      return { ok: false, toastMessage: "Appointment would extend past midnight." };
+    }
   }
 
   const allWeekAppointments = columnData.flatMap((col) => col.appointments);

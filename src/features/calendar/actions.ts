@@ -87,6 +87,11 @@ export const setSelectedDateAction = createAction(
     'CALENDAR/SELECTED_DATE/SET'
 )<Date>()
 
+/** Signal the grid to scroll to "now" after the next load (set by Today button, cleared after scrolling). */
+export const setScrollToNow = createAction(
+    'CALENDAR/SCROLL_TO_NOW/SET'
+)<boolean>()
+
 /**
  * Atomically set selected date + view mode and trigger a single data fetch (avoids week+day double fetch when switching from week/month to day).
  */

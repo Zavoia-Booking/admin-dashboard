@@ -1,7 +1,7 @@
 import { type FC, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSidebarOpen, getViewModeSelector, getViewTypeSelector } from "../selectors.ts";
-import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar } from "../actions.ts";
+import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar, setScrollToNow, setSidebarMiniCalendarMonthAction } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
 import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings, CalendarCheck2 } from "lucide-react";
@@ -56,6 +56,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
       const base = displayedMonthStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const prev = new Date(base.getFullYear(), base.getMonth() - 1, 1);
       dispatch(setDisplayedMonthAction(prev));
+      dispatch(setSidebarMiniCalendarMonthAction(prev));
       return;
     }
     if (viewMode === AppointmentViewMode.WEEK) {
@@ -75,6 +76,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
       const base = displayedMonthStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
       const next = new Date(base.getFullYear(), base.getMonth() + 1, 1);
       dispatch(setDisplayedMonthAction(next));
+      dispatch(setSidebarMiniCalendarMonthAction(next));
       return;
     }
     if (viewMode === AppointmentViewMode.WEEK) {
@@ -113,6 +115,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
 
   const handleToday = useCallback(() => {
     if (isOnCurrentPeriod) return;
+    dispatch(setScrollToNow(true));
     dispatch(setSelectedDateAction(new Date()));
   }, [dispatch, isOnCurrentPeriod]);
 
@@ -125,7 +128,11 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   }, [dispatch, sidebarOpen]);
 
   const handleToggleViewType = useCallback(() => {
-    dispatch(setViewTypeAction(viewType === AppointmentViewType.GRID ? AppointmentViewType.LIST : AppointmentViewType.GRID));
+    const next = viewType === AppointmentViewType.GRID ? AppointmentViewType.LIST : AppointmentViewType.GRID;
+    dispatch(setViewTypeAction(next));
+    if (next === AppointmentViewType.GRID) {
+      dispatch(setScrollToNow(true));
+    }
   }, [dispatch, viewType]);
 
   const handleOpenBlockForm = useCallback(() => {
@@ -139,7 +146,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
 
   return (
     <div
-      className="sticky z-20 flex flex-col px-4 pb-0.5 flex-shrink-0 gap-0.5 border-b border-border bg-white dark:bg-surface top-0 rounded-t-2xl"
+      className="flex flex-col px-4 pb-0.5 flex-shrink-0 gap-0.5 border-b border-border bg-white dark:bg-surface rounded-t-2xl"
     >
       {/* Row 1: date nav (left) · view tabs (center) · block + add event (right) */}
       <div className="flex items-center gap-2">
@@ -177,7 +184,8 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
                 <button
                   key={mode}
                   onClick={() => handleSetMode(mode)}
-                  className={`!min-h-0 !h-6 px-4 py-0.5 text-sm rounded-full font-medium transition-all
+                  className={`!min-h-0 !h-6 px-4 py-0.5 text-sm rounded-full font-medium transition-all outline-none
+                    focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0
                     ${viewMode === mode
                       ? 'bg-neutral-900 text-white shadow-md'
                       : 'text-muted-foreground cursor-pointer hover:text-foreground hover:bg-muted/50'
@@ -191,11 +199,11 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
         </div>
 
         {/* Right: unified pill — Block | Add Event | Filters | list | settings */}
-        <div className="flex items-center rounded-full !h-8 border border-border bg-white dark:bg-surface shadow-sm overflow-hidden flex-shrink-0">
+        <div className="flex items-center rounded-full !h-8 border border-border bg-white dark:bg-surface shadow-sm flex-shrink-0">
           <button
             type="button"
             onClick={handleOpenBlockForm}
-            className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer"
+            className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
           >
             <ShieldBan className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
             Block
@@ -204,7 +212,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
           <button
             type="button"
             onClick={handleOpenAddForm}
-            className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer"
+            className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
           >
             <Plus className="h-3.5 w-3.5 text-primary" />
             Add Event
@@ -216,7 +224,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             type="button"
             onClick={handleToday}
             disabled={isOnCurrentPeriod}
-            className="group inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-default hover:bg-muted/50 text-foreground whitespace-nowrap"
+            className="group inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-default hover:bg-muted/50 text-foreground whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
           >
             <CalendarCheck2 className="h-3.5 w-3.5 text-muted-foreground transition-colors group-enabled:group-hover:text-primary group-enabled:group-active:text-primary" />
             {currentPeriodLabel}

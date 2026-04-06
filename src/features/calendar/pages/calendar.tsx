@@ -49,6 +49,14 @@ const Calendar = () => {
     );
   }, [dispatch]);
 
+  // Re-fetch location context (services, team, bundles) on mount so changes made
+  // in other sections (e.g. creating a service + assigning it) are picked up.
+  useEffect(() => {
+    if (selectedLocationId) {
+      dispatch(fetchLocationContext.request(selectedLocationId));
+    }
+  }, [dispatch, selectedLocationId]);
+
   useEffect(() => {
     const appointmentIdParam = searchParams.get("appointmentId");
     if (!appointmentIdParam) return;
@@ -139,21 +147,21 @@ const Calendar = () => {
   },[dispatch])
 
   return (
-    <AppLayout contentClassName="md:max-w-[1400px]">
+    <AppLayout contentClassName="max-w-[2000px]">
       <BusinessSetupGate>
         <div className="flex min-h-[calc(100vh-64px)] items-start">
             {/* ─── Left Sidebar ─── */}
-            {sidebarOpen && <CalendarSidebar />}
+            <CalendarSidebar />
 
             {/* ─── Main Content ─── */}
-            <div className="flex-1 flex flex-col min-w-0 bg-muted/10 dark:bg-transparent">
-              <div className="p-0 md:p-4 lg:p-6 !pl-4 !pt-0 !pb-0 flex flex-col">
-                <Card className="flex flex-col !gap-2 border-none pt-0.5 shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl">
+            <div className="flex-1 flex flex-col min-w-0 max-h-[calc(100dvh-34px)] bg-muted/10 dark:bg-transparent transition-[width,flex] duration-200 ease-linear">
+              <div className="p-0 md:p-4 lg:p-6 !pl-4 !pt-0 !pb-0 flex flex-col flex-1 min-h-0">
+                <Card className="flex flex-col !gap-2 border-none pt-0.5 shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl flex-1 min-h-0">
                   {/* Top header bar */}
                   <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 
-                  {/* Content area — height driven by grid/list for single page scroll */}
-                  <div className="relative">
+                  {/* Content area — single scroll container for all views */}
+                  <div data-calendar-scroll className="relative flex-1 min-h-0 overflow-auto">
                     {/* Month view uses summary grid; Day & Week views use the time grid */}
                     <AppointmentGrid viewMode={viewMode} />
                   </div>

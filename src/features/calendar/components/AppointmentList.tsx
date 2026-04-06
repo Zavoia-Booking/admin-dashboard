@@ -1,7 +1,7 @@
 import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import type { SlimAppointment, CalendarBlockDto } from "../../../shared/types/calendar.ts";
+import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../shared/types/calendar.ts";
 import {
   getDayAppointments,
   getDayBlocks,
@@ -13,15 +13,18 @@ import {
   getHasActiveCalendarFilters,
   getCalendarTimezone,
 } from "../selectors.ts";
-import { toggleEditFormAction, setDayFiltersAction, setStaffFilter } from "../actions.ts";
-import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
-import { Loader2, CalendarX } from "lucide-react";
-import { Button } from "../../../shared/components/ui/button.tsx";
+import { toggleEditFormAction, toggleAddForm } from "../actions.ts";
+
+
+import { AppointmentListSkeleton } from "./AppointmentListSkeleton.tsx";
+
 import { SlimAppointmentCard } from "./SlimAppointmentCard.tsx";
 import { BlockCard } from "./BlockCard.tsx";
 import { CalendarListCountPills } from "./CalendarListCountPills.tsx";
 import { buildCalendarColorMap } from "../colors.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
+import { SlidersHorizontal, Plus } from "lucide-react";
+import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -47,23 +50,18 @@ export const AppointmentList: FC = () => {
   const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
   const timezone = useSelector(getCalendarTimezone);
 
-  const handleAppointmentClick = useCallback(async (appointment: SlimAppointment) => {
-    try {
-      const bookingGroupId = appointment.bookingGroupId;
-      if (bookingGroupId) {
-        const list = await getAppointmentGroupRequest(bookingGroupId);
-        const arr = Array.isArray(list) ? list : [];
-        const item = arr.find((a: { id: number }) => a.id === appointment.id) ?? arr[0];
-        if (item) {
-          dispatch(toggleEditFormAction({ open: true, item, groupAppointments: arr }));
-        }
-      } else {
-        const fullAppointment = await getAppointmentDetailRequest(appointment.id);
-        dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
-      }
-    } catch {
-      // silently fail — appointment may have been deleted
-    }
+  const handleAppointmentClick = useCallback((appt: SlimAppointment) => {
+    const placeholder: Appointment = {
+      id: appt.id, customer: null, teamMembers: [],
+      location: { id: 0, name: '', address: '', description: '', phone: '', email: '' },
+      scheduledAt: new Date(appt.scheduledAt), endsAt: new Date(appt.endsAt),
+      status: appt.status, notes: '', price: 0, cancellationReason: '',
+      createdAt: new Date(), updatedAt: new Date(),
+      bookedItemName: appt.bookedItemName, bookingGroupId: appt.bookingGroupId,
+      bookingGroupOrder: appt.bookingGroupOrder, bookingSource: appt.bookingSource,
+      overrideReason: appt.overrideReason,
+    };
+    dispatch(toggleEditFormAction({ open: true, item: placeholder }));
   }, [dispatch]);
 
   /** Fallback when API omits groupSize (legacy). Prefer `SlimAppointment.groupSize` from POST /calendar/day. */
@@ -134,14 +132,7 @@ export const AppointmentList: FC = () => {
   }
 
   if (isDayLoading) {
-    return (
-      <Card>
-        <CardContent className="p-8 flex items-center justify-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Loading...</span>
-        </CardContent>
-      </Card>
-    );
+    return <AppointmentListSkeleton />;
   }
 
   return (
@@ -155,51 +146,25 @@ export const AppointmentList: FC = () => {
       </div>
 
       {/* Empty state — no appointments AND no blocks */}
-      {sortedItems.length === 0 && (
-        <Card>
-          <CardContent className="p-8 flex flex-col items-center gap-3 text-center">
-            <CalendarX className="h-8 w-8 text-muted-foreground/50" />
-            {hasActiveFilters ? (
-              <>
-                <p className="text-sm text-muted-foreground">
-                  No appointments match your filters for this day.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    dispatch(setDayFiltersAction({}));
-                    dispatch(setStaffFilter([]));
-                  }}
-                >
-                  Clear filters
-                </Button>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">Nothing scheduled for this day.</p>
-            )}
-          </CardContent>
-        </Card>
+      {sortedItems.length === 0 && hasActiveFilters && (
+        <EmptyState
+          icon={SlidersHorizontal}
+          title="No appointments match your filters"
+          description="Try adjusting your filters or clearing them to see all appointments for this day."
+          className="h-[calc(100dvh-143px)] !py-0 !justify-center cursor-default"
+        />
       )}
-
-      {/* Filtered-out notice: blocks exist but all appointments are filtered */}
-      {sortedItems.length > 0 && apptCount === 0 && blockCount > 0 && hasActiveFilters && (
-        <div className="flex items-center justify-between px-1 py-2 rounded-md bg-muted/40 text-xs text-muted-foreground">
-          <span>No appointments match your filters.</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 px-2 text-xs"
-            onClick={() => {
-              dispatch(setDayFiltersAction({}));
-              dispatch(setStaffFilter([]));
-            }}
-          >
-            Clear filters
-          </Button>
-        </div>
+      {sortedItems.length === 0 && !hasActiveFilters && (
+        <EmptyState
+          title="Nothing scheduled"
+          description="No appointments or blocks scheduled for this day."
+          className="h-[calc(100dvh-145px)] !py-0 !justify-center cursor-default"
+          actionButton={{
+            label: "Add Event",
+            icon: Plus,
+            onClick: () => dispatch(toggleAddForm({ open: true })),
+          }}
+        />
       )}
 
       {/* Chronological list */}
@@ -221,6 +186,13 @@ export const AppointmentList: FC = () => {
             timezone={timezone ?? undefined}
           />
         )
+      )}
+
+      {/* Filtered-out notice after list: blocks shown but no appointments match */}
+      {sortedItems.length > 0 && apptCount === 0 && hasActiveFilters && (
+        <p className="text-sm text-muted-foreground pt-3 cursor-default">
+          No appointments match your filters.
+        </p>
       )}
     </div>
   );

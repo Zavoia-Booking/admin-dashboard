@@ -111,6 +111,8 @@
           "title": "Niciun pachet creat încă",
           "description": "Creați primul dvs. pachet pentru a începe. Odată creat, îl puteți atribui acestei locații."
         },
+        "noBundles": "Nu sunt pachete disponibile",
+        "noBundlesDescription": "Nu există pachete disponibile pentru selecție.",
         "noResults": "Nu s-au găsit pachete",
         "noResultsDescription": "Încercați să ajustați căutarea pentru a găsi ceea ce căutați."
       },

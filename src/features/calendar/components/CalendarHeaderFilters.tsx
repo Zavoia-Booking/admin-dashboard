@@ -39,8 +39,9 @@ import {
 
 const filterPillClass = (isOpen: boolean) =>
   cn(
-    "relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border",
+    "relative inline-flex items-center justify-center h-auto px-3 py-1.5 gap-1.5 rounded-full border border-border outline-none",
     "transition-[colors,box-shadow,background-color,color] duration-200 ease-out cursor-pointer",
+    "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0",
     isOpen
       ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
       : "bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong",
@@ -48,8 +49,9 @@ const filterPillClass = (isOpen: boolean) =>
 
 const filterSlimClass = (isOpen: boolean) =>
   cn(
-    "relative flex w-full items-center justify-center h-8 px-3 gap-1.5 rounded-none",
+    "relative flex w-full items-center justify-center h-8 px-3 gap-1.5 rounded-none outline-none",
     "transition-colors duration-200 ease-out cursor-pointer",
+    "focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset",
     isOpen ? "bg-muted/60" : "hover:bg-muted/50",
   );
 

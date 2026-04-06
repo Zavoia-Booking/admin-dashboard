@@ -1,8 +1,10 @@
 import { type FC, useCallback, useMemo } from "react";
+import { SlidersHorizontal, Plus } from "lucide-react";
+import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
 import { formatDateInTimezone } from "../timezone.ts";
-import type { SlimAppointment, CalendarBlockDto } from "../../../shared/types/calendar.ts";
+import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../shared/types/calendar.ts";
 import {
   getWeekData,
   getWeekDataLoading,
@@ -17,11 +19,11 @@ import {
   getOptimisticBlocks,
   blockOverlapsDate,
 } from "../selectors.ts";
-import { toggleEditFormAction, setDayFiltersAction, setStaffFilter } from "../actions.ts";
-import { getAppointmentDetailRequest, getAppointmentGroupRequest } from "../api.ts";
-import { Loader2, CalendarX } from "lucide-react";
-import { Badge } from "../../../shared/components/ui/badge.tsx";
-import { Button } from "../../../shared/components/ui/button.tsx";
+import { toggleEditFormAction, toggleAddForm } from "../actions.ts";
+
+
+import { WeekAppointmentListSkeleton } from "./WeekAppointmentListSkeleton.tsx";
+
 import { getWeekStart } from "../utils.ts";
 import { SlimAppointmentCard } from "./SlimAppointmentCard.tsx";
 import { BlockCard } from "./BlockCard.tsx";
@@ -96,23 +98,18 @@ export const WeekAppointmentList: FC = () => {
   );
 
   const handleAppointmentClick = useCallback(
-    async (appointment: SlimAppointment) => {
-      try {
-        const bookingGroupId = appointment.bookingGroupId;
-        if (bookingGroupId) {
-          const list = await getAppointmentGroupRequest(bookingGroupId);
-          const arr = Array.isArray(list) ? list : [];
-          const item = arr.find((a: { id: number }) => a.id === appointment.id) ?? arr[0];
-          if (item) {
-            dispatch(toggleEditFormAction({ open: true, item, groupAppointments: arr }));
-          }
-        } else {
-          const fullAppointment = await getAppointmentDetailRequest(appointment.id);
-          dispatch(toggleEditFormAction({ open: true, item: fullAppointment }));
-        }
-      } catch {
-        // silently fail — appointment may have been deleted
-      }
+    (appt: SlimAppointment) => {
+      const placeholder: Appointment = {
+        id: appt.id, customer: null, teamMembers: [],
+        location: { id: 0, name: '', address: '', description: '', phone: '', email: '' },
+        scheduledAt: new Date(appt.scheduledAt), endsAt: new Date(appt.endsAt),
+        status: appt.status, notes: '', price: 0, cancellationReason: '',
+        createdAt: new Date(), updatedAt: new Date(),
+        bookedItemName: appt.bookedItemName, bookingGroupId: appt.bookingGroupId,
+        bookingGroupOrder: appt.bookingGroupOrder, bookingSource: appt.bookingSource,
+        overrideReason: appt.overrideReason,
+      };
+      dispatch(toggleEditFormAction({ open: true, item: placeholder }));
     },
     [dispatch]
   );
@@ -128,13 +125,40 @@ export const WeekAppointmentList: FC = () => {
   }
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-8 flex items-center justify-center gap-2">
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-          <span className="text-sm text-muted-foreground">Loading week...</span>
-        </CardContent>
-      </Card>
+    return <WeekAppointmentListSkeleton />;
+  }
+
+  // Check if entire week is empty
+  const weekHasNoItems = weekDays.every((day) => {
+    const dateKey = formatDateInTimezone(day, timezone);
+    const dayData = weekData?.[dateKey];
+    const rawAppts = dayData?.appointments ?? [];
+    const visAppts = staffFilter.length > 0
+      ? rawAppts.filter((a) => !a.isUnassigned && a.staffUserIds.length > 0 && a.staffUserIds.some((id) => staffFilter.includes(id)))
+      : rawAppts;
+    const blocks = dayData?.blocks ?? [];
+    return visAppts.length === 0 && blocks.length === 0;
+  });
+
+  if (weekHasNoItems) {
+    return hasActiveFilters ? (
+      <EmptyState
+        icon={SlidersHorizontal}
+        title="No appointments match your filters"
+        description="Try adjusting your filters or clearing them to see all appointments for this week."
+        className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
+      />
+    ) : (
+      <EmptyState
+        title="Nothing scheduled"
+        description="No appointments or blocks scheduled for this week."
+        className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
+        actionButton={{
+          label: "Add Event",
+          icon: Plus,
+          onClick: () => dispatch(toggleAddForm({ open: true })),
+        }}
+      />
     );
   }
 
@@ -189,7 +213,7 @@ export const WeekAppointmentList: FC = () => {
         });
 
         return (
-          <section key={dateKey} className="space-y-2">
+          <section key={dateKey} className="space-y-2 min-h-22">
             {/* Day header */}
             <div className="flex items-center justify-between cursor-default gap-2 px-1 sticky top-0 bg-background/95 py-1.5 z-10">
               <h3 className="text-sm font-semibold text-foreground">{dateLabel}</h3>
@@ -203,48 +227,17 @@ export const WeekAppointmentList: FC = () => {
 
             {/* Empty state — nothing at all */}
             {sortedItems.length === 0 && (
-              <div className="py-4 px-3 rounded-lg bg-muted/30 flex flex-col gap-2 text-muted-foreground text-sm">
-                <div className="flex items-center gap-2">
-                  <CalendarX className="h-4 w-4 flex-shrink-0" />
-                  <span>
-                    {hasActiveFilters
-                      ? "No appointments match your filters for this day."
-                      : "Nothing scheduled"}
-                  </span>
-                </div>
-                {hasActiveFilters && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="self-start"
-                    onClick={() => {
-                      dispatch(setDayFiltersAction({}));
-                      dispatch(setStaffFilter([]));
-                    }}
-                  >
-                    Clear filters
-                  </Button>
-                )}
-              </div>
+              <p className="text-sm text-muted-foreground py-2 px-1 cursor-default">
+                {hasActiveFilters
+                  ? "No appointments match your filters for this day."
+                  : "Nothing scheduled"}
+              </p>
             )}
 
             {/* Filtered-out notice: blocks exist but appointments are filtered */}
             {sortedItems.length > 0 && apptCount === 0 && blockCount > 0 && hasActiveFilters && (
-              <div className="flex items-center justify-between px-1 py-1.5 rounded-md bg-muted/40 text-xs text-muted-foreground">
+              <div className="flex items-center px-1 py-1.5 rounded-md bg-muted/40 text-xs text-muted-foreground cursor-default">
                 <span>No appointments match your filters.</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={() => {
-                    dispatch(setDayFiltersAction({}));
-                    dispatch(setStaffFilter([]));
-                  }}
-                >
-                  Clear
-                </Button>
               </div>
             )}
 

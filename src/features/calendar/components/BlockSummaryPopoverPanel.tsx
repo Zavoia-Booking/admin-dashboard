@@ -53,8 +53,11 @@ function staffAppliesLine(block: CalendarBlockDto, staffName: string | null): st
 
 /** Same centered shell as {@link EditAppointmentSlider} (`DialogPrimitive.Content`). */
 export const blockSummaryDialogContentClassName = cn(
-  "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-  "data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200",
+  "data-[state=open]:animate-in data-[state=closed]:animate-out",
+  "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+  "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
+  "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
+  "data-[state=open]:duration-250 data-[state=closed]:duration-150",
   "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-lg max-h-[90vh] translate-x-[-50%] translate-y-[-50%]",
   "flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface",
   "focus:outline-none focus-visible:outline-none",
@@ -152,7 +155,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
           <DialogPrimitive.Close
             className={cn(
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground opacity-70 transition-[opacity,color]",
-              "hover:opacity-100 hover:text-destructive focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+              "hover:opacity-100 hover:text-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             )}
             aria-label="Close"
           >
@@ -247,7 +250,9 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
             </dl>
           </div>
 
-          {(canEditBlock || canDeleteBlock) && (
+          {(canEditBlock || canDeleteBlock) && !(
+            new Date(block.endsAt).getTime() < Date.now() && !block.isRecurring
+          ) && (
             <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
               <Label className="text-sm font-semibold text-foreground-1">Actions</Label>
               <div
@@ -341,7 +346,9 @@ export const BlockSummaryDialogShell: FC<BlockSummaryDialogShellProps> = ({
           onInteractOutside={preventWhenLocked}
           onEscapeKeyDown={preventWhenLocked}
           className={blockSummaryDialogContentClassName}
+          aria-describedby={undefined}
         >
+          <DialogPrimitive.Title className="sr-only">Block details</DialogPrimitive.Title>
           <BlockSummaryPopoverPanel {...panelProps} />
         </DialogPrimitive.Content>
       </DialogPortal>
