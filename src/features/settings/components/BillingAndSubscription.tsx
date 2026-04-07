@@ -324,6 +324,32 @@ const BillingAndSubscription = () => {
     }
   };
 
+  const handleRetryExistingCard = async () => {
+    const pending = subscriptionSummary?.pendingPayment;
+    if (!pending?.clientSecret) return;
+
+    try {
+      setRetryingPayment(true);
+      const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+      if (!publishableKey) throw new Error('Stripe publishable key not configured');
+
+      const stripe = await loadStripe(publishableKey);
+      if (!stripe) throw new Error('Failed to load Stripe');
+
+      const { error } = await stripe.confirmCardPayment(pending.clientSecret);
+      if (error) {
+        toast.error(error.message || t('billing.toast.paymentFailed'));
+      } else {
+        toast.success(t('billing.toast.paymentConfirmed'));
+        dispatch(getSubscriptionSummaryAction.request());
+      }
+    } catch (err: any) {
+      toast.error(err?.message || t('billing.toast.paymentFailed'));
+    } finally {
+      setRetryingPayment(false);
+    }
+  };
+
   const handleAbortPayment = async () => {
     try {
       setRetryingPayment(true);
@@ -544,24 +570,34 @@ const BillingAndSubscription = () => {
                         currency: subscriptionSummary.pendingPayment.currency,
                       })}
                     </p>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={handleRetryPayment}
-                        disabled={retryingPayment}
-                        className="bg-amber-600 hover:bg-amber-700 text-white"
-                        size="sm"
-                      >
-                        {retryingPayment ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {t('billing.pendingPayment.retrying')}
-                          </>
-                        ) : subscriptionSummary.pendingPayment.status === 'requires_action' ? (
-                          t('billing.pendingPayment.completePayment')
-                        ) : (
-                          t('billing.pendingPayment.updatePaymentMethod')
-                        )}
-                      </Button>
+                    <div className="flex flex-wrap gap-2">
+                      {subscriptionSummary.pendingPayment.status === 'requires_payment_method' && (
+                        <Button
+                          onClick={handleRetryPayment}
+                          disabled={retryingPayment}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                          size="sm"
+                        >
+                          {t('billing.pendingPayment.updatePaymentMethod')}
+                        </Button>
+                      )}
+                      {subscriptionSummary.pendingPayment.status === 'requires_action' && (
+                        <Button
+                          onClick={handleRetryPayment}
+                          disabled={retryingPayment}
+                          className="bg-amber-600 hover:bg-amber-700 text-white"
+                          size="sm"
+                        >
+                          {retryingPayment ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {t('billing.pendingPayment.retrying')}
+                            </>
+                          ) : (
+                            t('billing.pendingPayment.completePayment')
+                          )}
+                        </Button>
+                      )}
                       <Button
                         onClick={handleAbortPayment}
                         disabled={retryingPayment}
@@ -855,7 +891,7 @@ const BillingAndSubscription = () => {
 
                 {/* Manage Payment Method and Invoices */}
                 {
-                  currentUser?.entitlements?.status === 'active' && (
+                  (currentUser?.entitlements?.status === 'active' || currentUser?.entitlements?.status === 'ltd') && (
                     <>
                       <Button
                         onClick={handleManagePaymentMethodAndInvoices}

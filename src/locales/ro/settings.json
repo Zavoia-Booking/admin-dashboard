@@ -219,6 +219,7 @@
       "amount": "Sumă de plată: {{amount}} {{currency}}",
       "completePayment": "Finalizează plata",
       "updatePaymentMethod": "Actualizează metoda de plată",
+      "retryPayment": "Reîncearcă plata",
       "abortPayment": "Anulează plata",
       "aborted": "Plata a fost anulată. Acum poți face modificări noi la locuri.",
       "retrying": "Se procesează..."

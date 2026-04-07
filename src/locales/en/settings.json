@@ -219,6 +219,7 @@
       "amount": "Amount due: {{amount}} {{currency}}",
       "completePayment": "Complete Payment",
       "updatePaymentMethod": "Update Payment Method",
+      "retryPayment": "Retry Payment",
       "abortPayment": "Cancel Payment",
       "aborted": "Payment cancelled. You can now make new seat changes.",
       "retrying": "Processing..."
