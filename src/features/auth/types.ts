@@ -46,6 +46,7 @@ export type AuthUser = {
     maxLocations: number;
     maxTeamMembers: number;
     paidTeamSeats: number;
+    usedSeats: number;
   };
   // Limited access fields (dashboard_user — orphaned users with no business)
   limitedAccess?: boolean;

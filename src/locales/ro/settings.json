@@ -237,16 +237,26 @@
     "processing": "Se procesează...",
     "noPackages": "Niciun pachet disponibil",
     "checkBackSoon": "Revino în curând",
+    "trialRestriction": "SMS nu este disponibil în perioada de probă",
+    "trialRestrictionDescription": "Trimiterea de mementouri și notificări prin SMS este o funcționalitate a abonamentului plătit. Actualizează-ți planul pentru a achiziționa credite SMS.",
     "purchaseHistory": "Istoric achiziții",
     "loadMore": "Încarcă mai multe",
     "noPurchases": "Nicio achiziție încă"
+  },
+  "businessSetupGate": {
+    "title": "Finalizează Configurarea Afacerii",
+    "subtitle": "Configurare Necesară",
+    "message": "Înainte de a invita membri în echipă, de a crea servicii sau de a adăuga locații, te rugăm finalizează configurarea informațiilor afacerii tale.",
+    "button": "Continuă Configurarea"
   },
   "subscriptionGate": {
     "nonOwner": {
       "title": "Serviciu Indisponibil",
       "subtitle": "Acces Cont Restricționat",
       "message": "Abonamentul afacerii tale este în prezent inactiv. Te rugăm contactează administratorul pentru a rezolva această problemă.",
-      "contactAdmin": "Dacă crezi că aceasta este o greșeală, te rugăm contactează-ți administratorul."
+      "contactAdmin": "Dacă crezi că aceasta este o greșeală, te rugăm contactează-ți administratorul.",
+      "buttonSettings": "Mergi la Setări",
+      "buttonSupport": "Cere Ajutor"
     },
     "paymentIssue": {
       "title": "Problemă de Plată",

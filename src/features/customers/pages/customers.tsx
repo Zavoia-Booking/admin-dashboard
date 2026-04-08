@@ -23,6 +23,7 @@ import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
 import { EmptyState } from '../../../shared/components/common/EmptyState';
 import CustomersListSkeleton from '../components/CustomersListSkeleton';
+import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 
 export default function CustomersPage() {
   const dispatch = useDispatch();
@@ -101,6 +102,7 @@ export default function CustomersPage() {
 
   return (
     <AppLayout>
+      <BusinessSetupGate>
       <div className="space-y-6">
           <div className="mb-4 w-full border-b border-border-strong hidden md:block">
             <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
@@ -244,6 +246,7 @@ export default function CustomersPage() {
         elevated={isDetailsPopupOpen}
       />
       </div>
+      </BusinessSetupGate>
     </AppLayout>
   );
 }

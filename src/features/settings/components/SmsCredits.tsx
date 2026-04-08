@@ -11,10 +11,12 @@ import {
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';
+import { Info } from 'lucide-react';
 import {
   createSmsCheckoutAction,
   getSmsPurchasesAction,
 } from '../actions';
+import { selectIsOnTrial } from '../../auth/selectors';
 import {
   selectSmsBalance,
   selectSmsPackages,
@@ -74,6 +76,7 @@ const SmsCredits = () => {
   const smsPurchasesHasMore = useSelector(selectSmsPurchasesHasMore);
   const smsPurchasesNextCursor = useSelector(selectSmsPurchasesNextCursor);
   
+  const isTrial = useSelector(selectIsOnTrial);
   const balanceLoading = useSelector(selectIsSmsBalanceLoading);
   const packagesLoading = useSelector(selectIsSmsPackagesLoading);
   const checkoutLoading = useSelector(selectIsSmsCheckoutLoading);
@@ -164,7 +167,15 @@ const SmsCredits = () => {
 
             {/* Packages */}
             <div className="p-5">
-              {smsPackages.length > 0 ? (
+              {isTrial ? (
+                <div className="flex items-start gap-3 rounded-lg border border-amber-200 dark:border-amber-800/40 bg-amber-50 dark:bg-amber-950/20 p-4">
+                  <Info className="h-5 w-5 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900 dark:text-amber-200">{t('sms.trialRestriction')}</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-1">{t('sms.trialRestrictionDescription')}</p>
+                  </div>
+                </div>
+              ) : smsPackages.length > 0 ? (
                 <>
                   <div className="divide-y divide-border/40">
                     {smsPackages.map((pkg) => {

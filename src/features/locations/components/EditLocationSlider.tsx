@@ -1038,8 +1038,8 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
             showAddressWarning={true}
             showControls
             mapHeight="500px"
-            className="z-[70]"
-            overlayClassName="z-[70]"
+            className="z-[90]"
+            overlayClassName="z-[85]"
             countryCodes={businessCountryCode ? [businessCountryCode] : undefined}
             footerActions={
               <>

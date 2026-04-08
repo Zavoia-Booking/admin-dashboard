@@ -40,3 +40,30 @@ export interface AppointmentActionItem {
 export const offboardTeamMemberApi = async (id: number, appointmentActions: AppointmentActionItem[]): Promise<void> => {
   await apiClient().post(`/team-members/${id}/offboard`, { appointmentActions });
 };
+
+export interface OffboardPreviewAppointment {
+  id: number;
+  scheduledAt: string;
+  endsAt: string;
+  status: string;
+  customer: { firstName: string; lastName: string; email: string } | null;
+  service: { id: number; name: string } | null;
+  location: { id: number; name: string } | null;
+}
+
+export interface EligibleStaffMember {
+  userId: number;
+  firstName: string;
+  lastName: string;
+  profileImage: string | null;
+}
+
+export interface OffboardPreviewResponse {
+  appointments: OffboardPreviewAppointment[];
+  eligibleStaffMap: Record<string, EligibleStaffMember[]>;
+}
+
+export const getOffboardPreviewApi = async (id: number): Promise<OffboardPreviewResponse> => {
+  const { data } = await apiClient().get<OffboardPreviewResponse>(`/team-members/${id}/offboard-preview`);
+  return data;
+};

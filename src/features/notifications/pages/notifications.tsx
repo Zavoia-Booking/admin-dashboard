@@ -16,6 +16,7 @@ import {
 } from "../actions";
 import type { RootState } from "../../../app/providers/store";
 import type { BusinessNotification } from "../types";
+import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 
 const LIMIT = 20;
 
@@ -123,6 +124,7 @@ export default function NotificationsPage() {
 
   return (
     <AppLayout>
+      <BusinessSetupGate>
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:block">
@@ -229,6 +231,7 @@ export default function NotificationsPage() {
         showCloseButton
       />
       </div>
+      </BusinessSetupGate>
     </AppLayout>
   );
 }

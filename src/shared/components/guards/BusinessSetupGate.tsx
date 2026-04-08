@@ -27,13 +27,15 @@ export default function BusinessSetupGate({
       : (message ?? 'Your access to this business appears to be inactive. You may have been removed from the business or the business was deleted. Please contact the business administrator.');
     const resolvedCta = isOwner ? (ctaLabel ?? 'Finish business setup') : undefined;
     return (
-      <div className="max-w-2xl mx-auto">
-        <BusinessSetupPrompt
-          title={resolvedTitle}
-          message={resolvedMessage}
-          ctaLabel={resolvedCta}
-          onClickNavigateTo={navigateTo}
-        />
+      <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
+        <div className="max-w-2xl w-full">
+          <BusinessSetupPrompt
+            title={resolvedTitle}
+            message={resolvedMessage}
+            ctaLabel={resolvedCta}
+            onClickNavigateTo={navigateTo}
+          />
+        </div>
       </div>
     );
   }

@@ -271,28 +271,36 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-    // Store user
+    // Store user from login response first
     yield put(setAuthUserAction({ user: response.user }));
-    
+
+    // Fetch fresh user data (with full entitlements) before completing login
+    // This prevents the SubscriptionGate from flashing during redirect
+    let userForSuccess = response.user;
+    try {
+      const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
+      yield put(setAuthUserAction({ user: freshUser }));
+      userForSuccess = freshUser;
+    } catch {
+      // Fall back to login response user data (already set above)
+    }
+
     // Use isNewUser from backend response to determine if this is a registration
-    yield put(googleLoginAction.success({ 
-      accessToken: response.accessToken, 
-      csrfToken: response.csrfToken ?? null, 
-      user: response.user,
+    yield put(googleLoginAction.success({
+      accessToken: response.accessToken,
+      csrfToken: response.csrfToken ?? null,
+      user: userForSuccess,
       isNewUser: response.isNewUser ?? false
     } as any));
-
-    // Ensure latest user data (including Google linkage fields) after login
-    yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
     const details = error?.response?.data?.details;
-    
+
     // Handle business selection required (300 status)
     if (statusCode === 300 && code === 'business_selection_required') {
       const details = error.response.data.details;
-      yield put(googleLoginAction.failure({ 
+      yield put(googleLoginAction.failure({
         message: 'business_selection_required',
         selectionToken: details.selectionToken,
         businesses: details.businesses
@@ -300,17 +308,17 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
-    
+
     // Handle account needs business owner account (409 status)
     if (statusCode === 409 && code === 'account_exists_needs_business_owner_account') {
-      yield put(googleLoginAction.failure({ 
+      yield put(googleLoginAction.failure({
         message: 'account_exists_needs_business_owner_account',
         accountLinkingDetails: details
       } as any));
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
-    
+
     // Handle existing account with unlinked Google
     if (code === 'account_exists_unlinked_google') {
       try { sessionStorage.setItem('linkContext', 'login'); } catch { /* empty */ }
@@ -319,10 +327,10 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
       yield put(setAuthLoadingAction({ isLoading: false }));
       return;
     }
-    
+
     // Handle pending team member invitation
     if (statusCode === 403 && code === 'pending_invitation_requires_acceptance') {
-      yield put(googleLoginAction.failure({ 
+      yield put(googleLoginAction.failure({
         message: 'pending_invitation_requires_acceptance',
         invitationDetails: details
       } as any));
@@ -377,19 +385,27 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-    // Store user
+    // Store user from register response first
     yield put(setAuthUserAction({ user: response.user }));
-    
+
+    // Fetch fresh user data (with full entitlements) before completing registration
+    // This prevents the SubscriptionGate from flashing during redirect
+    let userForSuccess = response.user;
+    try {
+      const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
+      yield put(setAuthUserAction({ user: freshUser }));
+      userForSuccess = freshUser;
+    } catch {
+      // Fall back to register response user data (already set above)
+    }
+
     // Use isNewUser from backend response to determine if this is a registration
-    yield put(googleRegisterAction.success({ 
-      accessToken: response.accessToken, 
-      csrfToken: response.csrfToken ?? null, 
-      user: response.user,
+    yield put(googleRegisterAction.success({
+      accessToken: response.accessToken,
+      csrfToken: response.csrfToken ?? null,
+      user: userForSuccess,
       isNewUser: response.isNewUser ?? true
     } as any));
-
-    // Ensure latest user data (including Google linkage fields) after registration
-    yield put(fetchCurrentUserAction.request());
   } catch (error: any) {
     const statusCode = error?.response?.status;
     const code = error?.response?.data?.code;
@@ -637,17 +653,23 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-    // Store user
-    yield put(setAuthUserAction({ user: response.user }));
-    
-    yield put(selectBusinessAction.success({
-      accessToken: response.accessToken, 
-      csrfToken: response.csrfToken ?? null, 
-      user: response.user 
-    }));
+    // Fetch fresh user data (with full entitlements) BEFORE setting user
+    // During this async call, user remains null so AuthGate shows spinner
+    // and SubscriptionGate returns null, preventing the flash
+    let user = response.user;
+    try {
+      const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
+      user = freshUser;
+    } catch {
+      // Fall back to select-business response user data
+    }
 
-    // Ensure latest user data
-    yield put(fetchCurrentUserAction.request());
+    yield put(setAuthUserAction({ user }));
+    yield put(selectBusinessAction.success({
+      accessToken: response.accessToken,
+      csrfToken: response.csrfToken ?? null,
+      user
+    }));
   } catch (error: any) {
     const message = getErrorMessage(error);
     yield put(selectBusinessAction.failure({ message }));

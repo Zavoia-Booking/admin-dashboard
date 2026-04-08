@@ -309,7 +309,8 @@
           "label": "SMS",
           "description": "Trimite confirmări și reamintiri prin mesaj text."
         },
-        "pushNotificationHelper": "Notificările push sunt trimise automat dacă clienții folosesc aplicația mobilă."
+        "pushNotificationHelper": "Notificările push sunt trimise automat dacă clienții folosesc aplicația mobilă.",
+        "smsTrialRestriction": "Notificările SMS nu sunt disponibile în perioada de probă. Este necesar un abonament plătit pentru a trimite mesaje SMS."
       }
     },
     "adminBookingOverride": {

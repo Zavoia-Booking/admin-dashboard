@@ -1,5 +1,6 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
 import { getSubscriptionSummaryAction } from "../settings/actions";
+import { fetchCurrentUserAction } from "../auth/actions";
 import { cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, inviteTeamMemberAction, listTeamMembersAction, resendInvitationAction, offboardTeamMemberAction } from "./actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import { cancelInvitationApi, deleteTeamMemberApi, fetchTeamMemberByIdApi, inviteTeamMemberApi, listTeamMembersApi, resendInvitationApi, offboardTeamMemberApi } from "./api";
@@ -111,7 +112,8 @@ function* handleOffboardTeamMember(action: ReturnType<typeof offboardTeamMemberA
     yield call(offboardTeamMemberApi, action.payload.id, action.payload.appointmentActions);
     yield put(offboardTeamMemberAction.success());
     toast.success(i18n.t('teamMembers:seatOverflow.offboardSuccess'));
-    yield put(getSubscriptionSummaryAction.request()); // gate disappears on usedSeats <= paidSeats
+    yield put(fetchCurrentUserAction.request()); // refresh /me to update usedSeats in entitlements
+    yield put(getSubscriptionSummaryAction.request());
     yield put(listTeamMembersAction.request());
   } catch (error: unknown) {
     const message = getErrorMessage(error);

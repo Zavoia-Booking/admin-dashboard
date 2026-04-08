@@ -14,6 +14,8 @@ import { DurationInput } from "../../../shared/components/forms/fields/DurationI
 import type { UpdateBookingSettingsPayload } from "../../marketplace/types";
 import { SectionDivider } from "../../../shared/components/common/SectionDivider";
 import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import { selectIsOnTrial } from "../../auth/selectors";
 
 // Quick-action presets for duration inputs (stable references)
 const MIN_ADVANCE_QUICK_ACTIONS: (number | "other")[] = [0, 15, 30, 60, "other"];
@@ -78,6 +80,7 @@ export const AdvancedSettingsSection = forwardRef<
   const resolvedInitial = mergeWithDefaults(initialSettings ?? null);
   const [isOpen, setIsOpen] = useState(true);
   const { t } = useTranslation("marketplace", { keyPrefix: "advancedSettings" });
+  const isTrial = useSelector(selectIsOnTrial);
 
   const [formData, setFormData] = useState<UpdateBookingSettingsPayload>(
     () => resolvedInitial
@@ -734,10 +737,10 @@ export const AdvancedSettingsSection = forwardRef<
                   />
                 </div>
 
-                <div className="flex items-center justify-between p-3 md:p-4 rounded-xl border border-border bg-muted/20 hover:border-border-strong transition-colors">
+                <div className={`flex items-center justify-between p-3 md:p-4 rounded-xl border border-border bg-muted/20 transition-colors ${isTrial ? "opacity-60" : "hover:border-border-strong"}`}>
                   <div className="space-y-1">
                     <Label
-                      className="font-semibold text-sm cursor-pointer text-foreground-1"
+                      className={`font-semibold text-sm text-foreground-1 ${isTrial ? "cursor-not-allowed" : "cursor-pointer"}`}
                       htmlFor="smsEnabled"
                     >
                       {t(
@@ -752,13 +755,14 @@ export const AdvancedSettingsSection = forwardRef<
                   </div>
                   <Switch
                     id="smsEnabled"
-                    checked={formData.smsEnabled}
+                    checked={isTrial ? false : formData.smsEnabled}
                     onCheckedChange={handleSmsEnabled}
+                    disabled={isTrial}
                   />
                 </div>
               </div>
 
-              <div className="px-1 pt-2 border-t border-border">
+              <div className="px-1 pt-2 border-t border-border space-y-2">
                 <div className="flex items-start gap-2">
                   <Info className="h-4 w-4 text-info-600 dark:text-info-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
@@ -767,6 +771,16 @@ export const AdvancedSettingsSection = forwardRef<
                     )}
                   </p>
                 </div>
+                {isTrial && (
+                  <div className="flex items-start gap-2">
+                    <Info className="h-4 w-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                      {t(
+                        "messaging.communicationMethods.smsTrialRestriction"
+                      )}
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -399,7 +399,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "reviews",
       label: tReviews("tabLabel"),
-      content: <ReviewsTab />,
+      content: activeTab === "reviews" ? <ReviewsTab /> : null,
     },
   ];
 

@@ -237,16 +237,26 @@
     "processing": "Processing...",
     "noPackages": "No packages available",
     "checkBackSoon": "Check back soon",
+    "trialRestriction": "SMS is not available during trial",
+    "trialRestrictionDescription": "Sending SMS reminders and notifications is a paid subscription feature. Upgrade your plan to purchase SMS credits.",
     "purchaseHistory": "Purchase history",
     "loadMore": "Load more",
     "noPurchases": "No purchases yet"
+  },
+  "businessSetupGate": {
+    "title": "Complete Your Business Setup",
+    "subtitle": "Setup Required",
+    "message": "Before inviting team members, creating services, or adding locations, please finish setting up your business information.",
+    "button": "Continue Setup"
   },
   "subscriptionGate": {
     "nonOwner": {
       "title": "Service Unavailable",
       "subtitle": "Account Access Restricted",
       "message": "Your business subscription is currently inactive. Please contact your administrator to resolve this.",
-      "contactAdmin": "If you believe this is a mistake, please reach out to your administrator."
+      "contactAdmin": "If you believe this is a mistake, please reach out to your administrator.",
+      "buttonSettings": "Go to Settings",
+      "buttonSupport": "Ask for Help"
     },
     "paymentIssue": {
       "title": "Payment Issue",

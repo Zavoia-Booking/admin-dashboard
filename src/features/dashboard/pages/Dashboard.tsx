@@ -25,6 +25,7 @@ import {
 import { listLocationsAction } from "../../locations/actions";
 import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors";
 import type { RootState } from "../../../app/providers/store";
+import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 
 const WIDGET_CONFIG: Record<string, { label: string; span: number }> = {
   todayOverview: { label: "Today Overview", span: 2 },
@@ -425,43 +426,45 @@ export default function DashboardPage() {
 
   return (
     <AppLayout>
-      <div className="space-y-5">
-        {/* Page header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary shrink-0" />
-              {isLoadingLocations ? (
-                <Skeleton className="h-7 w-48" />
-              ) : (
-                <Select value={locationId} onValueChange={handleLocationChange}>
-                  <SelectTrigger className="w-auto min-w-[200px] h-8 text-lg font-bold border-none shadow-none px-0 focus:ring-0">
-                    <SelectValue placeholder={t("page.selectLocation")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((location) => (
-                      <SelectItem key={location.id} value={String(location.id)}>
-                        {location.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+      <BusinessSetupGate>
+        <div className="space-y-5">
+          {/* Page header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-primary shrink-0" />
+                {isLoadingLocations ? (
+                  <Skeleton className="h-7 w-48" />
+                ) : (
+                  <Select value={locationId} onValueChange={handleLocationChange}>
+                    <SelectTrigger className="w-auto min-w-[200px] h-8 text-lg font-bold border-none shadow-none px-0 focus:ring-0">
+                      <SelectValue placeholder={t("page.selectLocation")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {locations.map((location) => (
+                        <SelectItem key={location.id} value={String(location.id)}>
+                          {location.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <p className="text-xs text-foreground-3">
+                {t("page.analyticsDashboard")} &bull;{" "}
+                {new Date().toLocaleDateString(i18n.language === "ro" ? "ro-RO" : "en-US", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
             </div>
-            <p className="text-xs text-foreground-3">
-              {t("page.analyticsDashboard")} &bull;{" "}
-              {new Date().toLocaleDateString(i18n.language === "ro" ? "ro-RO" : "en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
           </div>
-        </div>
 
-        {renderContent()}
-      </div>
+          {renderContent()}
+        </div>
+      </BusinessSetupGate>
     </AppLayout>
   );
 }

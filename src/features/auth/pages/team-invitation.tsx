@@ -16,7 +16,7 @@ import {
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { InfoPage } from "../../../shared/components/common/InfoPage";
 import { PasswordStrength } from "../components/PasswordStrength";
-import { validatePasswordPolicy } from "../../../shared/utils/validation";
+import { validatePasswordPolicy, isE164, sanitizePhoneToE164Draft } from "../../../shared/utils/validation";
 import { Popover, PopoverTrigger, PopoverContent } from "../../../shared/components/ui/popover";
 import { useTranslation, Trans } from "react-i18next";
 
@@ -161,9 +161,11 @@ export default function TeamInvitationPage() {
                   className={errors.firstName ? 'border-destructive' : ''}
                   {...register('firstName', { required: t('teamInvitation.validation.firstNameRequired') })} 
                 />
-                {errors.firstName && (
-                  <p className="text-xs text-destructive">{errors.firstName.message}</p>
-                )}
+                <div className="min-h-[18px]">
+                  {errors.firstName && (
+                    <p className="text-xs text-destructive">{errors.firstName.message}</p>
+                  )}
+                </div>
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="lastName">{t('teamInvitation.lastName')}</Label>
@@ -176,25 +178,35 @@ export default function TeamInvitationPage() {
                   className={errors.lastName ? 'border-destructive' : ''}
                   {...register('lastName', { required: t('teamInvitation.validation.lastNameRequired') })} 
                 />
-                {errors.lastName && (
-                  <p className="text-xs text-destructive">{errors.lastName.message}</p>
-                )}
+                <div className="min-h-[18px]">
+                  {errors.lastName && (
+                    <p className="text-xs text-destructive">{errors.lastName.message}</p>
+                  )}
+                </div>
               </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="phone">{t('teamInvitation.phone')}</Label>
-              <Input 
-                id="phone" 
-                type="tel" 
+              <Input
+                id="phone"
+                type="tel"
                 placeholder={t('teamInvitation.phonePlaceholder')}
-                disabled={isRegistrationLoading} 
+                disabled={isRegistrationLoading}
                 aria-invalid={!!errors.phone}
                 className={errors.phone ? 'border-destructive' : ''}
-                {...register('phone', { required: t('teamInvitation.validation.phoneRequired') })} 
+                {...register('phone', {
+                  required: t('teamInvitation.validation.phoneRequired'),
+                  validate: (value) => isE164(value) || t('teamInvitation.validation.phoneInvalid'),
+                  onChange: (e) => {
+                    e.target.value = sanitizePhoneToE164Draft(e.target.value);
+                  },
+                })}
               />
-              {errors.phone && (
-                <p className="text-xs text-destructive">{errors.phone.message}</p>
-              )}
+              <div className="min-h-[18px]">
+                {errors.phone && (
+                  <p className="text-xs text-destructive">{errors.phone.message}</p>
+                )}
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="password">{t('teamInvitation.password')}</Label>

@@ -22,6 +22,7 @@ import { NotListedYetView } from "../components/NotListedYetView";
 import { ListingConfigurationView } from "../components/ListingConfigurationView";
 import { MarketplaceSkeleton } from "../components/MarketplaceSkeleton";
 import { ListingConfigurationSkeleton } from "../components/ListingConfigurationSkeleton";
+import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 
 export default function MarketplacePage() {
   const dispatch = useDispatch();
@@ -95,11 +96,13 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <AppLayout>
-        {listing && !listing.isListed ? (
-          <MarketplaceSkeleton />
-        ) : (
-          <ListingConfigurationSkeleton />
-        )}
+        <BusinessSetupGate>
+          {listing && !listing.isListed ? (
+            <MarketplaceSkeleton />
+          ) : (
+            <ListingConfigurationSkeleton />
+          )}
+        </BusinessSetupGate>
       </AppLayout>
     );
   }
@@ -108,28 +111,30 @@ export default function MarketplacePage() {
   if (listing && (listing.isListed || showConfiguration)) {
     return (
       <AppLayout>
-        <ListingConfigurationView
-          business={business}
-          locationsWithAssignments={locationCatalog}
-          isPublishing={isPublishing}
-          isVisible={listing.isVisible}
-          isListed={listing.isListed}
-          marketplaceName={listing.marketplaceName}
-          marketplaceEmail={listing.marketplaceEmail}
-          marketplacePhone={listing.marketplacePhone}
-          marketplaceDescription={listing.marketplaceDescription}
-          useBusinessName={listing.useBusinessName}
-          useBusinessEmail={listing.useBusinessEmail}
-          useBusinessPhone={listing.useBusinessPhone}
-          useBusinessDescription={listing.useBusinessDescription}
-          allowOnlineBooking={listing.allowOnlineBooking}
-          featuredImage={listing.featuredImage}
-          portfolioImages={listing.portfolioImages}
-          industries={industries}
-          industryTags={industryTags}
-          selectedIndustryTags={selectedIndustryTags}
-          onSave={handleSaveConfiguration}
-        />
+        <BusinessSetupGate>
+          <ListingConfigurationView
+            business={business}
+            locationsWithAssignments={locationCatalog}
+            isPublishing={isPublishing}
+            isVisible={listing.isVisible}
+            isListed={listing.isListed}
+            marketplaceName={listing.marketplaceName}
+            marketplaceEmail={listing.marketplaceEmail}
+            marketplacePhone={listing.marketplacePhone}
+            marketplaceDescription={listing.marketplaceDescription}
+            useBusinessName={listing.useBusinessName}
+            useBusinessEmail={listing.useBusinessEmail}
+            useBusinessPhone={listing.useBusinessPhone}
+            useBusinessDescription={listing.useBusinessDescription}
+            allowOnlineBooking={listing.allowOnlineBooking}
+            featuredImage={listing.featuredImage}
+            portfolioImages={listing.portfolioImages}
+            industries={industries}
+            industryTags={industryTags}
+            selectedIndustryTags={selectedIndustryTags}
+            onSave={handleSaveConfiguration}
+          />
+        </BusinessSetupGate>
       </AppLayout>
     );
   }
@@ -138,14 +143,16 @@ export default function MarketplacePage() {
   if (listing && !listing.isListed) {
     return (
       <AppLayout>
-        <NotListedYetView
-          onStartListing={handleStartListing}
-          business={business}
-          listing={listing}
-          locations={locationCatalog}
-          services={locationCatalog.flatMap((loc) => loc.services)}
-          teamMembers={locationCatalog.flatMap((loc) => loc.teamMembers)}
-        />
+        <BusinessSetupGate>
+          <NotListedYetView
+            onStartListing={handleStartListing}
+            business={business}
+            listing={listing}
+            locations={locationCatalog}
+            services={locationCatalog.flatMap((loc) => loc.services)}
+            teamMembers={locationCatalog.flatMap((loc) => loc.teamMembers)}
+          />
+        </BusinessSetupGate>
       </AppLayout>
     );
   }
@@ -153,9 +160,11 @@ export default function MarketplacePage() {
   // Fallback (should not reach here if listing data is loaded)
   return (
     <AppLayout>
-      <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)] cursor-default">
-        <p className="text-muted-foreground">{t("page.noListingData")}</p>
-      </div>
+      <BusinessSetupGate>
+        <div className="p-4 flex items-center justify-center h-[calc(100vh-200px)] cursor-default">
+          <p className="text-muted-foreground">{t("page.noListingData")}</p>
+        </div>
+      </BusinessSetupGate>
     </AppLayout>
   );
 }
