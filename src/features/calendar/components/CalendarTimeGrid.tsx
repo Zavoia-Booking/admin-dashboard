@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import { getSelectedLocationId, getDayDataLoading, getWeekDataLoading } from "../selectors.ts";
 import { AppointmentViewMode } from "../types.ts";
@@ -16,6 +17,7 @@ interface CalendarTimeGridProps {
 }
 
 export const CalendarTimeGrid: FC<CalendarTimeGridProps> = ({ viewMode }) => {
+  const { t } = useTranslation("calendar");
   const selectedLocationId = useSelector(getSelectedLocationId);
   const isDayLoading = useSelector(getDayDataLoading);
   const isWeekLoading = useSelector(getWeekDataLoading);
@@ -23,7 +25,7 @@ export const CalendarTimeGrid: FC<CalendarTimeGridProps> = ({ viewMode }) => {
   if (!selectedLocationId) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-sm text-muted-foreground">Select a location to view the calendar.</p>
+        <p className="text-sm text-muted-foreground">{t("page.appointments.selectLocation")}</p>
       </div>
     );
   }

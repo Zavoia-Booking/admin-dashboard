@@ -1,4 +1,5 @@
 import { type FC, type ReactNode, useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { useSelector } from "react-redux";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, User, Pencil, Trash2, Repeat2 } from "lucide-react";
@@ -20,12 +21,21 @@ import {
   getCalendarBlockReasonLabel,
 } from "./blockReasonMeta.ts";
 import { getBlockFormOpen } from "../selectors.ts";
+import type { TFunction } from "i18next";
 
 /** Matches EditAppointmentSlider detail surfaces: default cursor, pointer on controls. */
 const BLOCK_SUMMARY_PANEL_CURSOR =
   "cursor-default [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed";
 
-export function getBlockScopeLabel(scope: string): string {
+export function getBlockScopeLabel(scope: string, t?: TFunction): string {
+  if (t) {
+    switch (scope) {
+      case "location": return t("page.blocks.scope.locationBlock");
+      case "staff": return t("page.blocks.scope.staffTimeOff");
+      case "business": return t("page.blocks.scope.businessBlock");
+      default: return scope;
+    }
+  }
   switch (scope) {
     case "location":
       return "Location Block";
@@ -38,7 +48,19 @@ export function getBlockScopeLabel(scope: string): string {
   }
 }
 
-function staffAppliesLine(block: CalendarBlockDto, staffName: string | null): string {
+function staffAppliesLine(block: CalendarBlockDto, staffName: string | null, t?: TFunction): string {
+  if (t) {
+    switch (block.blockScope) {
+      case "location":
+        return t("page.blocks.scope.entireLocation");
+      case "business":
+        return t("page.blocks.scope.allLocations");
+      case "staff":
+        return staffName ?? (block.userId != null ? t("page.common.staffId", { id: block.userId }) : t("page.common.unassigned"));
+      default:
+        return block.blockScope;
+    }
+  }
   switch (block.blockScope) {
     case "location":
       return "Entire location";
@@ -85,7 +107,7 @@ export type BlockSummaryDialogShellProps = BlockSummaryPopoverPanelProps & {
 };
 
 /**
- * Block “summary” body styled to mirror {@link EditAppointmentSlider}: header band + dashed rule,
+ * Block "summary" body styled to mirror {@link EditAppointmentSlider}: header band + dashed rule,
  * muted scroll region, bordered detail card(s), pill-shaped actions.
  */
 export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
@@ -98,11 +120,12 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
   onEditBlock,
   onRequestDeleteBlock,
 }) => {
-  const reasonLabel = getCalendarBlockReasonLabel(block.reason);
+  const { t } = useTranslation("calendar");
+  const reasonLabel = getCalendarBlockReasonLabel(block.reason, t);
   const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
   const customTitle = block.title?.trim() ?? "";
-  const appliesLine = staffAppliesLine(block, staffName);
-  const timeDisplay = block.isAllDay ? "All day" : formatTimeRange(block.startsAt, block.endsAt, timezone);
+  const appliesLine = staffAppliesLine(block, staffName, t);
+  const timeDisplay = block.isAllDay ? t("page.blocks.allDay") : formatTimeRange(block.startsAt, block.endsAt, timezone);
   const durationMinutes = block.isAllDay
     ? null
     : Math.max(
@@ -113,9 +136,9 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
   const notesTrimmed = block.notes?.trim() ?? "";
 
   const headerMetaLine = `${timeDisplay}${durationText ? ` · ${durationText}` : ""} · ${appliesLine}`;
-  const headerTitle = customTitle || "Block details";
+  const headerTitle = customTitle || t("page.blocks.blockDetails");
 
-  /** Same resolution as {@link BlockCard} “who” column for staff blocks. */
+  /** Same resolution as {@link BlockCard} "who" column for staff blocks. */
   const staffMember =
     block.blockScope === "staff" && block.userId != null
       ? locationStaff.find((s) => s.id === block.userId) ?? null
@@ -123,12 +146,12 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
 
   const appliesRowLabel =
     block.blockScope === "staff"
-      ? "Assigned staff"
+      ? t("page.blocks.detailLabels.assignedStaff")
       : block.blockScope === "location"
-        ? "Location"
+        ? t("page.blocks.detailLabels.location")
         : block.blockScope === "business"
-          ? "Business"
-          : "Applies to";
+          ? t("page.blocks.detailLabels.business")
+          : t("page.blocks.detailLabels.appliesTo");
 
   return (
     <>
@@ -157,7 +180,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground opacity-70 transition-[opacity,color]",
               "hover:opacity-100 hover:text-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             )}
-            aria-label="Close"
+            aria-label={t("page.common.close")}
           >
             <X className="h-5 w-5" />
           </DialogPrimitive.Close>
@@ -169,27 +192,27 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
         <div className="space-y-4">
           <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
             <div className="flex min-w-0 items-center justify-between gap-2">
-              <Label className="text-sm font-semibold text-foreground-1">Details</Label>
+              <Label className="text-sm font-semibold text-foreground-1">{t("page.blocks.details")}</Label>
               {block.isRecurring ? (
                 <span
                   className={cn(
                     "inline-flex max-w-full min-w-24 shrink-0 items-center justify-center gap-1.5 rounded-full border border-border",
                     "bg-muted/60 px-2 py-1 text-xs font-medium text-foreground-3",
                   )}
-                  title="Recurring block"
+                  title={t("page.blocks.recurringBlock")}
                 >
                   <Repeat2 className="h-3.5 w-3.5 shrink-0 text-foreground-1" aria-hidden />
-                  <span className="truncate">Recurring</span>
+                  <span className="truncate">{t("page.blocks.recurring")}</span>
                 </span>
               ) : null}
             </div>
             <dl className="mt-3 divide-y divide-border-subtle text-sm">
               <div className="grid grid-cols-[minmax(6.5rem,7.5rem)_minmax(0,1fr)] items-start gap-x-6 gap-y-1 py-3.5">
-                <dt className="pt-0.5 font-medium text-foreground-3">Reason</dt>
+                <dt className="pt-0.5 font-medium text-foreground-3">{t("page.blocks.detailLabels.reason")}</dt>
                 <dd className="min-w-0 font-semibold text-foreground-1">{reasonLabel}</dd>
               </div>
               <div className="grid grid-cols-[minmax(6.5rem,7.5rem)_minmax(0,1fr)] items-start gap-x-6 gap-y-1 py-3.5">
-                <dt className="pt-0.5 font-medium text-foreground-3">Time</dt>
+                <dt className="pt-0.5 font-medium text-foreground-3">{t("page.blocks.detailLabels.time")}</dt>
                 <dd className="min-w-0 font-semibold tabular-nums text-foreground-1">
                   {timeDisplay}
                   {durationText ? (
@@ -241,7 +264,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
               </div>
               {notesTrimmed ? (
                 <div className="grid grid-cols-[minmax(6.5rem,7.5rem)_minmax(0,1fr)] items-start gap-x-6 gap-y-1 py-3.5">
-                  <dt className="pt-0.5 font-medium text-foreground-3">Notes</dt>
+                  <dt className="pt-0.5 font-medium text-foreground-3">{t("page.blocks.detailLabels.notes")}</dt>
                   <dd className="min-w-0 whitespace-pre-wrap break-words leading-relaxed text-foreground-2">
                     {notesTrimmed}
                   </dd>
@@ -254,7 +277,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
             new Date(block.endsAt).getTime() < Date.now() && !block.isRecurring
           ) && (
             <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
-              <Label className="text-sm font-semibold text-foreground-1">Actions</Label>
+              <Label className="text-sm font-semibold text-foreground-1">{t("page.blocks.actions")}</Label>
               <div
                 className={cn(
                   "mt-3 flex w-full min-w-0 flex-wrap items-center gap-2",
@@ -275,7 +298,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
                       className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors duration-200 group-hover:text-primary group-active:text-primary"
                       aria-hidden
                     />
-                    Edit block
+                    {t("page.blocks.editBlock")}
                   </Button>
                 )}
                 {canDeleteBlock && (
@@ -287,7 +310,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
                     className="inline-flex !h-8 !min-h-8 shrink-0 items-center gap-1.5 px-3.5 text-xs font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-focus/60"
                   >
                     <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                    Delete block
+                    {t("page.blocks.deleteBlockBtn")}
                   </Button>
                 )}
               </div>
@@ -309,6 +332,7 @@ export const BlockSummaryDialogShell: FC<BlockSummaryDialogShellProps> = ({
   preventDismiss,
   ...panelProps
 }) => {
+  const { t } = useTranslation("calendar");
   const blockFormOpen = useSelector(getBlockFormOpen);
   const locked = blockFormOpen || !!preventDismiss;
 
@@ -348,7 +372,7 @@ export const BlockSummaryDialogShell: FC<BlockSummaryDialogShellProps> = ({
           className={blockSummaryDialogContentClassName}
           aria-describedby={undefined}
         >
-          <DialogPrimitive.Title className="sr-only">Block details</DialogPrimitive.Title>
+          <DialogPrimitive.Title className="sr-only">{t("page.blocks.blockDetails")}</DialogPrimitive.Title>
           <BlockSummaryPopoverPanel {...panelProps} />
         </DialogPrimitive.Content>
       </DialogPortal>

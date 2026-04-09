@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useForm, useController } from 'react-hook-form';
 import { UserPlus, Mail, Phone, AlertCircle, UserCircle, UserRound, ArrowRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
@@ -38,6 +39,7 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
   onBack,
   loading = false,
 }) => {
+  const { t } = useTranslation('calendar');
   const {
     control,
     handleSubmit,
@@ -55,10 +57,10 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
     control,
     rules: {
       validate: (value) => {
-        const t = (value ?? '').trim();
-        if (!t) return 'First name is required';
-        if (t.length < 2) return 'First name must be at least 2 characters';
-        if (t.length > 50) return 'First name must be less than 50 characters';
+        const v = (value ?? '').trim();
+        if (!v) return t('page.appointments.customer.quickCreate.firstNameRequired');
+        if (v.length < 2) return t('page.appointments.customer.quickCreate.firstNameMin');
+        if (v.length > 50) return t('page.appointments.customer.quickCreate.firstNameMax');
         return true;
       },
     },
@@ -71,11 +73,11 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
     name: 'lastName',
     control,
     rules: {
-      maxLength: { value: 50, message: 'Last name must be less than 50 characters' },
+      maxLength: { value: 50, message: t('page.appointments.customer.quickCreate.lastNameMax') },
       validate: (value) => {
-        const t = (value ?? '').trim();
-        if (!t) return true;
-        if (t.length === 1) return 'Last name must be at least 2 characters';
+        const v = (value ?? '').trim();
+        if (!v) return true;
+        if (v.length === 1) return t('page.appointments.customer.quickCreate.lastNameMin');
         return true;
       },
     },
@@ -87,7 +89,7 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
     rules: {
       validate: (value) => {
         if (!value || value.trim().length === 0) return true;
-        const error = emailError('Email', value);
+        const error = emailError(t("page.appointments.customer.quickCreate.email"), value);
         return error === null ? true : error;
       },
     },
@@ -102,7 +104,7 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
           !value ||
           value.trim().length === 0 ||
           isE164(value) ||
-          'Enter a valid phone number',
+          t('page.appointments.customer.quickCreate.validPhone'),
       },
     },
   });
@@ -120,18 +122,18 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
     <div className="rounded-lg border border-info-300 bg-info-100 p-4 mt-4 dark:bg-surface-hover/30 dark:border-border-strong space-y-3">
       <div className="flex items-center gap-2 text-sm font-medium text-neutral-900 dark:text-foreground-1">
         <UserPlus className="h-4 w-4" />
-        Quick Create Customer
+        {t("page.appointments.customer.quickCreate.title")}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-2">
           <Label htmlFor="quick-create-firstName" className="text-base font-medium">
-            First name *
+            {t("page.appointments.customer.quickCreate.firstName")}
           </Label>
           <div className="relative">
             <Input
               id="quick-create-firstName"
               type="text"
-              placeholder="e.g. John"
+              placeholder={t("page.appointments.customer.quickCreate.firstNamePlaceholder")}
               value={firstNameField.value || ''}
               onChange={(e) => firstNameField.onChange(e.target.value)}
               maxLength={50}
@@ -155,13 +157,13 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
         </div>
         <div className="space-y-2">
           <Label htmlFor="quick-create-lastName" className="text-base font-medium">
-            Last name
+            {t("page.appointments.customer.quickCreate.lastName")}
           </Label>
           <div className="relative">
             <Input
               id="quick-create-lastName"
               type="text"
-              placeholder="e.g. Doe"
+              placeholder={t("page.appointments.customer.quickCreate.lastNamePlaceholder")}
               value={lastNameField.value || ''}
               onChange={(e) => lastNameField.onChange(e.target.value)}
               maxLength={50}
@@ -186,13 +188,13 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
       </div>
       <div className="space-y-2">
         <Label htmlFor="quick-create-email" className="text-base font-medium">
-          Email
+          {t("page.appointments.customer.quickCreate.email")}
         </Label>
         <div className="relative">
           <Input
             id="quick-create-email"
             type="email"
-            placeholder="e.g. contact@yourbusiness.com"
+            placeholder={t("page.appointments.customer.quickCreate.emailPlaceholder")}
             value={emailField.value || ''}
             onChange={(e) => emailField.onChange(e.target.value)}
             className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
@@ -220,13 +222,13 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
       </div>
       <div className="space-y-2">
         <Label htmlFor="quick-create-phone" className="text-base font-medium">
-          Phone
+          {t("page.appointments.customer.quickCreate.phone")}
         </Label>
         <div className="relative">
           <Input
             id="quick-create-phone"
             type="tel"
-            placeholder="+1 555 123 4567"
+            placeholder={t("page.appointments.customer.quickCreate.phonePlaceholder")}
             value={phoneField.value || ''}
             onChange={(e) => {
               const sanitized = sanitizePhoneToE164Draft(e.target.value || '');
@@ -265,7 +267,7 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
           className="gap-2 h-11 cursor-pointer w-32 md:w-42"
           disabled={loading}
         >
-          Back
+          {t("page.appointments.back")}
         </Button>
         <Button
           type="button"
@@ -278,7 +280,7 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
             <Spinner size="sm" color="white" />
           ) : (
             <>
-              Create
+              {t("page.appointments.customer.quickCreate.create")}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
             </>
           )}

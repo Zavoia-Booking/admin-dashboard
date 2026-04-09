@@ -1,11 +1,12 @@
 import { type FC } from "react";
+import { useTranslation } from "react-i18next";
 import type { SlimAppointment, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import {
   formatTimeRange,
   formatDurationHuman,
   getStatusBadge,
   getBookedViaLabel,
-  NO_CUSTOMER_DISPLAY_LABEL,
+  getNoCustomerDisplayLabel,
 } from "./utils.tsx";
 import { ShieldAlert, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/components/ui/avatar.tsx";
@@ -99,6 +100,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
   onClick,
   colorMap,
 }) => {
+  const { t } = useTranslation("calendar");
   const timeRange = formatTimeRange(appointment.scheduledAt, appointment.endsAt);
   const colorCoding = calendarPreferences.getColorCoding();
   const { backgroundColor } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
@@ -107,17 +109,17 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
   const order = appointment.bookingGroupOrder ?? 1;
   const duration = formatDurationHuman(appointment.duration);
 
-  const viaLabel = getBookedViaLabel(appointment.bookingSource);
+  const viaLabel = getBookedViaLabel(appointment.bookingSource, t);
 
   const resolvedStaff = appointment.staffUserIds
     .map((id) => locationStaff.find((s) => s.id === id))
     .filter((s): s is CalendarStaffMember => s != null);
   const staffLabel = resolvedStaff.length > 0
     ? resolvedStaff.map((s) => `${s.firstName} ${s.lastName}`).join(', ')
-    : 'Unassigned';
+    : t("page.common.unassigned");
 
   const hasCustomerName = !!appointment.customerName;
-  const displayName = appointment.customerName ?? NO_CUSTOMER_DISPLAY_LABEL;
+  const displayName = appointment.customerName ?? getNoCustomerDisplayLabel(t);
 
   return (
     <div
@@ -214,7 +216,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
 
       {/* ── Status ── */}
       <div className="flex min-w-0 justify-end border-l border-border pl-3">
-        {getStatusBadge(appointment.status)}
+        {getStatusBadge(appointment.status, t)}
       </div>
 
       {/* ── Override (fixed column so status column stays aligned) ── */}

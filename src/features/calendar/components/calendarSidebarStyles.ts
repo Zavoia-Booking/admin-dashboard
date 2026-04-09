@@ -5,7 +5,7 @@
 export const CALENDAR_SELECT_TRIGGER =
     "flex h-10 w-full items-center gap-2 text-sm border-border bg-background text-foreground-1 hover:bg-muted/50 data-[placeholder]:text-muted-foreground";
 
-/** Section heading above filter groups (“By category”, “By status”, …). */
+/** Section heading above filter groups ("By category", "By status", …). */
 export const CALENDAR_FILTER_SECTION_TITLE =
   "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
 
@@ -27,7 +27,7 @@ export const CALENDAR_FILTER_DIVIDER_GUTTER = "pt-4 pb-6";
 export const CALENDAR_FILTER_DIVIDER_LINE =
   "h-px w-full shrink-0 bg-[linear-gradient(90deg,transparent_0%,var(--border)_20%,var(--border)_70%,transparent_100%)]";
 
-/** Space between the previous section’s content and the divider block. */
+/** Space between the previous section's content and the divider block. */
 export const CALENDAR_FILTER_SECTION_BREAK_MT = "mt-4";
 
 /**

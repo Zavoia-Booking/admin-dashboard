@@ -3,8 +3,6 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton.tsx";
 import {
   GRID_HEIGHT_PER_HOUR,
   GUTTER_WIDTH,
-  COLUMN_SCROLL_THRESHOLD,
-  formatHourLabel,
 } from "./constants.ts";
 
 const SKELETON_HOURS = Array.from({ length: 24 }, (_, i) => i); // 0 AM – 11 PM (full 24h)

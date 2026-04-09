@@ -3,6 +3,7 @@
  * Kept in a separate file to avoid bloating the component; no React or component state.
  */
 
+import type { TFunction } from "i18next";
 import type { AppointmentBookingSource } from '../../../shared/types/calendar';
 import { buildZonedDate } from '../timezone';
 import type { AddFormPrefill } from '../types';
@@ -99,7 +100,19 @@ export function getCustomerInitials(display: CustomerDisplay | null, fallback: s
 export function getConfirmDialogDescription(
   confirmReason: 'out_of_hours' | 'on_block' | null,
   isReschedule: boolean,
+  t?: TFunction,
 ): string {
+  if (t) {
+    const base =
+      confirmReason === 'on_block'
+        ? isReschedule
+          ? t("page.appointments.confirmDialog.onBlockReschedule")
+          : t("page.appointments.confirmDialog.onBlockCreate")
+        : isReschedule
+          ? t("page.appointments.confirmDialog.outOfHoursReschedule")
+          : t("page.appointments.confirmDialog.outOfHoursCreate");
+    return base + ' ' + t("page.appointments.confirmDialog.reminderNote");
+  }
   const base =
     confirmReason === 'on_block'
       ? isReschedule
@@ -111,11 +124,13 @@ export function getConfirmDialogDescription(
   return base + ' Reminders are not sent to clients between 22:00 and 08:00 (business timezone).';
 }
 
-export function getConfirmDialogTitle(isReschedule: boolean): string {
+export function getConfirmDialogTitle(isReschedule: boolean, t?: TFunction): string {
+  if (t) return isReschedule ? t("page.appointments.confirmDialog.rescheduleAnyway") : t("page.appointments.confirmDialog.createAnyway");
   return isReschedule ? 'Reschedule anyway?' : 'Create appointment anyway?';
 }
 
-export function getConfirmButtonTitle(isReschedule: boolean): string {
+export function getConfirmButtonTitle(isReschedule: boolean, t?: TFunction): string {
+  if (t) return isReschedule ? t("page.appointments.confirmDialog.yesReschedule") : t("page.appointments.confirmDialog.yesCreate");
   return isReschedule ? 'Yes, reschedule' : 'Yes, create';
 }
 

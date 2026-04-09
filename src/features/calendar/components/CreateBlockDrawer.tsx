@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import DatePicker from '../../../shared/components/ui/date-picker';
 import {
   AlertCircle,
@@ -58,7 +59,7 @@ import {
   CalendarBlockReason,
   type CalendarBlockCreatePayload,
 } from '../../../shared/types/calendar';
-import { CALENDAR_BLOCK_REASON_OPTIONS } from './blockReasonMeta';
+import { getCalendarBlockReasonOptionsTranslated } from './blockReasonMeta';
 import {
   buildZonedDate,
   formatDateInTimezone,
@@ -102,7 +103,7 @@ function blockStaffFullName(member: CalendarStaffMember): string {
 }
 
 /**
- * Time slot popover aligned with Add Appointment “Select time” (expand animation, working-hours sections).
+ * Time slot popover aligned with Add Appointment "Select time" (expand animation, working-hours sections).
  */
 function BlockDrawerTimeSlotSelect({
   label,
@@ -124,6 +125,7 @@ function BlockDrawerTimeSlotSelect({
   /** When true (e.g. all-day block), field is non-interactive and visually muted. */
   disabled?: boolean;
 }) {
+  const { t } = useTranslation("calendar");
   const [open, setOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
   const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -174,8 +176,8 @@ function BlockDrawerTimeSlotSelect({
   }, [timeSlots, open247, isSlotOutsideHours]);
 
   const workingHoursLabel = useMemo(() => {
-    if (open247) return 'Open 24/7';
-    if (!dayWorkingHours?.isOpen) return 'Closed';
+    if (open247) return t("page.blocks.create.open247");
+    if (!dayWorkingHours?.isOpen) return t("page.blocks.create.closed");
     return `${dayWorkingHours.open} – ${dayWorkingHours.close}`;
   }, [open247, dayWorkingHours]);
 
@@ -217,7 +219,7 @@ function BlockDrawerTimeSlotSelect({
             {value ? (
               <span className="text-foreground-1">{formatSlotTime(value)}</span>
             ) : (
-              <span className="text-foreground-3 dark:text-foreground-2">Select time</span>
+              <span className="text-foreground-3 dark:text-foreground-2">{t("page.blocks.create.selectTime")}</span>
             )}
             <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -242,7 +244,7 @@ function BlockDrawerTimeSlotSelect({
               <>
                 <div className="px-3 pb-1">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-3 dark:text-foreground-2">
-                    Working hours
+                    {t("page.blocks.create.workingHours")}
                   </p>
                 </div>
                 {inHoursSlots.map((slot) => {
@@ -267,7 +269,7 @@ function BlockDrawerTimeSlotSelect({
             )}
             {inHoursSlots.length === 0 && slotsOutsideHours.length > 0 && (
               <div className="px-4 py-2 text-xs text-foreground-3 dark:text-foreground-2">
-                No available times within working hours
+                {t("page.blocks.create.noTimesWithinHours")}
               </div>
             )}
             {slotsOutsideHours.length > 0 && (
@@ -275,7 +277,7 @@ function BlockDrawerTimeSlotSelect({
                 <div className="border-t border-border my-1" role="separator" />
                 <div className="px-3 pt-1 pb-1">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-3 dark:text-foreground-2">
-                    Outside working hours
+                    {t("page.blocks.create.outsideWorkingHours")}
                   </p>
                 </div>
                 {slotsOutsideHours.map((slot) => {
@@ -319,7 +321,7 @@ const WEEKDAY_LABELS: { value: number; label: string }[] = [
   { value: 6, label: 'Sat' },
 ];
 
-/** Green check for selected rows — same affordance as calendar Filters “services & bundles” list. */
+/** Green check for selected rows — same affordance as calendar Filters "services & bundles" list. */
 function RepeatWeekdayListRowCheck({ visible }: { visible: boolean }) {
   return (
     <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>
@@ -348,9 +350,20 @@ function BlockRepeatWeekdaysCombo({
   listGroupHeading: string;
   disabled?: boolean;
 }) {
+  const { t } = useTranslation("calendar");
   const [open, setOpen] = useState(false);
   const [listMounted, setListMounted] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+
+  const weekdayLabelMap: Record<number, string> = useMemo(() => ({
+    0: t("page.blocks.create.weekdayLabels.sun"),
+    1: t("page.blocks.create.weekdayLabels.mon"),
+    2: t("page.blocks.create.weekdayLabels.tue"),
+    3: t("page.blocks.create.weekdayLabels.wed"),
+    4: t("page.blocks.create.weekdayLabels.thu"),
+    5: t("page.blocks.create.weekdayLabels.fri"),
+    6: t("page.blocks.create.weekdayLabels.sat"),
+  }), [t]);
 
   useEffect(() => {
     if (disabled) setOpen(false);
@@ -381,7 +394,6 @@ function BlockRepeatWeekdaysCombo({
     };
   }, [open]);
 
-  const showListShell = open && !disabled;
   const showListContainer = listMounted && !disabled;
   const lastDayIdx = WEEKDAY_LABELS.length - 1;
 
@@ -432,7 +444,7 @@ function BlockRepeatWeekdaysCombo({
                       )}
                     >
                       <RepeatWeekdayListRowCheck visible={selected} />
-                      <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">{label}</span>
+                      <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">{weekdayLabelMap[value] ?? label}</span>
                     </CommandItem>
                   );
                 })}
@@ -505,6 +517,7 @@ const BLOCK_NOTES_MAX_LEN = 500;
 // ─────────────────────────────────────────────────────────────
 
 export const CreateBlockDrawer: React.FC = () => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
 
   // Redux
@@ -529,8 +542,9 @@ export const CreateBlockDrawer: React.FC = () => {
   const canCreateBlocks =
     !isTeamMember || !!bookingSettings?.allowStaffBlockCalendarWithoutConfirmation;
   const allowedReasonOptions = useMemo(() => {
+    const translatedOptions = getCalendarBlockReasonOptionsTranslated(t);
     if (!isTeamMember) {
-      return CALENDAR_BLOCK_REASON_OPTIONS;
+      return translatedOptions;
     }
     const types = bookingSettings?.staffBlockCalendarTypes ?? [];
     const allowedReasons = new Set<CalendarBlockReason>(
@@ -539,8 +553,8 @@ export const CreateBlockDrawer: React.FC = () => {
         .filter((r): r is CalendarBlockReason => r != null),
     );
     if (allowedReasons.size === 0) return [];
-    return CALENDAR_BLOCK_REASON_OPTIONS.filter((option) => allowedReasons.has(option.value));
-  }, [isTeamMember, bookingSettings]);
+    return translatedOptions.filter((option) => allowedReasons.has(option.value));
+  }, [isTeamMember, bookingSettings, t]);
 
   const blockTz = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
 
@@ -550,7 +564,7 @@ export const CreateBlockDrawer: React.FC = () => {
     return formatDateInTimezone(form.startDate, blockTz) === formatDateInTimezone(form.endDate, blockTz);
   }, [form.startDate, form.endDate, blockTz]);
 
-  /** Earliest selectable calendar day for new blocks: “today” in location TZ (see `timezone.ts`). */
+  /** Earliest selectable calendar day for new blocks: "today" in location TZ (see `timezone.ts`). */
   const minSelectableWallDate = useMemo(
     () => minSelectableCalendarDateForTimezone(new Date(), blockTz),
     [blockTz],
@@ -915,7 +929,7 @@ export const CreateBlockDrawer: React.FC = () => {
       dispatch(createCalendarBlock.request(payload));
       handleClose();
     } catch {
-      setError(isEditMode ? 'Failed to update block' : 'Failed to create block');
+      setError(isEditMode ? t("page.blocks.create.failedToUpdate") : t("page.blocks.create.failedToCreate"));
     } finally {
       setSubmitting(false);
     }
@@ -929,17 +943,20 @@ export const CreateBlockDrawer: React.FC = () => {
     'border bg-surface hover:bg-surface-hover focus:bg-surface h-12 text-base w-full px-4 border-border-strong dark:border-border-strong';
 
   const repeatWeekdaySummary = useMemo(() => {
-    if (form.repeatDaysOfWeek.length === 0) return 'Select weekdays';
+    if (form.repeatDaysOfWeek.length === 0) return t("page.blocks.create.selectWeekdays");
     return [...form.repeatDaysOfWeek]
       .sort((a, b) => a - b)
-      .map((v) => WEEKDAY_LABELS.find((w) => w.value === v)?.label ?? '')
+      .map((v) => {
+        const WEEKDAY_KEY_BY_INDEX = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        return t(`page.blocks.create.weekdayLabels.${WEEKDAY_KEY_BY_INDEX[v]}`);
+      })
       .filter(Boolean)
       .join(', ');
   }, [form.repeatDaysOfWeek]);
 
   /** Singular label when exactly one weekday is selected. */
   const repeatWeekdayFieldLabel =
-    form.repeatDaysOfWeek.length === 1 ? 'Day of week' : 'Weekdays';
+    form.repeatDaysOfWeek.length === 1 ? t("page.blocks.create.dayOfWeek") : t("page.blocks.create.weekdays");
 
   const showRepeatWeekdayPicker =
     form.isRecurring && recurrenceAllowed && (form.repeatFrequency === 'weekly' || form.repeatFrequency === 'biweekly');
@@ -948,11 +965,11 @@ export const CreateBlockDrawer: React.FC = () => {
     <BaseSlider
       isOpen={isOpen}
       onClose={handleClose}
-      title={isEditMode ? 'Edit block' : 'Block time'}
+      title={isEditMode ? t("page.blocks.create.editBlock") : t("page.blocks.create.blockTime")}
       subtitle={
         isEditMode
-          ? 'Update when this time is unavailable on the calendar.'
-          : 'Mark time as unavailable for booking.'
+          ? t("page.blocks.create.editBlockSubtitle")
+          : t("page.blocks.create.blockTimeSubtitle")
       }
       icon={CalendarClock}
       iconColor="text-foreground-1"
@@ -961,8 +978,8 @@ export const CreateBlockDrawer: React.FC = () => {
         <FormFooter
           onCancel={handleClose}
           formId="create-block-form"
-          cancelLabel="Cancel"
-          submitLabel={isEditMode ? 'Save changes' : 'Create block'}
+          cancelLabel={t("page.blocks.create.cancel")}
+          submitLabel={isEditMode ? t("page.blocks.create.saveChanges") : t("page.blocks.create.createBlock")}
           disabled={!canCreateBlocks || !canSubmit}
           isLoading={submitting}
         />
@@ -981,8 +998,7 @@ export const CreateBlockDrawer: React.FC = () => {
 
             {isEditMode && (
               <div className="p-3 rounded-lg bg-surface-hover text-sm text-foreground-3 dark:text-foreground-2">
-                Time, reason, title, and notes can be updated. To change location, scope, or recurrence, remove
-                this block and create a new one.
+                {t("page.blocks.create.editNotice")}
               </div>
             )}
 
@@ -990,11 +1006,11 @@ export const CreateBlockDrawer: React.FC = () => {
               <>
                 <div className="space-y-5">
                   <SliderSectionHeader
-                    title="Type"
+                    title={t("page.blocks.create.type")}
                     description={
                       !isTeamMember
-                        ? 'Choose whether this block applies to a location or to one staff member’s calendar.'
-                        : 'Your block applies to your own availability at this location.'
+                        ? t("page.blocks.create.typeDescriptionOwner")
+                        : t("page.blocks.create.typeDescriptionTeamMember")
                     }
                   />
                   {!canCreateBlocks ? (
@@ -1013,11 +1029,11 @@ export const CreateBlockDrawer: React.FC = () => {
                         >
                           <span className="flex w-full min-w-0 flex-col items-start gap-1.5 text-left">
                             <span className="inline-flex items-center gap-2 font-medium text-foreground-1">
-                              <span className="leading-snug">Location block</span>
+                              <span className="leading-snug">{t("page.blocks.create.locationBlock")}</span>
                               <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                             </span>
                             <span className="text-xs font-normal leading-snug text-foreground-3 dark:text-foreground-2">
-                              Blocks all bookings at this location.
+                              {t("page.blocks.create.locationBlockDesc")}
                             </span>
                           </span>
                         </Pill>
@@ -1032,11 +1048,11 @@ export const CreateBlockDrawer: React.FC = () => {
                         >
                           <span className="flex w-full min-w-0 flex-col items-start gap-1.5 text-left">
                             <span className="inline-flex items-center gap-2 font-medium text-foreground-1">
-                              <span className="leading-snug">Staff unavailability</span>
+                              <span className="leading-snug">{t("page.blocks.create.staffUnavailability")}</span>
                               <User className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
                             </span>
                             <span className="text-xs font-normal leading-snug text-foreground-3 dark:text-foreground-2">
-                            Blocks bookings for selected staff only.
+                            {t("page.blocks.create.staffUnavailabilityDesc")}
                             </span>
                           </span>
                         </Pill>
@@ -1048,10 +1064,10 @@ export const CreateBlockDrawer: React.FC = () => {
                       <div className="flex items-center justify-between gap-3">
                         <div className="min-w-0 pr-2">
                           <Label htmlFor="apply-all-locations" className="text-sm font-semibold text-foreground-1 cursor-pointer">
-                            Apply to all locations
+                            {t("page.blocks.create.applyToAllLocations")}
                           </Label>
                           <p className="text-xs text-foreground-3 dark:text-foreground-2 mt-1 leading-relaxed">
-                            Apply this same time block to every location in this business.
+                            {t("page.blocks.create.applyToAllLocationsDesc")}
                           </p>
                         </div>
                         <Switch
@@ -1071,13 +1087,13 @@ export const CreateBlockDrawer: React.FC = () => {
                   <>
                     <div className="space-y-5">
                       <SliderSectionHeader
-                        title="Staff"
-                        description="Choose who is unavailable."
+                        title={t("page.blocks.create.staff")}
+                        description={t("page.blocks.create.staffDesc")}
                       />
                       <div
                         className="flex flex-wrap items-center gap-1.5"
                         role="radiogroup"
-                        aria-label="Staff member for this block"
+                        aria-label={t("page.blocks.create.staffLabel")}
                       >
                         {locationStaff.map((member) => {
                           const selected = form.userId === member.id;
@@ -1124,17 +1140,17 @@ export const CreateBlockDrawer: React.FC = () => {
 
             <div className="space-y-5">
               <SliderSectionHeader
-                title="Date & time"
-                description="Choose when this time block starts and ends."
+                title={t("page.blocks.create.dateTime")}
+                description={t("page.blocks.create.dateTimeDesc")}
               />
               <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 pr-2">
                     <Label htmlFor="all-day" className="text-sm font-semibold text-foreground-1 cursor-pointer">
-                      All day
+                      {t("page.blocks.create.allDay")}
                     </Label>
                     <p className="text-xs text-foreground-3 dark:text-foreground-2 mt-1 leading-relaxed">
-                      Block the full day in this location’s time zone.
+                      {t("page.blocks.create.allDayDescription")}
                     </p>
                   </div>
                   <Switch
@@ -1149,32 +1165,32 @@ export const CreateBlockDrawer: React.FC = () => {
               <div className="space-y-4">
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground-1">Start date</Label>
+                    <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.startDate")}</Label>
                     <DatePicker
                       value={form.startDate}
                       onChange={handleStartDateChange}
                       minDate={startDatePickerMin}
                       connectedPopover
                       className={cn(datePickerClass)}
-                      placeholder="Select date"
+                      placeholder={t("page.blocks.create.selectDate")}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-foreground-1">End date</Label>
+                    <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.endDate")}</Label>
                     <DatePicker
                       value={form.endDate}
                       onChange={handleEndDateChange}
                       minDate={endOrRepeatDatePickerMin}
                       connectedPopover
                       className={cn(datePickerClass)}
-                      placeholder="Select date"
+                      placeholder={t("page.blocks.create.selectDate")}
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <BlockDrawerTimeSlotSelect
-                    label="Start time"
+                    label={t("page.blocks.create.startTime")}
                     date={form.startDate}
                     value={form.startTime}
                     onSelect={handleStartTimeSelect}
@@ -1184,7 +1200,7 @@ export const CreateBlockDrawer: React.FC = () => {
                     disabled={form.isAllDay}
                   />
                   <BlockDrawerTimeSlotSelect
-                    label="End time"
+                    label={t("page.blocks.create.endTime")}
                     date={form.endDate}
                     value={form.endTime}
                     onSelect={handleEndTimeSelect}
@@ -1207,11 +1223,11 @@ export const CreateBlockDrawer: React.FC = () => {
                   )}
                 >
                   <SliderSectionHeader
-                    title="Repeat"
+                    title={t("page.blocks.create.repeat")}
                     description={
                       recurrenceAllowed
-                        ? 'Turn this on to make this time block recurring.'
-                        : 'Recurring blocks need a single calendar day — set the end date to the same day as the start date.'
+                        ? t("page.blocks.create.repeatOnDesc")
+                        : t("page.blocks.create.repeatOffDesc")
                     }
                   />
                   <div className="flex items-center justify-between rounded-xl border border-border bg-white px-4 py-3 dark:bg-card">
@@ -1222,7 +1238,7 @@ export const CreateBlockDrawer: React.FC = () => {
                         recurrenceAllowed && 'cursor-pointer',
                       )}
                     >
-                      Make recurring
+                      {t("page.blocks.create.makeRecurring")}
                     </Label>
                     <Switch
                       id="repeat"
@@ -1241,7 +1257,7 @@ export const CreateBlockDrawer: React.FC = () => {
                           className="!min-h-12 w-auto justify-start transition-none active:scale-100"
                           onClick={() => handleRepeatFrequencyChange('daily')}
                         >
-                          Daily
+                          {t("page.blocks.create.daily")}
                         </Pill>
                         <Pill
                           selected={form.repeatFrequency === 'weekly'}
@@ -1249,7 +1265,7 @@ export const CreateBlockDrawer: React.FC = () => {
                           className="!min-h-12 w-auto justify-start transition-none active:scale-100"
                           onClick={() => handleRepeatFrequencyChange('weekly')}
                         >
-                          Weekly
+                          {t("page.blocks.create.weekly")}
                         </Pill>
                         <Pill
                           selected={form.repeatFrequency === 'biweekly'}
@@ -1257,7 +1273,7 @@ export const CreateBlockDrawer: React.FC = () => {
                           className="!min-h-12 w-auto justify-start transition-none active:scale-100"
                           onClick={() => handleRepeatFrequencyChange('biweekly')}
                         >
-                          Every 2 weeks
+                          {t("page.blocks.create.everyTwoWeeks")}
                         </Pill>
                         <Pill
                           selected={form.repeatFrequency === 'monthly'}
@@ -1265,7 +1281,7 @@ export const CreateBlockDrawer: React.FC = () => {
                           className="!min-h-12 w-auto justify-start transition-none active:scale-100"
                           onClick={() => handleRepeatFrequencyChange('monthly')}
                         >
-                          Monthly
+                          {t("page.blocks.create.monthly")}
                         </Pill>
                       </div>
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:gap-4">
@@ -1290,7 +1306,7 @@ export const CreateBlockDrawer: React.FC = () => {
                             showRepeatWeekdayPicker ? 'flex-1' : 'w-full sm:w-1/2 sm:shrink-0',
                           )}
                         >
-                          <Label className="text-sm font-medium text-foreground-1">Ends</Label>
+                          <Label className="text-sm font-medium text-foreground-1">{t("page.blocks.create.ends")}</Label>
                           <DatePicker
                             value={form.repeatEndDate}
                             onChange={handleRepeatEndDateChange}
@@ -1298,14 +1314,14 @@ export const CreateBlockDrawer: React.FC = () => {
                             connectedPopover
                             calendarDisabled={form.repeatEndDate == null}
                             className={cn(datePickerClass)}
-                            placeholder="No end date"
+                            placeholder={t("page.blocks.create.noEndDate")}
                             popoverHeaderSlot={
                               <div className="flex items-center justify-between gap-3">
                                 <Label
                                   htmlFor="repeat-end-no-date-switch"
                                   className="cursor-pointer text-sm font-medium text-foreground-1"
                                 >
-                                  No end date
+                                  {t("page.blocks.create.noEndDate")}
                                 </Label>
                                 <Switch
                                   id="repeat-end-no-date-switch"
@@ -1328,13 +1344,13 @@ export const CreateBlockDrawer: React.FC = () => {
 
             <div className="space-y-5">
               <SliderSectionHeader
-                title="Reason"
-                description="Choose a reason for this block."
+                title={t("page.blocks.create.reason")}
+                description={t("page.blocks.create.reasonDesc")}
               />
               <div
                 className="flex flex-wrap items-center gap-1.5"
                 role="group"
-                aria-label="Block reason"
+                aria-label={t("page.blocks.create.reasonLabel")}
               >
                 {allowedReasonOptions.map((option) => {
                   const isSelected = form.reason === option.value;
@@ -1380,16 +1396,16 @@ export const CreateBlockDrawer: React.FC = () => {
 
             <div className="space-y-5">
               <SliderSectionHeader
-                title="Title and notes"
-                description="Add an optional title and internal notes for this block."
+                title={t("page.blocks.create.titleAndNotes")}
+                description={t("page.blocks.create.titleAndNotesDesc")}
               />
               <div className="space-y-2">
                 <Label htmlFor="block-title" className="text-sm font-medium text-foreground-1">
-                  Title <span className="font-normal text-foreground-3">(optional)</span>
+                  {t("page.blocks.create.title")} <span className="font-normal text-foreground-3">{t("page.blocks.create.optional")}</span>
                 </Label>
                 <Input
                   id="block-title"
-                  placeholder="e.g. Team lunch, Maintenance window"
+                  placeholder={t("page.blocks.create.titlePlaceholder")}
                   value={form.title}
                   onChange={handleTitleChange}
                   maxLength={BLOCK_TITLE_MAX_LEN}
@@ -1410,9 +1426,9 @@ export const CreateBlockDrawer: React.FC = () => {
               <TextareaField
                 value={form.notes}
                 onChange={(value) => setForm((p) => ({ ...p, notes: value }))}
-                label="Notes"
-                placeholder="Add internal notes for your team…"
-                helperText="Optional internal notes for your team. Not shown to customers."
+                label={t("page.blocks.create.notesLabel")}
+                placeholder={t("page.blocks.create.notesPlaceholder")}
+                helperText={t("page.blocks.create.notesHelper")}
                 rows={3}
                 id="block-notes"
                 maxLength={BLOCK_NOTES_MAX_LEN}

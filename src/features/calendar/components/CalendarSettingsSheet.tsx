@@ -1,4 +1,5 @@
 import { type FC, useState, useEffect, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
@@ -38,6 +39,7 @@ interface CalendarSettingsSheetProps {
 // ─────────────────────────────────────────────────────────────
 
 export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, onClose }) => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const isTeamMember = useSelector(selectIsTeamMember);
   const bookingSettings = useSelector(getBookingSettings);
@@ -141,10 +143,10 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
         }
       }
 
-      toast.success('Calendar settings saved');
+      toast.success(t("page.toasts.settingsSaved"));
       onClose();
     } catch {
-      toast.error('Failed to save settings');
+      toast.error(t("page.toasts.settingsSaveFailed"));
     } finally {
       setSaving(false);
     }
@@ -164,8 +166,8 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
     <BaseSlider
       isOpen={open}
       onClose={onClose}
-      title="Calendar Settings"
-      subtitle="Configure display preferences and business calendar rules."
+      title={t("page.settings.title")}
+      subtitle={t("page.settings.subtitle")}
       icon={Settings}
       iconColor="text-foreground-1"
       contentClassName="bg-surface scrollbar-hide"
@@ -173,8 +175,8 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
         <FormFooter
           onCancel={onClose}
           onSubmit={handleSave}
-          cancelLabel="Cancel"
-          submitLabel="Save"
+          cancelLabel={t("page.settings.cancel")}
+          submitLabel={t("page.settings.save")}
           disabled={saving || !isDirty || (!isTeamMember && hasAdvancedErrors)}
           isLoading={saving}
         />
@@ -187,21 +189,21 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
             <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500" />
             <div className="relative p-3 md:p-4 space-y-6">
               <SliderSectionHeader
-                title="Display Preferences"
-                description="How the calendar looks and behaves for you."
+                title={t("page.settings.displayPreferences.title")}
+                description={t("page.settings.displayPreferences.description")}
               />
 
               {/* Default view */}
               <div className="space-y-2">
-                <Label className="text-sm">Default view on open</Label>
+                <Label className="text-sm">{t("page.settings.displayPreferences.defaultView.label")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Choose which view (day, week, or month) opens when you load the calendar.
+                  {t("page.settings.displayPreferences.defaultView.description")}
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   {[
-                    { value: AppointmentViewMode.DAY, label: 'Day' },
-                    { value: AppointmentViewMode.WEEK, label: 'Week' },
-                    { value: AppointmentViewMode.MONTH, label: 'Month' },
+                    { value: AppointmentViewMode.DAY, label: t("page.settings.displayPreferences.defaultView.day") },
+                    { value: AppointmentViewMode.WEEK, label: t("page.settings.displayPreferences.defaultView.week") },
+                    { value: AppointmentViewMode.MONTH, label: t("page.settings.displayPreferences.defaultView.month") },
                   ].map((opt) => (
                     <Pill
                       key={opt.value}
@@ -218,14 +220,14 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
 
               {/* List vs Grid (day/week layout) */}
               <div className="space-y-2">
-                <Label className="text-sm">Day &amp; week layout</Label>
+                <Label className="text-sm">{t("page.settings.displayPreferences.layout.label")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  List shows appointments in a list; grid shows the time-slot calendar.
+                  {t("page.settings.displayPreferences.layout.description")}
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   {[
-                    { value: AppointmentViewType.LIST, label: 'List' },
-                    { value: AppointmentViewType.GRID, label: 'Calendar grid' },
+                    { value: AppointmentViewType.LIST, label: t("page.settings.displayPreferences.layout.list") },
+                    { value: AppointmentViewType.GRID, label: t("page.settings.displayPreferences.layout.calendarGrid") },
                   ].map((opt) => (
                     <Pill
                       key={opt.value}
@@ -242,14 +244,14 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
 
               {/* Time format */}
               <div className="space-y-2">
-                <Label className="text-sm">Time format</Label>
+                <Label className="text-sm">{t("page.settings.displayPreferences.timeFormat.label")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Display times in 24-hour or 12-hour format.
+                  {t("page.settings.displayPreferences.timeFormat.description")}
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   {[
-                    { value: '24h' as TimeFormat, label: '24-hour (14:00)' },
-                    { value: '12h' as TimeFormat, label: '12-hour (2:00 PM)' },
+                    { value: '24h' as TimeFormat, label: t("page.settings.displayPreferences.timeFormat.24h") },
+                    { value: '12h' as TimeFormat, label: t("page.settings.displayPreferences.timeFormat.12h") },
                   ].map((opt) => (
                     <Pill
                       key={opt.value}
@@ -266,15 +268,15 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
 
               {/* Color coding */}
               <div className="space-y-2">
-                <Label className="text-sm">Appointment color coding</Label>
+                <Label className="text-sm">{t("page.settings.displayPreferences.colorCoding.label")}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Color appointment blocks by status, service, or staff member.
+                  {t("page.settings.displayPreferences.colorCoding.description")}
                 </p>
                 <div className="flex flex-wrap gap-2 sm:gap-3">
                   {[
-                    { value: 'status' as ColorCoding, label: 'By Status' },
-                    { value: 'service' as ColorCoding, label: 'By Service' },
-                    { value: 'staff' as ColorCoding, label: 'By Staff' },
+                    { value: 'status' as ColorCoding, label: t("page.settings.displayPreferences.colorCoding.byStatus") },
+                    { value: 'service' as ColorCoding, label: t("page.settings.displayPreferences.colorCoding.byService") },
+                    { value: 'staff' as ColorCoding, label: t("page.settings.displayPreferences.colorCoding.byStaff") },
                   ].map((opt) => (
                     <Pill
                       key={opt.value}
@@ -293,7 +295,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
               <div className="flex items-center justify-between p-3 md:p-4 rounded-xl border border-border bg-muted/20 hover:border-border-strong transition-colors">
                 <div className="flex items-center gap-2">
                   <Eye className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                  <Label htmlFor="show-cancelled" className="text-sm cursor-pointer">Show cancelled appointments</Label>
+                  <Label htmlFor="show-cancelled" className="text-sm cursor-pointer">{t("page.settings.displayPreferences.showCancelled")}</Label>
                 </div>
                 <Switch
                   id="show-cancelled"

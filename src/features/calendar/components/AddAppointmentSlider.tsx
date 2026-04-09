@@ -79,7 +79,7 @@ import {
 import CustomerSearchPicker from './CustomerSearchPicker';
 import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
 import type { Bundle as ManageSheetBundle } from '../../../shared/components/common/ManageBundlesSheet/types';
-import { buildZonedDateFromDateKey, formatDateInTimezone } from '../timezone';
+import { buildZonedDateFromDateKey, formatDateInTimezone, getCalendarLocale } from '../timezone';
 import { validateDescription } from '../../../shared/utils/validation';
 import "./addAppointmentSliderPopover.css";
 
@@ -164,6 +164,7 @@ function AppointmentItemRow({
   onRemoveItem,
 }: AppointmentItemRowProps) {
   const { t } = useTranslation('assignments');
+  const { t: tCal } = useTranslation('calendar');
   const serviceForRow = locationServices.find((s) => s.serviceId === item.serviceId);
   const bundleForRow = locationBundles.find((b) => b.bundleId === item.bundleId);
   const staffForRow = locationTeamMembers.find((t) => t.userId === item.staffUserId);
@@ -173,7 +174,7 @@ function AppointmentItemRow({
       : bundleForRow?.staffIds?.length
         ? locationTeamMembers.filter((t) => bundleForRow.staffIds!.includes(t.userId))
         : locationTeamMembers;
-  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : (item as { itemName?: string }).itemName ?? 'Unknown item';
+  const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : (item as { itemName?: string }).itemName ?? tCal('page.appointments.add.unknownItem');
   const staffOverride = serviceForRow?.staffOverrides?.length && item.staffUserId != null
     ? serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)
     : null;
@@ -193,8 +194,8 @@ function AppointmentItemRow({
         ? (serviceForRow.staffOverrides.find((o) => o.userId === item.staffUserId)?.customPrice ?? serviceForRow.customPrice ?? serviceForRow.defaultPrice ?? 0)
         : (serviceForRow.customPrice ?? serviceForRow.defaultPrice ?? 0)) / 100)
     : (bundleForRow?.calculatedDisplayPrice ?? 0);
-  const itemTypeLabel = serviceForRow ? 'Service' : 'Bundle';
-  const isService = itemTypeLabel === 'Service';
+  const itemTypeLabel = serviceForRow ? tCal('page.appointments.edit.service') : tCal('page.appointments.edit.bundle');
+  const isService = !!serviceForRow;
   const hasCustomRates = isService && (hasLocationCustom || hasStaffCustom);
   const [staffPopoverOpen, setStaffPopoverOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
@@ -260,9 +261,9 @@ function AppointmentItemRow({
           )}
           {!isService && bundleForRow?.priceType && (() => {
             const priceTypeConfig: Record<string, { label: string; color: string; Icon: typeof PlusCircle }> = {
-              sum: { label: 'Sum', color: '#dbeafe', Icon: PlusCircle },
-              fixed: { label: 'Fixed', color: '#d1fae5', Icon: Tag },
-              discount: { label: 'Discount', color: '#fed7aa', Icon: Percent },
+              sum: { label: tCal('page.appointments.add.sum'), color: '#dbeafe', Icon: PlusCircle },
+              fixed: { label: tCal('page.appointments.add.fixed'), color: '#d1fae5', Icon: Tag },
+              discount: { label: tCal('page.appointments.add.discount'), color: '#fed7aa', Icon: Percent },
             };
             const config = priceTypeConfig[bundleForRow.priceType];
             if (!config) return null;
@@ -325,7 +326,7 @@ function AppointmentItemRow({
                     showOpenBorder && "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none"
                   )}
                 >
-                  <span className="truncate">{staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : 'Assign staff'}</span>
+                  <span className="truncate">{staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : tCal('page.appointments.add.assignStaff')}</span>
                   <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
                 </Button>
               </PopoverTrigger>
@@ -368,7 +369,7 @@ function AppointmentItemRow({
           rounded="full"
           className="shrink-0 h-8 w-8 text-foreground-3 dark:text-foreground-2 hover:text-destructive hover:bg-destructive/10"
           onClick={() => onRemoveItem(index)}
-          aria-label="Remove row"
+          aria-label={tCal('page.appointments.add.removeRow')}
         >
           <X className="h-4 w-4" />
         </Button>
@@ -382,6 +383,7 @@ function AppointmentItemRow({
 // ─────────────────────────────────────────────────────────────
 
 const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation('calendar');
   const dispatch = useDispatch();
 
   // Redux state
@@ -584,7 +586,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         setAvailableSlots([]);
         setOutOfHoursSlots([]);
         setNextAvailableDate(null);
-        setSlotFetchError('Could not load availability. Please try changing the date or staff assignments.');
+        setSlotFetchError(t('page.appointments.add.couldNotLoadAvailability'));
       })
       .finally(() => {
         if (!controller.signal.aborted) {
@@ -850,10 +852,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [displayTimeSlots, isSlotOutsideHours, outOfHoursTimeSet, open247, availableSlots]);
 
   const workingHoursLabel = useMemo(() => {
-    if (open247) return 'Open 24/7';
-    if (!dayWorkingHours?.isOpen) return 'Closed';
+    if (open247) return t('page.appointments.add.open247');
+    if (!dayWorkingHours?.isOpen) return t('page.appointments.closed');
     return `${dayWorkingHours.open} – ${dayWorkingHours.close}`;
-  }, [open247, dayWorkingHours]);
+  }, [open247, dayWorkingHours, t]);
 
   // Bounds for "within working hours" (used only to style slots; all slots remain selectable)
 
@@ -1068,7 +1070,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         pending.perItemStaffUpdates,
       );
       if (!ran) {
-        setError('Nothing to update.');
+        setError(t('page.appointments.add.nothingToUpdate'));
         pendingUpdateRef.current = null;
         setConfirmOpen(false);
         setConfirmReason(null);
@@ -1080,11 +1082,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setConfirmReason(null);
       setOverrideReasonText('');
     } catch {
-      setError('Failed to update appointment');
+      setError(t('page.appointments.add.failedToUpdate'));
     } finally {
       setSubmitting(false);
     }
-  }, [overrideReasonText, runEditAppointmentMutations]);
+  }, [overrideReasonText, runEditAppointmentMutations, t]);
 
   const doCreateGroupAppointment = useCallback(() => {
     const pending = pendingGroupSubmitRef.current;
@@ -1103,11 +1105,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       setOverrideReasonText('');
       onClose();
     } catch {
-      setError('Failed to create booking group');
+      setError(t('page.appointments.add.failedToCreate'));
     } finally {
       setSubmitting(false);
     }
-  }, [dispatch, onClose, overrideReasonText]);
+  }, [dispatch, onClose, overrideReasonText, t]);
 
   const handleConfirmOverrides = useCallback(() => {
     if (pendingGroupSubmitRef.current) doCreateGroupAppointment();
@@ -1155,10 +1157,10 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       try {
         const ran = runEditAppointmentMutations(editingAppointmentId!, payload, perItemStaffUpdates);
         if (!ran) {
-          setError('Nothing to update.');
+          setError(t('page.appointments.add.nothingToUpdate'));
         }
       } catch {
-        setError('Failed to update appointment');
+        setError(t('page.appointments.add.failedToUpdate'));
       } finally {
         setSubmitting(false);
       }
@@ -1200,7 +1202,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         dispatch(adminCreateAppointmentGroup.request(groupPayload));
         onClose();
       } catch {
-        setError('Failed to create booking group');
+        setError(t('page.appointments.add.failedToCreate'));
       } finally {
         setSubmitting(false);
       }
@@ -1239,13 +1241,13 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     if (!editScheduleUnchanged && scheduledDate.getTime() < Date.now()) {
       setError(
         isEditMode
-          ? 'Cannot reschedule an appointment to the past.'
-          : 'Cannot create an appointment in the past.',
+          ? t('page.appointments.add.cannotReschedulePast')
+          : t('page.appointments.add.cannotSchedulePast'),
       );
       return;
     }
     if (doesTimeRangeSpanMidnight(scheduledDate, slotDurationMinutes, calendarTimezone)) {
-      setError('This appointment would span two days. Please end by midnight and create a separate appointment for the next day.');
+      setError(t('page.appointments.add.spansTwoDays'));
       return;
     }
 
@@ -1254,11 +1256,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     if (isEditMode && editingAppointmentId) {
       const editItem = appointmentItems.find((item) => item.serviceId != null);
       if (!editItem?.serviceId) {
-        setError('Please select a service before saving this appointment.');
+        setError(t('page.appointments.add.selectServiceFirst'));
         return;
       }
       if (!editSnapshot) {
-        setError('Could not load appointment data. Close and try again.');
+        setError(t('page.appointments.add.couldNotLoadData'));
         return;
       }
       const perItemStaffUpdates = buildPerItemStaffUpdates(
@@ -1298,8 +1300,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     <BaseSlider
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditMode ? 'Edit Appointment' : 'New Appointment'}
-      subtitle={isEditMode ? 'Update appointment details' : 'Book a new appointment for a client'}
+      title={isEditMode ? t('page.appointments.add.editAppointment') : t('page.appointments.add.newAppointment')}
+      subtitle={isEditMode ? t('page.appointments.add.editSubtitle') : t('page.appointments.add.newSubtitle')}
       icon={isEditMode ? Calendar : CalendarPlus}
       iconColor="text-foreground-1"
       contentClassName="bg-surface scrollbar-hide"
@@ -1307,8 +1309,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         <FormFooter
           onCancel={onClose}
           formId="add-appointment-form"
-          cancelLabel="Cancel"
-          submitLabel={isEditMode ? 'Save Changes' : 'Create Appointment'}
+          cancelLabel={t('page.appointments.add.cancel')}
+          submitLabel={isEditMode ? t('page.appointments.add.saveChanges') : t('page.appointments.add.createAppointment')}
           disabled={!canSubmit}
           isLoading={submitting}
         />
@@ -1355,23 +1357,23 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               <SliderSectionHeader
                 title={
                   isEditMode && appointmentItems.length > 1
-                    ? 'Rescheduling group'
+                    ? t('page.appointments.add.reschedulingGroup')
                     : isEditMode
-                      ? 'Service'
-                      : 'Services & Bundles'
+                      ? t('page.appointments.add.service')
+                      : t('page.appointments.add.servicesAndBundles')
                 }
                 description={
                   isEditMode && appointmentItems.length > 1
-                    ? `Rescheduling ${appointmentItems.length} items. Change date/time below; group composition cannot be edited here.`
+                    ? t('page.appointments.add.reschedulingGroupDesc', { count: appointmentItems.length })
                     : isEditMode
-                      ? 'Choose the service for this appointment.'
-                      : 'Choose services and bundles, then assign staff for each item.'
+                      ? t('page.appointments.add.serviceDesc')
+                      : t('page.appointments.add.servicesAndBundlesDesc')
                 }
               />
               {isEditMode && appointmentItems.length > 1 ? (
                 <div className="rounded-lg border border-border bg-muted/30 dark:bg-muted/20 px-4 py-3 space-y-2">
                   <p className="text-sm font-medium text-foreground-1">
-                    Rescheduling {appointmentItems.length} items
+                    {t('page.appointments.add.reschedulingGroupDesc', { count: appointmentItems.length })}
                   </p>
                   <ul className="text-sm text-foreground-2 list-disc list-inside space-y-0.5">
                     {appointmentItems.map((item, idx) => {
@@ -1405,7 +1407,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     ) : (
                       <>
                         <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
-                        <span>Select services</span>
+                        <span>{t('page.appointments.add.selectServices')}</span>
                       </>
                     )}
                   </Button>
@@ -1418,7 +1420,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     className={`${SLIDER_COMBO_TRIGGER_CLASS} justify-center`}
                   >
                     <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
-                    <span>Select bundles</span>
+                    <span>{t('page.appointments.add.selectBundles')}</span>
                   </Button>
                 </div>
               ) : (
@@ -1438,7 +1440,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     ) : (
                       <>
                         <Plus className="h-3 w-3 text-primary transition-transform duration-400 ease-out group-hover:scale-140" />
-                        <span>Select services</span>
+                        <span>{t('page.appointments.add.selectServices')}</span>
                       </>
                     )}
                   </Button>
@@ -1456,8 +1458,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   applySelectedServices(serviceIds);
                   setIsManageServicesSheetOpen(false);
                 }}
-                title={isEditMode ? 'Select Service' : 'Select Services'}
-                subtitle={isEditMode ? 'Choose one service for this appointment.' : 'Choose one or more services for this appointment.'}
+                title={isEditMode ? t('page.appointments.add.selectService') : t('page.appointments.add.selectServices')}
+                subtitle={isEditMode ? t('page.appointments.add.selectServiceDesc') : t('page.appointments.add.selectServicesDesc')}
                 expandAllCategories={true}
               />
               {!isEditMode && locationBundles.length > 0 && (
@@ -1467,8 +1469,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   allBundles={bundlesForSheet}
                   initialSelectedIds={selectedBundleIds}
                   onApply={handleApplyBundleIds}
-                  title="Select Bundles"
-                  subtitle="Choose one or more bundles for this booking."
+                  title={t('page.appointments.add.selectBundles')}
+                  subtitle={t('page.appointments.add.selectBundlesDesc')}
                 />
               )}
 
@@ -1551,8 +1553,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             {/* ── Date & Time Section ── */}
             <div className="space-y-5">
               <SliderSectionHeader
-                title="Date & Time"
-                description="Select when the appointment will take place."
+                title={t('page.appointments.add.dateAndTime')}
+                description={t('page.appointments.add.dateAndTimeDesc')}
               />
               {!hasSelectedAnyItem && (
                 <div className="p-3 rounded-lg bg-surface-hover text-foreground-3 dark:text-foreground-2 text-sm">
@@ -1593,7 +1595,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       "border bg-surface hover:bg-surface-hover focus:bg-surface h-12 text-base w-full px-4",
                       canSelectDateTime ? "border-border-strong dark:border-border-strong" : "border-border dark:border-border-subtle"
                     )}
-                    placeholder="Select date"
+                    placeholder={t('page.appointments.add.selectDate')}
                   />
                 </div>
                 <div className="space-y-2">
@@ -1621,7 +1623,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           ) : form.time ? (
                             <span className="text-foreground-1">{formatSlotTime(form.time)}</span>
                           ) : (
-                            <span className="text-foreground-3 dark:text-foreground-2">Select time</span>
+                            <span className="text-foreground-3 dark:text-foreground-2">{t('page.appointments.add.selectTime')}</span>
                           )}
                           {!availableSlotsLoading && <Clock className="ml-2 h-4 w-4 shrink-0 opacity-50" />}
                         </Button>
@@ -1646,7 +1648,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                             <>
                               <div className="px-3 pb-1">
                                 <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-3 dark:text-foreground-2">
-                                  Working hours
+                                  {t('page.appointments.add.workingHours')}
                                 </p>
                               </div>
                               {inHoursSlots.map((slot) => {
@@ -1671,7 +1673,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           )}
                           {inHoursSlots.length === 0 && slotsOutsideHours.length > 0 && (
                             <div className="px-4 py-2 text-xs text-foreground-3 dark:text-foreground-2">
-                              No available times within working hours
+                              {t('page.appointments.add.noTimesWithinHours')}
                             </div>
                           )}
                           {slotsOutsideHours.length > 0 && (
@@ -1679,7 +1681,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                               <div className="border-t border-border my-1" role="separator" />
                               <div className="px-3 pt-1 pb-1">
                                 <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-3 dark:text-foreground-2">
-                                  Outside working hours
+                                  {t('page.appointments.add.outsideWorkingHours')}
                                 </p>
                               </div>
                               {slotsOutsideHours.map((slot) => {
@@ -1717,9 +1719,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                           <Loader2 className="h-4 w-4 animate-spin" /> Loading times...
                         </span>
                       ) : isClosedDay ? (
-                        'Closed'
+                        t('page.appointments.closed')
                       ) : (
-                        'No availability on this date'
+                        t('page.appointments.add.noAvailability')
                       )}
                     </div>
                   )}
@@ -1740,7 +1742,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               ) : nextAvailableDate ? (() => {
                 const nextDateFormatted = (() => {
                   const d = new Date(nextAvailableDate + 'T12:00:00');
-                  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                  return d.toLocaleDateString(getCalendarLocale(), { day: 'numeric', month: 'short', year: 'numeric' });
                 })();
                 return (
                   <div className="space-y-2">
@@ -1793,24 +1795,31 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 <SliderContentDivider />
                 <div className="space-y-5">
                   <SliderSectionHeader
-                    title="Booking Source"
-                    description="How was this appointment booked?"
+                    title={t('page.appointments.add.bookingSource')}
+                    description={t('page.appointments.add.bookingSourceDesc')}
                   />
                   <div className="flex flex-wrap gap-2 sm:gap-3">
-                    {BOOKING_SOURCES.map((source) => (
-                      <Pill
-                        key={source.value}
-                        selected={form.bookingSource === source.value}
-                        showCheckmark
-                        className="!min-h-12 w-auto justify-start items-center transition-none active:scale-100"
-                        onClick={() => handleBookingSourceSelect(source.value)}
-                      >
-                        <span className="flex items-center gap-1.5">
-                          {source.icon}
-                          {source.label}
-                        </span>
-                      </Pill>
-                    ))}
+                    {BOOKING_SOURCES.map((source) => {
+                      const bookingSourceLabels: Record<string, string> = {
+                        admin: t('page.filters.bookingSources.admin'),
+                        phone: t('page.filters.bookingSources.phone'),
+                        walk_in: t('page.filters.bookingSources.walkIn'),
+                      };
+                      return (
+                        <Pill
+                          key={source.value}
+                          selected={form.bookingSource === source.value}
+                          showCheckmark
+                          className="!min-h-12 w-auto justify-start items-center transition-none active:scale-100"
+                          onClick={() => handleBookingSourceSelect(source.value)}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            {source.icon}
+                            {bookingSourceLabels[source.value] ?? source.label}
+                          </span>
+                        </Pill>
+                      );
+                    })}
                   </div>
                 </div>
               </>
@@ -1823,9 +1832,9 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               <TextareaField
                 value={form.notes}
                 onChange={(value) => setForm((prev) => ({ ...prev, notes: value }))}
-                label="Notes"
-                placeholder="Add any special notes or requirements..."
-                helperText="Add any special notes or requirements for this appointment."
+                label={t('page.appointments.add.notes')}
+                placeholder={t('page.appointments.add.notesPlaceholder')}
+                helperText={t('page.appointments.add.notesHelper')}
                 rows={3}
                 id="appointment-notes"
                 maxLength={500}
@@ -1845,19 +1854,19 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         }}
         onConfirm={handleConfirmOverrides}
         onCancel={handleCancelOverrides}
-        title={getConfirmDialogTitle(pendingUpdateRef.current != null)}
+        title={getConfirmDialogTitle(pendingUpdateRef.current != null, t)}
         description={
           <div className="space-y-3">
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              {getConfirmDialogDescription(confirmReason ?? 'out_of_hours', pendingUpdateRef.current != null)}
+              {getConfirmDialogDescription(confirmReason ?? 'out_of_hours', pendingUpdateRef.current != null, t)}
             </p>
             <div className="space-y-1.5">
               <Label htmlFor="override-reason" className="text-xs font-medium text-foreground-3 dark:text-foreground-2">
-                Reason for override (optional)
+                {t('page.appointments.confirmDialog.reasonLabel')}
               </Label>
               <Input
                 id="override-reason"
-                placeholder="e.g. Customer request, Emergency"
+                placeholder={t('page.appointments.confirmDialog.reasonPlaceholder')}
                 value={overrideReasonText}
                 onChange={(e) => setOverrideReasonText(e.target.value)}
                 className="text-sm"
@@ -1865,8 +1874,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             </div>
           </div>
         }
-        cancelTitle="Cancel"
-        confirmTitle={getConfirmButtonTitle(pendingUpdateRef.current != null)}
+        cancelTitle={t('page.appointments.confirmDialog.cancel')}
+        confirmTitle={getConfirmButtonTitle(pendingUpdateRef.current != null, t)}
       />
     </BaseSlider>
   );

@@ -1,3 +1,12 @@
+import i18n from "../../shared/lib/i18n";
+
+/** Returns the BCP 47 locale tag for Intl date/time formatting based on current i18n language. */
+export function getCalendarLocale(): string {
+  const lang = i18n.language;
+  if (lang === 'ro') return 'ro-RO';
+  return 'en-GB';
+}
+
 const dtfCache = new Map<string, Intl.DateTimeFormat>();
 
 function getFormatter(
@@ -43,7 +52,7 @@ export function localCalendarDateFromDateKey(dateKey: string): Date {
   return new Date(y, m - 1, d);
 }
 
-/** “Today” in `timeZone` as a local `Date` for date-picker `minDate` / disabling past days. */
+/** "Today" in `timeZone` as a local `Date` for date-picker `minDate` / disabling past days. */
 export function minSelectableCalendarDateForTimezone(now: Date, timeZone: string): Date {
   const tz = timeZone?.trim() || 'UTC';
   return localCalendarDateFromDateKey(formatDateInTimezone(now, tz));
@@ -184,7 +193,7 @@ export function formatDetailOverviewDate(
 ): string {
   const d = typeof date === 'string' ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('en-GB', {
+  return d.toLocaleDateString(getCalendarLocale(), {
     timeZone,
     weekday: options?.weekday === 'short' ? 'short' : 'long',
     day: 'numeric',
@@ -201,7 +210,7 @@ export function formatDetailHistoryDateTime(
   if (date == null || date === '') return '—';
   const d = typeof date === 'string' ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleString('en-GB', {
+  return d.toLocaleString(getCalendarLocale(), {
     timeZone,
     day: 'numeric',
     month: 'short',
@@ -219,12 +228,12 @@ export function formatActivityTimelineDateTime(
   if (date == null || date === '') return '—';
   const d = typeof date === 'string' ? new Date(date) : date;
   if (Number.isNaN(d.getTime())) return '—';
-  const datePart = d.toLocaleDateString('en-GB', {
+  const datePart = d.toLocaleDateString(getCalendarLocale(), {
     timeZone,
     day: 'numeric',
     month: 'short',
   });
-  const timePart = d.toLocaleTimeString('en-GB', {
+  const timePart = d.toLocaleTimeString(getCalendarLocale(), {
     timeZone,
     hour: '2-digit',
     minute: '2-digit',

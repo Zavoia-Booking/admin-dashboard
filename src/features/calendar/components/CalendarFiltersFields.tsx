@@ -43,18 +43,17 @@ import {
   CALENDAR_FILTER_CHIP_LABEL,
 } from "./calendarSidebarStyles.ts";
 import { getStatusFilterIndicatorDotClass } from "../colors.ts";
-import { STATUS_LIST } from "../utils.ts";
+import { getTranslatedStatusList } from "../utils.ts";
 import { CalendarFilterPillCheckmark } from "./CalendarFilterPillCheckmark.tsx";
 import "./addAppointmentSliderPopover.css";
 
-/** Same order and labels as {@link STATUS_LIST} (excludes "all"). */
-const STATUS_FILTER_ENTRIES = STATUS_LIST.filter((s) => s.value !== "all");
+/** Translated status entries are computed inside the component via getTranslatedStatusList(t). */
 
-const BOOKING_SOURCE_OPTIONS: { value: AppointmentBookingSource; label: string; Icon: LucideIcon }[] = [
-  { value: AppointmentBookingSource.ADMIN, label: "Admin", Icon: UserCog },
-  { value: AppointmentBookingSource.MARKETPLACE, label: "Marketplace", Icon: Store },
-  { value: AppointmentBookingSource.PHONE, label: "Phone", Icon: Phone },
-  { value: AppointmentBookingSource.WALK_IN, label: "Walk-in", Icon: Footprints },
+const BOOKING_SOURCE_OPTIONS: { value: AppointmentBookingSource; Icon: LucideIcon }[] = [
+  { value: AppointmentBookingSource.ADMIN, Icon: UserCog },
+  { value: AppointmentBookingSource.MARKETPLACE, Icon: Store },
+  { value: AppointmentBookingSource.PHONE, Icon: Phone },
+  { value: AppointmentBookingSource.WALK_IN, Icon: Footprints },
 ];
 
 type LineOption = { kind: "service" | "bundle"; id: number; label: string };
@@ -99,6 +98,7 @@ const CalendarServiceBundleMultiPicker: FC<{
   }) => void;
   disabled?: boolean;
 }> = ({ serviceOptions, bundleOptions, serviceIds, bundleIds, onApplyProductFilters, disabled }) => {
+  const { t } = useTranslation("calendar");
   const [open, setOpen] = useState(false);
   const [listMounted, setListMounted] = useState(false);
   const [search, setSearch] = useState("");
@@ -189,7 +189,6 @@ const CalendarServiceBundleMultiPicker: FC<{
     opt.kind === "service" ? serviceIds.includes(opt.id) : bundleIds.includes(opt.id);
 
   const hasSelection = serviceIds.length > 0 || bundleIds.length > 0;
-  const showListShell = open && !disabled;
   const showListContainer = listMounted && !disabled;
 
   const lastServiceIdx = filteredServices.length - 1;
@@ -204,11 +203,11 @@ const CalendarServiceBundleMultiPicker: FC<{
       >
         <SearchInput
           ref={inputRef}
-          placeholder="Search services & bundles…"
+          placeholder={t("page.filters.searchServicesPlaceholder")}
           value={search}
           onChange={setSearch}
           onFocus={() => setOpen(true)}
-          aria-label="Filter by service and bundle"
+          aria-label={t("page.filters.filterByServiceLabel")}
           aria-expanded={open}
           className="w-full"
           inputClassName={cn(
@@ -244,12 +243,12 @@ const CalendarServiceBundleMultiPicker: FC<{
                 >
                   <LineItemSelectedCheck visible={!hasSelection} />
                   <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">
-                    Any service or bundle
+                    {t("page.filters.anyServiceOrBundle")}
                   </span>
                 </CommandItem>
               </CommandGroup>
               {filteredServices.length > 0 ? (
-                <CommandGroup heading="Services">
+                <CommandGroup heading={t("page.filters.servicesGroup")}>
                   {filteredServices.map((opt, index) => (
                     <CommandItem
                       key={`svc-${opt.id}`}
@@ -270,7 +269,7 @@ const CalendarServiceBundleMultiPicker: FC<{
                 </CommandGroup>
               ) : null}
               {filteredBundles.length > 0 ? (
-                <CommandGroup heading="Bundles">
+                <CommandGroup heading={t("page.filters.bundlesGroup")}>
                   {filteredBundles.map((opt, index) => (
                     <CommandItem
                       key={`bnd-${opt.id}`}
@@ -292,7 +291,7 @@ const CalendarServiceBundleMultiPicker: FC<{
               ) : null}
               {nothingMatches ? (
                 <CommandEmpty className="py-6 text-sm text-muted-foreground">
-                  No matching service or bundle.
+                  {t("page.filters.noMatchingServiceOrBundle")}
                 </CommandEmpty>
               ) : null}
             </CommandList>
@@ -343,6 +342,11 @@ function categoriesFromLocationServices(
 export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft }) => {
   const dispatch = useDispatch();
   const { t: servicesT } = useTranslation("services");
+  const { t } = useTranslation("calendar");
+  const statusFilterEntries = useMemo(
+    () => getTranslatedStatusList(t).filter((s) => s.value !== "all"),
+    [t],
+  );
   const selectedLocationId = useSelector(getSelectedLocationId);
   const dayFiltersRedux = useSelector(getDayFilters);
   const dayFilters = draft?.value ?? dayFiltersRedux;
@@ -350,6 +354,16 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
   const locationBundles = useSelector(getLocationBundles);
   const servicesLoading = useSelector(getLocationContextLoading);
   const [showAllCategories, setShowAllCategories] = useState(false);
+
+  const getSourceLabel = (value: string) => {
+    const map: Record<string, string> = {
+      admin: t("page.filters.bookingSources.admin"),
+      marketplace: t("page.filters.bookingSources.marketplace"),
+      phone: t("page.filters.bookingSources.phone"),
+      walk_in: t("page.filters.bookingSources.walkIn"),
+    };
+    return map[value] ?? value;
+  };
 
   const categoryChips = useMemo(
     () => categoriesFromLocationServices(locationServices),
@@ -393,12 +407,12 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
     const bndIdsOk =
       nBnd === 0 ||
       (selBnd === nBnd && bundleIdsForPicker.every((id) => bundleOptions.some((o) => o.id === id)));
-    /** Default filter = no line-item restriction (same as “Any service or bundle”). */
+    /** Default filter = no line-item restriction (same as "Any service or bundle"). */
     const noLineFilter = selected === 0;
     /** User ticked every service and every bundle in the list. */
     const everyOptionTicked = selected > 0 && svcIdsOk && bndIdsOk;
     const label =
-      noLineFilter || everyOptionTicked ? "All selected" : `${selected} selected`;
+      noLineFilter || everyOptionTicked ? t("page.filters.allSelected") : t("page.filters.nSelected", { count: selected });
     return (
       <div
         className="inline-flex max-w-[min(100%,12rem)] shrink-0 items-center justify-center rounded-full border border-border bg-muted/30 px-2.5 py-1 text-xs font-medium text-muted-foreground"
@@ -500,7 +514,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
           <button
             type="button"
             onClick={clearAllStatuses}
-            title="Any appointment status"
+            title={t("page.filters.anyStatusTitle")}
             aria-pressed={selectedStatuses.length === 0}
             className={cn(
               CALENDAR_FILTER_CHIP_ALL_BASE,
@@ -518,10 +532,10 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
               )}
               aria-hidden
             />
-            <span className={CALENDAR_FILTER_CHIP_LABEL}>Any status</span>
+            <span className={CALENDAR_FILTER_CHIP_LABEL}>{t("page.filters.anyStatus")}</span>
             {selectedStatuses.length === 0 ? <CalendarFilterPillCheckmark /> : null}
           </button>
-          {STATUS_FILTER_ENTRIES.map((opt) => {
+          {statusFilterEntries.map((opt) => {
             const isSelected = selectedStatuses.includes(opt.value);
             const dotClass = getStatusFilterIndicatorDotClass(opt.value);
             return (
@@ -685,7 +699,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
             <button
               type="button"
               onClick={clearAllBookingSources}
-              title="Any source"
+              title={t("page.filters.anySourceTitle")}
               aria-pressed={selectedBookingSources.length === 0}
               className={cn(
                 CALENDAR_FILTER_CHIP_ALL_BASE,
@@ -703,20 +717,21 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
                 )}
                 aria-hidden
               />
-              <span className={CALENDAR_FILTER_CHIP_LABEL}>Any source</span>
+              <span className={CALENDAR_FILTER_CHIP_LABEL}>{t("page.filters.anySourceTitle")}</span>
               {selectedBookingSources.length === 0 ? <CalendarFilterPillCheckmark /> : null}
             </button>
             {BOOKING_SOURCE_OPTIONS.map((opt) => {
               const isAllSources = selectedBookingSources.length === 0;
               const isSelected = !isAllSources && selectedBookingSources.includes(opt.value);
               const Icon = opt.Icon;
+              const sourceLabel = getSourceLabel(opt.value);
               return (
                 <button
                   key={opt.value}
                   type="button"
                   onClick={() => toggleBookingSource(opt.value)}
-                  title={opt.label}
-                  aria-label={opt.label}
+                  title={sourceLabel}
+                  aria-label={sourceLabel}
                   aria-pressed={isSelected}
                   className={cn(
                     CALENDAR_FILTER_CHIP_ITEM_BASE,
@@ -732,7 +747,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
                     )}
                     aria-hidden
                   />
-                  <span className={CALENDAR_FILTER_CHIP_LABEL}>{opt.label}</span>
+                  <span className={CALENDAR_FILTER_CHIP_LABEL}>{sourceLabel}</span>
                   {isSelected ? <CalendarFilterPillCheckmark /> : null}
                 </button>
               );

@@ -22,8 +22,8 @@ export interface InfoPageProps {
 export const InfoPage: React.FC<InfoPageProps> = ({
   title,
   description,
-  icon: Icon = CheckCircle,
-  iconColor = 'green',
+  icon: _Icon = CheckCircle,
+  iconColor: _iconColor = 'green',
   buttons,
 }) => {
   // const getIconColorClasses = (color: string) => {

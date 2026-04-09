@@ -1,6 +1,6 @@
 import { type FC } from "react";
 
-/** Green corner checkmark used on selected “All staff” / status filter pills. */
+/** Green corner checkmark used on selected "All staff" / status filter pills. */
 export const CalendarFilterPillCheckmark: FC = () => (
   <div
     className="absolute -right-0 -top-1.5 flex h-4.5 w-4.5 items-center justify-center rounded-full bg-green-400 shadow-sm dark:bg-success"

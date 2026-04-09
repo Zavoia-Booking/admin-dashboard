@@ -1,8 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './button';
 import { Popover, PopoverContent, PopoverTrigger } from './popover';
 import { cn } from '../../lib/utils';
+import { getCalendarLocale } from '../../../features/calendar/timezone';
 
 interface DatePickerProps {
   value?: Date | null;
@@ -36,6 +38,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
   popoverHeaderSlot,
   calendarDisabled = false,
 }) => {
+  const { t } = useTranslation("calendar");
+  const locale = getCalendarLocale();
   const fallbackDate = value ?? new Date();
   const [isOpen, setIsOpen] = useState(false);
   const [closingAnimation, setClosingAnimation] = useState(false);
@@ -234,15 +238,15 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const formatDisplayValue = () => {
     if (value == null) return placeholder;
     if (viewMode === 'day') {
-      return value.toLocaleDateString('en-US', { 
+      return value.toLocaleDateString(locale, { 
         month: 'short',
         day: 'numeric'
       });
     } else if (viewMode === 'week') {
       const weekStart = getWeekStart(value);
       const weekEnd = getWeekEnd(value);
-      const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
-      const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+      const startMonth = weekStart.toLocaleDateString(locale, { month: 'short' });
+      const endMonth = weekEnd.toLocaleDateString(locale, { month: 'short' });
       const startDay = weekStart.getDate();
       const endDay = weekEnd.getDate();
       
@@ -252,7 +256,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
         return `${startMonth} ${startDay}-${endMonth} ${endDay}`;
       }
     } else if (viewMode === 'month') {
-      return value.toLocaleDateString('en-US', { 
+      return value.toLocaleDateString(locale, { 
         month: 'short',
         year: 'numeric'
       });
@@ -263,7 +267,15 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const calendarDays = generateCalendarDays(currentMonth);
   const weeks = generateWeeks(currentMonth);
   const months = generateMonths(currentYear);
-  const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const weekDays = useMemo(() => [
+    t("page.common.dayNamesShort.sun"),
+    t("page.common.dayNamesShort.mon"),
+    t("page.common.dayNamesShort.tue"),
+    t("page.common.dayNamesShort.wed"),
+    t("page.common.dayNamesShort.thu"),
+    t("page.common.dayNamesShort.fri"),
+    t("page.common.dayNamesShort.sat"),
+  ], [t]);
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
@@ -330,7 +342,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
               <div className="text-sm font-semibold">
                 {viewMode === 'month'
                   ? currentYear.toString()
-                  : currentMonth.toLocaleDateString('en-US', {
+                  : currentMonth.toLocaleDateString(locale, {
                       month: 'long',
                       year: 'numeric',
                     })}
@@ -357,7 +369,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
                 disabled={calendarDisabled}
                 tabIndex={calendarDisabled ? -1 : undefined}
               >
-                Today
+                {t("page.common.today")}
               </Button>
             </div>
 
@@ -408,8 +420,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
             <div className="space-y-1">
               {weeks.map((week, index) => {
                 const isSelected = isSelectedWeek(week.start);
-                const startMonth = week.start.toLocaleDateString('en-US', { month: 'short' });
-                const endMonth = week.end.toLocaleDateString('en-US', { month: 'short' });
+                const startMonth = week.start.toLocaleDateString(locale, { month: 'short' });
+                const endMonth = week.end.toLocaleDateString(locale, { month: 'short' });
                 const startDay = week.start.getDate();
                 const endDay = week.end.getDate();
                 
@@ -445,7 +457,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
             <div className="grid grid-cols-3 gap-2">
               {months.map((month, index) => {
                 const isSelected = isSelectedMonth(month);
-                const monthLabel = month.toLocaleDateString('en-US', { month: 'short' });
+                const monthLabel = month.toLocaleDateString(locale, { month: 'short' });
                 
                 return (
                   <div

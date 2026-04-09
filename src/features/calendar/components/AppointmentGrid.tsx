@@ -1,9 +1,10 @@
 import { type FC, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../../shared/lib/utils.ts";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import { buildMonthCalendarGridCells, dayNames } from "../utils.ts";
-import { formatDateInTimezone } from "../timezone.ts";
+import { buildMonthCalendarGridCells, getTranslatedDayNames } from "../utils.ts";
+import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { CalendarTimeGrid } from "./CalendarTimeGrid.tsx";
 import { AppointmentList } from "./AppointmentList.tsx";
@@ -42,6 +43,7 @@ interface IProps {
 }
 
 export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
+  const { t } = useTranslation("calendar");
   const selectedLocationId = useSelector(getSelectedLocationId);
   const viewType = useSelector(getViewTypeSelector);
 
@@ -49,7 +51,7 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">Select a location to view the calendar.</p>
+          <p className="text-sm text-muted-foreground">{t("page.appointments.selectLocation")}</p>
         </CardContent>
       </Card>
     );
@@ -78,6 +80,7 @@ export const AppointmentGrid: FC<IProps> = ({ viewMode }) => {
 // ─────────────────────────────────────────────────────────────
 
 const SummaryGrid: FC = () => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const monthViewDisplayStart = useSelector(getMonthViewDisplayStart);
@@ -142,15 +145,15 @@ const SummaryGrid: FC = () => {
       {hasActiveFilters && monthHasNoMatchingAppointments ? (
         <EmptyState
           icon={SlidersHorizontal}
-          title="No appointments match your filters"
-          description="Try adjusting your filters or clearing them to see all appointments for this month."
+          title={t("page.appointments.noMatchFilters")}
+          description={t("page.appointments.noMatchFiltersMonthDesc")}
           className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
         />
       ) : (
         <>
           {/* Day-of-week header */}
           <div className="grid grid-cols-7 gap-px mb-1">
-            {dayNames.map((day) => (
+            {getTranslatedDayNames(t).map((day) => (
               <div key={day} className="text-center text-xs font-medium text-foreground-2 py-2 cursor-default">
                 {day}
               </div>
@@ -210,7 +213,7 @@ const SummaryGrid: FC = () => {
 
                   {/* Closed label — absolute so it doesn't push the date off center */}
                   {isClosed && daySummary && (
-                    <div className="absolute bottom-5 left-0 right-0 text-[10px] text-muted-foreground/60 font-medium cursor-default text-center">Closed</div>
+                    <div className="absolute bottom-5 left-0 right-0 text-[10px] text-muted-foreground/60 font-medium cursor-default text-center">{t("page.appointments.closed")}</div>
                   )}
 
                   {/* Density marker — pinned to bottom */}
@@ -232,7 +235,7 @@ const SummaryGrid: FC = () => {
       <AppointmentGroupDialog
         appointments={previewDay?.appointments ?? []}
         timeRangeStr={
-          previewDay?.day.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }) ?? ''
+          previewDay?.day.toLocaleDateString(getCalendarLocale(), { weekday: 'long', month: 'short', day: 'numeric' }) ?? ''
         }
         locationStaff={locationStaff}
         timezone={calendarTimezone}
