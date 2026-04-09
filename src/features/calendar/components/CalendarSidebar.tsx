@@ -1,4 +1,5 @@
 import { type FC, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { RotateCcw } from "lucide-react";
 import { LocationSelector } from "./LocationSelector.tsx";
@@ -13,6 +14,7 @@ import { Label } from "../../../shared/components/ui/label.tsx";
  * CalendarSidebar — location, customer, and mini month (staff + advanced filters live in the header).
  */
 export const CalendarSidebar: FC = () => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const sidebarOpen = useSelector(getSidebarOpen);
   const dayFilters = useSelector(getDayFilters);
@@ -74,11 +76,11 @@ export const CalendarSidebar: FC = () => {
     <aside className="rounded-xl border-r border-border bg-white dark:bg-surface flex flex-col min-h-0">
       <div className="flex min-h-0 flex-1 flex-col divide-y divide-border overflow-y-auto scrollbar-hide">
         <div className="px-3 py-4">
-          <Label className="mb-2 block text-xs font-medium text-muted-foreground">Location</Label>
+          <Label className="mb-2 block text-xs font-medium text-muted-foreground">{t("page.common.location")}</Label>
           <LocationSelector />
         </div>
         <div className="px-3 py-4">
-          <Label className="mb-2 block text-xs font-medium text-muted-foreground">Customer</Label>
+          <Label className="mb-2 block text-xs font-medium text-muted-foreground">{t("page.common.customer")}</Label>
           <CustomerFilterPicker
             selectedCustomer={selectedCustomer}
             onSelectCustomer={handleSelectCustomer}
@@ -98,7 +100,7 @@ export const CalendarSidebar: FC = () => {
           className="group inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
         >
           <RotateCcw className="h-3 w-3 shrink-0 transition-colors group-hover:text-primary" />
-          Clear filters
+          {t("page.common.clearFilters")}
           <span className="flex size-4 items-center justify-center rounded-full bg-primary text-[8px] font-bold leading-none text-primary-foreground">
             {activeFilterCount}
           </span>

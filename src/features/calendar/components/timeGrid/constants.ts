@@ -1,5 +1,3 @@
-import type { SlimAppointment, CalendarBlockDto } from "../../../../shared/types/calendar.ts";
-
 // ─────────────────────────────────────────────────────────────
 // Grid layout constants
 // ─────────────────────────────────────────────────────────────

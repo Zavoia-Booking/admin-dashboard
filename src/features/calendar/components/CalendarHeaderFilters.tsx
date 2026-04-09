@@ -1,5 +1,6 @@
 import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { SlidersHorizontal, RotateCcw } from "lucide-react";
 import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import {
@@ -65,6 +66,7 @@ interface CalendarHeaderFiltersProps {
 
 export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation("calendar");
   const isMobile = useIsMobile();
   const activeCount = useSelector(getActiveCalendarFiltersCount);
   const appliedDayFilters = useSelector(getDayFilters);
@@ -183,7 +185,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
       aria-label="Open calendar filters"
     >
       <SlidersHorizontal className="!h-4 !w-4 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
-      <span className="text-xs font-medium text-foreground">Filters</span>
+      <span className="text-xs font-medium text-foreground">{t("page.header.filters")}</span>
       {activeCount > 0 ? (
         <span className="absolute -top-1 -right-1 flex min-w-[18px] items-center justify-center rounded-full bg-primary px-1 py-0.5 text-[10px] font-bold text-primary-foreground shadow">
           {activeCount}
@@ -197,7 +199,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
       aria-label="Open calendar filters"
     >
       <SlidersHorizontal className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
-      <span className="text-xs font-medium">Filters</span>
+      <span className="text-xs font-medium">{t("page.header.filters")}</span>
       {activeCount > 0 ? (
         <span className="absolute -top-1 -right-1 flex min-w-[20px] items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-xs font-bold text-primary-foreground shadow">
           {activeCount}
@@ -209,7 +211,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
   const filtersMenuScrollable = (
     <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
       <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
-        <span className="min-w-0 shrink text-sm font-semibold text-foreground-1">Filters</span>
+        <span className="min-w-0 shrink text-sm font-semibold text-foreground-1">{t("page.header.filters")}</span>
         <div className="flex shrink-0 items-center justify-end gap-4">
           {hasDraftFiltersActive ? (
             <Button
@@ -224,7 +226,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
                 className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
                 aria-hidden
               />
-              Clear all
+              {t("page.header.clearAll")}
             </Button>
           ) : null}
           <Button
@@ -235,7 +237,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
             className="!h-9 !min-h-0 shrink-0 px-6 text-xs font-semibold transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-50"
             onClick={handleApply}
           >
-            Apply
+            {t("page.header.apply")}
           </Button>
         </div>
       </header>
@@ -283,10 +285,9 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
       >
         <DrawerTrigger asChild>{trigger}</DrawerTrigger>
         <DrawerContent className="outline-none !z-[80]" overlayClassName="!z-[75]">
-          <DrawerTitle className="sr-only">Calendar filters</DrawerTitle>
+          <DrawerTitle className="sr-only">{t("page.header.calendarFilters")}</DrawerTitle>
           <DrawerDescription className="sr-only">
-            Narrow the calendar by staff, status, service, and more. Apply to update the
-            calendar.
+            {t("page.header.calendarFiltersDrawerDesc")}
           </DrawerDescription>
           <div className="flex max-h-[80vh] flex-col overflow-hidden p-0">{filtersMenuScrollable}</div>
         </DrawerContent>

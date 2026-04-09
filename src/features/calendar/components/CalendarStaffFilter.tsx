@@ -55,6 +55,7 @@ export const CalendarStaffFilter: FC<CalendarStaffFilterProps> = ({
 }) => {
   const dispatch = useDispatch();
   const { t: servicesT } = useTranslation("services");
+  const { t } = useTranslation("calendar");
   const staff: CalendarStaffMember[] = useSelector(getLocationStaff);
   const staffFilterRaw: number[] = useSelector(getStaffFilter);
   const dayFiltersRedux = useSelector(getDayFilters);
@@ -153,7 +154,7 @@ export const CalendarStaffFilter: FC<CalendarStaffFilterProps> = ({
           <button
             type="button"
             onClick={() => handleToggleStaff(-1)}
-            title="Show all team members"
+            title={t("page.filters.showAllTeamMembers")}
             aria-pressed={isAllSelected}
             className={cn(
               CALENDAR_FILTER_CHIP_ALL_BASE,
@@ -169,7 +170,7 @@ export const CalendarStaffFilter: FC<CalendarStaffFilterProps> = ({
               )}
               aria-hidden
             />
-            <span className={CALENDAR_FILTER_CHIP_LABEL}>All staff</span>
+            <span className={CALENDAR_FILTER_CHIP_LABEL}>{t("page.filters.allStaff")}</span>
             {isAllSelected ? <CalendarFilterPillCheckmark /> : null}
           </button>
         ) : null}

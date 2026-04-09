@@ -1,4 +1,5 @@
 import { type FC, useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useNowTick } from "./useNowTick.ts";
 import { createPortal } from "react-dom";
 import { useSelector } from "react-redux";
@@ -24,8 +25,6 @@ import {
   updateAppointment,
   rescheduleAppointmentGroup,
   setCalendarPendingDrop,
-  setDayFiltersAction,
-  setStaffFilter,
   toggleAddForm,
   setScrollToNow,
 } from "../../actions.ts";
@@ -37,7 +36,6 @@ import type {
 import {
   getWorkingHoursForDate,
   getDayOpenCloseHours,
-  getDayOpenCloseMinutes,
   getSlotStartsInRange,
   getTimePositionForGrid,
   isTimeRangeOutsideWorkingHours,
@@ -61,7 +59,6 @@ import { restrictToVerticalAxis, snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { AppointmentDragData, TimeSlotDropData, StaffColumnDropData } from "../CalendarDnD.tsx";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar.tsx";
 import { getStaffAvatarColor } from "../../colors.ts";
-import { Button } from "../../../../shared/components/ui/button.tsx";
 import { ShieldAlert, SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "../../../../shared/components/common/EmptyState.tsx";
 import { toast } from "sonner";
@@ -104,7 +101,6 @@ export const DayGrid: FC = () => {
     setOverrideReasonText,
     overrideDialogOpen,
     setOverrideDialogOpen,
-    pendingReschedulePayload,
     setPendingReschedulePayload,
     dndSessionRef,
     dndSensors,
@@ -116,6 +112,7 @@ export const DayGrid: FC = () => {
     handleCancelConflictOverride,
   } = useGridDndState();
 
+  const { t } = useTranslation("calendar");
   const collisionDetection: CollisionDetection = useCallback((args) => pointerWithin(args), []);
 
   const selectedDate = useSelector(getSelectedDate);
@@ -143,7 +140,6 @@ export const DayGrid: FC = () => {
   const dateKey = formatDateInTimezone(selectedDate, calendarTimezone);
 
   const slotIntervalMinutes = bookingSettings?.slotIntervalMinutes ?? 15;
-  const dayBounds = getDayOpenCloseMinutes(dayWorkingHours, open247);
   const daySlotMinutes = getSlotStartsInRange(0, 24 * 60, slotIntervalMinutes);
   const dayGridSlotStarts: GridSlot[] = daySlotMinutes.map((m) => ({
     hour: Math.floor(m / 60),
@@ -185,7 +181,7 @@ export const DayGrid: FC = () => {
     if (locationStaff.length === 0) {
       return [{
         id: 0,
-        label: locationContext?.location.name ?? 'Location',
+        label: locationContext?.location.name ?? t('page.common.location'),
         isUnassigned: true,
       }];
     }
@@ -627,7 +623,7 @@ export const DayGrid: FC = () => {
     }
 
     if (overData.type === "time-slot") {
-      const label = columns.find((c) => c.id === overData.columnId)?.label ?? "This team member";
+      const label = columns.find((c) => c.id === overData.columnId)?.label ?? t("page.dnd.thisTeamMember");
       const slotResult = evaluateDayTimeSlotDrop({
         appointment,
         sourceColumnId: data.columnId,
@@ -855,8 +851,8 @@ export const DayGrid: FC = () => {
       {showFilterEmptyBanner ? (
         <EmptyState
           icon={SlidersHorizontal}
-          title="No appointments match your filters"
-          description="Try adjusting your filters or clearing them to see all appointments for this day."
+          title={t("page.appointments.noMatchFilters")}
+          description={t("page.appointments.noMatchFiltersDayDesc")}
           className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
         />
       ) : (

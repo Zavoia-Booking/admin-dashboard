@@ -1,9 +1,10 @@
 import { type FC, useCallback, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { SlidersHorizontal, Plus } from "lucide-react";
 import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
 import { useDispatch, useSelector } from "react-redux";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import { formatDateInTimezone } from "../timezone.ts";
+import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
 import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../shared/types/calendar.ts";
 import {
   getWeekData,
@@ -45,6 +46,7 @@ type ListItem =
 
 export const WeekAppointmentList: FC = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation("calendar");
   const selectedLocationId = useSelector(getSelectedLocationId);
   const weekData = useSelector(getWeekData);
   const isLoading = useSelector(getWeekDataLoading);
@@ -118,7 +120,7 @@ export const WeekAppointmentList: FC = () => {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">Select a location to view appointments.</p>
+          <p className="text-sm text-muted-foreground">{t("page.appointments.selectLocationAppointments")}</p>
         </CardContent>
       </Card>
     );
@@ -144,17 +146,17 @@ export const WeekAppointmentList: FC = () => {
     return hasActiveFilters ? (
       <EmptyState
         icon={SlidersHorizontal}
-        title="No appointments match your filters"
-        description="Try adjusting your filters or clearing them to see all appointments for this week."
+        title={t("page.appointments.noMatchFilters")}
+        description={t("page.appointments.noMatchFiltersWeekDesc")}
         className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
       />
     ) : (
       <EmptyState
-        title="Nothing scheduled"
-        description="No appointments or blocks scheduled for this week."
+        title={t("page.appointments.nothingScheduled")}
+        description={t("page.appointments.nothingScheduledWeekDesc")}
         className="h-[calc(100dvh-115px)] !py-0 !justify-center cursor-default"
         actionButton={{
-          label: "Add Event",
+          label: t("page.appointments.addEvent"),
           icon: Plus,
           onClick: () => dispatch(toggleAddForm({ open: true })),
         }}
@@ -206,7 +208,7 @@ export const WeekAppointmentList: FC = () => {
 
         const apptCount = apptItems.length;
         const blockCount = blockItems.length;
-        const dateLabel = day.toLocaleDateString("en-US", {
+        const dateLabel = day.toLocaleDateString(getCalendarLocale(), {
           weekday: "long",
           month: "short",
           day: "numeric",
@@ -229,15 +231,15 @@ export const WeekAppointmentList: FC = () => {
             {sortedItems.length === 0 && (
               <p className="text-sm text-muted-foreground py-2 px-1 cursor-default">
                 {hasActiveFilters
-                  ? "No appointments match your filters for this day."
-                  : "Nothing scheduled"}
+                  ? t("page.appointments.noMatchFiltersForDay")
+                  : t("page.appointments.nothingScheduled")}
               </p>
             )}
 
             {/* Filtered-out notice: blocks exist but appointments are filtered */}
             {sortedItems.length > 0 && apptCount === 0 && blockCount > 0 && hasActiveFilters && (
               <div className="flex items-center px-1 py-1.5 rounded-md bg-muted/40 text-xs text-muted-foreground cursor-default">
-                <span>No appointments match your filters.</span>
+                <span>{t("page.appointments.noMatchFiltersInline")}</span>
               </div>
             )}
 

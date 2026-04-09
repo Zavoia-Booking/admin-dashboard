@@ -5,6 +5,7 @@ import React, {
   useCallback,
   useRef,
 } from "react";
+import { useTranslation } from "react-i18next";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
   Ban,
@@ -82,7 +83,7 @@ import {
   getBookingSourcePillParts,
   assignmentStylePillLayout,
   formatDurationHuman,
-  NO_CUSTOMER_DISPLAY_LABEL,
+  getNoCustomerDisplayLabel,
 } from "./utils";
 import type { Appointment } from "../../../shared/types/calendar";
 import { selectIsTeamMember, selectCurrentUser } from "../../auth/selectors";
@@ -128,6 +129,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   appointment: appointmentProp,
   groupAppointments: groupAppointmentsProp,
 }) => {
+  const { t } = useTranslation("calendar");
+
   // Keep last valid appointment so dialog can render during exit animation
   const lastAppointmentRef = useRef<Appointment | null>(null);
   if (appointmentProp) lastAppointmentRef.current = appointmentProp;
@@ -166,24 +169,24 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     const rows: Array<{ id: string; title: string; meta: string }> = [
       {
         id: "created",
-        title: "Appointment created",
-        meta: `${getBookingSourceLabel(appointment.bookingSource)} · ${formatActivityTimelineDateTime(appointment.createdAt, auditTimezone)}`,
+        title: t("page.appointments.edit.appointmentCreated"),
+        meta: `${getBookingSourceLabel(appointment.bookingSource, t)} · ${formatActivityTimelineDateTime(appointment.createdAt, auditTimezone)}`,
       },
     ];
     if (appointment.overrideReason && appointment.overrideUsedAt) {
       rows.push({
         id: "override",
-        title: "Admin override applied",
-        meta: `System · ${formatActivityTimelineDateTime(appointment.overrideUsedAt, auditTimezone)}`,
+        title: t("page.appointments.edit.adminOverrideApplied"),
+        meta: `${t("page.appointments.edit.system")} · ${formatActivityTimelineDateTime(appointment.overrideUsedAt, auditTimezone)}`,
       });
     }
     rows.push({
       id: "updated",
-      title: "Last updated",
-      meta: `System · ${formatActivityTimelineDateTime(appointment.updatedAt, auditTimezone)}`,
+      title: t("page.appointments.edit.lastUpdated"),
+      meta: `${t("page.appointments.edit.system")} · ${formatActivityTimelineDateTime(appointment.updatedAt, auditTimezone)}`,
     });
     return rows;
-  }, [appointment, auditTimezone]);
+  }, [appointment, auditTimezone, t]);
 
   // Cancel dialog state
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
@@ -368,7 +371,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     const img = (cust?.profileImage ?? snap?.profileImage ?? "").trim();
     const profileImage = img || null;
     const hasContact = !!(name || email || phone);
-    const displayName = name || NO_CUSTOMER_DISPLAY_LABEL;
+    const displayName = name || getNoCustomerDisplayLabel(t);
     const snapshotOnly = !cust && !!(snap && hasContact);
     return {
       displayName,
@@ -378,15 +381,15 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       linkedCustomerId: cust?.id,
       snapshotOnly,
     };
-  }, [displayAppointment]);
+  }, [displayAppointment, t]);
 
   const staffNames = useMemo(() => {
-    if (!displayAppointment) return "Unassigned";
+    if (!displayAppointment) return t("page.common.unassigned");
     const ids =
       displayAppointment.teamMembers?.map((tm: any) => tm.id ?? tm) ?? [];
-    if (ids.length === 0) return "Unassigned";
-    return getStaffDisplayNames(ids, locationStaff);
-  }, [displayAppointment, locationStaff]);
+    if (ids.length === 0) return t("page.common.unassigned");
+    return getStaffDisplayNames(ids, locationStaff, t);
+  }, [displayAppointment, locationStaff, t]);
 
   /** Staff rows from location context (profile images for Visit card). */
   const assignedStaffMembers = useMemo(() => {
@@ -423,8 +426,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
   const headerMetaStaff = useMemo(() => {
     if (!displayAppointment) return "";
-    return isUnassigned ? "Unassigned" : `Assigned to ${staffNames}`;
-  }, [displayAppointment, isUnassigned, staffNames]);
+    return isUnassigned ? t("page.common.unassigned") : t("page.common.assignedTo", { names: staffNames });
+  }, [displayAppointment, isUnassigned, staffNames, t]);
 
   /** Relative date for header line 2: "Today", "Tomorrow", "Yesterday", "In N days", or "N days ago". */
   const headerRelativeDate = useMemo(() => {
@@ -435,15 +438,15 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       new Date(displayAppointment.scheduledAt),
       tz,
     );
-    if (todayStr === appStr) return "Today";
+    if (todayStr === appStr) return t("page.common.today");
     const parse = (s: string) => new Date(s + "T12:00:00Z").getTime();
     const diffDays = Math.round((parse(appStr) - parse(todayStr)) / 86400000);
-    if (diffDays === 1) return "Tomorrow";
-    if (diffDays === -1) return "Yesterday";
-    if (diffDays > 1 && diffDays <= 365) return `In ${diffDays} days`;
-    if (diffDays < -1 && diffDays >= -365) return `${-diffDays} days ago`;
+    if (diffDays === 1) return t("page.common.tomorrow");
+    if (diffDays === -1) return t("page.common.yesterday");
+    if (diffDays > 1 && diffDays <= 365) return t("page.common.inDays", { count: diffDays });
+    if (diffDays < -1 && diffDays >= -365) return t("page.common.daysAgo", { count: -diffDays });
     return "";
-  }, [displayAppointment, auditTimezone]);
+  }, [displayAppointment, auditTimezone, t]);
 
   const bookingLastEndMs = useMemo(() => {
     const list =
@@ -479,12 +482,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       const end = new Date(a.endsAt).getTime();
       const durationMinutes = Math.round((end - start) / (60 * 1000));
       const name =
-        a.bookedItemName ?? a.service?.name ?? a.bundle?.name ?? "Unknown item";
+        a.bookedItemName ?? a.service?.name ?? a.bundle?.name ?? t("page.appointments.add.unknownItem");
       const isBundle = a.bundle != null && !a.service;
       const priceMajor = (a.price ?? 0) / 100;
       return { name, durationMinutes, priceMajor, isBundle };
     });
-  }, [appointment, groupAppointments]);
+  }, [appointment, groupAppointments, t]);
 
   const serviceDetailTotalPrice = useMemo(
     () => serviceDetailItems.reduce((sum, i) => sum + i.priceMajor, 0),
@@ -567,7 +570,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     dispatch(
       cancelAppointment.request({
         appointmentId: appointment.id,
-        reason: cancelReason || "No reason provided",
+        reason: cancelReason || t("page.appointments.edit.noReasonProvided"),
         notifyCustomer,
         notificationMethods: notifyCustomer ? methods : [],
       }),
@@ -647,7 +650,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
           row.bookedItemName ??
           row.bundle?.name ??
           row.service?.name ??
-          "Service";
+          t("page.appointments.edit.service");
         if (row.bundle?.id != null) {
           return {
             appointmentId: row.id,
@@ -765,10 +768,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex min-w-0 items-center gap-3">
                     <DialogTitle className="min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1">
-                      Appointment details
+                      {t("page.appointments.appointmentDetails")}
                     </DialogTitle>
                     <div className="flex shrink-0 items-center gap-2">
-                      {getStatusBadge(appointment.status)}
+                      {getStatusBadge(appointment.status, t)}
                     </div>
                   </div>
                   <DialogDescription asChild>
@@ -806,7 +809,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       className="mr-1.5 h-3.5 w-3.5 shrink-0 transition-colors duration-200 group-hover:text-primary"
                       aria-hidden
                     />
-                    Edit
+                    {t("page.header.edit")}
                   </Button>
                 )}
                 <DialogPrimitive.Close
@@ -815,7 +818,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     "hover:opacity-100 hover:text-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     "disabled:pointer-events-none",
                   )}
-                  aria-label="Close"
+                  aria-label={t("page.common.close")}
                 >
                   <X className="h-5 w-5" />
                 </DialogPrimitive.Close>
@@ -894,7 +897,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     {!isTerminal && (isBookingInPast || canCancel) && (
                       <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
                         <Label className="text-sm font-semibold text-foreground-1">
-                          Update status
+                          {t("page.appointments.updateStatus")}
                         </Label>
                         {pendingConfirm ? (
                           <div
@@ -908,8 +911,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           >
                             <p className="min-w-0 text-sm text-foreground-2">
                               {pendingConfirm === "complete"
-                                ? "Mark this appointment as complete?"
-                                : "Mark this appointment as no-show?"}
+                                ? t("page.appointments.markCompleteConfirm")
+                                : t("page.appointments.markNoShowConfirm")}
                             </p>
                             <div className="flex shrink-0 items-center gap-3">
                               <Button
@@ -925,7 +928,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 }}
                                 className="!h-8 !min-h-8 px-3.5 text-xs font-medium text-foreground-3 hover:text-foreground-1"
                               >
-                                Back
+                                {t("page.appointments.back")}
                               </Button>
                               <Button
                                 variant="outline"
@@ -940,7 +943,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                     : "border-orange-500/20 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700",
                                 )}
                               >
-                                Confirm
+                                {t("page.appointments.confirm")}
                               </Button>
                             </div>
                           </div>
@@ -964,7 +967,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   disabled={actionLoading !== null}
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                                  Mark as complete
+                                  {t("page.appointments.edit.markAsComplete")}
                                 </Button>
                                 <Button
                                   variant="outline"
@@ -975,7 +978,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   disabled={actionLoading !== null}
                                 >
                                   <UserX className="h-3.5 w-3.5 shrink-0" />
-                                  No-show
+                                  {t("page.appointments.edit.noShow")}
                                 </Button>
                                 {canCancel && (
                                   <span
@@ -995,7 +998,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 disabled={actionLoading !== null}
                               >
                                 <Ban className="h-3.5 w-3.5 shrink-0" />
-                                Cancel appointment
+                                {t("page.appointments.edit.cancelAppointment")}
                               </Button>
                             )}
                           </div>
@@ -1014,9 +1017,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             "border-orange-500/20 bg-orange-50/50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200",
                         )}
                       >
-                        {isCancelled && "Appointment cancelled"}
-                        {isCompleted && "Appointment completed"}
-                        {isNoShow && "Marked as no-show"}
+                        {isCancelled && t("page.appointments.edit.appointmentCancelled")}
+                        {isCompleted && t("page.appointments.edit.appointmentCompleted")}
+                        {isNoShow && t("page.appointments.edit.markedAsNoShow")}
                       </div>
                     )}
                   </div>
@@ -1039,6 +1042,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               );
                               const viaLabel = getBookedViaLabel(
                                 appointment.bookingSource,
+                                t,
                               );
                               return (
                                 <Badge
@@ -1081,17 +1085,17 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             {clientDisplay.snapshotOnly ? (
                               <p className="truncate text-xs text-foreground-3">
                                 {clientDisplay.email || clientDisplay.phone
-                                  ? "No profile linked. Contact details were added during booking."
-                                  : "No profile linked · No contact details provided"}
+                                  ? t("page.appointments.edit.noProfileLinkedContact")
+                                  : t("page.appointments.edit.noProfileNoContact")}
                               </p>
                             ) : clientDisplay.linkedCustomerId != null ? (
                               <p className="truncate text-xs text-foreground-3">
-                                Linked profile ID{" "}
+                                {t("page.appointments.edit.linkedProfileId")}{" "}
                                 {clientDisplay.linkedCustomerId}
                               </p>
                             ) : !clientDisplay.email && !clientDisplay.phone ? (
                               <p className="truncate text-xs text-foreground-3">
-                                No phone or email on file
+                                {t("page.appointments.edit.noPhoneOrEmail")}
                               </p>
                             ) : null}
                             <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-foreground-3 dark:text-foreground-2">
@@ -1145,7 +1149,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         */}
                       </div>
 
-                      {/* Group booking indicator — pill matches assignments “Customized for N team members” */}
+                      {/* Group booking indicator — pill matches assignments "Customized for N team members" */}
                       {isGroupBooking && (
                         <div className="group mt-0 border-b border-border-subtle py-3">
                           <Button
@@ -1169,27 +1173,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               aria-hidden
                             />
                             <span className="min-w-0 text-xs text-foreground-1 group-hover:text-foreground-1 md:text-foreground-3 md:dark:text-foreground-2 dark:group-hover:text-foreground-1">
-                              {appointment.bookingGroupOrder != null ? (
-                                <>
-                                  Appointment{" "}
-                                  <span className="font-semibold text-foreground-1">
-                                    {appointment.bookingGroupOrder}
-                                  </span>
-                                  {" of "}
-                                  <span className="font-semibold text-foreground-1">
-                                    {serviceDetailItems.length}
-                                  </span>
-                                  {" in this group"}
-                                </>
-                              ) : (
-                                <>
-                                  Part of a multi-service booking &mdash;{" "}
-                                  <span className="font-semibold text-foreground-1">
-                                    {serviceDetailItems.length}
-                                  </span>{" "}
-                                  services
-                                </>
-                              )}
+                              {appointment.bookingGroupOrder != null
+                                ? t("page.appointments.edit.appointmentOf", { order: appointment.bookingGroupOrder, total: serviceDetailItems.length })
+                                : t("page.appointments.edit.multiServiceBooking", { count: serviceDetailItems.length })
+                              }
                             </span>
                             <ChevronRight
                               className="h-3 w-3 shrink-0 pt-0.5"
@@ -1203,7 +1190,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       <dl className="divide-y divide-border-subtle text-sm">
                         <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
                           <dt className="font-medium text-foreground-3 sm:pt-0.5">
-                            Date
+                            {t("page.appointments.edit.date")}
                           </dt>
                           <dd className="min-w-0 font-semibold text-foreground-1">
                             {formatDetailOverviewDate(
@@ -1214,7 +1201,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         </div>
                         <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
                           <dt className="font-medium text-foreground-3 sm:pt-0.5">
-                            Slot time
+                            {t("page.appointments.edit.slotTime")}
                           </dt>
                           <dd className="min-w-0 font-semibold text-foreground-1 tabular-nums">
                             {formatTimeRange(
@@ -1229,7 +1216,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         </div>
                         <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
                           <dt className="font-medium text-foreground-3 sm:pt-0.5">
-                            Notes
+                            {t("page.appointments.edit.notes")}
                           </dt>
                           <dd className="min-w-0">
                             {appointment.notes?.trim() ? (
@@ -1238,14 +1225,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               </p>
                             ) : (
                               <p className="m-0 text-sm text-muted-foreground">
-                                No notes on this booking.
+                                {t("page.appointments.edit.noNotes")}
                               </p>
                             )}
                           </dd>
                         </div>
                         <div className="grid grid-cols-1 gap-2 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6 sm:gap-y-0">
                           <dt className="font-medium text-foreground-3 sm:pt-1">
-                            Assigned staff
+                            {t("page.appointments.edit.assignedStaff")}
                           </dt>
                           <dd className="min-w-0">
                             {isUnassigned ? (
@@ -1259,7 +1246,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   className="h-2 w-2 shrink-0 rounded-full bg-orange-500"
                                   aria-hidden
                                 />
-                                Unassigned
+                                {t("page.common.unassigned")}
                               </Badge>
                             ) : assignedStaffMembers.length > 0 ? (
                               <div className="flex flex-wrap items-center gap-2.5">
@@ -1362,7 +1349,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           />
                           <p className="min-w-0 flex-1 text-xs leading-relaxed text-foreground-2">
                             <span className="font-medium text-foreground-2">
-                              Override:
+                              {t("page.appointments.edit.overrideReason")}:
                             </span>{" "}
                             {appointment.overrideReason}
                           </p>
@@ -1377,7 +1364,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     className="scroll-mt-4"
                   >
                     <CollapsibleFormSection
-                      title={`Services (${serviceDetailItems.length})`}
+                      title={t("page.appointments.edit.services", { count: serviceDetailItems.length })}
                       compact
                       description={
                         isGroupBooking ? (
@@ -1393,12 +1380,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             />
                             <span className="min-w-0">
                               {groupBookingWallTimeRange
-                                ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration)} - across this appointment group`
-                                : `${formatDurationHuman(serviceDetailTotalDuration)} - across this appointment group`}
+                                ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`
+                                : `${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`}
                             </span>
                           </>
                         ) : (
-                          "Booked service or bundle for this appointment"
+                          t("page.appointments.edit.bookedServiceDescription")
                         )
                       }
                       open={accServicesOpen}
@@ -1408,7 +1395,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       <div className="space-y-0">
                         {serviceDetailItems.length === 0 ? (
                           <p className="py-6 text-center text-sm text-foreground-3">
-                            No booked items in this view
+                            {t("page.appointments.edit.noBookedItems")}
                           </p>
                         ) : (
                           <>
@@ -1437,7 +1424,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                             "border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-200",
                                           )}
                                         >
-                                          Bundle
+                                          {t("page.appointments.edit.bundle")}
                                         </Badge>
                                       ) : null}
                                     </div>
@@ -1445,7 +1432,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   <div className="flex shrink-0 items-center justify-end text-right text-sm font-semibold tabular-nums text-foreground-1">
                                     {item.priceMajor <= 0 ? (
                                       <span className="text-foreground-2">
-                                        Free
+                                        {t("page.appointments.edit.free")}
                                       </span>
                                     ) : currencyDisplay.icon ? (
                                       <span className="inline-flex items-center gap-0.5">
@@ -1473,12 +1460,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             >
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-sm font-semibold text-foreground-1">
-                                  Total
+                                  {t("page.appointments.edit.total")}
                                 </span>
                                 <div className="shrink-0 text-sm font-semibold tabular-nums text-foreground-1">
                                   {serviceDetailTotalPrice <= 0 ? (
                                     <span className="text-foreground-2">
-                                      Free
+                                      {t("page.appointments.edit.free")}
                                     </span>
                                   ) : currencyDisplay.icon ? (
                                     <span className="inline-flex items-center gap-0.5">
@@ -1496,7 +1483,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               {isGroupBooking &&
                               serviceDetailTotalDuration > 0 ? (
                                 <p className="text-xs leading-relaxed text-foreground-3 dark:text-foreground-2">
-                                  Includes all services in this booking group.
+                                  {t("page.appointments.edit.includesAllServices")}
                                 </p>
                               ) : null}
                             </div>
@@ -1507,9 +1494,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                   </div>
 
                   <CollapsibleFormSection
-                    title="Activity"
+                    title={t("page.appointments.edit.activity")}
                     compact
-                    description="Booking history, updates, and admin overrides."
+                    description={t("page.appointments.edit.activityDescription")}
                     open={accHistoryOpen}
                     onOpenChange={setAccHistoryOpen}
                     className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
@@ -1522,7 +1509,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           <li key={item.id} className="list-none">
                             {/*
                             Line sits in the gutter column only, directly under the dot (items-start
-                            so row height doesn’t push the connector below the subtitle).
+                            so row height doesn't push the connector below the subtitle).
                           */}
                             <div
                               className={cn(
@@ -1564,9 +1551,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
                   {appointment.location ? (
                     <CollapsibleFormSection
-                      title="Location details"
+                      title={t("page.appointments.edit.locationDetails")}
                       compact
-                      description="Address, maps, and contact details for this location."
+                      description={t("page.appointments.edit.locationDetailsDescription")}
                       open={accLocationOpen}
                       onOpenChange={setAccLocationOpen}
                       className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
@@ -1637,7 +1624,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 }}
                               >
                                 <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                                Open in Maps
+                                {t("page.appointments.edit.openInMaps")}
                               </Button>
                               {copyText ? (
                                 <Button
@@ -1652,13 +1639,13 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                     );
                                     toast.success(
                                       hasAddress
-                                        ? "Address copied"
-                                        : "Location details copied",
+                                        ? t("page.appointments.edit.addressCopied")
+                                        : t("page.appointments.edit.locationDetailsCopied"),
                                     );
                                   }}
                                 >
                                   <Copy className="h-3.5 w-3.5 shrink-0" />
-                                  {hasAddress ? "Copy address" : "Copy details"}
+                                  {hasAddress ? t("page.appointments.edit.copyAddress") : t("page.appointments.edit.copyDetails")}
                                 </Button>
                               ) : null}
                             </div>
@@ -1672,7 +1659,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 )}
                               >
                                 <span className="text-xs font-medium text-foreground-2">
-                                  Location contact
+                                  {t("page.appointments.edit.locationContact")}
                                 </span>
                                 <div className="flex flex-wrap items-center gap-2 text-xs text-foreground-3 dark:text-foreground-2">
                                   {loc.email ? (
@@ -1726,9 +1713,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
                   {isCancelled && appointment.cancellationReason ? (
                     <CollapsibleFormSection
-                      title="Cancellation"
+                      title={t("page.appointments.edit.cancellation")}
                       compact
-                      description="Reason recorded when this appointment was cancelled."
+                      description={t("page.appointments.edit.cancellationDescription")}
                       open={accCancellationOpen}
                       onOpenChange={setAccCancellationOpen}
                       className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
@@ -1757,13 +1744,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
             )}
           >
             <AlertDialogHeader>
-              <AlertDialogTitle>Cancel Appointment</AlertDialogTitle>
+              <AlertDialogTitle>{t("page.appointments.edit.cancelAppointmentTitle")}</AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="space-y-4">
                   {appointment.bookingGroupId && (
                     <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                      This will cancel the entire booking (all items in this
-                      group).
+                      {t("page.appointments.edit.cancelEntireGroup")}
                     </p>
                   )}
                   <div>
@@ -1771,11 +1757,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       htmlFor="cancelReason"
                       className="text-base font-medium"
                     >
-                      Reason for cancellation
+                      {t("page.appointments.edit.reasonForCancellation")}
                     </Label>
                     <Textarea
                       id="cancelReason"
-                      placeholder="Enter reason for cancelling..."
+                      placeholder={t("page.appointments.edit.enterCancelReason")}
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
                       className="min-h-[80px] resize-none mt-2"
@@ -1794,14 +1780,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           htmlFor="notify-customer"
                           className="text-sm font-medium"
                         >
-                          Notify customer
+                          {t("page.appointments.edit.notifyCustomer")}
                         </Label>
                       </div>
                     </div>
                     {notifyCustomer && (
                       <div className="space-y-3">
                         <Label className="text-sm font-medium">
-                          Notification method
+                          {t("page.appointments.edit.notificationMethod")}
                         </Label>
                         <div className="flex gap-2">
                           {(["email", "sms", "both"] as const).map((method) => (
@@ -1848,13 +1834,13 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                   setNotificationMethod("both");
                 }}
               >
-                Back
+                {t("page.appointments.back")}
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleCancelConfirm}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Cancel Appointment
+                {t("page.appointments.edit.cancelAppointmentTitle")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogPrimitive.Content>

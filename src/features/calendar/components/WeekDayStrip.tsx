@@ -3,8 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getSelectedDate, getWeekViewDisplayStart, getViewModeSelector } from "../selectors.ts";
 import { getWeekStart } from "../utils.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
-
-const FULL_DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+import { getCalendarLocale } from "../timezone.ts";
 
 interface WeekDayStripProps {
   /** Width of the time gutter on the left (px) — must match the grid's gutter */
@@ -62,7 +61,7 @@ export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
                 `}
               >
                 <span className={`text-xs ${isSelected || isToday ? 'font-semibold' : 'font-medium'}`}>
-                  {FULL_DAY_NAMES[day.getDay()].slice(0, 3)}, {day.getDate()}
+                  {day.toLocaleDateString(getCalendarLocale(), { weekday: 'short' })}, {day.getDate()}
                 </span>
               </button>
             </div>

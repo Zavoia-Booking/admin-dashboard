@@ -41,6 +41,8 @@ import enMyProfile from '../../locales/en/myProfile.json';
 import roMyProfile from '../../locales/ro/myProfile.json';
 import enAuth from '../../locales/en/auth.json';
 import roAuth from '../../locales/ro/auth.json';
+import enCalendar from '../../locales/en/calendar.json';
+import roCalendar from '../../locales/ro/calendar.json';
 
 const resources = {
   en: {
@@ -63,6 +65,7 @@ const resources = {
     mySettings: enMySettings,
     myProfile: enMyProfile,
     auth: enAuth,
+    calendar: enCalendar,
   },
   ro: {
     services: roServices,
@@ -84,6 +87,7 @@ const resources = {
     mySettings: roMySettings,
     myProfile: roMyProfile,
     auth: roAuth,
+    calendar: roCalendar,
   },
 };
 

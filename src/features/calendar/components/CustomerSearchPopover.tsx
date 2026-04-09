@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2 } from "lucide-react";
 import type { Customer } from "../../../shared/types/customer";
 import { SearchInput } from "../../../shared/components/common/SearchInput";
@@ -25,6 +26,7 @@ interface CustomerSearchPopoverProps {
 const CUSTOMER_PICKER_PAGE_SIZE = 10;
 
 export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlot }: CustomerSearchPopoverProps) {
+  const { t } = useTranslation('calendar');
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerResults, setCustomerResults] = useState<CustomerSearchResult[]>([]);
   const [customerLoading, setCustomerLoading] = useState(false);
@@ -253,7 +255,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
           >
             <SearchInput
               ref={customerSearchInputRef}
-              placeholder="Search clients..."
+              placeholder={t('page.appointments.customer.searchPlaceholder')}
               value={customerSearch}
               onChange={handleCustomerSearchChange}
               onDebouncedChange={handleCustomerSearchDebounced}

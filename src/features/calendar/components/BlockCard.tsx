@@ -1,5 +1,6 @@
 import { type FC, useCallback, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 import {
   AlertDialog,
@@ -29,19 +30,20 @@ import { BlockSummaryDialogShell, getBlockScopeLabel } from "./BlockSummaryPopov
 export { getCalendarBlockReasonLabel as getBlockReasonLabel } from "./blockReasonMeta.ts";
 export { getBlockScopeLabel } from "./BlockSummaryPopoverPanel.tsx";
 
-/** Staff / location line (column aligned with appointment “who”). */
+/** Staff / location line (column aligned with appointment "who"). */
 function blockStaffColumnLabel(
   scope: string,
   staffName: string | null,
   userId: number | null,
+  t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   switch (scope) {
     case "location":
-      return "Entire location";
+      return t("page.blocks.scope.entireLocation");
     case "business":
-      return "All locations";
+      return t("page.blocks.scope.allLocations");
     case "staff":
-      return staffName ?? (userId != null ? `Staff #${userId}` : "Unassigned");
+      return staffName ?? (userId != null ? t("page.common.staffId", { id: userId }) : t("page.common.unassigned"));
     default:
       return scope;
   }
@@ -68,6 +70,7 @@ interface BlockCardProps {
 
 export const BlockCard: FC<BlockCardProps> = ({ block, locationStaff, timezone }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation("calendar");
   const isTeamMember = useSelector(selectIsTeamMember);
   const currentUserId = useSelector(selectCurrentUserId);
   const [blockSummaryOpen, setBlockSummaryOpen] = useState(false);
@@ -84,21 +87,21 @@ export const BlockCard: FC<BlockCardProps> = ({ block, locationStaff, timezone }
     (block.blockScope === "staff" && block.userId != null && block.userId === currentUserId);
   const canDeleteBlock = canEditBlock;
 
-  const timeDisplay = block.isAllDay ? "All day" : formatTimeRange(block.startsAt, block.endsAt, timezone);
+  const timeDisplay = block.isAllDay ? t("page.blocks.allDay") : formatTimeRange(block.startsAt, block.endsAt, timezone);
 
-  const reasonLabel = getCalendarBlockReasonLabel(block.reason);
+  const reasonLabel = getCalendarBlockReasonLabel(block.reason, t);
   const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
   const customTitle = block.title?.trim() ?? "";
-  const scopeLabel = getBlockScopeLabel(block.blockScope);
-  const staffColumnLabel = blockStaffColumnLabel(block.blockScope, staffName, block.userId);
+  const scopeLabel = getBlockScopeLabel(block.blockScope, t);
+  const staffColumnLabel = blockStaffColumnLabel(block.blockScope, staffName, block.userId, t);
 
   const scopePlainLabel =
     block.blockScope === "location"
-      ? "Location-wide"
+      ? t("page.blocks.scope.locationWide")
       : block.blockScope === "staff"
-        ? "Staff member"
+        ? t("page.blocks.scope.staffMember")
         : block.blockScope === "business"
-          ? "Business-wide"
+          ? t("page.blocks.scope.businessWide")
           : block.blockScope;
 
   const durationMinutes = block.isAllDay
@@ -224,7 +227,7 @@ export const BlockCard: FC<BlockCardProps> = ({ block, locationStaff, timezone }
               <span className="min-w-0 truncate text-xs text-foreground-3">{staffColumnLabel}</span>
             </div>
 
-            {/* 5 — Scope tier (same column as “Booked via”) */}
+            {/* 5 — Scope tier (same column as "Booked via") */}
             <span className="min-w-0 overflow-hidden border-l border-border pl-3 text-xs text-foreground-3 text-ellipsis whitespace-nowrap">
               {scopePlainLabel}
             </span>
@@ -237,10 +240,10 @@ export const BlockCard: FC<BlockCardProps> = ({ block, locationStaff, timezone }
                     "inline-flex max-w-full min-w-24 justify-center shrink-0 items-center gap-1.5 rounded-full border border-border",
                     "bg-muted/60 px-2 py-1 text-xs font-medium text-foreground-3",
                   )}
-                  title="Recurring block"
+                  title={t("page.blocks.recurringBlock")}
                 >
                   <Repeat2 className="h-3.5 w-3.5 shrink-0 text-foreground-1" aria-hidden />
-                  <span className="truncate">Recurring</span>
+                  <span className="truncate">{t("page.blocks.recurring")}</span>
                 </span>
               ) : null}
             </div>
@@ -264,19 +267,18 @@ export const BlockCard: FC<BlockCardProps> = ({ block, locationStaff, timezone }
           <AlertDialogOverlay onClick={() => setShowDeleteConfirm(false)} />
           <AlertDialogPrimitive.Content className="fixed left-4 right-4 top-[50%] z-[100] grid translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:left-[50%] sm:right-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] rounded-xl">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete block?</AlertDialogTitle>
+              <AlertDialogTitle>{t("page.blocks.deleteBlock")}</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently remove the {scopeLabel.toLowerCase()}
-                {customTitle ? ` "${customTitle}"` : ""}. This action cannot be undone.
+                {t("page.blocks.deleteDescription", { scopeLabel: scopeLabel.toLowerCase(), titleSuffix: customTitle ? ` "${customTitle}"` : "" })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel>{t("page.blocks.cancelBtn")}</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleDelete}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Delete
+                {t("page.blocks.deleteBtn")}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogPrimitive.Content>

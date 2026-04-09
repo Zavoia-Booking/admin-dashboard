@@ -53,6 +53,7 @@ import { getDateRangeForMode } from "./utils.ts";
 import { formatDateInTimezone } from "./timezone.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
+import i18n from "../../shared/lib/i18n";
 
 function wallDateFromIso(iso: string): Date {
     const d = new Date(iso);
@@ -350,7 +351,7 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
         yield put(adminCreateAppointmentGroup.success(result));
         yield call(refetchCalendarForCurrentView);
         const count = result?.appointments?.length ?? 1;
-        toast.success(count > 1 ? `Booking group created (${count} items)` : 'Booking created');
+        toast.success(count > 1 ? i18n.t("calendar:page.toasts.bookingGroupCreated", { count }) : i18n.t("calendar:page.toasts.bookingCreated"));
     } catch (error: any) {
         yield put(adminCreateAppointmentGroup.failure(error));
         const status = error?.response?.status;
@@ -363,7 +364,7 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
                 details,
             });
         }
-        toast.error(error?.response?.data?.message || 'Failed to create booking group');
+        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.bookingGroupCreationFailed"));
     }
 }
 
@@ -373,13 +374,13 @@ function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleA
         const result: any = yield call(rescheduleGroupRequest, bookingGroupId, payload);
         yield put(rescheduleAppointmentGroup.success(result));
         yield call(refetchCalendarForCurrentView);
-        toast.success('Booking group rescheduled');
+        toast.success(i18n.t("calendar:page.toasts.bookingGroupRescheduled"));
     } catch (error: any) {
         yield put(rescheduleAppointmentGroup.failure(error));
         const status = error?.response?.status;
         if (status === 409) {
             const raw = error?.response?.data?.message;
-            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? 'Time slot not available') : (raw || 'Time slot not available');
+            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable")) : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
             yield put(setUpdateConflictOffer({
                 appointmentId: 0,
@@ -389,12 +390,12 @@ function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleA
                 bookingGroupId,
             }));
             if (conflictType === 'staff_appointment') {
-                toast.error('This team member already has an appointment at this time. Choose another time or team member.');
+                toast.error(i18n.t("calendar:page.toasts.staffConflict"));
             } else {
-                toast.info('Slot unavailable', { description: 'You can reschedule anyway with an override.' });
+                toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(error?.response?.data?.message || 'Failed to reschedule group');
+            toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.rescheduleGroupFailed"));
         }
     }
 }
@@ -406,11 +407,15 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
         const result: any = yield call(updateAppointmentRequest, appointmentId, { status });
         yield put(updateAppointmentStatus.success(result));
         yield call(refetchCalendarForCurrentView);
-        const label = status === 'completed' ? 'completed' : status === 'no_show' ? 'marked as no-show' : `updated to ${status}`;
-        toast.success(`Appointment ${label}`);
+        const toastKey = status === 'completed'
+            ? "calendar:page.toasts.appointmentStatusCompleted"
+            : status === 'no_show'
+                ? "calendar:page.toasts.appointmentStatusNoShow"
+                : "calendar:page.toasts.appointmentStatusGeneric";
+        toast.success(i18n.t(toastKey, { status }));
     } catch (error: any) {
         yield put(updateAppointmentStatus.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to update appointment status');
+        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentStatusUpdateFailed"));
     }
 }
 
@@ -421,7 +426,7 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
         const result: any = yield call(updateAppointmentRequest, appointmentId, data);
         yield put(updateAppointment.success(result));
         yield call(refetchCalendarForCurrentView);
-        toast.success('Appointment updated');
+        toast.success(i18n.t("calendar:page.toasts.appointmentUpdated"));
         if (chainReschedule) {
             yield put(rescheduleAppointmentGroup.request({
                 bookingGroupId: chainReschedule.bookingGroupId,
@@ -433,16 +438,16 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
         const status = error?.response?.status;
         if (status === 409) {
             const raw = error?.response?.data?.message;
-            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? 'Time slot not available') : (raw || 'Time slot not available');
+            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable")) : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
             yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType, bookingGroupId: action.payload.bookingGroupId }));
             if (conflictType === 'staff_appointment') {
-                toast.error('This team member already has an appointment at this time. Choose another time or team member.');
+                toast.error(i18n.t("calendar:page.toasts.staffConflict"));
             } else {
-                toast.info('Slot unavailable', { description: 'You can reschedule anyway with an override.' });
+                toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(error?.response?.data?.message || 'Failed to update appointment');
+            toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
         }
     }
 }
@@ -467,8 +472,8 @@ function* handleUpdateGroupItemsStaff(action: ActionType<typeof updateGroupItems
                     yield put(updateGroupItemsStaff.failure(rescheduleErr));
                     const raw = rescheduleErr?.response?.data?.message;
                     const message = Array.isArray(raw)
-                        ? (raw[0] ?? raw?.join?.(' ') ?? 'Time slot not available')
-                        : (raw || 'Time slot not available');
+                        ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable"))
+                        : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
                     const conflictType = rescheduleErr?.response?.data?.details?.conflictType as
                         | 'staff_appointment'
                         | 'block'
@@ -493,7 +498,7 @@ function* handleUpdateGroupItemsStaff(action: ActionType<typeof updateGroupItems
                             'This team member already has an appointment at this time. Choose another time or team member.',
                         );
                     } else {
-                        toast.info('Slot unavailable', { description: 'You can reschedule anyway with an override.' });
+                        toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
                     }
                     return;
                 }
@@ -502,15 +507,15 @@ function* handleUpdateGroupItemsStaff(action: ActionType<typeof updateGroupItems
         }
         yield put(updateGroupItemsStaff.success({}));
         yield call(refetchCalendarForCurrentView);
-        toast.success('Appointment updated');
+        toast.success(i18n.t("calendar:page.toasts.appointmentUpdated"));
     } catch (error: any) {
         yield put(updateGroupItemsStaff.failure(error));
         const status = error?.response?.status;
         if (status === 409) {
             const raw = error?.response?.data?.message;
             const message = Array.isArray(raw)
-                ? (raw[0] ?? raw?.join?.(' ') ?? 'Time slot not available')
-                : (raw || 'Time slot not available');
+                ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable"))
+                : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
             const appointmentIdForOffer =
                 primaryNonSchedulePatch?.appointmentId ?? updates[0]?.appointmentId ?? 0;
@@ -528,10 +533,10 @@ function* handleUpdateGroupItemsStaff(action: ActionType<typeof updateGroupItems
                     'This team member already has an appointment at this time. Choose another time or team member.',
                 );
             } else {
-                toast.info('Slot unavailable', { description: 'You can reschedule anyway with an override.' });
+                toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(error?.response?.data?.message || 'Failed to update appointment');
+            toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
         }
     }
 }
@@ -547,10 +552,10 @@ function* handleCancelAppointment(action: ActionType<typeof cancelAppointment.re
         });
         yield put(cancelAppointment.success(result));
         yield call(refetchCalendarForCurrentView);
-        toast.success('Appointment cancelled');
+        toast.success(i18n.t("calendar:page.toasts.appointmentCancelled"));
     } catch (error: any) {
         yield put(cancelAppointment.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to cancel appointment');
+        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentCancelFailed"));
     }
 }
 
@@ -564,10 +569,10 @@ function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBloc
         yield put(createCalendarBlock.success(result));
         yield call(refetchCalendarForCurrentView);
         yield call(refreshMiniSummaryAfterBlockMutation, [wallDateFromIso(action.payload.startsAt)]);
-        toast.success('Block created');
+        toast.success(i18n.t("calendar:page.toasts.blockCreated"));
     } catch (error: any) {
         yield put(createCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to create block');
+        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.blockCreateFailed"));
     }
 }
 
@@ -577,10 +582,10 @@ function* handleDeleteCalendarBlock(action: ActionType<typeof deleteCalendarBloc
         yield put(deleteCalendarBlock.success(action.payload));
         yield call(refetchCalendarForCurrentView);
         yield call(refreshMiniSummaryAfterBlockMutation, []);
-        toast.success('Block deleted');
+        toast.success(i18n.t("calendar:page.toasts.blockDeleted"));
     } catch (error: any) {
         yield put(deleteCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to delete block');
+        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.blockDeleteFailed"));
     }
 }
 
@@ -599,10 +604,10 @@ function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBloc
             extraWallDates.push(wallDateFromIso(resBlock.startsAt));
         }
         yield call(refreshMiniSummaryAfterBlockMutation, extraWallDates);
-        toast.success('Block updated');
+        toast.success(i18n.t("calendar:page.toasts.blockUpdated"));
     } catch (error: any) {
         yield put(updateCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || 'Failed to update block');
+        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.blockUpdateFailed"));
     }
 }
 

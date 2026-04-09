@@ -263,7 +263,6 @@ interface UnresolvedAppointmentsListProps {
 
 function UnresolvedAppointmentsList({
   appointments,
-  totalCount,
   formatDateTime,
   locale,
   onAppointmentUpdated,
@@ -308,7 +307,7 @@ interface UnresolvedAppointmentRowProps {
 function UnresolvedAppointmentRow({
   appointment,
   formatDateTime,
-  locale,
+  locale: _locale,
   compact = false,
   onUpdated,
 }: UnresolvedAppointmentRowProps) {

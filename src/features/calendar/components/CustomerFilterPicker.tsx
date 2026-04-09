@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { User, X } from "lucide-react";
 import type { Customer } from "../../../shared/types/customer.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
@@ -16,6 +17,7 @@ export const CustomerFilterPicker = ({
   onSelectCustomer,
   onClearCustomer,
 }: CustomerFilterPickerProps) => {
+  const { t } = useTranslation("calendar");
   return (
     <div className="space-y-2">
       <CustomerSearchPopover onSelectCustomer={onSelectCustomer} />
@@ -26,7 +28,7 @@ export const CustomerFilterPicker = ({
             <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
             <div className="min-w-0">
               <div className="text-xs font-medium text-foreground truncate">
-                {`${selectedCustomer.firstName ?? ""} ${selectedCustomer.lastName ?? ""}`.trim() || "Unnamed customer"}
+                {`${selectedCustomer.firstName ?? ""} ${selectedCustomer.lastName ?? ""}`.trim() || t("page.common.unnamedCustomer")}
               </div>
               {(selectedCustomer.email || selectedCustomer.phone) ? (
                 <div className="text-[11px] text-muted-foreground truncate">
