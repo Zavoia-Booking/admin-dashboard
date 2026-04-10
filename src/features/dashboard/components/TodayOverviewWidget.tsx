@@ -7,7 +7,7 @@ interface TodayOverviewWidgetProps {
   locationId: number;
   locationName: string;
   isCurrentlyOpen: boolean;
-  staff: LocationStaffMember[];
+  staff: LocationStaffMember[] | null;
   appointmentsToday: number;
   appointmentsThisWeek: number;
   appointmentsThisMonth: number;
@@ -149,7 +149,7 @@ export function TodayOverviewWidget({
       </div>
 
       {/* Staff */}
-      {staff.length > 0 && (
+      {staff && staff.length > 0 && (
         <div className="flex flex-col gap-2 pt-4 border-t border-border-subtle">
           <div className="flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-foreground-3">

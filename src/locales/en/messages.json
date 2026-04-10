@@ -62,7 +62,18 @@
     "S22": "Password changed successfully"
   },
   "ACCOUNT": {
+    "S01": "Account deactivated successfully",
+    "S02": "Account reactivated successfully",
+    "S03": "Account deletion scheduled successfully",
+    "S04": "Account deletion cancelled successfully",
+    "S05": "Successfully left organisation",
+    "E01": "Failed to update account status",
+    "E02": "Account role not found",
+    "E03": "Cannot perform this action on your account",
     "E04": "You must remove all team members before you can disable or delete your account",
+    "E05": "You have active appointments that need to be resolved before leaving",
+    "E06": "Failed to leave organisation",
+    "E07": "You must leave all organisations before you can disable or delete your account",
     "E08": "You have active appointments that must be resolved (cancel or complete them) before you can disable or delete your account",
     "E09": "You have an active subscription. Cancel it before you can disable or delete your account",
     "E10": "Please resolve the issues below before you can disable or delete your account"
@@ -97,6 +108,7 @@
     "S02": "Team member invitation cancelled successfully",
     "S03": "Team member invitation resent successfully",
     "S04": "Team member removed successfully",
+    "S05": "Team member offboarded successfully",
     "E01": "Invalid locations provided or you don't have access",
     "E02": "Invalid services provided or you don't have access",
     "E03": "Team member not found or does not belong to this business",
@@ -172,7 +184,8 @@
     "E13": "Visibility record not found",
     "E14": "Failed to delete visibility record",
     "E15": "Failed to get booking settings",
-    "E16": "Failed to update booking settings"
+    "E16": "Failed to update booking settings",
+    "E17": "An active subscription is required for marketplace visibility"
   },
   "BUSINESS_CUSTOMER": {
     "S01": "Customer added successfully",
@@ -194,7 +207,8 @@
     "E11": "Failed to update customer",
     "E12": "Failed to remove customer",
     "E13": "Failed to merge duplicates",
-    "E14": "One or both customers not found"
+    "E14": "One or both customers not found",
+    "E15": "Failed to get customer history"
   },
   "BUSINESS": {
     "S01": "Business updated successfully",
@@ -215,7 +229,8 @@
     "E06": "At least one service is required for a bundle",
     "E07": "Fixed price is required when price type is fixed",
     "E08": "Discount percentage is required when price type is discount",
-    "E09": "Discount percentage must be between 0 and 100"
+    "E09": "Discount percentage must be between 0 and 100",
+    "E10": "Bundle has active relationships and cannot be deleted"
   },
   "CUSTOMER_BOOKING": {
     "S01": "Calendar overview retrieved successfully",
@@ -279,6 +294,90 @@
     "E18": "Failed to get assigned locations",
     "E19": "Location not found or not assigned",
     "E20": "Failed to get location assignments"
+  },
+  "DASHBOARD": {
+    "S01": "Dashboard data loaded successfully",
+    "S02": "Dashboard layout saved successfully",
+    "E01": "Failed to load dashboard data",
+    "E02": "Failed to save dashboard layout"
+  },
+  "SMS": {
+    "S01": "Region pricing created successfully",
+    "S02": "Region pricing updated successfully",
+    "S03": "Region pricing deleted successfully",
+    "S04": "SMS package created successfully",
+    "S05": "SMS package updated successfully",
+    "S06": "SMS package deleted successfully",
+    "S07": "SMS purchase initiated successfully",
+    "S08": "SMS credits added successfully",
+    "E01": "Country codes already exist in another region",
+    "E02": "Region pricing not found",
+    "E03": "Cannot delete region while packages exist",
+    "E04": "SMS package not found",
+    "E05": "Quantity is below the minimum allowed",
+    "E06": "Quantity exceeds the maximum allowed",
+    "E07": "Invalid package configuration",
+    "E08": "Purchase not found",
+    "E09": "Invalid package data",
+    "E10": "SMS operation failed",
+    "E11": "No pricing available for this country",
+    "E12": "Insufficient SMS balance"
+  },
+  "REVIEW": {
+    "S01": "Reviews loaded successfully",
+    "S02": "Review stats loaded successfully",
+    "E01": "Failed to load reviews",
+    "E02": "Failed to load review stats",
+    "E03": "Team member not found or does not belong to this business"
+  },
+  "BUSINESS_NOTIFICATION": {
+    "S01": "Notifications loaded successfully",
+    "S02": "Notification marked as read",
+    "S03": "All notifications marked as read",
+    "E01": "Notification not found",
+    "E02": "Failed to process notification request"
+  },
+  "SUPPORT": {
+    "S01": "Ticket created successfully",
+    "S02": "Tickets loaded successfully",
+    "S03": "Ticket details loaded successfully",
+    "S04": "Message sent successfully",
+    "S05": "Ticket closed successfully",
+    "E01": "Failed to load tickets",
+    "E02": "Failed to create ticket",
+    "E03": "Ticket not found",
+    "E04": "Cannot add a message to a closed ticket",
+    "E05": "Failed to send message",
+    "E06": "Failed to close ticket"
+  },
+  "MAP_TILES": {
+    "S01": "Map data loaded successfully",
+    "S02": "Map points loaded successfully",
+    "E01": "Invalid map coordinates",
+    "E02": "Zoom level not supported",
+    "E03": "Failed to load map data"
+  },
+  "MARKETPLACE_BOOKING": {
+    "S01": "Appointment booked successfully",
+    "S02": "Booking confirmed",
+    "E01": "This business is not available for booking",
+    "E02": "Service is not available for online booking",
+    "E03": "Location is not available",
+    "E04": "Staff member is not available",
+    "E05": "Staff member does not offer this service",
+    "E06": "This time slot is no longer available",
+    "E07": "Failed to create appointment",
+    "E08": "This time is too soon to book — please choose a later slot",
+    "E09": "This time is too far in advance — please choose an earlier date",
+    "E10": "This time slot conflicts with an existing appointment",
+    "E11": "This time is outside of working hours",
+    "E12": "Duplicate service in booking request",
+    "E13": "Staff not available for this service at this time",
+    "E14": "This time slot is blocked",
+    "E15": "Staff member is not scheduled to work at this time",
+    "E16": "Bundle not found",
+    "E17": "Staff member cannot perform all services in this bundle",
+    "E18": "Please select either a service or a bundle, not both"
   },
   "fallback": "An unexpected error occurred"
 }

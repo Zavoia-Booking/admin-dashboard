@@ -168,10 +168,14 @@ function AppointmentItemRow({
   const bundleForRow = locationBundles.find((b) => b.bundleId === item.bundleId);
   const staffForRow = locationTeamMembers.find((t) => t.userId === item.staffUserId);
   const eligibleTeamMembersForRow =
-    serviceForRow?.staffIds?.length
-      ? locationTeamMembers.filter((t) => serviceForRow.staffIds!.includes(t.userId))
-      : bundleForRow?.staffIds?.length
-        ? locationTeamMembers.filter((t) => bundleForRow.staffIds!.includes(t.userId))
+    serviceForRow
+      ? (serviceForRow.staffIds?.length
+          ? locationTeamMembers.filter((t) => serviceForRow.staffIds!.includes(t.userId))
+          : [])
+      : bundleForRow
+        ? (bundleForRow.staffIds?.length
+            ? locationTeamMembers.filter((t) => bundleForRow.staffIds!.includes(t.userId))
+            : [])
         : locationTeamMembers;
   const rowLabel = serviceForRow ? serviceForRow.serviceName : bundleForRow ? bundleForRow.bundleName : (item as { itemName?: string }).itemName ?? 'Unknown item';
   const staffOverride = serviceForRow?.staffOverrides?.length && item.staffUserId != null
@@ -733,13 +737,15 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   }, [applySelectedServices]);
 
   const handleUpdateItemStaff = useCallback((index: number, staffUserId: number | null) => {
+    let changed = false;
     setAppointmentItems((prev) => {
-      const next = prev.map((item, itemIndex) => (
+      if (prev[index]?.staffUserId === staffUserId) return prev;
+      changed = true;
+      return prev.map((item, itemIndex) => (
         itemIndex === index ? { ...item, staffUserId } : item
       ));
-      return next;
     });
-    setForm((prev) => ({ ...prev, time: '' }));
+    if (changed) setForm((prev) => ({ ...prev, time: '' }));
   }, []);
 
   const handleRemoveItem = useCallback((index: number) => {

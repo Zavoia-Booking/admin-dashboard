@@ -62,7 +62,18 @@
     "S22": "Parola a fost schimbată cu succes"
   },
   "ACCOUNT": {
+    "S01": "Cont dezactivat cu succes",
+    "S02": "Cont reactivat cu succes",
+    "S03": "Ștergerea contului a fost programată cu succes",
+    "S04": "Ștergerea contului a fost anulată cu succes",
+    "S05": "Ai părăsit organizația cu succes",
+    "E01": "Actualizarea stării contului a eșuat",
+    "E02": "Rolul contului nu a fost găsit",
+    "E03": "Nu poți efectua această acțiune asupra contului tău",
     "E04": "Trebuie să elimini toți membrii echipei înainte de a dezactiva sau șterge contul",
+    "E05": "Ai programări active care trebuie rezolvate înainte de a părăsi organizația",
+    "E06": "Părăsirea organizației a eșuat",
+    "E07": "Trebuie să părăsești toate organizațiile înainte de a dezactiva sau șterge contul",
     "E08": "Ai programări active care trebuie rezolvate (anulează sau finalizează-le) înainte de a dezactiva sau șterge contul",
     "E09": "Ai un abonament activ. Anulează-l înainte de a dezactiva sau șterge contul",
     "E10": "Te rugăm să rezolvi problemele de mai jos înainte de a dezactiva sau șterge contul"
@@ -97,6 +108,7 @@
     "S02": "Invitația membrului echipei a fost anulată cu succes",
     "S03": "Invitația membrului echipei a fost retrimisă cu succes",
     "S04": "Membru al echipei eliminat cu succes",
+    "S05": "Membru al echipei dezactivat cu succes",
     "E01": "Locații invalide sau nu ai acces",
     "E02": "Servicii invalide sau nu ai acces",
     "E03": "Membru al echipei negăsit sau nu aparține acestei afaceri",
@@ -172,7 +184,8 @@
     "E13": "Înregistrare de vizibilitate negăsită",
     "E14": "Ștergerea înregistrării de vizibilitate a eșuat",
     "E15": "Preluarea setărilor de programare a eșuat",
-    "E16": "Actualizarea setărilor de programare a eșuat"
+    "E16": "Actualizarea setărilor de programare a eșuat",
+    "E17": "Este necesar un abonament activ pentru vizibilitatea pe marketplace"
   },
   "BUSINESS_CUSTOMER": {
     "S01": "Client adăugat cu succes",
@@ -194,7 +207,8 @@
     "E11": "Actualizarea clientului a eșuat",
     "E12": "Eliminarea clientului a eșuat",
     "E13": "Unirea duplicatelor a eșuat",
-    "E14": "Unul sau ambii clienți nu au fost găsiți"
+    "E14": "Unul sau ambii clienți nu au fost găsiți",
+    "E15": "Preluarea istoricului clientului a eșuat"
   },
   "BUSINESS": {
     "S01": "Afacere actualizată cu succes",
@@ -215,7 +229,8 @@
     "E06": "Este necesar cel puțin un serviciu pentru un pachet",
     "E07": "Prețul fix este necesar când tipul de preț este fix",
     "E08": "Procentul de reducere este necesar când tipul de preț este reducere",
-    "E09": "Procentul de reducere trebuie să fie între 0 și 100"
+    "E09": "Procentul de reducere trebuie să fie între 0 și 100",
+    "E10": "Pachetul are relații active și nu poate fi șters"
   },
   "CUSTOMER_BOOKING": {
     "S01": "Prezentarea calendarului a fost preluată cu succes",
@@ -279,6 +294,90 @@
     "E18": "Obținerea locațiilor asignate a eșuat",
     "E19": "Locație negăsită sau neasignată",
     "E20": "Obținerea asignărilor de locații a eșuat"
+  },
+  "DASHBOARD": {
+    "S01": "Datele panoului au fost încărcate cu succes",
+    "S02": "Aspectul panoului a fost salvat cu succes",
+    "E01": "Încărcarea datelor panoului a eșuat",
+    "E02": "Salvarea aspectului panoului a eșuat"
+  },
+  "SMS": {
+    "S01": "Prețuri regionale create cu succes",
+    "S02": "Prețuri regionale actualizate cu succes",
+    "S03": "Prețuri regionale șterse cu succes",
+    "S04": "Pachet SMS creat cu succes",
+    "S05": "Pachet SMS actualizat cu succes",
+    "S06": "Pachet SMS șters cu succes",
+    "S07": "Achiziția SMS a fost inițiată cu succes",
+    "S08": "Credite SMS adăugate cu succes",
+    "E01": "Codurile de țară există deja într-o altă regiune",
+    "E02": "Prețuri regionale negăsite",
+    "E03": "Nu poți șterge regiunea cât timp există pachete",
+    "E04": "Pachet SMS negăsit",
+    "E05": "Cantitatea este sub minimul permis",
+    "E06": "Cantitatea depășește maximul permis",
+    "E07": "Configurație pachet invalidă",
+    "E08": "Achiziție negăsită",
+    "E09": "Date pachet invalide",
+    "E10": "Operațiunea SMS a eșuat",
+    "E11": "Nu există prețuri disponibile pentru această țară",
+    "E12": "Sold SMS insuficient"
+  },
+  "REVIEW": {
+    "S01": "Recenzii încărcate cu succes",
+    "S02": "Statistici recenzii încărcate cu succes",
+    "E01": "Încărcarea recenziilor a eșuat",
+    "E02": "Încărcarea statisticilor recenziilor a eșuat",
+    "E03": "Membru al echipei negăsit sau nu aparține acestei afaceri"
+  },
+  "BUSINESS_NOTIFICATION": {
+    "S01": "Notificări încărcate cu succes",
+    "S02": "Notificare marcată ca citită",
+    "S03": "Toate notificările marcate ca citite",
+    "E01": "Notificare negăsită",
+    "E02": "Procesarea cererii de notificare a eșuat"
+  },
+  "SUPPORT": {
+    "S01": "Tichet creat cu succes",
+    "S02": "Tichete încărcate cu succes",
+    "S03": "Detalii tichet încărcate cu succes",
+    "S04": "Mesaj trimis cu succes",
+    "S05": "Tichet închis cu succes",
+    "E01": "Încărcarea tichetelor a eșuat",
+    "E02": "Crearea tichetului a eșuat",
+    "E03": "Tichet negăsit",
+    "E04": "Nu poți adăuga un mesaj la un tichet închis",
+    "E05": "Trimiterea mesajului a eșuat",
+    "E06": "Închiderea tichetului a eșuat"
+  },
+  "MAP_TILES": {
+    "S01": "Date hartă încărcate cu succes",
+    "S02": "Puncte hartă încărcate cu succes",
+    "E01": "Coordonate hartă invalide",
+    "E02": "Nivel de zoom nesuportat",
+    "E03": "Încărcarea datelor hărții a eșuat"
+  },
+  "MARKETPLACE_BOOKING": {
+    "S01": "Programare rezervată cu succes",
+    "S02": "Rezervare confirmată",
+    "E01": "Această afacere nu este disponibilă pentru programări",
+    "E02": "Serviciul nu este disponibil pentru programare online",
+    "E03": "Locația nu este disponibilă",
+    "E04": "Membrul personalului nu este disponibil",
+    "E05": "Membrul personalului nu oferă acest serviciu",
+    "E06": "Acest interval orar nu mai este disponibil",
+    "E07": "Crearea programării a eșuat",
+    "E08": "Este prea devreme pentru a programa — te rugăm să alegi un interval mai târziu",
+    "E09": "Este prea departe în viitor — te rugăm să alegi o dată mai apropiată",
+    "E10": "Acest interval orar se suprapune cu o programare existentă",
+    "E11": "Acest interval este în afara programului de lucru",
+    "E12": "Serviciu duplicat în cererea de programare",
+    "E13": "Personalul nu este disponibil pentru acest serviciu la această oră",
+    "E14": "Acest interval orar este blocat",
+    "E15": "Membrul personalului nu este programat să lucreze la această oră",
+    "E16": "Pachet negăsit",
+    "E17": "Membrul personalului nu poate efectua toate serviciile din acest pachet",
+    "E18": "Te rugăm să selectezi fie un serviciu, fie un pachet, nu ambele"
   },
   "fallback": "A apărut o eroare neașteptată"
 }

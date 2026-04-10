@@ -187,7 +187,9 @@ const TEAM_MEMBER_PERMISSIONS: Permission[] = [
 
   // Team member-only pages (separate routes)
   Permission.ACCESS_MY_ASSIGNMENTS,
-  Permission.ACCESS_MY_CUSTOMERS,
+  Permission.ACCESS_CUSTOMERS,
+  Permission.VIEW_CUSTOMERS,
+  Permission.MANAGE_CUSTOMERS,
   Permission.ACCESS_MY_PROFILE,
   Permission.ACCESS_MY_PROFILE_INFO,
   Permission.ACCESS_MY_PROFILE_PORTFOLIO,
@@ -306,7 +308,6 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   // TEAM MEMBER-ONLY ROUTES
   // ===========================================
   '/my-assignments': Permission.ACCESS_MY_ASSIGNMENTS,
-  '/my-customers': Permission.ACCESS_MY_CUSTOMERS,
   '/my-profile': Permission.ACCESS_MY_PROFILE,
   '/my-settings': Permission.ACCESS_MY_SETTINGS,
 };

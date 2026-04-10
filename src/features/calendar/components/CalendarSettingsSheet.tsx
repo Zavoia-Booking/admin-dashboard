@@ -18,7 +18,8 @@ import {
 } from '../calendarPreferences';
 import { updateBookingSettingsApi } from '../../marketplace/api';
 import { toast } from 'sonner';
-import { fetchLocationContext } from '../actions';
+import { fetchLocationContext, setDayFiltersAction } from '../actions';
+import { getDayFilters } from '../selectors';
 import {
   AdvancedSettingsSection,
   type AdvancedSettingsSectionRef,
@@ -42,6 +43,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
   const isTeamMember = useSelector(selectIsTeamMember);
   const bookingSettings = useSelector(getBookingSettings);
   const selectedLocationId = useSelector(getSelectedLocationId);
+  const dayFilters = useSelector(getDayFilters);
 
   // --- Display preferences (persisted to localStorage only on Save) ---
   const [defaultView, setDefaultView] = useState<AppointmentViewMode>(AppointmentViewMode.WEEK);
@@ -119,6 +121,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
     setSaving(true);
     try {
       // Persist display preferences to localStorage
+      const showCancelledChanged = showCancelled !== initialDisplayPrefsRef.current?.showCancelled;
       calendarPreferences.setDefaultViewMode(defaultView);
       calendarPreferences.setDefaultViewType(defaultViewType);
       calendarPreferences.setTimeFormat(timeFormat);
@@ -131,6 +134,11 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
         colorCoding,
         showCancelled,
       };
+
+      // Refetch calendar data when showCancelled preference changed
+      if (showCancelledChanged) {
+        dispatch(setDayFiltersAction(dayFilters));
+      }
 
       // Persist advanced settings to backend (owners only; team members only save display prefs)
       if (!isTeamMember && ref) {
@@ -156,6 +164,7 @@ export const CalendarSettingsSheet: FC<CalendarSettingsSheetProps> = ({ open, on
     colorCoding,
     showCancelled,
     selectedLocationId,
+    dayFilters,
     dispatch,
     onClose,
   ]);

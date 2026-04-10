@@ -70,6 +70,12 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     icon: Calendar,
     requiredPermission: Permission.ACCESS_CALENDAR,
   },
+  {
+    title: t("sidebar.customers"),
+    url: "/customers",
+    icon: UserCircle,
+    requiredPermission: Permission.ACCESS_CUSTOMERS,
+  },
   // =========================================
   // Team Member Only Routes
   // =========================================
@@ -78,12 +84,6 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     url: "/my-assignments",
     icon: FolderKanban,
     requiredPermission: Permission.ACCESS_MY_ASSIGNMENTS,
-  },
-  {
-    title: t("sidebar.teamMember.customers"),
-    url: "/my-customers",
-    icon: UserCircle,
-    requiredPermission: Permission.ACCESS_MY_CUSTOMERS,
   },
   // =========================================
   // Owner Only Routes
@@ -121,12 +121,6 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     url: "/locations",
     icon: MapPin,
     requiredPermission: Permission.ACCESS_LOCATIONS,
-  },
-  {
-    title: t("sidebar.customers"),
-    url: "/customers",
-    icon: UserCircle,
-    requiredPermission: Permission.ACCESS_CUSTOMERS,
   },
   {
     title: t("sidebar.marketplace"),

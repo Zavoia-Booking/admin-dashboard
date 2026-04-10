@@ -120,8 +120,9 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   }, [dispatch, isOnCurrentPeriod]);
 
   const handleSetMode = useCallback((mode: AppointmentViewMode) => {
+    if (mode === viewMode) return;
     dispatch(setViewModeAction(mode));
-  }, [dispatch]);
+  }, [dispatch, viewMode]);
 
   const handleToggleSidebar = useCallback(() => {
     dispatch(toggleCalendarSidebar(!sidebarOpen));

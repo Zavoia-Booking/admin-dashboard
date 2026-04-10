@@ -1,4 +1,5 @@
 import type { CalendarDayFilters } from "../../shared/types/calendar.ts";
+import { calendarPreferences } from "./calendarPreferences.ts";
 
 const hasItems = (arr?: readonly unknown[] | null): boolean => (arr?.length ?? 0) > 0;
 
@@ -218,6 +219,8 @@ export function serializeCalendarDayFilters(filters?: CalendarDayFilters): Recor
     }
     if (filters.statuses?.length) {
         out.statuses = filters.statuses;
+    } else if (calendarPreferences.getShowCancelled()) {
+        out.statuses = ['pending', 'confirmed', 'cancelled', 'completed', 'no_show'];
     }
     if (filters.bookingSources?.length) {
         out.bookingSources = filters.bookingSources;

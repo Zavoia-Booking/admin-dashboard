@@ -471,8 +471,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     const list =
       groupAppointments && groupAppointments.length > 1
         ? groupAppointments
-        : appointment
-          ? [appointment]
+        : displayAppointment
+          ? [displayAppointment]
           : [];
     return list.map((a) => {
       const start = new Date(a.scheduledAt).getTime();
@@ -484,7 +484,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       const priceMajor = (a.price ?? 0) / 100;
       return { name, durationMinutes, priceMajor, isBundle };
     });
-  }, [appointment, groupAppointments]);
+  }, [displayAppointment, groupAppointments]);
 
   const serviceDetailTotalPrice = useMemo(
     () => serviceDetailItems.reduce((sum, i) => sum + i.priceMajor, 0),
@@ -603,10 +603,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   // ─────────────────────────────────────────────────────────────
 
   const handleReschedule = useCallback(() => {
-    if (!appointment) return;
+    if (!displayAppointment) return;
     // Keep the detail dialog open behind the edit slider so the user can return to it.
-    const cust = appointment.customer;
-    const snap = appointment.customerSnapshot;
+    const cust = displayAppointment.customer;
+    const snap = displayAppointment.customerSnapshot;
     const customer = cust
       ? {
           firstName: cust.firstName ?? "",
@@ -622,7 +622,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
             phone: snap.phone ?? "",
           }
         : null;
-    const bookingGroupId = appointment.bookingGroupId ?? undefined;
+    const bookingGroupId = displayAppointment.bookingGroupId ?? undefined;
 
     // Build groupItems for multi-segment groups (same order as API / bookingGroupOrder)
     let groupItems:
@@ -669,37 +669,37 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       toggleAddForm({
         open: true,
         prefill: {
-          appointmentId: appointment.id,
+          appointmentId: displayAppointment.id,
           bookingGroupId,
           date: buildZonedDateFromDateKey(
             formatDateInTimezone(
-              new Date(appointment.scheduledAt),
+              new Date(displayAppointment.scheduledAt),
               calendarTimezone,
             ),
             "00:00",
             calendarTimezone,
           ),
           time: formatTimeKey(
-            new Date(appointment.scheduledAt).toISOString(),
+            new Date(displayAppointment.scheduledAt).toISOString(),
             calendarTimezone,
           ),
           staffUserId: (() => {
-            const first = appointment.teamMembers?.[0];
+            const first = displayAppointment.teamMembers?.[0];
             if (first == null) return undefined;
             return typeof first === "object"
               ? (first as { id?: number }).id
               : first;
           })(),
-          serviceId: appointment.service?.id,
-          bundleId: appointment.bundle?.id,
-          customerId: appointment.customer?.id,
+          serviceId: displayAppointment.service?.id,
+          bundleId: displayAppointment.bundle?.id,
+          customerId: displayAppointment.customer?.id,
           customerDisplay: customer,
-          notes: appointment.notes ?? "",
+          notes: displayAppointment.notes ?? "",
           ...(groupItems != null ? { groupItems } : {}),
         },
       }),
     );
-  }, [appointment, calendarTimezone, dispatch, groupAppointments]);
+  }, [displayAppointment, calendarTimezone, dispatch, groupAppointments]);
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -1562,7 +1562,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     </ul>
                   </CollapsibleFormSection>
 
-                  {appointment.location ? (
+                  {displayAppointment.location ? (
                     <CollapsibleFormSection
                       title="Location details"
                       compact
@@ -1572,7 +1572,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
                     >
                       {(() => {
-                        const loc = appointment.location;
+                        const loc = displayAppointment.location;
                         const address = loc.address?.trim() ?? "";
                         const description = loc.description?.trim() ?? "";
                         const mapsQuery = [loc.name, address]

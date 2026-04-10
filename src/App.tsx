@@ -38,7 +38,6 @@ const NotificationsPage = lazy(() => import('./features/notifications/pages/noti
 
 // Team Member Only Pages
 const MyAssignmentsPage = lazy(() => import('./features/team-member-pages/myAssignments/pages/my-assignments'))
-const MyCustomersPage = lazy(() => import('./features/team-member-pages/myCustomers/pages/my-customers'))
 const MyProfilePage = lazy(() => import('./features/team-member-pages/myProfile/pages/my-profile'))
 const MySettingsPage = lazy(() => import('./features/team-member-pages/mySettings/pages/my-settings'))
 
@@ -83,7 +82,6 @@ function App() {
 
           {/* Team Member Only */}
           <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
-          <Route path="/my-customers" element={<ProtectedRoute element={<MyCustomersPage />} />} />
           <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
           <Route path="/my-settings" element={<ProtectedRoute element={<MySettingsPage />} />} />
 

@@ -69,7 +69,7 @@ export interface DashboardApiResponse {
     name: string;
     id: number;
     isCurrentlyOpen: boolean;
-    staff: LocationStaffMember[];
+    staff: LocationStaffMember[] | null;
     appointmentsToday: number;
     appointmentsThisWeek: number;
     appointmentsThisMonth: number;
