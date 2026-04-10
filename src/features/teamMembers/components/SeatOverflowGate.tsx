@@ -11,8 +11,10 @@ import {
   MapPin,
   User,
   XCircle,
-  ArrowRightLeft,
   CheckCircle2,
+  Check,
+  ChevronsUpDown,
+  ArrowRight,
 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Button } from '../../../shared/components/ui/button';
@@ -20,19 +22,18 @@ import {
   Dialog,
   DialogPortal,
   DialogTitle,
-  DialogDescription,
 } from '../../../shared/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../../shared/components/ui/select';
 import { Skeleton } from '../../../shared/components/ui/skeleton';
+import { Avatar, AvatarImage, AvatarFallback } from '../../../shared/components/ui/avatar';
+import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
+import { Command, CommandItem, CommandList } from '../../../shared/components/ui/command';
+import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
+import { CalendarFilterPillCheckmark } from '../../calendar/components/CalendarFilterPillCheckmark';
+import '../../calendar/components/addAppointmentSliderPopover.css';
 import { Badge } from '../../../shared/components/ui/badge';
 import { DashedDivider } from '../../../shared/components/common/DashedDivider';
 import { cn } from '../../../shared/lib/utils';
+import { getCurrencySymbol } from '../../../shared/utils/currency';
 import { selectCurrentUser } from '../../auth/selectors';
 import { UserRole } from '../../../shared/types/auth';
 import { selectSubscriptionSummary } from '../../settings/selectors';
@@ -70,6 +71,29 @@ export const SeatOverflowGate: React.FC = () => {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
 
+  // Staff popover state per appointment
+  const [openPopoverId, setOpenPopoverId] = useState<number | null>(null);
+  const [closingPopoverId, setClosingPopoverId] = useState<number | null>(null);
+  const popoverCloseRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePopoverOpenChange = useCallback((aptId: number, open: boolean) => {
+    if (open) {
+      if (popoverCloseRef.current) {
+        clearTimeout(popoverCloseRef.current);
+        popoverCloseRef.current = null;
+      }
+      setOpenPopoverId(aptId);
+      setClosingPopoverId(null);
+    } else {
+      setOpenPopoverId(null);
+      setClosingPopoverId(aptId);
+      popoverCloseRef.current = setTimeout(() => {
+        setClosingPopoverId(null);
+        popoverCloseRef.current = null;
+      }, 250);
+    }
+  }, []);
+
   // Abort controller ref for preview fetch race conditions
   const abortRef = useRef<AbortController | null>(null);
 
@@ -85,6 +109,9 @@ export const SeatOverflowGate: React.FC = () => {
 
   const extraSeats = usedSeats - paidSeats;
   const pricePerSeat = subscriptionSummary?.pricePerTeamMember ?? 0;
+  const currency = subscriptionSummary?.currency ?? 'EUR';
+  const formattedPrice = `${pricePerSeat.toFixed(2)}${getCurrencySymbol(currency)}`;
+  const dataReady = !!subscriptionSummary && teamMembers.length > 0;
 
   // Fetch subscription summary and team members when overflow is detected
   useEffect(() => {
@@ -96,13 +123,13 @@ export const SeatOverflowGate: React.FC = () => {
         dispatch(listTeamMembersAction.request());
       }
     }
-  }, [shouldShow]);
+  }, [shouldShow, dispatch, subscriptionSummary, teamMembers.length]);
 
   // Filter: only team members (not owner), exclude current user
   const selectableMembersForRemoval = useMemo(
     () =>
       teamMembers.filter(
-        (m) => m.role === UserRole.TEAM_MEMBER && m.id !== currentUser?.id,
+        (m: TeamMember) => m.role === UserRole.TEAM_MEMBER && m.roleStatus === 'active' && m.id !== currentUser?.id,
       ),
     [teamMembers, currentUser?.id],
   );
@@ -157,7 +184,7 @@ export const SeatOverflowGate: React.FC = () => {
       });
 
     return () => controller.abort();
-  }, [selectedMember?.id]);
+  }, [selectedMember]);
 
   // Derived: are all appointments handled?
   const allAppointmentsHandled = useMemo(() => {
@@ -301,6 +328,7 @@ export const SeatOverflowGate: React.FC = () => {
 
         {/* Dialog content */}
         <DialogPrimitive.Content
+          aria-describedby={undefined}
           onPointerDownOutside={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
@@ -312,24 +340,19 @@ export const SeatOverflowGate: React.FC = () => {
             'data-[state=open]:duration-250 data-[state=closed]:duration-150',
             'fixed left-[50%] top-[50%] z-[210] flex w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%]',
             'flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface',
-            'focus:outline-none focus-visible:outline-none',
+            'focus:outline-none focus-visible:outline-none cursor-default',
           )}
         >
           {/* ── Header ── */}
           <div className="relative shrink-0 px-5 pt-5 pb-0 md:px-6">
             <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-primary/20 bg-primary/10">
-                <AlertTriangle className="h-6 w-6 text-primary" strokeWidth={2.25} />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-warning/20 bg-transparent">
+                <AlertTriangle className="h-6 w-6 text-warning" strokeWidth={2.25} />
               </div>
-              <div className="min-w-0 flex-1 space-y-1">
+              <div className="min-w-0 flex-1">
                 <DialogTitle className="text-lg font-semibold leading-snug text-foreground-1">
                   {t('teamMembers:seatOverflow.title')}
                 </DialogTitle>
-                <DialogDescription asChild>
-                  <p className="text-xs leading-relaxed text-foreground-3 dark:text-foreground-2">
-                    {t('teamMembers:seatOverflow.subtitle', { paidSeats, usedSeats })}
-                  </p>
-                </DialogDescription>
               </div>
             </div>
             <DashedDivider marginTop="mt-0" paddingTop="pt-3" className="mb-0" dashPattern="1 1" />
@@ -337,10 +360,44 @@ export const SeatOverflowGate: React.FC = () => {
 
           {/* ── Scrollable Body ── */}
           <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 py-4 dark:bg-background/50 md:px-6 md:py-5">
+            {!dataReady ? (
+              <div className="space-y-4">
+                {/* Skeleton option cards */}
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {[1, 2].map((i) => (
+                    <div key={i} className="rounded-xl border border-border bg-white p-4 dark:bg-card">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {/* Skeleton content card */}
+                <div className="rounded-xl border border-border bg-white p-4 shadow-sm dark:bg-card">
+                  <Skeleton className="h-4 w-40 mb-3" />
+                  <Skeleton className="h-3 w-full mb-2" />
+                  <Skeleton className="h-10 w-full rounded-full" />
+                </div>
+              </div>
+            ) : (
             <div className="space-y-5">
+              <p className="text-sm leading-relaxed text-foreground-3 dark:text-foreground-2">
+                {[
+                  t('teamMembers:seatOverflow.subtitlePlan', { count: paidSeats, paidSeats }),
+                  t('teamMembers:seatOverflow.subtitleUsage', { count: usedSeats, usedSeats }),
+                  t('teamMembers:seatOverflow.subtitleAction'),
+                ].join(' ')}
+              </p>
               {/* ── Option Cards ── */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('teamMembers:seatOverflow.title')}>
                 <button
+                  role="radio"
+                  aria-checked={selectedOption === 'pay'}
+                  aria-label={t('teamMembers:seatOverflow.optionPay')}
                   onClick={() => {
                     setSelectedOption('pay');
                     setSelectedMember(null);
@@ -348,12 +405,19 @@ export const SeatOverflowGate: React.FC = () => {
                     setPaymentError(null);
                   }}
                   className={cn(
-                    'cursor-pointer rounded-md border-2 p-4 text-left transition-all',
+                    'group relative cursor-pointer rounded-lg border p-4 text-left transition-none focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0',
                     selectedOption === 'pay'
-                      ? 'border-info bg-info-bg dark:bg-info/10'
-                      : 'border-border hover:border-info/50 hover:bg-info-bg/50',
+                      ? 'border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900'
+                      : 'border-border bg-surface hover:border-border-strong hover:bg-surface-hover',
                   )}
                 >
+                  {selectedOption === 'pay' && (
+                    <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-400 shadow-sm dark:bg-success" aria-hidden>
+                      <svg className="h-3 w-3 text-foreground-inverse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-info-bg">
                       <CreditCard className="h-5 w-5 text-info" />
@@ -365,7 +429,8 @@ export const SeatOverflowGate: React.FC = () => {
                       <p className="text-sm text-foreground-3">
                         {t('teamMembers:seatOverflow.optionPayDesc', {
                           extraSeats,
-                          pricePerSeat: pricePerSeat.toFixed(2),
+                          pricePerSeat: formattedPrice,
+                          count: extraSeats,
                         })}
                       </p>
                     </div>
@@ -373,18 +438,28 @@ export const SeatOverflowGate: React.FC = () => {
                 </button>
 
                 <button
+                  role="radio"
+                  aria-checked={selectedOption === 'remove'}
+                  aria-label={t('teamMembers:seatOverflow.optionRemove')}
                   onClick={() => {
                     setSelectedOption('remove');
                     setSelectedMember(null);
                     setPaymentError(null);
                   }}
                   className={cn(
-                    'cursor-pointer rounded-md border-2 p-4 text-left transition-all',
+                    'group relative cursor-pointer rounded-lg border p-4 text-left transition-none focus:outline-none focus-visible:ring-3 focus-visible:ring-focus/50 focus-visible:ring-offset-0',
                     selectedOption === 'remove'
-                      ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                      : 'border-border hover:border-primary/50 hover:bg-primary/5',
+                      ? 'border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900'
+                      : 'border-border bg-surface hover:border-border-strong hover:bg-surface-hover',
                   )}
                 >
+                  {selectedOption === 'remove' && (
+                    <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-green-400 shadow-sm dark:bg-success" aria-hidden>
+                      <svg className="h-3 w-3 text-foreground-inverse" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
                       <UserMinus className="h-5 w-5 text-primary" />
@@ -501,7 +576,9 @@ export const SeatOverflowGate: React.FC = () => {
                         </h3>
                         <p className="text-sm text-foreground-3">
                           {t('teamMembers:seatOverflow.payConfirmDesc', {
+                            count: extraSeats,
                             extraSeats,
+                            pricePerSeat: formattedPrice,
                             totalSeats: usedSeats,
                           })}
                         </p>
@@ -513,21 +590,6 @@ export const SeatOverflowGate: React.FC = () => {
                         </div>
                       )}
 
-                      <Button
-                        onClick={handlePayForExtraSeats}
-                        disabled={isPayingForSeats}
-                        rounded="full"
-                        className="w-full"
-                      >
-                        {isPayingForSeats ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            {t('teamMembers:seatOverflow.paying')}
-                          </>
-                        ) : (
-                          t('teamMembers:seatOverflow.confirmPay')
-                        )}
-                      </Button>
                     </>
                   )}
                 </div>
@@ -535,51 +597,60 @@ export const SeatOverflowGate: React.FC = () => {
 
               {/* ── Remove Flow ── */}
               {selectedOption === 'remove' && (
-                <div className="space-y-4">
+                <div className="space-y-4 rounded-xl border border-border bg-white p-4 shadow-sm dark:bg-card">
                   {/* Team member selection */}
-                  <div className="rounded-xl border border-border bg-white p-4 shadow-sm dark:bg-card">
-                    <h3 className="text-sm font-medium text-foreground-2 mb-3">
-                      {t('teamMembers:seatOverflow.step1Title')}
-                    </h3>
-                    <div className="grid grid-cols-1 gap-2 max-h-48 overflow-y-auto">
-                      {selectableMembersForRemoval.map((member) => (
+                  <h3 className="text-sm font-medium text-foreground-2">
+                    {t('teamMembers:seatOverflow.step1Title')}
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {selectableMembersForRemoval.map((member: TeamMember) => {
+                      const selected = selectedMember?.id === member.id;
+                      const fullName = `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim();
+                      const name = fullName || member.email;
+                      return (
                         <button
                           key={member.id}
+                          type="button"
                           onClick={() => setSelectedMember(member)}
+                          title={name}
+                          aria-label={name}
+                          aria-pressed={selected}
                           className={cn(
-                            'cursor-pointer flex items-center gap-3 rounded-lg border-2 p-3 text-left transition-all',
-                            selectedMember?.id === member.id
-                              ? 'border-primary bg-primary/5 dark:bg-primary/10'
-                              : 'border-transparent bg-surface-hover hover:bg-surface-active hover:border-border-strong dark:bg-muted/20 dark:hover:bg-muted/40',
+                            '!min-h-0 !h-10 relative inline-flex max-w-[200px] shrink-0 cursor-pointer items-center gap-2 overflow-visible rounded-full border px-2 pr-3 text-left text-xs font-medium transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:transition-none',
+                            'border-border bg-surface text-foreground hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900',
+                            selected && 'border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900',
                           )}
                         >
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-primary/80 to-primary text-sm font-medium text-white">
-                            {member.firstName?.[0]}
-                            {member.lastName?.[0]}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-sm font-medium text-foreground-1">
-                              {member.firstName} {member.lastName}
-                            </p>
-                            <p className="text-xs text-foreground-3 truncate">{member.email}</p>
-                          </div>
-                          {selectedMember?.id === member.id && (
-                            <CheckCircle2 className="h-5 w-5 shrink-0 text-primary" />
-                          )}
+                          <Avatar className="size-6 shrink-0 border border-border transition-none">
+                            {member.profileImage ? (
+                              <AvatarImage src={member.profileImage} alt="" />
+                            ) : null}
+                            <AvatarFallback
+                              className="text-[10px] font-semibold leading-none text-foreground-1"
+                              style={{ backgroundColor: getAvatarBgColor(`${member.id}-${member.firstName ?? ''}-${member.lastName ?? ''}`) }}
+                            >
+                              {fullName
+                                ? `${(member.firstName?.[0] ?? '').toUpperCase()}${(member.lastName?.[0] ?? '').toUpperCase()}`
+                                : (member.email?.[0] ?? '?').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0 flex-1 truncate">{name}</span>
+                          {selected ? <CalendarFilterPillCheckmark /> : null}
                         </button>
-                      ))}
-                    </div>
+                      );
+                    })}
                   </div>
 
                   {/* Appointments section */}
                   {selectedMember && (
-                    <div className="rounded-xl border border-border bg-white p-4 shadow-sm dark:bg-card">
-                      <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <DashedDivider marginTop="mt-0" paddingTop="pt-0" className="mb-3" dashPattern="1 1" />
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-3">
                         <h3 className="text-sm font-medium text-foreground-2">
                           {t('teamMembers:seatOverflow.appointmentsSection')}
                         </h3>
                         {preview && preview.appointments.length > 0 && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs self-start">
                             {t('teamMembers:seatOverflow.appointmentsCount', {
                               count: preview.appointments.length,
                             })}
@@ -589,14 +660,19 @@ export const SeatOverflowGate: React.FC = () => {
 
                       {/* Loading state */}
                       {previewLoading && (
-                        <div className="space-y-3">
-                          {[1, 2, 3].map((i) => (
-                            <div key={i} className="rounded-lg border border-border p-3">
-                              <div className="flex items-center gap-3">
-                                <Skeleton className="h-4 w-32" />
-                                <Skeleton className="h-4 w-24" />
+                        <div className="space-y-1.5">
+                          {[1].map((i) => (
+                            <div key={i} className="relative rounded-lg border border-border pl-3 pr-3 py-2.5 overflow-hidden">
+                              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-border" />
+                              <div className="flex items-center gap-3 ml-1.5">
+                                <Skeleton className="h-4 w-28 flex-1" />
+                                <Skeleton className="h-9 w-44 rounded-md shrink-0" />
                               </div>
-                              <Skeleton className="h-8 w-full mt-2" />
+                              <div className="flex items-center gap-3 mt-1.5 ml-1.5">
+                                <Skeleton className="h-3 w-20" />
+                                <Skeleton className="h-3 w-28" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -621,7 +697,7 @@ export const SeatOverflowGate: React.FC = () => {
 
                       {/* Appointment list */}
                       {preview && preview.appointments.length > 0 && (
-                        <div className="space-y-1.5">
+                        <div className="space-y-2">
                           {preview.appointments.map((apt) => {
                             const staffKey =
                               apt.service && apt.location
@@ -637,85 +713,108 @@ export const SeatOverflowGate: React.FC = () => {
                               <div
                                 key={apt.id}
                                 className={cn(
-                                  'relative rounded-lg border pl-3 pr-3 py-2.5 transition-all overflow-hidden',
+                                  'rounded-xl p-3 transition-all',
                                   currentAction
-                                    ? 'border-border bg-white dark:bg-card'
-                                    : 'border-warning-border bg-warning-bg/30',
+                                    ? 'border border-border bg-white dark:bg-card'
+                                    : 'border border-warning-border bg-warning-bg/30',
                                 )}
                               >
-                                {/* Left accent bar */}
-                                <div
-                                  className={cn(
-                                    'absolute left-0 top-0 bottom-0 w-[3px]',
-                                    currentAction ? 'bg-success' : 'bg-warning',
-                                  )}
-                                />
-
-                                {/* Top row: service name + select */}
-                                <div className="flex items-center gap-3 ml-1.5">
-                                  <span className="flex-1 min-w-0 text-sm font-medium text-foreground-1 truncate">
+                                {/* Service name + staff dropdown */}
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                                  <span className="text-sm font-bold truncate min-w-0 sm:flex-1 text-foreground-1">
                                     {apt.service?.name ?? 'Unknown service'}
                                   </span>
-                                  <Select
-                                    value={
-                                      currentAction?.cancel
-                                        ? 'cancel'
-                                        : currentAction?.reassignTo
-                                          ? String(currentAction.reassignTo)
-                                          : undefined
-                                    }
-                                    onValueChange={(val) => handleAppointmentAction(apt.id, val)}
-                                  >
-                                    <SelectTrigger
-                                      className={cn(
-                                        'w-44 h-7 text-xs cursor-pointer bg-white dark:bg-surface border-border shadow-sm shrink-0',
-                                        hasNoEligibleStaff && 'opacity-60',
-                                        !currentAction && 'border-primary/40 ring-1 ring-primary/20',
-                                      )}
-                                      size="sm"
-                                    >
-                                      <SelectValue
-                                        placeholder={
-                                          hasNoEligibleStaff
-                                            ? t('teamMembers:seatOverflow.noEligibleStaff')
-                                            : t('teamMembers:seatOverflow.assignStaff')
-                                        }
-                                      />
-                                    </SelectTrigger>
-                                    <SelectContent className="z-[220]">
-                                      {eligibleStaff.map((staff) => (
-                                        <SelectItem
-                                          key={staff.userId}
-                                          value={String(staff.userId)}
-                                          className="cursor-pointer"
-                                        >
-                                          <div className="flex items-center gap-2">
-                                            <ArrowRightLeft className="h-3 w-3 text-foreground-3" />
-                                            <span>
-                                              {staff.firstName} {staff.lastName}
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                      <SelectItem value="cancel" className="cursor-pointer">
-                                        <div className="flex items-center gap-2 text-destructive">
-                                          <XCircle className="h-3 w-3" />
-                                          <span>{t('teamMembers:seatOverflow.cancelAppointment')}</span>
-                                        </div>
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
+                                  <div className="shrink-0">
+                                    {(() => {
+                                      const isOpen = openPopoverId === apt.id;
+                                      const showBorder = isOpen || closingPopoverId === apt.id;
+                                      return (
+                                        <Popover open={isOpen} onOpenChange={(open) => handlePopoverOpenChange(apt.id, open)}>
+                                          <PopoverTrigger asChild>
+                                            <Button
+                                              variant="ghost"
+                                              rounded="full"
+                                              size="sm"
+                                              className={cn(
+                                                'h-8 w-full sm:w-[280px] justify-between !px-3 border border-border-strong hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary text-xs cursor-pointer',
+                                                hasNoEligibleStaff && 'opacity-60',
+                                                showBorder && '!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none',
+                                              )}
+                                            >
+                                              <span className="truncate">
+                                                {currentAction?.cancel
+                                                  ? t('teamMembers:seatOverflow.cancelAppointment')
+                                                  : currentAction?.reassignTo
+                                                    ? (() => {
+                                                        const s = eligibleStaff.find((st) => st.userId === currentAction.reassignTo);
+                                                        return s ? `${s.firstName} ${s.lastName}` : t('teamMembers:seatOverflow.assignStaff');
+                                                      })()
+                                                    : hasNoEligibleStaff
+                                                      ? t('teamMembers:seatOverflow.noEligibleStaff')
+                                                      : t('teamMembers:seatOverflow.assignStaff')}
+                                              </span>
+                                              <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
+                                            </Button>
+                                          </PopoverTrigger>
+                                          <PopoverContent
+                                            className={cn(
+                                              'w-[var(--radix-popover-trigger-width)] md:w-[var(--radix-popover-trigger-width)] box-border -mt-px border border-t-0 bg-surface dark:bg-neutral-900 shadow-none p-0 z-[220] rounded-t-none rounded-b-[16px]',
+                                              'add-appointment-popover-expand',
+                                              showBorder ? 'border-border-strong dark:border-border-strong' : 'border-input dark:border-border',
+                                            )}
+                                            side="bottom"
+                                            align="end"
+                                            sideOffset={0}
+                                            avoidCollisions={false}
+                                          >
+                                            <Command shouldFilter={false}>
+                                              <CommandList>
+                                                {eligibleStaff.map((staff, staffIndex) => (
+                                                  <CommandItem
+                                                    key={staff.userId}
+                                                    value={`${staff.firstName} ${staff.lastName}`}
+                                                    onSelect={() => { handleAppointmentAction(apt.id, String(staff.userId)); setOpenPopoverId(null); }}
+                                                    className={cn(
+                                                      'h-8 cursor-pointer transition-colors duration-200',
+                                                      staffIndex === eligibleStaff.length - 1 && eligibleStaff.length > 0 && 'rounded-b-[12px]',
+                                                    )}
+                                                  >
+                                                    <Check className={cn('mr-2 h-4 w-4', currentAction?.reassignTo === staff.userId ? 'opacity-100' : 'opacity-0')} />
+                                                    <Avatar className="size-5 shrink-0 border border-border transition-none mr-1.5">
+                                                      {staff.profileImage ? (
+                                                        <AvatarImage src={staff.profileImage} alt="" />
+                                                      ) : null}
+                                                      <AvatarFallback
+                                                        className="text-[8px] font-semibold leading-none text-foreground-1"
+                                                        style={{ backgroundColor: getAvatarBgColor(`${staff.userId}-${staff.firstName ?? ''}-${staff.lastName ?? ''}`) }}
+                                                      >
+                                                        {(staff.firstName?.[0] ?? '').toUpperCase()}{(staff.lastName?.[0] ?? '').toUpperCase()}
+                                                      </AvatarFallback>
+                                                    </Avatar>
+                                                    {staff.firstName} {staff.lastName}
+                                                  </CommandItem>
+                                                ))}
+                                                <CommandItem
+                                                  value="cancel"
+                                                  onSelect={() => { handleAppointmentAction(apt.id, 'cancel'); setOpenPopoverId(null); }}
+                                                  className="h-8 cursor-pointer transition-colors duration-200 rounded-b-[12px] text-destructive"
+                                                >
+                                                  <Check className={cn('mr-2 h-4 w-4', currentAction?.cancel ? 'opacity-100' : 'opacity-0')} />
+                                                  <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                                                  {t('teamMembers:seatOverflow.cancelAppointment')}
+                                                </CommandItem>
+                                              </CommandList>
+                                            </Command>
+                                          </PopoverContent>
+                                        </Popover>
+                                      );
+                                    })()}
+                                  </div>
                                 </div>
 
-                                {/* Bottom row: metadata */}
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 ml-1.5 text-xs text-foreground-3">
-                                  {apt.customer && (
-                                    <span className="flex items-center gap-1">
-                                      <User className="h-3 w-3 opacity-60" />
-                                      {apt.customer.firstName} {apt.customer.lastName}
-                                    </span>
-                                  )}
-                                  <span className="flex items-center gap-1">
+                                {/* Metadata row */}
+                                <div className="flex flex-wrap items-center mt-1 gap-x-3 gap-y-0.5 text-xs text-foreground-3">
+                                  <span className="flex items-center gap-1 tabular-nums">
                                     <Calendar className="h-3 w-3 opacity-60" />
                                     {formatDateTime(apt.scheduledAt)}
                                   </span>
@@ -725,7 +824,14 @@ export const SeatOverflowGate: React.FC = () => {
                                       {apt.location.name}
                                     </span>
                                   )}
+                                  {apt.customer && (
+                                    <span className="flex items-center gap-1">
+                                      <User className="h-3 w-3 opacity-60" />
+                                      {apt.customer.firstName} {apt.customer.lastName}
+                                    </span>
+                                  )}
                                 </div>
+
                               </div>
                             );
                           })}
@@ -756,32 +862,66 @@ export const SeatOverflowGate: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Confirm remove button */}
-                  {selectedMember && preview && (
-                    <Button
-                      onClick={handleConfirmOffboard}
-                      disabled={
-                        isOffboarding ||
-                        (!allAppointmentsHandled && preview.appointments.length > 0)
-                      }
-                      variant="destructive"
-                      rounded="full"
-                      className="w-full"
-                    >
-                      {isOffboarding ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          {t('teamMembers:seatOverflow.removing')}
-                        </>
-                      ) : (
-                        t('teamMembers:seatOverflow.confirmRemove')
-                      )}
-                    </Button>
-                  )}
                 </div>
               )}
             </div>
+            )}
           </div>
+
+          {/* ── Sticky Footer ── */}
+          {dataReady && (
+            <div className="shrink-0 border-t border-border bg-white px-4 py-3 dark:bg-surface md:px-6">
+              {selectedOption === 'pay' && !paymentSuccess && !subscriptionSummary?.pendingPayment && (
+                <Button
+                  onClick={handlePayForExtraSeats}
+                  disabled={isPayingForSeats}
+                  rounded="full"
+                  className="group w-full gap-2 cursor-pointer"
+                >
+                  {isPayingForSeats ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('teamMembers:seatOverflow.paying')}
+                    </>
+                  ) : (
+                    <>
+                      {t('teamMembers:seatOverflow.confirmPay')}
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {selectedOption === 'remove' && (
+                <Button
+                  onClick={handleConfirmOffboard}
+                  disabled={
+                    !selectedMember ||
+                    !preview ||
+                    isOffboarding ||
+                    (!allAppointmentsHandled && preview.appointments.length > 0)
+                  }
+                  variant="destructive"
+                  rounded="full"
+                  className={cn(
+                    'w-full',
+                    (!selectedMember || !preview || isOffboarding ||
+                      (!allAppointmentsHandled && preview?.appointments?.length > 0)) &&
+                      'opacity-40 cursor-not-allowed',
+                  )}
+                >
+                  {isOffboarding ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {t('teamMembers:seatOverflow.removing')}
+                    </>
+                  ) : (
+                    t('teamMembers:seatOverflow.confirmRemove')
+                  )}
+                </Button>
+              )}
+            </div>
+          )}
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>

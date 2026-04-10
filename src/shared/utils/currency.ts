@@ -110,6 +110,34 @@ export const getCurrencyDisplay = (currency: string): { icon?: LucideIcon; symbo
 };
 
 /**
+ * Returns the text symbol for a currency code, for use in formatted price strings.
+ * Unlike getCurrencyDisplay (which may return a Lucide icon component),
+ * this always returns a plain string suitable for text interpolation.
+ *
+ * @param currency - Currency code (case-insensitive)
+ * @returns The currency symbol as a string (e.g. '€', '$', 'lei', '£')
+ *
+ * @example
+ * getCurrencySymbol('eur')  // '€'
+ * getCurrencySymbol('usd')  // '$'
+ * getCurrencySymbol('ron')  // 'lei'
+ * getCurrencySymbol('gbp')  // '£'
+ */
+export function getCurrencySymbol(currency: string): string {
+  const code = normalizeCurrencyCode(currency);
+  const meta = CURRENCY_METADATA[code];
+  if (meta.symbol) return meta.symbol;
+  // Fallback: use Intl to extract the symbol for currencies that only have an icon
+  try {
+    return new Intl.NumberFormat(undefined, { style: 'currency', currency: code, currencyDisplay: 'narrowSymbol' })
+      .formatToParts(0)
+      .find((p) => p.type === 'currency')?.value ?? code;
+  } catch {
+    return code;
+  }
+}
+
+/**
  * Price Storage: Integer Cents (Minor Units)
  * 
  * Industry standard (Stripe, Shopify, etc.) is to store prices as integers
