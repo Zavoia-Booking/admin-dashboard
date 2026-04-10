@@ -13,7 +13,7 @@ export function dayFiltersWithoutUnassignedOnly(filters: CalendarDayFilters): Ca
 }
 
 /**
- * True when staff narrowing is “real” (not merely the lone member at a single-staff location).
+ * True when staff narrowing is "real" (not merely the lone member at a single-staff location).
  * Pass `locationStaffIds` from `getLocationStaff().map((s) => s.id)` when available.
  */
 export function isStaffNarrowingActive(
@@ -97,7 +97,7 @@ export function countActiveCalendarFilters(
     return n;
 }
 
-/** Keys compared for “draft unchanged” in the header filters popover (staff compared via `staffIds` args).
+/** Keys compared for "draft unchanged" in the header filters popover (staff compared via `staffIds` args).
  * Service/bundle dimensions use {@link mergedFilterIdKey} in {@link areCalendarHeaderFilterDraftsEqual} (arrays + legacy scalars).
  */
 const HEADER_DRAFT_DAY_KEYS: (keyof CalendarDayFilters)[] = [

@@ -5,6 +5,7 @@ import type {
   LocationContextBundle,
 } from "../../shared/types/calendar.ts";
 import { buildZonedDateFromDateKey, formatDateInTimezone } from "./timezone.ts";
+import i18n from "../../shared/lib/i18n";
 
 /** True if two time ranges overlap (startA < endB && endA > startB). */
 export function timeRangesOverlap(startA: number, endA: number, startB: number, endB: number): boolean {
@@ -142,18 +143,17 @@ export type DayTimeSlotDropResult =
       segmentsPreview: DayGroupSegmentPreview[];
     };
 
-const MSG_UNASSIGNED = "Appointments must be assigned to a team member.";
-const MSG_STAFF_CONFLICT =
-  "This team member already has an appointment at this time. Choose another time or team member.";
+const MSG_UNASSIGNED = () => i18n.t("calendar:page.dnd.unassigned");
+const MSG_STAFF_CONFLICT = () => i18n.t("calendar:page.dnd.staffConflict");
 function msgStaffBufferConflict(bufferMinutes: number): string {
-  return `This time is inside the ${bufferMinutes}-minute buffer required between appointments for this team member. Choose another time or team member.`;
+  return i18n.t("calendar:page.dnd.staffBufferConflict", { minutes: bufferMinutes });
 }
-const MSG_BLOCK = "This time overlaps a calendar block. Choose another time or edit the block.";
-const MSG_PAST = "Cannot reschedule to a time in the past.";
-const MSG_GROUP_REASSIGN = "Booking groups can only be rescheduled, not reassigned to a different staff member.";
+const MSG_BLOCK = () => i18n.t("calendar:page.dnd.blockOverlap");
+const MSG_PAST = () => i18n.t("calendar:page.dnd.pastTime");
+const MSG_GROUP_REASSIGN = () => i18n.t("calendar:page.dnd.groupReassign");
 
 function ineligibleStaffMessage(staffLabel: string): string {
-  return `${staffLabel} is not assigned to perform this service. Choose another team member or edit the appointment.`;
+  return i18n.t("calendar:page.dnd.ineligibleStaff", { staffLabel });
 }
 
 export type DayTimeSlotDropContext = {
@@ -202,7 +202,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
   } = ctx;
 
   if (targetColumnId === 0) {
-    return { ok: false, toastMessage: MSG_UNASSIGNED };
+    return { ok: false, toastMessage: MSG_UNASSIGNED() };
   }
 
   const droppedSlotStartMs = buildZonedDateFromDateKey(
@@ -223,7 +223,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     const dayStart = new Date(droppedSlotStartMs);
     dayStart.setHours(0, 0, 0, 0);
     if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
-      return { ok: false, toastMessage: "Appointment would extend past midnight." };
+      return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
     }
   }
 
@@ -232,11 +232,11 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
   const groupId = appointment.bookingGroupId?.trim();
 
   if (isGroupDragRestricted && sourceColumnId !== targetColumnId) {
-    return { ok: false, toastMessage: MSG_GROUP_REASSIGN };
+    return { ok: false, toastMessage: MSG_GROUP_REASSIGN() };
   }
 
   if (droppedSlotStartMs < nowMs) {
-    return { ok: false, toastMessage: MSG_PAST };
+    return { ok: false, toastMessage: MSG_PAST() };
   }
 
   if (isGroupDragRestricted && groupId) {
@@ -252,7 +252,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     const newGroupStartMs = droppedSlotStartMs - draggedOffsetMs;
 
     if (newGroupStartMs < nowMs) {
-      return { ok: false, toastMessage: MSG_PAST };
+      return { ok: false, toastMessage: MSG_PAST() };
     }
 
     const segmentsPreview: DayGroupSegmentPreview[] = groupSegments.map((seg) => {
@@ -280,7 +280,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
           const bs = new Date(b.startsAt).getTime();
           const be = new Date(b.endsAt).getTime();
           if (timeRangesOverlap(segStart, segEnd, bs, be)) {
-            return { ok: false, toastMessage: MSG_BLOCK };
+            return { ok: false, toastMessage: MSG_BLOCK() };
           }
         }
       }
@@ -293,7 +293,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
       const segStart = new Date(seg.startIso).getTime();
       const segEnd = new Date(seg.endIso).getTime();
       const conflict = aggregateStaffIntervalConflict(segStart, segEnd, peers, bufferTimeMinutes);
-      if (conflict === "overlap") return { ok: false, toastMessage: MSG_STAFF_CONFLICT };
+      if (conflict === "overlap") return { ok: false, toastMessage: MSG_STAFF_CONFLICT() };
       if (conflict === "buffer") return { ok: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
     }
 
@@ -319,7 +319,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     bufferTimeMinutes,
   );
   if (staffConflict === "overlap") {
-    return { ok: false, toastMessage: MSG_STAFF_CONFLICT };
+    return { ok: false, toastMessage: MSG_STAFF_CONFLICT() };
   }
   if (staffConflict === "buffer") {
     return { ok: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
@@ -342,7 +342,7 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
         return timeRangesOverlap(droppedSlotStartMs, slotEnd, bs, be);
       })
     ) {
-      return { ok: false, toastMessage: MSG_BLOCK };
+      return { ok: false, toastMessage: MSG_BLOCK() };
     }
   }
 
@@ -380,7 +380,7 @@ export function evaluateDayStaffColumnDrop(ctx: DayStaffColumnDropContext): Drop
   } = ctx;
 
   if (staffId === 0) {
-    return { allowed: false, toastMessage: MSG_UNASSIGNED };
+    return { allowed: false, toastMessage: MSG_UNASSIGNED() };
   }
   if (isGroupDragRestricted) {
     return { allowed: false }; // silent ignore (staff-column drop)
@@ -396,7 +396,7 @@ export function evaluateDayStaffColumnDrop(ctx: DayStaffColumnDropContext): Drop
   const apptEnd = new Date(appointment.endsAt).getTime();
   const staffConflict = aggregateStaffIntervalConflict(apptStart, apptEnd, columnApps, bufferTimeMinutes);
   if (staffConflict === "overlap") {
-    return { allowed: false, toastMessage: MSG_STAFF_CONFLICT };
+    return { allowed: false, toastMessage: MSG_STAFF_CONFLICT() };
   }
   if (staffConflict === "buffer") {
     return { allowed: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
@@ -483,7 +483,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
   }
 
   if (droppedSlotStartMs < nowMs) {
-    return { ok: false, toastMessage: MSG_PAST };
+    return { ok: false, toastMessage: MSG_PAST() };
   }
 
   // Appointment must not extend past midnight
@@ -492,7 +492,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
     const dayStart = new Date(droppedSlotStartMs);
     dayStart.setHours(0, 0, 0, 0);
     if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
-      return { ok: false, toastMessage: "Appointment would extend past midnight." };
+      return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
     }
   }
 
@@ -513,7 +513,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
     const newGroupStartMs = droppedSlotStartMs - draggedOffsetMs;
 
     if (newGroupStartMs < nowMs) {
-      return { ok: false, toastMessage: MSG_PAST };
+      return { ok: false, toastMessage: MSG_PAST() };
     }
 
     const segmentsPreview: DayGroupSegmentPreview[] = groupSegments.map((seg) => {
@@ -541,7 +541,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
           const bs = new Date(b.startsAt).getTime();
           const be = new Date(b.endsAt).getTime();
           if (timeRangesOverlap(segStart, segEnd, bs, be)) {
-            return { ok: false, toastMessage: MSG_BLOCK };
+            return { ok: false, toastMessage: MSG_BLOCK() };
           }
         }
       }
@@ -553,7 +553,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
       const segStart = new Date(seg.startIso).getTime();
       const segEnd = new Date(seg.endIso).getTime();
       const conflict = aggregateStaffIntervalConflict(segStart, segEnd, dayPeers, bufferTimeMinutes);
-      if (conflict === "overlap") return { ok: false, toastMessage: MSG_STAFF_CONFLICT };
+      if (conflict === "overlap") return { ok: false, toastMessage: MSG_STAFF_CONFLICT() };
       if (conflict === "buffer") return { ok: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
     }
 
@@ -579,7 +579,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
     bufferTimeMinutes,
   );
   if (staffConflict === "overlap") {
-    return { ok: false, toastMessage: MSG_STAFF_CONFLICT };
+    return { ok: false, toastMessage: MSG_STAFF_CONFLICT() };
   }
   if (staffConflict === "buffer") {
     return { ok: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
@@ -593,7 +593,7 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
       return timeRangesOverlap(droppedSlotStartMs, slotEnd, bs, be);
     })
   ) {
-    return { ok: false, toastMessage: MSG_BLOCK };
+    return { ok: false, toastMessage: MSG_BLOCK() };
   }
 
   return {

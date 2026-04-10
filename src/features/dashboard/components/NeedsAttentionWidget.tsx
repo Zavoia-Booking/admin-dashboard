@@ -263,7 +263,6 @@ interface UnresolvedAppointmentsListProps {
 
 function UnresolvedAppointmentsList({
   appointments,
-  totalCount,
   formatDateTime,
   locale,
   onAppointmentUpdated,
@@ -308,7 +307,7 @@ interface UnresolvedAppointmentRowProps {
 function UnresolvedAppointmentRow({
   appointment,
   formatDateTime,
-  locale,
+  locale: _locale,
   compact = false,
   onUpdated,
 }: UnresolvedAppointmentRowProps) {
@@ -316,8 +315,8 @@ function UnresolvedAppointmentRow({
   const [loading, setLoading] = useState<'completed' | 'no_show' | null>(null);
   const [resolved, setResolved] = useState<'completed' | 'no_show' | null>(null);
 
-  const customerName = `${appointment.customerSnapshot.firstName} ${appointment.customerSnapshot.lastName}`;
-  const initials = `${appointment.customerSnapshot.firstName[0] ?? ''}${appointment.customerSnapshot.lastName[0] ?? ''}`.toUpperCase();
+  const customerName = `${appointment.customerSnapshot?.firstName} ${appointment.customerSnapshot?.lastName}`;
+  const initials = `${appointment.customerSnapshot?.firstName[0] ?? ''}${appointment.customerSnapshot?.lastName[0] ?? ''}`.toUpperCase();
   const staffName = appointment.staffSnapshot[0]
     ? `${appointment.staffSnapshot[0].firstName} ${appointment.staffSnapshot[0].lastName}`
     : '—';
@@ -354,9 +353,9 @@ function UnresolvedAppointmentRow({
     <div className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-3 ${compact ? 'py-2' : 'py-2.5'} group/unresolved`}>
       {/* Customer info */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {appointment.customerSnapshot.profileImage ? (
+        {appointment.customerSnapshot?.profileImage ? (
           <img
-            src={appointment.customerSnapshot.profileImage}
+            src={appointment.customerSnapshot?.profileImage}
             alt={customerName}
             className="h-6 w-6 rounded-full object-cover shrink-0"
           />

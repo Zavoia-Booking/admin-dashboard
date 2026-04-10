@@ -1,8 +1,9 @@
 import { type FC, useMemo, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { getSelectedDate, getCalendarSummary, getViewModeSelector, getSidebarMiniCalendarMonthStart, getCalendarTimezone, getSummaryLoading } from "../selectors.ts";
 import { Skeleton } from "../../../shared/components/ui/skeleton.tsx";
-import { formatDateInTimezone } from "../timezone.ts";
+import { formatDateInTimezone, getCalendarLocale } from "../timezone.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
 import { setSidebarMiniCalendarMonthAction, setDisplayedMonthAction } from "../actions.ts";
 import { AppointmentViewMode } from "../types.ts";
@@ -15,7 +16,7 @@ const DAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
 /** Appointment density under the day number (matches reference: dot / double / bar). */
 type DayMarker = "none" | "dot" | "double" | "triple" | "bar";
 
-/** Appointments use primary; block-only days use warning (amber) — gray reads as “disabled” on date cells; grid blocks use large gray panels, not 4px dots. */
+/** Appointments use primary; block-only days use warning (amber) — gray reads as "disabled" on date cells; grid blocks use large gray panels, not 4px dots. */
 type MarkerTone = "primary" | "blocked";
 
 export function dayMarkerFromSummary(ds: DaySummary | undefined): { kind: DayMarker; tone: MarkerTone } {
@@ -106,6 +107,7 @@ export function DayMarkerGlyph({
  * and shows dots for days with appointments.
  */
 export const MiniMonthCalendar: FC = () => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const summary = useSelector(getCalendarSummary);
@@ -191,7 +193,7 @@ export const MiniMonthCalendar: FC = () => {
   const todayStr = new Date().toDateString();
   const selectedStr = selectedDate.toDateString();
 
-  const monthLabel = displayMonth.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const monthLabel = displayMonth.toLocaleDateString(getCalendarLocale(), { month: 'long', year: 'numeric' });
 
   return (
     <div>
@@ -218,13 +220,13 @@ export const MiniMonthCalendar: FC = () => {
 
       {/* gap-x creates real column gutters; pills cannot bleed into neighbors */}
       <div className="grid grid-cols-7 gap-x-1.5 gap-y-0.5">
-        {DAY_LABELS.map((label) => (
+        {(["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const).map((day) => (
           <div
-            key={label}
+            key={day}
             className="flex min-h-5 min-w-0 items-center justify-center"
           >
             <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-              {label}
+              {t(`page.common.dayNamesShort.${day}`)}
             </span>
           </div>
         ))}

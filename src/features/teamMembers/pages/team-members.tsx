@@ -66,7 +66,7 @@ export default function TeamMembersPage() {
     deepLinkHandled.current = true;
     setSearchParams({}, { replace: true });
 
-    const member = teamMembers.find((m) => m.id === memberId);
+    const member = teamMembers.find((m: TeamMember) => m.id === memberId);
     if (member) {
       setSelectedTeamMember(member);
       setIsProfileSliderOpen(true);

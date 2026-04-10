@@ -38,7 +38,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
 }) => {
   const { t } = useTranslation('teamMembers');
   const dispatch = useDispatch();
-  const { register, handleSubmit, setValue, reset, getValues, formState: { errors }, watch, trigger } = useForm<InviteTeamMemberPayload>({
+  const { register, handleSubmit, setValue, reset, formState: { errors }, watch, trigger } = useForm<InviteTeamMemberPayload>({
     defaultValues: initialFormData
   });
   const currentUser = useSelector(selectCurrentUser);

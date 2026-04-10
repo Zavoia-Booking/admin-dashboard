@@ -1,4 +1,5 @@
 import { type FC, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X, ChevronRight } from "lucide-react";
@@ -60,6 +61,7 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
   loading = false,
   blocks,
 }) => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const editForm = useSelector(getEditFormSelector);
   const [internalOpen, setInternalOpen] = useState(false);
@@ -129,17 +131,17 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
           aria-describedby={undefined}
         >
           <DialogPrimitive.Title className="sr-only">
-            {count} appointment{count !== 1 ? "s" : ""}
+            {t("page.groupDialog.appointmentCount", { count })}
           </DialogPrimitive.Title>
           {/* Header */}
           <div className="relative shrink-0 px-5 pb-0 pt-5 md:px-6">
             <div className="flex items-center gap-4 pr-12">
               <div className="min-w-0 flex-1 space-y-1">
                 <h2 className="min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1">
-                  {count > 0 ? `${count} appointment${count !== 1 ? "s" : ""}` : ""}
+                  {count > 0 ? t("page.groupDialog.appointmentCount", { count }) : ""}
                   {count > 0 && blocks && blocks.length > 0 ? " · " : ""}
-                  {blocks && blocks.length > 0 ? `${blocks.length} block${blocks.length !== 1 ? "s" : ""}` : ""}
-                  {count === 0 && (!blocks || blocks.length === 0) && loading ? "Loading..." : ""}
+                  {blocks && blocks.length > 0 ? t("page.groupDialog.blockCount", { count: blocks.length }) : ""}
+                  {count === 0 && (!blocks || blocks.length === 0) && loading ? t("page.groupDialog.loading") : ""}
                 </h2>
                 <p className="text-xs text-foreground-3 tabular-nums">
                   {timeRangeStr}
@@ -289,7 +291,7 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
                       (new Date(block.endsAt).getTime() - new Date(block.startsAt).getTime()) / 60000,
                     );
                     const durationStr = block.isAllDay
-                      ? 'All day'
+                      ? t('page.blocks.allDay')
                       : durationMin != null && durationMin >= 60
                         ? `${Math.floor(durationMin / 60)}h${durationMin % 60 ? ` ${durationMin % 60}m` : ''}`
                         : `${durationMin}m`;
@@ -307,12 +309,12 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
                               <ReasonIcon className="h-3.5 w-3.5 text-foreground-1" />
                             </div>
                             <p className="text-sm font-bold text-foreground-1 truncate min-w-0 flex-1">
-                              {block.title || getCalendarBlockReasonLabel(block.reason)}
+                              {block.title || getCalendarBlockReasonLabel(block.reason, t)}
                             </p>
                           </div>
                           <div className="flex items-center justify-between mt-1 pl-[38px]">
                             <span className="text-xs text-foreground-3 tabular-nums truncate">
-                              {block.isAllDay ? 'All day' : formatTimeRange(block.startsAt, block.endsAt, timezone)}
+                              {block.isAllDay ? t('page.blocks.allDay') : formatTimeRange(block.startsAt, block.endsAt, timezone)}
                             </span>
                             <span className="text-xs text-foreground-3 tabular-nums shrink-0">{durationStr}</span>
                           </div>

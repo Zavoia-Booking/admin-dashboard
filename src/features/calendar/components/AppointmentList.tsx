@@ -1,5 +1,6 @@
 import { type FC, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
 import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../shared/types/calendar.ts";
 import {
@@ -40,6 +41,7 @@ type ListItem =
 
 export const AppointmentList: FC = () => {
   const dispatch = useDispatch();
+  const { t } = useTranslation("calendar");
   const selectedLocationId = useSelector(getSelectedLocationId);
   const dayAppointments = useSelector(getDayAppointments);
   const dayBlocks = useSelector(getDayBlocks);
@@ -125,7 +127,7 @@ export const AppointmentList: FC = () => {
     return (
       <Card>
         <CardContent className="p-8 text-center">
-          <p className="text-sm text-muted-foreground">Select a location to view appointments.</p>
+          <p className="text-sm text-muted-foreground">{t("page.appointments.selectLocationAppointments")}</p>
         </CardContent>
       </Card>
     );
@@ -149,18 +151,18 @@ export const AppointmentList: FC = () => {
       {sortedItems.length === 0 && hasActiveFilters && (
         <EmptyState
           icon={SlidersHorizontal}
-          title="No appointments match your filters"
-          description="Try adjusting your filters or clearing them to see all appointments for this day."
+          title={t("page.appointments.noMatchFilters")}
+          description={t("page.appointments.noMatchFiltersDayDesc")}
           className="h-[calc(100dvh-143px)] !py-0 !justify-center cursor-default"
         />
       )}
       {sortedItems.length === 0 && !hasActiveFilters && (
         <EmptyState
-          title="Nothing scheduled"
-          description="No appointments or blocks scheduled for this day."
+          title={t("page.appointments.nothingScheduled")}
+          description={t("page.appointments.nothingScheduledDayDesc")}
           className="h-[calc(100dvh-145px)] !py-0 !justify-center cursor-default"
           actionButton={{
-            label: "Add Event",
+            label: t("page.appointments.addEvent"),
             icon: Plus,
             onClick: () => dispatch(toggleAddForm({ open: true })),
           }}
@@ -191,7 +193,7 @@ export const AppointmentList: FC = () => {
       {/* Filtered-out notice after list: blocks shown but no appointments match */}
       {sortedItems.length > 0 && apptCount === 0 && hasActiveFilters && (
         <p className="text-sm text-muted-foreground pt-3 cursor-default">
-          No appointments match your filters.
+          {t("page.appointments.noMatchFiltersInline")}
         </p>
       )}
     </div>

@@ -1,6 +1,8 @@
 import { type FC, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { getDisplayedMonthStart, getDisplayedWeekStart, getSelectedDate, getSidebarOpen, getViewModeSelector, getViewTypeSelector } from "../selectors.ts";
+import { getCalendarLocale } from "../timezone.ts";
 import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar, setScrollToNow, setSidebarMiniCalendarMonthAction } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
@@ -17,6 +19,7 @@ interface CalendarHeaderProps {
  * Contains month/year title, Day/Week/Month pill tabs, navigation arrows, action buttons.
  */
 export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
+  const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const displayedMonthStart = useSelector(getDisplayedMonthStart);
@@ -29,16 +32,16 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
   const title = (() => {
     if (viewMode === AppointmentViewMode.DAY) {
       // "Sat, 28 Mar 2026"
-      const weekday = selectedDate.toLocaleDateString('en-US', { weekday: 'short' });
-      const month = selectedDate.toLocaleDateString('en-US', { month: 'short' });
+      const weekday = selectedDate.toLocaleDateString(getCalendarLocale(), { weekday: 'short' });
+      const month = selectedDate.toLocaleDateString(getCalendarLocale(), { month: 'short' });
       return `${weekday}, ${selectedDate.getDate()} ${month} ${selectedDate.getFullYear()}`;
     }
     if (viewMode === AppointmentViewMode.WEEK) {
       const ws = displayedWeekStart ?? getWeekStart(selectedDate);
       const we = getWeekEnd(ws);
       const sameMonth = ws.getMonth() === we.getMonth();
-      const monthStr = ws.toLocaleDateString('en-US', { month: 'short' });
-      const endMonthStr = we.toLocaleDateString('en-US', { month: 'short' });
+      const monthStr = ws.toLocaleDateString(getCalendarLocale(), { month: 'short' });
+      const endMonthStr = we.toLocaleDateString(getCalendarLocale(), { month: 'short' });
       // Same month: "23 – 29 Mar, 2026"
       // Cross-month: "28 Mar – 3 Apr, 2026"
       const result = sameMonth
@@ -48,7 +51,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
     }
     // Month view: "March 2026"
     const monthDate = viewMode === AppointmentViewMode.MONTH && displayedMonthStart ? displayedMonthStart : selectedDate;
-    return monthDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return monthDate.toLocaleDateString(getCalendarLocale(), { month: 'long', year: 'numeric' });
   })();
 
   const handlePrev = useCallback(() => {
@@ -95,7 +98,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
     a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
   const currentPeriodLabel = (() => {
-    return 'Today';
+    return t("page.header.today");
   })();
 
   const isOnCurrentPeriod = (() => {
@@ -157,7 +160,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
           size="icon"
           className="h-8 w-8 flex-shrink-0"
           onClick={handleToggleSidebar}
-          title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
+          title={sidebarOpen ? t("page.header.hideSidebar") : t("page.header.showSidebar")}
         >
           {sidebarOpen ? <PanelLeftClose className="h-4 w-4" /> : <PanelLeftOpen className="h-4 w-4" />}
         </Button>
@@ -178,9 +181,9 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
           <div className="flex items-center bg-white dark:bg-surface rounded-full p-1 border shadow-sm">
             <div className="flex items-center gap-0.5">
               {([
-                [AppointmentViewMode.MONTH, 'Month'],
-                [AppointmentViewMode.WEEK, 'Week'],
-                [AppointmentViewMode.DAY, 'Day'],
+                [AppointmentViewMode.MONTH, t("page.header.month")],
+                [AppointmentViewMode.WEEK, t("page.header.week")],
+                [AppointmentViewMode.DAY, t("page.header.day")],
               ] as const).map(([mode, label]) => (
                 <button
                   key={mode}
@@ -207,7 +210,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
           >
             <ShieldBan className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
-            Block
+            {t("page.header.block")}
           </button>
           <div className="w-px h-5 bg-border shrink-0" />
           <button
@@ -216,7 +219,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
           >
             <Plus className="h-3.5 w-3.5 text-primary" />
-            Add Event
+            {t("page.header.addEvent")}
           </button>
           <div className="w-px h-5 bg-border shrink-0" />
           <div className="flex-1 min-w-0"><CalendarHeaderFilters slim /></div>
@@ -237,7 +240,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
               size="icon"
               className="h-8 w-8 rounded-none group"
               onClick={handleToggleViewType}
-              title={viewType === AppointmentViewType.GRID ? 'Switch to list view' : 'Switch to grid view'}
+              title={viewType === AppointmentViewType.GRID ? t("page.header.switchToList") : t("page.header.switchToGrid")}
             >
               {viewType === AppointmentViewType.GRID
                 ? <List className="!h-4.5 !w-4.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
@@ -249,7 +252,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             size="icon"
             className="h-8 w-8 rounded-none group"
             onClick={onOpenSettings}
-            title="Calendar Settings"
+            title={t("page.header.calendarSettings")}
           >
             <Settings className="!h-4.5 !w-4.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
           </Button>

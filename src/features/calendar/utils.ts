@@ -1,6 +1,7 @@
 // Helper functions to get date ranges based on selected date
+import type { TFunction } from "i18next";
 import { AppointmentViewMode } from "./types.ts";
-import { formatDateInTimezone } from "./timezone.ts";
+import { formatDateInTimezone, getCalendarLocale } from "./timezone.ts";
 
 /** Format a Date as YYYY-MM-DD using local date (avoids timezone shifting the calendar day). */
 export const toLocalDateString = (d: Date): string => {
@@ -61,6 +62,19 @@ export const convertTo24Hour = (time12h: string): string => {
 
 export const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+/** Translated day name abbreviations (Mon–Sun). Callers with `t` should prefer this over `dayNames`. */
+export function getTranslatedDayNames(t: TFunction): string[] {
+    return [
+        t("page.common.dayNames.mon"),
+        t("page.common.dayNames.tue"),
+        t("page.common.dayNames.wed"),
+        t("page.common.dayNames.thu"),
+        t("page.common.dayNames.fri"),
+        t("page.common.dayNames.sat"),
+        t("page.common.dayNames.sun"),
+    ];
+}
+
 export const getWeekDays = (currentWeekStart: Date) => {
     return Array.from({ length: 7 }, (_, i) => {
         const date = new Date(currentWeekStart);
@@ -77,6 +91,18 @@ export const STATUS_LIST = [
     { value: 'no_show', label: 'No-show' },
     { value: 'cancelled', label: 'Cancelled' },
 ];
+
+/** Translated STATUS_LIST. Callers with `t` should prefer this over `STATUS_LIST`. */
+export function getTranslatedStatusList(t: TFunction): Array<{ value: string; label: string }> {
+    return [
+        { value: 'all', label: t("page.common.anyStatus") },
+        { value: 'confirmed', label: t("page.common.statuses.confirmed") },
+        { value: 'completed', label: t("page.common.statuses.completed") },
+        { value: 'pending', label: t("page.common.statuses.pending") },
+        { value: 'no_show', label: t("page.common.statuses.noShow") },
+        { value: 'cancelled', label: t("page.common.statuses.cancelled") },
+    ];
+}
 
 
 export const getStartOfTheWeek = (): Date => {
@@ -147,8 +173,8 @@ export const getTabItemInfo = (viewMode: AppointmentViewMode, selectedDate:Date,
         isSelected = selectedDate >= item && selectedDate <= weekEnd;
 
         // Format week range display
-        const startMonth = item.toLocaleDateString('en-US', { month: 'short' });
-        const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
+        const startMonth = item.toLocaleDateString(getCalendarLocale(), { month: 'short' });
+        const endMonth = weekEnd.toLocaleDateString(getCalendarLocale(), { month: 'short' });
         const startDay = item.getDate();
         const endDay = weekEnd.getDate();
 
@@ -165,7 +191,7 @@ export const getTabItemInfo = (viewMode: AppointmentViewMode, selectedDate:Date,
 
     if (viewMode === AppointmentViewMode.MONTH) {
         isSelected = item.getMonth() === selectedDate.getMonth() && item.getFullYear() === selectedDate.getFullYear();
-        displayText = item.toLocaleDateString('en-US', { month: 'short' });
+        displayText = item.toLocaleDateString(getCalendarLocale(), { month: 'short' });
         subText = item.getFullYear().toString();
     }
 

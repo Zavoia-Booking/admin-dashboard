@@ -1,4 +1,5 @@
 import type { FC } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -34,24 +35,26 @@ export const OverrideDialog: FC<OverrideDialogProps> = ({
   reasonText,
   onReasonChange,
   inputId,
-}) => (
+}) => {
+  const { t } = useTranslation("calendar");
+  return (
   <AlertDialog open={open} onOpenChange={onOpenChange}>
     <AlertDialogContent>
       <AlertDialogHeader>
         <AlertDialogTitle>
-          {isConflictOverride ? "Confirm reschedule" : "Outside business hours"}
+          {isConflictOverride ? t("page.override.confirmReschedule") : t("page.override.outsideBusinessHours")}
         </AlertDialogTitle>
         <AlertDialogDescription>
           {isConflictOverride
-            ? "This time has a scheduling conflict. Do you want to reschedule anyway? You can add an optional reason below."
-            : "This time is outside business hours. Are you sure you want to reschedule? You can add an optional reason below."}
+            ? t("page.override.conflictDescription")
+            : t("page.override.outOfHoursDescription")}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <div className="py-2">
-        <Label htmlFor={inputId} className="text-xs text-muted-foreground">Reason (optional)</Label>
+        <Label htmlFor={inputId} className="text-xs text-muted-foreground">{t("page.override.reasonLabel")}</Label>
         <Input
           id={inputId}
-          placeholder="e.g. Customer request"
+          placeholder={t("page.override.reasonPlaceholder")}
           value={reasonText}
           onChange={(e) => onReasonChange(e.target.value)}
           className="mt-1"
@@ -59,7 +62,7 @@ export const OverrideDialog: FC<OverrideDialogProps> = ({
       </div>
       <AlertDialogFooter>
         <AlertDialogCancel onClick={onCancel}>
-          Cancel
+          {t("page.override.cancel")}
         </AlertDialogCancel>
         <AlertDialogAction
           onClick={(e) => {
@@ -67,9 +70,10 @@ export const OverrideDialog: FC<OverrideDialogProps> = ({
             onConfirm();
           }}
         >
-          Reschedule anyway
+          {t("page.override.rescheduleAnyway")}
         </AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>
-);
+  );
+};

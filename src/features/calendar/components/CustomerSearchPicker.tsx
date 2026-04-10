@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
@@ -84,6 +85,7 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
   onSelectCustomer,
   onClearCustomer,
 }) => {
+  const { t } = useTranslation('calendar');
   const [showQuickCreate, setShowQuickCreate] = useState(false);
   const [quickCreateRendered, setQuickCreateRendered] = useState(false);
   const [quickCreateClosing, setQuickCreateClosing] = useState(false);
@@ -143,9 +145,9 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
         const newCustomer = await addCustomerApi(payload);
         onSelectCustomer(newCustomer);
         setShowQuickCreate(false);
-        toast.success('Customer created');
+        toast.success(t('page.appointments.customer.customerCreated'));
       } catch {
-        toast.error('Failed to create customer');
+        toast.error(t('page.appointments.customer.customerCreateFailed'));
       } finally {
         setQuickCreateSubmitting(false);
       }
@@ -156,8 +158,8 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
   return (
     <div className="space-y-5 mb-4">
       <SliderSectionHeader
-        title="Client"
-        description="Optional. Search for an existing customer or add a walk-in."
+        title={t('page.appointments.customer.client')}
+        description={t('page.appointments.customer.clientDescription')}
       />
 
       {isEditMode ? (

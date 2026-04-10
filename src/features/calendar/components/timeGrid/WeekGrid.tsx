@@ -91,7 +91,6 @@ export const WeekGrid: FC = () => {
     setOverrideReasonText,
     overrideDialogOpen,
     setOverrideDialogOpen,
-    pendingReschedulePayload,
     setPendingReschedulePayload,
     dndSessionRef,
     dndSensors,

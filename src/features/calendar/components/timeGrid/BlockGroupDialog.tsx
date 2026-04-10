@@ -1,4 +1,5 @@
 import { type FC, useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import {
@@ -37,6 +38,7 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
   timezone,
   children,
 }) => {
+  const { t } = useTranslation("calendar");
   const [open, setOpen] = useState(false);
   const count = blocks.length;
 
@@ -115,12 +117,12 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
                   ? locationStaff.find((s) => s.id === block.userId) ?? null
                   : null;
                 const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
-                const scopeLabel = getBlockScopeLabel(block.blockScope);
+                const scopeLabel = getBlockScopeLabel(block.blockScope, t);
                 const durationMin = Math.round(
                   (new Date(block.endsAt).getTime() - new Date(block.startsAt).getTime()) / 60000,
                 );
                 const durationStr = block.isAllDay
-                  ? "All day"
+                  ? t("page.blocks.allDay")
                   : durationMin >= 60
                     ? `${Math.floor(durationMin / 60)}h${durationMin % 60 ? ` ${durationMin % 60}m` : ""}`
                     : `${durationMin}m`;
@@ -139,7 +141,7 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
                           <ReasonIcon className="h-3.5 w-3.5 text-foreground-1" />
                         </div>
                         <p className="text-sm font-bold text-foreground-1 truncate min-w-0 flex-1">
-                          {block.title || getCalendarBlockReasonLabel(block.reason)}
+                          {block.title || getCalendarBlockReasonLabel(block.reason, t)}
                         </p>
                         <span className="shrink-0 rounded-full bg-muted/80 dark:bg-neutral-800 px-2 py-0.5 text-[9px] font-medium text-muted-foreground border border-border">
                           {scopeLabel}
@@ -149,7 +151,7 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
                       <div className="flex items-center justify-between mt-1.5 pl-[42px]">
                         <span className="text-xs text-foreground-3 tabular-nums truncate">
                           {block.isAllDay
-                            ? "All day"
+                            ? t("page.blocks.allDay")
                             : formatTimeRange(block.startsAt, block.endsAt, timezone)}
                         </span>
                         {!block.isAllDay && (

@@ -27,7 +27,7 @@ interface AppointmentBlockProps {
   widthPercent?: number;
   /** When provided, call on click instead of fetching and opening (used by DraggableAppointmentBlock to avoid duplicate fetch). */
   onOpenDetail?: () => void;
-  /** From {@link buildCalendarColorMap} for this column/day’s appointments (service/staff coding). */
+  /** From {@link buildCalendarColorMap} for this column/day's appointments (service/staff coding). */
   colorMap?: Map<string, AppointmentBlockColorPair> | null;
 }
 

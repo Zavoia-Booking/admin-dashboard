@@ -1,15 +1,31 @@
 import type { ReactElement } from "react";
+import type { TFunction } from "i18next";
 import { Badge } from "../../../shared/components/ui/badge.tsx";
 import { cn } from "../../../shared/lib/utils";
 import type { CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
+import { getCalendarLocale } from "../timezone.ts";
 
-/** Shown when an appointment has no customer name; booking channel is in “Booked via …”. */
+/** Shown when an appointment has no customer name; booking channel is in "Booked via …". */
 export const NO_CUSTOMER_DISPLAY_LABEL = "No customer data";
 
+/** i18n-aware version: callers with access to `t` should prefer this over the constant. */
+export function getNoCustomerDisplayLabel(t: TFunction): string {
+  return t("page.common.noCustomerData");
+}
+
 /** Human label for API bookingSource (admin, phone, walk_in, marketplace). */
-export function getBookingSourceLabel(source: string | null | undefined): string {
+export function getBookingSourceLabel(source: string | null | undefined, t?: TFunction): string {
   if (source == null || source === '') return '—';
+  if (t) {
+    const map: Record<string, string> = {
+      admin: t("page.common.bookingSources.admin"),
+      phone: t("page.common.bookingSources.phone"),
+      walk_in: t("page.common.bookingSources.walkIn"),
+      marketplace: t("page.common.bookingSources.marketplace"),
+    };
+    return map[source] ?? source;
+  }
   const map: Record<string, string> = {
     admin: 'Admin',
     phone: 'Phone',
@@ -19,9 +35,18 @@ export function getBookingSourceLabel(source: string | null | undefined): string
   return map[source] ?? source;
 }
 
-/** Phrase inside the edit-appointment booking pill (no separate “Booking source” label). */
-export function getBookedViaLabel(source: string | null | undefined): string {
-  if (source == null || source === '') return 'Booked via —';
+/** Phrase inside the edit-appointment booking pill (no separate "Booking source" label). */
+export function getBookedViaLabel(source: string | null | undefined, t?: TFunction): string {
+  if (source == null || source === '') return t ? t("page.common.bookedVia.empty") : 'Booked via —';
+  if (t) {
+    const map: Record<string, string> = {
+      admin: t("page.common.bookedVia.admin"),
+      phone: t("page.common.bookedVia.phone"),
+      walk_in: t("page.common.bookedVia.walkIn"),
+      marketplace: t("page.common.bookedVia.marketplace"),
+    };
+    return map[source] ?? t("page.common.bookedVia.generic", { source: String(source).replace(/_/g, ' ') });
+  }
   const map: Record<string, string> = {
     admin: 'Booked via admin',
     phone: 'Booked via phone',
@@ -86,10 +111,25 @@ export function getBookingSourcePillParts(source: string | null | undefined): {
   };
 }
 
-export const getStatusBadge = (status: string): ReactElement => {
+export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
   const dot = (cls: string) => (
     <div className={cn('h-2 w-2 shrink-0 rounded-full', cls)} aria-hidden />
   );
+  const labels: Record<string, string> = t
+    ? {
+        confirmed: t("page.common.statuses.confirmed"),
+        completed: t("page.common.statuses.completed"),
+        no_show: t("page.common.statuses.noShow"),
+        pending: t("page.common.statuses.pending"),
+        cancelled: t("page.common.statuses.cancelled"),
+      }
+    : {
+        confirmed: 'Confirmed',
+        completed: 'Completed',
+        no_show: 'No-show',
+        pending: 'Pending',
+        cancelled: 'Cancelled',
+      };
   switch (status) {
     case 'confirmed':
       return (
@@ -100,7 +140,7 @@ export const getStatusBadge = (status: string): ReactElement => {
           )}
         >
           {dot('bg-blue-500')}
-          Confirmed
+          {labels.confirmed}
         </Badge>
       );
     case 'completed':
@@ -112,7 +152,7 @@ export const getStatusBadge = (status: string): ReactElement => {
           )}
         >
           {dot('bg-green-500')}
-          Completed
+          {labels.completed}
         </Badge>
       );
     case 'no_show':
@@ -124,7 +164,7 @@ export const getStatusBadge = (status: string): ReactElement => {
           )}
         >
           {dot('bg-red-500')}
-          No-show
+          {labels.no_show}
         </Badge>
       );
     case 'pending':
@@ -136,7 +176,7 @@ export const getStatusBadge = (status: string): ReactElement => {
           )}
         >
           {dot('bg-orange-500')}
-          Pending
+          {labels.pending}
         </Badge>
       );
     case 'cancelled':
@@ -148,7 +188,7 @@ export const getStatusBadge = (status: string): ReactElement => {
           )}
         >
           {dot('bg-destructive')}
-          Cancelled
+          {labels.cancelled}
         </Badge>
       );
     default:
@@ -174,7 +214,7 @@ export const findItemByKey = (list: Array<any>, key: string, value: string | num
 export const formatTime = (isoDate: string, timezone?: string): string => {
     const date = new Date(isoDate);
     const hour12 = calendarPreferences.getTimeFormat() === '12h';
-    return date.toLocaleTimeString('en-US', {
+    return date.toLocaleTimeString(getCalendarLocale(), {
         hour: 'numeric',
         minute: '2-digit',
         hour12,
@@ -208,7 +248,17 @@ const STATUS_OVERVIEW: Record<string, string> = {
     pending: 'Pending',
 };
 
-export function getStatusOverviewLabel(status: string): string {
+export function getStatusOverviewLabel(status: string, t?: TFunction): string {
+    if (t) {
+        const map: Record<string, string> = {
+            confirmed: t("page.common.statuses.confirmed"),
+            completed: t("page.common.statuses.completed"),
+            cancelled: t("page.common.statuses.cancelled"),
+            no_show: t("page.common.statuses.noShow"),
+            pending: t("page.common.statuses.pending"),
+        };
+        return map[status] ?? status.replace(/_/g, ' ');
+    }
     return STATUS_OVERVIEW[status] ?? status.replace(/_/g, ' ');
 }
 
@@ -234,7 +284,7 @@ export const formatSlotTime = (slot: string): string => {
     const d = new Date();
     d.setHours(h, m, 0, 0);
     const hour12 = calendarPreferences.getTimeFormat() === '12h';
-    return d.toLocaleTimeString('en-US', {
+    return d.toLocaleTimeString(getCalendarLocale(), {
         hour: 'numeric',
         minute: '2-digit',
         hour12,
@@ -245,12 +295,12 @@ export const formatSlotTime = (slot: string): string => {
  * Resolve staff user IDs to display names using the location staff list.
  * Returns "Unassigned" if no staff assigned.
  */
-export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: CalendarStaffMember[]): string => {
-    if (staffUserIds.length === 0) return 'Unassigned';
+export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: CalendarStaffMember[], t?: TFunction): string => {
+    if (staffUserIds.length === 0) return t ? t("page.common.unassigned") : 'Unassigned';
 
     const names = staffUserIds.map(id => {
         const staff = locationStaff.find(s => s.id === id);
-        return staff ? `${staff.firstName} ${staff.lastName}` : `Staff #${id}`;
+        return staff ? `${staff.firstName} ${staff.lastName}` : (t ? t("page.common.staffId", { id }) : `Staff #${id}`);
     });
 
     return names.join(', ');
@@ -262,11 +312,12 @@ export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: Cale
  */
 export const getStaffDisplayNameOrUnassigned = (
     staffUserId: number | null,
-    locationStaff: CalendarStaffMember[]
+    locationStaff: CalendarStaffMember[],
+    t?: TFunction,
 ): string => {
-    if (staffUserId == null) return 'Unassigned';
+    if (staffUserId == null) return t ? t("page.common.unassigned") : 'Unassigned';
     const staff = locationStaff.find(s => s.id === staffUserId);
-    return staff ? `${staff.firstName} ${staff.lastName}` : 'Unknown';
+    return staff ? `${staff.firstName} ${staff.lastName}` : (t ? t("page.common.unknown") : 'Unknown');
 };
 
 /**
