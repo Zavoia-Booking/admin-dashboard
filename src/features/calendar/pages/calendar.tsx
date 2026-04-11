@@ -36,6 +36,8 @@ import { CalendarSidebar } from "../components/CalendarSidebar.tsx";
 import { CalendarHeader } from "../components/CalendarHeader.tsx";
 import { CalendarSettingsSheet } from "../components/CalendarSettingsSheet.tsx";
 import { Card } from "../../../shared/components/ui/card.tsx";
+import { useIsMobile } from "../../../shared/hooks/use-mobile.ts";
+import { MobileCalendarLayout } from "../components/mobile/MobileCalendarLayout.tsx";
 
 const Calendar = () => {
   const dispatch = useDispatch();
@@ -51,6 +53,7 @@ const Calendar = () => {
   const dayFilters = useSelector(getDayFilters);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     // Apply saved display preferences without triggering view-mode saga (avoids duplicate week/day/summary fetch when location selection runs next).
@@ -110,6 +113,7 @@ const Calendar = () => {
     dispatch(listLocationsAction.request());
   }, [dispatch]);
 
+
   /** Single-staff locations: preselect that member (no "all staff" UX); keep Redux/day filters aligned. */
   useEffect(() => {
     if (locationStaff.length !== 1) return;
@@ -164,31 +168,37 @@ const Calendar = () => {
   },[dispatch])
 
   return (
-    <AppLayout contentClassName="max-w-[2000px]">
+    <AppLayout contentClassName="max-w-[2000px]" noPadding={isMobile}>
       <BusinessSetupGate>
         <>
-          <div className="flex min-h-[calc(100vh-64px)] items-start">
-            {/* ─── Left Sidebar ─── */}
-            <CalendarSidebar />
+          {isMobile ? (
+            /* ─── Mobile Layout ─── */
+            <MobileCalendarLayout onOpenSettings={() => setSettingsOpen(true)} />
+          ) : (
+            /* ─── Desktop Layout ─── */
+            <div className="flex min-h-[calc(100vh-64px)] items-start">
+              {/* ─── Left Sidebar ─── */}
+              <CalendarSidebar />
 
-            {/* ─── Main Content ─── */}
-            <div className="flex-1 flex flex-col min-w-0 max-h-[calc(100dvh-34px)] bg-muted/10 dark:bg-transparent transition-[width,flex] duration-200 ease-linear">
-              <div className="p-0 md:p-4 lg:p-6 !pl-4 !pt-0 !pb-0 flex flex-col flex-1 min-h-0">
-                <Card className="flex flex-col !gap-2 border-none pt-0.5 shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl flex-1 min-h-0">
-                  {/* Top header bar */}
-                  <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
+              {/* ─── Main Content ─── */}
+              <div className="flex-1 flex flex-col min-w-0 max-h-[calc(100dvh-34px)] bg-muted/10 dark:bg-transparent transition-[width,flex] duration-200 ease-linear">
+                <div className="p-0 md:p-4 lg:p-6 !pl-4 !pt-0 !pb-0 flex flex-col flex-1 min-h-0">
+                  <Card className="flex flex-col !gap-2 border-none pt-0.5 shadow-none md:border md:shadow-sm bg-white dark:bg-surface rounded-none md:rounded-xl flex-1 min-h-0">
+                    {/* Top header bar */}
+                    <CalendarHeader onOpenSettings={() => setSettingsOpen(true)} />
 
-                  {/* Content area — single scroll container for all views */}
-                  <div data-calendar-scroll className="relative flex-1 min-h-0 overflow-auto">
-                    {/* Month view uses summary grid; Day & Week views use the time grid */}
-                    <AppointmentGrid viewMode={viewMode} />
-                  </div>
-                </Card>
+                    {/* Content area — single scroll container for all views */}
+                    <div data-calendar-scroll className="relative flex-1 min-h-0 overflow-auto">
+                      {/* Month view uses summary grid; Day & Week views use the time grid */}
+                      <AppointmentGrid viewMode={viewMode} />
+                    </div>
+                  </Card>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* ─── Drawers / Sliders (portaled) ─── */}
+          {/* ─── Drawers / Sliders (portaled, shared between mobile & desktop) ─── */}
           <AddAppointmentSlider
             isOpen={addFormOpen}
             onClose={() => handleCloseAddForm()}

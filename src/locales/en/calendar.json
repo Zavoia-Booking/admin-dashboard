@@ -217,6 +217,7 @@
         "onBlockCreate": "This time overlaps with blocked time. Are you sure you want to create this appointment?",
         "reminderNote": "Reminders are not sent to clients between 22:00 and 08:00 (business timezone).",
         "cancel": "Cancel",
+        "reasonLabel": "Reason (optional)",
         "reasonPlaceholder": "e.g. Customer request, Emergency"
       },
       "customer": {

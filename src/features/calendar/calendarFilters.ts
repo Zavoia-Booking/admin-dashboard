@@ -91,8 +91,8 @@ export function countActiveCalendarFilters(
     if (hasItems(dayFilters.bundleIds) || dayFilters.bundleId != null) n += 1;
     if (hasItems(dayFilters.statuses) || Boolean(dayFilters.status)) n += 1;
     if (hasItems(dayFilters.bookingSources)) n += 1;
-    if (dayFilters.customerId != null) n += 1;
-    if (Boolean((dayFilters.clientName ?? "").trim())) n += 1;
+    // customerId / clientName excluded — customer search is a separate control
+    // (sidebar picker on desktop, search overlay on mobile), not part of header filters.
     if (hasItems(dayFilters.categoryIds)) n += 1;
     return n;
 }

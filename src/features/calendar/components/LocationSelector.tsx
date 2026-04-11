@@ -25,7 +25,14 @@ const STORAGE_KEY = "zavoia_calendar_selected_location";
  * 3. On change, persists to localStorage and dispatches setSelectedLocationAction
  *    which triggers the saga cascade (context → summary → day data).
  */
-export const LocationSelector: FC = () => {
+interface LocationSelectorProps {
+    /** Override border-radius class for the closed state button. */
+    closedClassName?: string;
+    /** Mobile mode — uses border-strong always, no hover states. */
+    mobile?: boolean;
+}
+
+export const LocationSelector: FC<LocationSelectorProps> = ({ closedClassName, mobile }) => {
     const { t } = useTranslation('calendar');
     const dispatch = useDispatch();
     const locations: Array<LocationType> = useSelector(getAllLocationsSelector);
@@ -124,7 +131,12 @@ export const LocationSelector: FC = () => {
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     showListContainer
                         ? "!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong"
-                        : "!rounded-full border border-border hover:border-border-strong dark:border-border dark:hover:border-border-strong",
+                        : cn(
+                            mobile
+                                ? "border border-border-strong dark:border-border-strong"
+                                : "border border-border hover:border-border-strong dark:border-border dark:hover:border-border-strong",
+                            closedClassName ?? "!rounded-full",
+                        ),
                 )}
             >
                 <MapPin className={cn("h-4 w-4 shrink-0 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
@@ -162,6 +174,7 @@ export const LocationSelector: FC = () => {
                                                 "flex cursor-pointer items-center gap-2 p-3",
                                                 isSelected && "bg-muted/50",
                                                 index === lastIdx && "rounded-b-[18px]",
+                                                mobile && "data-[selected=true]:bg-transparent",
                                             )}
                                         >
                                             <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>

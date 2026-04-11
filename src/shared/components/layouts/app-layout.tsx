@@ -21,9 +21,10 @@ interface AppLayoutProps {
    * viewport.
    */
   tabbedPage?: boolean;
+  noPadding?: boolean;
 }
 
-export function AppLayout({ children, contentClassName, headerRightContent, tabbedPage }: AppLayoutProps) {
+export function AppLayout({ children, contentClassName, headerRightContent, noPadding, tabbedPage }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
 
@@ -49,7 +50,7 @@ export function AppLayout({ children, contentClassName, headerRightContent, tabb
                 <Breadcrumbs items={breadcrumbs} rightContent={headerRightContent} />
               </div>
               {!tabbedPage && <LimitedAccessBanner />}
-              <div className="relative px-2 py-4 md:px-4">
+              <div className={noPadding ? '' : 'px-2 py-4 md:px-4'}>
                 {children}
               </div>
             </div>

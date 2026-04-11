@@ -1,0 +1,219 @@
+/* ── Dropdown / Popover spring ── */
+
+@keyframes mobile-popover-spring-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  40% {
+    opacity: 1;
+  }
+  75% {
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes mobile-popover-spring-out {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+.mobile-popover-spring {
+  transform-origin: var(--radix-popover-content-transform-origin, var(--radix-dropdown-menu-content-transform-origin, top right));
+}
+
+.mobile-popover-spring[data-state="open"] {
+  animation: mobile-popover-spring-in 180ms cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.mobile-popover-spring[data-state="closed"] {
+  animation: mobile-popover-spring-out 140ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+/* Stagger items inside the dropdown */
+.mobile-popover-spring [role="menuitem"] {
+  opacity: 0;
+  animation: vm-item-in 140ms cubic-bezier(0.175, 0.885, 0.32, 1.2) forwards;
+}
+.mobile-popover-spring [role="menuitem"]:nth-child(1) { animation-delay: 0ms; }
+.mobile-popover-spring [role="menuitem"]:nth-child(2) { animation-delay: 25ms; }
+.mobile-popover-spring [role="menuitem"]:nth-child(3) { animation-delay: 50ms; }
+.mobile-popover-spring [role="menuitem"]:nth-child(4) { animation-delay: 75ms; }
+.mobile-popover-spring [role="menuitem"]:nth-child(5) { animation-delay: 100ms; }
+.mobile-popover-spring [role="menuitem"]:nth-child(6) { animation-delay: 125ms; }
+.mobile-popover-spring [role="menuitem"]:nth-child(7) { animation-delay: 150ms; }
+
+/* ═══════════════════════════════════════════════════
+ * View mode / Plus menu morph
+ *
+ * Unified timing system (Apple HIG motion-consistency):
+ *   Enter:  260ms  cubic-bezier(0.32, 0.72, 0, 1)   — fluid deceleration with subtle overshoot
+ *   Exit:   160ms  cubic-bezier(0.32, 0, 0.67, 0)    — 62% of enter, quick ease-in
+ *   Stagger: 30ms per item
+ *
+ * Rules applied:
+ *   spring-physics — subtle overshoot (1.015), no visible bounce
+ *   exit-faster-than-enter — 160/260 = 62%
+ *   easing — ease-out for enter, ease-in for exit
+ *   fade-crossfade — opacity completes before transform settles
+ *   opacity-threshold — never linger below 0.2
+ * ═══════════════════════════════════════════════════ */
+
+/* Icons row — crossfade out/in */
+.view-mode-icons-exit {
+  overflow: hidden;
+  animation: vm-icons-out 80ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+.view-mode-icons-enter {
+  overflow: hidden;
+  opacity: 0;
+  height: 32px;
+  animation: vm-icons-in 160ms cubic-bezier(0.32, 0.72, 0, 1) 40ms forwards;
+}
+
+@keyframes vm-icons-out {
+  0%   { opacity: 1; height: 32px; }
+  60%  { opacity: 0; }
+  100% { opacity: 0; height: 0; }
+}
+
+@keyframes vm-icons-in {
+  0%   { opacity: 0; height: 0; }
+  40%  { height: 32px; }
+  100% { opacity: 1; height: 32px; }
+}
+
+/* List reveal */
+.view-mode-list-enter {
+  transform-origin: top center;
+  animation: vm-list-in 260ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.view-mode-list-exit {
+  transform-origin: top center;
+  animation: vm-list-out 160ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+@keyframes vm-list-in {
+  0% {
+    opacity: 0;
+    max-height: 0;
+    transform: scaleY(0);
+  }
+  25% {
+    opacity: 1;
+  }
+  70% {
+    max-height: 300px;
+    transform: scaleY(1.015);
+  }
+  100% {
+    opacity: 1;
+    max-height: 300px;
+    transform: scaleY(1);
+  }
+}
+
+@keyframes vm-list-out {
+  0% {
+    opacity: 1;
+    max-height: 300px;
+    transform: scaleY(1);
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    transform: scaleY(0);
+  }
+}
+
+/* Item stagger */
+@keyframes vm-item-in {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  50% {
+    opacity: 1;
+  }
+  80% {
+    transform: translateY(-0.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.view-mode-item-stagger {
+  opacity: 0;
+  animation: vm-item-in 200ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Container width morph */
+.mobile-morph-container {
+  will-change: width;
+}
+
+.mobile-morph-expanded {
+  animation: morph-width-expand 260ms cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.mobile-morph-collapsed {
+  animation: morph-width-collapse 160ms cubic-bezier(0.32, 0, 0.67, 0) forwards;
+}
+
+@keyframes morph-width-expand {
+  0% {
+    width: var(--morph-collapsed-width, 132px);
+  }
+  70% {
+    width: calc(var(--morph-expanded-width, 180px) + 2px);
+  }
+  100% {
+    width: var(--morph-expanded-width, 180px);
+  }
+}
+
+@keyframes morph-width-collapse {
+  0% {
+    width: var(--morph-expanded-width, 180px);
+  }
+  100% {
+    width: var(--morph-collapsed-width, 132px);
+  }
+}
+
+/* Reduced motion (Apple HIG: reduced-motion) */
+@media (prefers-reduced-motion: reduce) {
+  .view-mode-list-enter,
+  .view-mode-list-exit,
+  .view-mode-icons-exit,
+  .view-mode-icons-enter,
+  .view-mode-item-stagger,
+  .mobile-morph-expanded,
+  .mobile-morph-collapsed,
+  .mobile-popover-spring[data-state="open"],
+  .mobile-popover-spring[data-state="closed"] {
+    animation: none !important;
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+}

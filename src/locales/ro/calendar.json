@@ -217,6 +217,7 @@
         "onBlockCreate": "Ora selectată se suprapune cu un interval blocat. Sigur vrei să creezi această programare?",
         "reminderNote": "Mementourile nu sunt trimise clienților între 22:00 și 08:00, în funcție de fusul orar al afacerii.",
         "cancel": "Anulează",
+        "reasonLabel": "Motiv (opțional)",
         "reasonPlaceholder": "ex. La cererea clientului, Urgență"
       },
       "customer": {
