@@ -294,7 +294,8 @@ const BillingAndSubscription = () => {
         window.location.href = pending.invoiceUrl;
       } else {
         // Fallback: open customer portal
-        dispatch(getCustomerPortalUrlAction.request());
+        const returnUrl = window.location.origin + '/settings?tab=billing';
+        dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
       }
       return;
     }
@@ -322,32 +323,6 @@ const BillingAndSubscription = () => {
       } finally {
         setRetryingPayment(false);
       }
-    }
-  };
-
-  const handleRetryExistingCard = async () => {
-    const pending = subscriptionSummary?.pendingPayment;
-    if (!pending?.clientSecret) return;
-
-    try {
-      setRetryingPayment(true);
-      const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-      if (!publishableKey) throw new Error('Stripe publishable key not configured');
-
-      const stripe = await loadStripe(publishableKey);
-      if (!stripe) throw new Error('Failed to load Stripe');
-
-      const { error } = await stripe.confirmCardPayment(pending.clientSecret);
-      if (error) {
-        toast.error(error.message || t('billing.toast.paymentFailed'));
-      } else {
-        toast.success(t('billing.toast.paymentConfirmed'));
-        dispatch(getSubscriptionSummaryAction.request());
-      }
-    } catch (err: any) {
-      toast.error(err?.message || t('billing.toast.paymentFailed'));
-    } finally {
-      setRetryingPayment(false);
     }
   };
 

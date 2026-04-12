@@ -11,8 +11,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../../shared/lib/utils";
 import type { DaySummary } from "../../../shared/types/calendar.ts";
 
-const DAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
-
 /** Appointment density under the day number (matches reference: dot / double / bar). */
 type DayMarker = "none" | "dot" | "double" | "triple" | "bar";
 
