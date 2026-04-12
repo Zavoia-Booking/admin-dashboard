@@ -40,6 +40,7 @@ const BillingAndSubscription = () => {
   const [isConfirming, setIsConfirming] = useState(false);
   const [retryingPayment, setRetryingPayment] = useState(false);
   const hasPendingPayment = !!subscriptionSummary?.pendingPayment;
+  const currencySymbol = subscriptionSummary?.currency === 'RON' ? 'lei' : '€';
   const [totalSeats, setTotalSeats] = useState<number>(0);
   const { ConfirmDialog, confirm } = useConfirmRadix();
   const navigate = useNavigate();
@@ -96,8 +97,8 @@ const BillingAndSubscription = () => {
     const confirmed = await confirm({
       title: t('billing.confirm.startSubscription'),
       content: totalSeats > 0
-        ? t('billing.confirm.proceedWithSeats', { count: totalSeats, amount: estimated.toFixed(2) })
-        : t('billing.confirm.proceedSubscribe', { amount: estimated.toFixed(2) }),
+        ? t('billing.confirm.proceedWithSeats', { count: totalSeats, amount: estimated.toFixed(2), currency: currencySymbol })
+        : t('billing.confirm.proceedSubscribe', { amount: estimated.toFixed(2), currency: currencySymbol }),
       confirmationText: t('billing.confirm.continue'),
       cancellationText: t('billing.confirm.cancel'),
     });
@@ -185,8 +186,8 @@ const BillingAndSubscription = () => {
       const confirmed = await confirm({
         title: t('billing.confirm.startSubscription'),
         content: totalSeats > 0
-          ? t('billing.confirm.proceedWithSeats', { count: totalSeats, amount: estimated.toFixed(2) })
-          : t('billing.confirm.proceedSubscribe', { amount: estimated.toFixed(2) }),
+          ? t('billing.confirm.proceedWithSeats', { count: totalSeats, amount: estimated.toFixed(2), currency: currencySymbol })
+          : t('billing.confirm.proceedSubscribe', { amount: estimated.toFixed(2), currency: currencySymbol }),
         confirmationText: t('billing.confirm.continue'),
         cancellationText: t('billing.confirm.cancel'),
       });
@@ -228,7 +229,7 @@ const BillingAndSubscription = () => {
       const confirmed = await confirm({
         title: isAdding ? t('billing.confirm.confirmSeatIncrease') : t('billing.confirm.confirmSeatDecrease'),
         content: isAdding
-          ? t('billing.confirm.addingSeatsContent', { count: delta, amount: additionalCost.toFixed(2) })
+          ? t('billing.confirm.addingSeatsContent', { count: delta, amount: additionalCost.toFixed(2), currency: currencySymbol })
           : t('billing.confirm.removingSeatsContent', { count: Math.abs(delta) }),
         confirmationText: isAdding ? t('billing.confirm.addSeats') : t('billing.confirm.removeSeats'),
         cancellationText: t('billing.confirm.cancel'),
@@ -421,11 +422,11 @@ const BillingAndSubscription = () => {
   const getTeamSeatsText = () => {
     if (currentUser?.entitlements?.status === 'trial') {
       const seats = subscriptionSummary?.currentTeamMembersCount || 0;
-      return `${seats} × ${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}€`;
+      return `${seats} × ${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)} ${currencySymbol}`;
     }
     // For active subscriptions, show paid seats in breakdown
     const seats = subscriptionSummary?.paidSeats || 0;
-    return `${seats} × ${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)}€`;
+    return `${seats} × ${(subscriptionSummary?.pricePerTeamMember || 0).toFixed(2)} ${currencySymbol}`;
   };
 
   const getTeamSeatsCost = () => {
@@ -679,18 +680,18 @@ const BillingAndSubscription = () => {
                 {subscriptionSummary && (
                   <div className="space-y-2 bg-muted/50 rounded-lg p-4">
                     <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">{t('billing.basePlan')}</span>
+                      <span className="text-muted-foreground">{subscriptionSummary.breakdown?.[0]?.description || t('billing.basePlan')}</span>
                       <span className="font-medium">
-                        {subscriptionSummary.basePlanPrice.toFixed(2)}€/month
+                        {subscriptionSummary.basePlanPrice.toFixed(2)} {currencySymbol}/month
                       </span>
                     </div>
 
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">
-                        {t('billing.teamSeats')} ({getTeamSeatsText()})
+                        {subscriptionSummary.breakdown?.[1]?.description || t('billing.teamSeats')} ({getTeamSeatsText()})
                       </span>
                       <span className="font-medium">
-                        {getTeamSeatsCost().toFixed(2)}€/month
+                        {getTeamSeatsCost().toFixed(2)} {currencySymbol}/month
                       </span>
                     </div>
 
@@ -699,7 +700,7 @@ const BillingAndSubscription = () => {
                     <div className="flex justify-between">
                       <span className="font-semibold">{t('billing.total')}</span>
                       <span className="text-xl font-bold text-primary">
-                        {getTotalCost().toFixed(2)}€/month
+                        {getTotalCost().toFixed(2)} {currencySymbol}/month
                       </span>
                     </div>
                   </div>
@@ -855,7 +856,7 @@ const BillingAndSubscription = () => {
                             </span>
                           </div>
                           <p className="text-xs text-foreground-2">
-                            {t('billing.additionalCharge', { count: delta, amount: additionalCost.toFixed(2) })}
+                            {t('billing.additionalCharge', { count: delta, amount: additionalCost.toFixed(2), currency: currencySymbol })}
                           </p>
                         </div>
                       );
