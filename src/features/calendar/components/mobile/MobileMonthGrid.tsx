@@ -10,7 +10,8 @@ import {
 } from "../../selectors";
 import { buildMonthCalendarGridCells, getTranslatedDayNames } from "../../utils";
 import { formatDateInTimezone } from "../../timezone";
-import { dayMarkerFromSummary, DayMarkerGlyph } from "../MiniMonthCalendar";
+import { DayMarkerGlyph } from "../MiniMonthCalendar";
+import { dayMarkerFromSummary } from "../dayMarker";
 
 interface MobileMonthGridProps {
   onDayTap: (day: Date) => void;

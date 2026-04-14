@@ -32,7 +32,8 @@ import type { SlimAppointment, CalendarBlockDto } from "../../../shared/types/ca
 import { MonthGridSkeleton } from "./MonthGridSkeleton.tsx";
 import { SlidersHorizontal } from "lucide-react";
 import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
-import { dayMarkerFromSummary, DayMarkerGlyph } from "./MiniMonthCalendar.tsx";
+import { DayMarkerGlyph } from "./MiniMonthCalendar.tsx";
+import { dayMarkerFromSummary } from "./dayMarker.ts";
 
 // ─────────────────────────────────────────────────────────────
 // Main component

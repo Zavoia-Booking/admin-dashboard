@@ -9,7 +9,8 @@ import {
 import { setSelectedDateAction, setDisplayedWeekAction } from "../../actions";
 import { getWeekStart, getWeekDays } from "../../utils";
 import { formatDateInTimezone, getCalendarLocale } from "../../timezone";
-import { dayMarkerFromSummary, DayMarkerGlyph } from "../MiniMonthCalendar";
+import { DayMarkerGlyph } from "../MiniMonthCalendar";
+import { dayMarkerFromSummary } from "../dayMarker";
 import { cn } from "../../../../shared/lib/utils";
 
 export interface MobileWeekStripHandle {
