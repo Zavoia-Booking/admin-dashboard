@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AddAppointmentSlider from '../components/AddAppointmentSlider';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
+import { CalendarCheck2 } from "lucide-react";
 import {
   toggleAddForm,
   toggleEditFormAction,
@@ -11,6 +13,9 @@ import {
   setStaffFilter,
   setDayFiltersAction,
   setSelectedLocationAction,
+  setSelectedDateAction,
+  setScrollToNow,
+  setDisplayedWeekAction,
 } from "../actions";
 import { getAppointmentDetailRequest } from "../api";
 import {
@@ -23,7 +28,11 @@ import {
   getStaffFilter,
   getDayFilters,
   getLocationTeamMembers,
+  getSelectedDate,
+  getDisplayedWeekStart,
 } from "../selectors.ts";
+import { getWeekStart } from "../utils.ts";
+import { NotificationBell } from "../../../shared/components/common/NotificationBell";
 import { AppointmentViewMode } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { dispatchSelectDateAndDayView } from "../selectDateAndDayViewDispatch.ts";
@@ -51,9 +60,53 @@ const Calendar = () => {
   const locationStaff = useSelector(getLocationStaff);
   const staffFilter = useSelector(getStaffFilter);
   const dayFilters = useSelector(getDayFilters);
+  const selectedDate = useSelector(getSelectedDate);
+  const displayedWeekStart = useSelector(getDisplayedWeekStart);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { t } = useTranslation("calendar");
+
+  /* ── "Today" chip for mobile breadcrumb header ── */
+  const isOnCurrentWeek = useMemo(() => {
+    const today = new Date();
+    const todayWeekStart = getWeekStart(today);
+    const currentWeekStart = displayedWeekStart ?? getWeekStart(selectedDate);
+    return (
+      todayWeekStart.getFullYear() === currentWeekStart.getFullYear() &&
+      todayWeekStart.getMonth() === currentWeekStart.getMonth() &&
+      todayWeekStart.getDate() === currentWeekStart.getDate()
+    );
+  }, [selectedDate, displayedWeekStart]);
+
+  const handleToday = useCallback(() => {
+    dispatch(setScrollToNow(true));
+    dispatch(setSelectedDateAction(new Date()));
+    dispatch(setDisplayedWeekAction(getWeekStart(new Date())));
+  }, [dispatch]);
+
+  const showTodayChip = isMobile && !isOnCurrentWeek && (
+    viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK
+  );
+
+  const mobileHeaderRight = isMobile ? (
+    <div className="flex items-center gap-1">
+      {showTodayChip && (
+        <button
+          type="button"
+          onClick={handleToday}
+          className="group inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium
+            text-foreground cursor-pointer transition-colors hover:bg-muted/50
+            outline-none focus-visible:ring-2 focus-visible:ring-ring/50
+            animate-in fade-in slide-in-from-right-2 duration-200"
+        >
+          <CalendarCheck2 className="h-3.5 w-3.5 text-primary" />
+          {t("page.header.today")}
+        </button>
+      )}
+      <NotificationBell variant="header" />
+    </div>
+  ) : undefined;
 
   useEffect(() => {
     // Apply saved display preferences without triggering view-mode saga (avoids duplicate week/day/summary fetch when location selection runs next).
@@ -168,7 +221,7 @@ const Calendar = () => {
   },[dispatch])
 
   return (
-    <AppLayout contentClassName="max-w-[2000px]" noPadding={isMobile}>
+    <AppLayout contentClassName="max-w-[2000px]" noPadding={isMobile} headerRightContent={mobileHeaderRight}>
       <BusinessSetupGate>
         <>
           {isMobile ? (

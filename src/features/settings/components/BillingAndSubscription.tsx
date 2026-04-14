@@ -305,8 +305,7 @@ const BillingAndSubscriptionInner = () => {
         window.location.href = pending.invoiceUrl;
       } else {
         // Fallback: open customer portal
-        const returnUrl = window.location.origin + '/account?tab=billing';
-        dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
+        dispatch(getCustomerPortalUrlAction.request({ returnUrl: window.location.href }));
       }
       return;
     }

@@ -4,10 +4,14 @@
 
 export const HOUR_HEIGHT = 128; // px per hour (legacy hour-based grid)
 export const GRID_HEIGHT_PER_HOUR = 160; // px per hour for 15-min slot grid (→ 40px per slot)
+/** Mobile timeline row height — smaller than desktop to fit more of the day on a phone screen. */
+export const MOBILE_GRID_HEIGHT_PER_HOUR = 80;
 export const GRID_START_HOUR = 6; // 6 AM
 export const GRID_END_HOUR = 22; // 10 PM
 export const GRID_HOURS = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) => GRID_START_HOUR + i);
 export const GUTTER_WIDTH = 60; // px - slightly wider for cleaner look
+/** Mobile time-axis gutter (narrower than desktop). */
+export const MOBILE_GUTTER_WIDTH = 44;
 
 /** When more than this many staff columns are visible, the grid becomes horizontally scrollable. */
 export const COLUMN_SCROLL_THRESHOLD = 6;

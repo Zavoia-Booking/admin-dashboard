@@ -45,6 +45,8 @@ import {
 import { getStatusFilterIndicatorDotClass } from "../colors.ts";
 import { getTranslatedStatusList } from "../utils.ts";
 import { CalendarFilterPillCheckmark } from "./CalendarFilterPillCheckmark.tsx";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
+import { MobileServiceBundlePicker } from "./mobile/MobileServiceBundlePicker";
 import "./addAppointmentSliderPopover.css";
 
 /** Translated status entries are computed inside the component via getTranslatedStatusList(t). */
@@ -343,6 +345,8 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
   const dispatch = useDispatch();
   const { t: servicesT } = useTranslation("services");
   const { t } = useTranslation("calendar");
+  const isMobile = useIsMobile();
+  const [mobilePickerOpen, setMobilePickerOpen] = useState(false);
   const statusFilterEntries = useMemo(
     () => getTranslatedStatusList(t).filter((s) => s.value !== "all"),
     [t],
@@ -574,22 +578,57 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
               </div>
               {serviceBundleSelectionPill}
             </div>
-            <CalendarServiceBundleMultiPicker
-              serviceOptions={serviceOptions}
-              bundleOptions={bundleOptions}
-              serviceIds={serviceIdsForPicker}
-              bundleIds={bundleIdsForPicker}
-              onApplyProductFilters={({ serviceIds: nextSvc, bundleIds: nextBnd }) => {
-                patchDay({
-                  ...dayFilters,
-                  serviceIds: nextSvc,
-                  bundleIds: nextBnd,
-                  serviceId: undefined,
-                  bundleId: undefined,
-                });
-              }}
-              disabled={servicesLoading}
-            />
+            {isMobile ? (
+              <>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setMobilePickerOpen(true)}
+                  disabled={servicesLoading}
+                  className="w-full justify-start h-10 font-normal"
+                >
+                  {serviceIdsForPicker.length + bundleIdsForPicker.length > 0
+                    ? t("page.filters.nSelected", {
+                        count: serviceIdsForPicker.length + bundleIdsForPicker.length,
+                      })
+                    : t("page.filters.searchServicesPlaceholder")}
+                </Button>
+                <MobileServiceBundlePicker
+                  open={mobilePickerOpen}
+                  onOpenChange={setMobilePickerOpen}
+                  serviceOptions={serviceOptions}
+                  bundleOptions={bundleOptions}
+                  serviceIds={serviceIdsForPicker}
+                  bundleIds={bundleIdsForPicker}
+                  onApply={({ serviceIds: nextSvc, bundleIds: nextBnd }) => {
+                    patchDay({
+                      ...dayFilters,
+                      serviceIds: nextSvc,
+                      bundleIds: nextBnd,
+                      serviceId: undefined,
+                      bundleId: undefined,
+                    });
+                  }}
+                />
+              </>
+            ) : (
+              <CalendarServiceBundleMultiPicker
+                serviceOptions={serviceOptions}
+                bundleOptions={bundleOptions}
+                serviceIds={serviceIdsForPicker}
+                bundleIds={bundleIdsForPicker}
+                onApplyProductFilters={({ serviceIds: nextSvc, bundleIds: nextBnd }) => {
+                  patchDay({
+                    ...dayFilters,
+                    serviceIds: nextSvc,
+                    bundleIds: nextBnd,
+                    serviceId: undefined,
+                    bundleId: undefined,
+                  });
+                }}
+                disabled={servicesLoading}
+              />
+            )}
           </div>
         </div>
       ) : null}

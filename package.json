@@ -17,6 +17,7 @@
     "ios:prod": "tsc -b && vite build --mode mobile-prod && npx cap sync ios"
   },
   "dependencies": {
+    "@capacitor-community/safe-area": "^7.0.0",
     "@capacitor/android": "^7.4.4",
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",

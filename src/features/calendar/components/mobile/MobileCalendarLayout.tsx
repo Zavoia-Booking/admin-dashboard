@@ -1,10 +1,14 @@
-import { type FC } from "react";
+import { type FC, useCallback, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { getSelectedLocationId, getViewModeSelector } from "../../selectors";
 import { MobileCalendarHeader } from "./MobileCalendarHeader";
-import { CalendarIcon } from "lucide-react";
+import { MobileWeekStrip, type MobileWeekStripHandle } from "./MobileWeekStrip";
+import { MobileViewRouter } from "./MobileViewRouter";
 import { AppointmentViewMode } from "../../types";
+
+
+const SWIPE_THRESHOLD = 50;
 
 interface MobileCalendarLayoutProps {
   onOpenSettings: () => void;
@@ -17,13 +21,43 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
   const selectedLocationId = useSelector(getSelectedLocationId);
   const viewMode = useSelector(getViewModeSelector);
 
+  const showWeekStrip =
+    viewMode === AppointmentViewMode.DAY ||
+    viewMode === AppointmentViewMode.WEEK;
+
+  const weekStripRef = useRef<MobileWeekStripHandle>(null);
+  const touchRef = useRef({ startX: 0, startY: 0 });
+
+  const handleContentTouchStart = useCallback((e: React.TouchEvent) => {
+    touchRef.current.startX = e.touches[0].clientX;
+    touchRef.current.startY = e.touches[0].clientY;
+  }, []);
+
+  const handleContentTouchEnd = useCallback((e: React.TouchEvent) => {
+    const dx = e.changedTouches[0].clientX - touchRef.current.startX;
+    const dy = e.changedTouches[0].clientY - touchRef.current.startY;
+    if (Math.abs(dx) > SWIPE_THRESHOLD && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      weekStripRef.current?.navigateWeek(dx < 0 ? 1 : -1);
+    }
+  }, []);
+
   return (
-    <div className="flex flex-col min-h-[calc(100vh-64px)] bg-white dark:bg-surface">
+    <div
+      className="flex flex-col h-[calc(100svh-136px)] bg-white dark:bg-surface"
+      style={{ overscrollBehaviorY: "contain" }}
+    >
       {/* Compact mobile header */}
       <MobileCalendarHeader onOpenSettings={onOpenSettings} />
 
-      {/* Content area */}
-      <div className="flex-1 overflow-auto px-1 py-2">
+      {/* Week day strip — visible in Day and Week modes */}
+      {selectedLocationId && showWeekStrip && <MobileWeekStrip ref={weekStripRef} />}
+
+      {/* Content area — horizontal swipe navigates weeks */}
+      <div
+        className="flex-1 flex flex-col overflow-auto"
+        onTouchStart={showWeekStrip ? handleContentTouchStart : undefined}
+        onTouchEnd={showWeekStrip ? handleContentTouchEnd : undefined}
+      >
         {!selectedLocationId ? (
           <div className="flex flex-col items-center justify-center h-64 px-6 text-center">
             <p className="text-sm text-muted-foreground">
@@ -31,20 +65,7 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
             </p>
           </div>
         ) : (
-          /* Placeholder — will be replaced by MobileViewRouter in Phase 3 */
-          <div className="flex flex-col items-center justify-center h-64 px-6 text-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted/50">
-              <CalendarIcon className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {viewMode === AppointmentViewMode.MONTH
-                ? "Month view"
-                : viewMode === AppointmentViewMode.WEEK
-                  ? "Week view"
-                  : "Day view"}{" "}
-              — mobile coming soon
-            </p>
-          </div>
+          <MobileViewRouter />
         )}
       </div>
     </div>

@@ -16,38 +16,15 @@ import {
 import type { CalendarBlockDto, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { deleteCalendarBlock, setBlockFormEditingAction, toggleBlockFormAction } from "../actions.ts";
 import { selectIsTeamMember, selectCurrentUserId } from "../../auth/selectors";
-import { formatTimeRange, formatDurationHuman } from "./utils.tsx";
 import { User, Building2, MapPin, Repeat2 } from "lucide-react";
 import { cn } from "../../../shared/lib/utils";
 import { StaffAvatarCluster } from "./SlimAppointmentCard.tsx";
-import {
-  getCalendarBlockReasonIcon,
-  getCalendarBlockReasonLabel,
-} from "./blockReasonMeta.ts";
+import { getBlockDisplayData } from "./blockDisplay.ts";
 import { BlockSummaryDialogShell, getBlockScopeLabel } from "./BlockSummaryPopoverPanel.tsx";
 
 /** Re-export for callers that used the old name (labels match CreateBlockDrawer). */
 export { getCalendarBlockReasonLabel as getBlockReasonLabel } from "./blockReasonMeta.ts";
 export { getBlockScopeLabel } from "./BlockSummaryPopoverPanel.tsx";
-
-/** Staff / location line (column aligned with appointment "who"). */
-function blockStaffColumnLabel(
-  scope: string,
-  staffName: string | null,
-  userId: number | null,
-  t: (key: string, opts?: Record<string, unknown>) => string,
-): string {
-  switch (scope) {
-    case "location":
-      return t("page.blocks.scope.entireLocation");
-    case "business":
-      return t("page.blocks.scope.allLocations");
-    case "staff":
-      return staffName ?? (userId != null ? t("page.common.staffId", { id: userId }) : t("page.common.unassigned"));
-    default:
-      return scope;
-  }
-}
 
 /**
  * Block list: reason | title + notes | time … | trailing (7 cols). Tracks from time match SlimAppointmentCard time→end.
@@ -76,45 +53,26 @@ export const BlockCard: FC<BlockCardProps> = ({ block, locationStaff, timezone }
   const [blockSummaryOpen, setBlockSummaryOpen] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const staffMember =
-    block.blockScope === "staff" && block.userId
-      ? locationStaff.find((s) => s.id === block.userId)
-      : null;
-  const staffName = staffMember ? `${staffMember.firstName} ${staffMember.lastName}` : null;
+  const {
+    reasonLabel,
+    ReasonIcon,
+    customTitle,
+    notesTrimmed,
+    hasTitleOrNotes,
+    timeDisplay,
+    durationText,
+    staffMember,
+    staffName,
+    scopeStaffLabel: staffColumnLabel,
+    scopeTierLabel: scopePlainLabel,
+  } = getBlockDisplayData(block, locationStaff, timezone, t);
 
   const canEditBlock =
     !isTeamMember ||
     (block.blockScope === "staff" && block.userId != null && block.userId === currentUserId);
   const canDeleteBlock = canEditBlock;
 
-  const timeDisplay = block.isAllDay ? t("page.blocks.allDay") : formatTimeRange(block.startsAt, block.endsAt, timezone);
-
-  const reasonLabel = getCalendarBlockReasonLabel(block.reason, t);
-  const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
-  const customTitle = block.title?.trim() ?? "";
   const scopeLabel = getBlockScopeLabel(block.blockScope, t);
-  const staffColumnLabel = blockStaffColumnLabel(block.blockScope, staffName, block.userId, t);
-
-  const scopePlainLabel =
-    block.blockScope === "location"
-      ? t("page.blocks.scope.locationWide")
-      : block.blockScope === "staff"
-        ? t("page.blocks.scope.staffMember")
-        : block.blockScope === "business"
-          ? t("page.blocks.scope.businessWide")
-          : block.blockScope;
-
-  const durationMinutes = block.isAllDay
-    ? null
-    : Math.max(
-      0,
-      Math.round(
-        (new Date(block.endsAt).getTime() - new Date(block.startsAt).getTime()) / 60000,
-      ),
-    );
-  const durationText = durationMinutes != null ? formatDurationHuman(durationMinutes) : null;
-  const notesTrimmed = block.notes?.trim() ?? "";
-  const hasTitleOrNotes = Boolean(customTitle || notesTrimmed);
 
   const handleEditBlock = useCallback(() => {
     dispatch(setBlockFormEditingAction(block));

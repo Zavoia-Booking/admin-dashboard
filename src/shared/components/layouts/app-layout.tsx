@@ -44,9 +44,12 @@ export function AppLayout({ children, contentClassName, headerRightContent, noPa
         <AppSidebar />
 
         <SidebarInset>
-          <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-20' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
+          <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
             <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
-              <div className="sticky top-0 z-30 md:hidden">
+              <div
+                className="sticky top-0 z-30 md:hidden bg-surface"
+                style={{ paddingTop: "env(safe-area-inset-top)" }}
+              >
                 <Breadcrumbs items={breadcrumbs} rightContent={headerRightContent} />
               </div>
               {!tabbedPage && <LimitedAccessBanner />}

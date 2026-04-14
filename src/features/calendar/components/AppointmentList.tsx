@@ -1,19 +1,9 @@
-import { type FC, useCallback, useMemo } from "react";
+import { type FC, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../../shared/components/ui/card.tsx";
-import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../shared/types/calendar.ts";
-import {
-  getDayAppointments,
-  getDayBlocks,
-  getDayDataLoading,
-  getLocationStaff,
-  getLocationServices,
-  getSelectedLocationId,
-  getEffectiveStaffFilterIds,
-  getHasActiveCalendarFilters,
-  getCalendarTimezone,
-} from "../selectors.ts";
+import type { SlimAppointment, Appointment } from "../../../shared/types/calendar.ts";
+import { getSelectedLocationId } from "../selectors.ts";
 import { toggleEditFormAction, toggleAddForm } from "../actions.ts";
 
 
@@ -22,18 +12,9 @@ import { AppointmentListSkeleton } from "./AppointmentListSkeleton.tsx";
 import { SlimAppointmentCard } from "./SlimAppointmentCard.tsx";
 import { BlockCard } from "./BlockCard.tsx";
 import { CalendarListCountPills } from "./CalendarListCountPills.tsx";
-import { buildCalendarColorMap } from "../colors.ts";
-import { calendarPreferences } from "../calendarPreferences.ts";
+import { useDayAppointmentList } from "../hooks/useDayAppointmentList.ts";
 import { SlidersHorizontal, Plus } from "lucide-react";
 import { EmptyState } from "../../../shared/components/common/EmptyState.tsx";
-
-// ─────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────
-
-type ListItem =
-  | { type: 'appointment'; data: SlimAppointment; groupSize?: number }
-  | { type: 'block'; data: CalendarBlockDto };
 
 // ─────────────────────────────────────────────────────────────
 // AppointmentList
@@ -43,14 +24,16 @@ export const AppointmentList: FC = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation("calendar");
   const selectedLocationId = useSelector(getSelectedLocationId);
-  const dayAppointments = useSelector(getDayAppointments);
-  const dayBlocks = useSelector(getDayBlocks);
-  const isDayLoading = useSelector(getDayDataLoading);
-  const locationStaff = useSelector(getLocationStaff);
-  const locationServices = useSelector(getLocationServices);
-  const staffFilter = useSelector(getEffectiveStaffFilterIds);
-  const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
-  const timezone = useSelector(getCalendarTimezone);
+  const {
+    sortedItems,
+    appointmentColorMap,
+    locationStaff,
+    timezone,
+    isDayLoading,
+    hasActiveFilters,
+    apptCount,
+    blockCount,
+  } = useDayAppointmentList();
 
   const handleAppointmentClick = useCallback((appt: SlimAppointment) => {
     const placeholder: Appointment = {
@@ -65,63 +48,6 @@ export const AppointmentList: FC = () => {
     };
     dispatch(toggleEditFormAction({ open: true, item: placeholder }));
   }, [dispatch]);
-
-  /** Fallback when API omits groupSize (legacy). Prefer `SlimAppointment.groupSize` from POST /calendar/day. */
-  const groupSizeMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const a of dayAppointments) {
-      if (a.bookingGroupId) {
-        map.set(a.bookingGroupId, (map.get(a.bookingGroupId) ?? 0) + 1);
-      }
-    }
-    return map;
-  }, [dayAppointments]);
-
-  const visibleDayAppointments = useMemo(
-    () =>
-      staffFilter.length > 0
-        ? dayAppointments.filter((a) => {
-          if (a.isUnassigned || a.staffUserIds.length === 0) return false;
-          return a.staffUserIds.some((id) => staffFilter.includes(id));
-        })
-        : dayAppointments,
-    [dayAppointments, staffFilter],
-  );
-
-  const colorCodingPref = calendarPreferences.getColorCoding();
-  const listKnownColorKeys = useMemo(() => {
-    if (colorCodingPref === "staff")
-      return staffFilter.length > 0 ? staffFilter : locationStaff.map(s => s.id);
-    if (colorCodingPref === "service")
-      return locationServices.map(s => s.serviceName);
-    return undefined;
-  }, [colorCodingPref, staffFilter, locationStaff, locationServices]);
-  const appointmentColorMap = useMemo(
-    () => buildCalendarColorMap(visibleDayAppointments, colorCodingPref, listKnownColorKeys),
-    [visibleDayAppointments, colorCodingPref, listKnownColorKeys],
-  );
-
-  // Filter appointments by staff, then merge with blocks and sort chronologically
-  const sortedItems = useMemo((): ListItem[] => {
-    const apptItems: ListItem[] = visibleDayAppointments.map((a) => ({
-      type: 'appointment',
-      data: a,
-      groupSize: a.bookingGroupId
-        ? (a.groupSize ?? groupSizeMap.get(a.bookingGroupId))
-        : undefined,
-    }));
-
-    const blockItems: ListItem[] = dayBlocks.map((b) => ({ type: 'block', data: b }));
-
-    return [...apptItems, ...blockItems].sort((x, y) => {
-      const xStart = x.type === 'appointment' ? x.data.scheduledAt : x.data.startsAt;
-      const yStart = y.type === 'appointment' ? y.data.scheduledAt : y.data.startsAt;
-      return new Date(xStart).getTime() - new Date(yStart).getTime();
-    });
-  }, [visibleDayAppointments, dayBlocks, groupSizeMap]);
-
-  const apptCount = sortedItems.filter((i) => i.type === 'appointment').length;
-  const blockCount = sortedItems.filter((i) => i.type === 'block').length;
 
   if (!selectedLocationId) {
     return (

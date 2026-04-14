@@ -463,11 +463,15 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
 
   useEffect(() => {
     if (isOpen) {
+      // Reset everything a fresh session needs — this runs at the start of a new
+      // open, so any stale values from the previous session get overwritten before
+      // anything is painted.
       userChangedTimeRef.current = false;
       if (prefill?.appointmentId != null) {
         rescheduleAppointmentIdRef.current = prefill.appointmentId;
         setEditInitialTime(prefill?.time ?? '');
       } else {
+        rescheduleAppointmentIdRef.current = null;
         setEditInitialTime('');
       }
       setForm({
@@ -508,21 +512,22 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       } else {
         setEditSnapshot(null);
       }
-      setError(null);
-      setSlotFetchError(null);
-    } else {
-      userChangedTimeRef.current = false;
-      rescheduleAppointmentIdRef.current = null;
-      setEditInitialTime('');
-      setEditSnapshot(null);
-      setIsManageServicesSheetOpen(false);
-      setIsManageBundlesSheetOpen(false);
-      setAppointmentItems([]);
+      // Wipe slot state here rather than on close — the slot-fetching effect will
+      // refill it based on the new prefill's date/service immediately after.
       setAvailableSlots(null);
       setOutOfHoursSlots([]);
       setNextAvailableDate(null);
       setAvailableSlotsLoading(false);
+      setError(null);
       setSlotFetchError(null);
+    } else {
+      // Close branch intentionally minimal: anything visible in the panel body must
+      // stay painted during Vaul's close animation, otherwise the user sees the form
+      // wipe itself mid-slide. Only reset state that (a) isn't visible in the panel
+      // (refs, nested modal-sheet flags) or (b) would leak into the next session if
+      // left hanging (error banners, sheets).
+      setIsManageServicesSheetOpen(false);
+      setIsManageBundlesSheetOpen(false);
     }
   }, [isOpen, prefill, selectedLocationId]);
 
@@ -567,7 +572,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     setOutOfHoursSlots([]);
     setNextAvailableDate(null);
     const slotRequestId = `${Date.now()}-${selectedLocationId}`;
-    console.log('[SLOT] fetch:request', { locationId: selectedLocationId, date: dateStr, items: JSON.parse(JSON.stringify(slotFetchItems)) });
     getAvailableSlotsRequest({
       locationId: selectedLocationId,
       date: dateStr,
@@ -576,7 +580,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     }, controller.signal)
       .then((res) => {
         if (controller.signal.aborted) return;
-        console.log('[SLOT] fetch:response', { availableSlots: res.availableSlots, outOfHoursSlots: res.outOfHoursSlots });
         setAvailableSlots(res.availableSlots ?? []);
         setOutOfHoursSlots(res.outOfHoursSlots ?? []);
         setNextAvailableDate(res.nextAvailableDate ?? null);

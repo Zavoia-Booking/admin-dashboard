@@ -76,14 +76,44 @@ if [ ! -d "$WINDOWS_ANDROID_PATH" ] || [ "$FULL_SYNC" == true ]; then
     echo "   Copying Capacitor Android library..."
     mkdir -p "$WINDOWS_ANDROID_PATH/capacitor-android"
     cp -r node_modules/@capacitor/android/capacitor/* "$WINDOWS_ANDROID_PATH/capacitor-android/"
-    
-    # Fix the capacitor.settings.gradle to use local path
+
+    # Build capacitor.settings.gradle dynamically — include every installed Capacitor plugin
     echo "   Fixing Capacitor paths..."
-    cat > "$WINDOWS_ANDROID_PATH/capacitor.settings.gradle" << 'EOF'
+    SETTINGS_FILE="$WINDOWS_ANDROID_PATH/capacitor.settings.gradle"
+    cat > "$SETTINGS_FILE" << 'EOF'
 // Modified for Windows standalone build
 include ':capacitor-android'
 project(':capacitor-android').projectDir = new File('./capacitor-android')
 EOF
+
+    # Copy each Capacitor plugin that has an android/ folder.
+    # Covers both @capacitor/* (core plugins) and @capacitor-community/* (community plugins).
+    for SCOPE in capacitor capacitor-community; do
+        for PLUGIN_DIR in node_modules/@$SCOPE/*/; do
+            # Skip if glob didn't match anything
+            [ -d "$PLUGIN_DIR" ] || continue
+            PLUGIN_NAME=$(basename "$PLUGIN_DIR")
+            # Skip @capacitor core packages (android, cli, core) — these aren't plugins
+            if [ "$SCOPE" == "capacitor" ]; then
+                if [ "$PLUGIN_NAME" == "android" ] || [ "$PLUGIN_NAME" == "cli" ] || [ "$PLUGIN_NAME" == "core" ]; then
+                    continue
+                fi
+            fi
+            # Plugin must have an android/ subfolder
+            if [ -d "$PLUGIN_DIR/android" ]; then
+                # Gradle module naming: @capacitor/foo → capacitor-foo, @capacitor-community/foo → capacitor-community-foo
+                MODULE_NAME="$SCOPE-$PLUGIN_NAME"
+                echo "   Copying plugin: @$SCOPE/$PLUGIN_NAME → $MODULE_NAME"
+                mkdir -p "$WINDOWS_ANDROID_PATH/$MODULE_NAME"
+                cp -r "$PLUGIN_DIR/android/"* "$WINDOWS_ANDROID_PATH/$MODULE_NAME/"
+                cat >> "$SETTINGS_FILE" << EOF
+
+include ':$MODULE_NAME'
+project(':$MODULE_NAME').projectDir = new File('./$MODULE_NAME')
+EOF
+            fi
+        done
+    done
     
     echo ""
     echo -e "${GREEN}✅ Full sync complete!${NC}"
