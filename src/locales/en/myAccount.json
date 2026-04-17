@@ -1,13 +1,14 @@
 {
-  "tabs": {
-    "profile": "Profile",
-    "profileMobile": "Profile",
-    "advanced": "Advanced Settings",
-    "advancedMobile": "Advanced"
+  "page": {
+    "title": "Account"
   },
   "buttons": {
     "saving": "Saving",
     "saveChanges": "Save Changes"
+  },
+  "advanced": {
+    "title": "Advanced",
+    "description": "Manage organisation membership and account lifecycle"
   },
   "profile": {
     "personalInfo": {

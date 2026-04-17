@@ -9,7 +9,7 @@
     "customers": "Clienți",
     "marketplace": "Piață",
     "support": "Suport",
-    "settings": "Setări",
+    "account": "Cont",
     "home": "Acasă",
     "detail": "Detalii"
   },
@@ -23,13 +23,13 @@
     "customers": "Clienți",
     "marketplace": "Piață",
     "support": "Suport",
-    "settings": "Setări",
+    "account": "Cont",
     "logOut": "Deconectare",
     "teamMember": {
       "assignments": "Atribuiri",
       "customers": "Clienți",
       "profile": "Marketplace",
-      "settings": "Setări"
+      "account": "Cont"
     },
     "subItems": {
       "assignments": {
@@ -42,10 +42,9 @@
         "bundles": "Pachete",
         "promotions": "Promoții"
       },
-      "settings": {
+      "account": {
         "profile": "Profil",
-        "billing": "Facturare și abonament",
-        "advanced": "Setări avansate"
+        "billing": "Facturare și abonament"
       },
       "marketplace": {
         "profile": "Profil",
@@ -58,10 +57,6 @@
         "profile": "Profil",
         "portfolio": "Portofoliu",
         "reviews": "Recenzii"
-      },
-      "mySettings": {
-        "profile": "Profil",
-        "advanced": "Setări avansate"
       }
     }
   },

@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from '../ui/sidebar';
 import { useIsMobile } from '../../hooks/use-mobile';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
+import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -12,9 +13,17 @@ interface AppLayoutProps {
   contentClassName?: string;
   /** Optional content to render on the right side of the mobile breadcrumb header (replaces notification bell) */
   headerRightContent?: React.ReactNode;
+  /**
+   * Set on pages whose children render a sticky-header tab component
+   * (ResponsiveTabs with stickyHeader). When true, AppLayout does not render
+   * the LimitedAccessBanner — each tab is expected to render its own banner
+   * at the top of its content so it sits under the tab header on every
+   * viewport.
+   */
+  tabbedPage?: boolean;
 }
 
-export function AppLayout({ children, contentClassName, headerRightContent }: AppLayoutProps) {
+export function AppLayout({ children, contentClassName, headerRightContent, tabbedPage }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
 
@@ -39,7 +48,8 @@ export function AppLayout({ children, contentClassName, headerRightContent }: Ap
               <div className="sticky top-0 z-30 md:hidden">
                 <Breadcrumbs items={breadcrumbs} rightContent={headerRightContent} />
               </div>
-              <div className="px-2 py-4 md:px-4">
+              {!tabbedPage && <LimitedAccessBanner />}
+              <div className="relative px-2 py-4 md:px-4">
                 {children}
               </div>
             </div>

@@ -159,6 +159,7 @@ export const WeekAppointmentList: FC = () => {
           label: t("page.appointments.addEvent"),
           icon: Plus,
           onClick: () => dispatch(toggleAddForm({ open: true })),
+          gated: true,
         }}
       />
     );

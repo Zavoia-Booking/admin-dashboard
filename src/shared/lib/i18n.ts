@@ -1,6 +1,17 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import config from '../../app/config/env';
+
+// Mobile overlay bundles — only loaded when running in a Capacitor native container.
+// Each overlay contains only the keys that need to change on native; missing keys
+// fall through to the base namespace via i18next's default resource resolution.
+import enSettingsMobile from '../../locales/en/settings.mobile.json';
+import roSettingsMobile from '../../locales/ro/settings.mobile.json';
+import enTeamMembersMobile from '../../locales/en/teamMembers.mobile.json';
+import roTeamMembersMobile from '../../locales/ro/teamMembers.mobile.json';
+import enNavigationMobile from '../../locales/en/navigation.mobile.json';
+import roNavigationMobile from '../../locales/ro/navigation.mobile.json';
 
 // Import translation files
 import enServices from '../../locales/en/services.json';
@@ -35,8 +46,8 @@ import enSettings from '../../locales/en/settings.json';
 import roSettings from '../../locales/ro/settings.json';
 import enDashboard from '../../locales/en/dashboard.json';
 import roDashboard from '../../locales/ro/dashboard.json';
-import enMySettings from '../../locales/en/mySettings.json';
-import roMySettings from '../../locales/ro/mySettings.json';
+import enMyAccount from '../../locales/en/myAccount.json';
+import roMyAccount from '../../locales/ro/myAccount.json';
 import enMyProfile from '../../locales/en/myProfile.json';
 import roMyProfile from '../../locales/ro/myProfile.json';
 import enAuth from '../../locales/en/auth.json';
@@ -62,7 +73,7 @@ const resources = {
     support: enSupport,
     settings: enSettings,
     dashboard: enDashboard,
-    mySettings: enMySettings,
+    myAccount: enMyAccount,
     myProfile: enMyProfile,
     auth: enAuth,
     calendar: enCalendar,
@@ -84,7 +95,7 @@ const resources = {
     support: roSupport,
     settings: roSettings,
     dashboard: roDashboard,
-    mySettings: roMySettings,
+    myAccount: roMyAccount,
     myProfile: roMyProfile,
     auth: roAuth,
     calendar: roCalendar,
@@ -108,5 +119,29 @@ i18n
       caches: ['localStorage'],
     },
   });
+
+// On native builds, merge mobile overlays on top of the base namespaces.
+// Keys present in the overlay replace the base value; everything else is preserved.
+// This keeps billing/subscription/payment wording off iOS & Android to comply with
+// Apple Guidelines 3.1.1 / 3.1.3(a) and Google Play equivalents.
+if (config.IS_NATIVE) {
+  const overlays: Record<string, Record<string, object>> = {
+    en: {
+      settings: enSettingsMobile,
+      teamMembers: enTeamMembersMobile,
+      navigation: enNavigationMobile,
+    },
+    ro: {
+      settings: roSettingsMobile,
+      teamMembers: roTeamMembersMobile,
+      navigation: roNavigationMobile,
+    },
+  };
+  for (const [lng, nsMap] of Object.entries(overlays)) {
+    for (const [ns, bundle] of Object.entries(nsMap)) {
+      i18n.addResourceBundle(lng, ns, bundle, /* deep */ true, /* overwrite */ true);
+    }
+  }
+}
 
 export default i18n;

@@ -3,9 +3,13 @@
     "profile": "Profil",
     "profileMobile": "Profil",
     "billing": "Facturare și Abonament",
-    "billingMobile": "Facturare",
-    "advanced": "Setări Avansate",
-    "advancedMobile": "Avansate"
+    "billingMobile": "Facturare"
+  },
+  "accountWebInfo": {
+    "title": "Gestionează-ți contul online",
+    "description": "Unele setări ale contului se administrează pe site-ul nostru. Conectează-te dintr-un browser pentru a continua.",
+    "openWebsite": "Deschide în browser",
+    "backHome": "Înapoi la aplicație"
   },
   "buttons": {
     "saveChanges": "Salvează Modificările",
@@ -75,6 +79,10 @@
       "legal_terms": "Termeni și Condiții",
       "legal_privacy": "Politica de Confidențialitate",
       "legal_cookies": "Politica de Cookie-uri"
+    },
+    "advancedSettings": {
+      "title": "Setări Avansate",
+      "description": "Dezactivează sau șterge contul"
     },
     "toast": {
       "invalidImage": "Te rugăm selectează un fișier imagine valid (JPEG, PNG, WebP, SVG sau AVIF)",
@@ -248,37 +256,6 @@
     "subtitle": "Configurare Necesară",
     "message": "Înainte de a invita membri în echipă, de a crea servicii sau de a adăuga locații, te rugăm finalizează configurarea informațiilor afacerii tale.",
     "button": "Continuă Configurarea"
-  },
-  "subscriptionGate": {
-    "nonOwner": {
-      "title": "Serviciu Indisponibil",
-      "subtitle": "Acces Cont Restricționat",
-      "message": "Abonamentul afacerii tale este în prezent inactiv. Te rugăm contactează administratorul pentru a rezolva această problemă.",
-      "contactAdmin": "Dacă crezi că aceasta este o greșeală, te rugăm contactează-ți administratorul.",
-      "buttonSettings": "Mergi la Setări",
-      "buttonSupport": "Cere Ajutor"
-    },
-    "paymentIssue": {
-      "title": "Problemă de Plată",
-      "subtitle": "Plată în Reîncercare",
-      "message": "Metoda ta de plată este în reîncercare. Actualizează-ți informațiile de plată pentru a restabili accesul deplin.",
-      "button": "Actualizează Metoda de Plată"
-    },
-    "setupIncomplete": {
-      "title": "Configurare Incompletă",
-      "subtitle": "Abonament Neactivat",
-      "messageIncomplete": "Configurarea abonamentului tău este incompletă. Finalizează plata pentru a activa contul.",
-      "messageExpired": "Configurarea plății tale a expirat. Pornește un nou abonament pentru a activa contul.",
-      "buttonIncomplete": "Finalizează Configurarea",
-      "buttonExpired": "Pornește Nou Abonament"
-    },
-    "subscriptionRequired": {
-      "title": "Abonament Necesar",
-      "subtitle": "Acces Pagină Indisponibil",
-      "message": "Abonamentul tău nu este activ. Pentru a recupera accesul la datele afacerii tale, te rugăm gestionează abonamentul.",
-      "button": "Gestionează Abonamentul"
-    },
-    "ownerFooter": "Toate datele tale sunt în siguranță și vor fi restaurate odată ce vei reînnoi."
   },
   "infoPages": {
     "cancelRemovalSuccess": {

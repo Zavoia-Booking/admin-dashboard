@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
 import { Button } from '../../../../shared/components/ui/button';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../../shared/components/ui/responsive-tabs';
+import { LimitedAccessBanner } from '../../../../shared/components/common/subscription/LimitedAccessBanner';
 import ConfirmDialog from '../../../../shared/components/common/ConfirmDialog';
 import { ProfileTab, type ProfileTabRef } from '../components/ProfileTab';
 import { NoProfileYetView } from '../components/NoProfileYetView';
@@ -244,22 +245,35 @@ export default function MyProfilePage() {
       id: 'profile',
       label: t('tabs.profile'),
       content: (
-        <ProfileTab 
-          ref={profileTabRef} 
-          initialProfile={profile}
-          onProfileSaved={handleProfileSaved}
-        />
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <ProfileTab
+            ref={profileTabRef}
+            initialProfile={profile}
+            onProfileSaved={handleProfileSaved}
+          />
+        </>
       ),
     },
     {
       id: 'portfolio',
       label: t('tabs.portfolio'),
-      content: <PortfolioTabContent isActive={activeTab === 'portfolio'} />,
+      content: (
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <PortfolioTabContent isActive={activeTab === 'portfolio'} />
+        </>
+      ),
     },
     {
       id: 'reviews',
       label: t('tabs.reviews'),
-      content: <ReviewsTabContent />,
+      content: (
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <ReviewsTabContent />
+        </>
+      ),
     },
   ];
 
@@ -287,7 +301,7 @@ export default function MyProfilePage() {
   );
 
   return (
-    <AppLayout>
+    <AppLayout tabbedPage>
       <div className="space-y-6">
         <ResponsiveTabs
           items={tabItems}

@@ -8,16 +8,16 @@ import { Button } from '../../../shared/components/ui/button';
 import {
   User,
   CreditCard,
-  Settings,
   Save,
   Loader2,
 } from 'lucide-react';
 import BillingAndSubscription from '../components/BillingAndSubscription';
-import AdvancedSettings from '../components/AdvancedSettings';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
+import { LimitedAccessBanner } from '../../../shared/components/common/subscription/LimitedAccessBanner';
 import { getBusinessUpdatingSelector } from '../../business/selectors';
+import { usePlatform } from '../../../shared/hooks/usePlatform';
 
-type SettingsTab = 'profile' | 'billing' | 'advanced';
+type SettingsTab = 'profile' | 'billing';
 
 const SettingsPage = () => {
   const { t } = useTranslation('settings');
@@ -25,11 +25,12 @@ const SettingsPage = () => {
   const [searchParams] = useSearchParams();
   const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
+  const { isNative } = usePlatform();
 
   // Get initial tab from URL or default to 'profile'
   const getInitialTab = (): SettingsTab => {
     const tab = searchParams.get('tab') as SettingsTab | null;
-    if (tab && (tab === 'profile' || tab === 'billing' || tab === 'advanced')) {
+    if (tab && (tab === 'profile' || (tab === 'billing' && !isNative))) {
       return tab;
     }
     return 'profile';
@@ -40,57 +41,62 @@ const SettingsPage = () => {
   // Sync with URL changes
   useEffect(() => {
     const tab = searchParams.get('tab') as SettingsTab | null;
-    if (tab && (tab === 'profile' || tab === 'billing' || tab === 'advanced')) {
+    if (tab && (tab === 'profile' || (tab === 'billing' && !isNative))) {
       setActiveTab(tab);
     }
-  }, [searchParams]);
+  }, [searchParams, isNative]);
 
   const handleTabChange = (tabId: string) => {
     const tab = tabId as SettingsTab;
     setActiveTab(tab);
     // Use replace so tab switches don't pollute browser history
-    navigate(`/settings?tab=${tab}`, { replace: true });
+    navigate(`/account?tab=${tab}`, { replace: true });
   };
 
   // Render tab content only when active (lazy loading)
   const renderTabContent = (tabId: SettingsTab) => {
     if (activeTab !== tabId) return null;
-    
-    switch (tabId) {
-      case 'profile':
-        return <BusinessProfile onDirtyChange={setIsProfileDirty} />;
-      case 'billing':
-        return <BillingAndSubscription />;
-      case 'advanced':
-        return <AdvancedSettings />;
-      default:
-        return null;
-    }
+
+    const inner = (() => {
+      switch (tabId) {
+        case 'profile':
+          return <BusinessProfile onDirtyChange={setIsProfileDirty} />;
+        case 'billing':
+          return <BillingAndSubscription />;
+        default:
+          return null;
+      }
+    })();
+
+    return (
+      <>
+        <LimitedAccessBanner className="!px-0 !pt-0" />
+        {inner}
+      </>
+    );
   };
 
-  const tabItems: ResponsiveTabItem[] = useMemo(() => [
-    {
-      id: 'profile',
-      label: t('tabs.profile'),
-      mobileLabel: t('tabs.profileMobile'),
-      icon: User,
-      content: renderTabContent('profile'),
-    },
-    {
-      id: 'billing',
-      label: t('tabs.billing'),
-      mobileLabel: t('tabs.billingMobile'),
-      icon: CreditCard,
-      content: renderTabContent('billing'),
-    },
-    {
-      id: 'advanced',
-      label: t('tabs.advanced'),
-      mobileLabel: t('tabs.advancedMobile'),
-      icon: Settings,
-      content: renderTabContent('advanced'),
-    },
-  ], [activeTab, t]);
+  const tabItems: ResponsiveTabItem[] = useMemo(() => {
+    const items: ResponsiveTabItem[] = [
+      {
+        id: 'profile',
+        label: t('tabs.profile'),
+        mobileLabel: t('tabs.profileMobile'),
+        icon: User,
+        content: renderTabContent('profile'),
+      },
+    ];
+    if (!isNative) {
+      items.push({
+        id: 'billing',
+        label: t('tabs.billing'),
+        mobileLabel: t('tabs.billingMobile'),
+        icon: CreditCard,
+        content: renderTabContent('billing'),
+      });
+    }
+    return items;
+  }, [activeTab, t, isNative]);
 
   const handleSaveProfile = () => {
     (document.getElementById('business-info-form') as HTMLFormElement | null)?.requestSubmit();
@@ -102,7 +108,7 @@ const SettingsPage = () => {
     <Button
       type="button"
       onClick={handleSaveProfile}
-      className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto !min-w-34 md:!w-44"
+      className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto !min-w-34 md:!w-52 md:sm:w-auto"
       disabled={!isProfileDirty || isUpdating}
     >
       {isUpdating ? (
@@ -124,9 +130,17 @@ const SettingsPage = () => {
     </Button>
   );
 
+  if (isNative) {
+    return (
+      <AppLayout headerRightContent={SaveButton}>
+        <BusinessProfile onDirtyChange={setIsProfileDirty} />
+      </AppLayout>
+    );
+  }
+
   return (
-    <AppLayout>
-      <div className="space-y-6">
+    <AppLayout tabbedPage>
+      <div className="cursor-default">
         <ResponsiveTabs
           items={tabItems}
           value={activeTab}

@@ -1,7 +1,7 @@
 import { type FC, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
-import { Button } from "../../../shared/components/ui/button";
+import { GatedButton } from "../../../shared/components/common/subscription/GatedButton";
 import { SearchInput } from "../../../shared/components/common/SearchInput";
 import { usePermissions } from "../../../shared/hooks/usePermissions";
 
@@ -40,7 +40,7 @@ export const TeamMemberFilters: FC<TeamMemberFiltersProps> = ({
           }}
         />
         {canManage('team_members') && (
-          <Button
+          <GatedButton
             type="button"
             size="sm"
             rounded="full"
@@ -49,7 +49,7 @@ export const TeamMemberFilters: FC<TeamMemberFiltersProps> = ({
           >
             <Plus className="h-4 w-4 md:h-5 md:w-5" />
             <span className="">{text("page.actions.inviteMember")}</span>
-          </Button>
+          </GatedButton>
         )}
       </div>
     </div>

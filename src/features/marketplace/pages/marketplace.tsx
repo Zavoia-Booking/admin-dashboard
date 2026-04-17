@@ -94,8 +94,11 @@ export default function MarketplacePage() {
 
   // Show loading state
   if (isLoading) {
+    // ListingConfigurationSkeleton mirrors the real tabs and uses the same
+    // `-mt-8` breakout, so treat it as a tabbed page too.
+    const isTabbedSkeleton = !(listing && !listing.isListed);
     return (
-      <AppLayout>
+      <AppLayout tabbedPage={isTabbedSkeleton}>
         <BusinessSetupGate>
           {listing && !listing.isListed ? (
             <MarketplaceSkeleton />
@@ -110,7 +113,7 @@ export default function MarketplacePage() {
   // Show configuration view when listing is published OR user clicked "Start Listing"
   if (listing && (listing.isListed || showConfiguration)) {
     return (
-      <AppLayout>
+      <AppLayout tabbedPage>
         <BusinessSetupGate>
           <ListingConfigurationView
             business={business}

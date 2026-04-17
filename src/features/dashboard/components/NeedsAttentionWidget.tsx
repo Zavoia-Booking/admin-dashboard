@@ -129,7 +129,7 @@ export function NeedsAttentionWidget({
       title: t('needsAttention.smsLow'),
       description: t('needsAttention.smsDescription'),
       actionLabel: t('needsAttention.buyCredits'),
-      actionPath: '/settings',
+      actionPath: '/account',
       color: 'error',
     });
   }

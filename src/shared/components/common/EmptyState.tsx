@@ -1,5 +1,6 @@
 import { type FC } from "react";
 import { Button } from "../ui/button";
+import { WriteGate } from "./subscription/WriteGate";
 import type { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
@@ -9,6 +10,13 @@ interface EmptyStateProps {
     label: string;
     onClick: () => void;
     icon?: LucideIcon;
+    /**
+     * When true, the action button is wrapped in WriteGate so it gets
+     * auto-disabled + tooltip/toast when the business is not entitled.
+     * Use this for "Add X" buttons on write-heavy pages. Omit on settings,
+     * support, and other pages that stay writable when expired.
+     */
+    gated?: boolean;
   };
   icon?: LucideIcon;
   className?: string;
@@ -78,16 +86,31 @@ export const EmptyState: FC<EmptyStateProps> = ({
         </p>
         {actionButton && (
           <div className="pt-2">
-            <Button 
-              onClick={actionButton.onClick}
-              variant={actionButton.icon ? "default" : "outline"}
-              rounded="full"
-            >
-              {actionButton.icon && (
-                <actionButton.icon className="mr-2 h-4 w-4" />
-              )}
-              {actionButton.label}
-            </Button>
+            {actionButton.gated ? (
+              <WriteGate>
+                <Button
+                  onClick={actionButton.onClick}
+                  variant={actionButton.icon ? "default" : "outline"}
+                  rounded="full"
+                >
+                  {actionButton.icon && (
+                    <actionButton.icon className="mr-2 h-4 w-4" />
+                  )}
+                  {actionButton.label}
+                </Button>
+              </WriteGate>
+            ) : (
+              <Button
+                onClick={actionButton.onClick}
+                variant={actionButton.icon ? "default" : "outline"}
+                rounded="full"
+              >
+                {actionButton.icon && (
+                  <actionButton.icon className="mr-2 h-4 w-4" />
+                )}
+                {actionButton.label}
+              </Button>
+            )}
           </div>
         )}
       </div>

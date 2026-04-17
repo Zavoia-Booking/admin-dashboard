@@ -48,10 +48,6 @@ const AdvancedSettings = () => {
   const accountScheduledForDeletion = user?.accountScheduledForDeletion ?? false;
   const deletionScheduledAt = user?.deletionScheduledAt;
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-  };
-
   const handleTeamMembersError = async (error: AccountActionError) => {
     const teamMemberCount = error.details?.teamMemberCount ?? 0;
     const goToAssignments = await confirm({
@@ -91,7 +87,7 @@ const AdvancedSettings = () => {
       case 'has_active_appointments':
         return { labelKey: 'calendar', path: '/calendar' };
       case 'has_active_subscription':
-        return { labelKey: 'billing', path: '/settings?tab=billing' };
+        return { labelKey: 'billing', path: '/account?tab=billing' };
       default:
         return null;
     }
@@ -218,7 +214,7 @@ const AdvancedSettings = () => {
 
   return (
     <>
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <div className="space-y-6">
       <ConfirmDialog />
 
       {/* Account Status Banners */}
@@ -342,7 +338,7 @@ const AdvancedSettings = () => {
           </Card>
         )}
       </div>
-    </form>
+    </div>
 
     {/* Account blockers dialog (disable/delete blocked) */}
     <AlertDialog open={!!accountBlockersError} onOpenChange={(open) => !open && handleCloseBlockersDialog()}>

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../../../shared/components/ui/button";
+import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
+import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
 import {
   ResponsiveTabs,
   type ResponsiveTabItem,
@@ -77,11 +79,15 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   };
 
   const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
+  const canWrite = useCanWrite();
 
   // Should we show the global save/publish button?
   // We hide it on the portfolio tab if the listing is already published (isListed = true)
   // because portfolio changes are instant. We keep it if it's the initial "Publish" flow.
-  const showSaveButton = (activeTab !== "portfolio" && activeTab !== "reviews") || !isListed;
+  // Also hide it entirely when the business is not entitled — marketplace profile
+  // changes are blocked server-side in that case.
+  const showSaveButton =
+    canWrite && ((activeTab !== "portfolio" && activeTab !== "reviews") || !isListed);
 
   // Sync with URL changes
   useEffect(() => {
@@ -192,9 +198,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               inferredPath = "/assignments";
             } else if (
               text.includes("settings") ||
-              clickableElement.closest('[data-navigate-to="/settings"]')
+              clickableElement.closest('[data-navigate-to="/account"]')
             ) {
-              inferredPath = "/settings";
+              inferredPath = "/account";
             } else if (text.includes("location")) {
               // For location links, try to get locationId from parent context
               const locationCard =
@@ -283,6 +289,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       showBadge: form.selectedIndustryTags.length === 0,
       content: (
         <div className="max-w-5xl mb-0 md:mb-8">
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <div
+            className={!canWrite ? "pointer-events-none opacity-60" : ""}
+            aria-disabled={!canWrite}
+          >
           <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-white dark:sm:bg-surface overflow-hidden">
             <CardContent className="p-0 sm:p-4 space-y-10">
               {/* Visibility & Booking Section */}
@@ -342,6 +353,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               <LocationCatalogSection locations={locationsWithAssignments} />
             </CardContent>
           </Card>
+          </div>
         </div>
       ),
     },
@@ -351,6 +363,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       showBadge: form.portfolio.length === 0,
       content: (
         <div className="space-y-6">
+          <LimitedAccessBanner className="!px-0 !pt-0" />
           <MarketplaceImagesSection
             featuredImageId={form.featuredImageId}
             portfolioImages={form.portfolio}
@@ -364,6 +377,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
       id: "promotions",
       label: t("configuration.tabs.promotions"),
       content: (
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
         <div className="flex flex-col items-center justify-start py-10 text-center gap-12">
           {/* Illustration */}
           <div className="relative w-full mt-12 max-w-md h-44 text-left">
@@ -394,12 +409,18 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             </p>
           </div>
         </div>
+        </>
       ),
     },
     {
       id: "reviews",
       label: tReviews("tabLabel"),
-      content: activeTab === "reviews" ? <ReviewsTab /> : null,
+      content: activeTab === "reviews" ? (
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <ReviewsTab />
+        </>
+      ) : null,
     },
   ];
 

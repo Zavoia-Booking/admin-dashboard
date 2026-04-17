@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
+import { PageHeader } from "../../../shared/components/layouts/PageHeader";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
 import { Textarea } from "../../../shared/components/ui/textarea";
@@ -674,20 +675,20 @@ export default function SupportPage() {
     <AppLayout headerRightContent={newTicketButton}>
       <div className="space-y-4 px-2 py-4 md:px-0 md:py-0 md:space-y-6">
         {/* Page Header */}
-        <div className="mb-4 w-full border-b border-border-strong hidden md:flex items-center justify-between pr-4">
-          <h1 className="px-4 pb-3 text-sm font-medium text-foreground md:text-2xl">
-            {t("page.title")}
-          </h1>
-          {!showConversation && (
-            <Button
-              onClick={() => setIsNewTicketOpen(true)}
-              className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto"
-            >
-              <Plus className="h-4 w-4" />
-              <span>{t("ticket.newTicket")}</span>
-            </Button>
-          )}
-        </div>
+        <PageHeader
+          title={t("page.title")}
+          rightContent={
+            !showConversation && (
+              <Button
+                onClick={() => setIsNewTicketOpen(true)}
+                className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-4 md:!px-6 md:-mt-4 text-xs md:text-sm !w-auto"
+              >
+                <Plus className="h-4 w-4" />
+                <span>{t("ticket.newTicket")}</span>
+              </Button>
+            )
+          }
+        />
 
         {showConversation ? (
           <div className="px-2 md:px-0">

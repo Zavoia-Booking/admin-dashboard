@@ -165,6 +165,7 @@ export const AppointmentList: FC = () => {
             label: t("page.appointments.addEvent"),
             icon: Plus,
             onClick: () => dispatch(toggleAddForm({ open: true })),
+            gated: true,
           }}
         />
       )}

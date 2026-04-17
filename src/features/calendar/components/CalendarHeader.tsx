@@ -6,6 +6,7 @@ import { getCalendarLocale } from "../timezone.ts";
 import { setDisplayedMonthAction, setDisplayedWeekAction, setSelectedDateAction, setViewModeAction, setViewTypeAction, setBlockFormEditingAction, toggleAddForm, toggleBlockFormAction, toggleCalendarSidebar, setScrollToNow, setSidebarMiniCalendarMonthAction } from "../actions.ts";
 import { AppointmentViewMode, AppointmentViewType } from "../types.ts";
 import { Button } from "../../../shared/components/ui/button.tsx";
+import { WriteGate } from "../../../shared/components/common/subscription/WriteGate.tsx";
 import { ChevronLeft, ChevronRight, Plus, ShieldBan, PanelLeftClose, PanelLeftOpen, LayoutGrid, List, Settings, CalendarCheck2 } from "lucide-react";
 import { getWeekStart, getWeekEnd } from "../utils.ts";
 import { CalendarHeaderFilters } from "./CalendarHeaderFilters.tsx";
@@ -204,23 +205,27 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
 
         {/* Right: unified pill — Block | Add Event | Filters | list | settings */}
         <div className="flex items-center rounded-full !h-8 border border-border bg-white dark:bg-surface shadow-sm flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleOpenBlockForm}
-            className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
-          >
-            <ShieldBan className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
-            {t("page.header.block")}
-          </button>
+          <WriteGate>
+            <button
+              type="button"
+              onClick={handleOpenBlockForm}
+              className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
+            >
+              <ShieldBan className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
+              {t("page.header.block")}
+            </button>
+          </WriteGate>
           <div className="w-px h-5 bg-border shrink-0" />
-          <button
-            type="button"
-            onClick={handleOpenAddForm}
-            className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
-          >
-            <Plus className="h-3.5 w-3.5 text-primary" />
-            {t("page.header.addEvent")}
-          </button>
+          <WriteGate>
+            <button
+              type="button"
+              onClick={handleOpenAddForm}
+              className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
+            >
+              <Plus className="h-3.5 w-3.5 text-primary" />
+              {t("page.header.addEvent")}
+            </button>
+          </WriteGate>
           <div className="w-px h-5 bg-border shrink-0" />
           <div className="flex-1 min-w-0"><CalendarHeaderFilters slim /></div>
           <div className="w-px h-5 bg-border shrink-0" />
@@ -247,15 +252,17 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
                 : <LayoutGrid className="!h-4.5 !w-4.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />}
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 rounded-none group"
-            onClick={onOpenSettings}
-            title={t("page.header.calendarSettings")}
-          >
-            <Settings className="!h-4.5 !w-4.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
-          </Button>
+          <WriteGate>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-none group"
+              onClick={onOpenSettings}
+              title={t("page.header.calendarSettings")}
+            >
+              <Settings className="!h-4.5 !w-4.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
+            </Button>
+          </WriteGate>
         </div>
       </div>
 

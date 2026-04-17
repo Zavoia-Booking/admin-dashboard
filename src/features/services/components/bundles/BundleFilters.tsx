@@ -2,6 +2,7 @@ import { type FC, useCallback, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Filter, Plus, PlusCircle } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button";
+import { GatedButton } from "../../../../shared/components/common/subscription/GatedButton";
 import { SearchInput } from "../../../../shared/components/common/SearchInput";
 import {
   SortSelect,
@@ -407,7 +408,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
           onChange={handleSearchChange}
           onDebouncedChange={handleDebouncedSearchChange}
         />
-        <Button
+        <GatedButton
           type="button"
           size="sm"
           rounded="full"
@@ -416,7 +417,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
         >
           <Plus className="h-4 w-4 md:h-5 md:w-5" />
           <span className="">{text("bundles.filters.addBundle")}</span>
-        </Button>
+        </GatedButton>
       </div>
       <div className="flex flex-wrap gap-2 items-center">
         <SortSelect

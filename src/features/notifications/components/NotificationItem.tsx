@@ -59,7 +59,7 @@ function getNavigationPath(notification: BusinessNotification): string | null {
       return "/calendar";
 
     case "sms_credits_low":
-      return "/settings?tab=billing";
+      return "/account?tab=billing";
 
     case "team_member_accepted_invitation":
       return data?.userId

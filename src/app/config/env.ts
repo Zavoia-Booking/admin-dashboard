@@ -91,6 +91,8 @@ const config: AppConfig = {
     APP_ENV: appEnv,
     IS_NATIVE: isNativeApp(),
     PLATFORM: getNativePlatform(),
+    // IS_NATIVE: true,
+    // PLATFORM: 'ios',
     // Convenience flags
     IS_DEV: appEnv === 'development',
     IS_STAGING: appEnv === 'staging',

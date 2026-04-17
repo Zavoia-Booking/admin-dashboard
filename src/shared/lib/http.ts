@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import type { Store } from "redux";
+import { toast } from "sonner";
 import {
   setTokensAction,
   setCsrfToken as setCsrfTokenAction,
@@ -9,6 +10,7 @@ import {
 import type { AuthState } from "../../features/auth/types";
 import config, { isNativeApp } from "../../app/config/env";
 import { tokenStorage } from "./tokenStorage";
+import i18n from "./i18n";
 
 // ---- CONFIG ----
 const API_BASE_URL = config.API_URL;
@@ -73,18 +75,32 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
     return config;
   });
 
-  // RESPONSE: 401 → refresh (only when token expired) → replay (single-flight)
+  // RESPONSE: 401 → refresh (only when token expired) → replay (single-flight).
+  //           402 subscription_required → soft-block toast (read-only mode safety net).
   client.interceptors.response.use(
     (res: AxiosResponse) => res,
     async (error) => {
       const original = error.config;
 
-      const is401 = error?.response?.status === 401;
+      const status = error?.response?.status;
+      const code: string | undefined = error?.response?.data?.code;
+
+      // 402 subscription_required: a write slipped through the proactive disable
+      // (deep link, race, manual API call). Show a neutral toast and reject.
+      if (status === 402 && code === "subscription_required") {
+        const message = i18n.t("limitedUsage.blockedMessage", {
+          ns: "common",
+          defaultValue: "This feature is not available on your current plan.",
+        });
+        toast.error(message);
+        return Promise.reject(error);
+      }
+
+      const is401 = status === 401;
       const isRefreshCall = (original?.url ?? "").startsWith(REFRESH_ENDPOINT);
       const isLogoutCall = (original?.url ?? "").startsWith(LOGOUT_ENDPOINT);
       // Determine if 401 is due to an expired token
       const www: string | undefined = error?.response?.headers?.["www-authenticate"];
-      const code: string | undefined = error?.response?.data?.code;
       const errStr: string | undefined = error?.response?.data?.error || error?.response?.data?.message;
       const isExpiredHeader = typeof www === "string" && /error=\"invalid_token\"/i.test(www) && /expired/i.test(www);
       const isExpiredBody = code === "token_expired" || (typeof errStr === "string" && /expired/i.test(errStr));

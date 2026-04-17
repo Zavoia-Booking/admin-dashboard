@@ -315,10 +315,12 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
   // Check if pricing buttons should be disabled (need at least 2 services)
   const isPricingDisabled = !serviceIds || selectedServices.length < 2;
 
-  // Validate serviceIds - minimum 2 services required
+  // Validate serviceIds - minimum 2 services required. Surface the error
+  // immediately on open: a bundle can drop below 2 services if one of its
+  // services is deleted externally, and we want the user to know why the
+  // form is locked without having to poke at it first.
   const serviceIdsError =
-    (!serviceIds || serviceIds.length < 2) &&
-    (formState.isSubmitted || formState.touchedFields.serviceIds)
+    !serviceIds || serviceIds.length < 2
       ? text("bundles.editBundle.validation.servicesMinimum")
       : undefined;
 

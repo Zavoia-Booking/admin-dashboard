@@ -310,6 +310,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                       label: t("bundles.filters.addBundle"),
                       onClick: handleAddBundle,
                       icon: Plus,
+                      gated: true,
                     }
                   : undefined
               }

@@ -38,6 +38,7 @@ import {
 } from "../ui/sidebar"
 import { Permission } from "../../lib/permissions"
 import { usePermissions } from "../../hooks/usePermissions"
+import { usePlatform } from "../../hooks/usePlatform"
 import { NotificationBell } from "../common/NotificationBell"
 
 interface NavSubItem {
@@ -57,7 +58,7 @@ interface NavItem {
 }
 
 // Navigation items structure - titles will be translated in the component
-const getNavItems = (t: (key: string) => string): NavItem[] => [
+const getNavItems = (t: (key: string) => string, isNative: boolean): NavItem[] => [
   {
     title: t("sidebar.dashboard"),
     url: "/dashboard",
@@ -181,44 +182,29 @@ const getNavItems = (t: (key: string) => string): NavItem[] => [
     icon: MessageCircle,
     requiredPermission: Permission.ACCESS_SUPPORT,
   },
-  // Team Member Settings (after Support)
+  // Team Member Account (after Support)
   {
-    title: t("sidebar.teamMember.settings"),
-    url: "/my-settings",
+    title: t("sidebar.teamMember.account"),
+    url: "/my-account",
     icon: Settings2,
     requiredPermission: Permission.ACCESS_MY_SETTINGS,
-    items: [
-      {
-        title: t("sidebar.subItems.mySettings.profile"),
-        url: "/my-settings?tab=profile",
-      },
-      {
-        title: t("sidebar.subItems.mySettings.advanced"),
-        url: "/my-settings?tab=advanced",
-      },
-    ],
   },
-  // Owner Settings
+  // Owner Account
   {
-    title: t("sidebar.settings"),
-    url: "/settings",
+    title: t("sidebar.account"),
+    url: "/account",
     icon: Settings2,
     requiredPermission: Permission.ACCESS_SETTINGS,
-    items: [
+    items: isNative ? undefined : [
       {
-        title: t("sidebar.subItems.settings.profile"),
-        url: "/settings?tab=profile",
+        title: t("sidebar.subItems.account.profile"),
+        url: "/account?tab=profile",
         requiredPermission: Permission.ACCESS_SETTINGS_PROFILE,
       },
       {
-        title: t("sidebar.subItems.settings.billing"),
-        url: "/settings?tab=billing",
+        title: t("sidebar.subItems.account.billing"),
+        url: "/account?tab=billing",
         requiredPermission: Permission.ACCESS_SETTINGS_BILLING,
-      },
-      {
-        title: t("sidebar.subItems.settings.advanced"),
-        url: "/settings?tab=advanced",
-        requiredPermission: Permission.ACCESS_SETTINGS_ADVANCED,
       },
     ],
   },
@@ -232,12 +218,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { state } = useSidebar()
   const dispatch = useDispatch()
   const { hasPermission, user } = usePermissions()
-  
+  const { isNative } = usePlatform()
+
   // Get user data from Redux store
   const isAuthLoading = useSelector((state: RootState) => state.auth.isLoading)
-  
+
   // Get translated navigation items
-  const navItems = getNavItems(t)
+  const navItems = getNavItems(t, isNative)
   
   const isCollapsed = state === 'collapsed'
   

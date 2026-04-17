@@ -3,9 +3,13 @@
     "profile": "Profile",
     "profileMobile": "Profile",
     "billing": "Billing & Subscription",
-    "billingMobile": "Billing",
-    "advanced": "Advanced Settings",
-    "advancedMobile": "Advanced"
+    "billingMobile": "Billing"
+  },
+  "accountWebInfo": {
+    "title": "Manage your account online",
+    "description": "Some account settings are managed on our website. Sign in from any browser to continue.",
+    "openWebsite": "Open in browser",
+    "backHome": "Back to app"
   },
   "buttons": {
     "saveChanges": "Save Changes",
@@ -75,6 +79,10 @@
       "legal_terms": "Terms and Conditions",
       "legal_privacy": "Confidentiality Policy",
       "legal_cookies": "Cookies Policy"
+    },
+    "advancedSettings": {
+      "title": "Advanced Settings",
+      "description": "Disable or delete your account"
     },
     "toast": {
       "invalidImage": "Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)",
@@ -248,37 +256,6 @@
     "subtitle": "Setup Required",
     "message": "Before inviting team members, creating services, or adding locations, please finish setting up your business information.",
     "button": "Continue Setup"
-  },
-  "subscriptionGate": {
-    "nonOwner": {
-      "title": "Service Unavailable",
-      "subtitle": "Account Access Restricted",
-      "message": "Your business subscription is currently inactive. Please contact your administrator to resolve this.",
-      "contactAdmin": "If you believe this is a mistake, please reach out to your administrator.",
-      "buttonSettings": "Go to Settings",
-      "buttonSupport": "Ask for Help"
-    },
-    "paymentIssue": {
-      "title": "Payment Issue",
-      "subtitle": "Payment Retrying",
-      "message": "Your payment method is being retried. Update your payment information to restore full access.",
-      "button": "Update Payment Method"
-    },
-    "setupIncomplete": {
-      "title": "Setup Incomplete",
-      "subtitle": "Subscription Not Activated",
-      "messageIncomplete": "Your subscription setup is incomplete. Complete payment to activate your account.",
-      "messageExpired": "Your payment setup has expired. Start a new subscription to activate your account.",
-      "buttonIncomplete": "Complete Setup",
-      "buttonExpired": "Start New Subscription"
-    },
-    "subscriptionRequired": {
-      "title": "Subscription Required",
-      "subtitle": "Page Access Unavailable",
-      "message": "Your subscription is not active. To regain access to your business data, please manage your subscription.",
-      "button": "Manage Subscription"
-    },
-    "ownerFooter": "All your data is safe and will be restored once you renew."
   },
   "infoPages": {
     "cancelRemovalSuccess": {

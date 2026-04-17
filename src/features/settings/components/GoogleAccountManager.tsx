@@ -17,7 +17,7 @@ interface GoogleAccountManagerProps {
   returnUrl?: string;
 }
 
-const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, onSetPasswordClick, returnUrl = '/settings' }) => {
+const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, onSetPasswordClick, returnUrl = '/account' }) => {
   const { t } = useTranslation('settings');
   const dispatch = useDispatch();
   const user = useSelector((state: RootState) => state.auth.user);

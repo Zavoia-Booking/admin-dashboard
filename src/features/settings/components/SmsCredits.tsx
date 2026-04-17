@@ -115,7 +115,7 @@ const SmsCredits = () => {
     dispatch(createSmsCheckoutAction.request({
       packageId: selectedPackageId,
       successUrl: `${window.location.origin}/info?type=sms-purchase-success`,
-      cancelUrl: `${window.location.origin}/settings?tab=billing`,
+      cancelUrl: `${window.location.origin}/account?tab=billing`,
     }));
   };
   

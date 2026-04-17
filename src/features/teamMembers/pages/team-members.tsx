@@ -202,6 +202,7 @@ export default function TeamMembersPage() {
                     label: text("page.actions.inviteMember"),
                     onClick: () => setIsInviteSliderOpen(true),
                     icon: Plus,
+                    gated: true,
                   } : undefined}
                 />
               )}

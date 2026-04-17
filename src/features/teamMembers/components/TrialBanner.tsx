@@ -4,19 +4,22 @@ import { useNavigate } from 'react-router-dom'
 import { selectCurrentUser } from '../../auth/selectors'
 import { Button } from '../../../shared/components/ui/button'
 import { AlertCircle, Clock } from 'lucide-react'
+import { usePlatform } from '../../../shared/hooks/usePlatform'
 
 export default function TrialBanner() {
   const { t } = useTranslation('teamMembers')
   const navigate = useNavigate()
   const user = useSelector(selectCurrentUser)
+  const { isNative } = usePlatform()
 
   // Check trial status using entitlements
   const isTrial = user?.entitlements?.status === 'trial'
   const isExpired = user?.entitlements?.status === 'expired'
   const daysRemaining = user?.entitlements?.daysRemaining || 0
 
-  // Don't show banner if not in trial or expired
-  if (!isTrial || isExpired) {
+  // Don't show banner if not in trial, expired, or running natively
+  // (native hides upgrade CTAs to comply with Apple 3.1.1 / 3.1.3(a) / Play Store policy)
+  if (!isTrial || isExpired || isNative) {
     return null
   }
 
@@ -38,7 +41,7 @@ export default function TrialBanner() {
           </div>
         </div>
         <Button 
-          onClick={() => navigate('/settings?tab=billing')}
+          onClick={() => navigate('/account?tab=billing')}
           className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
         >
           {t('trialBanner.upgradeNow')}

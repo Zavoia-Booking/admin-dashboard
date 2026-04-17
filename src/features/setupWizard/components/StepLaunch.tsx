@@ -48,7 +48,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
   };
 
   const handleGoBusinessInfo = () => {
-    navigate("/settings?open=business");
+    navigate("/account?open=business");
   };
 
   const handleGoCalendar = () => {

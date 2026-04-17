@@ -275,7 +275,7 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     yield put(setAuthUserAction({ user: response.user }));
 
     // Fetch fresh user data (with full entitlements) before completing login
-    // This prevents the SubscriptionGate from flashing during redirect
+    // so write-affordance gating is correct on first render after redirect.
     let userForSuccess = response.user;
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
@@ -389,7 +389,7 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
     yield put(setAuthUserAction({ user: response.user }));
 
     // Fetch fresh user data (with full entitlements) before completing registration
-    // This prevents the SubscriptionGate from flashing during redirect
+    // so write-affordance gating is correct on first render after redirect.
     let userForSuccess = response.user;
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;
@@ -584,7 +584,7 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     // Route back to the stored returnTo if present
     setTimeout(() => {
       try {
-        const returnTo = sessionStorage.getItem('oauthReturnTo') || '/settings';
+        const returnTo = sessionStorage.getItem('oauthReturnTo') || '/account';
         sessionStorage.removeItem('oauthMode');
         sessionStorage.removeItem('oauthReturnTo');
         // Force immediate redirect
@@ -603,7 +603,7 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     } catch { /* empty */ }
     // Safety: if we're stuck on the callback route, bounce back to Settings so UI doesn't hang
     try {
-      const returnTo = sessionStorage.getItem('oauthReturnTo') || '/settings';
+      const returnTo = sessionStorage.getItem('oauthReturnTo') || '/account';
       sessionStorage.removeItem('oauthMode');
       sessionStorage.removeItem('oauthReturnTo');
       window.location.replace(returnTo);
@@ -653,9 +653,9 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
       yield put(setCsrfToken({ csrfToken: response.csrfToken }));
     }
 
-    // Fetch fresh user data (with full entitlements) BEFORE setting user
+    // Fetch fresh user data (with full entitlements) BEFORE setting user.
     // During this async call, user remains null so AuthGate shows spinner
-    // and SubscriptionGate returns null, preventing the flash
+    // and write-affordance gating has the correct value on first render.
     let user = response.user;
     try {
       const freshUser: AuthUser = (yield call(getCurrentUserApi)) as AuthUser;

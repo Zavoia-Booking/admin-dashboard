@@ -26,7 +26,8 @@ const routeToKey: Record<string, string> = {
   '/customers': 'breadcrumbs.customers',
   '/marketplace': 'breadcrumbs.marketplace',
   '/support': 'breadcrumbs.support',
-  '/settings': 'breadcrumbs.settings',
+  '/account': 'breadcrumbs.account',
+  '/my-account': 'breadcrumbs.account',
 };
 
 const routeIcons: Record<string, React.ReactNode> = {
@@ -39,7 +40,8 @@ const routeIcons: Record<string, React.ReactNode> = {
   '/customers': <User className="w-4 h-4" />,
   '/marketplace': <Store className="w-4 h-4" />,
   '/support': <Headphones className="w-4 h-4" />,
-  '/settings': <Settings className="w-4 h-4" />,
+  '/account': <Settings className="w-4 h-4" />,
+  '/my-account': <Settings className="w-4 h-4" />,
 };
 
 export function useBreadcrumbs(): BreadcrumbItemType[] {

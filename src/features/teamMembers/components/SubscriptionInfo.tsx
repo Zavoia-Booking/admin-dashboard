@@ -5,6 +5,7 @@ import { Users } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import type { AuthUser } from '../../auth/types';
 import type { SubscriptionSummary } from '../../settings/types';
+import { WebOnly } from '../../../shared/components/common/platform/PlatformGate';
 
 interface SubscriptionInfoProps {
   currentUser: AuthUser | null;
@@ -63,16 +64,18 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
         <div className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 p-4 rounded-lg space-y-3">
           <p className="font-semibold text-base">{t('subscriptionInfo.ltdActive')}</p>
           <p>{t('subscriptionInfo.ltdNoSeats')}</p>
-          <Button
-            onClick={() => {
-              onClose();
-              navigate('/settings?tab=billing');
-            }}
-            variant="outline"
-            className="w-full"
-          >
-            {t('subscriptionInfo.ltdPurchaseSeats')}
-          </Button>
+          <WebOnly>
+            <Button
+              onClick={() => {
+                onClose();
+                navigate('/account?tab=billing');
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              {t('subscriptionInfo.ltdPurchaseSeats')}
+            </Button>
+          </WebOnly>
         </div>
       );
     }
@@ -88,16 +91,18 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
         <p>
           {t('subscriptionInfo.subscriptionRequiredDescription')}
         </p>
-        <Button 
-          onClick={() => {
-            onClose();
-            navigate('/settings?tab=billing');
-          }}
-          variant="outline"
-          className="w-full"
-        >
-          {t('subscriptionInfo.goToBilling')}
-        </Button>
+        <WebOnly>
+          <Button
+            onClick={() => {
+              onClose();
+              navigate('/account?tab=billing');
+            }}
+            variant="outline"
+            className="w-full"
+          >
+            {t('subscriptionInfo.goToBilling')}
+          </Button>
+        </WebOnly>
       </div>
     );
   }
@@ -110,15 +115,17 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
         <p>
           {t('subscriptionInfo.subscriptionCancelledDescription')}
         </p>
-        <Button 
-          onClick={() => {
-            onClose();
-            navigate('/settings?tab=billing');
-          }}
-          className="w-full mt-2 bg-red-600 hover:bg-red-700"
-        >
-          {t('subscriptionInfo.renewSubscription')}
-        </Button>
+        <WebOnly>
+          <Button
+            onClick={() => {
+              onClose();
+              navigate('/account?tab=billing');
+            }}
+            className="w-full mt-2 bg-red-600 hover:bg-red-700"
+          >
+            {t('subscriptionInfo.renewSubscription')}
+          </Button>
+        </WebOnly>
       </div>
     );
   }

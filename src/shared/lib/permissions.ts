@@ -302,14 +302,14 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/customers': Permission.ACCESS_CUSTOMERS,
   '/assignments': Permission.ACCESS_ASSIGNMENTS,
   '/marketplace': Permission.ACCESS_MARKETPLACE,
-  '/settings': Permission.ACCESS_SETTINGS,
+  '/account': Permission.ACCESS_SETTINGS,
 
   // ===========================================
   // TEAM MEMBER-ONLY ROUTES
   // ===========================================
   '/my-assignments': Permission.ACCESS_MY_ASSIGNMENTS,
   '/my-profile': Permission.ACCESS_MY_PROFILE,
-  '/my-settings': Permission.ACCESS_MY_SETTINGS,
+  '/my-account': Permission.ACCESS_MY_SETTINGS,
 };
 
 /**
@@ -323,9 +323,9 @@ export const SUB_ROUTE_PERMISSIONS: Record<string, Permission> = {
   // ===========================================
   
   // Settings tabs
-  '/settings?tab=profile': Permission.ACCESS_SETTINGS_PROFILE,
-  '/settings?tab=billing': Permission.ACCESS_SETTINGS_BILLING,
-  '/settings?tab=advanced': Permission.ACCESS_SETTINGS_ADVANCED,
+  '/account?tab=profile': Permission.ACCESS_SETTINGS_PROFILE,
+  '/account?tab=billing': Permission.ACCESS_SETTINGS_BILLING,
+  '/account?tab=advanced': Permission.ACCESS_SETTINGS_ADVANCED,
   
   // Marketplace tabs
   '/marketplace?tab=profile': Permission.ACCESS_MARKETPLACE_PROFILE,

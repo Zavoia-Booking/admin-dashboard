@@ -562,7 +562,7 @@ const EditServiceSlider: React.FC<EditServiceSliderProps> = ({
                       </span>{" "}
                       (
                       <span
-                        onClick={() => navigate("/settings")}
+                        onClick={() => navigate("/account")}
                         className="inline-flex items-center gap-0.5 cursor-pointer font-bold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary transition-colors duration-200"
                       >
                         {text("addService.form.currency.editText")}{" "}

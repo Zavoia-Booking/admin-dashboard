@@ -6,7 +6,6 @@ import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
 import AccountStatusPromptDialog from './features/auth/components/AccountStatusPromptDialog'
-import SubscriptionGate from './shared/components/common/subscription/SubscriptionGate'
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
 import { Spinner } from './shared/components/ui/spinner'
 
@@ -24,6 +23,7 @@ const RegisterPage = lazy(() => import('./features/auth/pages/register'))
 const ResetPasswordPage = lazy(() => import('./features/auth/pages/reset-password'))
 const GoogleOAuthCallback = lazy(() => import('./features/auth/components/GoogleOAuthCallback'))
 const InfoPageComponent = lazy(() => import('./features/settings/pages/info-page'))
+const AccountWebInfoPage = lazy(() => import('./features/settings/pages/AccountWebInfoPage'))
 const AssignmentsPage = lazy(() => import('./features/assignments/pages/assignments'))
 const VerifyEmailPage = lazy(() => import('./features/auth/pages/verify-email'))
 const LinkBusinessAccountPage = lazy(() => import('./features/auth/pages/link-business-account'))
@@ -39,7 +39,7 @@ const NotificationsPage = lazy(() => import('./features/notifications/pages/noti
 // Team Member Only Pages
 const MyAssignmentsPage = lazy(() => import('./features/team-member-pages/myAssignments/pages/my-assignments'))
 const MyProfilePage = lazy(() => import('./features/team-member-pages/myProfile/pages/my-profile'))
-const MySettingsPage = lazy(() => import('./features/team-member-pages/mySettings/pages/my-settings'))
+const MyAccountPage = lazy(() => import('./features/team-member-pages/myAccount/pages/my-account'))
 
 function RouteFallback() {
   return (
@@ -78,12 +78,12 @@ function App() {
           <Route path="/marketplace" element={<ProtectedRoute element={<MarketplacePage />} />} />
           <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
           <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
-          <Route path="/settings" element={<ProtectedRoute element={<SettingsPage />} />} />
+          <Route path="/account" element={<ProtectedRoute element={<SettingsPage />} />} />
 
           {/* Team Member Only */}
           <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
           <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
-          <Route path="/my-settings" element={<ProtectedRoute element={<MySettingsPage />} />} />
+          <Route path="/my-account" element={<ProtectedRoute element={<MyAccountPage />} />} />
 
           {/* Legal */}
           <Route path="/terms" element={<LegalPage />} />
@@ -92,6 +92,7 @@ function App() {
 
           {/* Info Pages */}
           <Route path="/info" element={<InfoPageComponent />} />
+          <Route path="/account-info" element={<ProtectedRoute element={<AccountWebInfoPage />} />} />
           <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
 
           {/* Fallback */}
@@ -102,7 +103,6 @@ function App() {
       <BusinessSelectorModal />
       <AccountLinkingRequiredModal />
       <AccountStatusPromptDialog />
-      <SubscriptionGate />
       <SeatOverflowGate />
     </BrowserRouter>
   )

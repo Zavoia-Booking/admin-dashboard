@@ -7,6 +7,7 @@ import { BadgeList } from "../BadgeList.tsx";
 import { setServiceFilterAction, toggleAddFormAction } from "../../actions.ts";
 import { Filter, Plus } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button.tsx";
+import { GatedButton } from "../../../../shared/components/common/subscription/GatedButton";
 import { SearchInput } from "../../../../shared/components/common/SearchInput";
 import {
   SortSelect,
@@ -211,7 +212,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
               handleApplyFilters(updatedFilters);
             }}
           />
-          <Button
+          <GatedButton
             type="button"
             size="sm"
             rounded="full"
@@ -222,7 +223,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
           >
             <Plus className="h-4 w-4 md:h-5 md:w-5" />
             <span className="">{text("page.actions.addService")}</span>
-          </Button>
+          </GatedButton>
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           <SortSelect

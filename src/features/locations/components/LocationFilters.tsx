@@ -1,7 +1,7 @@
 import { type FC, useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Plus } from "lucide-react";
-import { Button } from "../../../shared/components/ui/button";
+import { GatedButton } from "../../../shared/components/common/subscription/GatedButton";
 import { SearchInput } from "../../../shared/components/common/SearchInput";
 
 interface LocationFiltersProps {
@@ -37,7 +37,7 @@ export const LocationFilters: FC<LocationFiltersProps> = ({
             onSearchChange(value);
           }}
         />
-        <Button
+        <GatedButton
           type="button"
           size="sm"
           rounded="full"
@@ -46,7 +46,7 @@ export const LocationFilters: FC<LocationFiltersProps> = ({
         >
           <Plus className="h-4 w-4 md:h-5 md:w-5" />
           <span className="">{text("page.actions.addLocation")}</span>
-        </Button>
+        </GatedButton>
       </div>
     </div>
   );

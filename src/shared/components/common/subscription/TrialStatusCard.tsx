@@ -4,6 +4,7 @@ import { Button } from "../../ui/button";
 import { Skeleton } from "../../ui/skeleton";
 import { CalendarSync, ArrowRight } from "lucide-react";
 import type { Business } from "../../../../features/business/types";
+import { usePlatform } from "../../../hooks/usePlatform";
 
 interface TrialStatusCardProps {
   business: Business | null;
@@ -24,6 +25,11 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
   onUpgrade,
 }) => {
   const navigate = useNavigate();
+  const { isNative } = usePlatform();
+
+  // Native: hide entirely. Card uses "subscription"/"trial"/"upgrade plan" wording
+  // forbidden under Apple 3.1.1 / 3.1.3(a) / Google Play store policy.
+  if (isNative) return null;
 
   const getTrialInfo = (): TrialInfo | null => {
     if (!business?.trialEndsAt) return null;
@@ -50,7 +56,7 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
     if (onUpgrade) {
       onUpgrade();
     } else {
-      navigate("/settings?tab=billing");
+      navigate("/account?tab=billing");
     }
   };
 

@@ -45,6 +45,8 @@ import { updateSeats, abortPendingPayment } from '../../settings/api';
 import { getOffboardPreviewApi } from '../api';
 import type { OffboardPreviewResponse } from '../api';
 import type { TeamMember } from '../../../shared/types/team-member';
+import { usePlatform } from '../../../shared/hooks/usePlatform';
+import { WebOnly } from '../../../shared/components/common/platform/PlatformGate';
 
 export const SeatOverflowGate: React.FC = () => {
   const dispatch = useDispatch();
@@ -53,9 +55,13 @@ export const SeatOverflowGate: React.FC = () => {
   const subscriptionSummary = useSelector(selectSubscriptionSummary);
   const teamMembers = useSelector(selectTeamMembers);
   const isOffboarding = useSelector(selectIsOffboarding);
+  const { isNative } = usePlatform();
 
-  // Option selection
-  const [selectedOption, setSelectedOption] = useState<'remove' | 'pay' | null>('pay');
+  // Option selection — on native, only the 'remove' path is available
+  // (paid seat upgrade hidden for Apple/Google store compliance).
+  const [selectedOption, setSelectedOption] = useState<'remove' | 'pay' | null>(
+    isNative ? 'remove' : 'pay',
+  );
 
   // Remove flow
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
@@ -393,7 +399,8 @@ export const SeatOverflowGate: React.FC = () => {
                 ].join(' ')}
               </p>
               {/* ── Option Cards ── */}
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('teamMembers:seatOverflow.title')}>
+              <div className={cn('grid grid-cols-1 gap-3', !isNative && 'sm:grid-cols-2')} role="radiogroup" aria-label={t('teamMembers:seatOverflow.title')}>
+                <WebOnly>
                 <button
                   role="radio"
                   aria-checked={selectedOption === 'pay'}
@@ -436,6 +443,7 @@ export const SeatOverflowGate: React.FC = () => {
                     </div>
                   </div>
                 </button>
+                </WebOnly>
 
                 <button
                   role="radio"

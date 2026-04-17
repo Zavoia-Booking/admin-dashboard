@@ -1,13 +1,14 @@
 {
-  "tabs": {
-    "profile": "Profil",
-    "profileMobile": "Profil",
-    "advanced": "Setări Avansate",
-    "advancedMobile": "Avansate"
+  "page": {
+    "title": "Cont"
   },
   "buttons": {
     "saving": "Se salvează",
     "saveChanges": "Salvează Modificările"
+  },
+  "advanced": {
+    "title": "Avansat",
+    "description": "Gestionează apartenența la organizație și ciclul de viață al contului"
   },
   "profile": {
     "personalInfo": {

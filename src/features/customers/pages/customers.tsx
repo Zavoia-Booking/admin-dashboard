@@ -133,6 +133,7 @@ export default function CustomersPage() {
               label: text("page.actions.addCustomer"),
               onClick: () => setIsAddCustomerSliderOpen(true),
               icon: Plus,
+              gated: true,
             } : undefined}
           />
         ) : (

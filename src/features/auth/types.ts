@@ -4,6 +4,16 @@ export type RegisterOwnerPayload = {
   firstName: string;
   lastName: string;
   phone?: string;
+  /** Token issued by the mobile welcome email; marks the email as pre-verified. */
+  welcomeToken?: string;
+};
+
+export type MobileRegisterRequestResponse = {
+  message: string;
+};
+
+export type MobileRegisterTokenValidation = {
+  email: string;
 };
 
 export type AuthUser = {

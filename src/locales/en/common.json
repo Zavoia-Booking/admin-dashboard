@@ -1,4 +1,10 @@
 {
+  "limitedUsage": {
+    "label": "Limited usage",
+    "disabledTooltip": "This feature is not available on your current plan.",
+    "blockedMessage": "This feature is not available on your current plan.",
+    "bannerMessage": "Limited access: Some features are unavailable on your current plan."
+  },
   "remoteLocation": {
     "label": "I offer remote/online services",
     "descriptionOn": "Meetings happen outside Zavoia. Add your Zoom/Meet/Teams link or instructions, and choose the correct timezone so clients join at the right time.",

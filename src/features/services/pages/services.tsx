@@ -9,6 +9,7 @@ import { ResponsiveTabs, type ResponsiveTabItem } from "../../../shared/componen
 import { ServicesListTab } from "../components/services/ServicesListTab.tsx";
 import { BundlesTab } from "../components/bundles/BundlesTab.tsx";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate.tsx";
+import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
 
 type ServicesTab = "services" | "bundles";
 
@@ -49,18 +50,28 @@ export default function ServicesPage() {
       id: "services",
       label: t("page.tabs.allServices"),
       icon: Briefcase,
-      content: <ServicesListTab isActive={activeTab === "services"} />,
+      content: (
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <ServicesListTab isActive={activeTab === "services"} />
+        </>
+      ),
     },
     {
       id: "bundles",
       label: t("page.tabs.bundles"),
       icon: Package,
-      content: <BundlesTab isActive={activeTab === "bundles"} />,
+      content: (
+        <>
+          <LimitedAccessBanner className="!px-0 !pt-0" />
+          <BundlesTab isActive={activeTab === "bundles"} />
+        </>
+      ),
     }
   ];
 
   return (
-    <AppLayout>
+    <AppLayout tabbedPage>
       <BusinessSetupGate>
         <div className="space-y-6">
             {/* Responsive Tabs */}

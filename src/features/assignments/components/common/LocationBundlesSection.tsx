@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Settings2, Info, ChevronDown, Plus } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button";
+import { WriteGate } from "../../../../shared/components/common/subscription/WriteGate";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { ManageBundlesSheet } from "../../../../shared/components/common/ManageBundlesSheet/ManageBundlesSheet";
 import { LocationBundleRow } from "./LocationBundleRow";
@@ -205,17 +206,19 @@ export function LocationBundlesSection({
 
           {/* Action button */}
           {hasNoBundlesCreated && (
-            <Button
-              variant="default"
-              rounded="full"
-              onClick={() => {
-                navigate("/services?tab=bundles&open=add");
-              }}
-              className="mt-2"
-            >
-              <Settings2 className="h-4 w-4 mr-2" />
-              {t("page.locationBundles.buttons.createFirstBundle")}
-            </Button>
+            <WriteGate>
+              <Button
+                variant="default"
+                rounded="full"
+                onClick={() => {
+                  navigate("/services?tab=bundles&open=add");
+                }}
+                className="mt-2"
+              >
+                <Settings2 className="h-4 w-4 mr-2" />
+                {t("page.locationBundles.buttons.createFirstBundle")}
+              </Button>
+            </WriteGate>
           )}
         </div>
       ) : (

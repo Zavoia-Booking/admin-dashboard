@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Settings2, Info, ChevronDown, Plus } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button";
+import { WriteGate } from "../../../../shared/components/common/subscription/WriteGate";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { ManageServicesSheet } from "../../../../shared/components/common/ManageServicesSheet/ManageServicesSheet";
 import { LocationServiceRow } from "./LocationServiceRow";
@@ -220,15 +221,19 @@ export function LocationServicesSection({
           </div>
 
           {/* Action button */}
-          {hasNoServicesCreated && <Button
-            variant="default"
-            rounded="full"
-            onClick={() => {navigate("/services?open=add")}}
-            className="mt-2"
-          >
-            <Settings2 className="h-4 w-4 mr-2" />
-             {t("page.locationServices.buttons.createFirstService")}
-          </Button>}
+          {hasNoServicesCreated && (
+            <WriteGate>
+              <Button
+                variant="default"
+                rounded="full"
+                onClick={() => {navigate("/services?open=add")}}
+                className="mt-2"
+              >
+                <Settings2 className="h-4 w-4 mr-2" />
+                {t("page.locationServices.buttons.createFirstService")}
+              </Button>
+            </WriteGate>
+          )}
         </div>
       ) : (
         <div className="space-y-2">

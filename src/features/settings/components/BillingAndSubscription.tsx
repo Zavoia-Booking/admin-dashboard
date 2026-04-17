@@ -85,7 +85,7 @@ const BillingAndSubscription = () => {
   const isSubscriptionScheduledForCancellation = currentUser?.subscription?.status === 'active' && currentUser?.subscription?.cancelAtPeriodEnd;
 
   const handleManagePaymentMethodAndInvoices = () => {
-    const returnUrl = window.location.origin + '/settings?tab=billing';
+    const returnUrl = window.location.origin + '/account?tab=billing';
     dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
   };
 
@@ -112,7 +112,7 @@ const BillingAndSubscription = () => {
     dispatch(createCheckoutSessionAction.request({
       seats: totalSeats,
       successUrl: `${window.location.origin}/info?type=subscription-success`,
-      cancelUrl: `${window.location.origin}/settings`,
+      cancelUrl: `${window.location.origin}/account`,
     }));
   };
 
@@ -157,7 +157,7 @@ const BillingAndSubscription = () => {
         const response = await createLtdSeatsCheckoutSession({
           seats: totalSeats,
           successUrl: `${window.location.origin}/info?type=subscription-success`,
-          cancelUrl: `${window.location.origin}/settings`,
+          cancelUrl: `${window.location.origin}/account`,
         });
 
         if (response.url) {
@@ -200,7 +200,7 @@ const BillingAndSubscription = () => {
       dispatch(createCheckoutSessionAction.request({
         seats: totalSeats,
         successUrl: `${window.location.origin}/info?type=subscription-success`,
-        cancelUrl: `${window.location.origin}/settings`,
+        cancelUrl: `${window.location.origin}/account`,
       }));
     } else {
       // Active subscription: Update existing seats
@@ -294,7 +294,7 @@ const BillingAndSubscription = () => {
         window.location.href = pending.invoiceUrl;
       } else {
         // Fallback: open customer portal
-        const returnUrl = window.location.origin + '/settings?tab=billing';
+        const returnUrl = window.location.origin + '/account?tab=billing';
         dispatch(getCustomerPortalUrlAction.request({ returnUrl }));
       }
       return;

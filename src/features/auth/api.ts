@@ -1,8 +1,20 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export const registerOwnerRequestApi = async (payload: RegisterOwnerPayload): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>(`/auth/register-business-owner`, payload);
+    return data;
+}
+
+export const mobileRegisterRequestApi = async (payload: { email: string; locale?: string }): Promise<MobileRegisterRequestResponse> => {
+    const { data } = await apiClient().post<MobileRegisterRequestResponse>(`/auth/mobile-register-request`, payload);
+    return data;
+}
+
+export const validateMobileRegisterTokenApi = async (token: string): Promise<MobileRegisterTokenValidation> => {
+    const { data } = await apiClient().get<MobileRegisterTokenValidation>(`/auth/mobile-register-validate`, {
+        params: { token },
+    });
     return data;
 }
 

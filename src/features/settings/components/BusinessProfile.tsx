@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Save, Lock, Info, LogOut, FileText, ChevronRight } from 'lucide-react';
+import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Save, Lock, Info, LogOut, FileText, ChevronRight, Settings } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -12,6 +12,7 @@ import TextareaField from '../../../shared/components/forms/fields/TextareaField
 import OptionSelect from '../../../shared/components/common/OptionSelect';
 import { uploadBusinessLogo } from '../api';
 import GoogleAccountManager from './GoogleAccountManager';
+import AdvancedSettings from './AdvancedSettings';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector } from '../../business/selectors';
@@ -698,6 +699,17 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Advanced Settings Section */}
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm mb-10">
+          <FormSectionHeader
+            icon={Settings}
+            title={t('profile.advancedSettings.title')}
+            description={t('profile.advancedSettings.description')}
+            className="mb-6"
+          />
+          <AdvancedSettings />
         </div>
       </div>
 

@@ -26,7 +26,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: t('infoPages.cancelRemovalSuccess.backToBilling'),
-              onClick: () => navigate('/settings?tab=billing'),
+              onClick: () => navigate('/account?tab=billing'),
               variant: 'outline' as const,
               icon: ArrowLeft,
             },
@@ -47,7 +47,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: t('infoPages.subscriptionSuccess.backToBilling'),
-              onClick: () => navigate('/settings?tab=billing'),
+              onClick: () => navigate('/account?tab=billing'),
               variant: 'outline' as const,
               icon: ArrowLeft,
             },
@@ -68,7 +68,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: t('infoPages.subscriptionCancelled.backToBilling'),
-              onClick: () => navigate('/settings?tab=billing'),
+              onClick: () => navigate('/account?tab=billing'),
               variant: 'outline' as const,
               icon: ArrowLeft,
             },
@@ -89,7 +89,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: t('infoPages.seatsUpdateSuccess.goToBilling'),
-              onClick: () => navigate('/settings?tab=billing'),
+              onClick: () => navigate('/account?tab=billing'),
               variant: 'outline' as const,
               icon: CreditCard,
             },
@@ -110,7 +110,7 @@ const InfoPageComponent: React.FC = () => {
             },
             {
               label: t('infoPages.smsPurchaseSuccess.backToBilling'),
-              onClick: () => navigate('/settings?tab=billing'),
+              onClick: () => navigate('/account?tab=billing'),
               variant: 'outline' as const,
               icon: ArrowLeft,
             },

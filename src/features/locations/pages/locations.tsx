@@ -180,6 +180,7 @@ export default function LocationsPage() {
                       label: text("page.actions.addLocation"),
                       onClick: () => setIsCreateSliderOpen(true),
                       icon: Plus,
+                      gated: true,
                     } : undefined}
                   />
                 )}

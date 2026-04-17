@@ -143,7 +143,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
 
     // If user can't invite (no seats, cancelled, no subscription), go straight to billing
     if (!isInviteAllowed && !seatCtx.isTrial) {
-      navigate('/settings?tab=billing');
+      navigate('/account?tab=billing');
       return;
     }
 

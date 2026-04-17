@@ -1,4 +1,10 @@
 {
+  "limitedUsage": {
+    "label": "Utilizare limitată",
+    "disabledTooltip": "Această funcționalitate nu este disponibilă în planul tău curent.",
+    "blockedMessage": "Această funcționalitate nu este disponibilă în planul tău curent.",
+    "bannerMessage": "Acces limitat: Unele funcționalități nu sunt disponibile în planul tău curent."
+  },
   "remoteLocation": {
     "label": "Ofer servicii la distanță/online",
     "descriptionOn": "Întâlnirile au loc în afara Zavoia. Adaugă linkul Zoom/Meet/Teams sau instrucțiunile și alege fusul orar corect ca clienții să se conecteze la ora potrivită.",

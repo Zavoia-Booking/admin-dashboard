@@ -31,7 +31,7 @@ const SETTINGS_BELL_TABS = new Set(['billing', 'advanced']);
 function shouldShowBell(pathname: string, search: string): boolean {
   if (BELL_ROUTES.has(pathname) || pathname.startsWith('/dashboard/')) return true;
 
-  if (pathname === '/settings') {
+  if (pathname === '/account') {
     const tab = new URLSearchParams(search).get('tab');
     return tab !== null && SETTINGS_BELL_TABS.has(tab);
   }

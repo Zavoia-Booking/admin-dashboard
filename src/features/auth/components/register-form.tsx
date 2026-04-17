@@ -27,7 +27,16 @@ type FormValues = {
   acceptTerms: boolean
 }
 
-export function RegisterForm() {
+type RegisterFormProps = {
+  /** Pre-fill the email field (e.g. from the mobile welcome link). */
+  initialEmail?: string
+  /** If true, the email input is rendered read-only so the pre-filled value can't be changed. */
+  lockEmail?: boolean
+  /** Opaque token from the mobile welcome email; submitted alongside registration to pre-verify the email. */
+  welcomeToken?: string
+}
+
+export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: RegisterFormProps = {}) {
   const { t } = useTranslation('auth');
   const navigate = useNavigate()
   const [pwFocused, setPwFocused] = useState<boolean>(false)
@@ -43,7 +52,7 @@ export function RegisterForm() {
     defaultValues: {
       firstName: '',
       lastName: '',
-      email: '',
+      email: initialEmail ?? '',
       password: '',
       acceptTerms: false,
     }
@@ -70,8 +79,9 @@ export function RegisterForm() {
     dispatch(registerOwnerRequestAction.request({
       firstName: values.firstName,
       lastName: values.lastName,
-      email: values.email,
+      email: lockEmail && initialEmail ? initialEmail : values.email,
       password: values.password,
+      ...(welcomeToken ? { welcomeToken } : {}),
     }))
   }
 
@@ -82,8 +92,14 @@ export function RegisterForm() {
         position: 'top-center',
       });
       
-      // Reset form to initial state
-      reset();
+      // Reset form to initial state (preserving any locked fields we control)
+      reset({
+        firstName: '',
+        lastName: '',
+        email: initialEmail ?? '',
+        password: '',
+        acceptTerms: false,
+      });
       
       // Reset password visibility state
       setShowPassword(false);
@@ -187,12 +203,13 @@ export function RegisterForm() {
                 placeholder={t('register.emailPlaceholder')}
                 type="email"
                 disabled={isLoading}
+                readOnly={lockEmail}
                 aria-invalid={!!errors.email}
                 className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                   errors.email
                     ? 'border-destructive bg-error-bg focus-visible:ring-error'
                     : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
-                }`}
+                } ${lockEmail ? 'cursor-not-allowed opacity-80' : ''}`}
                 autoComplete="email"
                 {...register('email', {
                   required: t('register.validation.emailRequired'),
