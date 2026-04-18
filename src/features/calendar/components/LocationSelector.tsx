@@ -72,28 +72,30 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ closedClassName, m
         return () => window.clearTimeout(timer);
     }, [open]);
 
-    // Close on outside click
+    // Close on outside click — capture phase so we can also swallow the tap
+    // that would otherwise bubble into whatever is under the dropdown.
     useEffect(() => {
         if (!open) return;
-        const onPointerDown = (e: MouseEvent | TouchEvent) => {
+        const onDocClickCapture = (e: MouseEvent) => {
             const target = e.target as Node | null;
             if (!target) return;
             if (rootRef.current?.contains(target)) return;
+            e.stopPropagation();
+            e.preventDefault();
             setOpen(false);
         };
-        document.addEventListener("mousedown", onPointerDown);
-        document.addEventListener("touchstart", onPointerDown);
-        return () => {
-            document.removeEventListener("mousedown", onPointerDown);
-            document.removeEventListener("touchstart", onPointerDown);
-        };
+        document.addEventListener("click", onDocClickCapture, true);
+        return () => document.removeEventListener("click", onDocClickCapture, true);
     }, [open]);
 
     const handleSelect = useCallback((id: number) => {
+        setOpen(false);
+        // Re-selecting the current location would re-run the saga cascade
+        // (context → summary/day/week). We already have that data — skip.
+        if (id === selectedLocationId) return;
         localStorage.setItem(STORAGE_KEY, String(id));
         dispatch(setSelectedLocationAction(id));
-        setOpen(false);
-    }, [dispatch]);
+    }, [dispatch, selectedLocationId]);
 
     const selectedLocation = locations.find((l) => l.id === selectedLocationId);
     const showListContainer = listMounted && !isLoadingLocations && locations.length > 0;

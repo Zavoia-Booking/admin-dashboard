@@ -2,12 +2,10 @@ import { type FC, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { Plus, SlidersHorizontal } from "lucide-react";
-import type { SlimAppointment, CalendarBlockDto, Appointment } from "../../../../shared/types/calendar";
+import type { SlimAppointment, Appointment } from "../../../../shared/types/calendar";
 import {
   toggleEditFormAction,
   toggleAddForm,
-  setBlockFormEditingAction,
-  toggleBlockFormAction,
 } from "../../actions";
 import {
   useDayAppointmentList,
@@ -51,7 +49,7 @@ const MobileListSkeleton: FC = () => (
 );
 
 interface MobileDayListViewProps {
-  /** When provided, uses this data instead of the default day-mode hook. Used by MobileWeekView. */
+  /** When provided, uses this data instead of the default day-mode hook. Used by MobileMonthView. */
   data?: UseDayAppointmentListResult;
 }
 
@@ -90,14 +88,6 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
         overrideReason: appt.overrideReason,
       };
       dispatch(toggleEditFormAction({ open: true, item: placeholder }));
-    },
-    [dispatch],
-  );
-
-  const handleBlockClick = useCallback(
-    (block: CalendarBlockDto) => {
-      dispatch(setBlockFormEditingAction(block));
-      dispatch(toggleBlockFormAction(true));
     },
     [dispatch],
   );
@@ -149,7 +139,6 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
             block={item.data}
             locationStaff={locationStaff}
             timezone={timezone ?? undefined}
-            onClick={() => handleBlockClick(item.data)}
           />
         ),
       )}

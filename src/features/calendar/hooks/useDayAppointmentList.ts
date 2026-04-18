@@ -31,10 +31,9 @@ export interface UseDayAppointmentListResult {
 
 /**
  * Shared derivation used by all day-list consumers (desktop `AppointmentList`,
- * mobile `MobileDayListView`, mobile `MobileWeekView` via `useWeekDayFromWeekData`,
- * mobile `MobileMonthView` via its local fetch). Given raw appointments +
- * blocks, applies the staff filter, builds the color map, and returns the
- * merged sorted list.
+ * mobile `MobileDayListView`, mobile `MobileMonthView` via its local fetch).
+ * Given raw appointments + blocks, applies the staff filter, builds the color
+ * map, and returns the merged sorted list.
  *
  * Pure lift-and-shift of the original desktop logic — do not tweak behavior
  * here; desktop is the source of truth and has been tested in production.

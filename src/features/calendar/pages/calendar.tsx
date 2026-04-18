@@ -16,6 +16,7 @@ import {
   setSelectedDateAction,
   setScrollToNow,
   setDisplayedWeekAction,
+  setDisplayedMonthAction,
 } from "../actions";
 import { getAppointmentDetailRequest } from "../api";
 import {
@@ -30,8 +31,10 @@ import {
   getLocationTeamMembers,
   getSelectedDate,
   getDisplayedWeekStart,
+  getMonthViewDisplayStart,
 } from "../selectors.ts";
-import { getWeekStart } from "../utils.ts";
+import { getWeekStart, getWeekEnd } from "../utils.ts";
+import { getCalendarLocale } from "../timezone.ts";
 import { NotificationBell } from "../../../shared/components/common/NotificationBell";
 import { AppointmentViewMode } from "../types.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
@@ -62,32 +65,121 @@ const Calendar = () => {
   const dayFilters = useSelector(getDayFilters);
   const selectedDate = useSelector(getSelectedDate);
   const displayedWeekStart = useSelector(getDisplayedWeekStart);
+  const displayedMonthStart = useSelector(getMonthViewDisplayStart);
   const hasRefetchedOnEnter = useRef(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isMobile = useIsMobile();
   const { t } = useTranslation("calendar");
 
-  /* ── "Today" chip for mobile breadcrumb header ── */
-  const isOnCurrentWeek = useMemo(() => {
+  /* ── "Today" chip for mobile breadcrumb header ──
+   * True when tapping Today would be a no-op — i.e. selectedDate is already
+   * today AND the displayed period is current. In Month mode both must hold,
+   * so tapping Today from (current month, non-today selected) still selects
+   * today instead of short-circuiting. */
+  const isOnToday = useMemo(() => {
     const today = new Date();
-    const todayWeekStart = getWeekStart(today);
-    const currentWeekStart = displayedWeekStart ?? getWeekStart(selectedDate);
-    return (
-      todayWeekStart.getFullYear() === currentWeekStart.getFullYear() &&
-      todayWeekStart.getMonth() === currentWeekStart.getMonth() &&
-      todayWeekStart.getDate() === currentWeekStart.getDate()
-    );
-  }, [selectedDate, displayedWeekStart]);
+    const selectedIsToday = selectedDate.toDateString() === today.toDateString();
+    if (viewMode === AppointmentViewMode.DAY) {
+      return selectedIsToday;
+    }
+    if (viewMode === AppointmentViewMode.WEEK) {
+      const todayWeekStart = getWeekStart(today);
+      const currentWeekStart = displayedWeekStart ?? getWeekStart(selectedDate);
+      return (
+        selectedIsToday &&
+        todayWeekStart.getFullYear() === currentWeekStart.getFullYear() &&
+        todayWeekStart.getMonth() === currentWeekStart.getMonth() &&
+        todayWeekStart.getDate() === currentWeekStart.getDate()
+      );
+    }
+    if (viewMode === AppointmentViewMode.MONTH) {
+      const base = displayedMonthStart ?? selectedDate;
+      return (
+        selectedIsToday &&
+        base.getFullYear() === today.getFullYear() &&
+        base.getMonth() === today.getMonth()
+      );
+    }
+    return true;
+  }, [viewMode, selectedDate, displayedWeekStart, displayedMonthStart]);
 
   const handleToday = useCallback(() => {
+    if (isOnToday) {
+      // Already on today — give a confirmation pulse on the visible today pill
+      // (week strip in Day mode, month grid cell in Month mode). Apple-style
+      // feedback so the tap isn't silently ignored.
+      window.dispatchEvent(new CustomEvent("calendar:today-pulse"));
+      return;
+    }
+    const now = new Date();
     dispatch(setScrollToNow(true));
-    dispatch(setSelectedDateAction(new Date()));
-    dispatch(setDisplayedWeekAction(getWeekStart(new Date())));
-  }, [dispatch]);
+    dispatch(setSelectedDateAction(now));
+    dispatch(setDisplayedWeekAction(getWeekStart(now)));
+    dispatch(setDisplayedMonthAction(new Date(now.getFullYear(), now.getMonth(), 1)));
+  }, [dispatch, isOnToday]);
 
-  const showTodayChip = isMobile && !isOnCurrentWeek && (
-    viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK
-  );
+  /* Mobile header prev/next — DAY → ±1 day, MONTH → ±1 month. Mobile
+   * doesn't expose Week, so that branch is gone. */
+  const handleMobilePrev = useCallback(() => {
+    if (viewMode === AppointmentViewMode.MONTH) {
+      const base = displayedMonthStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const prev = new Date(base.getFullYear(), base.getMonth() - 1, 1);
+      dispatch(setDisplayedMonthAction(prev));
+      return;
+    }
+    const prev = new Date(selectedDate);
+    prev.setDate(prev.getDate() - 1);
+    dispatch(setSelectedDateAction(prev));
+  }, [dispatch, viewMode, displayedMonthStart, selectedDate]);
+
+  const handleMobileNext = useCallback(() => {
+    if (viewMode === AppointmentViewMode.MONTH) {
+      const base = displayedMonthStart ?? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1);
+      const next = new Date(base.getFullYear(), base.getMonth() + 1, 1);
+      dispatch(setDisplayedMonthAction(next));
+      return;
+    }
+    const next = new Date(selectedDate);
+    next.setDate(next.getDate() + 1);
+    dispatch(setSelectedDateAction(next));
+  }, [dispatch, viewMode, displayedMonthStart, selectedDate]);
+
+  // Always visible on mobile — `handleToday` is a no-op when already on today,
+  // so the button is harmless and removes the "why does it come and go?" confusion.
+  const showTodayChip = isMobile;
+
+  /* On mobile, replace the breadcrumb "Calendar" title with a context-aware
+   * title. Matches desktop `CalendarHeader` formatting for consistency:
+   *  DAY   → "Sat, 28 Mar 2026"
+   *  WEEK  → "23 – 29 Mar, 2026"  (or cross-month "28 Mar – 3 Apr, 2026")
+   *  MONTH → "March 2026" */
+  const mobileHeaderTitle = useMemo(() => {
+    if (!isMobile) return undefined;
+    const locale = getCalendarLocale();
+    if (viewMode === AppointmentViewMode.DAY) {
+      const weekday = selectedDate.toLocaleDateString(locale, { weekday: "short" });
+      const month = selectedDate.toLocaleDateString(locale, { month: "short" });
+      return `${weekday}, ${selectedDate.getDate()} ${month} ${selectedDate.getFullYear()}`;
+    }
+    if (viewMode === AppointmentViewMode.WEEK) {
+      const ws = displayedWeekStart ?? getWeekStart(selectedDate);
+      const we = getWeekEnd(ws);
+      const sameMonth = ws.getMonth() === we.getMonth();
+      const monthStr = ws.toLocaleDateString(locale, { month: "short" });
+      const endMonthStr = we.toLocaleDateString(locale, { month: "short" });
+      return sameMonth
+        ? `${ws.getDate()} – ${we.getDate()} ${monthStr}, ${we.getFullYear()}`
+        : `${ws.getDate()} ${monthStr} – ${we.getDate()} ${endMonthStr}, ${we.getFullYear()}`;
+    }
+    if (viewMode === AppointmentViewMode.MONTH) {
+      const monthDate = displayedMonthStart ?? selectedDate;
+      return monthDate.toLocaleDateString(locale, {
+        month: "long",
+        year: "numeric",
+      });
+    }
+    return undefined;
+  }, [isMobile, viewMode, displayedMonthStart, displayedWeekStart, selectedDate]);
 
   const mobileHeaderRight = isMobile ? (
     <div className="flex items-center gap-1">
@@ -110,13 +202,20 @@ const Calendar = () => {
 
   useEffect(() => {
     // Apply saved display preferences without triggering view-mode saga (avoids duplicate week/day/summary fetch when location selection runs next).
+    // Mobile doesn't expose Week — if the stored preference is Week (e.g. set on
+    // desktop), coerce to Day for rendering without mutating the stored value.
+    const storedViewMode = calendarPreferences.getDefaultViewMode();
+    const viewModeForHydration =
+      isMobile && storedViewMode === AppointmentViewMode.WEEK
+        ? AppointmentViewMode.DAY
+        : storedViewMode;
     dispatch(
       hydrateCalendarDisplayPreferencesAction({
-        viewMode: calendarPreferences.getDefaultViewMode(),
+        viewMode: viewModeForHydration,
         viewType: calendarPreferences.getDefaultViewType(),
       }),
     );
-  }, [dispatch]);
+  }, [dispatch, isMobile]);
 
   useEffect(() => {
     const appointmentIdParam = searchParams.get("appointmentId");
@@ -134,6 +233,7 @@ const Calendar = () => {
             dispatch,
             new Date(appointment.scheduledAt),
             store.getState().calendarView.viewMode,
+            store.getState().calendarView.selectedDate,
           );
           dispatch(toggleEditFormAction({ open: true, item: appointment }));
         }
@@ -221,7 +321,14 @@ const Calendar = () => {
   },[dispatch])
 
   return (
-    <AppLayout contentClassName="max-w-[2000px]" noPadding={isMobile} headerRightContent={mobileHeaderRight}>
+    <AppLayout
+      contentClassName="max-w-[2000px]"
+      noPadding={isMobile}
+      headerRightContent={mobileHeaderRight}
+      headerTitleOverride={mobileHeaderTitle}
+      headerPrevAction={isMobile ? handleMobilePrev : undefined}
+      headerNextAction={isMobile ? handleMobileNext : undefined}
+    >
       <BusinessSetupGate>
         <>
           {isMobile ? (

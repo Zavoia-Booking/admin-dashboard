@@ -72,6 +72,10 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
       direction="right"
       // Keep the backdrop dismissible; the rest of the a11y/escape handling is Vaul's default.
       dismissible
+      // Disable Vaul's built-in keyboard repositioning — it applies inline
+      // style.height and style.bottom on visualViewport resize, which fights
+      // with our CSS and causes cropping/gaps on Android WebView.
+      repositionInputs={false}
     >
       <VaulDrawer.Portal>
         {/* Backdrop */}

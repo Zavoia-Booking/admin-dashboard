@@ -694,7 +694,7 @@ export const WeekGrid: FC = () => {
                 key={day.toDateString()}
                 className="flex-1 min-w-[100px] cursor-pointer"
                 onDoubleClick={() => {
-                  dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
+                  dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK, selectedDate);
                 }}
               >
                 <div className="mx-1">
@@ -736,7 +736,7 @@ export const WeekGrid: FC = () => {
                 key={day.toDateString()}
                 className="flex-1 min-w-[100px] cursor-pointer"
                 onDoubleClick={() => {
-                  dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK);
+                  dispatchSelectDateAndDayView(dispatch, day, AppointmentViewMode.WEEK, selectedDate);
                 }}
               >
                 <div className="mx-1">

@@ -917,60 +917,79 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
             <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 py-3 dark:bg-background/50 md:px-6 md:py-4">
               {detailLoading ? (
                 <div className="space-y-4">
-                  {/* Skeleton: Update status card */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <Skeleton className="h-4 w-24 mb-3" />
+                  {/* Skeleton: Update status card — matches rounded-2xl p-3 md:p-5 real card */}
+                  <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
+                    <Skeleton className="h-4 w-28 mb-3" />
                     <div className="flex items-center gap-2">
                       <Skeleton className="h-8 w-32 rounded-full" />
                       <Skeleton className="h-8 w-24 rounded-full" />
                     </div>
                   </div>
-                  {/* Skeleton: Customer card */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-36" />
-                        <Skeleton className="h-3 w-48" />
+
+                  {/* Skeleton: Customer + details card — mirrors the real card's
+                      customer block (avatar + name + contacts) AND the key-value
+                      rows (date / time / notes / staff) inside a single card with
+                      divide-y rhythm, so total height matches the loaded state. */}
+                  <div className="rounded-2xl border border-border bg-white shadow-sm dark:bg-card">
+                    <div className="p-3 md:p-5">
+                      {/* Customer block: avatar + name + contact rows (~120px) */}
+                      <div className="border-b border-border-subtle pb-4">
+                        <div className="flex gap-4">
+                          <Skeleton className="h-11 w-11 shrink-0 rounded-full ring-1 ring-border-subtle" />
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-48" />
+                            <div className="flex items-center gap-2 pt-1">
+                              <Skeleton className="h-3 w-36" />
+                              <span className="h-3.5 w-px bg-border" aria-hidden />
+                              <Skeleton className="h-3 w-28" />
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <Skeleton className="h-6 w-28 rounded-full" />
-                    </div>
-                  </div>
-                  {/* Skeleton: Details card */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <div className="space-y-4 pt-1">
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-16" />
-                        <Skeleton className="h-3 w-36" />
-                      </div>
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-20" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-14" />
-                        <Skeleton className="h-3 w-44" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-3 w-24" />
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <Skeleton className="h-3 w-20" />
+                      {/* Key-value rows — matches the real <dl> divide-y text-sm.
+                          Uses py-3.5 per row to match loaded rhythm so nothing
+                          shifts when data arrives. */}
+                      <div className="divide-y divide-border-subtle text-sm">
+                        {[
+                          { label: "w-14", value: "w-48" },
+                          { label: "w-20", value: "w-40" },
+                          { label: "w-16", value: "w-56" },
+                        ].map((row, i) => (
+                          <div
+                            key={i}
+                            className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6"
+                          >
+                            <Skeleton className={`h-3.5 ${row.label} sm:mt-0.5`} />
+                            <Skeleton className={`h-4 ${row.value}`} />
+                          </div>
+                        ))}
+                        <div className="grid grid-cols-1 gap-2 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                          <Skeleton className="h-3.5 w-24 sm:mt-1" />
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-9 w-9 rounded-full" />
+                            <Skeleton className="h-4 w-28" />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  {/* Skeleton: Services accordion */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <Skeleton className="h-4 w-20 mb-3" />
+
+                  {/* Skeleton: Services accordion — matches real card padding/radius */}
+                  <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
+                    <Skeleton className="h-4 w-24 mb-3" />
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3.5 w-28" />
-                        <Skeleton className="h-3.5 w-16" />
-                      </div>
-                      <div className="flex justify-between border-t border-border pt-3">
-                        <Skeleton className="h-4 w-12" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Skeleton className="h-2 w-2 rounded-full" />
+                          <Skeleton className="h-4 w-40" />
+                        </div>
                         <Skeleton className="h-4 w-16" />
+                      </div>
+                      <Skeleton className="h-3 w-56" />
+                      <div className="flex items-center justify-between border-t border-border pt-3">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-20" />
                       </div>
                     </div>
                   </div>

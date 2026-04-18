@@ -4,32 +4,37 @@ import { getViewModeSelector, getViewTypeSelector } from "../../selectors";
 import { AppointmentViewMode, AppointmentViewType } from "../../types";
 import { MobileDayListView } from "./MobileDayListView";
 import { MobileDayTimeline } from "./MobileDayTimeline";
-import { MobileWeekView } from "./MobileWeekView";
 import { MobileMonthView } from "./MobileMonthView";
+import "./mobilePopoverSpring.css";
 
 /**
  * Routes to the correct mobile view based on viewMode + viewType.
  *
- * Phase 3: Day list
- * Phase 4: Day timeline (viewType === GRID)
- * Phase 5: Week view (list + timeline, data picked out of weekData for the selected day)
- * Phase 6: Month view
+ * Mobile exposes only Day and Month. `WEEK` can still land here from a
+ * desktop-set preference; we treat it as Day so the user sees a working
+ * screen (coercion also happens at hydration in `calendar.tsx`).
+ *
+ * The rendered view is keyed on mode so React remounts the wrapper on
+ * toggle — firing the enter animation via CSS. Month enters from above
+ * (the "overview" level); Day enters from below (the "zoomed-in" level).
+ * Compositor-only, respects `prefers-reduced-motion`.
  */
 export const MobileViewRouter: FC = () => {
   const viewMode = useSelector(getViewModeSelector);
   const viewType = useSelector(getViewTypeSelector);
 
-  if (viewMode === AppointmentViewMode.MONTH) {
-    return <MobileMonthView />;
-  }
+  const isMonth = viewMode === AppointmentViewMode.MONTH;
+  const enterClass = isMonth ? "mobile-view-enter-month" : "mobile-view-enter-day";
 
-  if (viewMode === AppointmentViewMode.WEEK) {
-    return <MobileWeekView />;
-  }
-
-  // DAY mode
-  if (viewType === AppointmentViewType.GRID) {
-    return <MobileDayTimeline />;
-  }
-  return <MobileDayListView />;
+  return (
+    <div key={isMonth ? "month" : "day"} className={`flex-1 min-h-0 ${enterClass}`}>
+      {isMonth ? (
+        <MobileMonthView />
+      ) : viewType === AppointmentViewType.GRID ? (
+        <MobileDayTimeline />
+      ) : (
+        <MobileDayListView />
+      )}
+    </div>
+  );
 };

@@ -9,6 +9,14 @@ export const toLocalDateString = (d: Date): string => {
     return `${y}-${String(m + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 };
 
+/** True if two dates fall on the same local calendar day. Null-safe. */
+export const isSameDay = (a: Date | null | undefined, b: Date | null | undefined): boolean => {
+    if (!a || !b) return false;
+    return a.getFullYear() === b.getFullYear()
+        && a.getMonth() === b.getMonth()
+        && a.getDate() === b.getDate();
+};
+
 /** Get Monday as start of week (Europe convention) */
 export const getWeekStart = (date: Date) => {
     const day = date.getDay(); // 0=Sun, 1=Mon, ...

@@ -80,65 +80,56 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
       }}
     >
       <div className="flex flex-col gap-1.5 px-3 py-2.5">
-        {/* Row 1: time + duration (left) · status badge + override (right) */}
-        <div className="flex items-center justify-between gap-2">
+        {/* Row 1: time range + duration · status pill */}
+        <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-baseline gap-1 min-w-0">
             <span className="text-xs font-medium text-foreground-1 tabular-nums">{timeRange}</span>
-            <span className="text-[11px] text-foreground-3 tabular-nums shrink-0">({duration})</span>
+            <span className="text-[11px] text-foreground-3 tabular-nums">({duration})</span>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            {getStatusBadge(appointment.status, t)}
-            {appointment.overrideReason && (
-              <span
-                className="inline-flex shrink-0"
-                title={`Override: ${appointment.overrideReason}`}
-                aria-label={`Override: ${appointment.overrideReason}`}
-              >
-                <ShieldAlert className="h-3.5 w-3.5 text-amber-500" aria-hidden />
-              </span>
-            )}
-          </div>
+          <span className="shrink-0">{getStatusBadge(appointment.status, t)}</span>
         </div>
 
-        {/* Row 2: customer name + optional group pill · notes below */}
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            {isGroupSegment && (
+        {/* Row 2: [group pill] · service name (truncate) */}
+        <div className="flex items-center gap-2 min-w-0">
+          {isGroupSegment && (
+            <span
+              className="inline-flex items-center gap-1 shrink-0 rounded-full border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-foreground-3"
+              title={`Booking ${order} of ${groupSize}`}
+            >
               <span
-                className="inline-flex items-center gap-1 shrink-0 rounded-full border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-foreground-3"
-                title={`Booking ${order} of ${groupSize}`}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full shrink-0 ring-1 ring-background"
-                  style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-                  aria-hidden
-                />
-                {order}/{groupSize}
-              </span>
-            )}
-            <span
-              className={cn(
-                "text-sm font-semibold truncate leading-tight",
-                hasCustomerName ? "capitalize text-foreground-1" : "text-muted-foreground",
-              )}
-            >
-              {customerName}
-            </span>
-          </div>
-          {notes && (
-            <span
-              className="text-[11px] leading-snug text-muted-foreground truncate"
-              title={notes}
-            >
-              {notes}
+                className="h-1.5 w-1.5 rounded-full shrink-0 ring-1 ring-background"
+                style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
+                aria-hidden
+              />
+              {order}/{groupSize}
             </span>
           )}
+          <span className="flex-1 min-w-0 text-sm font-semibold text-foreground-1 truncate leading-tight">
+            {appointment.bookedItemName}
+          </span>
         </div>
 
-        {/* Row 3: service name */}
-        <span className="text-xs text-foreground-3 truncate">{appointment.bookedItemName}</span>
+        {/* Row 3: customer name */}
+        <span
+          className={cn(
+            "text-sm truncate leading-tight",
+            hasCustomerName ? "capitalize text-foreground-1" : "text-muted-foreground italic",
+          )}
+        >
+          {customerName}
+        </span>
 
-        {/* Row 4: staff (left) · booked via (right) */}
+        {/* Row 5: notes (subtle, single-line with ellipsis) */}
+        {notes && (
+          <span
+            className="text-[11px] leading-snug text-muted-foreground truncate"
+            title={notes}
+          >
+            {notes}
+          </span>
+        )}
+
+        {/* Row 4: staff · booked via · override icon */}
         <div className="flex items-center justify-between gap-2 min-w-0">
           <div className="flex items-center gap-1.5 min-w-0">
             {hasAssignedStaff ? (
@@ -160,9 +151,20 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
               {staffLabel}
             </span>
           </div>
-          <span className="text-[11px] text-foreground-3 shrink-0 truncate max-w-[50%]">
-            {viaLabel}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] text-foreground-3 truncate max-w-[120px]">
+              {viaLabel}
+            </span>
+            {appointment.overrideReason && (
+              <span
+                className="inline-flex shrink-0"
+                title={`Override: ${appointment.overrideReason}`}
+                aria-label={`Override: ${appointment.overrideReason}`}
+              >
+                <ShieldAlert className="h-3.5 w-3.5 text-amber-500" aria-hidden />
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </button>

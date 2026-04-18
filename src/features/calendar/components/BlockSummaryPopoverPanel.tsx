@@ -11,6 +11,12 @@ import {
   DialogPortal,
   DialogTrigger,
 } from "../../../shared/components/ui/dialog.tsx";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+} from "../../../shared/components/ui/drawer.tsx";
+import { useIsMobile } from "../../../shared/hooks/use-mobile.ts";
 import { cn } from "../../../shared/lib/utils.ts";
 import type { CalendarBlockDto, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/components/ui/avatar.tsx";
@@ -333,6 +339,7 @@ export const BlockSummaryDialogShell: FC<BlockSummaryDialogShellProps> = ({
   ...panelProps
 }) => {
   const { t } = useTranslation("calendar");
+  const isMobile = useIsMobile();
   const blockFormOpen = useSelector(getBlockFormOpen);
   const locked = blockFormOpen || !!preventDismiss;
 
@@ -355,6 +362,28 @@ export const BlockSummaryDialogShell: FC<BlockSummaryDialogShellProps> = ({
     (e: Event) => { if (locked) e.preventDefault(); },
     [locked],
   );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
+        <DrawerContent
+          onPointerDownOutside={preventWhenLocked}
+          onInteractOutside={preventWhenLocked}
+          onEscapeKeyDown={preventWhenLocked}
+          className={cn(
+            "z-[70] max-h-[92vh] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
+            BLOCK_SUMMARY_PANEL_CURSOR,
+          )}
+          overlayClassName="z-[70]"
+          aria-describedby={undefined}
+        >
+          <DialogPrimitive.Title className="sr-only">{t("page.blocks.blockDetails")}</DialogPrimitive.Title>
+          <BlockSummaryPopoverPanel {...panelProps} />
+        </DrawerContent>
+      </Drawer>
+    );
+  }
 
   return (
     <Dialog open={open} modal={false} onOpenChange={handleOpenChange}>

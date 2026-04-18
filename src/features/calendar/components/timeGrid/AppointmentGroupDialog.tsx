@@ -14,7 +14,7 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton.tsx";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider.tsx";
 import { blockSummaryDialogContentClassName } from "../BlockSummaryPopoverPanel.tsx";
 import { toggleEditFormAction } from "../../actions.ts";
-import { getEditFormSelector } from "../../selectors.ts";
+import { getEditFormSelector, getSelectedDate } from "../../selectors.ts";
 import { dispatchSelectDateAndDayView } from "../../selectDateAndDayViewDispatch.ts";
 import { AppointmentViewMode } from "../../types.ts";
 import { formatTimeRange, getStaffDisplayNames, getBookingSourceLabel, getBookingSourcePillParts } from "../utils.tsx";
@@ -64,6 +64,7 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
   const { t } = useTranslation("calendar");
   const dispatch = useDispatch();
   const editForm = useSelector(getEditFormSelector);
+  const selectedDate = useSelector(getSelectedDate);
   const [internalOpen, setInternalOpen] = useState(false);
   const [closingControlled, setClosingControlled] = useState(false);
   const isControlled = externalOpen !== undefined;
@@ -340,7 +341,7 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
               className="group w-full inline-flex items-center justify-center gap-1.5 text-xs font-medium"
               onClick={() => {
                 setOpen(false);
-                dispatchSelectDateAndDayView(dispatch, day, calendarViewMode);
+                dispatchSelectDateAndDayView(dispatch, day, calendarViewMode, selectedDate);
               }}
             >
               View day

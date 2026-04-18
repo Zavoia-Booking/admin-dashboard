@@ -27,9 +27,9 @@ export const WeekDayStrip: FC<WeekDayStripProps> = ({ gutterWidth }) => {
 
   const handleDayClick = useCallback(
     (day: Date) => {
-      dispatchSelectDateAndDayView(dispatch, day, viewMode);
+      dispatchSelectDateAndDayView(dispatch, day, viewMode, selectedDate);
     },
-    [dispatch, viewMode],
+    [dispatch, viewMode, selectedDate],
   );
 
   const selectedStr = selectedDate.toDateString();

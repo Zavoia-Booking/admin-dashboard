@@ -121,13 +121,7 @@ export const MiniMonthCalendar: FC = () => {
 
   const handleDayClick = useCallback(
     (day: Date) => {
-      if (
-        viewMode === AppointmentViewMode.DAY &&
-        day.getFullYear() === selectedDate.getFullYear() &&
-        day.getMonth() === selectedDate.getMonth() &&
-        day.getDate() === selectedDate.getDate()
-      ) return;
-      dispatchSelectDateAndDayView(dispatch, day, viewMode);
+      dispatchSelectDateAndDayView(dispatch, day, viewMode, selectedDate);
     },
     [dispatch, viewMode, selectedDate],
   );

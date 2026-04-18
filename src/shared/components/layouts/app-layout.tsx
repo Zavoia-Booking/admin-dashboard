@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MobileBottomNav } from '../navigation/mobile-bottom-nav';
 import { AppSidebar } from '../navigation/app-sidebar';
 import { SidebarInset, SidebarProvider } from '../ui/sidebar';
@@ -22,11 +23,18 @@ interface AppLayoutProps {
    */
   tabbedPage?: boolean;
   noPadding?: boolean;
+  /** Optional override for the breadcrumb header title (mobile). */
+  headerTitleOverride?: string;
+  /** Optional page-scoped prev/next handlers — render as muted chevrons next to
+   *  the breadcrumb title (mobile). Used by the calendar page for day/week/month nav. */
+  headerPrevAction?: () => void;
+  headerNextAction?: () => void;
 }
 
-export function AppLayout({ children, contentClassName, headerRightContent, noPadding, tabbedPage }: AppLayoutProps) {
+export function AppLayout({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerPrevAction, headerNextAction }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
+  const location = useLocation();
 
   useEffect(() => {
     // remove the inline background colors set in index.html
@@ -50,10 +58,19 @@ export function AppLayout({ children, contentClassName, headerRightContent, noPa
                 className="sticky top-0 z-30 md:hidden bg-surface"
                 style={{ paddingTop: "env(safe-area-inset-top)" }}
               >
-                <Breadcrumbs items={breadcrumbs} rightContent={headerRightContent} />
+                <Breadcrumbs
+                  items={breadcrumbs}
+                  rightContent={headerRightContent}
+                  titleOverride={headerTitleOverride}
+                  onPrev={headerPrevAction}
+                  onNext={headerNextAction}
+                />
               </div>
               {!tabbedPage && <LimitedAccessBanner />}
-              <div className={noPadding ? '' : 'px-2 py-4 md:px-4'}>
+              <div
+                key={isMobile ? location.pathname : undefined}
+                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${isMobile ? 'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:[animation-duration:200ms]' : ''}`}
+              >
                 {children}
               </div>
             </div>

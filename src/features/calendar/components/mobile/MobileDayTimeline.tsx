@@ -13,10 +13,7 @@ import {
   toggleBlockFormAction,
   setScrollToNow,
 } from "../../actions";
-import {
-  useDayAppointmentList,
-  type UseDayAppointmentListResult,
-} from "../../hooks/useDayAppointmentList";
+import { useDayAppointmentList } from "../../hooks/useDayAppointmentList";
 import {
   useDayTimelineData,
   type UseDayTimelineDataResult,
@@ -49,12 +46,7 @@ import { cn } from "../../../../shared/lib/utils";
 
 const MOBILE_HEADER_OFFSET = 0;
 
-interface MobileDayTimelineProps {
-  /** When provided, uses this data instead of the default day-mode hook. Used by MobileWeekView. */
-  data?: UseDayAppointmentListResult;
-}
-
-export const MobileDayTimeline: FC<MobileDayTimelineProps> = ({ data }) => {
+export const MobileDayTimeline: FC = () => {
   const dispatch = useDispatch();
   const { t } = useTranslation("calendar");
   const scrollToNow = useSelector(getScrollToNow);
@@ -62,8 +54,7 @@ export const MobileDayTimeline: FC<MobileDayTimelineProps> = ({ data }) => {
     hourHeight: MOBILE_GRID_HEIGHT_PER_HOUR,
     headerOffset: MOBILE_HEADER_OFFSET,
   });
-  const dayData = useDayAppointmentList();
-  const list = data ?? dayData;
+  const list = useDayAppointmentList();
 
   const containerRef = useRef<HTMLDivElement>(null);
 

@@ -101,7 +101,7 @@ const SummaryGrid: FC = () => {
   const handleDayClick = useCallback(
     async (day: Date, hasItems: boolean) => {
       if (!hasItems) {
-        dispatchSelectDateAndDayView(dispatch, day, viewMode);
+        dispatchSelectDateAndDayView(dispatch, day, viewMode, selectedDate);
         return;
       }
       // Fetch full day data and open dialog
@@ -112,13 +112,13 @@ const SummaryGrid: FC = () => {
         const data = await getDayDataRequest(selectedLocationId!, dateKey, dayFilters);
         setPreviewDay({ day, appointments: data.appointments, blocks: data.blocks });
       } catch {
-        dispatchSelectDateAndDayView(dispatch, day, viewMode);
+        dispatchSelectDateAndDayView(dispatch, day, viewMode, selectedDate);
         setPreviewDay(null);
       } finally {
         setPreviewLoading(false);
       }
     },
-    [dispatch, viewMode, calendarTimezone, selectedLocationId, dayFilters],
+    [dispatch, viewMode, selectedDate, calendarTimezone, selectedLocationId, dayFilters],
   );
 
   const dayCells = useMemo(

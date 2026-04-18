@@ -1,4 +1,5 @@
-import { type FC, useCallback, useRef, useState } from "react";
+import { type FC, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -20,7 +21,6 @@ import { AppointmentViewMode, AppointmentViewType } from "../../types";
 import { Button } from "../../../../shared/components/ui/button";
 import {
   CalendarPlus,
-  Columns3,
   GalleryVertical,
   Grid3x2,
   LayoutGrid,
@@ -56,11 +56,35 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
 
   const hasCustomerFilter = dayFilters.customerId != null;
 
-  // View mode and plus menu inline expansion (mutually exclusive)
-  const [viewModeExpanded, setViewModeExpanded] = useState(false);
+  // Plus menu inline expansion (view mode is a direct Day↔Month toggle, not a menu)
   const [plusMenuExpanded, setPlusMenuExpanded] = useState(false);
   const hasExpandedOnce = useRef(false);
-  if (viewModeExpanded || plusMenuExpanded) hasExpandedOnce.current = true;
+  const isExpanded = plusMenuExpanded;
+  if (isExpanded) hasExpandedOnce.current = true;
+
+  const morphContainerRef = useRef<HTMLDivElement>(null);
+  const closeAll = useCallback(() => {
+    setPlusMenuExpanded(false);
+  }, []);
+
+  /* Outside-tap → close AND swallow the tap. We can't rely on a fixed
+   * backdrop here: the header wrapper uses `transform` for scroll-collapse,
+   * which turns its subtree into a new containing block — any `fixed`
+   * element inside positions relative to the header, not the viewport,
+   * leaving the rest of the page hit-testable. */
+  useEffect(() => {
+    if (!isExpanded) return;
+    const onDocClickCapture = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (morphContainerRef.current?.contains(target)) return;
+      e.stopPropagation();
+      e.preventDefault();
+      closeAll();
+    };
+    document.addEventListener("click", onDocClickCapture, true);
+    return () => document.removeEventListener("click", onDocClickCapture, true);
+  }, [isExpanded, closeAll]);
 
   // Customer search — mounted/visible split for enter/exit animations
   const [customerSearchMounted, setCustomerSearchMounted] = useState(false);
@@ -120,13 +144,15 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
   // Filter drawer state
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const handleSetMode = useCallback(
-    (mode: AppointmentViewMode) => {
-      if (mode === viewMode) return;
-      dispatch(setViewModeAction(mode));
-    },
-    [dispatch, viewMode],
-  );
+  const handleToggleViewMode = useCallback(() => {
+    dispatch(
+      setViewModeAction(
+        viewMode === AppointmentViewMode.MONTH
+          ? AppointmentViewMode.DAY
+          : AppointmentViewMode.MONTH,
+      ),
+    );
+  }, [dispatch, viewMode]);
 
   const handleToggleViewType = useCallback(() => {
     const next =
@@ -158,15 +184,12 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
 
         {/* Actions container — morphs between icon row / view mode list / plus menu */}
         {(() => {
-          const isExpanded = viewModeExpanded || plusMenuExpanded;
-          const closeAll = () => { setViewModeExpanded(false); setPlusMenuExpanded(false); };
-
           // Build plus menu items
           const plusItems: { icon: typeof Plus; label: string; onClick: () => void; primary?: boolean; badge?: number }[] = [
             { icon: CalendarPlus, label: t("page.header.addEvent"), onClick: () => { handleOpenAddForm(); closeAll(); }, primary: true },
             { icon: ShieldBan, label: t("page.header.block"), onClick: () => { handleOpenBlockForm(); closeAll(); } },
             { icon: SlidersHorizontal, label: t("page.header.filters"), onClick: () => { closeAll(); setTimeout(() => setFiltersOpen(true), 150); }, badge: activeFiltersCount > 0 ? activeFiltersCount : undefined },
-            ...((viewMode === AppointmentViewMode.DAY || viewMode === AppointmentViewMode.WEEK) ? [{
+            ...(viewMode === AppointmentViewMode.DAY ? [{
               icon: viewType === AppointmentViewType.GRID ? List : LayoutGrid,
               label: viewType === AppointmentViewType.GRID ? t("page.header.switchToList") : t("page.header.switchToGrid"),
               onClick: () => { handleToggleViewType(); closeAll(); },
@@ -177,6 +200,7 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
           return (
             <>
               <div
+                ref={morphContainerRef}
                 className={`rounded-2xl border border-border z-20 min-w-[132px] transition-[background-color,box-shadow] duration-200 mobile-morph-container ${
                   isExpanded
                     ? "overflow-hidden self-start mt-1 bg-white dark:bg-surface shadow-lg mobile-morph-expanded"
@@ -191,18 +215,18 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                 <div className={`flex items-center justify-center gap-0 transition-all duration-100 ${
                   isExpanded ? "h-0 opacity-0 pointer-events-none overflow-hidden" : "opacity-100 overflow-visible"
                 }`}>
+                  {/* Direct Day ↔ Month toggle — the icon shows the CURRENT
+                   *  mode, and tapping flips to the other. No menu on mobile. */}
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0 group"
-                    onClick={() => { setPlusMenuExpanded(false); setViewModeExpanded(true); }}
+                    onClick={handleToggleViewMode}
                   >
-                    {viewMode === AppointmentViewMode.DAY ? (
-                      <GalleryVertical className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
-                    ) : viewMode === AppointmentViewMode.WEEK ? (
-                      <Columns3 className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
-                    ) : (
+                    {viewMode === AppointmentViewMode.MONTH ? (
                       <Grid3x2 className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
+                    ) : (
+                      <GalleryVertical className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
                     )}
                   </Button>
 
@@ -224,7 +248,7 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0 relative overflow-visible"
-                    onClick={() => { setViewModeExpanded(false); setPlusMenuExpanded(true); }}
+                    onClick={() => setPlusMenuExpanded(true)}
                   >
                     <Plus className="!h-6 !w-6 text-primary" />
                     {activeFiltersCount > 0 && (
@@ -234,36 +258,6 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                     )}
                   </Button>
                 </div>
-
-                {/* View mode list */}
-                {viewModeExpanded && <div className="overflow-hidden view-mode-list-enter">
-                  <div className="p-1">
-                    {(
-                      [
-                        [AppointmentViewMode.DAY, t("page.header.day"), GalleryVertical],
-                        [AppointmentViewMode.WEEK, t("page.header.week"), Columns3],
-                        [AppointmentViewMode.MONTH, t("page.header.month"), Grid3x2],
-                      ] as const
-                    ).map(([mode, label, Icon], index) => (
-                      <button
-                        key={mode}
-                        onClick={() => {
-                          handleSetMode(mode);
-                          closeAll();
-                        }}
-                        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm outline-none cursor-pointer whitespace-nowrap
-                          transition-transform duration-150 active:scale-[0.97]
-                          ${viewModeExpanded ? "view-mode-item-stagger" : ""}`}
-                        style={viewModeExpanded ? { animationDelay: `${index * 30}ms` } : undefined}
-                      >
-                        <Icon className={`h-6 w-6 shrink-0 ${viewMode === mode ? "text-primary" : "text-muted-foreground"}`} />
-                        <span className={viewMode === mode ? "font-medium text-foreground" : "text-muted-foreground"}>
-                          {label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>}
 
                 {/* Plus menu list */}
                 {plusMenuExpanded && <div className="overflow-hidden view-mode-list-enter">
@@ -290,17 +284,17 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                 </div>}
               </div>
 
-              {/* Backdrop to dismiss */}
-              {isExpanded && (
-                <div className="fixed inset-0 z-10" onClick={closeAll} />
-              )}
             </>
           );
         })()}
       </div>
 
-      {/* Customer search — fullscreen overlay */}
-      {customerSearchMounted && (
+      {/* Customer search — fullscreen overlay. Portaled to document.body so
+       *  `fixed inset-0` actually covers the viewport: the layout's header
+       *  wrapper uses `transform` for scroll-collapse, which makes it the
+       *  containing block for any `fixed` descendant and would otherwise
+       *  shrink this overlay to the header strip. */}
+      {customerSearchMounted && createPortal(
         <div className="fixed inset-0 z-[90] flex flex-col">
           {/* Backdrop */}
           <div
@@ -367,7 +361,8 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
               );
             })()}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Filter drawer — controlled, no trigger, opens after dropdown unmounts */}

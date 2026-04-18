@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
+import { type FC, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   getSelectedDate,
@@ -7,17 +7,13 @@ import {
   getCalendarTimezone,
 } from "../../selectors";
 import { setSelectedDateAction, setDisplayedWeekAction } from "../../actions";
-import { getWeekStart, getWeekDays } from "../../utils";
+import { getWeekStart, getWeekDays, isSameDay } from "../../utils";
 import { formatDateInTimezone, getCalendarLocale } from "../../timezone";
 import { DayMarkerGlyph } from "../MiniMonthCalendar";
 import { dayMarkerFromSummary } from "../dayMarker";
 import { cn } from "../../../../shared/lib/utils";
 
-export interface MobileWeekStripHandle {
-  navigateWeek: (dir: 1 | -1) => void;
-}
-
-export const MobileWeekStrip = forwardRef<MobileWeekStripHandle>((_, ref) => {
+export const MobileWeekStrip: FC = () => {
   const dispatch = useDispatch();
   const selectedDate = useSelector(getSelectedDate);
   const displayedWeekStart = useSelector(getDisplayedWeekStart);
@@ -48,16 +44,34 @@ export const MobileWeekStrip = forwardRef<MobileWeekStripHandle>((_, ref) => {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isRecentering = useRef(false);
+  const selectedPillRef = useRef<HTMLDivElement>(null);
 
-  /* ── Expose navigateWeek so content area swipe can trigger it ── */
-  useImperativeHandle(ref, () => ({
-    navigateWeek: (dir: 1 | -1) => {
-      const el = scrollRef.current;
-      if (!el || isRecentering.current) return;
-      const target = dir === 1 ? el.offsetWidth * 2 : 0;
-      el.scrollTo({ left: target, behavior: "smooth" });
-    },
-  }));
+  /* ── Pulse helper: restart the CSS animation by removing/reflowing/re-adding ── */
+  const pulseSelected = useCallback(() => {
+    const el = selectedPillRef.current;
+    if (!el) return;
+    el.classList.remove("mobile-selected-pulse");
+    void el.offsetWidth;
+    el.classList.add("mobile-selected-pulse");
+  }, []);
+
+  /* Pulse on every selectedDate change (skip the initial mount) — covers
+   * day-tap and the non-idempotent Today case where selection actually moves. */
+  const isFirstSelectedDateRender = useRef(true);
+  useEffect(() => {
+    if (isFirstSelectedDateRender.current) {
+      isFirstSelectedDateRender.current = false;
+      return;
+    }
+    pulseSelected();
+  }, [selectedDate, pulseSelected]);
+
+  /* Idempotent case: Today tapped while already on today (no state change) —
+   * handled via an explicit event since no useEffect dep changed. */
+  useEffect(() => {
+    window.addEventListener("calendar:today-pulse", pulseSelected);
+    return () => window.removeEventListener("calendar:today-pulse", pulseSelected);
+  }, [pulseSelected]);
 
   /* ── Stable navigate ref for async scroll listeners ── */
   const navRef = useRef<(dir: 1 | -1) => void>(() => {});
@@ -129,9 +143,10 @@ export const MobileWeekStrip = forwardRef<MobileWeekStripHandle>((_, ref) => {
   /* ── Day tap ── */
   const handleDayTap = useCallback(
     (day: Date) => {
+      if (isSameDay(day, selectedDate)) return;
       dispatch(setSelectedDateAction(day));
     },
-    [dispatch],
+    [dispatch, selectedDate],
   );
 
   /* ── Day abbreviations ── */
@@ -166,6 +181,7 @@ export const MobileWeekStrip = forwardRef<MobileWeekStripHandle>((_, ref) => {
           {abbreviation}
         </span>
         <div
+          ref={isSelected ? selectedPillRef : undefined}
           className={cn(
             "flex items-center justify-center w-9 h-9 rounded-full transition-colors duration-150",
             isSelected ? "bg-primary text-primary-foreground" : isToday ? "bg-primary/12 text-primary" : "text-foreground",
@@ -195,4 +211,4 @@ export const MobileWeekStrip = forwardRef<MobileWeekStripHandle>((_, ref) => {
       <div className={panelClass}>{nextDays.map((d, i) => renderDay(d, nextAbbrevs[i]))}</div>
     </div>
   );
-});
+};
