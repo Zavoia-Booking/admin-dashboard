@@ -3,6 +3,8 @@ export interface Industry {
   name: string;
 }
 
+export type BillingEntityType = 'company' | 'person';
+
 export interface Business {
   id: number;
   uuid: string;
@@ -41,6 +43,36 @@ export interface UpdateBusinessDTO {
   websiteUrl?: string;
   pinterestUrl?: string;
   industryId?: number;
+}
+
+export interface BillingDetailsSuggestions {
+  businessName: string | null;
+  countryCode: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}
+
+export interface BillingDetails {
+  billingEntityType: BillingEntityType | null;
+  legalName: string | null;
+  fiscalCode: string | null;
+  registrationNumber: string | null;
+  billingAddress: string | null;
+  billingCity: string | null;
+  billingCounty: string | null;
+  billingCountryCode: string | null;
+  suggestions: BillingDetailsSuggestions;
+}
+
+export interface UpdateBillingDetailsDTO {
+  billingEntityType: BillingEntityType;
+  legalName: string;
+  billingAddress: string;
+  billingCity: string;
+  billingCounty: string;
+  billingCountryCode: string;
+  fiscalCode?: string;
+  registrationNumber?: string;
 }
 
 export interface BusinessState {

@@ -24,10 +24,14 @@ import {
 } from '../selectors';
 import { loadStripe } from '@stripe/stripe-js';
 import SmsCredits from './SmsCredits';
+import InvoiceBillingDetails from './InvoiceBillingDetails';
+import { BillingDetailsProvider } from '../context/BillingDetailsProvider';
+import { useBillingDetailsContext } from '../context/BillingDetailsContext';
 
-const BillingAndSubscription = () => {
+const BillingAndSubscriptionInner = () => {
   const { t } = useTranslation('settings');
   const dispatch = useDispatch();
+  const { ensureConfigured } = useBillingDetailsContext();
   const currentUser = useSelector(selectCurrentUser);
   const subscriptionSummary = useSelector(selectSubscriptionSummary);
   const loading = useSelector(selectIsLoadingSubscriptionSummary);
@@ -90,6 +94,8 @@ const BillingAndSubscription = () => {
   };
 
   const handleRenewSubscription = async () => {
+    if (!ensureConfigured()) return;
+
     // Confirmation before creating a new subscription
     const base = subscriptionSummary?.basePlanPrice || 0;
     const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
@@ -152,6 +158,7 @@ const BillingAndSubscription = () => {
 
     // Handle first-time seat purchase for LTD user
     if (ltdHasNoSeats) {
+      if (!ensureConfigured()) return;
       setUpdatingSeats(true);
       try {
         const response = await createLtdSeatsCheckoutSession({
@@ -178,6 +185,8 @@ const BillingAndSubscription = () => {
     const isExpiredTrial = currentUser?.entitlements?.status === 'expired' || currentUser?.entitlements?.status === 'no_subscription';
 
     if (isTrial || isExpiredTrial) {
+      if (!ensureConfigured()) return;
+
       // Ask for confirmation before starting subscription from trial/expired trial
       const base = subscriptionSummary?.basePlanPrice || 0;
       const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
@@ -224,6 +233,8 @@ const BillingAndSubscription = () => {
       const pricePerSeat = subscriptionSummary?.pricePerTeamMember || 0;
       const isAdding = delta > 0;
       const additionalCost = isAdding ? delta * pricePerSeat : 0;
+
+      if (isAdding && !ensureConfigured()) return;
 
       setIsConfirming(true);
       const confirmed = await confirm({
@@ -1026,10 +1037,19 @@ const BillingAndSubscription = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Invoice Billing Details */}
+          <InvoiceBillingDetails />
         </>
       )}
     </div>
   );
 };
+
+const BillingAndSubscription = () => (
+  <BillingDetailsProvider>
+    <BillingAndSubscriptionInner />
+  </BillingDetailsProvider>
+);
 
 export default BillingAndSubscription;

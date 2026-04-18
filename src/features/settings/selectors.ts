@@ -25,3 +25,9 @@ export const selectIsSmsBalanceLoading = (s: { settings: SettingsState }) => s.s
 export const selectIsSmsPackagesLoading = (s: { settings: SettingsState }) => s.settings.smsIsLoading.packages;
 export const selectIsSmsCheckoutLoading = (s: { settings: SettingsState }) => s.settings.smsIsLoading.checkout;
 export const selectIsSmsPurchasesLoading = (s: { settings: SettingsState }) => s.settings.smsIsLoading.purchases;
+
+// Business Invoices Selectors
+export const selectBusinessInvoices = (s: { settings: SettingsState }) => s.settings.invoices;
+export const selectBusinessInvoicesHasMore = (s: { settings: SettingsState }) => s.settings.invoicesHasMore;
+export const selectBusinessInvoicesNextCursor = (s: { settings: SettingsState }) => s.settings.invoicesNextCursor;
+export const selectIsLoadingBusinessInvoices = (s: { settings: SettingsState }) => s.settings.isLoading.invoices;

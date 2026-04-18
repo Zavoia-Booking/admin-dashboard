@@ -12,6 +12,7 @@ import {
   createSmsCheckoutAction,
   getSmsPurchasesAction,
   clearSmsErrorAction,
+  getBusinessInvoicesAction,
 } from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { SettingsState } from "./types";
@@ -27,6 +28,7 @@ const initialState: SettingsState = {
     customerPortal: false,
     modifySubscription: false,
     cancelRemoval: false,
+    invoices: false,
   },
   // SMS State
   smsBalance: null,
@@ -41,6 +43,10 @@ const initialState: SettingsState = {
     checkout: false,
     purchases: false,
   },
+  // Invoices
+  invoices: [],
+  invoicesHasMore: false,
+  invoicesNextCursor: null,
 };
 
 export default function settingsReducer(state: SettingsState = initialState, action: any) {
@@ -270,6 +276,32 @@ export default function settingsReducer(state: SettingsState = initialState, act
       return {
         ...state,
         smsError: null,
+      };
+
+    // Business Invoices
+    case getType(getBusinessInvoicesAction.request):
+      return {
+        ...state,
+        isLoading: { ...state.isLoading, invoices: true },
+        error: null,
+      };
+
+    case getType(getBusinessInvoicesAction.success):
+      return {
+        ...state,
+        invoices: action.payload.append
+          ? [...state.invoices, ...action.payload.invoices]
+          : action.payload.invoices,
+        invoicesHasMore: action.payload.hasMore,
+        invoicesNextCursor: action.payload.nextCursor ?? null,
+        isLoading: { ...state.isLoading, invoices: false },
+      };
+
+    case getType(getBusinessInvoicesAction.failure):
+      return {
+        ...state,
+        isLoading: { ...state.isLoading, invoices: false },
+        error: action.payload.message,
       };
 
     default:

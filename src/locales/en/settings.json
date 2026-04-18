@@ -18,7 +18,7 @@
   "profile": {
     "basicInfo": {
       "title": "Basic Information",
-      "description": "Essential details about your business",
+      "description": "Business Description",
       "logo": "Business Logo",
       "logoDescription": "Your logo appears on your booking page and communications",
       "uploading": "Uploading...",
@@ -31,7 +31,6 @@
       "industryWarning1": "If you have an active marketplace listing, it will be temporarily set to invisible.",
       "industryWarning2": "After you save this change, go to your marketplace listing to update your industry categories and make it visible again.",
       "industryWarning3": "This keeps your business from showing in the wrong category and helps customers find you more easily.",
-      "description": "Business Description",
       "descriptionPlaceholder": "Tell your clients about your business...",
       "currency": "Default Pricing Currency *",
       "currencyDescription": "Choose your default currency for pricing"
@@ -231,6 +230,38 @@
       "abortPayment": "Cancel Payment",
       "aborted": "Payment cancelled. You can now make new seat changes.",
       "retrying": "Processing..."
+    },
+    "invoiceDetails": {
+      "title": "Invoice billing details",
+      "description": "Used to generate your invoices. Make sure the information is accurate.",
+      "unconfiguredHint": "You haven't set up invoice details yet. Pick whether you invoice as a company or an individual, then fill in the fields below.",
+      "entityTypeLabel": "Invoice as",
+      "company": "Company",
+      "person": "Individual",
+      "companyHint": "Your invoices will be issued to a legal entity with a fiscal code (CUI).",
+      "personHint": "Your invoices will be issued to you as an individual with your full name and address.",
+      "legalNameCompany": "Company legal name",
+      "legalNameCompanyPlaceholder": "e.g. Acme Studio SRL",
+      "legalNamePerson": "Full name",
+      "legalNamePersonPlaceholder": "e.g. Ana Ionescu",
+      "fiscalCode": "Fiscal code (CUI)",
+      "fiscalCodePlaceholder": "e.g. RO12345678",
+      "registrationNumber": "Trade register number",
+      "registrationNumberPlaceholder": "e.g. J40/1234/2020",
+      "address": "Address",
+      "addressPlaceholder": "Street, number, bl., sc., ap.",
+      "city": "City",
+      "cityPlaceholder": "e.g. Bucharest",
+      "county": "County",
+      "countyPlaceholder": "e.g. Ilfov",
+      "countryCode": "Country (ISO code)",
+      "countryCodePlaceholder": "RO",
+      "saveButton": "Save billing details",
+      "toastSuccess": "Billing details saved",
+      "toastFailure": "Failed to save billing details",
+      "loadFailure": "Failed to load billing details",
+      "mustConfigureBeforePaying": "Please fill in your invoice billing details before paying.",
+      "addressPlaceholderRo": "Stradă, număr, sector"
     }
   },
   "sms": {
@@ -246,10 +277,17 @@
     "noPackages": "No packages available",
     "checkBackSoon": "Check back soon",
     "trialRestriction": "SMS is not available during trial",
-    "trialRestrictionDescription": "Sending SMS reminders and notifications is a paid subscription feature. Upgrade your plan to purchase SMS credits.",
+    "trialRestrictionDescription": "Sending SMS reminders is a premium functionality. Manage your plan for better access.",
     "purchaseHistory": "Purchase history",
     "loadMore": "Load more",
-    "noPurchases": "No purchases yet"
+    "noPurchases": "No purchases yet",
+    "noInvoices": "No invoices yet",
+    "viewInvoice": "View",
+    "invoiceType": {
+      "subscription": "Subscription",
+      "smsPurchase": "SMS credits",
+      "ltdSeats": "Lifetime seats"
+    }
   },
   "businessSetupGate": {
     "title": "Complete Your Business Setup",

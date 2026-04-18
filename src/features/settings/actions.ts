@@ -1,13 +1,14 @@
 import { createAsyncAction, createAction } from "typesafe-actions";
-import type { 
-  SubscriptionSummary, 
-  CheckoutPayload, 
+import type {
+  SubscriptionSummary,
+  CheckoutPayload,
   CheckoutResponse,
   BusinessSmsInfo,
   SmsPackage,
   SmsPurchase,
   SmsCheckoutPayload,
   SmsCheckoutResponse,
+  BusinessInvoice,
 } from "./types";
 
 // Pricing Summary Actions
@@ -76,3 +77,10 @@ export const getSmsPurchasesAction = createAsyncAction(
 )<{ limit?: number; cursor?: number } | void, { purchases: SmsPurchase[]; hasMore: boolean; nextCursor?: number }, { message: string }>();
 
 export const clearSmsErrorAction = createAction('settings/CLEAR_SMS_ERROR')();
+
+// Business Invoices (Oblio) Actions
+export const getBusinessInvoicesAction = createAsyncAction(
+  'settings/GET_BUSINESS_INVOICES_REQUEST',
+  'settings/GET_BUSINESS_INVOICES_SUCCESS',
+  'settings/GET_BUSINESS_INVOICES_FAILURE',
+)<{ limit?: number; cursor?: number } | void, { invoices: BusinessInvoice[]; hasMore: boolean; nextCursor?: number; append: boolean }, { message: string }>();

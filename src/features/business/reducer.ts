@@ -37,7 +37,7 @@ export default function businessReducer(
     
     case getType(updateBusinessAction.failure):
       return { ...state, isUpdating: false, updateError: action.payload.message };
-    
+
     default:
       return state;
   }

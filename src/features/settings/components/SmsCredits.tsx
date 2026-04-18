@@ -1,34 +1,36 @@
 import { useEffect, useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { 
-  MessageSquare, 
-  Loader2, 
-  ChevronDown, 
+import {
+  MessageSquare,
+  Loader2,
+  ChevronDown,
   History,
   Zap,
-  Check
+  ExternalLink,
+  FileText,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';
 import { Info } from 'lucide-react';
 import {
   createSmsCheckoutAction,
-  getSmsPurchasesAction,
+  getBusinessInvoicesAction,
 } from '../actions';
+import { useBillingDetailsContext } from '../context/BillingDetailsContext';
 import { selectIsOnTrial } from '../../auth/selectors';
 import {
   selectSmsBalance,
   selectSmsPackages,
-  selectSmsPurchases,
-  selectSmsPurchasesHasMore,
-  selectSmsPurchasesNextCursor,
   selectIsSmsBalanceLoading,
   selectIsSmsPackagesLoading,
   selectIsSmsCheckoutLoading,
-  selectIsSmsPurchasesLoading,
+  selectBusinessInvoices,
+  selectBusinessInvoicesHasMore,
+  selectBusinessInvoicesNextCursor,
+  selectIsLoadingBusinessInvoices,
 } from '../selectors';
-import type { SmsPackage } from '../types';
+import type { SmsPackage, BusinessInvoiceType } from '../types';
 
 // Helper function to format price from minor units (cents) to display
 const formatPrice = (minorUnits: number, currency: string): string => {
@@ -66,21 +68,22 @@ const getBestValuePackageId = (packages: SmsPackage[]): number | null => {
 };
 
 const SmsCredits = () => {
+  const { ensureConfigured } = useBillingDetailsContext();
   const { t } = useTranslation('settings');
   const dispatch = useDispatch();
   
   // Redux state
   const smsBalance = useSelector(selectSmsBalance);
   const smsPackages = useSelector(selectSmsPackages);
-  const smsPurchases = useSelector(selectSmsPurchases);
-  const smsPurchasesHasMore = useSelector(selectSmsPurchasesHasMore);
-  const smsPurchasesNextCursor = useSelector(selectSmsPurchasesNextCursor);
-  
+  const invoices = useSelector(selectBusinessInvoices);
+  const invoicesHasMore = useSelector(selectBusinessInvoicesHasMore);
+  const invoicesNextCursor = useSelector(selectBusinessInvoicesNextCursor);
+
   const isTrial = useSelector(selectIsOnTrial);
   const balanceLoading = useSelector(selectIsSmsBalanceLoading);
   const packagesLoading = useSelector(selectIsSmsPackagesLoading);
   const checkoutLoading = useSelector(selectIsSmsCheckoutLoading);
-  const purchasesLoading = useSelector(selectIsSmsPurchasesLoading);
+  const invoicesLoading = useSelector(selectIsLoadingBusinessInvoices);
   
   // Local state
   const [selectedPackageId, setSelectedPackageId] = useState<number | null>(null);
@@ -98,12 +101,12 @@ const SmsCredits = () => {
     }
   }, [smsPackages, bestValueId]);
 
-  // Fetch purchases when history is expanded
+  // Fetch invoices when history is expanded
   useEffect(() => {
-    if (showHistory && smsPurchases.length === 0) {
-      dispatch(getSmsPurchasesAction.request({ limit: 10 }));
+    if (showHistory && invoices.length === 0) {
+      dispatch(getBusinessInvoicesAction.request({ limit: 10 }));
     }
-  }, [showHistory, smsPurchases.length, dispatch]);
+  }, [showHistory, invoices.length, dispatch]);
   
   const handleSelectPackage = (pkg: SmsPackage) => {
     setSelectedPackageId((prev) => (prev === pkg.id ? null : pkg.id));
@@ -111,6 +114,7 @@ const SmsCredits = () => {
 
   const handleBuySelected = () => {
     if (!selectedPackageId || checkoutLoading) return;
+    if (!ensureConfigured()) return;
 
     dispatch(createSmsCheckoutAction.request({
       packageId: selectedPackageId,
@@ -119,12 +123,25 @@ const SmsCredits = () => {
     }));
   };
   
-  const handleLoadMorePurchases = () => {
-    if (smsPurchasesNextCursor && !purchasesLoading) {
-      dispatch(getSmsPurchasesAction.request({ 
-        limit: 10, 
-        cursor: smsPurchasesNextCursor 
+  const handleLoadMoreInvoices = () => {
+    if (invoicesNextCursor && !invoicesLoading) {
+      dispatch(getBusinessInvoicesAction.request({
+        limit: 10,
+        cursor: invoicesNextCursor,
       }));
+    }
+  };
+
+  const getInvoiceTypeLabel = (type: BusinessInvoiceType): string => {
+    switch (type) {
+      case 'subscription':
+        return t('sms.invoiceType.subscription');
+      case 'sms_purchase':
+        return t('sms.invoiceType.smsPurchase');
+      case 'ltd_seats':
+        return t('sms.invoiceType.ltdSeats');
+      default:
+        return type;
     }
   };
   
@@ -275,71 +292,68 @@ const SmsCredits = () => {
               
               {showHistory && (
                 <div className="border-t border-border">
-                  {purchasesLoading && smsPurchases.length === 0 ? (
+                  {invoicesLoading && invoices.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
                     </div>
-                  ) : smsPurchases.length > 0 ? (
+                  ) : invoices.length > 0 ? (
                     <div className="divide-y divide-border">
-                      {smsPurchases.map((purchase) => (
-                        <div 
-                          key={purchase.id} 
-                          className="flex items-center justify-between p-4 hover:bg-muted/20 transition-colors"
+                      {invoices.map((invoice) => (
+                        <div
+                          key={invoice.id}
+                          className="flex items-center justify-between gap-3 p-4 hover:bg-muted/20 transition-colors"
                         >
-                          <div className="flex items-center gap-3">
-                            <div className={`
-                              w-8 h-8 rounded-full flex items-center justify-center
-                              ${purchase.status === 'completed' ? 'bg-success/10' : 'bg-muted'}
-                            `}>
-                              {purchase.status === 'completed' ? (
-                                <Check className="h-4 w-4 text-success" />
-                              ) : (
-                                <Loader2 className="h-4 w-4 text-muted-foreground animate-spin" />
-                              )}
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary/10 shrink-0">
+                              <FileText className="h-4 w-4 text-primary" />
                             </div>
-                            <div>
-                              <p className="text-sm font-medium text-foreground">
-                                +{purchase.smsQuantity} SMS
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {getInvoiceTypeLabel(invoice.invoiceType)}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {formatDate(purchase.createdAt)}
+                                {formatDate(invoice.createdAt)}
                               </p>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <p className="text-sm font-medium text-foreground">
-                              {formatPrice(purchase.totalAmountMinor, purchase.currency)}
+                          <div className="flex items-center gap-3 shrink-0">
+                            <p className="text-sm font-medium text-foreground hidden sm:block">
+                              {formatPrice(invoice.amountMinor, invoice.currency)}
                             </p>
-                            <Badge 
-                              variant="outline"
-                              className={`
-                                text-[10px] px-1.5 py-0
-                                ${purchase.status === 'completed' 
-                                  ? 'text-success border-success/30'
-                                  : purchase.status === 'pending'
-                                  ? 'text-warning border-warning/30'
-                                  : 'text-error border-error/30'
-                                }
-                              `}
-                            >
-                              {purchase.status.charAt(0).toUpperCase() + purchase.status.slice(1)}
-                            </Badge>
+                            {invoice.oblioLink ? (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                rounded="full"
+                                asChild
+                                className="h-7 px-3 text-xs gap-1.5"
+                              >
+                                <a
+                                  href={invoice.oblioLink}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={t('sms.viewInvoice')}
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  {t('sms.viewInvoice')}
+                                </a>
+                              </Button>
+                            ) : null}
                           </div>
                         </div>
                       ))}
-                      
-                      {/* Load More Button */}
-                      {smsPurchasesHasMore && (
+
+                      {invoicesHasMore && (
                         <div className="p-4">
                           <Button
                             variant="ghost"
                             size="sm"
                             rounded="full"
-                            onClick={handleLoadMorePurchases}
-                            disabled={purchasesLoading}
+                            onClick={handleLoadMoreInvoices}
+                            disabled={invoicesLoading}
                             className="w-full text-muted-foreground hover:text-foreground"
                           >
-                            {purchasesLoading ? (
+                            {invoicesLoading ? (
                               <>
                                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                                 {t('billing.loadingShort')}
@@ -353,7 +367,7 @@ const SmsCredits = () => {
                     </div>
                   ) : (
                     <div className="text-center py-8 px-4">
-                      <p className="text-sm text-muted-foreground">{t('sms.noPurchases')}</p>
+                      <p className="text-sm text-muted-foreground">{t('sms.noInvoices')}</p>
                     </div>
                   )}
                 </div>

@@ -1,15 +1,16 @@
 import { apiClient } from '../../shared/lib/http';
-import type { 
-  SubscriptionSummary, 
-  CheckoutPayload, 
-  CheckoutResponse, 
-  UpdateSeatsPayload, 
+import type {
+  SubscriptionSummary,
+  CheckoutPayload,
+  CheckoutResponse,
+  UpdateSeatsPayload,
   UpdateSeatsResponse,
   SmsPackagesResponse,
   SmsBalanceResponse,
   SmsPurchasesResponse,
   SmsCheckoutPayload,
   SmsCheckoutResponse,
+  BusinessInvoicesResponse,
 } from './types';
 
 export const getSubscriptionSummary = async (): Promise<SubscriptionSummary> => {
@@ -107,10 +108,22 @@ export const getSmsPurchases = async (params?: { limit?: number; cursor?: number
   const queryParams = new URLSearchParams();
   if (params?.limit) queryParams.append('limit', params.limit.toString());
   if (params?.cursor) queryParams.append('cursor', params.cursor.toString());
-  
+
   const queryString = queryParams.toString();
   const url = queryString ? `/sms/purchases?${queryString}` : '/sms/purchases';
-  
+
   const response = await apiClient().get<SmsPurchasesResponse>(url);
+  return response.data;
+};
+
+export const getBusinessInvoices = async (params?: { limit?: number; cursor?: number }): Promise<BusinessInvoicesResponse> => {
+  const queryParams = new URLSearchParams();
+  if (params?.limit) queryParams.append('limit', params.limit.toString());
+  if (params?.cursor) queryParams.append('cursor', params.cursor.toString());
+
+  const queryString = queryParams.toString();
+  const url = queryString ? `/billing/invoices?${queryString}` : '/billing/invoices';
+
+  const response = await apiClient().get<BusinessInvoicesResponse>(url);
   return response.data;
 };

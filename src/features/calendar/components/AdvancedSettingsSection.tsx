@@ -30,7 +30,7 @@ const DEFAULT_SETTINGS: UpdateBookingSettingsPayload = {
   minAdvanceBookingMinutes: 60,
   maxAdvanceBookingMinutes: 43200,
   slotIntervalMinutes: 15,
-  bufferTimeMinutes: 15,
+  bufferTimeMinutes: 0,
   cancellationWindowMinutes: 1440,
   allowCustomerCancellation: true,
   allowCustomerReschedule: true,

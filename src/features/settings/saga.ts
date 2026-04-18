@@ -9,6 +9,7 @@ import {
   getSmsPackagesAction,
   createSmsCheckoutAction,
   getSmsPurchasesAction,
+  getBusinessInvoicesAction,
 } from "./actions";
 import {
   getSubscriptionSummary,
@@ -20,6 +21,7 @@ import {
   getSmsPackages,
   createSmsCheckout,
   getSmsPurchases,
+  getBusinessInvoices,
 } from "./api";
 import type {
   SubscriptionSummary,
@@ -28,6 +30,7 @@ import type {
   SmsPackagesResponse,
   SmsCheckoutResponse,
   SmsPurchasesResponse,
+  BusinessInvoicesResponse,
 } from "./types";
 import { fetchCurrentUserAction } from "../auth/actions";
 
@@ -146,14 +149,31 @@ function* handleGetSmsPurchases(action: ReturnType<typeof getSmsPurchasesAction.
   try {
     const params = action.payload || {};
     const response: SmsPurchasesResponse = yield call(getSmsPurchases, params);
-    yield put(getSmsPurchasesAction.success({ 
-      purchases: response.data, 
+    yield put(getSmsPurchasesAction.success({
+      purchases: response.data,
       hasMore: response.hasMore,
-      nextCursor: response.nextCursor 
+      nextCursor: response.nextCursor
     }));
   } catch (error: any) {
     const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS purchases';
     yield put(getSmsPurchasesAction.failure({ message }));
+  }
+}
+
+function* handleGetBusinessInvoices(action: ReturnType<typeof getBusinessInvoicesAction.request>) {
+  try {
+    const params = action.payload || {};
+    const append = !!(params && 'cursor' in params && params.cursor);
+    const response: BusinessInvoicesResponse = yield call(getBusinessInvoices, params);
+    yield put(getBusinessInvoicesAction.success({
+      invoices: response.data,
+      hasMore: response.hasMore,
+      nextCursor: response.nextCursor,
+      append,
+    }));
+  } catch (error: any) {
+    const message = error?.response?.data?.message || error?.message || 'Failed to fetch invoices';
+    yield put(getBusinessInvoicesAction.failure({ message }));
   }
 }
 
@@ -169,5 +189,7 @@ export function* settingsSaga() {
     takeLatest(getSmsPackagesAction.request, handleGetSmsPackages),
     takeLatest(createSmsCheckoutAction.request, handleCreateSmsCheckout),
     takeLatest(getSmsPurchasesAction.request, handleGetSmsPurchases),
+    // Invoices
+    takeLatest(getBusinessInvoicesAction.request, handleGetBusinessInvoices),
   ]);
 }

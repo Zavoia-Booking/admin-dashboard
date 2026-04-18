@@ -18,7 +18,7 @@
   "profile": {
     "basicInfo": {
       "title": "Informații de Bază",
-      "description": "Detalii esențiale despre afacerea ta",
+      "description": "Descriere Afacere",
       "logo": "Logo Afacere",
       "logoDescription": "Logo-ul tău apare pe pagina de rezervare și în comunicări",
       "uploading": "Se încarcă...",
@@ -31,7 +31,6 @@
       "industryWarning1": "Dacă ai o listare activă pe marketplace, aceasta va fi setată temporar ca invizibilă.",
       "industryWarning2": "După ce salvezi această modificare, mergi la listarea ta pe marketplace pentru a actualiza categoriile de industrie și a o face vizibilă din nou.",
       "industryWarning3": "Aceasta împiedică afacerea ta să apară în categoria greșită și îi ajută pe clienți să te găsească mai ușor.",
-      "description": "Descriere Afacere",
       "descriptionPlaceholder": "Spune-le clienților despre afacerea ta...",
       "currency": "Monedă Implicită pentru Prețuri *",
       "currencyDescription": "Alege moneda implicită pentru prețuri"
@@ -231,6 +230,38 @@
       "abortPayment": "Anulează plata",
       "aborted": "Plata a fost anulată. Acum poți face modificări noi la locuri.",
       "retrying": "Se procesează..."
+    },
+    "invoiceDetails": {
+      "title": "Date de facturare",
+      "description": "Folosite pentru a emite facturile tale. Verifică ca informațiile să fie corecte.",
+      "unconfiguredHint": "Nu ai configurat încă datele de facturare. Alege dacă facturezi ca firmă sau persoană fizică, apoi completează câmpurile de mai jos.",
+      "entityTypeLabel": "Facturez ca",
+      "company": "Firmă",
+      "person": "Persoană fizică",
+      "companyHint": "Facturile vor fi emise către o persoană juridică cu cod fiscal (CUI).",
+      "personHint": "Facturile vor fi emise către tine ca persoană fizică, cu nume complet și adresă.",
+      "legalNameCompany": "Denumire legală a firmei",
+      "legalNameCompanyPlaceholder": "ex. Acme Studio SRL",
+      "legalNamePerson": "Nume complet",
+      "legalNamePersonPlaceholder": "ex. Ana Ionescu",
+      "fiscalCode": "Cod fiscal (CUI)",
+      "fiscalCodePlaceholder": "ex. RO12345678",
+      "registrationNumber": "Număr la registrul comerțului",
+      "registrationNumberPlaceholder": "ex. J40/1234/2020",
+      "address": "Adresă",
+      "addressPlaceholder": "Strada, număr, bl., sc., ap.",
+      "city": "Oraș",
+      "cityPlaceholder": "ex. București",
+      "county": "Județ",
+      "countyPlaceholder": "ex. Ilfov",
+      "countryCode": "Țara (cod ISO)",
+      "countryCodePlaceholder": "RO",
+      "saveButton": "Salvează datele de facturare",
+      "toastSuccess": "Datele de facturare au fost salvate",
+      "toastFailure": "Salvarea datelor de facturare a eșuat",
+      "loadFailure": "Încărcarea datelor de facturare a eșuat",
+      "mustConfigureBeforePaying": "Te rugăm să completezi datele de facturare înainte de plată.",
+      "addressPlaceholderRo": "Stradă, număr, sector"
     }
   },
   "sms": {
@@ -246,10 +277,17 @@
     "noPackages": "Niciun pachet disponibil",
     "checkBackSoon": "Revino în curând",
     "trialRestriction": "SMS nu este disponibil în perioada de probă",
-    "trialRestrictionDescription": "Trimiterea de mementouri și notificări prin SMS este o funcționalitate a abonamentului plătit. Actualizează-ți planul pentru a achiziționa credite SMS.",
+    "trialRestrictionDescription": "Trimiterea de notificări prin SMS este o funcționalitate premium. Actualizează-ți planul pentru a le putea folosi.",
     "purchaseHistory": "Istoric achiziții",
     "loadMore": "Încarcă mai multe",
-    "noPurchases": "Nicio achiziție încă"
+    "noPurchases": "Nicio achiziție încă",
+    "noInvoices": "Nicio factură încă",
+    "viewInvoice": "Vezi",
+    "invoiceType": {
+      "subscription": "Abonament",
+      "smsPurchase": "Credite SMS",
+      "ltdSeats": "Locuri pe viață"
+    }
   },
   "businessSetupGate": {
     "title": "Finalizează Configurarea Afacerii",

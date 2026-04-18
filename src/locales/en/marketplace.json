@@ -310,7 +310,7 @@
           "description": "Send confirmations and reminders by text message."
         },
         "pushNotificationHelper": "Push notifications are also sent automatically if customers use the mobile app.",
-        "smsTrialRestriction": "SMS notifications are not available during the trial period. A paid subscription is required to send SMS messages."
+        "smsTrialRestriction": "SMS notifications are not available during the trial period."
       }
     },
     "adminBookingOverride": {

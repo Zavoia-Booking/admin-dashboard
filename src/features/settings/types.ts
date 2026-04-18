@@ -77,6 +77,7 @@ export type SettingsState = {
     customerPortal: boolean;
     modifySubscription: boolean;
     cancelRemoval: boolean;
+    invoices: boolean;
   };
   // SMS State
   smsBalance: BusinessSmsInfo | null;
@@ -91,6 +92,10 @@ export type SettingsState = {
     checkout: boolean;
     purchases: boolean;
   };
+  // Invoices
+  invoices: BusinessInvoice[];
+  invoicesHasMore: boolean;
+  invoicesNextCursor: number | null;
 };
 
 // SMS Types
@@ -146,4 +151,23 @@ export type SmsCheckoutPayload = {
 
 export type SmsCheckoutResponse = {
   url: string;
+};
+
+export type BusinessInvoiceType = 'subscription' | 'sms_purchase' | 'ltd_seats';
+
+export type BusinessInvoice = {
+  id: number;
+  invoiceType: BusinessInvoiceType;
+  amountMinor: number;
+  currency: string;
+  oblioLink: string | null;
+  oblioNumber: string | null;
+  oblioSeriesName: string | null;
+  createdAt: string;
+};
+
+export type BusinessInvoicesResponse = {
+  data: BusinessInvoice[];
+  hasMore: boolean;
+  nextCursor?: number;
 };
