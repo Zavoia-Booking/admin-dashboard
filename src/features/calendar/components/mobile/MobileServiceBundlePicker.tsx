@@ -76,9 +76,10 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
   const contentRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
 
   const currentUser = useSelector(selectCurrentUser);
+  const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const currencyDisplay = useMemo(
-    () => getCurrencyDisplay(currentUser?.currency || "EUR"),
-    [currentUser?.currency],
+    () => getCurrencyDisplay(businessCurrency),
+    [businessCurrency],
   );
   const durationUnit = tServices("duration.minutesShort", { defaultValue: "min" });
 
