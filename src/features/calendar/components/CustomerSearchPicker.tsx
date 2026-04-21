@@ -177,7 +177,7 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
                   type="button"
                   variant="outline"
                   rounded="full"
-                  className="h-11 shrink-0 !px-6 border-border-strong text-foreground-1 group"
+                  className="h-11 shrink-0 !px-6 border-border-strong text-foreground-1 group w-full sm:w-auto"
                   onClick={() => {
                     closePopover();
                     setShowQuickCreate(true);

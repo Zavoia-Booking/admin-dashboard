@@ -23,7 +23,7 @@ const DEFAULTS: CalendarPreferences = {
     defaultViewType: AppointmentViewType.LIST,
     timeFormat: '24h',
     colorCoding: 'status',
-    showCancelled: true,
+    showCancelled: false,
 };
 
 function getItem<T>(key: string, fallback: T): T {

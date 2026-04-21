@@ -83,6 +83,24 @@
       }
     },
     "appointments": {
+      "summary": {
+        "bookingWord": "programare",
+        "bookingsWord": "programări",
+        "bookedLabel": "rezervate",
+        "confirmedLabel": "confirmate",
+        "pendingLabel": "în așteptare"
+      },
+      "quietDay": {
+        "title": "Zi lejeră",
+        "description": "Blochează o pauză, masa de prânz sau timp personal.",
+        "cta": "Blochează timp"
+      },
+      "emptyDay": {
+        "title": "Nimic programat",
+        "description": "Adaugă o programare sau blochează timp din calendar.",
+        "addCta": "Programare nouă",
+        "blockCta": "Blochează timp"
+      },
       "selectLocation": "Selectează o locație pentru a vedea calendarul.",
       "selectLocationAppointments": "Selectează o locație pentru a vedea programările.",
       "appointmentDetails": "Detalii programare",
@@ -248,6 +266,10 @@
     },
     "blocks": {
       "allDay": "Toată ziua",
+      "fromTime": "De la {{time}}",
+      "untilTime": "Până la {{time}}",
+      "multiDayRange": "{{startDate}} {{startTime}} – {{endDate}} {{endTime}}",
+      "multiDayAllDayRange": "{{startDate}} – {{endDate}} · Toată ziua",
       "recurring": "Recurent",
       "recurringBlock": "Blocare recurentă",
       "deleteBlock": "Ștergi blocarea?",
@@ -315,6 +337,7 @@
         "selectDate": "Selectează data",
         "startTime": "Ora de început",
         "endTime": "Ora de sfârșit",
+        "multiDayContinuousHelper": "Blochează continuu de la {{startDate}} {{startTime}} până la {{endDate}} {{endTime}}. Activează Repetă pentru un tipar zilnic sau săptămânal.",
         "repeat": "Repetă",
         "repeatOnDesc": "Activează pentru a transforma această blocare într-una recurentă.",
         "repeatOffDesc": "Blocările recurente trebuie să fie într-o singură zi calendaristică \u2014 setează data de sfârșit în aceeași zi cu data de început.",
@@ -468,7 +491,8 @@
       "groupReassign": "Grupurile de programări pot fi doar reprogramate, nu reatribuite altui membru al echipei.",
       "ineligibleStaff": "{{staffLabel}} nu este atribuit pentru acest serviciu. Alege alt membru al echipei sau editează programarea.",
       "pastMidnight": "Programarea ar depăși miezul nopții.",
-      "thisTeamMember": "Acest membru al echipei"
+      "thisTeamMember": "Acest membru al echipei",
+      "mobileCrossColumnRejected": "Deschide programarea pentru a schimba membrul echipei."
     },
     "groupDialog": {
       "appointmentCount_one": "{{count}} programare",

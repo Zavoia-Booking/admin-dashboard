@@ -17,7 +17,9 @@ import {
   Check,
   Footprints,
   Globe,
+  Package,
   Phone,
+  Plus,
   Store,
   Tag,
   type LucideIcon,
@@ -304,6 +306,161 @@ const CalendarServiceBundleMultiPicker: FC<{
   );
 };
 
+// ─────────────────────────────────────────────────────────────
+// Mobile: services & bundles selection preview
+//
+// Renders in the SAME chip vocabulary as the rest of the filter drawer:
+// rounded-full colored chips (matching the "BY CATEGORY" section), with the
+// same green corner checkmark component (`CalendarFilterPillCheckmark`) used
+// by status / source / category filters. Tap a chip to deselect, tap the
+// trailing "+ Add" / "Edit" chip to open the full picker.
+// ─────────────────────────────────────────────────────────────
+
+interface ServicePreview {
+  id: number;
+  label: string;
+  category?: { id: number; name: string; color?: string } | null;
+}
+
+interface BundlePreview {
+  id: number;
+  label: string;
+}
+
+/**
+ * Fixed height (matches the rest of the filter chips), category color bg,
+ * green corner checkmark, text color computed from bg for contrast.
+ *
+ * Visually identical to the BY CATEGORY chip — so services read as a natural
+ * extension of that filter.
+ */
+const SelectedServiceChip: FC<{
+  label: string;
+  bgColor: string;
+  onDeselect: () => void;
+}> = ({ label, bgColor, onDeselect }) => {
+  const textColor = getReadableTextColor(bgColor);
+  return (
+    <button
+      type="button"
+      onClick={onDeselect}
+      aria-pressed
+      aria-label={`Remove ${label}`}
+      className="group h-10 relative inline-flex max-w-[200px] shrink-0 cursor-pointer items-center gap-2 overflow-visible rounded-full border border-neutral-500 px-3 text-xs font-medium shadow-xs transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+      style={{ backgroundColor: bgColor, color: textColor }}
+    >
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      <CalendarFilterPillCheckmark />
+    </button>
+  );
+};
+
+/** Purple-tinted bundle counterpart — same chip shape, distinct hue. */
+const SelectedBundleChip: FC<{ label: string; onDeselect: () => void }> = ({ label, onDeselect }) => (
+  <button
+    type="button"
+    onClick={onDeselect}
+    aria-pressed
+    aria-label={`Remove ${label}`}
+    className="group h-10 relative inline-flex max-w-[200px] shrink-0 cursor-pointer items-center gap-2 overflow-visible rounded-full border border-neutral-500 bg-purple-100 px-3 text-xs font-medium text-neutral-900 shadow-xs transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-purple-900/40 dark:text-neutral-900"
+  >
+    <Package className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
+    <span className="min-w-0 flex-1 truncate">{label}</span>
+    <CalendarFilterPillCheckmark />
+  </button>
+);
+
+/**
+ * Outline chip with a Plus icon. Matches the "Show N more" button in the
+ * BY CATEGORY section — same height, same outline + dashed treatment.
+ */
+const AddMoreChip: FC<{ label: string; onClick: () => void; disabled?: boolean }> = ({
+  label,
+  onClick,
+  disabled,
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled}
+    className={cn(
+      "group h-10 inline-flex shrink-0 cursor-pointer items-center gap-1.5 overflow-visible rounded-full border border-dashed border-border bg-surface px-3 text-xs font-medium text-muted-foreground",
+      "hover:border-neutral-500 hover:bg-info-100 hover:text-neutral-900 dark:hover:text-neutral-900",
+      "transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      "disabled:cursor-not-allowed disabled:opacity-50",
+    )}
+  >
+    <Plus className="size-3.5 shrink-0 text-muted-foreground group-hover:text-primary" aria-hidden />
+    <span className="truncate">{label}</span>
+  </button>
+);
+
+/**
+ * Mobile-only services & bundles preview inside the filters drawer.
+ * Rendered as a wrapping chip row so it reads as a natural sibling of the
+ * surrounding filter sections rather than an inline search input.
+ */
+const MobileServiceBundlePreview: FC<{
+  services: ServicePreview[];
+  bundles: BundlePreview[];
+  serviceIds: number[];
+  bundleIds: number[];
+  disabled?: boolean;
+  onOpenPicker: () => void;
+  onDeselectService: (id: number) => void;
+  onDeselectBundle: (id: number) => void;
+  emptyLabel: string;
+  addMoreLabel: string;
+}> = ({
+  services,
+  bundles,
+  serviceIds,
+  bundleIds,
+  disabled = false,
+  onOpenPicker,
+  onDeselectService,
+  onDeselectBundle,
+  emptyLabel,
+  addMoreLabel,
+}) => {
+  const selectedServices = useMemo(
+    () => services.filter((s) => serviceIds.includes(s.id)),
+    [services, serviceIds],
+  );
+  const selectedBundles = useMemo(
+    () => bundles.filter((b) => bundleIds.includes(b.id)),
+    [bundles, bundleIds],
+  );
+
+  return (
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Selected services and bundles">
+      {selectedServices.map((svc) => {
+        const bg = svc.category?.color || getColorHex(svc.category?.name || svc.label);
+        return (
+          <SelectedServiceChip
+            key={`svc-${svc.id}`}
+            label={svc.label}
+            bgColor={bg}
+            onDeselect={() => onDeselectService(svc.id)}
+          />
+        );
+      })}
+      {selectedBundles.map((bnd) => (
+        <SelectedBundleChip
+          key={`bnd-${bnd.id}`}
+          label={bnd.label}
+          onDeselect={() => onDeselectBundle(bnd.id)}
+        />
+      ))}
+      <AddMoreChip
+        label={selectedServices.length + selectedBundles.length > 0 ? addMoreLabel : emptyLabel}
+        onClick={onOpenPicker}
+        disabled={disabled}
+      />
+    </div>
+  );
+};
+
 export type CalendarFiltersFieldsDraft = {
   value: CalendarDayFilters;
   onChange: (next: CalendarDayFilters) => void;
@@ -375,12 +532,25 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
   );
 
   const serviceOptions = useMemo(
-    () => locationServices.map((s) => ({ id: s.serviceId, label: s.serviceName })),
+    () =>
+      locationServices.map((s) => ({
+        id: s.serviceId,
+        label: s.serviceName,
+        price: s.customPrice ?? s.defaultPrice,
+        duration: s.customDuration ?? s.defaultDuration,
+        category: s.category ?? null,
+      })),
     [locationServices],
   );
 
   const bundleOptions = useMemo(
-    () => locationBundles.map((b) => ({ id: b.bundleId, label: b.bundleName })),
+    () =>
+      locationBundles.map((b) => ({
+        id: b.bundleId,
+        label: b.bundleName,
+        price: b.calculatedDisplayPrice,
+        duration: b.durationMinutes,
+      })),
     [locationBundles],
   );
 
@@ -576,23 +746,42 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
               <div className={cn(CALENDAR_FILTER_SECTION_TITLE, "min-w-0 flex-1 truncate")}>
                 {servicesT("filters.byServices")}
               </div>
-              {serviceBundleSelectionPill}
+              {/* Only show the count pill when something is actually selected —
+               *  "All selected" on an empty filter is confusing. */}
+              {serviceIdsForPicker.length + bundleIdsForPicker.length > 0 && serviceBundleSelectionPill}
             </div>
             {isMobile ? (
               <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setMobilePickerOpen(true)}
+                <MobileServiceBundlePreview
+                  services={serviceOptions}
+                  bundles={bundleOptions}
+                  serviceIds={serviceIdsForPicker}
+                  bundleIds={bundleIdsForPicker}
                   disabled={servicesLoading}
-                  className="w-full justify-start h-10 font-normal"
-                >
-                  {serviceIdsForPicker.length + bundleIdsForPicker.length > 0
-                    ? t("page.filters.nSelected", {
-                        count: serviceIdsForPicker.length + bundleIdsForPicker.length,
-                      })
-                    : t("page.filters.searchServicesPlaceholder")}
-                </Button>
+                  onOpenPicker={() => setMobilePickerOpen(true)}
+                  onDeselectService={(id) => {
+                    const next = serviceIdsForPicker.filter((x) => x !== id);
+                    patchDay({
+                      ...dayFilters,
+                      serviceIds: next.length ? next : undefined,
+                      bundleIds: bundleIdsForPicker.length ? bundleIdsForPicker : undefined,
+                      serviceId: undefined,
+                      bundleId: undefined,
+                    });
+                  }}
+                  onDeselectBundle={(id) => {
+                    const next = bundleIdsForPicker.filter((x) => x !== id);
+                    patchDay({
+                      ...dayFilters,
+                      serviceIds: serviceIdsForPicker.length ? serviceIdsForPicker : undefined,
+                      bundleIds: next.length ? next : undefined,
+                      serviceId: undefined,
+                      bundleId: undefined,
+                    });
+                  }}
+                  emptyLabel={t("page.filters.searchServicesPlaceholder")}
+                  addMoreLabel={t("page.filters.addMore", { defaultValue: "Add / Edit" })}
+                />
                 <MobileServiceBundlePicker
                   open={mobilePickerOpen}
                   onOpenChange={setMobilePickerOpen}

@@ -1,4 +1,4 @@
-import { type FC, useCallback, useEffect, useRef, useState } from "react";
+import { type FC, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
 import {
@@ -6,12 +6,21 @@ import {
   getSelectedDate,
   getSelectedLocationId,
   getViewModeSelector,
+  getDayFilters,
+  getCalendarTimezone,
+  getDayDataLoading,
 } from "../../selectors";
-import { setDisplayedMonthAction } from "../../actions";
+import { setDisplayedMonthAction, fetchDayData } from "../../actions";
 import { MobileCalendarHeader } from "./MobileCalendarHeader";
 import { MobileWeekStrip } from "./MobileWeekStrip";
 import { MobileViewRouter } from "./MobileViewRouter";
 import { AppointmentViewMode } from "../../types";
+import { formatDateInTimezone } from "../../timezone";
+import { usePullToRefresh } from "../../hooks/usePullToRefresh";
+import { MobilePullToRefreshIndicator } from "./MobilePullToRefreshIndicator";
+import { MobileClearFiltersFab } from "./MobileClearFiltersFab";
+import { getNativePlatform } from "../../../../app/config/env";
+import { MobileCalendarDragContext } from "./mobileDragContext";
 
 
 const SWIPE_THRESHOLD = 50;
@@ -29,6 +38,9 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
   const viewMode = useSelector(getViewModeSelector);
   const selectedDate = useSelector(getSelectedDate);
   const displayedMonthStart = useSelector(getMonthViewDisplayStart);
+  const dayFilters = useSelector(getDayFilters);
+  const timezone = useSelector(getCalendarTimezone);
+  const isDayLoading = useSelector(getDayDataLoading);
 
   const showWeekStrip = viewMode === AppointmentViewMode.DAY;
   const isMonthView = viewMode === AppointmentViewMode.MONTH;
@@ -45,6 +57,14 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
   const cumDelta = useRef(0);
   const ticking = useRef(false);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  // Set by `MobileDayTimeline` via `MobileCalendarDragContext` while the user
+  // long-presses and drags an appointment. Consumed to suppress pull-to-refresh
+  // so a vertical drag near the top of the grid doesn't trigger a refresh.
+  const [dragActive, setDragActive] = useState(false);
+  const dragContextValue = useMemo(
+    () => ({ dragActive, setDragActive }),
+    [dragActive],
+  );
 
   // Reset header to expanded on any view/date/location change
   useEffect(() => {
@@ -97,6 +117,51 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
     return () => el.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* Pull-to-refresh: Android + Day mode only. The onRefresh promise resolves
+   * when the next fetchDayData cycle settles (loading true → false) so the
+   * indicator can unwind exactly when the data lands. */
+  const ptrEnabled =
+    !!selectedLocationId &&
+    viewMode === AppointmentViewMode.DAY &&
+    getNativePlatform() === "android" &&
+    !dragActive;
+
+  const refreshResolverRef = useRef<(() => void) | null>(null);
+  const wasLoadingRef = useRef(isDayLoading);
+  useEffect(() => {
+    if (wasLoadingRef.current && !isDayLoading) {
+      refreshResolverRef.current?.();
+      refreshResolverRef.current = null;
+    }
+    wasLoadingRef.current = isDayLoading;
+  }, [isDayLoading]);
+
+  const handleRefresh = useCallback(() => {
+    if (!selectedLocationId || !selectedDate) return Promise.resolve();
+    const dateStr = formatDateInTimezone(selectedDate, timezone);
+    dispatch(
+      fetchDayData.request({
+        locationId: selectedLocationId,
+        date: dateStr,
+        filters: dayFilters,
+      }),
+    );
+    return new Promise<void>((resolve) => {
+      refreshResolverRef.current = resolve;
+      // Safety: resolve anyway after 5s in case the saga never settles.
+      window.setTimeout(() => {
+        if (refreshResolverRef.current === resolve) {
+          refreshResolverRef.current = null;
+          resolve();
+        }
+      }, 5000);
+    });
+  }, [dispatch, selectedLocationId, selectedDate, timezone, dayFilters]);
+
+  const { pull, refreshing } = usePullToRefresh(contentRef, handleRefresh, {
+    enabled: ptrEnabled,
+  });
+
   const handleContentTouchStart = useCallback((e: React.TouchEvent) => {
     touchRef.current.startX = e.touches[0].clientX;
     touchRef.current.startY = e.touches[0].clientY;
@@ -130,7 +195,7 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
        *  that extend below the header aren't clipped. Negative margin reclaims
        *  the space when collapsed. */}
       <div
-        className="relative z-20 transition-[transform,margin] duration-150 ease-out"
+        className="relative z-[60] transition-[transform,margin] duration-150 ease-out"
         style={{
           transform: headerCollapsed ? "translateY(-62px)" : "translateY(0)",
           marginBottom: headerCollapsed ? -62 : 0,
@@ -142,22 +207,30 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
       {/* Week day strip — visible in Day mode; owns its own swipe for week nav. */}
       {selectedLocationId && showWeekStrip && <MobileWeekStrip />}
 
-      {/* Content area — horizontal swipe navigates months in Month view only. */}
-      <div
-        ref={contentRef}
-        className="flex-1 flex flex-col overflow-auto"
-        onTouchStart={isSwipeEnabled ? handleContentTouchStart : undefined}
-        onTouchEnd={isSwipeEnabled ? handleContentTouchEnd : undefined}
-      >
-        {!selectedLocationId ? (
-          <div className="flex flex-col items-center justify-center h-64 px-6 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t("page.appointments.selectLocation")}
-            </p>
-          </div>
-        ) : (
-          <MobileViewRouter />
-        )}
+      {/* Content area — horizontal swipe navigates months in Month view only.
+       *  Wrapped in a `relative` container so the PTR indicator can absolutely
+       *  pin to the top while the scrollable element keeps its normal layout. */}
+      <div className="relative flex-1 flex flex-col min-h-0">
+        <MobilePullToRefreshIndicator pull={pull} refreshing={refreshing} />
+        <div
+          ref={contentRef}
+          className="flex-1 flex flex-col overflow-auto"
+          onTouchStart={isSwipeEnabled ? handleContentTouchStart : undefined}
+          onTouchEnd={isSwipeEnabled ? handleContentTouchEnd : undefined}
+        >
+          {!selectedLocationId ? (
+            <div className="flex flex-col items-center justify-center h-64 px-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                {t("page.appointments.selectLocation")}
+              </p>
+            </div>
+          ) : (
+            <MobileCalendarDragContext.Provider value={dragContextValue}>
+              <MobileViewRouter />
+            </MobileCalendarDragContext.Provider>
+          )}
+        </div>
+        {selectedLocationId && <MobileClearFiltersFab />}
       </div>
     </div>
   );

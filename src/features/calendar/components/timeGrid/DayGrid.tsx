@@ -27,6 +27,7 @@ import {
   setCalendarPendingDrop,
   toggleAddForm,
   setScrollToNow,
+  setStaffFilter,
 } from "../../actions.ts";
 import type {
   SlimAppointment,
@@ -39,6 +40,7 @@ import {
   getSlotStartsInRange,
   getTimePositionForGrid,
   isTimeRangeOutsideWorkingHours,
+  clampBlockToViewDay,
 } from "../../workingHours.ts";
 import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey } from "../../timezone.ts";
 import { isSlimAppointmentSchedulingLocked } from "../../calendarScheduling.ts";
@@ -57,11 +59,13 @@ import { DndContext, DragOverlay, MeasuringStrategy, pointerWithin } from "@dnd-
 import type { CollisionDetection, DragEndEvent } from "@dnd-kit/core";
 import { restrictToVerticalAxis, snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { AppointmentDragData, TimeSlotDropData, StaffColumnDropData } from "../CalendarDnD.tsx";
+import { DROP_ANIMATION } from "../calendarDndAnimations.ts";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar.tsx";
 import { getStaffAvatarColor } from "../../colors.ts";
-import { ShieldAlert, SlidersHorizontal } from "lucide-react";
+import { ShieldAlert, SlidersHorizontal, X } from "lucide-react";
 import { EmptyState } from "../../../../shared/components/common/EmptyState.tsx";
 import { toast } from "sonner";
+import { dropRejectHaptic } from "../../haptics.ts";
 
 import { TimeColumn } from "./TimeColumn.tsx";
 import { DroppableColumn } from "./DroppableColumn.tsx";
@@ -70,8 +74,10 @@ import { OverrideDialog } from "./OverrideDialog.tsx";
 import { useGridDndState } from "./useGridDndState.ts";
 import { displayBlockToSlim, parseDraggableActiveAppointmentId, getBlockOverlapGroups, getTimePosition } from "./overlapUtils.ts";
 import { BlockDetailPopover } from "./BlockDetailPopover.tsx";
-import { getCalendarBlockReasonIcon } from "../blockReasonMeta.ts";
+import { getCalendarBlockReasonIcon, getCalendarBlockReasonLabel } from "../blockReasonMeta.ts";
+import { BLOCK_STRIPE_ACCENT, BLOCK_STRIPE_GRID } from "../../blockStyles.ts";
 import { formatTimeRange } from "../utils.tsx";
+import { formatBlockTimeForDay } from "../blockDisplay";
 import { BlockGroupDialog } from "./BlockGroupDialog.tsx";
 import {
   GRID_HEIGHT_PER_HOUR,
@@ -84,6 +90,8 @@ import {
   formatNowLabel,
   type GridSlot,
 } from "./constants.ts";
+import { DragTimeIndicator } from "./DragTimeIndicator.tsx";
+import { AppointmentViewMode } from "../../types.ts";
 
 export const DayGrid: FC = () => {
   const {
@@ -197,7 +205,7 @@ export const DayGrid: FC = () => {
       : staffCols;
 
     return visibleStaffCols;
-  }, [locationStaff, staffFilter, locationContext]);
+  }, [locationStaff, staffFilter, locationContext, t]);
 
   const isScrollableGrid = columns.length > COLUMN_SCROLL_THRESHOLD;
 
@@ -245,17 +253,22 @@ export const DayGrid: FC = () => {
     return isMultiSegmentGroupDrag(activeAppointment, n);
   }, [activeAppointment, dayAppointments]);
 
+  // Only feed `overId` into the preview memo while a multi-segment group drag
+  // is in flight — single-appointment drags don't need the sibling repositioning
+  // and we want to skip this memo's work on every pointermove in that case.
+  const groupDragOverId = activeDragIsGroupRestricted ? overId : null;
+
   // When a drop is pending (or group drag in progress), show the appointment(s) at the drop/hover position
   const appointmentsByColumnWithPreview = useMemo(() => {
 
     // Live group drag preview
-    if (overId && activeAppointment && activeDragIsGroupRestricted) {
+    if (groupDragOverId && activeAppointment && activeDragIsGroupRestricted) {
       const map = new Map<number, SlimAppointment[]>();
       columns.forEach(col => {
         const list = appointmentsByColumn.get(col.id) ?? [];
         map.set(col.id, [...list]);
       });
-      const overStr = String(overId);
+      const overStr = String(groupDragOverId);
       const match = overStr.match(/^slot-(\d+)-(.+)-(\d+)-(\d+)$/);
       if (match) {
         const [, , , hourStr, minStr] = match;
@@ -377,7 +390,7 @@ export const DayGrid: FC = () => {
       addTo(targetCol, appointment);
     }
     return map;
-  }, [appointmentsByColumn, columns, pendingDrop, dayAppointments, calendarTimezone, activeDragIsGroupRestricted ? overId : null, activeAppointment, activeDragIsGroupRestricted, dateKey]);
+  }, [appointmentsByColumn, columns, pendingDrop, dayAppointments, calendarTimezone, groupDragOverId, activeAppointment, activeDragIsGroupRestricted, dateKey]);
 
   // Group blocks by column — staff-scoped only; location/business blocks rendered as spanning overlays
   const blocksByColumn = useMemo(() => {
@@ -409,6 +422,12 @@ export const DayGrid: FC = () => {
     return getTimePosition(startsAt, endsAt, calendarTimezone);
   }, [dayGridSlotStarts.length, dayGridStartMinutes, slotIntervalMinutes, daySlotHeight, calendarTimezone]);
 
+  /** Column-header click → toggles staff filter like the mobile grid header. */
+  const handleColumnHeaderClick = useCallback((staffId: number) => {
+    const isOnlyFiltered = staffFilter.length === 1 && staffFilter[0] === staffId;
+    dispatch(setStaffFilter(isOnlyFiltered ? [] : [staffId]));
+  }, [dispatch, staffFilter]);
+
   /** Stable slot-click handler — avoids inline closures that defeat React.memo on DroppableSlot. */
   const slotClickColumnsRef = useRef(columns);
   slotClickColumnsRef.current = columns;
@@ -430,10 +449,13 @@ export const DayGrid: FC = () => {
 
   const colorCoding = calendarPreferences.getColorCoding();
   const dayKnownColorKeys = useMemo(() => {
-    if (colorCoding === "staff") return columns.map(c => c.id);
+    // Seed with the full location roster (plus "unassigned") so hue slots stay
+    // anchored when the user narrows the staff filter — otherwise filtering
+    // changes the key count and reshuffles every hue.
+    if (colorCoding === "staff") return [...locationStaff.map(s => s.id), "unassigned"];
     if (colorCoding === "service") return locationServices.map(s => s.serviceName);
     return undefined;
-  }, [colorCoding, columns, locationServices]);
+  }, [colorCoding, locationStaff, locationServices]);
   const dayColorMap = useMemo(() => {
     const allAppts: SlimAppointment[] = [];
     for (const list of appointmentsByColumn.values()) {
@@ -643,7 +665,10 @@ export const DayGrid: FC = () => {
         bufferTimeMinutes,
       });
       if (!slotResult.ok) {
-        if (slotResult.toastMessage) toast.error(slotResult.toastMessage);
+        if (slotResult.toastMessage) {
+          toast.error(slotResult.toastMessage);
+          dropRejectHaptic();
+        }
         return;
       }
       if (slotResult.action === "noop") return;
@@ -688,6 +713,7 @@ export const DayGrid: FC = () => {
     dndSessionRef,
     setActiveId,
     setOverId,
+    t,
   ]);
 
   const handleConfirmDrop = useCallback(() => {
@@ -866,8 +892,7 @@ export const DayGrid: FC = () => {
         onDragEnd={handleDragEnd}
       >
         {/* Scrollable grid */}
-        <div className="relative">
-          <div className="flex" style={isScrollableGrid ? { minWidth: `calc((100% - ${GUTTER_WIDTH}px) / ${COLUMN_SCROLL_THRESHOLD} * ${columns.length} + ${GUTTER_WIDTH}px)` } : undefined}>
+        <div className="relative flex" style={isScrollableGrid ? { minWidth: `calc((100% - ${GUTTER_WIDTH}px) / ${COLUMN_SCROLL_THRESHOLD} * ${columns.length} + ${GUTTER_WIDTH}px)` } : undefined}>
             {/* Time gutter */}
             <div className="relative flex flex-col items-end pr-2 select-none flex-shrink-0 sticky left-0 z-20 bg-white dark:bg-surface" style={{ width: GUTTER_WIDTH }}>
               <div className="h-8 flex-shrink-0 sticky top-0 z-30 bg-white dark:bg-surface" />
@@ -895,6 +920,14 @@ export const DayGrid: FC = () => {
                   </span>
                 </div>
               )}
+              <DragTimeIndicator
+                overId={activeId ? overId : null}
+                dayGridStartMinutes={dayGridStartMinutes}
+                slotIntervalMinutes={slotIntervalMinutes}
+                daySlotHeight={daySlotHeight}
+                headerOffset={32}
+                is24h={is24h}
+              />
             </div>
 
             {/* Staff columns */}
@@ -920,10 +953,16 @@ export const DayGrid: FC = () => {
                   })
                 }
               >
-                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-muted-foreground border-b border-border truncate px-1 sticky top-0 z-30 bg-white dark:bg-surface cursor-default h-8">
-                  {(() => {
-                    const s = locationStaff.find(m => m.id === col.id);
-                    if (!s) return null;
+                {(() => {
+                  const s = locationStaff.find(m => m.id === col.id);
+                  const isOnlyFiltered = !col.isUnassigned && staffFilter.length === 1 && staffFilter[0] === col.id;
+                  const clickable = !col.isUnassigned;
+                  const headerClass = `flex items-center justify-center gap-1.5 text-xs font-medium truncate px-1 sticky top-0 z-30 bg-white dark:bg-surface h-8 border-b border-border w-full ${
+                    isOnlyFiltered ? "text-foreground-1 font-semibold" : "text-muted-foreground"
+                  } ${
+                    clickable ? "cursor-pointer hover:bg-muted/30 transition-colors" : "cursor-default"
+                  }`;
+                  const avatarNode = s ? (() => {
                     const initials = ((s.firstName?.trim()?.[0] ?? "") + (s.lastName?.trim()?.[0] ?? "")).toUpperCase() || "?";
                     const avatarBg = getStaffAvatarColor(
                       s.id,
@@ -941,9 +980,36 @@ export const DayGrid: FC = () => {
                         </AvatarFallback>
                       </Avatar>
                     );
-                  })()}
-                  <span className="truncate">{col.label}</span>
-                </div>
+                  })() : null;
+                  const content = (
+                    <>
+                      {avatarNode}
+                      <span className="truncate">{col.label}</span>
+                      {isOnlyFiltered && (
+                        <span
+                          aria-hidden
+                          className="shrink-0 h-4 w-4 rounded-full bg-muted flex items-center justify-center"
+                        >
+                          <X className="h-2.5 w-2.5 text-foreground-2" strokeWidth={2.5} />
+                        </span>
+                      )}
+                    </>
+                  );
+                  if (!clickable) {
+                    return <div className={headerClass}>{content}</div>;
+                  }
+                  return (
+                    <button
+                      type="button"
+                      onClick={() => handleColumnHeaderClick(col.id)}
+                      aria-pressed={isOnlyFiltered}
+                      aria-label={isOnlyFiltered ? `${col.label} — show all staff` : `Show only ${col.label}`}
+                      className={headerClass}
+                    >
+                      {content}
+                    </button>
+                  );
+                })()}
                 <TimeColumn
                   appointments={appointmentsByColumnWithPreview.get(col.id) ?? []}
                   blocks={blocksByColumn.get(col.id) ?? []}
@@ -967,10 +1033,11 @@ export const DayGrid: FC = () => {
                   durationHighlightSlotIds={dayDurationHighlightSlotIds}
                   draggingGroupId={activeDragIsGroupRestricted ? activeAppointment?.bookingGroupId?.trim() : null}
                   onSlotClick={handleSlotClick}
+                  day={selectedDate}
+                  calendarViewMode={AppointmentViewMode.DAY}
                 />
               </DroppableColumn>
             ))}
-          </div>
 
           {/* ── Shared (location / business-wide) block overlays ─────────────────
               Rendered as a single stripe spanning all staff columns (after the gutter).
@@ -979,11 +1046,8 @@ export const DayGrid: FC = () => {
             const HEADER_H = 32;
             return (
               <>
-                {/* All-day shared blocks — subtle tinted band with left accent */}
+                {/* All-day shared blocks — compact banner at the top, not full-height */}
                 {sharedBlocks.filter(b => b.isAllDay).map(block => {
-                  const gridH = dayGridSlotStarts.length > 0
-                    ? dayGridSlotStarts.length * daySlotHeight
-                    : GRID_HOURS.length * HOUR_HEIGHT;
                   const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
                   return (
                     <BlockDetailPopover
@@ -994,34 +1058,37 @@ export const DayGrid: FC = () => {
                       timezone={calendarTimezone}
                     >
                       <div
-                        className="absolute z-[5] cursor-pointer rounded-xl bg-neutral-100/70 dark:bg-neutral-800/30"
+                        className="absolute z-[5] cursor-pointer rounded-md border-l-[3px] px-2 py-1.5 flex items-center gap-1.5 min-w-0 hover:opacity-80 transition-opacity"
                         style={{
-                          left: GUTTER_WIDTH,
-                          right: 0,
-                          top: HEADER_H,
-                          height: gridH,
-                          border: '1px solid var(--border)',
-                          borderLeft: '3px solid var(--border-strong)',
+                          left: GUTTER_WIDTH + 4,
+                          right: 4,
+                          top: HEADER_H + 2,
+                          backgroundImage: BLOCK_STRIPE_GRID,
+                          borderLeftColor: BLOCK_STRIPE_ACCENT,
                         }}
                       >
-                        <div className="absolute top-2 left-2">
-                          <span className="flex items-center justify-center size-5 rounded-full border border-border-strong bg-white dark:bg-surface">
-                            <ReasonIcon className="size-3 text-muted-foreground" />
-                          </span>
-                        </div>
+                        <span className="flex items-center justify-center size-5 shrink-0 rounded-full border border-border-strong bg-white dark:bg-surface">
+                          <ReasonIcon className="size-3 text-muted-foreground" />
+                        </span>
+                        <span className="text-[11px] font-semibold text-foreground-1 leading-tight truncate min-w-0">
+                          {t("page.blocks.allDay")} · {block.title?.trim() || getCalendarBlockReasonLabel(block.reason, t)}
+                        </span>
                       </div>
                     </BlockDetailPopover>
                   );
                 })}
 
-                {/* Timed shared blocks — subtle band with left accent */}
+                {/* Timed shared blocks */}
                 {sharedTimedBlockGroups.map((group, gi) => {
                   if (group.blocks.length === 1) {
                     const block = group.blocks[0];
-                    const pos = getSharedBlockPos(block.startsAt, block.endsAt);
+                    const clipped = clampBlockToViewDay(block.startsAt, block.endsAt, dateKey, calendarTimezone);
+                    const pos = getSharedBlockPos(clipped.startsAt, clipped.endsAt);
                     const blockInset = 6;
                     const h = Math.max(pos.height - blockInset * 2, 20);
                     const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
+                    const showIconChip = h >= 48;
+                    const showTimeLabel = h >= 48;
                     return (
                       <BlockDetailPopover
                         key={`shared-block-${block.id}`}
@@ -1032,19 +1099,33 @@ export const DayGrid: FC = () => {
                       >
                         <div
                           className="absolute z-[5] cursor-pointer overflow-hidden rounded-xl
-                            bg-neutral-100/70 dark:bg-neutral-800/30"
+                            border border-border border-l-[3px]
+                            px-2 py-1 text-left flex flex-col items-start justify-center gap-1"
                           style={{
                             left: GUTTER_WIDTH + 4,
                             right: 4,
                             top: HEADER_H + pos.top + blockInset,
                             height: h,
-                            border: '1px solid var(--border)',
-                          borderLeft: '3px solid var(--border-strong)',
+                            backgroundImage: BLOCK_STRIPE_GRID,
+                            borderLeftColor: BLOCK_STRIPE_ACCENT,
                           }}
                         >
-                          <div className="absolute top-1 left-1.5">
-                            <span className="flex items-center justify-center size-5 rounded-full border border-border-strong bg-white dark:bg-surface">
-                              <ReasonIcon className="size-3 text-muted-foreground" />
+                          {showTimeLabel && (
+                            <span className="text-[10px] font-medium tabular-nums text-foreground-1 leading-tight truncate max-w-full">
+                              {formatBlockTimeForDay(block, dateKey, calendarTimezone, t)}
+                            </span>
+                          )}
+                          <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+                            {showIconChip && (
+                              <span
+                                aria-hidden
+                                className="flex items-center justify-center size-5 shrink-0 rounded-full border border-border-strong bg-white dark:bg-surface"
+                              >
+                                <ReasonIcon className="size-3 text-muted-foreground" />
+                              </span>
+                            )}
+                            <span className="text-[11px] font-semibold text-foreground-1 leading-tight truncate">
+                              {block.title?.trim() || getCalendarBlockReasonLabel(block.reason, t)}
                             </span>
                           </div>
                         </div>
@@ -1053,11 +1134,13 @@ export const DayGrid: FC = () => {
                   }
 
                   /* Merged group */
-                  const pos = getSharedBlockPos(group.minStartIso, group.maxEndIso);
+                  const clippedGroup = clampBlockToViewDay(group.minStartIso, group.maxEndIso, dateKey, calendarTimezone);
+                  const pos = getSharedBlockPos(clippedGroup.startsAt, clippedGroup.endsAt);
                   const mergedInset = 6;
                   const h = Math.max(pos.height - mergedInset * 2, 20);
                   const count = group.blocks.length;
                   const timeRangeStr = formatTimeRange(group.minStartIso, group.maxEndIso, calendarTimezone);
+                  const showGroupTimeLabel = h >= 48;
                   return (
                     <BlockGroupDialog
                       key={`shared-block-group-${gi}`}
@@ -1069,22 +1152,26 @@ export const DayGrid: FC = () => {
                       <button
                         type="button"
                         className="absolute z-[5] cursor-pointer text-left overflow-hidden outline-none rounded-xl
-                          bg-neutral-100/70 dark:bg-neutral-800/30
+                          border border-border border-l-[3px]
+                          px-2 py-1 flex flex-col items-start justify-center gap-1
                           focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0"
                         style={{
                           left: GUTTER_WIDTH + 4,
                           right: 4,
                           top: HEADER_H + pos.top + mergedInset,
                           height: h,
-                          border: '1px solid var(--border)',
-                          borderLeft: '3px solid var(--border-strong)',
+                          backgroundImage: BLOCK_STRIPE_GRID,
+                          borderLeftColor: BLOCK_STRIPE_ACCENT,
                         }}
                       >
-                        <div className="absolute top-1 left-1.5">
-                          <span className="flex items-center justify-center size-5 rounded-full border border-border-strong bg-white dark:bg-surface text-[9px] font-semibold text-foreground tabular-nums">
-                            {count}
+                        {showGroupTimeLabel && (
+                          <span className="text-[10px] font-medium tabular-nums text-foreground-1 leading-tight truncate max-w-full">
+                            {timeRangeStr}
                           </span>
-                        </div>
+                        )}
+                        <span className="flex items-center justify-center size-5 shrink-0 rounded-full border border-border-strong bg-white dark:bg-surface text-[9px] font-semibold text-foreground tabular-nums">
+                          {count}
+                        </span>
                       </button>
                     </BlockGroupDialog>
                   );
@@ -1096,6 +1183,7 @@ export const DayGrid: FC = () => {
 
         {createPortal(
           <DragOverlay
+            dropAnimation={DROP_ANIMATION}
             modifiers={
               activeDragIsGroupRestricted
                 ? [snapCenterToCursor, restrictToVerticalAxis]
@@ -1112,7 +1200,15 @@ export const DayGrid: FC = () => {
                 calendarTimezone,
               );
               return (
-                <div style={{ width: 180 }} className="cursor-grabbing">
+                <div
+                  style={{
+                    width: 180,
+                    transformOrigin: "center",
+                    filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.10))",
+                    willChange: "transform",
+                  }}
+                  className="cursor-grabbing animate-dnd-lift"
+                >
                   <AppointmentBlock
                     appointment={activeAppointment}
                     top={0}

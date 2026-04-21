@@ -88,12 +88,14 @@ export const WeekAppointmentList: FC = () => {
 
   const weekColorCodingPref = calendarPreferences.getColorCoding();
   const weekListKnownColorKeys = useMemo(() => {
+    // Seed with the full location roster (plus "unassigned") so hues stay
+    // anchored when the user narrows the staff filter.
     if (weekColorCodingPref === "staff")
-      return staffFilter.length > 0 ? staffFilter : locationStaff.map(s => s.id);
+      return [...locationStaff.map(s => s.id), "unassigned"];
     if (weekColorCodingPref === "service")
       return locationServicesWeekList.map(s => s.serviceName);
     return undefined;
-  }, [weekColorCodingPref, staffFilter, locationStaff, locationServicesWeekList]);
+  }, [weekColorCodingPref, locationStaff, locationServicesWeekList]);
   const weekAppointmentColorMap = useMemo(
     () => buildCalendarColorMap(weekVisibleAppointments, weekColorCodingPref, weekListKnownColorKeys),
     [weekVisibleAppointments, weekColorCodingPref, weekListKnownColorKeys],

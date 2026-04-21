@@ -1,4 +1,4 @@
-import { type FC, useCallback } from "react";
+import { type FC, memo, useCallback } from "react";
 import { useDispatch } from "react-redux";
 import type { SlimAppointment, Appointment } from "../../../shared/types/calendar.ts";
 import { toggleEditFormAction } from "../actions.ts";
@@ -38,7 +38,7 @@ interface AppointmentBlockProps {
  * - Always: service name (bold, truncated)
  * - >40px: time range
  */
-export const AppointmentBlock: FC<AppointmentBlockProps> = ({
+export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
   appointment,
   height,
   top,
@@ -83,12 +83,16 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
   const compact = height <= 36;
   const inset = compact ? 2 : 3;
   const isGroup = !!appointment.bookingGroupId && (appointment.groupSize ?? 1) > 1;
+  const isCancelled = appointment.status === "cancelled";
   const style: React.CSSProperties = { top: top + inset, height: height - inset * 2, backgroundColor, color };
   if (leftPercent != null && widthPercent != null) {
     style.left = `${leftPercent}%`;
     style.width = `${widthPercent}%`;
     style.right = 'auto';
   }
+  if (isCancelled) style.opacity = 0.6;
+
+  const serviceNameClass = isCancelled ? "line-through decoration-[1.5px]" : "";
 
   return (
     <div
@@ -108,13 +112,20 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
               style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
             />
           )}
-          <span className="font-semibold text-[11px] leading-none truncate min-w-0">
+          <span className={`font-semibold text-[11px] leading-none truncate min-w-0 ${serviceNameClass}`}>
             {appointment.bookedItemName}
           </span>
         </div>
       ) : (
         <>
-          {/* Row 1: Group dot + Service name */}
+          {isCancelled && (
+            <div className="mb-0.5">
+              <span className="inline-block text-[9px] font-bold uppercase tracking-wide px-1 py-px rounded bg-destructive/20 text-destructive">
+                Cancelled
+              </span>
+            </div>
+          )}
+          {/* Row: Group dot + Service name */}
           <div className="flex items-center gap-1.5 min-w-0">
             {isGroup && (
               <span
@@ -122,7 +133,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
                 style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
               />
             )}
-            <span className="font-bold text-xs leading-tight truncate min-w-0">
+            <span className={`font-bold text-xs leading-tight truncate min-w-0 ${serviceNameClass}`}>
               {appointment.bookedItemName}
             </span>
           </div>
@@ -162,4 +173,5 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = ({
       )}
     </div>
   );
-};
+});
+AppointmentBlock.displayName = "AppointmentBlock";

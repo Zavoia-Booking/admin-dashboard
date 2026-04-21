@@ -1210,6 +1210,19 @@ export const CreateBlockDrawer: React.FC = () => {
                     disabled={form.isAllDay}
                   />
                 </div>
+
+                {form.startDate && form.endDate && !form.isAllDay && !form.isRecurring &&
+                  formatDateInTimezone(form.startDate, blockTz) !==
+                    formatDateInTimezone(form.endDate, blockTz) && (
+                    <p className="text-xs text-muted-foreground">
+                      {t("page.blocks.create.multiDayContinuousHelper", {
+                        startDate: form.startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        startTime: form.startTime,
+                        endDate: form.endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+                        endTime: form.endTime,
+                      })}
+                    </p>
+                  )}
               </div>
             </div>
 

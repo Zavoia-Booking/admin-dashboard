@@ -194,7 +194,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
   const trigger = slim ? (
     <button
       type="button"
-      className={cn(filterSlimClass(open), "group")}
+      className={cn(filterSlimClass(open), "group hover:bg-transparent")}
       aria-label="Open calendar filters"
     >
       <SlidersHorizontal className="!h-4 !w-4 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
@@ -301,7 +301,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, ex
           <DrawerDescription className="sr-only">
             {t("page.header.calendarFiltersDrawerDesc")}
           </DrawerDescription>
-          <div className="h-[70vh] overflow-y-auto p-0 bg-white dark:bg-surface">{filtersMenuScrollable}</div>
+          <div className="h-[70vh] flex flex-col p-0 bg-white dark:bg-surface">{filtersMenuScrollable}</div>
         </DrawerContent>
       </Drawer>
     );

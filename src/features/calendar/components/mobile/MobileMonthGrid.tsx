@@ -78,13 +78,13 @@ export const MobileMonthGrid: FC<MobileMonthGridProps> = ({ onDayTap }) => {
   }, [pulseSelected]);
 
   return (
-    <div className="px-3 pt-2 pb-3">
+    <div className="px-2 pt-1 pb-2">
       {/* Day-of-week header */}
       <div className="grid grid-cols-7 mb-1">
         {getTranslatedDayNames(t).map((day) => (
           <div
             key={day}
-            className="text-center text-xs font-medium text-muted-foreground py-1.5"
+            className="text-center text-xs font-medium text-muted-foreground py-1"
           >
             {day}
           </div>
@@ -123,16 +123,16 @@ export const MobileMonthGrid: FC<MobileMonthGridProps> = ({ onDayTap }) => {
               key={dateKey}
               type="button"
               onClick={() => onDayTap(date, hasItems)}
-              className="relative flex flex-col items-center justify-start min-h-[60px] py-1.5 outline-none active:opacity-60 transition-opacity"
+              className="relative flex flex-col items-center justify-start min-h-[56px] py-1 outline-none active:opacity-60 transition-opacity"
             >
               <span
                 ref={isSelected ? selectedPillRef : undefined}
                 className={cn(
-                  "flex items-center justify-center rounded-lg h-9 w-9 text-sm leading-none tabular-nums transition-colors",
+                  "flex items-center justify-center rounded-xl h-10 w-10 text-sm leading-none tabular-nums transition-all",
                   isSelected
-                    ? "bg-primary text-primary-foreground font-semibold"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-[0_4px_12px_-4px_hsl(var(--primary)/0.45)]"
                     : isToday
-                      ? "border-[1.5px] border-primary text-primary font-semibold"
+                      ? "ring-1 ring-primary ring-inset bg-primary/5 text-primary font-semibold"
                       : isCurrentMonth
                         ? isClosed
                           ? "text-muted-foreground"
@@ -143,11 +143,11 @@ export const MobileMonthGrid: FC<MobileMonthGridProps> = ({ onDayTap }) => {
                 {date.getDate()}
               </span>
               {marker !== "none" ? (
-                <span className="mt-1.5 flex min-h-[6px] items-center justify-center">
+                <span className="mt-1 flex min-h-[6px] items-center justify-center">
                   <DayMarkerGlyph kind={marker} tone={markerTone} selected={false} />
                 </span>
               ) : isSummaryLoading && isCurrentMonth && !daySummary ? (
-                <span className="mt-1.5 flex min-h-[6px] items-center justify-center">
+                <span className="mt-1 flex min-h-[6px] items-center justify-center">
                   <Skeleton className="h-1.5 w-5 rounded-full" aria-hidden />
                 </span>
               ) : null}

@@ -54,6 +54,7 @@ import { formatDateInTimezone } from "./timezone.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
+import { dropSuccessHaptic } from "./haptics.ts";
 
 function wallDateFromIso(iso: string): Date {
     const d = new Date(iso);
@@ -373,6 +374,7 @@ function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleA
     try {
         const result: any = yield call(rescheduleGroupRequest, bookingGroupId, payload);
         yield put(rescheduleAppointmentGroup.success(result));
+        dropSuccessHaptic();
         yield call(refetchCalendarForCurrentView);
         toast.success(i18n.t("calendar:page.toasts.bookingGroupRescheduled"));
     } catch (error: any) {
@@ -425,6 +427,7 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
     try {
         const result: any = yield call(updateAppointmentRequest, appointmentId, data);
         yield put(updateAppointment.success(result));
+        dropSuccessHaptic();
         yield call(refetchCalendarForCurrentView);
         toast.success(i18n.t("calendar:page.toasts.appointmentUpdated"));
         if (chainReschedule) {

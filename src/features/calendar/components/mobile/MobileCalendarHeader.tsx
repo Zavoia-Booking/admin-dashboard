@@ -58,13 +58,39 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
 
   // Plus menu inline expansion (view mode is a direct Day↔Month toggle, not a menu)
   const [plusMenuExpanded, setPlusMenuExpanded] = useState(false);
-  const hasExpandedOnce = useRef(false);
+  // Location dropdown open state — when true, the action container shrinks
+  // to just the + icon so the location pill can expand for easier picking.
+  const [locationOpen, setLocationOpen] = useState(false);
   const isExpanded = plusMenuExpanded;
-  if (isExpanded) hasExpandedOnce.current = true;
+
+  /* When viewMode changes the morph's iconCount changes (4 ↔ 3), which
+   * shifts its width. We don't want that width to animate — the view itself
+   * is already fading in, and an extra 200ms layout-dirty width tween on top
+   * of that is what makes cheap Android stutter. Snap width on view switch. */
+  const prevViewModeRef = useRef(viewMode);
+  const [snapMorphWidth, setSnapMorphWidth] = useState(false);
+  useEffect(() => {
+    if (prevViewModeRef.current !== viewMode) {
+      prevViewModeRef.current = viewMode;
+      setSnapMorphWidth(true);
+      const id = window.setTimeout(() => setSnapMorphWidth(false), 50);
+      return () => window.clearTimeout(id);
+    }
+  }, [viewMode]);
 
   const morphContainerRef = useRef<HTMLDivElement>(null);
   const closeAll = useCallback(() => {
     setPlusMenuExpanded(false);
+  }, []);
+
+  // Location and plus menu are mutually exclusive visually — closing the
+  // other whenever one opens keeps the header state machine simple.
+  const handleLocationOpenChange = useCallback((open: boolean) => {
+    setLocationOpen(open);
+    if (open) setPlusMenuExpanded(false);
+  }, []);
+  const handlePlusMenuOpen = useCallback(() => {
+    setPlusMenuExpanded(true);
   }, []);
 
   /* Outside-tap → close AND swallow the tap. We can't rely on a fixed
@@ -176,51 +202,89 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
 
   return (
     <>
-      <div className="relative flex items-center gap-2 px-3 bg-white dark:bg-surface border-b border-border overflow-visible" style={{ height: 62 }}>
-        {/* Location selector */}
-        <div className="shrink min-w-0 flex-1">
-          <LocationSelector closedClassName="!rounded-2xl" mobile />
+      <div className="relative flex items-center gap-2 px-3 bg-white dark:bg-surface overflow-visible" style={{ height: 62 }}>
+        {/* Location selector — capped width so the icon row keeps a
+         *  comfortable share of the header. In Month mode the row has one
+         *  fewer icon, so we let the pill grow a bit into the freed space.
+         *  When the location dropdown opens the cap is dropped so picking
+         *  is easier. */}
+        <div
+          className={`flex-1 min-w-0 ${
+            locationOpen
+              ? "max-w-none"
+              : viewMode === AppointmentViewMode.MONTH
+                ? "max-w-[220px]"
+                : "max-w-[180px]"
+          }`}
+        >
+          <LocationSelector
+            closedClassName="!rounded-2xl"
+            mobile
+            onOpenChange={handleLocationOpenChange}
+          />
         </div>
 
-        {/* Actions container — morphs between icon row / view mode list / plus menu */}
+        {/* Actions container — morphs between icon row / plus menu, and
+         *  squeezes to just the + icon while the location dropdown is open. */}
         {(() => {
           // Build plus menu items
           const plusItems: { icon: typeof Plus; label: string; onClick: () => void; primary?: boolean; badge?: number }[] = [
             { icon: CalendarPlus, label: t("page.header.addEvent"), onClick: () => { handleOpenAddForm(); closeAll(); }, primary: true },
             { icon: ShieldBan, label: t("page.header.block"), onClick: () => { handleOpenBlockForm(); closeAll(); } },
             { icon: SlidersHorizontal, label: t("page.header.filters"), onClick: () => { closeAll(); setTimeout(() => setFiltersOpen(true), 150); }, badge: activeFiltersCount > 0 ? activeFiltersCount : undefined },
-            ...(viewMode === AppointmentViewMode.DAY ? [{
-              icon: viewType === AppointmentViewType.GRID ? List : LayoutGrid,
-              label: viewType === AppointmentViewType.GRID ? t("page.header.switchToList") : t("page.header.switchToGrid"),
-              onClick: () => { handleToggleViewType(); closeAll(); },
-            }] : []),
             { icon: Settings, label: t("page.header.calendarSettings"), onClick: () => { onOpenSettings(); closeAll(); } },
           ];
 
           return (
             <>
+              {(() => {
+                // Width depends on how many direct icons are visible right now:
+                //   Day mode: 4 icons (day/month, list/grid, search, plus)
+                //   Month mode: 3 icons (day/month, search, plus)
+                // When the location pill is open we squeeze to just the + icon.
+                // Each icon cell is 32px; we add breathing room so the muted
+                // pill is visibly a pill. Day has 4 icons and gets extra
+                // horizontal padding so the icons don't feel crammed.
+                const iconCount = viewMode === AppointmentViewMode.DAY ? 4 : 3;
+                const slack = iconCount === 4 ? 56 : 36; // 28px vs 18px each side
+                const iconsRowWidth = iconCount * 32 + slack;
+                const morphWidth = locationOpen
+                  ? 52 // + icon (32px) + inner breathing + border
+                  : plusMenuExpanded
+                    ? 220
+                    : iconsRowWidth;
+                return (
               <div
                 ref={morphContainerRef}
-                className={`rounded-2xl border border-border z-20 min-w-[132px] transition-[background-color,box-shadow] duration-200 mobile-morph-container ${
-                  isExpanded
-                    ? "overflow-hidden self-start mt-1 bg-white dark:bg-surface shadow-lg mobile-morph-expanded"
-                    : `overflow-visible self-center bg-muted/30 dark:bg-muted/10 shadow-none ${hasExpandedOnce.current ? "mobile-morph-collapsed" : ""}`
+                className={`ml-auto rounded-2xl border border-border [will-change:width] [contain:layout] ${
+                  /* Base z sits alongside the collapsible location header.
+                   *  When the + menu is expanded, bump above sticky column
+                   *  headers (z-30) and the floating Clear Filters pill (z-40)
+                   *  so the action list always renders on top of page content. */
+                  isExpanded ? "z-[60]" : "z-20"
+                } ${
+                  snapMorphWidth
+                    ? "transition-none"
+                    : "transition-[background-color,box-shadow,width] duration-[200ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+                } ${
+                  locationOpen
+                    ? "overflow-hidden self-center bg-muted/30 dark:bg-muted/10 shadow-none"
+                    : isExpanded
+                      ? "overflow-hidden self-start mt-1 bg-white dark:bg-surface shadow-lg"
+                      : "overflow-visible self-center bg-muted/30 dark:bg-muted/10 shadow-none"
                 }`}
-                style={{
-                  "--morph-collapsed-width": "132px",
-                  "--morph-expanded-width": plusMenuExpanded ? "200px" : "140px",
-                } as React.CSSProperties}
+                style={{ width: morphWidth }}
               >
                 {/* Icons row */}
                 <div className={`flex items-center justify-center gap-0 transition-all duration-100 ${
                   isExpanded ? "h-0 opacity-0 pointer-events-none overflow-hidden" : "opacity-100 overflow-visible"
                 }`}>
-                  {/* Direct Day ↔ Month toggle — the icon shows the CURRENT
-                   *  mode, and tapping flips to the other. No menu on mobile. */}
+                  {/* Day ↔ Month toggle — hidden when location pill is open so
+                   *  only the + icon remains visible in the squeezed state. */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 group"
+                    className={`h-8 w-8 shrink-0 group ${locationOpen ? "hidden" : ""}`}
                     onClick={handleToggleViewMode}
                   >
                     {viewMode === AppointmentViewMode.MONTH ? (
@@ -230,10 +294,32 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                     )}
                   </Button>
 
+                  {/* List/Grid direct toggle — only meaningful in Day mode.
+                   *  Icon represents the TARGET state (tap to switch to it). */}
+                  {viewMode === AppointmentViewMode.DAY && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-8 w-8 shrink-0 group ${locationOpen ? "hidden" : ""}`}
+                      onClick={handleToggleViewType}
+                      aria-label={
+                        viewType === AppointmentViewType.GRID
+                          ? t("page.header.switchToList")
+                          : t("page.header.switchToGrid")
+                      }
+                    >
+                      {viewType === AppointmentViewType.GRID ? (
+                        <List className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
+                      ) : (
+                        <LayoutGrid className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
+                      )}
+                    </Button>
+                  )}
+
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 shrink-0 group relative overflow-visible"
+                    className={`h-8 w-8 shrink-0 group relative overflow-visible ${locationOpen ? "hidden" : ""}`}
                     onClick={() => customerSearchMounted ? closeCustomerSearch() : openCustomerSearch()}
                   >
                     <Search className="!h-6 !w-6 text-muted-foreground transition-colors group-hover:text-primary" />
@@ -248,7 +334,7 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8 shrink-0 relative overflow-visible"
-                    onClick={() => setPlusMenuExpanded(true)}
+                    onClick={handlePlusMenuOpen}
                   >
                     <Plus className="!h-6 !w-6 text-primary" />
                     {activeFiltersCount > 0 && (
@@ -283,6 +369,8 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
                   </div>
                 </div>}
               </div>
+                );
+              })()}
 
             </>
           );

@@ -48,6 +48,8 @@ function aggregateStaffIntervalConflict(
   const bufferMs = Math.max(0, bufferMinutes) * 60 * 1000;
   let acc: IntervalConflictKind = "none";
   for (const o of others) {
+    // Cancelled appointments free their slots — skip them for conflict detection.
+    if (o.status === "cancelled") continue;
     const otherStart = new Date(o.scheduledAt).getTime();
     const otherEnd = new Date(o.endsAt).getTime();
     acc = mergeIntervalConflictKinds(

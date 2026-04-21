@@ -73,11 +73,13 @@ export function useDayListFromRaw(
 
   const colorCodingPref = calendarPreferences.getColorCoding();
   const listKnownColorKeys = useMemo(() => {
+    // Seed with the full location roster (plus "unassigned") so hues stay
+    // anchored when the user narrows the staff filter.
     if (colorCodingPref === "staff")
-      return staffFilter.length > 0 ? staffFilter : locationStaff.map((s) => s.id);
+      return [...locationStaff.map((s) => s.id), "unassigned"];
     if (colorCodingPref === "service") return locationServices.map((s) => s.serviceName);
     return undefined;
-  }, [colorCodingPref, staffFilter, locationStaff, locationServices]);
+  }, [colorCodingPref, locationStaff, locationServices]);
   const appointmentColorMap = useMemo(
     () => buildCalendarColorMap(visibleDayAppointments, colorCodingPref, listKnownColorKeys),
     [visibleDayAppointments, colorCodingPref, listKnownColorKeys],

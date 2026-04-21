@@ -203,7 +203,7 @@ export const MobileWeekStrip: FC = () => {
   return (
     <div
       ref={scrollRef}
-      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide bg-white dark:bg-surface border-b border-border select-none"
+      className="flex overflow-x-auto snap-x snap-mandatory scrollbar-hide bg-white dark:bg-surface select-none"
       style={{ overscrollBehaviorX: "contain", WebkitOverflowScrolling: "touch" }}
     >
       <div className={panelClass}>{prevDays.map((d, i) => renderDay(d, prevAbbrevs[i]))}</div>

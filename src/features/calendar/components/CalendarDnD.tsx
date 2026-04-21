@@ -15,6 +15,18 @@ import { getTimePositionForGrid } from "../workingHours.ts";
 const HOUR_HEIGHT = 128;
 const GRID_START_HOUR = 6;
 
+// Stable reference for the Apple-style position transition so the inline
+// `style` object's `transition` slot is identity-equal across renders —
+// React's style-diff short-circuits on identity, skipping DOM attribute
+// writes on every render of every card during a drag. Opacity transition
+// included so the dimmed-original cancel/reject returns smoothly. Kept
+// module-local (not exported) to keep Vite Fast Refresh happy; the mobile
+// card maintains its own identical copy.
+const POSITION_TRANSITION =
+  "top 180ms cubic-bezier(0.2, 0, 0, 1), " +
+  "height 180ms cubic-bezier(0.2, 0, 0, 1), " +
+  "opacity 150ms ease-out";
+
 export type AppointmentDragData = {
   type: "appointment";
   appointment: SlimAppointment;
@@ -56,7 +68,7 @@ interface DraggableAppointmentBlockProps {
   isGroupDragging?: boolean;
 }
 
-export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
+export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = memo(({
   appointment,
   columnId,
   dateKey,
@@ -132,6 +144,7 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
     position: "absolute",
     top: pos.top,
     height: pos.height,
+    transition: isDragging || isGroupDragging ? "none" : POSITION_TRANSITION,
   };
   if (leftPercent != null && widthPercent != null) {
     wrapperStyle.left = `${leftPercent}%`;
@@ -170,13 +183,17 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
     );
   }
 
+  // Press-in scale mirrors the mobile card: `:active` applies instantly on
+  // mouse-down / touch-start and eases up to scale(1.02) over 240ms — close
+  // enough to dnd-kit's 8px mouse / 250ms touch activation thresholds that
+  // the user feels the press before the drag picks up.
   return (
     <div
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      style={{ ...wrapperStyle, touchAction: "none" }}
-      className={`outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 rounded-xl ${isDragging ? "opacity-0 pointer-events-none" : isGroupDragging ? "opacity-30 cursor-grabbing" : "cursor-grab"}`}
+      style={{ ...wrapperStyle, touchAction: "manipulation" }}
+      className={`outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 rounded-xl transition-transform duration-[240ms] ease-out ${isDragging ? "opacity-30 pointer-events-none" : isGroupDragging ? "opacity-30 cursor-grabbing" : "cursor-grab active:scale-[1.02]"}`}
     >
       <AppointmentBlock
         appointment={appointment}
@@ -189,7 +206,8 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = ({
       />
     </div>
   );
-};
+});
+DraggableAppointmentBlock.displayName = "DraggableAppointmentBlock";
 
 interface DroppableSlotProps {
   id: string;
@@ -234,22 +252,31 @@ export const DroppableSlot: FC<DroppableSlotProps> = memo(({
   const validDropHighlight = Boolean(dndActive && !dropDisabled);
   const borderClass = minute === 45 ? "" : "border-b border-dashed border-border";
 
-  const interactClass = isPast
-    ? "bg-muted/20 cursor-default"
-    : dropDisabled
-      ? isOutsideHours
-        ? "bg-muted/30 cursor-pointer hover:bg-primary/5"
-        : "cursor-pointer hover:bg-primary/5"
-      : inDurationRange
-        ? "cursor-pointer bg-primary/12 dark:bg-primary/18"
-        : validDropHighlight
-          ? "cursor-pointer bg-info/10 dark:bg-info/18 hover:bg-info/16 dark:hover:bg-info/24"
-          : isOutsideHours
-            ? "bg-muted/30 cursor-pointer hover:bg-primary/5"
-            : "cursor-pointer hover:bg-primary/5";
+  // Forbidden-slot hover: rendered instead of `interactClass`/`overClass` when
+  // the user drags over a slot that can't accept the drop (past, overlapping,
+  // out-of-hours, or cross-column on mobile). Carries a denial signal so we
+  // don't silently ignore the gesture.
+  const forbiddenHover = dropDisabled && dndActive && isOver;
 
-  const overClass =
-    !dropDisabled && (isOver || inDurationRange)
+  const interactClass = forbiddenHover
+    ? "bg-destructive/12 dark:bg-destructive/18 cursor-not-allowed"
+    : isPast
+      ? "bg-muted/20 cursor-default"
+      : dropDisabled
+        ? isOutsideHours
+          ? "bg-muted/30 cursor-pointer hover:bg-primary/5"
+          : "cursor-pointer hover:bg-primary/5"
+        : inDurationRange
+          ? "cursor-pointer bg-primary/12 dark:bg-primary/18"
+          : validDropHighlight
+            ? "cursor-pointer bg-info/10 dark:bg-info/18 hover:bg-info/16 dark:hover:bg-info/24"
+            : isOutsideHours
+              ? "bg-muted/30 cursor-pointer hover:bg-primary/5"
+              : "cursor-pointer hover:bg-primary/5";
+
+  const overClass = forbiddenHover
+    ? "ring-2 ring-destructive/40"
+    : !dropDisabled && (isOver || inDurationRange)
       ? inDurationRange
         ? "bg-primary/15 dark:bg-primary/22"
         : validDropHighlight
@@ -261,11 +288,23 @@ export const DroppableSlot: FC<DroppableSlotProps> = memo(({
     if (onSlotClick && !isPast) onSlotClick(hour, minute, columnId);
   }, [onSlotClick, isPast, hour, minute, columnId]);
 
+  // Slot transition is only applied when the drag is NOT active — during a
+  // drag, hundreds of slots can flip highlight state per second on cheap
+  // Android, and a 100ms cross-fade on each stacks concurrent animations +
+  // compositor work until the frame budget dies. The red forbidden-hover
+  // feedback still reads at 0ms (color just snaps in), which matches native.
+  const slotTransitionClass = dndActive
+    ? ""
+    : "transition-[background-color,box-shadow] duration-100 ease-out";
+
   return (
     <div
       ref={setNodeRef}
-      className={`relative ${borderClass} ${interactClass} ${overClass}`}
-      style={{ height: slotHeight, ...(isHourBoundary ? { borderTop: '1px solid var(--border)' } : undefined) }}
+      className={`relative ${slotTransitionClass} ${borderClass} ${interactClass} ${overClass}`}
+      style={{
+        height: slotHeight,
+        ...(isHourBoundary ? { borderTop: '1px solid var(--border)' } : undefined),
+      }}
       onClick={onSlotClick && !isPast ? handleClick : undefined}
     />
   );

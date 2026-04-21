@@ -11,6 +11,8 @@ import { Command, CommandItem, CommandList } from '../../../shared/components/ui
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { Badge } from '../../../shared/components/ui/badge';
 import { Pill } from '../../../shared/components/ui/pill';
+import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
+import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
@@ -138,6 +140,7 @@ interface AppointmentItemRowTeamMember {
   userId: number;
   firstName: string;
   lastName: string;
+  profileImage: string | null;
 }
 
 interface AppointmentItemRowProps {
@@ -150,6 +153,9 @@ interface AppointmentItemRowProps {
   currencyDisplay: { icon?: React.ComponentType<{ className?: string }>; symbol?: string };
   onUpdateStaff: (index: number, staffUserId: number | null) => void;
   onRemoveItem: (index: number) => void;
+  /** When true, the staff picker gets a soft "next step" pulse — only one row in
+   *  the list should receive this at a time (the first one still unassigned). */
+  isFirstUnassigned?: boolean;
 }
 
 function AppointmentItemRow({
@@ -162,6 +168,7 @@ function AppointmentItemRow({
   currencyDisplay,
   onUpdateStaff,
   onRemoveItem,
+  isFirstUnassigned = false,
 }: AppointmentItemRowProps) {
   const { t } = useTranslation('assignments');
   const { t: tCal } = useTranslation('calendar');
@@ -227,9 +234,17 @@ function AppointmentItemRow({
   }, []);
 
   const showOpenBorder = staffPopoverOpen || closingAnimation;
+  // Pulse only when: this row is the focus target, a staff hasn't been picked,
+  // and the popover is fully closed (no pulse fighting the open-state border).
+  const pulseStaffPicker =
+    isFirstUnassigned &&
+    hasTeamMembersAtLocation &&
+    !item.staffUserId &&
+    !staffPopoverOpen &&
+    !closingAnimation;
 
   return (
-    <div className="group flex items-stretch gap-3 rounded-lg border border-border bg-white dark:bg-surface px-4 py-3 hover:border-border-strong">
+    <div className="group flex flex-col sm:flex-row sm:items-stretch gap-3 rounded-lg border border-border bg-white dark:bg-surface px-4 py-3 hover:border-border-strong">
       <div className="flex-1 min-w-0 space-y-2">
         <div className="flex items-center gap-2 min-w-0">
           <span className="truncate text-sm font-medium text-foreground-1">{rowLabel}</span>
@@ -288,7 +303,10 @@ function AppointmentItemRow({
           })()}
         </div>
         <div className="flex items-center mt-6 gap-3 flex-wrap text-sm text-foreground-2">
-          <span className="inline-flex items-center gap-0.5 font-medium text-foreground-1">
+          {durationMinutes > 0 && (
+            <span>{durationMinutes} min</span>
+          )}
+          <span className="ml-auto inline-flex items-center gap-0.5 font-medium text-foreground-1">
             {currencyDisplay.icon ? (
               <currencyDisplay.icon className="h-3.5 w-3.5 text-foreground-1" />
             ) : (
@@ -296,12 +314,6 @@ function AppointmentItemRow({
             )}
             <span>{price.toFixed(2)}</span>
           </span>
-          {durationMinutes > 0 && (
-            <>
-              <span className="h-4 w-px shrink-0 bg-border" aria-hidden />
-              <span>{durationMinutes} min</span>
-            </>
-          )}
         </div>
         {hasCustomRates && (
           <div className="mt-2">
@@ -317,7 +329,7 @@ function AppointmentItemRow({
           </div>
         )}
       </div>
-      <div className="flex items-center gap-2 shrink-0 self-stretch">
+      <div className="flex items-center gap-2 sm:shrink-0 sm:self-stretch w-full sm:w-auto">
         {hasTeamMembersAtLocation && (
             <Popover open={staffPopoverOpen} onOpenChange={handleStaffPopoverOpenChange}>
               <PopoverTrigger asChild>
@@ -326,11 +338,31 @@ function AppointmentItemRow({
                   rounded="full"
                   size="sm"
                   className={cn(
-                    "h-8 w-[280px] justify-between !px-3 border border-border hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10",
-                    showOpenBorder && "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none"
+                    "h-8 w-full sm:w-[280px] justify-between !px-3 border border-border hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10",
+                    showOpenBorder && "!rounded-b-none !rounded-t-[16px] border-x border-t border-b-0 border-border-strong dark:border-border-strong shadow-none",
+                    pulseStaffPicker && "staff-picker-pulse"
                   )}
                 >
-                  <span className="truncate">{staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : tCal('page.appointments.add.assignStaff')}</span>
+                  <span className="flex items-center gap-2 min-w-0 flex-1">
+                    {staffForRow && (
+                      <Avatar key={staffForRow.userId} className="size-5 shrink-0">
+                        {staffForRow.profileImage ? <AvatarImage src={staffForRow.profileImage} alt="" /> : null}
+                        <AvatarFallback
+                          className="text-[9px] font-semibold leading-none text-foreground-1"
+                          style={{
+                            backgroundColor: getAvatarBgColor(
+                              `${staffForRow.userId}-${staffForRow.firstName ?? ''}-${staffForRow.lastName ?? ''}`,
+                            ),
+                          }}
+                        >
+                          {((staffForRow.firstName?.trim()?.[0] ?? '') + (staffForRow.lastName?.trim()?.[0] ?? '')).toUpperCase() || '?'}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <span className="truncate">
+                      {staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : tCal('page.appointments.add.assignStaff')}
+                    </span>
+                  </span>
                   <ChevronsUpDown className="h-3.5 w-3.5 shrink-0 opacity-70" />
                 </Button>
               </PopoverTrigger>
@@ -347,20 +379,36 @@ function AppointmentItemRow({
               >
                 <Command shouldFilter={false}>
                   <CommandList>
-                    {eligibleTeamMembersForRow.map((t, teamIndex) => (
-                      <CommandItem
-                        key={t.userId}
-                        value={`${t.firstName} ${t.lastName}`}
-                        onSelect={() => onUpdateStaff(index, t.userId)}
-                        className={cn(
-                          "h-8 cursor-pointer transition-colors duration-200",
-                          teamIndex === eligibleTeamMembersForRow.length - 1 && "rounded-b-[12px]",
-                        )}
-                      >
-                        <Check className={cn('mr-2 h-4 w-4', item.staffUserId === t.userId ? 'opacity-100' : 'opacity-0')} />
-                        {t.firstName} {t.lastName}
-                      </CommandItem>
-                    ))}
+                    {eligibleTeamMembersForRow.map((t, teamIndex) => {
+                      const initials = ((t.firstName?.trim()?.[0] ?? '') + (t.lastName?.trim()?.[0] ?? '')).toUpperCase() || '?';
+                      const avatarKey = `${t.userId}-${t.firstName ?? ''}-${t.lastName ?? ''}`;
+                      return (
+                        <CommandItem
+                          key={t.userId}
+                          value={`${t.firstName} ${t.lastName}`}
+                          onSelect={() => {
+                            onUpdateStaff(index, t.userId);
+                            handleStaffPopoverOpenChange(false);
+                          }}
+                          className={cn(
+                            "h-9 cursor-pointer transition-colors duration-200 gap-2",
+                            teamIndex === eligibleTeamMembersForRow.length - 1 && "rounded-b-[12px]",
+                          )}
+                        >
+                          <Check className={cn('h-4 w-4 shrink-0', item.staffUserId === t.userId ? 'opacity-100' : 'opacity-0')} />
+                          <Avatar className="size-6 shrink-0">
+                            {t.profileImage ? <AvatarImage src={t.profileImage} alt="" /> : null}
+                            <AvatarFallback
+                              className="text-[10px] font-semibold leading-none text-foreground-1"
+                              style={{ backgroundColor: getAvatarBgColor(avatarKey) }}
+                            >
+                              {initials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="truncate">{t.firstName} {t.lastName}</span>
+                        </CommandItem>
+                      );
+                    })}
                   </CommandList>
                 </Command>
               </PopoverContent>
@@ -1515,20 +1563,29 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       </Badge>
                     )}
                   </div>
-                  {appointmentItems.map((item, idx) => (
-                    <AppointmentItemRow
-                      key={`${item.serviceId ?? 'b'}-${item.bundleId ?? 's'}-${idx}`}
-                      item={item}
-                      index={idx}
-                      hasTeamMembersAtLocation={hasTeamMembersAtLocation}
-                      locationServices={locationServices}
-                      locationBundles={locationBundles}
-                      locationTeamMembers={locationTeamMembers}
-                      currencyDisplay={currencyDisplay}
-                      onUpdateStaff={handleUpdateItemStaff}
-                      onRemoveItem={handleRemoveItem}
-                    />
-                  ))}
+                  {(() => {
+                    // Track which row is the "next step" to draw attention to —
+                    // the first item without an assigned staff. Only one row
+                    // pulses at a time so the UI doesn't turn into a light show.
+                    const firstUnassignedIdx = hasTeamMembersAtLocation
+                      ? appointmentItems.findIndex((it) => it.staffUserId == null)
+                      : -1;
+                    return appointmentItems.map((item, idx) => (
+                      <AppointmentItemRow
+                        key={`${item.serviceId ?? 'b'}-${item.bundleId ?? 's'}-${idx}`}
+                        item={item}
+                        index={idx}
+                        hasTeamMembersAtLocation={hasTeamMembersAtLocation}
+                        locationServices={locationServices}
+                        locationBundles={locationBundles}
+                        locationTeamMembers={locationTeamMembers}
+                        currencyDisplay={currencyDisplay}
+                        onUpdateStaff={handleUpdateItemStaff}
+                        onRemoveItem={handleRemoveItem}
+                        isFirstUnassigned={idx === firstUnassignedIdx}
+                      />
+                    ));
+                  })()}
                   <div className="rounded-lg border border-border bg-surface-hover/50 dark:bg-surface px-4 py-3 flex items-center justify-between gap-4">
                     <span className="text-sm font-medium text-foreground-1">
                       Total
@@ -1588,7 +1645,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 </div>
               )}
 
-              <div className={cn('grid grid-cols-2 gap-4', !canSelectDateTime && 'opacity-60 pointer-events-none')}>
+              <div className={cn('grid grid-cols-1 sm:grid-cols-2 gap-4', !canSelectDateTime && 'opacity-60 pointer-events-none')}>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-foreground-1">Date</Label>
                   <DatePicker

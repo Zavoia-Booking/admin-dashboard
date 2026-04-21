@@ -21,7 +21,8 @@ import { cn } from "../../../shared/lib/utils.ts";
 import type { CalendarBlockDto, CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/components/ui/avatar.tsx";
 import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
-import { formatTimeRange, formatDurationHuman } from "./utils.tsx";
+import { formatDurationHuman } from "./utils.tsx";
+import { formatBlockTimeRange } from "./blockDisplay";
 import {
   getCalendarBlockReasonIcon,
   getCalendarBlockReasonLabel,
@@ -131,7 +132,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
   const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
   const customTitle = block.title?.trim() ?? "";
   const appliesLine = staffAppliesLine(block, staffName, t);
-  const timeDisplay = block.isAllDay ? t("page.blocks.allDay") : formatTimeRange(block.startsAt, block.endsAt, timezone);
+  const timeDisplay = formatBlockTimeRange(block, timezone, t);
   const durationMinutes = block.isAllDay
     ? null
     : Math.max(

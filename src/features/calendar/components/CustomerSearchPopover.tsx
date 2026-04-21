@@ -265,7 +265,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
 
   return (
       <Popover open={customerOpen} onOpenChange={handlePopoverOpenChange}>
-      <div className="flex gap-2 w-full">
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
         <PopoverAnchor asChild>
           <div
             ref={customerSearchAnchorRef}

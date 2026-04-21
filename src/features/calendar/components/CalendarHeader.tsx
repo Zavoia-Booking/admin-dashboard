@@ -209,7 +209,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             <button
               type="button"
               onClick={handleOpenBlockForm}
-              className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
+              className="group inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
             >
               <ShieldBan className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
               {t("page.header.block")}
@@ -220,7 +220,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             <button
               type="button"
               onClick={handleOpenAddForm}
-              className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none transition-colors hover:bg-muted/50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
+              className="inline-flex items-center h-8 px-3 gap-1.5 text-xs font-medium text-foreground rounded-none cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
             >
               <Plus className="h-3.5 w-3.5 text-primary" />
               {t("page.header.addEvent")}
@@ -233,9 +233,9 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             type="button"
             onClick={handleToday}
             disabled={isOnCurrentPeriod}
-            className="group inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-default hover:bg-muted/50 text-foreground whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
+            className="group inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium cursor-pointer disabled:opacity-60 disabled:cursor-default text-foreground whitespace-nowrap outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 focus-visible:ring-inset"
           >
-            <CalendarCheck2 className="h-3.5 w-3.5 text-muted-foreground transition-colors group-enabled:group-hover:text-primary group-enabled:group-active:text-primary" />
+            <CalendarCheck2 className="h-3.5 w-3.5 text-muted-foreground group-enabled:group-hover:text-primary group-enabled:group-active:text-primary" />
             {currentPeriodLabel}
           </button>
           <div className="w-px h-5 bg-border shrink-0" />
@@ -243,7 +243,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-none group"
+              className="h-8 w-8 rounded-none group hover:bg-transparent"
               onClick={handleToggleViewType}
               title={viewType === AppointmentViewType.GRID ? t("page.header.switchToList") : t("page.header.switchToGrid")}
             >
@@ -256,7 +256,7 @@ export const CalendarHeader: FC<CalendarHeaderProps> = ({ onOpenSettings }) => {
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 rounded-none group"
+              className="h-8 w-8 rounded-none group hover:bg-transparent"
               onClick={onOpenSettings}
               title={t("page.header.calendarSettings")}
             >

@@ -14,7 +14,7 @@
 
 "@capacitor-community/safe-area@^7.0.0":
   version "7.0.0"
-  resolved "https://registry.yarnpkg.com/@capacitor-community/safe-area/-/safe-area-7.0.0.tgz#cd99bbadc9f1f678d38ac2072ffb33204de7a46d"
+  resolved "https://registry.npmjs.org/@capacitor-community/safe-area/-/safe-area-7.0.0.tgz"
   integrity sha512-+bze1ChJasYBvLtgp2mFeAHxiOmXqHvb1adtO0MbobZ/5WCrTsOi6ebECJkUpao4MJ4mqCBOus0jOXJXwx3YgA==
 
 "@capacitor/android@^7.4.4":
@@ -52,6 +52,11 @@
   dependencies:
     tslib "^2.1.0"
 
+"@capacitor/haptics@7.0.5":
+  version "7.0.5"
+  resolved "https://registry.yarnpkg.com/@capacitor/haptics/-/haptics-7.0.5.tgz#eae58647eec6d8ae6a49f2985e8e9a1e905c9fc6"
+  integrity sha512-ujXuUkL8UG1YLhuJo/q+jiHr0K5JmclGZHmV1RttmiUBRG1XpC4Fc4gXUJyEX+6IoyfwWhgtPvJFRUB31HYnRQ==
+
 "@capacitor/ios@^7.4.4":
   version "7.4.4"
   resolved "https://registry.npmjs.org/@capacitor/ios/-/ios-7.4.4.tgz"
@@ -59,7 +64,7 @@
 
 "@capacitor/keyboard@^8.0.3":
   version "8.0.3"
-  resolved "https://registry.yarnpkg.com/@capacitor/keyboard/-/keyboard-8.0.3.tgz#5dd28e92dcba4643ba0bfa8ccdfed5c5d5d493b8"
+  resolved "https://registry.npmjs.org/@capacitor/keyboard/-/keyboard-8.0.3.tgz"
   integrity sha512-27Bv5/2w1Ss2njguBgTS98O0Bb8DRJhAARyzXYib0JlT/n6BrJw/EZ0CokM4C8GFUjFDjJnEKF1Ie01buTMEXQ==
 
 "@capacitor/preferences@^7.0.0":
@@ -107,17 +112,17 @@
     tslib "^2.0.0"
 
 "@emnapi/core@^1.4.3", "@emnapi/core@^1.4.5":
-  version "1.9.2"
-  resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.9.2.tgz#3870265ecffc7352d01ead62d8d83d8358a2d034"
-  integrity sha512-UC+ZhH3XtczQYfOlu3lNEkdW/p4dsJ1r/bP7H8+rhao3TTTMO1ATq/4DdIi23XuGoFY+Cz0JmCbdVl0hz9jZcA==
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/core/-/core-1.10.0.tgz#380ccc8f2412ea22d1d972df7f8ee23a3b9c7467"
+  integrity sha512-yq6OkJ4p82CAfPl0u9mQebQHKPJkY7WrIuk205cTYnYe+k2Z8YBh11FrbRG/H6ihirqcacOgl2BIO8oyMQLeXw==
   dependencies:
     "@emnapi/wasi-threads" "1.2.1"
     tslib "^2.4.0"
 
 "@emnapi/runtime@^1.4.3", "@emnapi/runtime@^1.4.5":
-  version "1.9.2"
-  resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.9.2.tgz#8b469a3db160817cadb1de9050211a9d1ea84fa2"
-  integrity sha512-3U4+MIWHImeyu1wnmVygh5WlgfYDtyf0k8AbLhMFxOipihf6nrWC4syIm/SwEeec0mNSafiiNnMJwbza/Is6Lw==
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/@emnapi/runtime/-/runtime-1.10.0.tgz#4b260c0d3534204e98c6110b8db1a987d26ec87c"
+  integrity sha512-ewvYlk86xUoGI0zQRNq/mC+16R1QeDlKQy21Ki3oSYXNgLb45GV1P6A0M+/s6nyCuNDqe5VpaY84BzXGwVbwFA==
   dependencies:
     tslib "^2.4.0"
 

@@ -1,11 +1,16 @@
-import { type FC, useCallback } from "react";
-import { useDispatch } from "react-redux";
+import { type FC, useCallback, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import { Plus, SlidersHorizontal } from "lucide-react";
-import type { SlimAppointment, Appointment } from "../../../../shared/types/calendar";
+import { SlidersHorizontal } from "lucide-react";
+import type {
+  SlimAppointment,
+  Appointment,
+} from "../../../../shared/types/calendar";
 import {
   toggleEditFormAction,
   toggleAddForm,
+  toggleBlockFormAction,
+  setBlockFormEditingAction,
 } from "../../actions";
 import {
   useDayAppointmentList,
@@ -15,6 +20,12 @@ import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { EmptyState } from "../../../../shared/components/common/EmptyState";
 import { MobileDayEventCard } from "./MobileDayEventCard";
 import { MobileDayBlockCard } from "./MobileDayBlockCard";
+import { MobileBlockSummary } from "./MobileBlockSummary";
+import { MobileDaySummaryStrip } from "./MobileDaySummaryStrip";
+import { MobileDayEmptyState } from "./MobileDayEmptyState";
+import { MobileQuietDayNudge } from "./MobileQuietDayNudge";
+import { getSelectedDate, getCalendarTimezone } from "../../selectors";
+import { formatDateInTimezone } from "../../timezone";
 
 /**
  * Mobile day list — consumes the shared `useDayAppointmentList` hook so
@@ -64,7 +75,29 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
     timezone,
     isDayLoading,
     hasActiveFilters,
+    apptCount,
   } = data ?? dayData;
+  const selectedDate = useSelector(getSelectedDate);
+  const tz = useSelector(getCalendarTimezone);
+  const todayKey = tz
+    ? formatDateInTimezone(new Date(), tz)
+    : new Date().toISOString().slice(0, 10);
+  const selectedKey = selectedDate
+    ? (tz ? formatDateInTimezone(selectedDate, tz) : selectedDate.toISOString().slice(0, 10))
+    : null;
+  const isDayInPast = selectedKey != null && selectedKey < todayKey;
+  const showQuietDayNudge = !isDayInPast && !isDayLoading && !hasActiveFilters && apptCount > 0 && apptCount <= 2;
+
+  // Track only the id; deref the fresh block on each render so edits performed
+  // in the edit slider are reflected in the summary without needing to re-tap.
+  const [activeBlockId, setActiveBlockId] = useState<number | null>(null);
+  const activeBlock = useMemo(() => {
+    if (activeBlockId == null) return null;
+    const hit = sortedItems.find(
+      (i) => i.type === "block" && i.data.id === activeBlockId,
+    );
+    return hit?.type === "block" ? hit.data : null;
+  }, [activeBlockId, sortedItems]);
 
   const handleAppointmentClick = useCallback(
     (appt: SlimAppointment) => {
@@ -96,7 +129,8 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
 
   if (sortedItems.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center px-4">
+      <div className="flex flex-col flex-1 min-h-0">
+        <div className="flex-1 flex items-center justify-center px-4">
         {hasActiveFilters ? (
           <EmptyState
             icon={SlidersHorizontal}
@@ -105,23 +139,23 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
             className="!py-0 !gap-6"
           />
         ) : (
-          <EmptyState
-            title={t("page.appointments.nothingScheduled")}
-            description={t("page.appointments.nothingScheduledDayDesc")}
-            className="!py-0 !gap-6"
-            actionButton={{
-              label: t("page.appointments.addEvent"),
-              icon: Plus,
-              onClick: () => dispatch(toggleAddForm({ open: true })),
+          <MobileDayEmptyState
+            onAdd={() => dispatch(toggleAddForm({ open: true }))}
+            onBlock={() => {
+              dispatch(setBlockFormEditingAction(null));
+              dispatch(toggleBlockFormAction(true));
             }}
           />
         )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-2 px-2 pt-2 pb-4">
+    <div className="flex flex-col">
+      <MobileDaySummaryStrip items={sortedItems} />
+      <div className="space-y-2 px-2 pt-2 pb-4">
       {sortedItems.map((item) =>
         item.type === "appointment" ? (
           <MobileDayEventCard
@@ -139,9 +173,25 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
             block={item.data}
             locationStaff={locationStaff}
             timezone={timezone ?? undefined}
+            onTap={(b) => setActiveBlockId(b.id)}
           />
         ),
       )}
+      {showQuietDayNudge && (
+        <MobileQuietDayNudge
+          onBlockClick={() => {
+            dispatch(setBlockFormEditingAction(null));
+            dispatch(toggleBlockFormAction(true));
+          }}
+        />
+      )}
+      </div>
+      <MobileBlockSummary
+        block={activeBlock}
+        onClose={() => setActiveBlockId(null)}
+        locationStaff={locationStaff}
+        timezone={timezone ?? undefined}
+      />
     </div>
   );
 };

@@ -182,36 +182,25 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
               )}
             >
               <div className="flex-1">{children}</div>
-
-              {/* Mobile footer lives inside the scroll container */}
-              {footer && (
-                <div className={cn("md:hidden bg-surface", footerClassName)}>
-                  <DashedDivider
-                    marginTop="mt-0"
-                    className="mb-0"
-                    paddingTop="pt-0"
-                    dashPattern="1 1"
-                  />
-                  {footer}
-                </div>
-              )}
             </div>
 
-            {/* Desktop footer sticks to bottom outside the scroll area */}
+            {/* Sticky footer — always sibling of the scroll area so it pins to
+             *  the bottom of the panel on both mobile and desktop. Padding is
+             *  compact on mobile; desktop keeps the original px-6 / pb-2. */}
             {footer && (
               <div
                 className={cn(
-                  "hidden md:flex flex-col bg-surface shrink-0 z-100",
+                  "flex flex-col bg-surface shrink-0 z-100",
                   footerClassName,
                 )}
               >
                 <DashedDivider
                   marginTop="mt-0"
                   className="mb-0"
-                  paddingTop="pt-4"
+                  paddingTop="pt-0 md:pt-4"
                   dashPattern="1 1"
                 />
-                <div className="px-6 pb-2">{footer}</div>
+                <div className="px-3 md:px-6 md:pb-2">{footer}</div>
               </div>
             )}
           </PortalContainerContext.Provider>

@@ -805,7 +805,7 @@ export const AdvancedSettingsSection = forwardRef<
                 </div>
               </div>
               {remindersEnabled && (
-                <div className="flex flex-nowrap gap-2 sm:gap-3">
+                <div className="flex flex-wrap gap-2 sm:gap-3">
                   {REMINDER_HOURS_OPTIONS.map((hours) => {
                     const selected = formData.reminderHoursBefore === hours;
                     return (

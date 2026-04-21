@@ -30,9 +30,12 @@ interface LocationSelectorProps {
     closedClassName?: string;
     /** Mobile mode — uses border-strong always, no hover states. */
     mobile?: boolean;
+    /** Notify parent when the dropdown opens/closes (used on mobile to
+     *  coordinate a width-swap with the sibling action container). */
+    onOpenChange?: (open: boolean) => void;
 }
 
-export const LocationSelector: FC<LocationSelectorProps> = ({ closedClassName, mobile }) => {
+export const LocationSelector: FC<LocationSelectorProps> = ({ closedClassName, mobile, onOpenChange }) => {
     const { t } = useTranslation('calendar');
     const dispatch = useDispatch();
     const locations: Array<LocationType> = useSelector(getAllLocationsSelector);
@@ -43,6 +46,11 @@ export const LocationSelector: FC<LocationSelectorProps> = ({ closedClassName, m
     const [open, setOpen] = useState(false);
     const [listMounted, setListMounted] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
+
+    // Mirror open changes to the parent callback.
+    useEffect(() => {
+        onOpenChange?.(open);
+    }, [open, onOpenChange]);
 
     // Auto-select on mount (or when locations load)
     useEffect(() => {

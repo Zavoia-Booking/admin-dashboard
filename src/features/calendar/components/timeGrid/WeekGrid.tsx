@@ -56,7 +56,9 @@ import { DndContext, DragOverlay, MeasuringStrategy, pointerWithin } from "@dnd-
 import type { CollisionDetection, DragEndEvent } from "@dnd-kit/core";
 import { restrictToVerticalAxis, snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { AppointmentDragData, TimeSlotDropData } from "../CalendarDnD.tsx";
+import { DROP_ANIMATION } from "../calendarDndAnimations.ts";
 import { toast } from "sonner";
+import { dropRejectHaptic } from "../../haptics.ts";
 
 import { TimeColumn } from "./TimeColumn.tsx";
 import { WeekDayColumnSummary } from "./WeekDayColumnSummary.tsx";
@@ -74,6 +76,7 @@ import {
   formatNowLabel,
   type GridSlot,
 } from "./constants.ts";
+import { DragTimeIndicator } from "./DragTimeIndicator.tsx";
 
 export const WeekGrid: FC = () => {
   const {
@@ -312,12 +315,14 @@ export const WeekGrid: FC = () => {
 
   const weekColorCoding = calendarPreferences.getColorCoding();
   const weekKnownColorKeys = useMemo(() => {
+    // Seed with the full location roster (plus "unassigned") so hues stay
+    // anchored when the user narrows the staff filter.
     if (weekColorCoding === "staff")
-      return staffFilter.length > 0 ? staffFilter : locationStaff.map(s => s.id);
+      return [...locationStaff.map(s => s.id), "unassigned"];
     if (weekColorCoding === "service")
       return locationServicesWeek.map(s => s.serviceName);
     return undefined;
-  }, [weekColorCoding, staffFilter, locationStaff, locationServicesWeek]);
+  }, [weekColorCoding, locationStaff, locationServicesWeek]);
   const weekColorMap = useMemo(() => {
     const allAppts: SlimAppointment[] = [];
     for (const col of columnDataWithPreview) {
@@ -508,7 +513,10 @@ export const WeekGrid: FC = () => {
       bufferTimeMinutes,
     });
     if (!slotResult.ok) {
-      if (slotResult.toastMessage) toast.error(slotResult.toastMessage);
+      if (slotResult.toastMessage) {
+        toast.error(slotResult.toastMessage);
+        dropRejectHaptic();
+      }
       return;
     }
     if (slotResult.action === "noop") return;
@@ -682,6 +690,13 @@ export const WeekGrid: FC = () => {
               </span>
             </div>
           )}
+          <DragTimeIndicator
+            overId={activeId ? overId : null}
+            dayGridStartMinutes={weekGridStartMinutes}
+            slotIntervalMinutes={weekSlotIntervalMinutes}
+            daySlotHeight={weekSlotHeight}
+            is24h={is24h}
+          />
         </div>
         {isSingleStaff
           ? weekDays.map((day, i) => {
@@ -721,6 +736,8 @@ export const WeekGrid: FC = () => {
                     durationHighlightSlotIds={weekDurationHighlightSlotIds}
                     draggingGroupId={activeDragIsGroupRestricted ? activeAppointment?.bookingGroupId?.trim() : null}
                     onSlotClick={handleWeekSlotClick}
+                    day={day}
+                    calendarViewMode={AppointmentViewMode.WEEK}
                   />
                 </div>
               </div>
@@ -792,6 +809,7 @@ export const WeekGrid: FC = () => {
           {gridContent}
           {createPortal(
             <DragOverlay
+              dropAnimation={DROP_ANIMATION}
               modifiers={
                 activeDragIsGroupRestricted
                   ? [snapCenterToCursor, restrictToVerticalAxis]
@@ -808,7 +826,15 @@ export const WeekGrid: FC = () => {
                   calendarTimezone,
                 );
                 return (
-                  <div style={{ width: 140 }} className="cursor-grabbing">
+                  <div
+                    style={{
+                      width: 140,
+                      transformOrigin: "center",
+                      filter: "drop-shadow(0 10px 20px rgba(0,0,0,0.22)) drop-shadow(0 2px 4px rgba(0,0,0,0.10))",
+                      willChange: "transform",
+                    }}
+                    className="cursor-grabbing animate-dnd-lift"
+                  >
                     <AppointmentBlock
                       appointment={activeAppointment}
                       top={0}
