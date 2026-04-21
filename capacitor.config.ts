@@ -30,6 +30,9 @@ const config: CapacitorConfig = {
     allowMixedContent: true,
     captureInput: true,
     webContentsDebuggingEnabled: !isProduction,
+    // Automatically handle edge-to-edge margins on Android 15+.
+    // App content stays visible; we use CSS env(safe-area-inset-*) for padding.
+    adjustMarginsForEdgeToEdge: 'auto',
   },
 
   ios: {
@@ -48,6 +51,11 @@ const config: CapacitorConfig = {
       showSpinner: false,
       splashFullScreen: true,
       splashImmersive: true,
+    },
+    SafeArea: {
+      // Dark icons on the status/nav bars (for light app background)
+      statusBarStyle: 'LIGHT',
+      navigationBarStyle: 'LIGHT',
     },
   },
 };

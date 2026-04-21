@@ -201,6 +201,52 @@ export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
   }
 };
 
+/** Text-only status label color (no pill background). */
+export const getStatusLabelClass = (status: string): string => {
+    switch (status) {
+        case 'confirmed': return 'text-blue-700 dark:text-blue-400';
+        case 'completed': return 'text-green-700 dark:text-green-400';
+        case 'no_show':   return 'text-red-700 dark:text-red-300';
+        case 'pending':   return 'text-orange-700 dark:text-orange-400';
+        case 'cancelled': return 'text-destructive';
+        default:          return 'text-muted-foreground';
+    }
+};
+
+/** Tailwind dot class for status row indicator. */
+export const getStatusDotClass = (status: string): string => {
+    switch (status) {
+        case 'confirmed': return 'bg-blue-500';
+        case 'completed': return 'bg-green-500';
+        case 'no_show':   return 'bg-red-500';
+        case 'pending':   return 'bg-orange-500';
+        case 'cancelled': return 'bg-destructive';
+        default:          return 'bg-neutral-400';
+    }
+};
+
+/** Text-only status label (translated). */
+export const getStatusLabelText = (status: string, t?: TFunction): string => {
+    if (t) {
+        const map: Record<string, string> = {
+            confirmed: t('page.common.statuses.confirmed'),
+            completed: t('page.common.statuses.completed'),
+            no_show: t('page.common.statuses.noShow'),
+            pending: t('page.common.statuses.pending'),
+            cancelled: t('page.common.statuses.cancelled'),
+        };
+        return map[status] ?? status;
+    }
+    const fallback: Record<string, string> = {
+        confirmed: 'Confirmed',
+        completed: 'Completed',
+        no_show: 'No-show',
+        pending: 'Pending',
+        cancelled: 'Cancelled',
+    };
+    return fallback[status] ?? status;
+};
+
 export const findItemByKey = (list: Array<any>, key: string, value: string | number) => {
     return list.find(item => {
         return `${item[key]}` === `${value}`
@@ -239,6 +285,37 @@ export function formatDurationHuman(totalMinutes: number): string {
     if (m === 0) return `${h}h`;
     return `${h}h ${m}m`;
 }
+
+/** Compact duration for mobile card left column: 30m, 1h, 1h30m. */
+export function formatDurationCompact(totalMinutes: number): string {
+    if (totalMinutes <= 0) return '—';
+    const h = Math.floor(totalMinutes / 60);
+    const m = Math.round(totalMinutes % 60);
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h${m}m`;
+}
+
+/** Split formatted time into `clock` and optional `meridiem` (null for 24h). */
+export const formatClockAndMeridiem = (
+    isoDate: string,
+    timezone?: string,
+): { clock: string; meridiem: string | null } => {
+    const hour12 = calendarPreferences.getTimeFormat() === '12h';
+    const date = new Date(isoDate);
+    const formatted = date.toLocaleTimeString(getCalendarLocale(), {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12,
+        ...(timezone ? { timeZone: timezone } : {}),
+    });
+    if (!hour12) return { clock: formatted, meridiem: null };
+    const match = formatted.match(/^(.*?)[\s\u00a0]+([AP]M|am|pm|a\.m\.|p\.m\.)$/i);
+    if (match) {
+        return { clock: match[1].trim(), meridiem: match[2].toUpperCase().replace(/\./g, '') };
+    }
+    return { clock: formatted, meridiem: null };
+};
 
 const STATUS_OVERVIEW: Record<string, string> = {
     confirmed: 'Confirmed',

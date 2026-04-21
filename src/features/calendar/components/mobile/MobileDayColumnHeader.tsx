@@ -1,0 +1,98 @@
+import { type FC } from "react";
+import { UserX, X } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar";
+import type { CalendarStaffMember } from "../../../../shared/types/calendar";
+import {
+  getStaffAvatarColor,
+  type AppointmentBlockColorPair,
+} from "../../colors";
+import { cn } from "../../../../shared/lib/utils";
+
+interface MobileDayColumnHeaderProps {
+  staff: CalendarStaffMember | null; // null when this is the "Unassigned" column
+  isFiltered: boolean; // true when this is the only visible column via staff filter
+  onTap: () => void;
+  staffColorMap?: Map<string, AppointmentBlockColorPair> | null;
+  unassignedLabel: string;
+}
+
+/**
+ * Sticky top-of-column header on the mobile day grid. Tapping it dispatches a
+ * staff filter so the grid reflows to a full-width single-staff layout.
+ */
+export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
+  staff,
+  isFiltered,
+  onTap,
+  staffColorMap,
+  unassignedLabel,
+}) => {
+  const isUnassigned = staff == null;
+  const initials = staff
+    ? `${(staff.firstName?.[0] ?? "").toUpperCase()}${(staff.lastName?.[0] ?? "").toUpperCase()}` || "?"
+    : "";
+  const avatarColor = staff
+    ? getStaffAvatarColor(
+        staff.id,
+        `${staff.id}-${staff.firstName ?? ""}-${staff.lastName ?? ""}`,
+        staffColorMap,
+      )
+    : undefined;
+  const shortName = staff ? staff.firstName?.trim() || staff.lastName?.trim() || "—" : unassignedLabel;
+
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      aria-pressed={isFiltered}
+      aria-label={
+        isFiltered
+          ? `${shortName} — tap to show all staff`
+          : `Show only ${shortName}`
+      }
+      className={cn(
+        "flex items-center gap-1.5 w-full h-11 px-2",
+        "border-b border-border bg-white dark:bg-surface",
+        "text-left active:scale-[0.98]",
+        "transition-transform duration-200 ease-out",
+      )}
+    >
+      {isUnassigned ? (
+        <span
+          aria-hidden
+          className="h-6 w-6 rounded-full flex items-center justify-center shrink-0 bg-muted"
+        >
+          <UserX className="h-3.5 w-3.5 text-muted-foreground" />
+        </span>
+      ) : (
+        <Avatar className="h-6 w-6 shrink-0 border border-border ring-1 ring-white dark:ring-gray-800">
+          {staff!.profileImage ? (
+            <AvatarImage src={staff!.profileImage} alt="" className="object-cover" />
+          ) : null}
+          <AvatarFallback
+            className="text-[10px] font-semibold leading-none text-foreground-1"
+            style={avatarColor ? { backgroundColor: avatarColor } : undefined}
+          >
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+      )}
+      <span
+        className={cn(
+          "text-[11px] truncate min-w-0 flex-1 transition-[font-weight] duration-200",
+          isFiltered ? "font-semibold text-foreground-1" : "font-medium text-foreground-2",
+        )}
+      >
+        {shortName}
+      </span>
+      {isFiltered && (
+        <span
+          aria-hidden
+          className="shrink-0 h-5 w-5 rounded-full bg-muted flex items-center justify-center mobile-column-header-dismiss"
+        >
+          <X className="h-3 w-3 text-foreground-2" strokeWidth={2.5} />
+        </span>
+      )}
+    </button>
+  );
+};

@@ -15,7 +15,8 @@ import {
   getCalendarBlockReasonIcon,
   getCalendarBlockReasonLabel,
 } from "../blockReasonMeta.ts";
-import { formatTimeRange, getStaffDisplayNames } from "../utils.tsx";
+import { getStaffDisplayNames } from "../utils.tsx";
+import { formatBlockTimeRange } from "../blockDisplay";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar.tsx";
 import { getAvatarBgColor } from "../../../setupWizard/components/StepTeam";
 import type {
@@ -150,9 +151,7 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
                       {/* Row 2: Time + duration */}
                       <div className="flex items-center justify-between mt-1.5 pl-[42px]">
                         <span className="text-xs text-foreground-3 tabular-nums truncate">
-                          {block.isAllDay
-                            ? t("page.blocks.allDay")
-                            : formatTimeRange(block.startsAt, block.endsAt, timezone)}
+                          {formatBlockTimeRange(block, timezone, t)}
                         </span>
                         {!block.isAllDay && (
                           <span className="text-xs text-foreground-3 tabular-nums shrink-0 ml-auto">

@@ -21,11 +21,17 @@ interface CustomerSearchPopoverProps {
   onSelectCustomer: (customer: CustomerSearchResult) => void;
   resetTrigger?: unknown;
   rightSlot?: (controls: { closePopover: () => void }) => ReactNode;
+  /** When true, auto-focus the search input on mount (useful for mobile overlays). */
+  autoFocus?: boolean;
+  /** Extra className for the results PopoverContent (e.g. to override z-index). */
+  popoverClassName?: string;
+  /** External ref to the search input — allows parent to focus it synchronously on tap. */
+  inputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 const CUSTOMER_PICKER_PAGE_SIZE = 10;
 
-export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlot }: CustomerSearchPopoverProps) {
+export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlot, autoFocus, popoverClassName, inputRef: externalInputRef }: CustomerSearchPopoverProps) {
   const { t } = useTranslation('calendar');
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerResults, setCustomerResults] = useState<CustomerSearchResult[]>([]);
@@ -38,13 +44,26 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
   const [panelClosing, setPanelClosing] = useState(false);
   const panelCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const customerSearchInputRef = useRef<HTMLInputElement>(null);
+  const internalInputRef = useRef<HTMLInputElement>(null);
+  const customerSearchInputRef = externalInputRef ?? internalInputRef;
   const customerSearchAnchorRef = useRef<HTMLDivElement>(null);
   const customerSearchRequestIdRef = useRef(0);
   const customerSearchAbortRef = useRef<AbortController | null>(null);
   const customerAppendInFlightRef = useRef(false);
 
   const normalizeCustomerSearch = useCallback((query: string) => query.trim().replace(/\s+/g, " "), []);
+
+  // Auto-focus the search input when requested (mobile search overlay).
+  // Focus on resetTrigger change so it fires each time the overlay opens,
+  // not just on first mount.
+  useEffect(() => {
+    if (autoFocus && resetTrigger) {
+      // requestAnimationFrame keeps focus within the user gesture on mobile
+      requestAnimationFrame(() => {
+        customerSearchInputRef.current?.focus({ preventScroll: true });
+      });
+    }
+  }, [autoFocus, resetTrigger]);
 
   const startPanelClosing = useCallback(() => {
     setPanelClosing(true);
@@ -246,7 +265,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
 
   return (
       <Popover open={customerOpen} onOpenChange={handlePopoverOpenChange}>
-      <div className="flex gap-2 w-full">
+      <div className="flex flex-col sm:flex-row gap-2 w-full">
         <PopoverAnchor asChild>
           <div
             ref={customerSearchAnchorRef}
@@ -280,6 +299,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
           "w-[var(--radix-popover-trigger-width)] md:w-[var(--radix-popover-trigger-width)] box-border -mt-px border border-t-0 bg-surface dark:bg-neutral-900 shadow-none p-0 z-[80] rounded-t-none rounded-b-[22px]",
           "add-appointment-popover-expand",
           showCustomerSearchPopoverShell ? "border-border-strong dark:border-border-strong" : "border-input dark:border-border",
+          popoverClassName,
         )}
         side="bottom"
         align="start"
@@ -326,6 +346,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
                       onSelect={() => handleSelectCustomer(customer)}
                       className={cn(
                         "flex items-center gap-3 p-3 cursor-pointer",
+                        "max-md:data-[selected=true]:bg-transparent",
                         index === customerResults.length - 1 && "rounded-b-[18px]",
                       )}
                     >

@@ -7,6 +7,7 @@ import { MiniMonthCalendar } from "./MiniMonthCalendar.tsx";
 import { CustomerFilterPicker } from "./CustomerFilterPicker.tsx";
 import { getDayFilters, getActiveCalendarFiltersCount, getLocationStaff, getSidebarOpen } from "../selectors.ts";
 import { setDayFiltersAction, setStaffFilter } from "../actions.ts";
+import { hasAnyDayFilter } from "../calendarFilters.ts";
 import type { Customer } from "../../../shared/types/customer.ts";
 import { Label } from "../../../shared/components/ui/label.tsx";
 
@@ -22,13 +23,17 @@ export const CalendarSidebar: FC = () => {
   const locationStaff = useSelector(getLocationStaff);
 
   const handleClearAllFilters = useCallback(() => {
-    dispatch(setDayFiltersAction({}));
+    // Only refetch when there were server-side (day) filters to clear;
+    // staff filter is client-side and doesn't require a network round-trip.
+    if (hasAnyDayFilter(dayFilters)) {
+      dispatch(setDayFiltersAction({}));
+    }
     if (locationStaff.length === 1) {
       dispatch(setStaffFilter([locationStaff[0].id]));
     } else {
       dispatch(setStaffFilter([]));
     }
-  }, [dispatch, locationStaff]);
+  }, [dispatch, locationStaff, dayFilters]);
 
   const selectedCustomer = useMemo<Pick<Customer, "id" | "firstName" | "lastName" | "email" | "phone"> | null>(() => {
     if (dayFilters.customerId == null) return null;

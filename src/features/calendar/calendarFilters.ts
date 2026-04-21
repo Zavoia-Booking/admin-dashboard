@@ -4,6 +4,28 @@ import { calendarPreferences } from "./calendarPreferences.ts";
 const hasItems = (arr?: readonly unknown[] | null): boolean => (arr?.length ?? 0) > 0;
 
 /**
+ * True when any day-filter dimension carries a meaningful value. Cheaper
+ * guard for "should we refetch?" — lets Clear Filters skip a pointless API
+ * round-trip when the only active filter was client-side (staff column).
+ * Independent of location-staff context (doesn't treat "lone staff" as a filter).
+ */
+export function hasAnyDayFilter(f: CalendarDayFilters | null | undefined): boolean {
+    if (!f) return false;
+    if (f.staffUserId != null) return true;
+    if (hasItems(f.staffUserIds)) return true;
+    if (hasItems(f.serviceIds) || f.serviceId != null) return true;
+    if (hasItems(f.bundleIds) || f.bundleId != null) return true;
+    if (hasItems(f.statuses) || Boolean(f.status)) return true;
+    if (hasItems(f.bookingSources)) return true;
+    if (Boolean((f.clientName ?? "").trim())) return true;
+    if (f.customerId != null) return true;
+    if (Boolean(f.customerEmail) || Boolean(f.customerPhone) || Boolean(f.customerFullName)) return true;
+    if (f.unassignedOnly === true) return true;
+    if (hasItems(f.categoryIds)) return true;
+    return false;
+}
+
+/**
  * Strips `unassignedOnly` from in-memory filter state. The calendar UI no longer sets it;
  * omitting the key matches the API (optional DTO field; backend applies it only when truthy).
  */
@@ -91,8 +113,8 @@ export function countActiveCalendarFilters(
     if (hasItems(dayFilters.bundleIds) || dayFilters.bundleId != null) n += 1;
     if (hasItems(dayFilters.statuses) || Boolean(dayFilters.status)) n += 1;
     if (hasItems(dayFilters.bookingSources)) n += 1;
-    if (dayFilters.customerId != null) n += 1;
-    if (Boolean((dayFilters.clientName ?? "").trim())) n += 1;
+    // customerId / clientName excluded — customer search is a separate control
+    // (sidebar picker on desktop, search overlay on mobile), not part of header filters.
     if (hasItems(dayFilters.categoryIds)) n += 1;
     return n;
 }

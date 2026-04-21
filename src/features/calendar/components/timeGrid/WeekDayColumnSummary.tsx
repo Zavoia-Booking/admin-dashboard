@@ -6,10 +6,13 @@ import type {
   CalendarStaffMember,
 } from "../../../../shared/types/calendar.ts";
 import { AppointmentViewMode } from "../../types.ts";
-import { getTimePositionForGrid } from "../../workingHours.ts";
+import { getTimePositionForGrid, clampBlockToViewDay } from "../../workingHours.ts";
 import { getMinutesInTimezone, formatDateInTimezone } from "../../timezone.ts";
-import { getCalendarBlockReasonIcon } from "../blockReasonMeta.ts";
+import { getCalendarBlockReasonIcon, getCalendarBlockReasonLabel } from "../blockReasonMeta.ts";
 import { formatTimeRange, getStaffDisplayNames } from "../utils.tsx";
+import { formatBlockTimeForDay } from "../blockDisplay";
+import { BLOCK_STRIPE_ACCENT, BLOCK_STRIPE_GRID } from "../../blockStyles.ts";
+import { useTranslation } from "react-i18next";
 import { AppointmentBlock } from "../AppointmentBlock.tsx";
 import type { AppointmentBlockColorPair } from "../../colors.ts";
 import { BlockDetailPopover } from "./BlockDetailPopover.tsx";
@@ -62,6 +65,7 @@ export const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
   intervalMinutes: intervalMinutesProp,
   colorMap,
 }) => {
+  const { t } = useTranslation("calendar");
   const useSlots = gridSlotStartsProp != null && gridSlotStartsProp.length > 0 && slotHeightProp != null && gridStartMinutesProp != null && intervalMinutesProp != null;
   const slotHeight = slotHeightProp ?? HOUR_HEIGHT;
   const gridHeight = useSlots ? gridSlotStartsProp!.length * slotHeight : GRID_HOURS.length * HOUR_HEIGHT;
@@ -137,27 +141,29 @@ export const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
         </div>
       )}
 
-      {/* All-day block overlays */}
+      {/* All-day block overlays — compact banner at the top, not full-height */}
       {blocks.filter((b) => b.isAllDay).map((block) => {
         const staffName = block.blockScope === "staff" && block.userId
           ? getStaffDisplayNames([block.userId], locationStaff) : null;
+        const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
         return (
           <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName} locationStaff={locationStaff} timezone={timezone}>
             <div
-              className="absolute inset-x-0 z-[7] cursor-pointer hover:opacity-80 transition-opacity"
+              className="absolute left-1 right-1 z-[7] cursor-pointer hover:opacity-80 transition-opacity rounded-md border-l-[3px] px-2 py-1.5 flex items-center gap-1.5 min-w-0"
               style={{
-                top: 0,
-                height: gridHeight,
-                backgroundImage: `repeating-linear-gradient(
-                  -45deg,
-                  var(--border-subtle),
-                  var(--border-subtle) 3px,
-                  var(--surface) 3px,
-                  var(--surface) 7px
-                )`,
+                top: 2,
+                backgroundImage: BLOCK_STRIPE_GRID,
+                borderLeftColor: BLOCK_STRIPE_ACCENT,
               }}
               title={block.title || block.reason}
-            />
+            >
+              <span className="flex items-center justify-center size-5 shrink-0 rounded-full border border-border-strong bg-white dark:bg-surface">
+                <ReasonIcon className="size-3 text-muted-foreground" />
+              </span>
+              <span className="text-[11px] font-semibold text-foreground-1 leading-tight truncate min-w-0">
+                {t("page.blocks.allDay")} · {block.title?.trim() || getCalendarBlockReasonLabel(block.reason, t)}
+              </span>
+            </div>
           </BlockDetailPopover>
         );
       })}
@@ -168,28 +174,42 @@ export const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
           const block = group.blocks[0];
           const staffName = block.blockScope === "staff" && block.userId
             ? getStaffDisplayNames([block.userId], locationStaff) : null;
-          const pos = getPos(block.startsAt, block.endsAt);
+          const clipped = timezone
+            ? clampBlockToViewDay(block.startsAt, block.endsAt, dateKey, timezone)
+            : { startsAt: block.startsAt, endsAt: block.endsAt };
+          const pos = getPos(clipped.startsAt, clipped.endsAt);
           const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
+          const showIconChip = pos.height >= 48;
+          const showTimeLabel = pos.height >= 48;
           return (
             <BlockDetailPopover key={`block-${block.id}`} block={block} staffName={staffName} locationStaff={locationStaff} timezone={timezone}>
               <div
                 className="absolute inset-x-0 z-[7] cursor-pointer overflow-hidden
-                  hover:opacity-80 transition-opacity border border-border-strong/40"
+                  hover:opacity-80 transition-opacity border border-l-[3px] border-border-strong/40 rounded-md
+                  px-2 py-1 text-left flex flex-col items-start justify-center gap-1"
                 style={{
                   top: pos.top,
                   height: pos.height,
-                  backgroundImage: `repeating-linear-gradient(
-                    -45deg,
-                    var(--border-subtle),
-                    var(--border-subtle) 3px,
-                    var(--surface) 3px,
-                    var(--surface) 7px
-                  )`,
+                  backgroundImage: BLOCK_STRIPE_GRID,
+                  borderLeftColor: BLOCK_STRIPE_ACCENT,
                 }}
               >
-                <div className="absolute top-1 left-1.5">
-                  <span className="flex items-center justify-center size-5 rounded-full border border-border-strong bg-white dark:bg-surface">
-                    <ReasonIcon className="size-3 text-muted-foreground" />
+                {showTimeLabel && (
+                  <span className="text-[10px] font-medium tabular-nums text-foreground-1 leading-tight truncate max-w-full">
+                    {formatBlockTimeForDay(block, dateKey, timezone, t)}
+                  </span>
+                )}
+                <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+                  {showIconChip && (
+                    <span
+                      aria-hidden
+                      className="flex items-center justify-center size-5 shrink-0 rounded-full border border-border-strong bg-white dark:bg-surface"
+                    >
+                      <ReasonIcon className="size-3 text-muted-foreground" />
+                    </span>
+                  )}
+                  <span className="text-[11px] font-semibold text-foreground-1 leading-tight truncate">
+                    {block.title?.trim() || getCalendarBlockReasonLabel(block.reason, t)}
                   </span>
                 </div>
               </div>
@@ -198,9 +218,13 @@ export const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
         }
 
         /* Merged group: 2+ overlapping blocks → dialog */
-        const pos = getPos(group.minStartIso, group.maxEndIso);
+        const clippedGroup = timezone
+          ? clampBlockToViewDay(group.minStartIso, group.maxEndIso, dateKey, timezone)
+          : { startsAt: group.minStartIso, endsAt: group.maxEndIso };
+        const pos = getPos(clippedGroup.startsAt, clippedGroup.endsAt);
         const count = group.blocks.length;
         const timeRangeStr = formatTimeRange(group.minStartIso, group.maxEndIso, timezone);
+        const showGroupTimeLabel = pos.height >= 48;
         return (
           <BlockGroupDialog
             key={`block-group-${gi}`}
@@ -212,25 +236,24 @@ export const WeekDayColumnSummary: FC<WeekDayColumnSummaryProps> = ({
             <button
               type="button"
               className="absolute inset-x-0 z-[7] cursor-pointer text-left overflow-hidden outline-none
-                hover:opacity-80 transition-opacity border border-border-strong/40
+                hover:opacity-80 transition-opacity border border-l-[3px] border-border-strong/40 rounded-md
+                px-2 py-1 flex flex-col items-start justify-center gap-1
                 focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0"
               style={{
                 top: pos.top,
                 height: pos.height,
-                backgroundImage: `repeating-linear-gradient(
-                  -45deg,
-                  var(--border-subtle),
-                  var(--border-subtle) 3px,
-                  var(--surface) 3px,
-                  var(--surface) 7px
-                )`,
+                backgroundImage: BLOCK_STRIPE_GRID,
+                borderLeftColor: BLOCK_STRIPE_ACCENT,
               }}
             >
-              <div className="absolute top-1 left-1.5">
-                <span className="flex items-center justify-center size-5 rounded-full border border-border-strong bg-white dark:bg-surface text-[9px] font-semibold text-foreground tabular-nums">
-                  {count}
+              {showGroupTimeLabel && (
+                <span className="text-[10px] font-medium tabular-nums text-foreground-1 leading-tight truncate max-w-full">
+                  {timeRangeStr}
                 </span>
-              </div>
+              )}
+              <span className="flex items-center justify-center size-5 shrink-0 rounded-full border border-border-strong bg-white dark:bg-surface text-[9px] font-semibold text-foreground tabular-nums">
+                {count}
+              </span>
             </button>
           </BlockGroupDialog>
         );

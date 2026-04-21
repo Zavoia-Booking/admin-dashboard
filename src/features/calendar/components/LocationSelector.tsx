@@ -25,7 +25,17 @@ const STORAGE_KEY = "zavoia_calendar_selected_location";
  * 3. On change, persists to localStorage and dispatches setSelectedLocationAction
  *    which triggers the saga cascade (context → summary → day data).
  */
-export const LocationSelector: FC = () => {
+interface LocationSelectorProps {
+    /** Override border-radius class for the closed state button. */
+    closedClassName?: string;
+    /** Mobile mode — uses border-strong always, no hover states. */
+    mobile?: boolean;
+    /** Notify parent when the dropdown opens/closes (used on mobile to
+     *  coordinate a width-swap with the sibling action container). */
+    onOpenChange?: (open: boolean) => void;
+}
+
+export const LocationSelector: FC<LocationSelectorProps> = ({ closedClassName, mobile, onOpenChange }) => {
     const { t } = useTranslation('calendar');
     const dispatch = useDispatch();
     const locations: Array<LocationType> = useSelector(getAllLocationsSelector);
@@ -36,6 +46,11 @@ export const LocationSelector: FC = () => {
     const [open, setOpen] = useState(false);
     const [listMounted, setListMounted] = useState(false);
     const rootRef = useRef<HTMLDivElement>(null);
+
+    // Mirror open changes to the parent callback.
+    useEffect(() => {
+        onOpenChange?.(open);
+    }, [open, onOpenChange]);
 
     // Auto-select on mount (or when locations load)
     useEffect(() => {
@@ -65,28 +80,30 @@ export const LocationSelector: FC = () => {
         return () => window.clearTimeout(timer);
     }, [open]);
 
-    // Close on outside click
+    // Close on outside click — capture phase so we can also swallow the tap
+    // that would otherwise bubble into whatever is under the dropdown.
     useEffect(() => {
         if (!open) return;
-        const onPointerDown = (e: MouseEvent | TouchEvent) => {
+        const onDocClickCapture = (e: MouseEvent) => {
             const target = e.target as Node | null;
             if (!target) return;
             if (rootRef.current?.contains(target)) return;
+            e.stopPropagation();
+            e.preventDefault();
             setOpen(false);
         };
-        document.addEventListener("mousedown", onPointerDown);
-        document.addEventListener("touchstart", onPointerDown);
-        return () => {
-            document.removeEventListener("mousedown", onPointerDown);
-            document.removeEventListener("touchstart", onPointerDown);
-        };
+        document.addEventListener("click", onDocClickCapture, true);
+        return () => document.removeEventListener("click", onDocClickCapture, true);
     }, [open]);
 
     const handleSelect = useCallback((id: number) => {
+        setOpen(false);
+        // Re-selecting the current location would re-run the saga cascade
+        // (context → summary/day/week). We already have that data — skip.
+        if (id === selectedLocationId) return;
         localStorage.setItem(STORAGE_KEY, String(id));
         dispatch(setSelectedLocationAction(id));
-        setOpen(false);
-    }, [dispatch]);
+    }, [dispatch, selectedLocationId]);
 
     const selectedLocation = locations.find((l) => l.id === selectedLocationId);
     const showListContainer = listMounted && !isLoadingLocations && locations.length > 0;
@@ -124,7 +141,12 @@ export const LocationSelector: FC = () => {
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                     showListContainer
                         ? "!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong"
-                        : "!rounded-full border border-border hover:border-border-strong dark:border-border dark:hover:border-border-strong",
+                        : cn(
+                            mobile
+                                ? "border border-border-strong dark:border-border-strong"
+                                : "border border-border hover:border-border-strong dark:border-border dark:hover:border-border-strong",
+                            closedClassName ?? "!rounded-full",
+                        ),
                 )}
             >
                 <MapPin className={cn("h-4 w-4 shrink-0 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
@@ -162,6 +184,7 @@ export const LocationSelector: FC = () => {
                                                 "flex cursor-pointer items-center gap-2 p-3",
                                                 isSelected && "bg-muted/50",
                                                 index === lastIdx && "rounded-b-[18px]",
+                                                mobile && "data-[selected=true]:bg-transparent",
                                             )}
                                         >
                                             <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>

@@ -54,6 +54,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../../../shared/components/ui/dialog";
+import { Drawer, DrawerContent } from "../../../shared/components/ui/drawer";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import { DashedDivider } from "../../../shared/components/common/DashedDivider";
 import { CollapsibleFormSection } from "../../../shared/components/forms/CollapsibleFormSection";
 import { useDispatch, useSelector } from "react-redux";
@@ -102,6 +104,94 @@ const APPOINTMENT_DIALOG_CURSOR =
   "cursor-default [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed [&_a]:cursor-pointer [&_textarea]:cursor-text [&_input]:cursor-text [&_[role=switch]]:cursor-pointer";
 
 /**
+ * Outer shell for the appointment summary.
+ * Desktop → centered Radix Dialog. Mobile → bottom Vaul Drawer (swipe-to-close).
+ * Keeps the inner body identical (DialogTitle/DialogDescription/DialogPrimitive.Close
+ * still work inside vaul since it wraps Radix Dialog internally).
+ */
+interface SummaryShellProps {
+  isMobile: boolean;
+  open: boolean;
+  shouldBlockClose: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+const SummaryShell: React.FC<SummaryShellProps> = ({
+  isMobile,
+  open,
+  shouldBlockClose,
+  onClose,
+  children,
+}) => {
+  const guard = (e: { preventDefault: () => void }) => {
+    if (shouldBlockClose) e.preventDefault();
+  };
+
+  if (isMobile) {
+    return (
+      <Drawer
+        open={open}
+        onOpenChange={(o) => {
+          if (!o && !shouldBlockClose) onClose();
+        }}
+      >
+        <DrawerContent
+          onPointerDownOutside={guard}
+          onInteractOutside={guard}
+          onEscapeKeyDown={guard}
+          className={cn(
+            "z-[70] max-h-[92vh] bg-white dark:bg-surface border-border rounded-t-2xl overflow-hidden p-0 flex flex-col",
+            APPOINTMENT_DIALOG_CURSOR,
+          )}
+          overlayClassName="z-[70]"
+        >
+          {children}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  return (
+    <Dialog
+      open={open}
+      modal={false}
+      onOpenChange={(o) => {
+        if (!o && !shouldBlockClose) onClose();
+      }}
+    >
+      <DialogPortal>
+        <div
+          className="fixed inset-0 z-[70] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+          data-state={open ? "open" : "closed"}
+          onClick={() => {
+            if (!shouldBlockClose) onClose();
+          }}
+        />
+        <DialogPrimitive.Content
+          onPointerDownOutside={guard}
+          onInteractOutside={guard}
+          onEscapeKeyDown={guard}
+          className={cn(
+            "data-[state=open]:animate-in data-[state=closed]:animate-out",
+            "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
+            "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
+            "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
+            "data-[state=open]:duration-250 data-[state=closed]:duration-150",
+            "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%]",
+            "flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface",
+            "focus:outline-none focus-visible:outline-none",
+            APPOINTMENT_DIALOG_CURSOR,
+          )}
+        >
+          {children}
+        </DialogPrimitive.Content>
+      </DialogPortal>
+    </Dialog>
+  );
+};
+
+/**
  * Collapsible section shell — matches Calendar → Settings → Advanced (outer bordered panel).
  */
 const ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS =
@@ -148,6 +238,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   }, [onClose]);
 
   const servicesSectionRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
   const dispatch = useDispatch();
   const locationStaff = useSelector(getLocationStaff);
   const bookingSettings = useSelector(getBookingSettings);
@@ -702,7 +793,15 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
         },
       }),
     );
-  }, [displayAppointment, calendarTimezone, dispatch, groupAppointments]);
+
+    // On mobile the summary drawer and the add-appointment slider are both full-screen.
+    // Keeping the drawer open underneath causes vaul's scroll lock + drag gesture to
+    // intercept touches, freezing the slider on top. Close the drawer; desktop keeps it
+    // open because it's a centered non-modal dialog visible alongside the slider.
+    if (isMobile) {
+      handleDialogClose();
+    }
+  }, [displayAppointment, calendarTimezone, dispatch, groupAppointments, isMobile, handleDialogClose]);
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -717,57 +816,34 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
 
   return (
     <>
-      <Dialog
+      <SummaryShell
+        isMobile={isMobile}
         open={dialogOpen}
-        modal={false}
-        onOpenChange={(open) => {
-          if (!open && !addFormOpen && !cancelDialogOpen) handleDialogClose();
-        }}
+        shouldBlockClose={addFormOpen || cancelDialogOpen}
+        onClose={handleDialogClose}
       >
-        <DialogPortal>
-          <div
-            className="fixed inset-0 z-[70] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-            data-state={dialogOpen ? "open" : "closed"}
-            onClick={() => {
-              if (!addFormOpen && !cancelDialogOpen) handleDialogClose();
-            }}
-          />
-          <DialogPrimitive.Content
-            onPointerDownOutside={(e) => {
-              if (addFormOpen || cancelDialogOpen) e.preventDefault();
-            }}
-            onInteractOutside={(e) => {
-              if (addFormOpen || cancelDialogOpen) e.preventDefault();
-            }}
-            onEscapeKeyDown={(e) => {
-              if (addFormOpen || cancelDialogOpen) e.preventDefault();
-            }}
-            className={cn(
-              "data-[state=open]:animate-in data-[state=closed]:animate-out",
-              "data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0",
-              "data-[state=open]:zoom-in-[0.97] data-[state=closed]:zoom-out-[0.97]",
-              "data-[state=open]:slide-in-from-bottom-3 data-[state=closed]:slide-out-to-bottom-2",
-              "data-[state=open]:duration-250 data-[state=closed]:duration-150",
-              "fixed left-[50%] top-[50%] z-[70] flex w-[calc(100%-2rem)] max-w-3xl max-h-[90vh] translate-x-[-50%] translate-y-[-50%]",
-              "flex-col overflow-hidden rounded-2xl border border-border bg-white p-0 shadow-lg dark:bg-surface",
-              "focus:outline-none focus-visible:outline-none",
-              APPOINTMENT_DIALOG_CURSOR,
-            )}
-          >
             <div className="relative shrink-0 px-5 pt-5 pb-0 md:px-6">
               <div className="flex items-center gap-4 pr-[4.5rem] sm:pr-52">
-                <div
-                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border/80 bg-muted/50 dark:bg-muted/30"
-                  aria-hidden
-                >
-                  <CalendarCheck
-                    className="h-6 w-6 text-foreground-1"
-                    strokeWidth={2.25}
-                  />
-                </div>
+                {!isMobile && (
+                  <div
+                    className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-border/80 bg-muted/50 dark:bg-muted/30"
+                    aria-hidden
+                  >
+                    <CalendarCheck
+                      className="h-6 w-6 text-foreground-1"
+                      strokeWidth={2.25}
+                    />
+                  </div>
+                )}
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex min-w-0 items-center gap-3">
-                    <DialogTitle className="min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1">
+                    <DialogTitle
+                      className={cn(
+                        isMobile
+                          ? "sr-only"
+                          : "min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1",
+                      )}
+                    >
                       {t("page.appointments.appointmentDetails")}
                     </DialogTitle>
                     <div className="flex shrink-0 items-center gap-2">
@@ -780,9 +856,17 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         className="truncate"
                         title={`${headerMetaDateTime} · ${headerMetaStaff}`}
                       >
-                        {headerMetaDateTime} · {headerMetaStaff}
+                        {isMobile
+                          ? headerMetaDateTime
+                          : `${headerMetaDateTime} · ${headerMetaStaff}`}
                       </p>
-                      {headerRelativeDate ? (
+                      {isMobile ? (
+                        <p className="truncate text-foreground-3/90">
+                          {headerRelativeDate
+                            ? `${headerRelativeDate} · ${headerMetaStaff}`
+                            : headerMetaStaff}
+                        </p>
+                      ) : headerRelativeDate ? (
                         <p className="truncate text-foreground-3/90">
                           {headerRelativeDate}
                         </p>
@@ -833,60 +917,79 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
             <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 scrollbar-hide px-4 py-3 dark:bg-background/50 md:px-6 md:py-4">
               {detailLoading ? (
                 <div className="space-y-4">
-                  {/* Skeleton: Update status card */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <Skeleton className="h-4 w-24 mb-3" />
+                  {/* Skeleton: Update status card — matches rounded-2xl p-3 md:p-5 real card */}
+                  <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
+                    <Skeleton className="h-4 w-28 mb-3" />
                     <div className="flex items-center gap-2">
                       <Skeleton className="h-8 w-32 rounded-full" />
                       <Skeleton className="h-8 w-24 rounded-full" />
                     </div>
                   </div>
-                  {/* Skeleton: Customer card */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <div className="flex items-center gap-3">
-                      <Skeleton className="h-10 w-10 rounded-full shrink-0" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-36" />
-                        <Skeleton className="h-3 w-48" />
+
+                  {/* Skeleton: Customer + details card — mirrors the real card's
+                      customer block (avatar + name + contacts) AND the key-value
+                      rows (date / time / notes / staff) inside a single card with
+                      divide-y rhythm, so total height matches the loaded state. */}
+                  <div className="rounded-2xl border border-border bg-white shadow-sm dark:bg-card">
+                    <div className="p-3 md:p-5">
+                      {/* Customer block: avatar + name + contact rows (~120px) */}
+                      <div className="border-b border-border-subtle pb-4">
+                        <div className="flex gap-4">
+                          <Skeleton className="h-11 w-11 shrink-0 rounded-full ring-1 ring-border-subtle" />
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <Skeleton className="h-4 w-40" />
+                            <Skeleton className="h-3 w-48" />
+                            <div className="flex items-center gap-2 pt-1">
+                              <Skeleton className="h-3 w-36" />
+                              <span className="h-3.5 w-px bg-border" aria-hidden />
+                              <Skeleton className="h-3 w-28" />
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <Skeleton className="h-6 w-28 rounded-full" />
-                    </div>
-                  </div>
-                  {/* Skeleton: Details card */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <div className="space-y-4 pt-1">
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-16" />
-                        <Skeleton className="h-3 w-36" />
-                      </div>
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-20" />
-                        <Skeleton className="h-3 w-32" />
-                      </div>
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-14" />
-                        <Skeleton className="h-3 w-44" />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Skeleton className="h-3 w-24" />
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-8 w-8 rounded-full" />
-                          <Skeleton className="h-3 w-20" />
+                      {/* Key-value rows — matches the real <dl> divide-y text-sm.
+                          Uses py-3.5 per row to match loaded rhythm so nothing
+                          shifts when data arrives. */}
+                      <div className="divide-y divide-border-subtle text-sm">
+                        {[
+                          { label: "w-14", value: "w-48" },
+                          { label: "w-20", value: "w-40" },
+                          { label: "w-16", value: "w-56" },
+                        ].map((row, i) => (
+                          <div
+                            key={i}
+                            className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6"
+                          >
+                            <Skeleton className={`h-3.5 ${row.label} sm:mt-0.5`} />
+                            <Skeleton className={`h-4 ${row.value}`} />
+                          </div>
+                        ))}
+                        <div className="grid grid-cols-1 gap-2 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
+                          <Skeleton className="h-3.5 w-24 sm:mt-1" />
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-9 w-9 rounded-full" />
+                            <Skeleton className="h-4 w-28" />
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  {/* Skeleton: Services accordion */}
-                  <div className="rounded-xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-4">
-                    <Skeleton className="h-4 w-20 mb-3" />
+
+                  {/* Skeleton: Services accordion — matches real card padding/radius */}
+                  <div className="rounded-2xl border border-border bg-white p-3 shadow-sm dark:bg-card md:p-5">
+                    <Skeleton className="h-4 w-24 mb-3" />
                     <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3.5 w-28" />
-                        <Skeleton className="h-3.5 w-16" />
-                      </div>
-                      <div className="flex justify-between border-t border-border pt-3">
-                        <Skeleton className="h-4 w-12" />
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 min-w-0 flex-1">
+                          <Skeleton className="h-2 w-2 rounded-full" />
+                          <Skeleton className="h-4 w-40" />
+                        </div>
                         <Skeleton className="h-4 w-16" />
+                      </div>
+                      <Skeleton className="h-3 w-56" />
+                      <div className="flex items-center justify-between border-t border-border pt-3">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-4 w-20" />
                       </div>
                     </div>
                   </div>
@@ -1032,9 +1135,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     )}
                   >
                     <div className="relative p-3 md:p-5">
-                      {/* Customer block: avatar, name (capitalize), status, contact rows; booking pill top-right */}
+                      {/* Customer block: avatar, name (capitalize), status, contact rows; booking pill top-right on desktop, own row below on mobile */}
                       <div className="relative border-b border-border-subtle pb-4">
-                        {appointment.bookingSource ? (
+                        {appointment.bookingSource && !isMobile ? (
                           <div className="absolute right-0 top-0 z-[1] pl-2">
                             {(() => {
                               const pill = getBookingSourcePillParts(
@@ -1147,6 +1250,32 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           bookings to CRM (BusinessCustomer) and/or User — picker + API, aligned with
                           duplicate/merge flows in business-customers; avoid overlapping merge semantics.
                         */}
+                        {isMobile && appointment.bookingSource ? (
+                          <div className="mt-3 flex">
+                            {(() => {
+                              const pill = getBookingSourcePillParts(
+                                appointment.bookingSource,
+                              );
+                              const viaLabel = getBookedViaLabel(
+                                appointment.bookingSource,
+                                t,
+                              );
+                              return (
+                                <Badge
+                                  className={cn(
+                                    pill.badgeClass,
+                                    "whitespace-nowrap",
+                                  )}
+                                  title={viaLabel}
+                                  aria-label={viaLabel}
+                                >
+                                  <span className={pill.dotClass} aria-hidden />
+                                  {viaLabel}
+                                </Badge>
+                              );
+                            })()}
+                          </div>
+                        ) : null}
                       </div>
 
                       {/* Group booking indicator — pill matches assignments "Customized for N team members" */}
@@ -1219,9 +1348,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             {t("page.appointments.edit.notes")}
                           </dt>
                           <dd className="min-w-0">
-                            {appointment.notes?.trim() ? (
+                            {displayAppointment.notes?.trim() ? (
                               <p className="m-0 text-sm leading-relaxed text-foreground-2 whitespace-pre-wrap">
-                                {appointment.notes}
+                                {displayAppointment.notes}
                               </p>
                             ) : (
                               <p className="m-0 text-sm text-muted-foreground">
@@ -1368,22 +1497,46 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                       compact
                       description={
                         isGroupBooking ? (
-                          <>
-                            <span
-                              className="h-2 w-2 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: appointment.bookingGroupId
-                                  ? getGroupDotColor(appointment.bookingGroupId)
-                                  : "var(--muted-foreground)",
-                              }}
-                              aria-hidden
-                            />
-                            <span className="min-w-0">
-                              {groupBookingWallTimeRange
-                                ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`
-                                : `${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`}
-                            </span>
-                          </>
+                          isMobile ? (
+                            <>
+                              {groupBookingWallTimeRange ? (
+                                <span className="flex w-full min-w-0 items-center gap-1.5">
+                                  <span
+                                    className="h-2 w-2 shrink-0 rounded-full"
+                                    style={{
+                                      backgroundColor: appointment.bookingGroupId
+                                        ? getGroupDotColor(appointment.bookingGroupId)
+                                        : "var(--muted-foreground)",
+                                    }}
+                                    aria-hidden
+                                  />
+                                  <span className="min-w-0 truncate">
+                                    {groupBookingWallTimeRange}
+                                  </span>
+                                </span>
+                              ) : null}
+                              <span className="w-full min-w-0 truncate">
+                                {formatDurationHuman(serviceDetailTotalDuration)} - {t("page.appointments.edit.acrossGroup")}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full"
+                                style={{
+                                  backgroundColor: appointment.bookingGroupId
+                                    ? getGroupDotColor(appointment.bookingGroupId)
+                                    : "var(--muted-foreground)",
+                                }}
+                                aria-hidden
+                              />
+                              <span className="min-w-0">
+                                {groupBookingWallTimeRange
+                                  ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`
+                                  : `${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`}
+                              </span>
+                            </>
+                          )
                         ) : (
                           t("page.appointments.edit.bookedServiceDescription")
                         )
@@ -1728,9 +1881,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                 </div>
               )}
             </div>
-          </DialogPrimitive.Content>
-        </DialogPortal>
-      </Dialog>
+      </SummaryShell>
 
       {/* ── Cancel Dialog ── */}
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>

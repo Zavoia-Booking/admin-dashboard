@@ -7,6 +7,12 @@ import { Toaster } from './shared/components/ui/sonner.tsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import './shared/lib/i18n'
 
+// @capacitor-community/safe-area v7 auto-enables when viewport-fit=cover is set in index.html.
+// It polyfills env(safe-area-inset-*) on Android WebViews where native values return 0.
+
+
+
+
 // Mobile debug console (dev/preview only)
 // if (import.meta.env.DEV || import.meta.env.MODE === 'preview') {
 //   import('eruda').then((eruda) => eruda.default.init())

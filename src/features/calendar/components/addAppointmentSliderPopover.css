@@ -35,3 +35,46 @@
   transform-origin: top !important;
 }
 
+/* ──────────────────────────────────────────────────────────────
+ * Staff-picker "next step" pulse.
+ *
+ * Two layers combined:
+ *   1. A steady tinted ring (~1px, 45% primary) so the target reads as
+ *      distinct even between pulses.
+ *   2. An expanding halo (0→8px spread, 40%→0% alpha) that breathes
+ *      every 2s. Low-contrast peak so it guides the eye without
+ *      strobing.
+ *
+ * Animates `box-shadow` only → composited, no layout/paint thrash.
+ * Honors `prefers-reduced-motion` by freezing on the steady ring.
+ * ─────────────────────────────────────────────────────────────*/
+@keyframes staff-picker-pulse {
+  0% {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--primary) 45%, transparent),
+      0 0 0 0 color-mix(in oklch, var(--primary) 40%, transparent);
+  }
+  75% {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--primary) 45%, transparent),
+      0 0 0 8px color-mix(in oklch, var(--primary) 0%, transparent);
+  }
+  100% {
+    box-shadow:
+      0 0 0 1px color-mix(in oklch, var(--primary) 45%, transparent),
+      0 0 0 0 color-mix(in oklch, var(--primary) 0%, transparent);
+  }
+}
+
+.staff-picker-pulse {
+  animation: staff-picker-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  border-radius: 9999px;
+  will-change: box-shadow;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .staff-picker-pulse {
+    animation: none;
+    box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 45%, transparent);
+  }
+}

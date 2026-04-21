@@ -62,9 +62,13 @@ const filterSlimClass = (isOpen: boolean) =>
  */
 interface CalendarHeaderFiltersProps {
   slim?: boolean;
+  /** Controlled open state — when set, no trigger is rendered. */
+  externalOpen?: boolean;
+  /** Called when the drawer/popover wants to change open state (controlled mode). */
+  onExternalOpenChange?: (open: boolean) => void;
 }
 
-export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) => {
+export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim, externalOpen, onExternalOpenChange }) => {
   const dispatch = useDispatch();
   const { t } = useTranslation("calendar");
   const isMobile = useIsMobile();
@@ -73,7 +77,16 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
   const appliedStaffFilter = useSelector(getStaffFilter);
   const staffList = useSelector(getLocationStaff);
 
-  const [open, setOpen] = useState(false);
+  const isControlled = externalOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = isControlled ? externalOpen : internalOpen;
+  const setOpen = useCallback(
+    (next: boolean) => {
+      if (isControlled) onExternalOpenChange?.(next);
+      else setInternalOpen(next);
+    },
+    [isControlled, onExternalOpenChange],
+  );
   const [draftDay, setDraftDay] = useState<CalendarDayFilters>({});
   const [draftStaff, setDraftStaff] = useState<number[]>([]);
   const [baselineDay, setBaselineDay] = useState<CalendarDayFilters>({});
@@ -181,7 +194,7 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
   const trigger = slim ? (
     <button
       type="button"
-      className={cn(filterSlimClass(open), "group")}
+      className={cn(filterSlimClass(open), "group hover:bg-transparent")}
       aria-label="Open calendar filters"
     >
       <SlidersHorizontal className="!h-4 !w-4 text-muted-foreground transition-colors group-hover:text-primary group-active:text-primary" />
@@ -209,39 +222,9 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
   );
 
   const filtersMenuScrollable = (
-    <div className="min-h-0 flex-1 overflow-y-auto scrollbar-hide">
-      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
-        <span className="min-w-0 shrink text-sm font-semibold text-foreground-1">{t("page.header.filters")}</span>
-        <div className="flex shrink-0 items-center justify-end gap-4">
-          {hasDraftFiltersActive ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              rounded="full"
-              className="group !h-9 !min-h-0 gap-1.5 px-3 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-              onClick={handleClearAll}
-            >
-              <RotateCcw
-                className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
-                aria-hidden
-              />
-              {t("page.header.clearAll")}
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            rounded="full"
-            disabled={!hasDraftChanges}
-            className="!h-9 !min-h-0 shrink-0 px-6 text-xs font-semibold transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-50"
-            onClick={handleApply}
-          >
-            {t("page.header.apply")}
-          </Button>
-        </div>
-      </header>
-      <div className="space-y-4 px-4 pb-4 pt-4">
+    <div className="min-h-0 flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide relative">
+        <div className="space-y-4 px-4 pb-20 pt-4">
         {staffList.length > 0 ? (
           <>
             <CalendarStaffFilter
@@ -264,32 +247,61 @@ export const CalendarHeaderFilters: FC<CalendarHeaderFiltersProps> = ({ slim }) 
             onChange: setDraftDay,
           }}
         />
+        </div>
       </div>
+      {/* Sticky footer */}
+      <footer className="sticky bottom-0 z-10 flex items-center justify-between gap-3 border-t border-border bg-white dark:bg-surface px-4 py-3">
+        {hasDraftFiltersActive ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            rounded="full"
+            className="group !h-9 !min-h-0 gap-1.5 px-3 text-xs font-medium text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+            onClick={handleClearAll}
+          >
+            <RotateCcw
+              className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-colors group-hover:text-primary"
+              aria-hidden
+            />
+            {t("page.header.clearAll")}
+          </Button>
+        ) : <div />}
+        <Button
+          type="button"
+          size="sm"
+          rounded="full"
+          disabled={!hasDraftChanges}
+          className="!h-9 !min-h-0 shrink-0 px-16 text-xs font-semibold transition-transform active:scale-95 disabled:pointer-events-none disabled:opacity-50"
+          onClick={handleApply}
+        >
+          {t("page.header.apply")}
+        </Button>
+      </footer>
     </div>
   );
 
   if (isMobile) {
+    const handleDrawerOpenChange = (next: boolean) => {
+      setOpen(next);
+      if (next) {
+        document.documentElement.style.scrollBehavior = "auto";
+      } else {
+        setTimeout(() => {
+          document.documentElement.style.scrollBehavior = "smooth";
+        }, 100);
+      }
+    };
+
     return (
-      <Drawer
-        open={open}
-        onOpenChange={(next) => {
-          setOpen(next);
-          if (next) {
-            document.documentElement.style.scrollBehavior = "auto";
-          } else {
-            setTimeout(() => {
-              document.documentElement.style.scrollBehavior = "smooth";
-            }, 100);
-          }
-        }}
-      >
-        <DrawerTrigger asChild>{trigger}</DrawerTrigger>
-        <DrawerContent className="outline-none !z-[80]" overlayClassName="!z-[75]">
+      <Drawer autoFocus={true} open={open} onOpenChange={handleDrawerOpenChange}>
+        {!isControlled && <DrawerTrigger asChild>{trigger}</DrawerTrigger>}
+        <DrawerContent className="outline-none !z-[80] !bg-white dark:!bg-surface" overlayClassName="!z-[75]">
           <DrawerTitle className="sr-only">{t("page.header.calendarFilters")}</DrawerTitle>
           <DrawerDescription className="sr-only">
             {t("page.header.calendarFiltersDrawerDesc")}
           </DrawerDescription>
-          <div className="flex max-h-[80vh] flex-col overflow-hidden p-0">{filtersMenuScrollable}</div>
+          <div className="h-[70vh] flex flex-col p-0 bg-white dark:bg-surface">{filtersMenuScrollable}</div>
         </DrawerContent>
       </Drawer>
     );

@@ -32,18 +32,18 @@ interface BottomNavItem {
 
 const mainNavItems: BottomNavItem[] = [
   { i18nKey: 'sidebar.dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { i18nKey: 'sidebar.assignments', url: '/assignments', icon: ClipboardList },
   { i18nKey: 'sidebar.calendar', url: '/calendar', icon: Calendar },
   { i18nKey: 'sidebar.marketplace', url: '/marketplace', icon: Store },
 ];
 
 const moreNavItems: BottomNavItem[] = [
-  { i18nKey: 'sidebar.assignments', url: '/assignments', icon: ClipboardList },
   { i18nKey: 'sidebar.teamMembers', url: '/team-members', icon: Users },
   { i18nKey: 'sidebar.services', url: '/services', icon: Briefcase },
   { i18nKey: 'sidebar.locations', url: '/locations', icon: MapPin },
   { i18nKey: 'sidebar.customers', url: '/customers', icon: UserCircle },
   { i18nKey: 'sidebar.support', url: '/support', icon: MessageCircle },
-  { i18nKey: 'sidebar.account', url: '/account', icon: Settings2 },
+  { i18nKey: 'sidebar.settings', url: '/settings', icon: Settings2 },
 ];
 
 const USFlag = () => (
@@ -152,7 +152,7 @@ export function MobileBottomNav() {
           'mobile-nav-drawer fixed left-0 right-0 z-50 bg-surface border-t border-border shadow-lg overflow-hidden',
           !isDragging && 'transition-transform duration-300 ease-out',
           isOpen ? 'translate-y-0' : 'translate-y-full',
-          'bottom-[72px] max-h-[calc(100vh-72px)]'
+          'bottom-[64px] max-h-[calc(100vh-64px)]'
         )}
         style={{
           transform: isDragging && isOpen 
@@ -250,27 +250,35 @@ export function MobileBottomNav() {
         onClick={() => setIsOpen(false)}
       />
 
-      {/* Bottom navigation bar */}
-      <nav className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-surface border-t border-border shadow-lg">
-        <div className="flex items-center justify-around px-2 py-2">
+      {/* Bottom navigation bar — Airbnb/Apple tab-bar pattern:
+       * no background fills, color-only active state, generous vertical padding,
+       * hairline border-top (no shadow), icons at 22px, labels at 10px. */}
+      <nav
+        className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md border-t border-border"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-stretch justify-around px-0 pt-1 pb-4">
           {/* Main navigation items */}
           {mainNavItems.map((item) => {
-            const isActive = pathname === item.url;
+            const isActive = !isOpen && pathname === item.url;
             return (
               <Link
                 key={item.i18nKey}
                 to={item.url}
-                data-slot="sidebar-menu-button"
-                data-active={isActive}
                 className={cn(
-                  'flex flex-col items-center justify-center py-1.5 px-2.5 rounded-lg transition-all duration-200 flex-1 relative m-0.5',
+                  "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1",
                   isActive
-                    ? 'bg-surface-active font-medium'
-                    : 'hover:bg-surface-hover'
+                    ? "text-primary"
+                    : "text-muted-foreground active:text-foreground",
                 )}
               >
-                <item.icon className="h-6 w-6 mb-1" />
-                <span className="text-xs font-medium">
+                <span key={isActive ? pathname : undefined} className={isActive ? "animate-tab-icon" : undefined}>
+                  <item.icon className="h-6 w-6 shrink-0" />
+                </span>
+                <span className={cn(
+                  "text-[10px] leading-tight truncate max-w-full",
+                  isActive ? "font-semibold" : "font-medium",
+                )}>
                   {t(item.i18nKey)}
                 </span>
               </Link>
@@ -279,31 +287,35 @@ export function MobileBottomNav() {
 
           {/* More button */}
           <button
+            type="button"
             onClick={() => setIsOpen(!isOpen)}
-            data-slot="sidebar-menu-button"
-            data-active={isOpen}
             className={cn(
-              'flex flex-col items-center justify-center py-1.5 px-2.5 rounded-lg transition-all duration-200 flex-1 relative m-0.5',
+              "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1",
               isOpen
-                ? 'bg-surface-active font-medium'
-                : 'hover:bg-surface-hover'
+                ? "text-primary"
+                : "text-muted-foreground active:text-foreground",
             )}
           >
-            <div className="relative h-6 w-6 mb-1">
-              <X 
+            <div className="relative h-6 w-6 shrink-0">
+              <X
                 className={cn(
-                  'absolute inset-0 h-6 w-6 transition-all duration-300',
-                  isOpen ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-75 rotate-90'
-                )} 
+                  "absolute inset-0 h-6 w-6 transition-all duration-300",
+                  isOpen ? "opacity-100 scale-100 rotate-0" : "opacity-0 scale-75 rotate-90",
+                )}
+                strokeWidth={2}
               />
-              <MoreHorizontal 
+              <MoreHorizontal
                 className={cn(
-                  'absolute inset-0 h-6 w-6 transition-all duration-300',
-                  isOpen ? 'opacity-0 scale-75 -rotate-90' : 'opacity-100 scale-100 rotate-0'
-                )} 
+                  "absolute inset-0 h-6 w-6 transition-all duration-300",
+                  isOpen ? "opacity-0 scale-75 -rotate-90" : "opacity-100 scale-100 rotate-0",
+                )}
+                strokeWidth={2}
               />
             </div>
-            <span className="text-xs font-medium">
+            <span className={cn(
+              "text-[10px] leading-tight truncate max-w-full",
+              isOpen ? "font-semibold" : "font-medium",
+            )}>
               {t('mobileNav.more')}
             </span>
           </button>

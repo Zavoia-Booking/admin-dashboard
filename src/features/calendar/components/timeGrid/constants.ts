@@ -4,10 +4,17 @@
 
 export const HOUR_HEIGHT = 128; // px per hour (legacy hour-based grid)
 export const GRID_HEIGHT_PER_HOUR = 160; // px per hour for 15-min slot grid (→ 40px per slot)
+/** Mobile timeline row height — 128 px/hour gives 32 px per 15-min slot,
+ *  matching MIN_APPOINTMENT_HEIGHT_PX so a 15-min card sits inside exactly one slot. */
+export const MOBILE_GRID_HEIGHT_PER_HOUR = 128;
 export const GRID_START_HOUR = 6; // 6 AM
 export const GRID_END_HOUR = 22; // 10 PM
 export const GRID_HOURS = Array.from({ length: GRID_END_HOUR - GRID_START_HOUR }, (_, i) => GRID_START_HOUR + i);
 export const GUTTER_WIDTH = 60; // px - slightly wider for cleaner look
+/** Mobile time-axis gutter (narrower than desktop). */
+export const MOBILE_GUTTER_WIDTH = 44;
+/** Minimum per-staff column width on mobile. 112 px fits ~3 columns + peek on 390 px viewport. */
+export const MOBILE_COLUMN_MIN_WIDTH = 112;
 
 /** When more than this many staff columns are visible, the grid becomes horizontally scrollable. */
 export const COLUMN_SCROLL_THRESHOLD = 6;

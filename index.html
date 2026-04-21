@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="description" content="Admin dashboard for managing your Zavoia business" />
     
     <title>Zavoia Admin Dashboard</title>
@@ -22,8 +22,18 @@
           } else {
             // Default to light theme if no preference or theme is 'light'
             document.documentElement.classList.remove('dark');
-            document.documentElement.style.backgroundColor = 'oklch(97.5% 0.003 248)';
-            document.body.style.backgroundColor = 'oklch(97.5% 0.003 248)';
+            // On mobile (Capacitor native), match --surface (white) so the status bar
+            // area blends seamlessly with the breadcrumb. On web, keep the light-gray
+            // page background for visual separation from cards.
+            // Detect Capacitor native (runs before Capacitor JS loads).
+            // capacitor: scheme or window.Capacitor (Capacitor injects this early via native bridge).
+            const isNative =
+              !!window.Capacitor ||
+              location.protocol === 'capacitor:' ||
+              (location.protocol === 'http:' && location.hostname === 'localhost' && !location.port);
+            const bg = isNative ? 'oklch(100% 0 0)' : 'oklch(97.5% 0.003 248)';
+            document.documentElement.style.backgroundColor = bg;
+            document.body.style.backgroundColor = bg;
           }
         } catch (e) {
           // Silently fail if localStorage is not available

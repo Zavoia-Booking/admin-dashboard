@@ -941,7 +941,7 @@ export function ManageServicesSheet({
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={onClose} autoFocus={true}>
+      <Drawer open={isOpen} onOpenChange={onClose} autoFocus={false}>
         <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80" overlayClassName="!z-80">
           <DrawerTitle className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerTitle>
           <DrawerDescription className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerDescription>

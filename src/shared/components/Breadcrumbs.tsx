@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import type { FC } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { NotificationBell } from './common/NotificationBell';
 
@@ -14,6 +14,14 @@ export type BreadcrumbItemType = {
 interface BreadcrumbsProps {
   items: BreadcrumbItemType[];
   rightContent?: React.ReactNode;
+  /** When provided, replaces the breadcrumb's last-item label (used on mobile to
+   *  show context-specific titles like the current month name in calendar). */
+  titleOverride?: string;
+  /** Optional page-scoped prev/next actions rendered as small muted chevrons
+   *  flanking the title. Kept visually subordinate to the back-button (smaller,
+   *  muted color, tighter spacing) so they read as "nudge date" not "go back". */
+  onPrev?: () => void;
+  onNext?: () => void;
 }
 
 const BELL_ROUTES = new Set([
@@ -26,12 +34,22 @@ const BELL_ROUTES = new Set([
   '/locations',
 ]);
 
+/** True bottom-nav tab roots (not including "More" menu items, which are one
+ *  step removed and benefit from the back button for intra-More navigation).
+ *  Per Apple HIG / Material / Airbnb: only real tab roots hide the back button. */
+const TOP_LEVEL_ROUTES = new Set([
+  '/dashboard',
+  '/assignments',
+  '/calendar',
+  '/marketplace',
+]);
+
 const SETTINGS_BELL_TABS = new Set(['billing', 'advanced']);
 
 function shouldShowBell(pathname: string, search: string): boolean {
   if (BELL_ROUTES.has(pathname) || pathname.startsWith('/dashboard/')) return true;
 
-  if (pathname === '/account') {
+  if (pathname === '/settings') {
     const tab = new URLSearchParams(search).get('tab');
     return tab !== null && SETTINGS_BELL_TABS.has(tab);
   }
@@ -39,11 +57,14 @@ function shouldShowBell(pathname: string, search: string): boolean {
   return false;
 }
 
-export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent }) => {
+export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOverride, onPrev, onNext }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const current = items[items.length - 1];
+  const displayLabel = titleOverride ?? current?.label;
+  const hasDateNav = !!onPrev || !!onNext;
+  const isTopLevelRoute = TOP_LEVEL_ROUTES.has(location.pathname);
   const showBell = useMemo(
     () => shouldShowBell(location.pathname, location.search),
     [location.pathname, location.search],
@@ -55,27 +76,62 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent }) => {
 
   return (
     <div className="bg-surface px-1 py-2 py-1 shadow-sm">
-      <div className="flex items-center gap-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          rounded="full"
-          onClick={handleBack}
-          className="h-8 !w-8"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
+      <div className="flex items-center gap-3 px-2">
+        {!isTopLevelRoute && (
+          <Button
+            variant="ghost"
+            size="icon"
+            rounded="full"
+            onClick={handleBack}
+            className="h-8 !w-8 shrink-0"
+            aria-label="Back"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+        )}
 
-        <span className="text-lg font-semibold text-foreground-1 truncate min-w-0">
-          {current?.label}
-        </span>
+        {hasDateNav ? (
+          <div className="flex min-w-0 flex-1 items-center gap-0.5">
+            {onPrev && (
+              <Button
+                variant="ghost"
+                size="icon"
+                rounded="full"
+                onClick={onPrev}
+                className="!h-7 !w-7 !min-h-7 !min-w-7 !p-0 shrink-0 active:scale-95 transition-transform"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <span className="min-w-0 truncate text-base font-semibold text-foreground-1">
+              {displayLabel}
+            </span>
+            {onNext && (
+              <Button
+                variant="ghost"
+                size="icon"
+                rounded="full"
+                onClick={onNext}
+                className="!h-7 !w-7 !min-h-7 !min-w-7 !p-0 shrink-0 active:scale-95 transition-transform"
+                aria-label="Next"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-lg font-semibold text-foreground-1">
+            {displayLabel}
+          </span>
+        )}
 
         {rightContent ? (
-          <div className="ml-auto">
+          <div className="shrink-0">
             {rightContent}
           </div>
         ) : showBell ? (
-          <div className="ml-auto">
+          <div className="shrink-0">
             <NotificationBell variant="header" />
           </div>
         ) : null}

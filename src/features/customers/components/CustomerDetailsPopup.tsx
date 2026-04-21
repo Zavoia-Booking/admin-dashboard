@@ -139,6 +139,7 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
       <DialogPortal>
         <div className="fixed inset-0 z-[70] bg-black/50" onClick={() => { if (!hasOverlayOpen) onClose(); }} />
         <DialogPrimitive.Content
+          aria-describedby={undefined}
           onOpenAutoFocus={(e) => e.preventDefault()}
           onInteractOutside={(e) => e.preventDefault()}
           className={cn(

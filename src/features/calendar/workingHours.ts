@@ -5,7 +5,7 @@
 import type { WorkingHours, WorkingHoursDay } from "../../shared/types/location";
 import type { CalendarBlockDto } from "../../shared/types/calendar";
 import { convertTo24Hour } from "./utils";
-import { getMinutesInTimezone, formatDateInTimezone } from "./timezone";
+import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey } from "./timezone";
 
 /** Day-of-week key matching WorkingHours (lowercase). */
 function getDayKey(date: Date): keyof WorkingHours {
@@ -88,6 +88,30 @@ export function getTimePositionForGrid(
     MIN_APPOINTMENT_HEIGHT_PX
   );
   return { top, height };
+}
+
+/**
+ * Clip a block's [startsAt, endsAt] range to the displayed day's bounds in the
+ * given timezone. Multi-day continuous blocks render correctly per-day without
+ * the date-stripping surprises of getMinutesInTimezone. No-op for blocks that
+ * fit inside the day.
+ */
+export function clampBlockToViewDay(
+  blockStartsAt: string,
+  blockEndsAt: string,
+  dateKey: string,
+  timezone: string,
+): { startsAt: string; endsAt: string } {
+  const dayStartMs = buildZonedDateFromDateKey(dateKey, '00:00', timezone).getTime();
+  const dayEndMs = buildZonedDateFromDateKey(dateKey, '23:59', timezone).getTime() + 59_999;
+  const blockStartMs = new Date(blockStartsAt).getTime();
+  const blockEndMs = new Date(blockEndsAt).getTime();
+  const startMs = Math.max(blockStartMs, dayStartMs);
+  const endMs = Math.min(blockEndMs, dayEndMs);
+  return {
+    startsAt: new Date(startMs).toISOString(),
+    endsAt: new Date(endMs).toISOString(),
+  };
 }
 
 /**

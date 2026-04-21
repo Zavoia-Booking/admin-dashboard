@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MobileBottomNav } from '../navigation/mobile-bottom-nav';
 import { AppSidebar } from '../navigation/app-sidebar';
 import { SidebarInset, SidebarProvider } from '../ui/sidebar';
@@ -21,11 +22,19 @@ interface AppLayoutProps {
    * viewport.
    */
   tabbedPage?: boolean;
+  noPadding?: boolean;
+  /** Optional override for the breadcrumb header title (mobile). */
+  headerTitleOverride?: string;
+  /** Optional page-scoped prev/next handlers — render as muted chevrons next to
+   *  the breadcrumb title (mobile). Used by the calendar page for day/week/month nav. */
+  headerPrevAction?: () => void;
+  headerNextAction?: () => void;
 }
 
-export function AppLayout({ children, contentClassName, headerRightContent, tabbedPage }: AppLayoutProps) {
+export function AppLayout({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerPrevAction, headerNextAction }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
+  const location = useLocation();
 
   useEffect(() => {
     // remove the inline background colors set in index.html
@@ -43,13 +52,25 @@ export function AppLayout({ children, contentClassName, headerRightContent, tabb
         <AppSidebar />
 
         <SidebarInset>
-          <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-20' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
+          <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
             <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
-              <div className="sticky top-0 z-30 md:hidden">
-                <Breadcrumbs items={breadcrumbs} rightContent={headerRightContent} />
+              <div
+                className="sticky top-0 z-30 md:hidden bg-surface"
+                style={{ paddingTop: "env(safe-area-inset-top)" }}
+              >
+                <Breadcrumbs
+                  items={breadcrumbs}
+                  rightContent={headerRightContent}
+                  titleOverride={headerTitleOverride}
+                  onPrev={headerPrevAction}
+                  onNext={headerNextAction}
+                />
               </div>
               {!tabbedPage && <LimitedAccessBanner />}
-              <div className="relative px-2 py-4 md:px-4">
+              <div
+                key={isMobile ? location.pathname : undefined}
+                className={`${noPadding ? '' : 'px-2 py-4 md:px-4'} ${isMobile ? 'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:[animation-duration:200ms]' : ''}`}
+              >
                 {children}
               </div>
             </div>

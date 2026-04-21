@@ -17,6 +17,7 @@ import {
 import { getUpdateConflictOffer, getPendingDrop } from "../../selectors.ts";
 import type { AppointmentDragData } from "../CalendarDnD.tsx";
 import { CONFIRM_MODAL_DELAY_MS, type PendingReschedulePayload } from "./constants.ts";
+import { dragStartHaptic, slotChangeHaptic } from "../../haptics.ts";
 
 /**
  * Shared DnD state and handlers used by both DayGrid and WeekGrid.
@@ -68,25 +69,62 @@ export function useGridDndState() {
     return () => clearTimeout(t);
   }, [pendingDrop, dropConfirmInProgress]);
 
+  const lastOverIdRef = useRef<string | null>(null);
+  const pendingOverIdRef = useRef<string | null>(null);
+  const overIdRafRef = useRef<number | null>(null);
+
+  const cancelOverIdRaf = useCallback(() => {
+    if (overIdRafRef.current != null) {
+      cancelAnimationFrame(overIdRafRef.current);
+      overIdRafRef.current = null;
+    }
+  }, []);
+
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const raw = event.active.data?.current as AppointmentDragData | undefined;
     if (raw?.type === "appointment") {
       dndSessionRef.current = { nowMs: Date.now(), dragData: raw };
+      // Light impact at the moment the drag activates (after the 250ms
+      // TouchSensor delay / 8px MouseSensor distance). Silent on web.
+      dragStartHaptic();
     } else {
       dndSessionRef.current = null;
     }
     setActiveId(String(event.active.id));
+    cancelOverIdRaf();
+    lastOverIdRef.current = null;
+    pendingOverIdRef.current = null;
     setOverId(null);
-  }, []);
+  }, [cancelOverIdRaf]);
 
-  const lastOverIdRef = useRef<string | null>(null);
+  // RAF-gated `setOverId` — pointermove fires up to ~60-120×/sec on touch;
+  // we only need one React render per frame to keep slot highlights + group
+  // preview in sync. Collapsing multiple pointer events into one RAF tick cuts
+  // drag-time re-renders roughly in half on cheap Android WebView.
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const next = event.over?.id != null ? String(event.over.id) : null;
-    if (next !== lastOverIdRef.current) {
-      lastOverIdRef.current = next;
-      setOverId(next);
-    }
+    pendingOverIdRef.current = next;
+    if (overIdRafRef.current != null) return;
+    overIdRafRef.current = requestAnimationFrame(() => {
+      overIdRafRef.current = null;
+      const pending = pendingOverIdRef.current;
+      if (pending !== lastOverIdRef.current) {
+        lastOverIdRef.current = pending;
+        setOverId(pending);
+        // Apple-style scrubber tick: one subtle haptic per slot crossing.
+        // Skip on the initial null → slot transition (pending is null on
+        // entry when the finger hasn't yet reached a droppable) since that's
+        // already covered by the dragStart haptic.
+        if (pending !== null) slotChangeHaptic();
+      }
+    });
   }, []);
+
+  // Tear down any scheduled RAF on unmount so stale state isn't pushed after
+  // the component is gone.
+  useEffect(() => {
+    return () => cancelOverIdRaf();
+  }, [cancelOverIdRaf]);
 
   const handleConfirmOverride = useCallback(() => {
     if (!pendingReschedulePayload) return;
@@ -188,6 +226,19 @@ export function useGridDndState() {
     setOverrideReasonText("");
   }, [dispatch]);
 
+  // Wrapped setOverId — cancels any RAF-gated pending update so callers
+  // (e.g. grid handleDragEnd setting overId to null) aren't overridden by a
+  // stale RAF tick scheduled mid-drag.
+  const safeSetOverId = useCallback(
+    (next: string | null) => {
+      cancelOverIdRaf();
+      pendingOverIdRef.current = next;
+      lastOverIdRef.current = next;
+      setOverId(next);
+    },
+    [cancelOverIdRaf],
+  );
+
   return {
     // Redux state
     dispatch,
@@ -197,7 +248,7 @@ export function useGridDndState() {
     activeId,
     setActiveId,
     overId,
-    setOverId,
+    setOverId: safeSetOverId,
     dropConfirmInProgress,
     setDropConfirmInProgress,
     confirmModalDelayedOpen,

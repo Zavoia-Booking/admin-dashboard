@@ -83,6 +83,24 @@
       }
     },
     "appointments": {
+      "summary": {
+        "bookingWord": "booking",
+        "bookingsWord": "bookings",
+        "bookedLabel": "booked",
+        "confirmedLabel": "confirmed",
+        "pendingLabel": "pending"
+      },
+      "quietDay": {
+        "title": "Light day ahead",
+        "description": "Block off a break, lunch, or personal time.",
+        "cta": "Block time"
+      },
+      "emptyDay": {
+        "title": "Nothing scheduled",
+        "description": "Add an appointment or block off time from your calendar.",
+        "addCta": "New appointment",
+        "blockCta": "Block time off"
+      },
       "selectLocation": "Select a location to view the calendar.",
       "selectLocationAppointments": "Select a location to view appointments.",
       "appointmentDetails": "Appointment details",
@@ -217,6 +235,7 @@
         "onBlockCreate": "This time overlaps with blocked time. Are you sure you want to create this appointment?",
         "reminderNote": "Reminders are not sent to clients between 22:00 and 08:00 (business timezone).",
         "cancel": "Cancel",
+        "reasonLabel": "Reason (optional)",
         "reasonPlaceholder": "e.g. Customer request, Emergency"
       },
       "customer": {
@@ -247,6 +266,10 @@
     },
     "blocks": {
       "allDay": "All day",
+      "fromTime": "From {{time}}",
+      "untilTime": "Until {{time}}",
+      "multiDayRange": "{{startDate}} {{startTime}} – {{endDate}} {{endTime}}",
+      "multiDayAllDayRange": "{{startDate}} – {{endDate}} · All day",
       "recurring": "Recurring",
       "recurringBlock": "Recurring block",
       "deleteBlock": "Delete block?",
@@ -314,6 +337,7 @@
         "selectDate": "Select date",
         "startTime": "Start time",
         "endTime": "End time",
+        "multiDayContinuousHelper": "Blocks continuously from {{startDate}} {{startTime}} to {{endDate}} {{endTime}}. Toggle Repeat for a daily or weekly pattern.",
         "repeat": "Repeat",
         "repeatOnDesc": "Turn this on to make this time block recurring.",
         "repeatOffDesc": "Recurring blocks need a single calendar day \u2014 set the end date to the same day as the start date.",
@@ -467,7 +491,8 @@
       "groupReassign": "Booking groups can only be rescheduled, not reassigned to a different staff member.",
       "ineligibleStaff": "{{staffLabel}} is not assigned to perform this service. Choose another team member or edit the appointment.",
       "pastMidnight": "Appointment would extend past midnight.",
-      "thisTeamMember": "This team member"
+      "thisTeamMember": "This team member",
+      "mobileCrossColumnRejected": "Open the appointment to change staff."
     },
     "groupDialog": {
       "appointmentCount_one": "{{count}} appointment",
