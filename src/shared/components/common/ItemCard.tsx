@@ -132,40 +132,46 @@ export function ItemCard({
               variant === "default" ? "mb-6" : "mb-3",
             )}
           >
-            {category && (
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "font-medium max-w-48",
-                  variant === "default" ? "text-xs" : "text-[10px]",
-                  variant === "default" ? "h-8 py-2 px-3" : "h-2.5",
-                )}
-                style={{
-                  backgroundColor: category.color
-                    ? `${category.color}`
-                    : undefined,
-                  borderColor: category.color || undefined,
-                  color: category.color
-                    ? getReadableTextColor(category.color)
-                    : undefined,
-                }}
-              >
-                {category.icon && (
-                  <category.icon
-                    className={cn(
-                      "mr-1.5 flex-shrink-0",
-                      variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5",
-                    )}
-                    style={{
-                      color: category.color
-                        ? getReadableTextColor(category.color)
-                        : undefined,
-                    }}
-                  />
-                )}
-                <span className="truncate">{category.name}</span>
-              </Badge>
-            )}
+            {category && (() => {
+              // CSS-var bgs (e.g. `var(--color-info-100)`) are theme-invariant light
+              // pastels in this codebase, so we lock the text to brand Ink and let it
+              // stay dark in both modes. Static hex bgs (hash-derived) remain
+              // theme-invariant too, so we compute a contrasting hex via luminance.
+              const isCssVarBg =
+                typeof category.color === "string" &&
+                category.color.startsWith("var(");
+              const inlineTextColor =
+                category.color && !isCssVarBg
+                  ? getReadableTextColor(category.color)
+                  : undefined;
+              return (
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "font-medium max-w-48",
+                    variant === "default" ? "text-xs" : "text-[10px]",
+                    variant === "default" ? "h-8 py-2 px-3" : "h-2.5",
+                    isCssVarBg && "text-brand-ink",
+                  )}
+                  style={{
+                    backgroundColor: category.color || undefined,
+                    borderColor: category.color || undefined,
+                    color: inlineTextColor,
+                  }}
+                >
+                  {category.icon && (
+                    <category.icon
+                      className={cn(
+                        "mr-1.5 flex-shrink-0",
+                        variant === "default" ? "h-3 w-3" : "h-2.5 w-2.5",
+                      )}
+                      style={{ color: inlineTextColor }}
+                    />
+                  )}
+                  <span className="truncate">{category.name}</span>
+                </Badge>
+              );
+            })()}
             {badges.map((badge, index) => (
               <Badge
                 key={index}

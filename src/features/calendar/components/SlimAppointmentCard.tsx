@@ -56,7 +56,7 @@ export const StaffAvatarCluster: FC<{ staffIds: number[]; staff: CalendarStaffMe
       {visible.map((member) => (
         <Avatar
           key={member.id}
-          className="h-6 w-6 shrink-0 border border-border ring-1 ring-white dark:ring-gray-800 transition-none"
+          className="h-6 w-6 shrink-0 border border-border ring-1 ring-surface transition-none"
           title={`${member.firstName} ${member.lastName}`}
         >
           {member.profileImage ? (
@@ -71,7 +71,7 @@ export const StaffAvatarCluster: FC<{ staffIds: number[]; staff: CalendarStaffMe
         </Avatar>
       ))}
       {overflowCount > 0 && (
-        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground ring-1 ring-white dark:ring-gray-800">
+        <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground ring-1 ring-surface">
           +{overflowCount}
         </div>
       )}
@@ -202,7 +202,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
         <span
           className={cn(
             "min-w-0 truncate text-xs",
-            appointment.isUnassigned ? "text-orange-600 font-medium" : "text-foreground-3",
+            appointment.isUnassigned ? "text-primary font-medium" : "text-foreground-3",
           )}
         >
           {staffLabel}

@@ -393,8 +393,6 @@ function UnresolvedAppointmentRow({
           className="inline-flex items-center gap-1 px-2.5 py-1 !min-h-0 !h-auto rounded-full text-[10px] font-medium
             border border-green-200 bg-green-50 text-green-800
             hover:bg-green-100 hover:border-green-300
-            dark:border-green-800 dark:bg-green-950/20 dark:text-green-200
-            dark:hover:bg-green-900/30 dark:hover:border-green-700
             focus-visible:ring-focus/60
             disabled:opacity-50 transition-colors cursor-pointer"
         >
@@ -405,10 +403,8 @@ function UnresolvedAppointmentRow({
           disabled={loading !== null}
           onClick={() => handleAction('no_show')}
           className="inline-flex items-center gap-1 px-2.5 py-1 !min-h-0 !h-auto rounded-full text-[10px] font-medium
-            border border-orange-500/20 bg-orange-50/50 text-orange-700
-            hover:bg-orange-100 hover:border-orange-300
-            dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200
-            dark:hover:bg-orange-900/30 dark:hover:border-orange-700
+            border border-primary/20 bg-primary/5 text-primary
+            hover:bg-primary/10 hover:border-primary/40
             focus-visible:ring-focus/60
             disabled:opacity-50 transition-colors cursor-pointer"
         >
@@ -750,16 +746,16 @@ function UnresolvedAppointmentsDialog({
           </p>
           <div className="flex shrink-0 items-center gap-2 md:gap-3">
             <Button variant="ghost" size="sm" onClick={() => { setExitingConfirm(true); setTimeout(() => { setPendingConfirm(null); setExitingConfirm(false); }, 200); }} className="!h-8 !min-h-8 px-2.5 md:px-3.5 text-xs font-medium text-foreground-3 hover:text-foreground-1 rounded-full">{t('needsAttention.back')}</Button>
-            <Button variant="outline" size="sm" onClick={() => handleBulkAction(pendingConfirm)} disabled={bulkLoading !== null} className={cn('inline-flex !h-8 !min-h-8 px-2.5 md:px-3.5 text-xs font-medium rounded-full', pendingConfirm === 'completed' ? 'border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700' : 'border-orange-500/20 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-300 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700')}>{bulkLoading !== null ? t('needsAttention.updating') : t('needsAttention.confirm')}</Button>
+            <Button variant="outline" size="sm" onClick={() => handleBulkAction(pendingConfirm)} disabled={bulkLoading !== null} className={cn('inline-flex !h-8 !min-h-8 px-2.5 md:px-3.5 text-xs font-medium rounded-full', pendingConfirm === 'completed' ? 'border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300' : 'border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/40')}>{bulkLoading !== null ? t('needsAttention.updating') : t('needsAttention.confirm')}</Button>
           </div>
         </div>
       ) : (
         <>
           <span className={cn('text-xs font-medium transition-opacity duration-150', someSelected ? 'text-foreground-2' : 'text-foreground-3')}>{someSelected ? t('needsAttention.selected', { count: selected.size }) : t('needsAttention.selectToResolve')}</span>
           <div className={cn('flex items-center gap-2 transition-opacity duration-150', someSelected ? 'opacity-100' : 'opacity-0 pointer-events-none')}>
-            <Button size="sm" variant="outline" onClick={() => setPendingConfirm('completed')} className="rounded-full border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700 focus-visible:ring-focus/60 !h-7 !min-h-0 text-xs gap-1.5"><CheckCircle2 className="h-3 w-3 shrink-0" />{t('needsAttention.markSelectedCompleted')}</Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingConfirm('completed')} className="rounded-full border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 !h-7 !min-h-0 text-xs gap-1.5"><CheckCircle2 className="h-3 w-3 shrink-0" />{t('needsAttention.markSelectedCompleted')}</Button>
             <span className="h-5 w-px shrink-0 bg-border" aria-hidden />
-            <Button size="sm" variant="outline" onClick={() => setPendingConfirm('no_show')} className="rounded-full border-orange-500/20 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-300 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700 focus-visible:ring-focus/60 !h-7 !min-h-0 text-xs gap-1.5"><UserX className="h-3 w-3 shrink-0" />{t('needsAttention.markSelectedNoShow')}</Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingConfirm('no_show')} className="rounded-full border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/40 focus-visible:ring-focus/60 !h-7 !min-h-0 text-xs gap-1.5"><UserX className="h-3 w-3 shrink-0" />{t('needsAttention.markSelectedNoShow')}</Button>
           </div>
         </>
       )}

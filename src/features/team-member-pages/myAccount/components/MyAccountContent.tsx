@@ -407,7 +407,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                 {/* Edit Button on Image */}
                 <div
                   onClick={() => !isUploadingImage && fileInputRef.current?.click()}
-                  className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-white text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-gray-50 transition-colors border border-border ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
+                  className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-surface text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-surface-hover transition-colors border border-border ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                     }`}
                 >
                   <Camera className="h-3 w-3" />

@@ -981,7 +981,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                                     {priceDifference < 0 ? (
                                       <TrendingDown className="h-4 w-4 text-green-500" />
                                     ) : (
-                                      <TrendingUp className="h-4 w-4 text-orange-500" />
+                                      <TrendingUp className="h-4 w-4 text-primary" />
                                     )}
                                     <span className="text-xs font-medium text-foreground-2">
                                       {priceDifference < 0
@@ -994,7 +994,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                                     </span>
                                   </div>
                                   <span
-                                    className={`text-sm font-semibold ${priceDifference < 0 ? "text-green-500 dark:text-green-400" : "text-orange-600 dark:text-orange-400"}`}
+                                    className={`text-sm font-semibold ${priceDifference < 0 ? "text-green-500 dark:text-green-400" : "text-primary"}`}
                                   >
                                     {priceDifference < 0 ? "" : "+"}
                                     {currencySymbol}

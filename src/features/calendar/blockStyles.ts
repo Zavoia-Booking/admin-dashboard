@@ -15,5 +15,7 @@ export const BLOCK_STRIPE_GRID =
 export const BLOCK_STRIPE_LIST =
     "repeating-linear-gradient(45deg, rgba(156,148,134,0.10) 0, rgba(156,148,134,0.10) 6px, rgba(156,148,134,0.03) 6px, rgba(156,148,134,0.03) 12px)";
 
-/** Solid warm-beige accent — used for the left border stripe on block cards. */
-export const BLOCK_STRIPE_ACCENT = "#9C9486";
+/** Solid warm-beige accent — used for the left border stripe on block cards.
+ *  Resolves to the brand Stone token so the stripe follows brand. The
+ *  rgba diagonal patterns above remain hand-tuned at slightly lighter values. */
+export const BLOCK_STRIPE_ACCENT = "var(--brand-stone)";

@@ -70,11 +70,11 @@ const AdvancedSettings = () => {
   const getBlockerIcon = (code: string) => {
     switch (code) {
       case 'needs_to_remove_team_members':
-        return { Icon: Users, iconBg: 'bg-blue-100 dark:bg-blue-900/40', iconColor: 'text-blue-600 dark:text-blue-400' };
+        return { Icon: Users, iconBg: 'bg-blue-100', iconColor: 'text-blue-600' };
       case 'has_active_appointments':
-        return { Icon: Calendar, iconBg: 'bg-amber-100 dark:bg-amber-900/40', iconColor: 'text-amber-600 dark:text-amber-400' };
+        return { Icon: Calendar, iconBg: 'bg-amber-100', iconColor: 'text-amber-600' };
       case 'has_active_subscription':
-        return { Icon: CreditCard, iconBg: 'bg-violet-100 dark:bg-violet-900/40', iconColor: 'text-violet-600 dark:text-violet-400' };
+        return { Icon: CreditCard, iconBg: 'bg-violet-100', iconColor: 'text-violet-600' };
       default:
         return { Icon: AlertTriangle, iconBg: 'bg-muted', iconColor: 'text-muted-foreground' };
     }

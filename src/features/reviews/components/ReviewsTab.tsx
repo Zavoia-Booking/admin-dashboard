@@ -177,7 +177,7 @@ export function ReviewsTab() {
             onClick={() => handleRatingFilter(star)}
             className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
               ratingFilter === star
-                ? "border-amber-400 bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-300"
+                ? "border-amber-400 bg-amber-50 text-amber-700"
                 : "border-border bg-surface text-foreground-2 hover:bg-surface-hover"
             }`}
           >

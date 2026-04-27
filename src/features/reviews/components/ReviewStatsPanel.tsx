@@ -89,7 +89,7 @@ function OverallRatingCard({
           <h3 className="text-sm font-semibold text-foreground flex-1">
             {t("stats.overallTitle")}
           </h3>
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-400/10 text-amber-600 dark:text-amber-400 shrink-0">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-100 text-amber-700 shrink-0">
             <Eye className="h-2.5 w-2.5" />
             {t("stats.overallBadge")}
           </span>

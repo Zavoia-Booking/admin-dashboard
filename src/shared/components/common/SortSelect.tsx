@@ -159,8 +159,8 @@ export const SortSelect: React.FC<SortSelectProps> = ({
             {triggerButton}
           </DrawerTrigger>
           <DrawerContent
-            className="outline-none !z-[80]"
-            overlayClassName="!z-[75]"
+            className="outline-none !z-[100]"
+            overlayClassName="!z-[95]"
           >
             <DrawerTitle className="sr-only">{placeholder}</DrawerTitle>
             <DrawerDescription className="sr-only">

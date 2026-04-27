@@ -9,6 +9,7 @@ import {
   Zap,
   ExternalLink,
   FileText,
+  Check,
 } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';

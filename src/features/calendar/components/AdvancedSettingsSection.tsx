@@ -320,7 +320,7 @@ export const AdvancedSettingsSection = forwardRef<
         <div className="space-y-4">
           <SectionDivider title={t("policy.title")} />
           <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 dark:bg-purple-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
             <div className="relative p-3 md:p-4 space-y-6">
               <div className="space-y-1.5 px-1">
                 <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
@@ -413,7 +413,7 @@ export const AdvancedSettingsSection = forwardRef<
           <SectionDivider title={t("confirmation.title")} />
           <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
             <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 dark:bg-green-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-green-500/5 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
               <div className="relative space-y-4">
                 <div className="space-y-1.5">
                   <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
@@ -452,7 +452,7 @@ export const AdvancedSettingsSection = forwardRef<
             </div>
 
             <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/5 dark:bg-orange-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
               <div className="relative space-y-4">
                 <div className="space-y-1.5">
                   <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
@@ -516,7 +516,7 @@ export const AdvancedSettingsSection = forwardRef<
 
             {/* Calendar Settings / Team Availability */}
             <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm p-3 md:p-4 overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 dark:bg-purple-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/5 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
               <div className="relative space-y-4">
                 <div className="space-y-1.5">
                   <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
@@ -698,7 +698,7 @@ export const AdvancedSettingsSection = forwardRef<
           <SectionDivider title={t("messaging.title")} />
 
           <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm overflow-hidden">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-500/20 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+            <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full -translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
             <div className="relative p-3 md:p-4 space-y-6">
               <div className="space-y-1.5 px-1">
                 <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">
@@ -787,7 +787,7 @@ export const AdvancedSettingsSection = forwardRef<
 
           {/* Reminders */}
           <div className="group relative bg-surface dark:bg-neutral-900/30 rounded-2xl border border-border hover:border-border-strong transition-all duration-300 shadow-sm overflow-hidden">
-            <div className="absolute bottom-0 right-0 w-24 h-24 bg-amber-500/5 dark:bg-amber-500/20 rounded-full translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
+            <div className="absolute bottom-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full translate-y-10 translate-x-10 group-hover:scale-125 transition-transform duration-500"></div>
             <div className="relative p-3 md:p-4 space-y-6">
               <div className="space-y-1.5 px-1">
                 <h3 className="text-base font-semibold text-foreground-1 flex items-center gap-2">

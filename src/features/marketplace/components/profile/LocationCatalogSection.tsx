@@ -29,7 +29,7 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
     <span
       onClick={() => navigate("/assignments")}
       data-navigate-to="/assignments"
-      className="inline-flex items-center gap-0.5 cursor-pointer font-semibold text-foreground-1 dark:text-foreground-1 hover:text-primary dark:hover:text-primary"
+      className="inline-flex items-center gap-0.5 cursor-pointer font-semibold text-foreground-1 hover:text-primary dark:hover:text-primary"
     >
       {children}
       <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -181,8 +181,8 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                   className={cn(
                     "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
                     serviceCount > 0
-                      ? "bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
-                      : "bg-muted/30 dark:bg-muted/20 border-border text-foreground-3"
+                      ? "bg-green-50 border-green-200 hover:bg-green-100"
+                      : "bg-muted/30 border-border text-foreground-3"
                   )}
                 >
                   <div
@@ -193,10 +193,10 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                   />
                   {serviceCount > 0 ? (
                     <>
-                      <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                      <span className="font-semibold text-neutral-900">
                         {serviceCount}
                       </span>
-                      <span className="text-neutral-900 dark:text-foreground-1">
+                      <span className="text-neutral-900">
                         {t("locationCatalog.service", { count: serviceCount })}
                       </span>
                     </>
@@ -210,8 +210,8 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                   className={cn(
                     "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
                     bundleCount > 0
-                      ? "bg-amber-50 border-amber-200 hover:bg-amber-100 dark:bg-amber-900/20 dark:border-amber-800"
-                      : "bg-muted/30 dark:bg-muted/20 border-border text-foreground-3"
+                      ? "bg-amber-50 border-amber-200 hover:bg-amber-100"
+                      : "bg-muted/30 border-border text-foreground-3"
                   )}
                 >
                   <div
@@ -222,10 +222,10 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                   />
                   {bundleCount > 0 ? (
                     <>
-                      <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                      <span className="font-semibold text-neutral-900">
                         {bundleCount}
                       </span>
-                      <span className="text-neutral-900 dark:text-foreground-1">
+                      <span className="text-neutral-900">
                         {t("locationCatalog.bundle", { count: bundleCount })}
                       </span>
                     </>
@@ -239,8 +239,8 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                   className={cn(
                     "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border transition-colors",
                     teamMemberCount > 0
-                      ? "bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
-                      : "bg-muted/30 dark:bg-muted/20 border-border text-foreground-3"
+                      ? "bg-purple-50 border-purple-200 hover:bg-purple-100"
+                      : "bg-muted/30 border-border text-foreground-3"
                   )}
                 >
                   <div
@@ -251,10 +251,10 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                   />
                   {teamMemberCount > 0 ? (
                     <>
-                      <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                      <span className="font-semibold text-neutral-900">
                         {teamMemberCount}
                       </span>
-                      <span className="text-neutral-900 dark:text-foreground-1">
+                      <span className="text-neutral-900">
                         {t("locationCatalog.teamMember", { count: teamMemberCount })}
                       </span>
                     </>
@@ -266,10 +266,10 @@ export const LocationCatalogSection: React.FC<LocationCatalogSectionProps> = ({
                 {location.isRemote && (
                   <Badge
                     variant="secondary"
-                    className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800"
+                    className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-blue-50 border-blue-200 hover:bg-blue-100"
                   >
                     <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <span className="text-neutral-900 dark:text-foreground-1">
+                    <span className="text-neutral-900">
                       {t("locationCatalog.remoteAvailable")}
                     </span>
                   </Badge>

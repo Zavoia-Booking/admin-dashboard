@@ -1042,8 +1042,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 className={cn(
                                   "inline-flex !h-8 !min-h-8 px-3.5 text-xs font-medium",
                                   pendingConfirm === "complete"
-                                    ? "border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700"
-                                    : "border-orange-500/20 bg-orange-50/50 text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700",
+                                    ? "border-green-200 bg-green-50 text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60"
+                                    : "border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 hover:border-primary/40 focus-visible:ring-focus/60",
                                 )}
                               >
                                 {t("page.appointments.confirm")}
@@ -1066,7 +1066,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   size="sm"
                                   rounded="full"
                                   onClick={openCompleteDialog}
-                                  className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-green-200 bg-green-50 px-3.5 text-xs font-medium text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60 dark:border-green-800 dark:bg-green-950/20 dark:text-green-200 dark:hover:bg-green-900/30 dark:hover:border-green-700"
+                                  className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-green-200 bg-green-50 px-3.5 text-xs font-medium text-green-800 hover:bg-green-100 hover:border-green-300 focus-visible:ring-focus/60"
                                   disabled={actionLoading !== null}
                                 >
                                   <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
@@ -1077,7 +1077,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   size="sm"
                                   rounded="full"
                                   onClick={openNoShowDialog}
-                                  className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-orange-500/20 bg-orange-50/50 px-3.5 text-xs font-medium text-orange-700 hover:bg-orange-100 hover:border-orange-300 focus-visible:ring-focus/60 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200 dark:hover:bg-orange-900/30 dark:hover:border-orange-700"
+                                  className="inline-flex !h-8 !min-h-8 items-center gap-1.5 border-primary/20 bg-primary/5 px-3.5 text-xs font-medium text-primary hover:bg-primary/10 hover:border-primary/40 focus-visible:ring-focus/60"
                                   disabled={actionLoading !== null}
                                 >
                                   <UserX className="h-3.5 w-3.5 shrink-0" />
@@ -1115,9 +1115,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           isCancelled &&
                             "border-destructive/25 bg-destructive/5 text-destructive dark:border-destructive/40 dark:bg-destructive/10 dark:text-destructive",
                           isCompleted &&
-                            "border-green-200 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/30 dark:text-green-400",
+                            "border-green-200 bg-green-50 text-green-800",
                           isNoShow &&
-                            "border-orange-500/20 bg-orange-50/50 text-orange-700 dark:border-orange-800 dark:bg-orange-950/20 dark:text-orange-200",
+                            "border-primary/20 bg-primary/5 text-primary",
                         )}
                       >
                         {isCancelled && t("page.appointments.edit.appointmentCancelled")}
@@ -1172,7 +1172,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 className="object-cover"
                               />
                             ) : null}
-                            <AvatarFallback className="bg-muted/80 text-sm font-semibold text-foreground-2">
+                            <AvatarFallback className="bg-neutral-200 text-sm font-semibold text-neutral-700">
                               {clientDisplay.displayName
                                 .split(/\s+/)
                                 .map((n) => n[0])
@@ -1368,11 +1368,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               <Badge
                                 className={cn(
                                   assignmentStylePillLayout,
-                                  "border-orange-200 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300",
+                                  "border-primary/20 bg-primary/5 text-primary hover:bg-primary/10",
                                 )}
                               >
                                 <span
-                                  className="h-2 w-2 shrink-0 rounded-full bg-orange-500"
+                                  className="h-2 w-2 shrink-0 rounded-full bg-primary"
                                   aria-hidden
                                 />
                                 {t("page.common.unassigned")}
@@ -1574,7 +1574,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                         <Badge
                                           className={cn(
                                             "rounded-full border px-2.5 py-0.5 text-[11px] font-medium shadow-none",
-                                            "border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-200",
+                                            "border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100",
                                           )}
                                         >
                                           {t("page.appointments.edit.bundle")}
@@ -1676,7 +1676,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                     "h-3 w-3 shrink-0 rounded-full border-2 bg-background",
                                     isLast
                                       ? "border-border dark:border-neutral-400/80"
-                                      : "border-orange-300 dark:border-orange-400/75",
+                                      : "border-primary/40",
                                   )}
                                   aria-hidden
                                 />

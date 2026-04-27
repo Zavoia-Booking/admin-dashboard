@@ -129,10 +129,10 @@ export function MyAssignmentServiceRow({
                 </p>
                 <Badge
                   variant="secondary"
-                  className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+                  className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 shrink-0"
                 >
                   <div className="h-2 w-2 rounded-full bg-purple-500" />
-                  <span className="text-neutral-900 dark:text-foreground-1">
+                  <span className="text-neutral-900">
                     {t('services.badge.custom')}
                   </span>
                 </Badge>

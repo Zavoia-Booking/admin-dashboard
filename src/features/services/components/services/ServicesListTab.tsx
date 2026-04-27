@@ -286,7 +286,7 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
 
           {/* Services List */}
           {services.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 mb-0 md:mb-4">
               {services.map((service) => {
                 // Build metadata array (only duration now)
                 const metadata: ItemCardMetadata[] = [

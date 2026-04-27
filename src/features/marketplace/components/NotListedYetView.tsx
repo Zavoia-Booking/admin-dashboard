@@ -199,7 +199,7 @@ export function NotListedYetView({
 
         {/* Benefit: 24/7 - 1x1 */}
         <Card className="md:col-span-1 group relative overflow-hidden bg-surface border-border transition-all duration-300 rounded-xl p-0">
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-orange-400/10 dark:bg-orange-400/70 rounded-full translate-y-8 -translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-primary/10 dark:bg-primary/40 rounded-full translate-y-8 -translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
           <CardContent className="h-full p-4 flex flex-col justify-start items-start min-h-[160px]">
             <div className="space-y-1">
               <h4 className="font-bold text-base uppercase tracking-widest text-foreground-2">

@@ -72,8 +72,8 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   // Helper functions
   const getStatusBadge = (status: string) => {
     const badgeClasses = status === 'active'
-      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
-      : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40';
+      ? 'bg-green-100 text-green-800 hover:bg-green-100'
+      : 'bg-red-100 text-red-800 hover:bg-red-100';
     return (
       <Badge className={badgeClasses}>
         {status === 'active' ? t('profileSlider.status.active') : t('profileSlider.status.inactive')}
@@ -83,10 +83,10 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
 
   const getAppointmentStatusBadge = (status: string) => {
     const badgeClasses = status === 'confirmed'
-      ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/40'
+      ? 'bg-green-100 text-green-800 hover:bg-green-100'
       : status === 'pending'
-      ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400 hover:bg-yellow-100 dark:hover:bg-yellow-900/40'
-      : 'bg-gray-100 dark:bg-gray-900/30 text-gray-800 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900/40';
+      ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
+      : 'bg-secondary text-foreground-2 hover:bg-secondary-hover';
     return (
       <Badge className={badgeClasses}>
         {status.charAt(0).toUpperCase() + status.slice(1)}

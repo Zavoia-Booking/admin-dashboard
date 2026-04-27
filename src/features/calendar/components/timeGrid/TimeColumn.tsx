@@ -422,7 +422,7 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
               <button
                 type="button"
                 className="absolute left-1 right-1 z-10 cursor-pointer overflow-hidden border-none outline-none
-                  rounded-xl bg-purple-50 dark:bg-purple-900/20
+                  rounded-xl bg-purple-50
                   hover:shadow-md hover:scale-[1.01] transition-[shadow,transform] duration-150 px-3 py-2
                   flex flex-col items-start justify-center text-left
                   focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0"

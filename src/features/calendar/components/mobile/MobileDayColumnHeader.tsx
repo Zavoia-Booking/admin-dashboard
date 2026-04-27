@@ -65,7 +65,7 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
           <UserX className="h-3.5 w-3.5 text-muted-foreground" />
         </span>
       ) : (
-        <Avatar className="h-6 w-6 shrink-0 border border-border ring-1 ring-white dark:ring-gray-800">
+        <Avatar className="h-6 w-6 shrink-0 border border-border ring-1 ring-surface">
           {staff!.profileImage ? (
             <AvatarImage src={staff!.profileImage} alt="" className="object-cover" />
           ) : null}

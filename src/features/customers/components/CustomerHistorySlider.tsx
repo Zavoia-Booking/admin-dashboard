@@ -293,7 +293,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
                             'h-3 w-3 shrink-0 rounded-full border-2 bg-background',
                             isLast
                               ? 'border-border dark:border-neutral-400/80'
-                              : 'border-orange-300 dark:border-orange-400/75',
+                              : 'border-primary/40',
                           )}
                           aria-hidden
                         />

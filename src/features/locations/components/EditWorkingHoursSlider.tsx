@@ -133,7 +133,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                       {hours.isOpen ? (
                         <>
                           <div>
-                            <Label className="text-xs text-gray-500 mb-1 block">{t("editWorkingHours.openingTime")}</Label>
+                            <Label className="text-xs text-foreground-3 mb-1 block">{t("editWorkingHours.openingTime")}</Label>
                             <Input
                               type="time"
                               value={hours.open}
@@ -145,7 +145,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                             />
                           </div>
                           <div className="mt-2">
-                            <Label className="text-xs text-gray-500 mb-1 block">{t("editWorkingHours.closingTime")}</Label>
+                            <Label className="text-xs text-foreground-3 mb-1 block">{t("editWorkingHours.closingTime")}</Label>
                             <Input
                               type="time"
                               value={hours.close}
@@ -158,7 +158,7 @@ const EditWorkingHoursSlider: React.FC<EditWorkingHoursSliderProps> = ({
                           </div>
                         </>
                       ) : (
-                        <div className="bg-gray-50 rounded-lg p-4 text-center text-gray-400 italic text-sm mt-2">
+                        <div className="bg-muted rounded-lg p-4 text-center text-foreground-disabled italic text-sm mt-2">
                           {t("editWorkingHours.closedOn", { day: getDayLabel(day) })}
                         </div>
                       )}

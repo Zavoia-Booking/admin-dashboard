@@ -31,6 +31,7 @@ export function LocationBundlesSection({
   const navigate = useNavigate();
   const [isManageSheetOpen, setIsManageSheetOpen] = useState(false);
   const [showAllBundles, setShowAllBundles] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const collapsibleRef = useRef<HTMLDivElement>(null);
 
   // Bundles from backend are already filtered to only assigned ones
@@ -72,19 +73,16 @@ export function LocationBundlesSection({
   const visibleBundles = assignedBundles.slice(0, MAX_VISIBLE_BUNDLES);
   const hiddenBundles = assignedBundles.slice(MAX_VISIBLE_BUNDLES);
 
-  // Measure height for animation
+  // Measure height for animation. Use scrollHeight so margins/gaps between
+  // children (space-y-2) are included — otherwise the last item gets cropped.
   useEffect(() => {
     const el = collapsibleRef.current;
     if (!el || !hasMoreBundles) return;
-    const fullHeight = Array.from(el.children).reduce(
-      (acc, child) => acc + (child as HTMLElement).offsetHeight,
-      0,
-    );
     el.style.setProperty(
       "--radix-collapsible-content-height",
-      `${fullHeight}px`,
+      `${el.scrollHeight}px`,
     );
-  }, [assignedBundles, hasMoreBundles]);
+  }, [assignedBundles, hasMoreBundles, showAllBundles]);
 
   return (
     <div className="space-y-4 mb-0 md:mb-4">
@@ -106,13 +104,13 @@ export function LocationBundlesSection({
           {enabledCount > 0 && (
             <Badge
               variant="secondary"
-              className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+              className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100"
             >
               <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+              <span className="font-semibold text-neutral-900">
                 {enabledCount}
               </span>
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t("page.locationBundles.stats.active")}
               </span>
             </Badge>
@@ -235,7 +233,7 @@ export function LocationBundlesSection({
             <>
               <div
                 ref={collapsibleRef}
-                data-slot="collapsible-content"
+                data-slot={hasInteracted ? "collapsible-content" : undefined}
                 data-state={showAllBundles ? "open" : "closed"}
                 className={`space-y-2 overflow-hidden ${
                   showAllBundles ? "h-auto" : "h-0"
@@ -255,7 +253,10 @@ export function LocationBundlesSection({
                   type="button"
                   variant="outline"
                   rounded="full"
-                  onClick={() => setShowAllBundles(!showAllBundles)}
+                  onClick={() => {
+                    setHasInteracted(true);
+                    setShowAllBundles(!showAllBundles);
+                  }}
                   className="group h-auto px-4 py-1.5 gap-1.5 border-border w-[60%] md:w-1/3 dark:bg-surface dark:border-border dark:hover:border-border-strong dark:group-hover:text-primary dark:text-foreground-1 dark:hover:bg-surface"
                 >
                   <span>

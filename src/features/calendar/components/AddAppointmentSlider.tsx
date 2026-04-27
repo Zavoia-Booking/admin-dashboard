@@ -255,12 +255,12 @@ function AppointmentItemRow({
             className={cn(
               'text-[11px] px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 shrink-0',
               isService
-                ? 'bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800'
-                : 'bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800',
+                ? 'bg-green-50 border-green-200 hover:bg-green-100'
+                : 'bg-purple-50 border-purple-200 hover:bg-purple-100',
             )}
           >
             <div className={cn('h-2 w-2 rounded-full', isService ? 'bg-green-500' : 'bg-purple-500')} />
-            <span className="text-neutral-900 dark:text-foreground-1">{itemTypeLabel}</span>
+            <span className="text-neutral-900">{itemTypeLabel}</span>
           </Badge>
           {isService && serviceForRow?.category?.name && (
             <Badge
@@ -280,9 +280,9 @@ function AppointmentItemRow({
           )}
           {!isService && bundleForRow?.priceType && (() => {
             const priceTypeConfig: Record<string, { label: string; color: string; Icon: typeof PlusCircle }> = {
-              sum: { label: tCal('page.appointments.add.sum'), color: '#dbeafe', Icon: PlusCircle },
-              fixed: { label: tCal('page.appointments.add.fixed'), color: '#d1fae5', Icon: Tag },
-              discount: { label: tCal('page.appointments.add.discount'), color: '#fed7aa', Icon: Percent },
+              sum: { label: tCal('page.appointments.add.sum'), color: 'var(--color-info-100)', Icon: PlusCircle },
+              fixed: { label: tCal('page.appointments.add.fixed'), color: 'var(--color-success-100)', Icon: Tag },
+              discount: { label: tCal('page.appointments.add.discount'), color: 'var(--color-primary-100)', Icon: Percent },
             };
             const config = priceTypeConfig[bundleForRow.priceType];
             if (!config) return null;
@@ -319,10 +319,10 @@ function AppointmentItemRow({
           <div className="mt-2">
             <Badge
               variant="secondary"
-              className="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+              className="text-[11px] px-2 py-0.5 rounded-full font-medium inline-flex items-center gap-1.5 bg-purple-50 border-purple-200 shrink-0"
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t('page.locationService.badge.custom')}
               </span>
             </Badge>
@@ -1541,11 +1541,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     {selectedServicesCount > 0 && (
                       <Badge
                         variant="secondary"
-                        className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+                        className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100"
                       >
                         <div className="h-2 w-2 rounded-full bg-green-500" />
-                        <span className="font-semibold text-neutral-900 dark:text-foreground-1">{selectedServicesCount}</span>
-                        <span className="text-neutral-900 dark:text-foreground-1">
+                        <span className="font-semibold text-neutral-900">{selectedServicesCount}</span>
+                        <span className="text-neutral-900">
                           {selectedServicesCount === 1 ? 'service' : 'services'}
                         </span>
                       </Badge>
@@ -1553,11 +1553,11 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     {selectedBundlesCount > 0 && (
                       <Badge
                         variant="secondary"
-                        className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+                        className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100"
                       >
                         <div className="h-2 w-2 rounded-full bg-purple-500" />
-                        <span className="font-semibold text-neutral-900 dark:text-foreground-1">{selectedBundlesCount}</span>
-                        <span className="text-neutral-900 dark:text-foreground-1">
+                        <span className="font-semibold text-neutral-900">{selectedBundlesCount}</span>
+                        <span className="text-neutral-900">
                           {selectedBundlesCount === 1 ? 'bundle' : 'bundles'}
                         </span>
                       </Badge>

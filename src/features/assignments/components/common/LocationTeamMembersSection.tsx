@@ -185,10 +185,10 @@ export function LocationTeamMembersSection({
               {isEnabled && member.overridesCount > 0 && (
                 <Badge
                   variant="secondary"
-                  className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+                  className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
                 >
                   <div className="h-2 w-2 rounded-full bg-purple-500" />
-                  <span className="text-neutral-900 dark:text-foreground-1">
+                  <span className="text-neutral-900">
                     {t("page.locationTeamMembers.badge.custom")}
                   </span>
                 </Badge>
@@ -331,10 +331,10 @@ export function LocationTeamMembersSection({
             {isEnabled && member.overridesCount > 0 && (
               <Badge
                 variant="secondary"
-                className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+                className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
               >
                 <div className="h-2 w-2 rounded-full bg-purple-500" />
-                <span className="text-neutral-900 dark:text-foreground-1">
+                <span className="text-neutral-900">
                   {t("page.locationTeamMembers.badge.custom")}
                 </span>
               </Badge>
@@ -372,13 +372,13 @@ export function LocationTeamMembersSection({
         {assignedCount > 0 && (
           <Badge
             variant="secondary"
-            className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+            className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100"
           >
             <div className="h-2 w-2 rounded-full bg-green-500" />
-            <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+            <span className="font-semibold text-neutral-900">
               {assignedCount}
             </span>
-            <span className="text-neutral-900 dark:text-foreground-1">
+            <span className="text-neutral-900">
               {t("page.locationTeamMembers.stats.assigned")}
             </span>
           </Badge>
@@ -386,13 +386,13 @@ export function LocationTeamMembersSection({
         {withCustomRatesCount > 0 && (
           <Badge
             variant="secondary"
-            className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+            className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100"
           >
             <div className="h-2 w-2 rounded-full bg-purple-500" />
-            <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+            <span className="font-semibold text-neutral-900">
               {withCustomRatesCount}
             </span>
-            <span className="text-neutral-900 dark:text-foreground-1">
+            <span className="text-neutral-900">
               {t("page.locationTeamMembers.stats.customized")}
             </span>
           </Badge>

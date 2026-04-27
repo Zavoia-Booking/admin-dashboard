@@ -81,22 +81,22 @@ export function getBookingSourcePillParts(source: string | null | undefined): {
   const map: Record<string, { badge: string; dot: string }> = {
     admin: {
       badge:
-        'border-indigo-200 bg-indigo-50 text-indigo-900 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950/45 dark:text-indigo-200',
+        'border-indigo-200 bg-indigo-50 text-indigo-900 hover:bg-indigo-100',
       dot: 'bg-indigo-500',
     },
     phone: {
       badge:
-        'border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100 dark:border-sky-800 dark:bg-sky-950/50 dark:text-sky-200',
+        'border-sky-200 bg-sky-50 text-sky-900 hover:bg-sky-100',
       dot: 'bg-sky-500',
     },
     walk_in: {
       badge:
-        'border-orange-200 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-200',
-      dot: 'bg-orange-500',
+        'border-primary/20 bg-primary/5 text-primary hover:bg-primary/10',
+      dot: 'bg-primary',
     },
     marketplace: {
       badge:
-        'border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/20 dark:text-purple-200',
+        'border-purple-200 bg-purple-50 text-purple-900 hover:bg-purple-100',
       dot: 'bg-purple-500',
     },
   };
@@ -136,7 +136,7 @@ export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
         <Badge
           className={cn(
             assignmentStylePillLayout,
-            'border-blue-200 bg-blue-100 text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/25 dark:text-blue-400',
+            'border-blue-200 bg-blue-100 text-blue-800 hover:bg-blue-100',
           )}
         >
           {dot('bg-blue-500')}
@@ -148,7 +148,7 @@ export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
         <Badge
           className={cn(
             assignmentStylePillLayout,
-            'border-green-200 bg-green-50 text-green-900 hover:bg-green-100 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400',
+            'border-green-200 bg-green-50 text-green-900 hover:bg-green-100',
           )}
         >
           {dot('bg-green-500')}
@@ -160,7 +160,7 @@ export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
         <Badge
           className={cn(
             assignmentStylePillLayout,
-            'border-red-200 bg-red-50 text-red-900 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300 dark:hover:bg-red-900/40',
+            'border-red-200 bg-red-50 text-red-900 hover:bg-red-100',
           )}
         >
           {dot('bg-red-500')}
@@ -172,10 +172,10 @@ export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
         <Badge
           className={cn(
             assignmentStylePillLayout,
-            'border-orange-200 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-400',
+            'border-primary/20 bg-primary/5 text-primary hover:bg-primary/10',
           )}
         >
-          {dot('bg-orange-500')}
+          {dot('bg-primary')}
           {labels.pending}
         </Badge>
       );
@@ -207,7 +207,7 @@ export const getStatusLabelClass = (status: string): string => {
         case 'confirmed': return 'text-blue-700 dark:text-blue-400';
         case 'completed': return 'text-green-700 dark:text-green-400';
         case 'no_show':   return 'text-red-700 dark:text-red-300';
-        case 'pending':   return 'text-orange-700 dark:text-orange-400';
+        case 'pending':   return 'text-primary';
         case 'cancelled': return 'text-destructive';
         default:          return 'text-muted-foreground';
     }
@@ -219,7 +219,7 @@ export const getStatusDotClass = (status: string): string => {
         case 'confirmed': return 'bg-blue-500';
         case 'completed': return 'bg-green-500';
         case 'no_show':   return 'bg-red-500';
-        case 'pending':   return 'bg-orange-500';
+        case 'pending':   return 'bg-primary';
         case 'cancelled': return 'bg-destructive';
         default:          return 'bg-neutral-400';
     }

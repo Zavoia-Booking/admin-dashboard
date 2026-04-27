@@ -30,7 +30,7 @@ const NOTIFICATION_ICONS: Record<string, typeof Info> = {
 
 const NOTIFICATION_COLORS: Record<string, string> = {
   sms_credits_low: "text-amber-500",
-  trial_ending: "text-orange-500",
+  trial_ending: "text-primary",
   schedule_updated: "text-blue-500",
   support_reply: "text-violet-500",
   appointment_cancelled_by_customer: "text-red-500",

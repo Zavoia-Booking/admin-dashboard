@@ -194,7 +194,9 @@ export const MapView: React.FC<MapViewProps> = ({
         markerRef.current = null;
       }
       markerRef.current = new mapboxgl.Marker({
-        color: marker.color || '#FF0000',
+        // Mapbox sets this color as an SVG fill attribute, which doesn't resolve
+        // CSS variables — keep it as a literal hex matching --brand-accent.
+        color: marker.color || '#C94A2A',
         draggable: marker.draggable || false,
       })
         .setLngLat(marker.coordinates)

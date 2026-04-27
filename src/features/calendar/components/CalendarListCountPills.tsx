@@ -30,7 +30,7 @@ export const CalendarListCountPills: FC<{
           variant="outline"
           className={cn(
             countPillBase,
-            'border-violet-200 bg-violet-50/90 text-violet-900 dark:border-violet-800 dark:bg-violet-950/45 dark:text-violet-200',
+            'border-violet-200 bg-violet-50/90 text-violet-900',
           )}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-violet-500 shrink-0" aria-hidden />

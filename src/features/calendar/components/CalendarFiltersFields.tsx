@@ -362,7 +362,7 @@ const SelectedBundleChip: FC<{ label: string; onDeselect: () => void }> = ({ lab
     onClick={onDeselect}
     aria-pressed
     aria-label={`Remove ${label}`}
-    className="group h-10 relative inline-flex max-w-[200px] shrink-0 cursor-pointer items-center gap-2 overflow-visible rounded-full border border-neutral-500 bg-purple-100 px-3 text-xs font-medium text-neutral-900 shadow-xs transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-purple-900/40 dark:text-neutral-900"
+    className="group h-10 relative inline-flex max-w-[200px] shrink-0 cursor-pointer items-center gap-2 overflow-visible rounded-full border border-neutral-500 bg-purple-100 px-3 text-xs font-medium text-neutral-900 shadow-xs transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
   >
     <Package className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />
     <span className="min-w-0 flex-1 truncate">{label}</span>

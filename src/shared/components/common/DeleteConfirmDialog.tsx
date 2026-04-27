@@ -300,10 +300,10 @@ export function DeleteConfirmDialog({
                           className={cn(
                             "text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 border",
                             dep.isTeamMember
-                              ? "bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+                              ? "bg-purple-50 border-purple-200 hover:bg-purple-100"
                               : dep.isLocation
-                              ? "bg-blue-50 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-800"
-                              : "bg-info/20 dark:bg-info/60 border-border dark:border-border-subtle"
+                              ? "bg-blue-50 border-blue-200 hover:bg-blue-100"
+                              : "bg-info/20 border-border"
                           )}
                         >
                           <div
@@ -316,10 +316,10 @@ export function DeleteConfirmDialog({
                                 : "bg-info"
                             )}
                           />
-                          <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+                          <span className="font-semibold text-neutral-900">
                             {dep.count}
                           </span>
-                          <span className="text-neutral-900 dark:text-foreground-1">
+                          <span className="text-neutral-900">
                             {dep.label}
                           </span>
                         </Badge>

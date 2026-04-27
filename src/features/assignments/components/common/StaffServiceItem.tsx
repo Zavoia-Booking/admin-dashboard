@@ -300,10 +300,10 @@ export function StaffServiceItem({
       {service.isCustom && (
         <Badge
           variant="secondary"
-          className="text-xs cursor-pointer px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+          className="text-xs cursor-pointer px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 shrink-0"
         >
           <div className="h-2 w-2 rounded-full bg-purple-500" />
-          <span className="text-neutral-900 dark:text-foreground-1">
+          <span className="text-neutral-900">
             {t("page.locationTeamMembers.badge.custom")}
           </span>
         </Badge>
@@ -405,10 +405,10 @@ export function StaffServiceItem({
           {service.isCustom && (
             <Badge
               variant="secondary"
-              className="text-xs cursor-pointer px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+              className="text-xs cursor-pointer px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 shrink-0"
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t("page.locationTeamMembers.badge.custom")}
               </span>
             </Badge>
@@ -450,9 +450,9 @@ export function StaffServiceItem({
                     {t("page.manageTeamMemberDrawer.fields.price")}
                   </Label>
                   {hasCustomPrice && (
-                    <div className="flex items-center w-fit rounded-full cursor-default px-2.5 py-0.5 text-[11px] font-medium bg-info/20 text-foreground-3 dark:text-foreground-1 dark:bg-info/60 border border-border dark:border-border-subtle">
+                    <div className="flex items-center w-fit rounded-full cursor-default px-2.5 py-0.5 text-[11px] font-medium bg-info/20 text-foreground-3 dark:bg-info/60 border border-border dark:border-border-subtle">
                       {t("page.locationService.fields.serviceDefault")}{" "}
-                      <span className="ml-1 flex items-center gap-0.5 text-foreground-2 dark:text-foreground-1">
+                      <span className="ml-1 flex items-center gap-0.5 text-foreground-2">
                         {CurrencyIcon ? (
                           <CurrencyIcon className="h-2.5 w-2.5 -mt-0.5" />
                         ) : (
@@ -508,9 +508,9 @@ export function StaffServiceItem({
                     {t("page.manageTeamMemberDrawer.fields.duration")}
                   </Label>
                   {hasCustomDuration && (
-                    <div className="flex items-center w-fit cursor-default rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-info/20 dark:bg-info/60 text-foreground-3 dark:text-foreground-1 border border-border dark:border-border-subtle">
+                    <div className="flex items-center w-fit cursor-default rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-info/20 dark:bg-info/60 text-foreground-3 border border-border dark:border-border-subtle">
                       {t("page.locationService.fields.serviceDefault")}{" "}
-                      <span className="ml-1 text-foreground-2 dark:text-foreground-1">
+                      <span className="ml-1 text-foreground-2">
                         {formatDuration(service.inheritedDuration)}
                       </span>
                     </div>

@@ -344,7 +344,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   {/* Edit Button on Logo */}
                   <div
                     onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-white text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-gray-50 transition-colors border border-border ${
+                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-surface text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-surface-hover transition-colors border border-border ${
                       isUploadingLogo ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
                     }`}
                   >

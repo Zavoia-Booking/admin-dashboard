@@ -28,7 +28,7 @@ import { LocationCatalogSection } from "./profile/LocationCatalogSection";
 import IndustrySection from "./profile/IndustrySection.tsx";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
-type MarketplaceTab = "profile" | "portfolio" | "promotions" | "reviews";
+type MarketplaceTab = "profile" | "portfolio" | "reviews";
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -68,7 +68,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const allowNavigationRef = useRef(false);
 
   // Get initial tab from URL or default to 'profile'
-  const validTabs: MarketplaceTab[] = ["profile", "portfolio", "promotions", "reviews"];
+  const validTabs: MarketplaceTab[] = ["profile", "portfolio", "reviews"];
 
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get("tab") as MarketplaceTab | null;
@@ -371,45 +371,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             onPortfolioImagesChange={form.setPortfolio}
           />
         </div>
-      ),
-    },
-    {
-      id: "promotions",
-      label: t("configuration.tabs.promotions"),
-      content: (
-        <>
-          <LimitedAccessBanner className="!px-0 !pt-0" />
-        <div className="flex flex-col items-center justify-start py-10 text-center gap-12">
-          {/* Illustration */}
-          <div className="relative w-full mt-12 max-w-md h-44 text-left">
-            {/* Subtle background glow */}
-            <div className="absolute inset-0 -top-4 -bottom-4 bg-gradient-to-b from-primary/5 dark:from-primary/10 via-transparent to-transparent blur-2xl opacity-50 dark:opacity-40" />
-
-            {/* back cards with better shadows */}
-            <div className="absolute inset-x-10 top-2 h-28 rounded-2xl bg-neutral-50 dark:bg-neutral-900/60 border border-border shadow-lg opacity-70 rotate-[-14deg] blur-[0.5px]" />
-            <div className="absolute inset-x-6 top-10 h-30 rounded-2xl bg-neutral-50 dark:bg-neutral-900/70 border border-border shadow-xl opacity-85 rotate-[10deg] blur-[0.5px]" />
-
-            {/* front card */}
-            <div className="absolute inset-x-2 top-6 h-32 rounded-2xl bg-surface dark:bg-neutral-900 border border-border shadow-xl overflow-hidden">
-              <div className="h-full w-full px-5 py-4 flex flex-col items-center justify-center gap-3">
-                <div className="h-3 w-42 rounded bg-neutral-300 dark:bg-neutral-800" />
-                <div className="h-3 w-28 rounded bg-neutral-300 dark:bg-neutral-800" />
-                <div className="h-3 w-18 rounded bg-neutral-300 dark:bg-neutral-800" />
-              </div>
-            </div>
-          </div>
-
-          {/* Copy */}
-          <div className="space-y-2 max-w-md px-4">
-            <h3 className="text-lg font-semibold text-foreground-1">
-              {t("configuration.promotions.comingSoon")}
-            </h3>
-            <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-              {t("configuration.promotions.description")}
-            </p>
-          </div>
-        </div>
-        </>
       ),
     },
     {

@@ -17,8 +17,8 @@
           if (theme === 'dark') {
             document.documentElement.classList.add('dark');
             // Set inline style to prevent white flash
-            document.documentElement.style.backgroundColor = 'oklch(18% 0.003 248)';
-            document.body.style.backgroundColor = 'oklch(18% 0.003 248)';
+            document.documentElement.style.backgroundColor = '#1A1A18';
+            document.body.style.backgroundColor = '#1A1A18';
           } else {
             // Default to light theme if no preference or theme is 'light'
             document.documentElement.classList.remove('dark');
@@ -31,7 +31,7 @@
               !!window.Capacitor ||
               location.protocol === 'capacitor:' ||
               (location.protocol === 'http:' && location.hostname === 'localhost' && !location.port);
-            const bg = isNative ? 'oklch(100% 0 0)' : 'oklch(97.5% 0.003 248)';
+            const bg = isNative ? '#FFFFFF' : '#FAFAF7';
             document.documentElement.style.backgroundColor = bg;
             document.body.style.backgroundColor = bg;
           }

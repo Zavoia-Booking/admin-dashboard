@@ -41,26 +41,24 @@ body {
   /* Radius */
   --radius: 0.625rem;
   
-  /* Neutral Scale (7 steps - backbone of SaaS UI) */
-  --color-neutral-50: oklch(99.5% 0 0);      /* Near white */
-  --color-neutral-100: oklch(97.5% 0.003 248);   /* #f9fafb - Very light bg (blueish gray) */
-  --color-neutral-200: oklch(97% 0.002 248);   /* Light borders (blueish gray) */
-  --color-neutral-400: oklch(85% 0.003 248);   /* Disabled states */
-  --color-neutral-600: oklch(55% 0.003 248);   /* Secondary text */
-  --color-neutral-700: oklch(40% 0.003 248);   /* Body text */
-  --color-neutral-900: oklch(15% 0.003 248);   /* Headings */
-  
-  /* Primary/Brand Scale (6 steps) */
-  --color-primary-100: oklch(95% 0.21 36);   /* Light bg */
-  --color-primary-400: oklch(75% 0.21 36);   /* Subtle */
-  --color-primary-500: oklch(67% 0.21 36);   /* #FC5522 - Main brand */
-  --color-primary-600: oklch(56% 0.21 36);   /* Focus rings */
-  --color-primary-700: oklch(62% 0.21 36);   /* Hover */
-  --color-primary-900: oklch(35% 0.21 36);   /* Text on light */
+  /* Neutral Scale - warm-grey tones interpolating Canvas (#FAFAF7) → Ink (#1C1C1A) */
+  --color-neutral-50:  oklch(99% 0.004 70);     /* Near white, warm */
+  --color-neutral-100: oklch(98% 0.006 70);     /* Canvas #FAFAF7 - page bg */
+  --color-neutral-200: oklch(96% 0.008 70);     /* Shade #F0EEE4 - muted surfaces */
+  --color-neutral-400: oklch(80% 0.010 70);     /* Disabled states */
+  --color-neutral-600: oklch(48% 0.008 70);     /* Stone #6B6862 - secondary text */
+  --color-neutral-700: oklch(35% 0.006 70);     /* Body text */
+  --color-neutral-900: oklch(15% 0.004 70);     /* Ink #1C1C1A - headings */
 
-  /* #0077B6 - Honolulu Blue */
-  /* #228CDB - Tufts Blue */
-  /* #FC5522 -  Nice Orange - primary color - oklch(67% 0.21 36)*/
+  /* Primary/Brand Scale - terracotta Accent #C94A2A */
+  --color-primary-100: oklch(94% 0.05 38);   /* Subtle terracotta bg */
+  --color-primary-400: oklch(70% 0.13 38);   /* Light interactive */
+  --color-primary-500: oklch(53% 0.15 38);   /* #C94A2A - Main brand */
+  --color-primary-600: oklch(47% 0.15 38);   /* Hover */
+  --color-primary-700: oklch(40% 0.14 38);   /* Active */
+  --color-primary-900: oklch(28% 0.10 38);   /* Text on light */
+
+  /* Brand reference: #C94A2A Accent / #FAFAF7 Canvas / #1C1C1A Ink / #6B6862 Stone / #E8E3D8 Mist / #F0EEE4 Shade */
   
   /* Status: Info (3 steps) */
   --color-info-100: oklch(96.5% 0.02 259);     /* #ecf3fe - Light bg */
@@ -138,9 +136,18 @@ body {
   --color-orange-800: oklch(45% 0.12 75);
   --color-orange-900: oklch(35% 0.10 75);
   
-  --color-neutral-300: oklch(94% 0.003 0);
-  --color-neutral-500: oklch(70% 0.003 0);
-  --color-neutral-800: oklch(25% 0.003 0);
+  --color-neutral-300: oklch(92% 0.012 70);    /* Mist #E8E3D8 - subtle dividers */
+  --color-neutral-500: oklch(60% 0.008 70);
+  --color-neutral-800: oklch(22% 0.004 70);
+
+  /* Brand tokens (named aliases for direct reference) */
+  --brand-canvas:       #FAFAF7;
+  --brand-ink:          #1C1C1A;
+  --brand-accent:       #C94A2A;
+  --brand-stone:        #6B6862;
+  --brand-mist:         #E8E3D8;
+  --brand-shade:        #F0EEE4;
+  --brand-dark-surface: #1A1A18;
 }
 
 /* ============================================
@@ -236,39 +243,42 @@ body {
   --chart-5: var(--color-red-500);
 }
 
-/* Dark Mode - override semantic values */
+/* Dark Mode - override semantic values.
+   Resolves primitives against the new warm scale (no snapshot), so surfaces
+   and borders now read warm-dark to match the brand. Status hues remain
+   legibility-tuned for dark; chart palette inherits the new warm primary. */
 .dark {
   /* Backgrounds */
-  --base: oklch(18% 0.003 248);
-  --grain-scale: 2; /* Grain texture scale */
-  --grain-intensity: 0.15; /* Grain opacity */
-  --surface: var(--color-neutral-800);
-  --surface-hover: var(--color-neutral-700);
-  --surface-active: var(--color-neutral-600);
-  --sidebar: var(--color-neutral-900);
-  --overlay: oklch(99% 0.002 0 / 0.1);
-  
-  /* Text */
-  --text-primary: oklch(95% 0.003 0);
-  --text-secondary: oklch(75% 0.003 0);
-  --text-tertiary: oklch(60% 0.003 0);
-  --text-disabled: oklch(50% 0.003 0);
-  --text-inverse: oklch(15% 0.003 0);
+  --base: #1A1A18;                              /* Dark surface from brand */
+  --grain-scale: 2;
+  --grain-intensity: 0.15;
+  --surface: var(--color-neutral-800);          /* warm 22% L card surface */
+  --surface-hover: oklch(28% 0.005 70);         /* mid-step between 800 and 700 */
+  --surface-active: var(--color-neutral-700);   /* warm 35% L pressed */
+  --sidebar: var(--color-neutral-900);          /* warm Ink for sidebar */
+  --overlay: oklch(99% 0.005 70 / 0.1);
+
+  /* Text — slightly warm tints so they harmonize with surfaces */
+  --text-primary: oklch(95% 0.005 70);
+  --text-secondary: oklch(75% 0.005 70);
+  --text-tertiary: oklch(60% 0.005 70);
+  --text-disabled: oklch(50% 0.005 70);
+  --text-inverse: oklch(15% 0.004 70);
   --text-link: oklch(75% 0.12 250);
   --text-link-hover: oklch(85% 0.10 250);
-  
+
   /* Borders */
   --border: var(--color-neutral-700);
   --border-strong: var(--color-neutral-600);
   --border-subtle: var(--color-neutral-800);
   --border-focus: var(--info);
-  
-  /* Interactive */
-  --primary: oklch(70% 0.18 36);
-  --primary-hover: oklch(75% 0.19 36);
-  --primary-active: oklch(65% 0.17 36);
-  --secondary: oklch(30% 0.003 0);
-  --secondary-hover: oklch(35% 0.003 0);
+
+  /* Interactive — brighter terracotta for visibility on dark */
+  --primary: oklch(63% 0.16 38);
+  --primary-hover: oklch(70% 0.16 38);
+  --primary-active: oklch(53% 0.15 38);
+  --secondary: oklch(30% 0.005 70);
+  --secondary-hover: oklch(35% 0.005 70);
   
   /* Status: Info */
   --info: oklch(75% 0.12 250);
@@ -367,6 +377,15 @@ body {
   --color-primary-active: var(--primary-active);
   --color-secondary: var(--secondary);
   --color-secondary-hover: var(--secondary-hover);
+
+  /* Brand swatches (direct references) */
+  --color-brand-canvas: var(--brand-canvas);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-stone: var(--brand-stone);
+  --color-brand-mist: var(--brand-mist);
+  --color-brand-shade: var(--brand-shade);
+  --color-brand-dark-surface: var(--brand-dark-surface);
   
   /* Status utilities */
   --color-info: var(--info);

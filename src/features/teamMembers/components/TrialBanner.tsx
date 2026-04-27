@@ -24,25 +24,25 @@ export default function TrialBanner() {
   }
 
   return (
-    <div className="rounded-lg border border-orange-200 bg-gradient-to-r from-orange-50 to-amber-50 p-4 shadow-sm">
+    <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 to-amber-50 p-4 shadow-sm">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
-            <Clock className="h-5 w-5 text-orange-600" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15">
+            <Clock className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-gray-900">{t('trialBanner.title')}</h3>
-              <AlertCircle className="h-4 w-4 text-orange-500" />
+              <h3 className="font-semibold text-foreground-1">{t('trialBanner.title')}</h3>
+              <AlertCircle className="h-4 w-4 text-primary" />
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-foreground-3">
               {t('trialBanner.daysRemaining', { count: daysRemaining })}
             </p>
           </div>
         </div>
-        <Button 
+        <Button
           onClick={() => navigate('/account?tab=billing')}
-          className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap"
+          className="bg-primary hover:bg-primary-hover text-white whitespace-nowrap"
         >
           {t('trialBanner.upgradeNow')}
         </Button>

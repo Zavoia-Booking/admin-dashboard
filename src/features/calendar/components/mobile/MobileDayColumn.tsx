@@ -227,7 +227,7 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
               <button
                 type="button"
                 className="absolute left-1 right-1 z-10 cursor-pointer overflow-hidden border-none outline-none
-                  rounded-lg bg-purple-50 dark:bg-purple-900/20
+                  rounded-lg bg-purple-50
                   active:scale-[0.98] transition-transform duration-150 px-2 py-1
                   flex flex-col items-start justify-center text-left"
                 style={{ top: top + 4, height: cardHeight }}

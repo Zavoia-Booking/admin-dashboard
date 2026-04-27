@@ -64,13 +64,13 @@ export const BundleBadgeList: FC<BundleBadgeListProps> = ({
   const getPriceTypeColor = (type: BundlePriceType): string => {
     switch (type) {
       case BundlePriceType.SUM:
-        return "#dbeafe"; // Light blue
+        return "var(--color-info-100)";
       case BundlePriceType.FIXED:
-        return "#d1fae5"; // Light green
+        return "var(--color-success-100)";
       case BundlePriceType.DISCOUNT:
-        return "#fed7aa"; // Light amber/orange
+        return "var(--color-primary-100)";
       default:
-        return "#f3f4f6";
+        return "var(--surface-hover)";
     }
   };
 

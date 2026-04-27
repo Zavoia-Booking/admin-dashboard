@@ -203,20 +203,20 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
       value: BundlePriceType.SUM,
       label: text("bundles.filters.priceTypes.sum"),
       icon: PlusCircle,
-      color: "#dbeafe",
-    }, // Light blue
+      color: "var(--color-info-100)",
+    },
     {
       value: BundlePriceType.FIXED,
       label: text("bundles.filters.priceTypes.fixed"),
       icon: Tag,
-      color: "#d1fae5",
-    }, // Light green
+      color: "var(--color-success-100)",
+    },
     {
       value: BundlePriceType.DISCOUNT,
       label: text("bundles.filters.priceTypes.discount"),
       icon: Percent,
-      color: "#fed7aa",
-    }, // Light amber/orange
+      color: "var(--color-primary-100)",
+    },
   ];
 
   const renderFiltersContent = () => (

@@ -78,6 +78,11 @@ export function getColorHex(name: string | undefined): string {
 /**
  * Given a hex background color, returns either black or white text
  * for good contrast. Shared by category pills and other colored chips.
+ *
+ * Only valid for static hex strings (e.g. hash-derived avatar colors).
+ * Do NOT pass CSS variable references — their resolved value depends on
+ * theme (light/dark) and can't be measured from a string. For theme-aware
+ * pastels, use a semantic foreground class (`text-foreground-1`) instead.
  */
 export function getReadableTextColor(bgColor: string): string {
   const hex = bgColor.replace("#", "");

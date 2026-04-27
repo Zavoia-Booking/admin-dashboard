@@ -75,12 +75,12 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
     <div
       className={`${
         useInheritedContact
-          ? 'rounded-lg border border-info-300 bg-info-100 p-4 dark:bg-surface-hover/30 dark:border-border-strong'
+          ? 'rounded-lg border border-info-300 bg-info-100 p-4'
           : 'bg-surface-active dark:bg-surface dark:border-border-strong border border-border rounded-lg p-4'
       } ${className}`}
     >
       <div className="flex items-center justify-between mb-3">
-        <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${useInheritedContact ? 'text-neutral-900 dark:text-foreground-1' : ''}`}>{title}</Label>
+        <Label htmlFor={id} className={`text-base font-medium cursor-pointer ${useInheritedContact ? 'text-neutral-900' : ''}`}>{title}</Label>
         <Switch
           id={id}
           checked={useInheritedContact}
@@ -88,7 +88,7 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
           className="!h-5 !w-9 !min-h-0 !min-w-0 cursor-pointer"
         />
       </div>
-      <p className={`text-sm ${useInheritedContact ? 'text-neutral-900 dark:text-foreground-2' : 'text-foreground-3 dark:text-foreground-2'}`}>
+      <p className={`text-sm ${useInheritedContact ? 'text-neutral-900' : 'text-foreground-3 dark:text-foreground-2'}`}>
         {useInheritedContact
           ? (helperTextOn ?? `We'll use the ${inheritedWhat} from ${inheritedLabel}`)
           : (helperTextOff ?? `Enter different ${inheritedWhat} for this location`)}
@@ -97,14 +97,14 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
         <div className="text-sm pt-4">
           <div className="flex flex-col gap-1.5">
             {showEmail && inheritedEmail && (
-              <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
-                <Mail className="h-4 w-4 text-neutral-900 dark:text-foreground-1" />
+              <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit">
+                <Mail className="h-4 w-4 text-neutral-900" />
                 {inheritedEmail}
               </span>
             )}
             {showPhone && inheritedPhone && (
-              <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit pt-2">
-                <Phone className="h-4 w-4 text-neutral-900 dark:text-foreground-1" />
+              <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit pt-2">
+                <Phone className="h-4 w-4 text-neutral-900" />
                 {inheritedPhone}
               </span>
             )}
@@ -193,10 +193,10 @@ export const ContactInformationToggle: React.FC<ContactInformationToggleProps> =
           <div className="absolute -bottom-1 right-0 pointer-events-none">
             <Badge
               variant="secondary"
-              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 Custom
               </span>
             </Badge>

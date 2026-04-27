@@ -344,7 +344,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
               'w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer',
               hasError
                 ? 'border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error'
-                : 'border-border bg-info-100 dark:bg-info-100 hover:bg-info-100 dark:hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus',
+                : 'border-border bg-info-100 hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus text-neutral-900',
               !value && 'text-muted-foreground'
             )}
           >
@@ -352,7 +352,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
               <Globe className="h-4 w-4 text-primary shrink-0" />
               <span className="truncate text-left">{displayLabel}</span>
             </span>
-            <ChevronDown className={cn('h-4 w-4 text-foreground-3 dark:text-foreground-2 transition-transform', open && 'rotate-180')} />
+            <ChevronDown className={cn('h-4 w-4 text-neutral-700 transition-transform', open && 'rotate-180')} />
           </Button>
         </PopoverTrigger>
       <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[min(320px,50vh)] overflow-hidden !z-[80]" align="start" side="bottom" sideOffset={8} avoidCollisions={true} collisionPadding={16}>

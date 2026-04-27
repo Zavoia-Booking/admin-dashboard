@@ -19,6 +19,7 @@ export function MyAssignmentServicesSection({
 }: MyAssignmentServicesSectionProps) {
   const { t } = useTranslation('myAssignments');
   const [showAllServices, setShowAllServices] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const collapsibleRef = useRef<HTMLDivElement>(null);
 
   // Stats
@@ -30,19 +31,16 @@ export function MyAssignmentServicesSection({
   const visibleServices = services.slice(0, MAX_VISIBLE_SERVICES);
   const hiddenServices = services.slice(MAX_VISIBLE_SERVICES);
 
-  // Measure height for animation
+  // Measure height for animation. Use scrollHeight so margins/gaps between
+  // children (space-y-2) are included — otherwise the last item gets cropped.
   useEffect(() => {
     const el = collapsibleRef.current;
     if (!el || !hasMoreServices) return;
-    const fullHeight = Array.from(el.children).reduce(
-      (acc, child) => acc + (child as HTMLElement).offsetHeight,
-      0
-    );
     el.style.setProperty(
       '--radix-collapsible-content-height',
-      `${fullHeight}px`
+      `${el.scrollHeight}px`
     );
-  }, [services, hasMoreServices]);
+  }, [services, hasMoreServices, showAllServices]);
 
   return (
     <div className="space-y-4 mb-0 md:mb-4">
@@ -63,13 +61,13 @@ export function MyAssignmentServicesSection({
           {enabledCount > 0 && (
             <Badge
               variant="secondary"
-              className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-800"
+              className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-green-50 border-green-200 hover:bg-green-100"
             >
               <div className="h-2 w-2 rounded-full bg-green-500" />
-              <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+              <span className="font-semibold text-neutral-900">
                 {enabledCount}
               </span>
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t('services.stats.assigned')}
               </span>
             </Badge>
@@ -77,13 +75,13 @@ export function MyAssignmentServicesSection({
           {withCustomCount > 0 && (
             <Badge
               variant="secondary"
-              className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800"
+              className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100"
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="font-semibold text-neutral-900 dark:text-foreground-1">
+              <span className="font-semibold text-neutral-900">
                 {withCustomCount}
               </span>
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t('services.stats.customized')}
               </span>
             </Badge>
@@ -154,7 +152,7 @@ export function MyAssignmentServicesSection({
             <>
               <div
                 ref={collapsibleRef}
-                data-slot="collapsible-content"
+                data-slot={hasInteracted ? 'collapsible-content' : undefined}
                 data-state={showAllServices ? 'open' : 'closed'}
                 className={`space-y-2 overflow-hidden ${
                   showAllServices ? 'h-auto' : 'h-0'
@@ -174,8 +172,11 @@ export function MyAssignmentServicesSection({
                   type="button"
                   variant="outline"
                   rounded="full"
-                  onClick={() => setShowAllServices(!showAllServices)}
-                  className="group h-auto px-4 py-1.5 gap-1.5 border-border w-[60%] md:w-1/3 dark:bg-surface dark:border-border dark:hover:border-border-strong dark:group-hover:text-primary dark:text-foreground-1 dark:hover:bg-surface"
+                  onClick={() => {
+                    setHasInteracted(true);
+                    setShowAllServices(!showAllServices);
+                  }}
+                  className="group h-auto px-4 py-1.5 gap-1.5 border-border w-[60%] md:w-1/3 dark:bg-surface dark:border-border dark:hover:border-border-strong dark:group-hover:text-primary dark:hover:bg-surface"
                 >
                   <span>
                     {showAllServices
@@ -185,7 +186,7 @@ export function MyAssignmentServicesSection({
                         })}
                   </span>
                   <ChevronDown
-                    className={`h-3.5 w-3.5 mt-0.5 text-foreground-3 dark:text-foreground-1 group-hover:text-foreground-1 transition-transform ${
+                    className={`h-3.5 w-3.5 mt-0.5 text-foreground-3 group-hover:text-foreground-1 transition-transform ${
                       showAllServices ? 'rotate-180' : ''
                     }`}
                   />

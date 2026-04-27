@@ -60,9 +60,9 @@ const inlineLinkClass =
 
 function getSourceBadge(source: Customer['source'], label: string) {
   const styles: Record<string, string> = {
-    manual: 'border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-950/30 dark:text-blue-300 dark:hover:bg-blue-950/50',
-    marketplace: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300 dark:hover:bg-emerald-950/50',
-    import: 'border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-300 dark:hover:bg-violet-950/50',
+    manual: 'border-blue-200 bg-blue-50 text-blue-800 hover:bg-blue-100',
+    marketplace: 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100',
+    import: 'border-violet-200 bg-violet-50 text-violet-800 hover:bg-violet-100',
   };
   const dots: Record<string, string> = {
     manual: 'bg-blue-500',
@@ -294,8 +294,8 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                     <div className="relative border-b border-border-subtle pb-4">
                       {customer.hasConflict && !isMerged && (
                         <div className="mb-3 flex justify-end sm:hidden">
-                          <Badge className="whitespace-nowrap border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-950/50">
-                            <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" aria-hidden />
+                          <Badge className="whitespace-nowrap border-primary/20 bg-primary/5 text-primary hover:bg-primary/10">
+                            <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
                             {t('details.duplicate.badge')}
                           </Badge>
                         </div>
@@ -303,7 +303,7 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                       <div className="flex items-center gap-4">
                         <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border-subtle">
                           <AvatarFallback
-                            className="bg-muted/80 text-sm font-semibold text-foreground-2"
+                            className="bg-neutral-200 text-sm font-semibold text-neutral-700"
                             style={{ backgroundColor: getAvatarBgColor(customer.email) }}
                           >
                             {initials}
@@ -315,8 +315,8 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                           </p>
                         </div>
                         {customer.hasConflict && !isMerged && (
-                          <Badge className="hidden shrink-0 whitespace-nowrap border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-950/50 sm:inline-flex">
-                            <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" aria-hidden />
+                          <Badge className="hidden shrink-0 whitespace-nowrap border-primary/20 bg-primary/5 text-primary hover:bg-primary/10 sm:inline-flex">
+                            <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
                             {t('details.duplicate.badge')}
                           </Badge>
                         )}
@@ -427,7 +427,7 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                                     'h-3 w-3 shrink-0 rounded-full border-2 bg-background',
                                     isLast
                                       ? 'border-border dark:border-neutral-400/80'
-                                      : 'border-orange-300 dark:border-orange-400/75',
+                                      : 'border-primary/40',
                                   )}
                                   aria-hidden
                                 />

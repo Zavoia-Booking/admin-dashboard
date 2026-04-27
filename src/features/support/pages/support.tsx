@@ -81,10 +81,10 @@ function getTicketHistory(ticket: SupportTicket): EnrichedHistoryEntry[] {
 }
 
 const STATUS_CLASSES: Record<TicketStatus, string> = {
-  OPEN: "bg-info-bg text-info hover:bg-info-bg border border-info-border",
-  IN_PROGRESS: "bg-warning-bg text-warning hover:bg-warning-bg border border-warning-border",
-  CLOSED: "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:hover:bg-neutral-700 border-neutral-200 dark:border-neutral-700",
-  REOPENED: "bg-purple-100 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/40 dark:text-purple-300 dark:hover:bg-purple-900/40 border-purple-200 dark:border-purple-800",
+  OPEN: "bg-blue-100 text-blue-700 hover:bg-blue-100 border border-blue-200",
+  IN_PROGRESS: "bg-amber-100 text-amber-700 hover:bg-amber-100 border border-amber-200",
+  CLOSED: "bg-neutral-100 text-neutral-500 hover:bg-neutral-200 border-neutral-200",
+  REOPENED: "bg-purple-100 text-purple-700 hover:bg-purple-100 border-purple-200",
 };
 
 const CATEGORY_ICONS: Record<TicketCategory, typeof Bug> = {

@@ -172,8 +172,8 @@ export default function CustomersPage() {
                   )}
                   {customer.hasConflict && (
                     <div className="mt-0.5">
-                      <Badge className="whitespace-nowrap border-orange-200 bg-orange-50 text-orange-800 hover:bg-orange-100 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-300 dark:hover:bg-orange-950/50">
-                        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-orange-500" aria-hidden />
+                      <Badge className="whitespace-nowrap border-primary/20 bg-primary/5 text-primary hover:bg-primary/10">
+                        <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-primary" aria-hidden />
                         {text("page.badges.duplicate")}
                       </Badge>
                     </div>

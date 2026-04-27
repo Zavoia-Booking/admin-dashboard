@@ -76,7 +76,7 @@ export const MarketplaceDetailsSection: React.FC<
         className={cn(
           "group relative rounded-2xl p-4 border transition-all duration-300 flex flex-col gap-3",
           useBusinessName
-            ? "border-info-300 bg-info-100 dark:bg-surface-hover/30 dark:border-border-strong"
+            ? "border-info-300 bg-info-100"
             : "bg-surface-active dark:bg-surface border-border"
         )}
       >
@@ -84,7 +84,7 @@ export const MarketplaceDetailsSection: React.FC<
           <h3
             className={cn(
               "text-base font-medium cursor-pointer",
-              useBusinessName ? "text-neutral-900 dark:text-foreground-1" : "text-foreground-1"
+              useBusinessName ? "text-neutral-900" : "text-foreground-1"
             )}
           >
             {t("details.businessName.label")}
@@ -102,7 +102,7 @@ export const MarketplaceDetailsSection: React.FC<
           className={cn(
             "text-sm",
             useBusinessName
-              ? "text-neutral-900 dark:text-foreground-2"
+              ? "text-neutral-900"
               : "text-foreground-3 dark:text-foreground-2"
           )}
         >
@@ -113,8 +113,8 @@ export const MarketplaceDetailsSection: React.FC<
 
         {useBusinessName ? (
           <div className="text-sm pt-4 border-t border-info-200">
-            <span className="inline-flex items-center gap-1.5 text-neutral-900 dark:text-foreground-1 font-medium w-fit">
-              <Building2 className="h-4 w-4 text-neutral-900 dark:text-foreground-1" />
+            <span className="inline-flex items-center gap-1.5 text-neutral-900 font-medium w-fit">
+              <Building2 className="h-4 w-4 text-neutral-900" />
               {business?.name || t("details.businessName.notAvailable")}
             </span>
           </div>
@@ -142,10 +142,10 @@ export const MarketplaceDetailsSection: React.FC<
           <div className="absolute bottom-3 right-4 pointer-events-none">
             <Badge
               variant="secondary"
-              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t("details.businessName.custom")}
               </span>
             </Badge>
@@ -230,7 +230,7 @@ export const MarketplaceDetailsSection: React.FC<
               )}
             >
               {business?.description ? (
-                <p className="text-sm text-foreground-2 dark:text-foreground-1 leading-relaxed">
+                <p className="text-sm text-foreground-2 leading-relaxed">
                   {business.description}
                 </p>
               ) : (
@@ -262,10 +262,10 @@ export const MarketplaceDetailsSection: React.FC<
           <div className="absolute bottom-3 right-4 pointer-events-none">
             <Badge
               variant="secondary"
-              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-800 shrink-0"
+              className="text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5 bg-purple-50 border-purple-200 hover:bg-purple-100 shrink-0"
             >
               <div className="h-2 w-2 rounded-full bg-purple-500" />
-              <span className="text-neutral-900 dark:text-foreground-1">
+              <span className="text-neutral-900">
                 {t("details.description.custom")}
               </span>
             </Badge>

@@ -58,7 +58,7 @@ export function NotificationBell({ variant = "sidebar" }: NotificationBellProps)
         <div className="relative">
           <Bell className="h-4 w-4 text-sidebar-foreground" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none">
+            <span className="absolute -top-2.5 -right-2.5 flex items-center justify-center min-w-[18px] h-4.5 px-1 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none">
               {unreadCount > 99 ? "99+" : unreadCount}
             </span>
           )}

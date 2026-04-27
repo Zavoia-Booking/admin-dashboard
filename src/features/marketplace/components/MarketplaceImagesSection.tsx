@@ -505,7 +505,7 @@ export function MarketplaceImagesSection({
                         <div className="absolute top-4 left-4 z-10">
                           <Badge
                             variant="secondary"
-                            className="text-[10px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border bg-purple-50 border-purple-200 dark:bg-purple-900/30 dark:border-purple-800 backdrop-blur-sm shadow-sm text-foreground-1"
+                            className="text-[10px] px-3 py-1 rounded-full font-bold flex items-center gap-1.5 border bg-purple-50 border-purple-200 backdrop-blur-sm shadow-sm text-neutral-900"
                           >
                             <div className="h-2 w-2 rounded-full bg-purple-500" />
                             {t("portfolio.featured")}
@@ -635,7 +635,7 @@ export function MarketplaceImagesSection({
                             <div className="absolute top-2 left-2 z-10 scale-75 origin-top-left">
                               <Badge
                                 variant="secondary"
-                                className="text-[11px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border bg-purple-50/90 border-purple-200 dark:bg-purple-900/40 dark:border-purple-800 text-foreground-1"
+                                className="text-[11px] px-2 py-0.5 rounded-full font-bold flex items-center gap-1 border bg-purple-50/90 border-purple-200 text-neutral-900"
                               >
                                 <div className="h-1.5 w-1.5 rounded-full bg-purple-500" />
                                 {t("portfolio.featured")}

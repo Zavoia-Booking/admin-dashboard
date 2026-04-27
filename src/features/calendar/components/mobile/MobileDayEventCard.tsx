@@ -163,7 +163,7 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
             <span
               className={cn(
                 "text-xs truncate min-w-0",
-                appointment.isUnassigned ? "text-orange-600 font-medium" : "text-foreground-3",
+                appointment.isUnassigned ? "text-primary font-medium" : "text-foreground-3",
               )}
             >
               {staffLabel}

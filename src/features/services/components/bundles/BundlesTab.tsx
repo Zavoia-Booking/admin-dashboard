@@ -206,13 +206,13 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
       case "sum":
         return {
           name: t("bundles.priceTypeCategory.sum"),
-          color: "#dbeafe", // Light blue (blue-100) - works with black text
+          color: "var(--color-info-100)",
           icon: PlusCircle,
         };
       case "fixed":
         return {
           name: t("bundles.priceTypeCategory.fixed"),
-          color: "#d1fae5", // Light green (green-100) - works with black text
+          color: "var(--color-success-100)",
           icon: Tag,
         };
       case "discount":
@@ -226,7 +226,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
               </span>
             </span>
           ),
-          color: "#fed7aa", // Light amber/orange (orange-200) - works with black text
+          color: "var(--color-primary-100)",
         };
       default:
         return null;

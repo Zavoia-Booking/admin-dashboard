@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { PortalContainerContext } from "../../../contexts/PortalContainerContext";
 import { useSelector } from "react-redux";
 import {
   X,
@@ -59,25 +60,12 @@ export function ManageBundlesSheet({
 }: ManageBundlesSheetProps) {
   const { t } = useTranslation("assignments");
   const isMobile = useIsMobile();
+  const dialogContentRef = useRef<HTMLDivElement>(null);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const currencyDisplay = getCurrencyDisplay(businessCurrency);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-
-    document.addEventListener("keydown", handleEscape);
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.removeEventListener("keydown", handleEscape);
-      document.body.style.overflow = "";
-    };
-  }, [isOpen, onClose]);
+  // Escape + body-scroll-lock are handled by Radix Dialog (desktop) and Vaul Drawer (mobile).
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedBundleIds, setSelectedBundleIds] =
@@ -426,10 +414,10 @@ export function ManageBundlesSheet({
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={onClose} autoFocus={false}>
+      <Drawer open={isOpen} onOpenChange={onClose} autoFocus={false} nested>
         <DrawerContent
-          className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-80"
-          overlayClassName="!z-80"
+          className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-[90]"
+          overlayClassName="!z-[85]"
         >
           <DrawerTitle className="sr-only">
             {title || t("page.locationBundles.sheet.title")}
@@ -437,126 +425,135 @@ export function ManageBundlesSheet({
           <DrawerDescription className="sr-only">
             {title || t("page.locationBundles.sheet.title")}
           </DrawerDescription>
-          {content}
+          <PortalContainerContext.Provider value={null}>
+            {content}
+          </PortalContainerContext.Provider>
         </DrawerContent>
       </Drawer>
     );
   }
 
-  if (!isOpen) return null;
+  const resolvedTitle = title ?? t("page.locationBundles.sheet.title");
 
-  const modalContent = (
-    <>
-      <div
-        className="fixed inset-0 z-80 bg-black/50 animate-in fade-in-0"
-        onClick={onClose}
-      />
-      <div className="fixed inset-0 z-80 flex items-center justify-center p-4 pointer-events-none">
-        <div
-          className="bg-popover overflow-hidden text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-full h-[85vh] flex flex-col p-0 pointer-events-auto animate-in fade-in-0 zoom-in-95"
-          onClick={(e) => e.stopPropagation()}
+  return (
+    <DialogPrimitive.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <DialogPrimitive.Portal>
+        <DialogPrimitive.Overlay
+          className="fixed inset-0 z-[90] bg-black/50 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
+        />
+        <DialogPrimitive.Content
+          ref={dialogContentRef}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="fixed inset-0 m-auto z-[90] bg-popover text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-[calc(100%-2rem)] h-[85vh] flex flex-col p-0 overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
-          <div className="flex flex-col bg-surface relative p-4 px-0 md:p-6 md:pb-4">
-            <div className="flex items-center gap-3 px-4 md:px-0">
-              <div className="hidden md:flex flex-shrink-0 items-stretch self-stretch">
-                <div className="flex items-center justify-center rounded-full border border-border-strong bg-surface aspect-square h-full min-w-[2.5rem]">
-                  <Settings2 className="h-6 w-6 text-foreground-1" />
+          <DialogPrimitive.Title className="sr-only">{resolvedTitle}</DialogPrimitive.Title>
+          <DialogPrimitive.Description className="sr-only">{resolvedTitle}</DialogPrimitive.Description>
+          <PortalContainerContext.Provider value={dialogContentRef}>
+            <div className="flex flex-col bg-surface relative p-4 px-0 md:p-6 md:pb-4">
+              <div className="flex items-center gap-3 px-4 md:px-0">
+                <div className="hidden md:flex flex-shrink-0 items-stretch self-stretch">
+                  <div className="flex items-center justify-center rounded-full border border-border-strong bg-surface aspect-square h-full min-w-[2.5rem]">
+                    <Settings2 className="h-6 w-6 text-foreground-1" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
+                  <h2 className="text-lg text-foreground-1 cursor-default">
+                    {title && titleLocationName ? (
+                      <>
+                        {title.split(titleLocationName)[0]}
+                        <span className="font-semibold">{titleLocationName}</span>
+                      </>
+                    ) : title ? (
+                      title
+                    ) : (
+                      t("page.locationBundles.sheet.title")
+                    )}
+                  </h2>
+                  {subtitle && (
+                    <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-1">
+                      {subtitle}
+                    </p>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onClose}
+                  className="hidden md:flex absolute right-4 top-4 h-8 w-8 rounded-md hover:bg-surface-hover active:bg-surface-active"
+                >
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+                </Button>
+              </div>
+              <DashedDivider
+                marginTop="mt-3"
+                className="pt-0 md:pt-3"
+                dashPattern="1 1"
+              />
+            </div>
+
+            <div className="flex-1 overflow-hidden flex flex-col">
+              <div className="p-4 pt-2 space-y-4 border-b border-border">
+                <div className="md:flex md:gap-2 md:items-center">
+                  <div className="flex gap-2 items-center md:flex-1">
+                    <SearchInput
+                      className="flex-1"
+                      placeholder={t("page.locationBundles.searchPlaceholder")}
+                      value={searchTerm}
+                      onChange={setSearchTerm}
+                      inputClassName="border-border"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center md:flex-none">
+                    <SortSelect
+                      value={currentSortValue}
+                      onValueChange={handleSortChange}
+                      groups={sortGroups}
+                      placeholder={t("page.locationBundles.sort.trigger")}
+                      className="flex-1 md:flex-none"
+                    />
+                    {renderSelectAllButton()}
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
-                <h2 className="text-lg text-foreground-1 cursor-default">
-                  {title && titleLocationName ? (
-                    <>
-                      {title.split(titleLocationName)[0]}
-                      <span className="font-semibold">{titleLocationName}</span>
-                    </>
-                  ) : title ? (
-                    title
-                  ) : (
-                    t("page.locationBundles.sheet.title")
-                  )}
-                </h2>
-                {subtitle && (
-                  <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-1">
-                    {subtitle}
-                  </p>
+
+              <div
+                className={cn(
+                  "flex-1 space-y-1 scrollbar-hide relative",
+                  filteredBundles.length > 0
+                    ? "overflow-y-auto"
+                    : "overflow-hidden flex items-center justify-center",
+                  "p-4",
+                )}
+              >
+                {filteredBundles.length === 0 ? (
+                  renderEmptyState()
+                ) : (
+                  <div className="space-y-1">
+                    {filteredBundles.map((bundle) => (
+                      <BundleItem
+                        key={bundle.bundleId}
+                        bundle={bundle}
+                        isSelected={selectedBundleIds.includes(bundle.bundleId)}
+                        searchTerm={searchTerm}
+                        currencyDisplay={currencyDisplay}
+                        onToggle={toggleBundle}
+                      />
+                    ))}
+                  </div>
                 )}
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="hidden md:flex absolute right-4 top-4 h-8 w-8 rounded-md hover:bg-surface-hover active:bg-surface-active"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </div>
-            <DashedDivider
-              marginTop="mt-3"
-              className="pt-0 md:pt-3"
-              dashPattern="1 1"
-            />
-          </div>
-
-          <div className="flex-1 overflow-hidden flex flex-col">
-            <div className="p-4 pt-2 space-y-4 border-b border-border">
-              <div className="md:flex md:gap-2 md:items-center">
-                <div className="flex gap-2 items-center md:flex-1">
-                  <SearchInput
-                    className="flex-1"
-                    placeholder={t("page.locationBundles.searchPlaceholder")}
-                    value={searchTerm}
-                    onChange={setSearchTerm}
-                    inputClassName="border-border"
-                  />
-                </div>
-                <div className="flex flex-wrap gap-2 items-center md:flex-none">
-                  <SortSelect
-                    value={currentSortValue}
-                    onValueChange={handleSortChange}
-                    groups={sortGroups}
-                    placeholder={t("page.locationBundles.sort.trigger")}
-                    className="flex-1 md:flex-none"
-                  />
-                  {renderSelectAllButton()}
-                </div>
-              </div>
             </div>
 
-            <div
-              className={cn(
-                "flex-1 space-y-1 scrollbar-hide relative",
-                filteredBundles.length > 0
-                  ? "overflow-y-auto"
-                  : "overflow-hidden flex items-center justify-center",
-                "p-4",
-              )}
-            >
-              {filteredBundles.length === 0 ? (
-                renderEmptyState()
-              ) : (
-                <div className="space-y-1">
-                  {filteredBundles.map((bundle) => (
-                    <BundleItem
-                      key={bundle.bundleId}
-                      bundle={bundle}
-                      isSelected={selectedBundleIds.includes(bundle.bundleId)}
-                      searchTerm={searchTerm}
-                      currencyDisplay={currencyDisplay}
-                      onToggle={toggleBundle}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {renderFooter(false)}
-        </div>
-      </div>
-    </>
+            {renderFooter(false)}
+          </PortalContainerContext.Provider>
+        </DialogPrimitive.Content>
+      </DialogPrimitive.Portal>
+    </DialogPrimitive.Root>
   );
-
-  return createPortal(modalContent, document.body);
 }

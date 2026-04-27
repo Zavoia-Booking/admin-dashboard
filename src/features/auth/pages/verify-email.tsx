@@ -76,7 +76,7 @@ export default function VerifyEmailPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base to-surface-hover px-4">
       <Card className="w-full max-w-lg shadow-xl border-0">
         <div className="p-8 sm:p-12">
           {status === 'loading' && (
@@ -88,10 +88,10 @@ export default function VerifyEmailPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground-1">
                   {t('verifyEmail.loading.title')}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 text-base">
+                <p className="text-foreground-3 text-base">
                   {t('verifyEmail.loading.description')}
                 </p>
               </div>
@@ -107,10 +107,10 @@ export default function VerifyEmailPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground-1">
                   {t('verifyEmail.success.title')}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 text-base">
+                <p className="text-foreground-3 text-base">
                   {t('verifyEmail.success.description')}
                 </p>
               </div>
@@ -134,10 +134,10 @@ export default function VerifyEmailPage() {
                 </div>
               </div>
               <div className="space-y-3">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-2xl sm:text-3xl font-bold text-foreground-1">
                   {t('verifyEmail.error.title')}
                 </h1>
-                <p className="text-gray-600 dark:text-gray-400 text-base">
+                <p className="text-foreground-3 text-base">
                   {t(`verifyEmail.error.${errorCode}`)}
                 </p>
               </div>

@@ -140,11 +140,6 @@ const getNavItems = (t: (key: string) => string, isNative: boolean): NavItem[] =
         requiredPermission: Permission.ACCESS_MARKETPLACE_PORTFOLIO,
       },
       {
-        title: t("sidebar.subItems.marketplace.promotions"),
-        url: "/marketplace?tab=promotions",
-        requiredPermission: Permission.ACCESS_MARKETPLACE_PROMOTIONS,
-      },
-      {
         title: t("sidebar.subItems.marketplace.reviews"),
         url: "/marketplace?tab=reviews",
         requiredPermission: Permission.ACCESS_MARKETPLACE_REVIEWS,

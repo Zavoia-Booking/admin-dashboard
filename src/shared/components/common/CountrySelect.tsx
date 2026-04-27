@@ -224,7 +224,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
               "w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
               hasError
                 ? "border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error"
-                : "border-border bg-info-100 dark:bg-info-100 hover:bg-info-100 dark:hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus",
+                : "border-border bg-info-100 hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus text-neutral-900",
               !value && "text-muted-foreground"
             )}
           >
@@ -234,7 +234,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
             </span>
             <ChevronDown
               className={cn(
-                "h-4 w-4 text-foreground-3 dark:text-foreground-2 transition-transform shrink-0",
+                "h-4 w-4 text-neutral-700 transition-transform shrink-0",
                 open && "rotate-180"
               )}
             />

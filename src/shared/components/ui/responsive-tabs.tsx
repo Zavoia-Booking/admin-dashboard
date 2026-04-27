@@ -94,8 +94,8 @@ export function ResponsiveTabs({
           "w-full transition-all duration-300",
           "h-[68px] md:h-[61px]",
           "p-0 pt-4.5 px-4 md:pt-4 md:pl-4 md:pr-4",
-          // Sticky behavior
-          stickyHeader && "sticky z-40 md:z-50 bg-surface md:bg-gradient-to-r md:from-background md:from-24% md:to-transparent backdrop-blur-xl",
+          // Sticky behavior — solid theme-aware bg with subtle frosted-glass blur (no gradient seam)
+          stickyHeader && "sticky z-40 md:z-50 bg-surface md:bg-base/85 backdrop-blur-xl",
           // Mobile: below breadcrumbs; Desktop: at top
           stickyHeader && "top-11 md:top-0",
           // Desktop border

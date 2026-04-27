@@ -24,19 +24,19 @@ export function LocationBundleRow({
         return {
           label: t("page.locationBundles.priceType.sum"),
           icon: PlusCircle,
-          color: "#dbeafe", // Light blue
+          color: "var(--color-info-100)",
         };
       case "fixed":
         return {
           label: t("page.locationBundles.priceType.fixed"),
           icon: Tag,
-          color: "#d1fae5", // Light green
+          color: "var(--color-success-100)",
         };
       case "discount":
         return {
           label: t("page.locationBundles.priceType.discount"),
           icon: Percent,
-          color: "#fed7aa", // Light amber/orange
+          color: "var(--color-primary-100)",
         };
       default:
         return null;
@@ -73,14 +73,14 @@ export function LocationBundleRow({
                     <span className="text-neutral-900">
                       {bundle.discountPercentage}
                     </span>
-                    {BadgeIcon && <BadgeIcon className="-ml-0.5 h-3 w-3" />}
+                    {BadgeIcon && <BadgeIcon className="-ml-0.5 h-3 w-3 text-neutral-900" />}
                     <span className="text-neutral-900">
                       {t("page.locationBundles.priceType.discount")}
                     </span>
                   </>
                 ) : (
                   <>
-                    {BadgeIcon && <BadgeIcon className="h-3 w-3" />}
+                    {BadgeIcon && <BadgeIcon className="h-3 w-3 text-neutral-900" />}
                     <span className="text-neutral-900">
                       {priceTypeBadge.label}
                     </span>
