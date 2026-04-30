@@ -20,7 +20,6 @@ import {
   ChevronRight,
   Check as CheckIcon,
   CheckCircle2,
-  CreditCard,
   Ban,
   Zap,
 } from 'lucide-react';
@@ -339,13 +338,19 @@ const BillingAndSubscriptionV2Inner = () => {
     const isScheduled =
       currentUser?.subscription?.status === 'active' &&
       currentUser?.subscription?.cancelAtPeriodEnd;
+    // Only true past_due (Stripe sub status = past_due/unpaid) triggers the immediate-cancel warning.
+    // viewState='past_due' can also be triggered by a stuck seat-change pendingPayment while the sub
+    // itself is still active and paid through the period — those keep the normal at-period-end copy.
+    const isPastDue = currentUser?.entitlements?.status === 'past_due';
     const confirmed = await confirm({
       title: isScheduled
         ? t('billing.confirm.keepSubscription')
         : t('billing.confirm.cancelSubscription'),
       content: isScheduled
         ? t('billing.confirm.keepSubscriptionContent')
-        : t('billing.confirm.cancelSubscriptionContent'),
+        : isPastDue
+          ? t('billing.confirm.cancelSubscriptionPastDueContent')
+          : t('billing.confirm.cancelSubscriptionContent'),
       confirmationText: isScheduled
         ? t('billing.confirm.keepSubscription')
         : t('billing.confirm.cancelSubscription'),
@@ -485,7 +490,17 @@ const BillingAndSubscriptionV2Inner = () => {
         if (!stripe) throw new Error('Failed to load Stripe');
         const { error } = await stripe.confirmCardPayment(response.clientSecret);
         if (error) {
+          // pending_if_incomplete keeps the sub at its original seat count until payment
+          // succeeds, so voiding the failed proration invoice cleanly discards the attempt
+          // and avoids leaving the user in a past_due-looking state.
+          try {
+            await abortPendingPayment();
+          } catch {
+            // If abort fails, fall back to the past_due UI (handled on next refresh).
+          }
           toast.error(error.message || t('billing.toast.paymentFailed'));
+          dispatch(getSubscriptionSummaryAction.request());
+          dispatch(fetchCurrentUserAction.request());
         } else {
           toast.success(t('billing.toast.paymentConfirmed'));
           window.location.href = '/info?type=seats-update-success';
@@ -501,52 +516,10 @@ const BillingAndSubscriptionV2Inner = () => {
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       toast.error(e?.response?.data?.message || e?.message || t('billing.toast.updateFailed'));
+      dispatch(getSubscriptionSummaryAction.request());
+      dispatch(fetchCurrentUserAction.request());
     } finally {
       setUpdatingSeats(false);
-    }
-  };
-
-  const handleRetryPayment = async () => {
-    const pending = subscriptionSummary?.pendingPayment;
-    if (!pending) return;
-    if (pending.status === 'requires_payment_method') {
-      if (pending.invoiceUrl) {
-        window.location.href = pending.invoiceUrl;
-      } else {
-        dispatch(
-          getCustomerPortalUrlAction.request({ returnUrl: window.location.href }),
-        );
-      }
-      return;
-    }
-    if (pending.status === 'requires_action' && pending.clientSecret) {
-      try {
-        setRetryingPayment(true);
-        const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-        if (!publishableKey) throw new Error('Stripe publishable key not configured');
-        const stripe = await loadStripe(publishableKey);
-        if (!stripe) throw new Error('Failed to load Stripe');
-        const { error } = await stripe.confirmCardPayment(pending.clientSecret);
-        if (error) {
-          toast.error(error.message || t('billing.toast.paymentFailed'));
-        } else {
-          toast.success(t('billing.toast.paymentConfirmed'));
-          // Refresh subscription + user entitlements. Stripe's webhook may
-          // take a moment, so re-fetch once immediately and again shortly
-          // after to pick up the new status without a manual refresh.
-          dispatch(getSubscriptionSummaryAction.request());
-          dispatch(fetchCurrentUserAction.request());
-          setTimeout(() => {
-            dispatch(getSubscriptionSummaryAction.request());
-            dispatch(fetchCurrentUserAction.request());
-          }, 1500);
-        }
-      } catch (err: unknown) {
-        const e = err as { message?: string };
-        toast.error(e?.message || t('billing.toast.paymentFailed'));
-      } finally {
-        setRetryingPayment(false);
-      }
     }
   };
 
@@ -624,18 +597,18 @@ const BillingAndSubscriptionV2Inner = () => {
       case 'past_due':
         return (
           <Button
-            onClick={handleRetryPayment}
-            disabled={retryingPayment}
+            onClick={handleManagePaymentMethodAndInvoices}
+            disabled={portalLoading}
             rounded="full"
             variant="destructive"
             className="gap-2 bv2-btn-upgrade-hero"
           >
-            {retryingPayment ? (
+            {portalLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <CreditCard className="h-4 w-4" />
+              <ExternalLink className="h-4 w-4" />
             )}
-            {t('billing.v2.hero.payNow')}
+            {t('billing.v2.hero.managePayment')}
           </Button>
         );
       case 'canceled':
@@ -937,32 +910,46 @@ const BillingAndSubscriptionV2Inner = () => {
                 </div>
               )}
 
-              {viewState === 'past_due' && (
-                <div className="mb-4">
-                  <Bv2Banner
-                    tone="danger"
-                    icon={<AlertTriangle className="h-4 w-4" />}
-                    title={t('billing.pendingPayment.title')}
-                  >
-                    {subscriptionSummary?.pendingPayment?.status === 'requires_action'
-                      ? t('billing.pendingPayment.requiresAction')
-                      : t('billing.pendingPayment.requiresPaymentMethod')}
-                    <div className="mt-2 flex flex-wrap justify-end gap-2">
-                      <Button
-                        size="sm"
-                        rounded="full"
-                        variant="outline"
-                        onClick={handleAbortPayment}
-                        disabled={retryingPayment}
-                        className="bv2-btn-cancel-payment gap-1.5"
-                      >
-                        <Ban className="h-3.5 w-3.5" />
-                        {t('billing.pendingPayment.abortPayment')}
-                      </Button>
-                    </div>
-                  </Bv2Banner>
-                </div>
-              )}
+              {viewState === 'past_due' && (() => {
+                const billingReason = subscriptionSummary?.pendingPayment?.billingReason;
+                const isSeatChange = billingReason === 'subscription_update';
+
+                return (
+                  <div className="mb-4">
+                    <Bv2Banner
+                      tone="danger"
+                      icon={<AlertTriangle className="h-4 w-4" />}
+                      title={
+                        isSeatChange
+                          ? t('billing.pendingPayment.seatChangeTitle')
+                          : t('billing.pendingPayment.renewalTitle')
+                      }
+                    >
+                      {isSeatChange
+                        ? t('billing.pendingPayment.seatChangeBody')
+                        : subscriptionSummary?.pendingPayment?.status === 'requires_action'
+                          ? t('billing.pendingPayment.requiresAction')
+                          : t('billing.pendingPayment.requiresPaymentMethod')}
+
+                      {isSeatChange && (
+                        <div className="mt-2 flex flex-wrap justify-end gap-2">
+                          <Button
+                            size="sm"
+                            rounded="full"
+                            variant="outline"
+                            onClick={handleAbortPayment}
+                            disabled={retryingPayment}
+                            className="bv2-btn-cancel-payment gap-1.5"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                            {t('billing.pendingPayment.abortPayment')}
+                          </Button>
+                        </div>
+                      )}
+                    </Bv2Banner>
+                  </div>
+                );
+              })()}
 
               {viewState === 'scheduled' && (
                 <div className="mb-4">
@@ -1157,7 +1144,7 @@ const BillingAndSubscriptionV2Inner = () => {
                           : viewState === 'scheduled'
                             ? handleSubscriptionStatusChange
                             : viewState === 'past_due'
-                              ? handleRetryPayment
+                              ? handleManagePaymentMethodAndInvoices
                               : handleUpgrade
                       }
                       disabled={
@@ -1166,26 +1153,26 @@ const BillingAndSubscriptionV2Inner = () => {
                           : viewState === 'scheduled'
                             ? cancelLoading
                             : viewState === 'past_due'
-                              ? retryingPayment
+                              ? portalLoading
                               : updatingSeats || seatsLocked
                       }
                       className="gap-1.5 bv2-btn-upgrade"
                     >
-                      {(updatingSeats || cancelRemovalLoading || cancelLoading || retryingPayment) ? (
+                      {(updatingSeats || cancelRemovalLoading || cancelLoading || (viewState === 'past_due' && portalLoading)) ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (viewState === 'pending_inc' || viewState === 'pending_dec') ? (
                         <RefreshCcw className="h-3.5 w-3.5" />
                       ) : viewState === 'scheduled' ? (
                         <RefreshCcw className="h-3.5 w-3.5" />
                       ) : viewState === 'past_due' ? (
-                        <CreditCard className="h-3.5 w-3.5" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                       ) : null}
                       {viewState === 'pending_inc' || viewState === 'pending_dec'
                         ? t('billing.v2.hero.revertChange')
                         : viewState === 'scheduled'
                           ? t('billing.keepSubscription')
                           : viewState === 'past_due'
-                            ? t('billing.v2.hero.payNow')
+                            ? t('billing.v2.hero.managePayment')
                             : viewState === 'ltd'
                               ? t('billing.upgrade')
                               : viewState === 'canceled'
@@ -1207,10 +1194,11 @@ const BillingAndSubscriptionV2Inner = () => {
                 </div>
               )}
 
-              {/* Cancel link — active or while a seat change is pending */}
+              {/* Cancel link — active, past_due, or while a seat change is pending */}
               {(viewState === 'active' ||
                 viewState === 'pending_inc' ||
-                viewState === 'pending_dec') && (
+                viewState === 'pending_dec' ||
+                viewState === 'past_due') && (
                 <div className="mt-4 text-right">
                   <button
                     type="button"

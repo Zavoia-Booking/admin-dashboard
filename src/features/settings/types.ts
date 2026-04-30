@@ -36,6 +36,9 @@ export type SubscriptionSummary = {
     amount: number;
     currency: string;
     invoiceUrl: string | null;
+    // 'subscription_update' = seat-change failure → offer abort
+    // 'subscription_cycle'  = renewal failure → offer retry / update PM / cancel
+    billingReason: string | null;
   } | null;
 };
 
