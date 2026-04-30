@@ -9,6 +9,7 @@ import AccountStatusPromptDialog from './features/auth/components/AccountStatusP
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
 import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
+import SplashGate from './shared/components/splash/SplashGate'
 import { Spinner } from './shared/components/ui/spinner'
 
 // Lazy-loaded pages (each route becomes a separate chunk)
@@ -38,6 +39,9 @@ const LegalPage = lazy(() => import('./features/legal/pages/legal-page'))
 // Notifications
 const NotificationsPage = lazy(() => import('./features/notifications/pages/notifications'))
 
+// Dev preview pages
+const SplashPreviewPage = lazy(() => import('./shared/components/splash/SplashPreviewPage'))
+
 // Team Member Only Pages
 const MyAssignmentsPage = lazy(() => import('./features/team-member-pages/myAssignments/pages/my-assignments'))
 const MyProfilePage = lazy(() => import('./features/team-member-pages/myProfile/pages/my-profile'))
@@ -54,6 +58,11 @@ function RouteFallback() {
 function App() {
   return (
     <BrowserRouter>
+      {/* splash-app-root: wraps every route so the splash exit can rise
+       * the page up into view as a single unit. Without this, individual
+       * routes (Dashboard, etc) would just appear during/after the
+       * splash exit instead of animating in. */}
+      <div className="splash-app-root">
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
@@ -92,6 +101,9 @@ function App() {
           <Route path="/cookies" element={<LegalPage />} />
           <Route path="/privacy" element={<LegalPage />} />
 
+          {/* Dev: splash animation preview with replay button */}
+          <Route path="/splash-preview" element={<SplashPreviewPage />} />
+
           {/* Info Pages */}
           <Route path="/info" element={<InfoPageComponent />} />
           <Route path="/account-info" element={<ProtectedRoute element={<AccountWebInfoPage />} />} />
@@ -101,6 +113,7 @@ function App() {
           <Route path="*" element={<Navigate to="/calendar" replace />} />
         </Routes>
       </Suspense>
+      </div>
       <AccountLinkingModal />
       <BusinessSelectorModal />
       <AccountLinkingRequiredModal />
@@ -108,6 +121,7 @@ function App() {
       <SeatOverflowGate />
       <SubscriptionBlocker />
       <PushListenersBootstrap />
+      <SplashGate />
     </BrowserRouter>
   )
 }

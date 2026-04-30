@@ -1061,8 +1061,13 @@ button.sidebar-menu-button-compact {
   animation: dnd-lift 180ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
+/* Splash screen styles live in src/shared/components/splash/splash.css —
+ * imported from SplashGate.tsx so they travel with the component. That
+ * file owns everything: .splash-* selectors, all keyframes, per-phase
+ * animation bindings, the .splash-target-* login hand-off styles, and
+ * the splash slice of the prefers-reduced-motion overrides. */
+
 @media (prefers-reduced-motion: reduce) {
   .animate-tab-icon { animation: none; }
   .animate-dnd-lift { animation: none; }
 }
-

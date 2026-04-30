@@ -1,0 +1,170 @@
+/* Splash screen styles — co-located with SplashGate component.
+ * Imported from SplashGate.tsx so the CSS travels with the feature.
+ *
+ * Architecture:
+ *   - SplashGate manages phase state (entering / holding / exiting / done)
+ *     and toggles classes on document.body (`splash-active`, `splash-exiting`).
+ *   - The splash mark itself is drawn imperatively to a <canvas> via
+ *     requestAnimationFrame in splashCanvas.ts. None of the mark's
+ *     animation lives in this file — it's all in canvas draw calls.
+ *   - This file owns:
+ *       • overlay container styles (.splash-overlay)
+ *       • the canvas size/positioning (.splash-mark)
+ *       • app-content rise on splash exit (.splash-app-root)
+ *       • login hand-off target styles (.splash-target-wordmark, -card)
+ *       • prefers-reduced-motion overrides for the wrapper layers
+ *         (the canvas honours reduced-motion in JS by snapping to a
+ *         fully-formed mark with no animation)
+ *   - Login page applies `.splash-target-*` classes; those classes only
+ *     have effect when this CSS is loaded.
+ *
+ * Three-act choreography (rendered in splashCanvas.ts):
+ *   1. Z arrives — rotates from a tilted off-camera position to upright,
+ *      stroke traces the brand Z outline while thickening to fill the
+ *      silhouette (China Unicom Lottie mechanic).
+ *   2. Ball + rings — rings cascade with Lottie trim-path animation,
+ *      ball pops in with a damped-spring bounce.
+ *   3. Zoom warp — the entire mark scales out from the ball position;
+ *      Z fades, ball alone explodes outward; login content rises and
+ *      sharpens underneath. */
+
+.splash-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: #FAFAF7;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 1;
+  pointer-events: auto;
+  overflow: hidden;
+  transition: opacity 1200ms cubic-bezier(0.4, 0, 1, 1);
+  /* Containment: tells the browser nothing inside the splash can affect
+   * layout or paint outside its box. Stops the browser from repainting
+   * unrelated parts of the page during the canvas animation. */
+  contain: strict;
+}
+
+.splash-overlay--exiting {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.splash-mark {
+  /* The canvas fills the entire splash overlay (which is itself
+   * fixed inset:0). The mark is drawn centered inside it at a fixed
+   * display size — see MARK_DISPLAY_PX in SplashGate.tsx. The reason
+   * the canvas is full-screen and not just mark-sized: the exit
+   * zoom-warp scales the mark up to 25× from the ball position, and
+   * we need the surrounding viewport space for the mark to expand into
+   * before being clipped at the canvas edges.
+   *
+   * Backing buffer is sized to viewport × DPR in JS for crisp output. */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* App content rising from the lower viewport into place as the splash
+ * dismisses. The wrapper `.splash-app-root` lives in App.tsx and contains
+ * EVERY route, so this rule applies to Dashboard, Login, all of them.
+ *
+ * Initial state holds during the whole splash — the page sits below the
+ * fold, scaled down, fully transparent. During exit, it rises up,
+ * scales to 1, fades in. The user perceives this as the splash "lifting
+ * off" to reveal the page emerging underneath.
+ *
+ * pointer-events: none keeps the hidden page from intercepting touches
+ * while the splash is showing. */
+.splash-active .splash-app-root {
+  opacity: 0;
+  transform: translateY(30vh) scale(0.85);
+  transform-origin: center bottom;
+  pointer-events: none;
+}
+
+@keyframes splash-screen-rise {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.splash-active.splash-exiting .splash-app-root {
+  /* Starts 300ms into exit (after the splash zoom is well underway),
+   * runs 1050ms — finishes at 1350ms exactly when the splash exit ends.
+   * Easing matches the splash's exit curve family (smooth ease-out). */
+  animation: splash-screen-rise 1050ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
+}
+
+/* ── Login hand-off ────────────────────────────────────────────────────
+ * When the route inside .splash-app-root opts in by tagging elements
+ * with .splash-target-wordmark / .splash-target-card, suppress the
+ * generic root rise on that route and animate those elements in
+ * individually. This makes the splash mark feel like it "settles" into
+ * the wordmark, with the form card sliding up underneath.
+ *
+ * Uses :has() so we don't need a route-aware class on body. */
+.splash-active .splash-app-root:has(.splash-target-wordmark),
+.splash-active .splash-app-root:has(.splash-target-card) {
+  opacity: 1;
+  transform: none;
+  /* Keep pointer-events disabled while splash is overlay; the targets
+   * inherit this and become interactive when splash is done. */
+  pointer-events: none;
+}
+
+.splash-active .splash-target-wordmark,
+.splash-active .splash-target-card {
+  opacity: 0;
+}
+
+@keyframes splash-target-wordmark-in {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes splash-target-card-in {
+  from { opacity: 0; transform: translateY(60px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.splash-active.splash-exiting .splash-target-wordmark {
+  /* 300ms delay — fires when the splash zoom is mid-flight, so the eye
+   * picks up the wordmark scaling in just as the mark zooms past it. */
+  animation: splash-target-wordmark-in 900ms cubic-bezier(0.22, 1, 0.36, 1) 300ms both;
+  transform-origin: center center;
+}
+
+.splash-active.splash-exiting .splash-target-card {
+  /* 600ms delay — staggered after the wordmark so the card feels like
+   * it rises into place once the wordmark is settled. */
+  animation: splash-target-card-in 750ms cubic-bezier(0.22, 1, 0.36, 1) 600ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* The canvas mark renders a static fully-formed glyph in JS when
+   * reduced-motion is set (see SplashGate.tsx). All this block does
+   * is drop the wrapper-level transitions/animations. */
+  .splash-overlay {
+    transition: opacity 250ms linear;
+  }
+  .splash-active .splash-app-root,
+  .splash-active.splash-exiting .splash-app-root {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+  .splash-active .splash-target-wordmark,
+  .splash-active .splash-target-card,
+  .splash-active.splash-exiting .splash-target-wordmark,
+  .splash-active.splash-exiting .splash-target-card {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
