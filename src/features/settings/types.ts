@@ -18,6 +18,10 @@ export type SubscriptionSummary = {
   paidSeats: number;        // User bought X seats
   usedSeats: number;        // Currently using X seats
   availableSeats: number;   // Can invite X more team members
+  numberOfLocations: number;
+  numberOfTeamMembers: number;
+  maxLocations: number;
+  maxTeamMembers: number;
   scheduled?: {
     scheduledSeats: number | null;
     nextPeriodStart: string | null;

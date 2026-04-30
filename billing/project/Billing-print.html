@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Billing & Subscription — Inno (Print)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FFFFFF; --bg-page: #FAFAFA; --bg-elev: #FFFFFF; --bg-sunk: #F5F5F5;
+    --bg-soft-accent: #FFF6F2; --bg-soft-blue: #F1F4FA;
+    --line: #ECECEC; --line-soft: #F1F1F1; --line-strong: #DDDDDD;
+    --ink: #111111; --ink-1: #2B2B2B; --ink-2: #6B6B6B; --ink-3: #9A9A9A; --ink-4: #C4C4C4;
+    --accent: #F97316; --accent-hover: #EA6A12; --accent-soft: #FFEEDF; --accent-deep: #C44A0E;
+    --good: #16A34A; --good-soft: #E7F5EC; --good-pill-bg: #E6F4EA; --good-pill-fg: #1F7A3A;
+    --warn: #D97706; --warn-soft: #FEF3E2;
+    --danger: #DC2626; --danger-soft: #FEEAE8; --danger-pill-bg: #FDEAE6; --danger-pill-fg: #C2412C;
+    --info: #4B6CB7; --info-soft: #EEF2FB;
+    --customized: #B85AAB; --customized-soft: #F8EAF5;
+    --radius: 12px; --radius-sm: 10px; --radius-lg: 14px; --radius-pill: 999px;
+    --shadow-card: 0 1px 2px rgba(0,0,0,.03); --shadow-pop: 0 8px 24px -8px rgba(0,0,0,.10);
+    --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body { font-family: var(--font-sans); color: var(--ink); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; font-feature-settings: "cv11", "ss01"; font-size: 14px; }
+  button, input, select, textarea { font-family: inherit; }
+
+  .density-regular { --pad-card: 18px 20px; --pad-row: 14px; --gap-card: 16px; --fs-base: 14px; }
+
+  /* Hide tweaks panel for print */
+  .tweaks-panel, [data-tweaks-panel], #tweaks-toggle { display: none !important; }
+
+  @media print {
+    @page { size: A3; margin: 1cm; }
+    html, body { background: #fff !important; }
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .app, .layout, main, body > div { overflow: visible !important; }
+    .tweaks-panel, [data-tweaks-panel] { display: none !important; }
+    /* Avoid splitting cards across pages */
+    .card, [class*="card"], .hero, .plan-grid, .sms-packs, .usage-tiles, .m-card { break-inside: avoid; page-break-inside: avoid; }
+    /* Remove animations */
+    *, *::before, *::after { transition: none !important; animation: none !important; }
+  }
+
+  /* Force the layout to flow naturally for print (no fixed-height inner scrollers) */
+  html, body { height: auto !important; }
+</style>
+</head>
+<body class="density-regular">
+  <div id="root"></div>
+
+  <script type="application/json" id="tweak-defaults"></script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="src/icons.jsx"></script>
+  <script type="text/babel" src="src/primitives.jsx"></script>
+  <script type="text/babel" src="src/shell.jsx"></script>
+  <script type="text/babel" src="src/subscription.jsx"></script>
+  <script type="text/babel" src="src/sidecards.jsx"></script>
+  <script type="text/babel" src="src/billing-form.jsx"></script>
+  <script type="text/babel" src="src/mobile.jsx"></script>
+  <script type="text/babel" src="src/app.jsx"></script>
+
+  <script type="text/babel">
+    // Wait for fonts + React render, then trigger print
+    (async () => {
+      try { if (document.fonts && document.fonts.ready) await document.fonts.ready; } catch (e) {}
+      // Wait extra for Babel-transpiled scripts to mount
+      await new Promise(r => setTimeout(r, 1500));
+      // Force any inner scroll containers to expand for print
+      document.querySelectorAll('*').forEach(el => {
+        const cs = getComputedStyle(el);
+        if (cs.overflow === 'auto' || cs.overflowY === 'auto' || cs.overflow === 'scroll') {
+          el.style.overflow = 'visible';
+          el.style.height = 'auto';
+          el.style.maxHeight = 'none';
+        }
+      });
+      await new Promise(r => setTimeout(r, 300));
+      window.print();
+    })();
+  </script>
+</body>
+</html>

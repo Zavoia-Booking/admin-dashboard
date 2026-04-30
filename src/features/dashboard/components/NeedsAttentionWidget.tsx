@@ -182,7 +182,7 @@ export function NeedsAttentionWidget({
             onClick={() => setSeeAllOpen(true)}
             className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
           >
-            <span className="text-[11px] font-medium">{t('needsAttention.seeAll')}</span>
+            <span className="text-xs font-medium">{t('needsAttention.seeAll')}</span>
             <ArrowUpRight className="h-3 w-3" />
           </button>
         )}
@@ -215,7 +215,7 @@ export function NeedsAttentionWidget({
                       onClick={() => item.actionPath && navigate(item.actionPath)}
                       className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer shrink-0 ml-auto"
                     >
-                      <span className="text-[11px] font-medium">{item.actionLabel}</span>
+                      <span className="text-xs font-medium">{item.actionLabel}</span>
                       <ArrowUpRight className="h-3 w-3" />
                     </button>
                   </div>
@@ -342,7 +342,7 @@ function UnresolvedAppointmentRow({
         ) : (
           <X className="h-3.5 w-3.5 text-warning shrink-0" />
         )}
-        <span className="text-[11px]">
+        <span className="text-xs">
           {customerName} — {resolved === 'completed' ? t('needsAttention.completed') : t('needsAttention.noShow')}
         </span>
       </div>
@@ -361,24 +361,24 @@ function UnresolvedAppointmentRow({
           />
         ) : (
           <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-[8px] font-bold text-primary">{initials}</span>
+            <span className="text-[10px] font-bold text-primary">{initials}</span>
           </div>
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-medium text-foreground-1 truncate">
+            <span className="text-sm font-medium text-foreground-1 truncate">
               {customerName}
             </span>
-            <span className="text-[10px] text-foreground-3 shrink-0">
+            <span className="text-xs text-foreground-3 shrink-0">
               &middot; {appointment.bookedItemName}
             </span>
           </div>
           <div className="flex items-center gap-1 mt-0.5 flex-wrap">
             <Clock className="h-2.5 w-2.5 text-foreground-3" />
-            <span className="text-[10px] text-foreground-3">
+            <span className="text-xs text-foreground-3">
               {formatDateTime(appointment.scheduledAt)}
             </span>
-            <span className="text-[10px] text-foreground-3">
+            <span className="text-xs text-foreground-3">
               &middot; {t('needsAttention.with')} {staffName}
             </span>
           </div>
@@ -390,7 +390,7 @@ function UnresolvedAppointmentRow({
         <button
           disabled={loading !== null}
           onClick={() => handleAction('completed')}
-          className="inline-flex items-center gap-1 px-2.5 py-1 !min-h-0 !h-auto rounded-full text-[10px] font-medium
+          className="inline-flex items-center gap-1 px-2.5 py-1 !min-h-0 !h-auto rounded-full text-xs font-medium
             border border-green-200 bg-green-50 text-green-800
             hover:bg-green-100 hover:border-green-300
             focus-visible:ring-focus/60
@@ -402,7 +402,7 @@ function UnresolvedAppointmentRow({
         <button
           disabled={loading !== null}
           onClick={() => handleAction('no_show')}
-          className="inline-flex items-center gap-1 px-2.5 py-1 !min-h-0 !h-auto rounded-full text-[10px] font-medium
+          className="inline-flex items-center gap-1 px-2.5 py-1 !min-h-0 !h-auto rounded-full text-xs font-medium
             border border-primary/20 bg-primary/5 text-primary
             hover:bg-primary/10 hover:border-primary/40
             focus-visible:ring-focus/60
@@ -633,7 +633,7 @@ function UnresolvedAppointmentsDialog({
             <SlidersHorizontal className="h-3.5 w-3.5" />
             {t('needsAttention.filters')}
             {activeFilterCount > 0 && (
-              <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[9px] font-bold text-white">
+              <span className="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-white">
                 {activeFilterCount}
               </span>
             )}
@@ -642,14 +642,14 @@ function UnresolvedAppointmentsDialog({
         <PopoverContent className="w-[320px] p-0 overflow-visible" align="end" sideOffset={8}>
           <div className="space-y-4 p-4">
             <div className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-foreground-3">{t('needsAttention.dateRange')}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground-3">{t('needsAttention.dateRange')}</p>
               <div className="grid grid-cols-2 gap-2">
                 <DatePicker value={draftDateFrom} onChange={setDraftDateFrom} placeholder={t('needsAttention.dateFrom')} className="!h-9 text-xs w-full" contentClassName="!z-[200]" />
                 <DatePicker value={draftDateTo} onChange={setDraftDateTo} placeholder={t('needsAttention.dateTo')} className="!h-9 text-xs w-full" contentClassName="!z-[200]" />
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-foreground-3">{t('needsAttention.service')}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-foreground-3">{t('needsAttention.service')}</p>
               <OptionSelect
                 value={draftService ?? ''}
                 onChange={(val) => setDraftService(val || null)}
@@ -666,7 +666,7 @@ function UnresolvedAppointmentsDialog({
         </PopoverContent>
       </Popover>
       {hasActiveFilters && (
-        <button onClick={clearAllFilters} className="shrink-0 text-[11px] text-primary hover:underline cursor-pointer">{t('needsAttention.clearAll')}</button>
+        <button onClick={clearAllFilters} className="shrink-0 text-xs text-primary hover:underline cursor-pointer">{t('needsAttention.clearAll')}</button>
       )}
     </div>
   );
@@ -701,16 +701,16 @@ function UnresolvedAppointmentsDialog({
       {isMobile ? (
         <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border sticky top-0 z-10 bg-muted/40 dark:bg-background/70 backdrop-blur-sm">
           <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
-          <span className="text-[10px] font-medium text-foreground-3 uppercase tracking-wider">
+          <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider">
             {someSelected ? t('needsAttention.selected', { count: selected.size }) : t('needsAttention.selectAll')}
           </span>
         </div>
       ) : (
         <div className="grid grid-cols-[32px_1fr_1fr_120px] gap-3 items-center px-6 md:px-8 py-2.5 border-b border-border sticky top-0 z-10 bg-muted/40 dark:bg-background/70 backdrop-blur-sm">
           <Checkbox checked={allSelected} onCheckedChange={toggleSelectAll} />
-          <span className="text-[10px] font-medium text-foreground-3 uppercase tracking-wider">{t('needsAttention.customer')}</span>
-          <span className="text-[10px] font-medium text-foreground-3 uppercase tracking-wider">{t('needsAttention.service')} / {t('needsAttention.staff')}</span>
-          <span className="text-[10px] font-medium text-foreground-3 uppercase tracking-wider text-right">{t('needsAttention.time')}</span>
+          <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider">{t('needsAttention.customer')}</span>
+          <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider">{t('needsAttention.service')} / {t('needsAttention.staff')}</span>
+          <span className="text-xs font-medium text-foreground-3 uppercase tracking-wider text-right">{t('needsAttention.time')}</span>
         </div>
       )}
       {filteredAppointments.length === 0 ? (
@@ -770,7 +770,7 @@ function UnresolvedAppointmentsDialog({
           <DrawerHeader className="!text-left shrink-0 px-4">
             <div className="flex items-center gap-3">
               <DrawerTitle className="text-base font-semibold text-foreground-1">{t('needsAttention.seeAllTitle')}</DrawerTitle>
-              <span className="shrink-0 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-[10px] font-medium text-warning">{visibleAppointments.length}</span>
+              <span className="shrink-0 rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">{visibleAppointments.length}</span>
             </div>
             <DrawerDescription className="text-xs text-foreground-3 dark:text-foreground-2">{t('needsAttention.seeAllDescription')}</DrawerDescription>
           </DrawerHeader>
@@ -813,7 +813,7 @@ function UnresolvedAppointmentsDialog({
                   <DialogTitle className="min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1">
                     {t('needsAttention.seeAllTitle')}
                   </DialogTitle>
-                  <span className="shrink-0 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-0.5 text-[11px] font-medium text-warning">
+                  <span className="shrink-0 rounded-full border border-warning/30 bg-warning/10 px-2.5 py-0.5 text-xs font-medium text-warning">
                     {visibleAppointments.length}
                   </span>
                 </div>
@@ -923,17 +923,17 @@ function DialogAppointmentRow({
             <img src={appointment.customerSnapshot.profileImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
           ) : (
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-[9px] font-bold text-primary">{initials}</span>
+              <span className="text-[10px] font-bold text-primary">{initials}</span>
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <p className="text-[12px] font-medium text-foreground-1 truncate">{customerName}</p>
-            <p className="text-[10px] text-foreground-3 truncate mt-0.5">
+            <p className="text-sm font-medium text-foreground-1 truncate">{customerName}</p>
+            <p className="text-xs text-foreground-3 truncate mt-0.5">
               {appointment.bookedItemName} &middot; {staffName}
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               <Clock className="h-2.5 w-2.5 text-foreground-3 shrink-0" />
-              <p className="text-[10px] text-foreground-3 tabular-nums">
+              <p className="text-xs text-foreground-3 tabular-nums">
                 {formatDateTime(appointment.scheduledAt)}
                 {' · '}
                 {new Date(appointment.scheduledAt).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
@@ -973,34 +973,34 @@ function DialogAppointmentRow({
           />
         ) : (
           <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-[9px] font-bold text-primary">{initials}</span>
+            <span className="text-[10px] font-bold text-primary">{initials}</span>
           </div>
         )}
         <div className="min-w-0">
-          <p className="text-[11px] font-medium text-foreground-1 truncate">{customerName}</p>
-          <p className="text-[10px] text-foreground-3 truncate">{appointment.customerSnapshot.email}</p>
+          <p className="text-sm font-medium text-foreground-1 truncate">{customerName}</p>
+          <p className="text-xs text-foreground-3 truncate">{appointment.customerSnapshot.email}</p>
         </div>
       </div>
 
       {/* Service / Staff */}
       <div className="min-w-0">
-        <p className="text-[11px] font-medium text-foreground-1 truncate">
+        <p className="text-sm font-medium text-foreground-1 truncate">
           {appointment.bookedItemName}
         </p>
         <div className="flex items-center gap-1 mt-0.5">
           <User className="h-2.5 w-2.5 text-foreground-3" />
-          <p className="text-[10px] text-foreground-3 truncate">{staffName}</p>
+          <p className="text-xs text-foreground-3 truncate">{staffName}</p>
         </div>
       </div>
 
       {/* Time */}
       <div className="text-right">
-        <p className="text-[11px] text-foreground-2 tabular-nums">
+        <p className="text-xs text-foreground-2 tabular-nums">
           {formatDateTime(appointment.scheduledAt)}
         </p>
         <div className="flex items-center gap-1 justify-end mt-0.5 flex-nowrap">
           <Clock className="h-2.5 w-2.5 text-foreground-3 shrink-0" />
-          <p className="text-[10px] text-foreground-3 tabular-nums whitespace-nowrap">
+          <p className="text-xs text-foreground-3 tabular-nums whitespace-nowrap">
             {new Date(appointment.scheduledAt).toLocaleTimeString(locale, {
               hour: '2-digit',
               minute: '2-digit',

@@ -256,6 +256,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     .map((item, index) => {
       // Filter sub-items based on permissions
       const filteredSubItems = item.items?.filter(subItem => {
+        // Owners that haven't finished the setup wizard have no businessId yet,
+        // so the billing endpoints would 404. Hide the entry for them.
+        if (
+          subItem.url === '/account?tab=billing' &&
+          user?.role === 'owner' &&
+          !user?.wizardCompleted
+        ) {
+          return false
+        }
         // If sub-item has a specific permission, check it
         // Otherwise, it inherits access from the parent item
         if (subItem.requiredPermission) {

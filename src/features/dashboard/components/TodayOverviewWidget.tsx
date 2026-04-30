@@ -66,7 +66,7 @@ export function TodayOverviewWidget({
             {t('todayOverview.title')}
           </p>
           <div
-            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${statusBg} ${statusColor}`}
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusBg} ${statusColor}`}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${statusDot} ${isCurrentlyOpen ? 'animate-pulse' : ''}`}
@@ -78,7 +78,7 @@ export function TodayOverviewWidget({
           onClick={() => navigate(`/assignments?locationId=${locationId}`)}
           className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
         >
-          <span className="text-[11px] font-medium">{t('todayOverview.seeLocation')}</span>
+          <span className="text-xs font-medium">{t('todayOverview.seeLocation')}</span>
           <ArrowUpRight className="h-3 w-3" />
         </button>
       </div>
@@ -89,7 +89,7 @@ export function TodayOverviewWidget({
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-1.5">
             <CalendarCheck className="h-3.5 w-3.5 text-info" />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground-3">
               {t('todayOverview.appointments')}
             </span>
           </div>
@@ -98,7 +98,7 @@ export function TodayOverviewWidget({
               const pct = maxAppointments > 0 ? (p.appointments / maxAppointments) * 100 : 0;
               return (
                 <div key={p.labelKey} className="flex items-center gap-2">
-                  <span className="text-[10px] text-foreground-3 w-[88px] shrink-0 truncate">
+                  <span className="text-xs text-foreground-3 w-[88px] shrink-0 truncate">
                     {t(p.labelKey)}
                   </span>
                   <div className="flex-1 h-2 bg-surface-active rounded-full overflow-hidden">
@@ -107,7 +107,7 @@ export function TodayOverviewWidget({
                       style={{ width: `${Math.max(pct, pct > 0 ? 4 : 0)}%` }}
                     />
                   </div>
-                  <span className="text-[11px] font-semibold text-foreground-1 tabular-nums w-6 text-right shrink-0">
+                  <span className="text-xs font-semibold text-foreground-1 tabular-nums w-6 text-right shrink-0">
                     {p.appointments}
                   </span>
                 </div>
@@ -120,7 +120,7 @@ export function TodayOverviewWidget({
         <div className="flex flex-col gap-2.5">
           <div className="flex items-center gap-1.5">
             <DollarSign className="h-3.5 w-3.5 text-success" />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-foreground-3">
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground-3">
               {t('todayOverview.potentialRevenue')}
             </span>
           </div>
@@ -129,7 +129,7 @@ export function TodayOverviewWidget({
               const pct = maxRevenue > 0 ? (p.revenue / maxRevenue) * 100 : 0;
               return (
                 <div key={p.labelKey} className="flex items-center gap-2">
-                  <span className="text-[10px] text-foreground-3 w-[88px] shrink-0 truncate">
+                  <span className="text-xs text-foreground-3 w-[88px] shrink-0 truncate">
                     {t(p.labelKey)}
                   </span>
                   <div className="flex-1 h-2 bg-surface-active rounded-full overflow-hidden">
@@ -138,7 +138,7 @@ export function TodayOverviewWidget({
                       style={{ width: `${Math.max(pct, pct > 0 ? 4 : 0)}%` }}
                     />
                   </div>
-                  <span className="text-[11px] font-semibold text-foreground-1 tabular-nums text-right shrink-0">
+                  <span className="text-xs font-semibold text-foreground-1 tabular-nums text-right shrink-0">
                     {formatCurrency(p.revenue)}
                   </span>
                 </div>
@@ -160,14 +160,14 @@ export function TodayOverviewWidget({
               className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
             >
               <UserPlus className="h-3 w-3" />
-              <span className="text-[11px] font-medium">{t('todayOverview.inviteStaff')}</span>
+              <span className="text-xs font-medium">{t('todayOverview.inviteStaff')}</span>
             </button>
           </div>
           {/* Table header */}
           <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-center px-1 pb-1 border-b border-border-subtle">
-            <span className="text-[10px] font-medium text-foreground-3">{t('todayOverview.staffName')}</span>
-            <span className="text-[10px] font-medium text-foreground-3">{t('todayOverview.staffEmail')}</span>
-            <span className="text-[10px] font-medium text-foreground-3">{t('todayOverview.staffPhone')}</span>
+            <span className="text-xs font-medium text-foreground-3">{t('todayOverview.staffName')}</span>
+            <span className="text-xs font-medium text-foreground-3">{t('todayOverview.staffEmail')}</span>
+            <span className="text-xs font-medium text-foreground-3">{t('todayOverview.staffPhone')}</span>
             <span className="w-5" />
           </div>
           {/* Table rows */}
@@ -189,17 +189,17 @@ export function TodayOverviewWidget({
                       />
                     ) : (
                       <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-[9px] font-bold text-primary">{initials}</span>
+                        <span className="text-[10px] font-bold text-primary">{initials}</span>
                       </div>
                     )}
-                    <span className="text-[11px] font-medium text-foreground-1 truncate">
+                    <span className="text-sm font-medium text-foreground-1 truncate">
                       {member.firstName} {member.lastName}
                     </span>
                   </div>
-                  <span className="text-[11px] text-foreground-3 truncate">
+                  <span className="text-xs text-foreground-3 truncate">
                     {member.email}
                   </span>
-                  <span className="text-[11px] text-foreground-3 truncate">
+                  <span className="text-xs text-foreground-3 truncate">
                     {member.phone}
                   </span>
                   <ChevronRight className="h-4 w-4 text-foreground-3/50 group-hover/row:text-primary transition-colors duration-150" />

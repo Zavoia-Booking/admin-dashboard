@@ -12,10 +12,12 @@ import {
   Loader2,
 } from 'lucide-react';
 import BillingAndSubscription from '../components/BillingAndSubscription';
+import BillingAndSubscriptionV2 from '../components/BillingAndSubscriptionV2';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
 import { LimitedAccessBanner } from '../../../shared/components/common/subscription/LimitedAccessBanner';
 import { getBusinessUpdatingSelector } from '../../business/selectors';
 import { usePlatform } from '../../../shared/hooks/usePlatform';
+import { selectCurrentUser } from '../../auth/selectors';
 
 type SettingsTab = 'profile' | 'billing';
 
@@ -24,13 +26,20 @@ const SettingsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const isUpdating = useSelector(getBusinessUpdatingSelector) as boolean;
+  const currentUser = useSelector(selectCurrentUser);
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
   const { isNative } = usePlatform();
+
+  // Owners that haven't finished the setup wizard have no businessId yet, so
+  // every billing API call would 404. Hide the tab entirely until they're done.
+  const isOwnerWithoutBusiness =
+    currentUser?.role === 'owner' && !currentUser?.wizardCompleted;
+  const canAccessBilling = !isNative && !isOwnerWithoutBusiness;
 
   // Get initial tab from URL or default to 'profile'
   const getInitialTab = (): SettingsTab => {
     const tab = searchParams.get('tab') as SettingsTab | null;
-    if (tab && (tab === 'profile' || (tab === 'billing' && !isNative))) {
+    if (tab && (tab === 'profile' || (tab === 'billing' && canAccessBilling))) {
       return tab;
     }
     return 'profile';
@@ -41,10 +50,19 @@ const SettingsPage = () => {
   // Sync with URL changes
   useEffect(() => {
     const tab = searchParams.get('tab') as SettingsTab | null;
-    if (tab && (tab === 'profile' || (tab === 'billing' && !isNative))) {
+    if (tab && (tab === 'profile' || (tab === 'billing' && canAccessBilling))) {
       setActiveTab(tab);
     }
-  }, [searchParams, isNative]);
+  }, [searchParams, canAccessBilling]);
+
+  // If billing access is revoked while the tab is open (e.g. wizard reset),
+  // bounce back to profile.
+  useEffect(() => {
+    if (activeTab === 'billing' && !canAccessBilling) {
+      setActiveTab('profile');
+      navigate('/account?tab=profile', { replace: true });
+    }
+  }, [activeTab, canAccessBilling, navigate]);
 
   const handleTabChange = (tabId: string) => {
     const tab = tabId as SettingsTab;
@@ -62,7 +80,10 @@ const SettingsPage = () => {
         case 'profile':
           return <BusinessProfile onDirtyChange={setIsProfileDirty} />;
         case 'billing':
-          return <BillingAndSubscription />;
+          // Quick rollback during dev: localStorage.setItem('billing_v2', '0')
+          return typeof window !== 'undefined' && window.localStorage.getItem('billing_v2') === '0'
+            ? <BillingAndSubscription />
+            : <BillingAndSubscriptionV2 />;
         default:
           return null;
       }
@@ -86,7 +107,7 @@ const SettingsPage = () => {
         content: renderTabContent('profile'),
       },
     ];
-    if (!isNative) {
+    if (canAccessBilling) {
       items.push({
         id: 'billing',
         label: t('tabs.billing'),
@@ -96,7 +117,7 @@ const SettingsPage = () => {
       });
     }
     return items;
-  }, [activeTab, t, isNative]);
+  }, [activeTab, t, canAccessBilling]);
 
   const handleSaveProfile = () => {
     (document.getElementById('business-info-form') as HTMLFormElement | null)?.requestSubmit();

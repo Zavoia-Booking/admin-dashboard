@@ -244,7 +244,7 @@ export function AppointmentBreakdownWidget({
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-xl font-bold text-foreground-1 tabular-nums leading-none">{total}</span>
-                <span className="text-[10px] text-foreground-3 leading-tight mt-0.5">{t('appointmentBreakdown.appts')}</span>
+                <span className="text-xs text-foreground-3 leading-tight mt-0.5">{t('appointmentBreakdown.appts')}</span>
               </div>
             </div>
           </div>
@@ -260,7 +260,7 @@ export function AppointmentBreakdownWidget({
           </div>
 
           {/* Insight */}
-          <p className="text-[10px] text-foreground-3 leading-relaxed border-t border-border-subtle pt-2">
+          <p className="text-xs text-foreground-3 leading-relaxed border-t border-border-subtle pt-2">
             {insight}
           </p>
         </div>
@@ -281,26 +281,28 @@ export function AppointmentBreakdownWidget({
           {next3.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
               <User className="h-6 w-6 text-foreground-3 opacity-30" />
-              <p className="text-[10px] text-foreground-3 text-center">{t('upcomingAppointments.noUpcoming')}</p>
+              <p className="text-xs text-foreground-3 text-center">{t('upcomingAppointments.noUpcoming')}</p>
             </div>
           ) : (
             <div className="flex flex-col flex-1">
               {/* Table header — desktop only */}
               <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-3 items-center px-2 pb-1.5 border-b border-border-subtle">
-                <span className="text-[10px] font-medium text-foreground-3">{t('upcomingAppointments.customer')}</span>
-                <span className="text-[10px] font-medium text-foreground-3">{t('upcomingAppointments.staff')}</span>
-                <span className="text-[10px] font-medium text-foreground-3">{t('upcomingAppointments.service')}</span>
-                <span className="text-[10px] font-medium text-foreground-3 w-14 text-right">{t('upcomingAppointments.time')}</span>
-                <span className="text-[10px] font-medium text-foreground-3 w-12 text-right">{t('upcomingAppointments.duration')}</span>
-                <span className="text-[10px] font-medium text-foreground-3 w-16 text-right">{t('upcomingAppointments.price')}</span>
+                <span className="text-xs font-medium text-foreground-3">{t('upcomingAppointments.customer')}</span>
+                <span className="text-xs font-medium text-foreground-3">{t('upcomingAppointments.staff')}</span>
+                <span className="text-xs font-medium text-foreground-3">{t('upcomingAppointments.service')}</span>
+                <span className="text-xs font-medium text-foreground-3 w-14 text-right">{t('upcomingAppointments.time')}</span>
+                <span className="text-xs font-medium text-foreground-3 w-12 text-right">{t('upcomingAppointments.duration')}</span>
+                <span className="text-xs font-medium text-foreground-3 w-16 text-right">{t('upcomingAppointments.price')}</span>
               </div>
               {/* Table rows */}
               <div className="flex flex-col divide-y divide-border-subtle">
                 {next3.map(appt => {
-                  const customerName = `${appt.customerSnapshot.firstName} ${appt.customerSnapshot.lastName}`;
-                  const initials = `${appt.customerSnapshot.firstName[0]}${appt.customerSnapshot.lastName[0]}`.toUpperCase();
-                  const staffName = appt.staffSnapshot[0]
-                    ? `${appt.staffSnapshot[0].firstName} ${appt.staffSnapshot[0].lastName}`
+                  const customerParts = [appt.customerSnapshot.firstName, appt.customerSnapshot.lastName].filter(Boolean);
+                  const customerName = customerParts.join(' ');
+                  const initials = customerParts.map(p => p[0]).join('').toUpperCase();
+                  const staff = appt.staffSnapshot[0];
+                  const staffName = staff
+                    ? [staff.firstName, staff.lastName].filter(Boolean).join(' ') || '—'
                     : '—';
                   return (
                     <div
@@ -315,16 +317,16 @@ export function AppointmentBreakdownWidget({
                             <img src={appt.customerSnapshot.profileImage} alt={customerName} className="h-6 w-6 rounded-full object-cover shrink-0" />
                           ) : (
                             <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <span className="text-[8px] font-bold text-primary">{initials}</span>
+                              <span className="text-[10px] font-bold text-primary">{initials}</span>
                             </div>
                           )}
-                          <span className="text-[11px] font-medium text-foreground-1 truncate">{customerName}</span>
+                          <span className="text-sm font-medium text-foreground-1 truncate">{customerName}</span>
                         </div>
-                        <span className="text-[11px] text-foreground-3 truncate">{staffName}</span>
-                        <span className="text-[11px] text-foreground-3 truncate">{appt.bookedItemName}</span>
-                        <span className="text-[11px] text-foreground-2 tabular-nums w-14 text-right">{formatTime(appt.scheduledAt)}</span>
-                        <span className="text-[11px] text-foreground-3 tabular-nums w-12 text-right">{appt.duration}m</span>
-                        <span className="text-[11px] font-medium text-success tabular-nums w-16 text-right">{formatCurrency(appt.price)}</span>
+                        <span className="text-xs text-foreground-3 truncate">{staffName}</span>
+                        <span className="text-xs text-foreground-3 truncate">{appt.bookedItemName}</span>
+                        <span className="text-xs text-foreground-2 tabular-nums w-14 text-right">{formatTime(appt.scheduledAt)}</span>
+                        <span className="text-xs text-foreground-3 tabular-nums w-12 text-right">{appt.duration}m</span>
+                        <span className="text-xs font-medium text-success tabular-nums w-16 text-right">{formatCurrency(appt.price)}</span>
                       </div>
                       {/* Mobile card */}
                       <div className="flex md:hidden items-center gap-2.5 px-2 py-3">
@@ -332,16 +334,16 @@ export function AppointmentBreakdownWidget({
                           <img src={appt.customerSnapshot.profileImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
                         ) : (
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-[9px] font-bold text-primary">{initials}</span>
+                            <span className="text-[10px] font-bold text-primary">{initials}</span>
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <p className="text-[12px] font-medium text-foreground-1 truncate">{customerName}</p>
-                          <p className="text-[10px] text-foreground-3 truncate">{appt.bookedItemName} &middot; {staffName}</p>
+                          <p className="text-sm font-medium text-foreground-1 truncate">{customerName}</p>
+                          <p className="text-xs text-foreground-3 truncate">{appt.bookedItemName} &middot; {staffName}</p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="text-[11px] text-foreground-2 tabular-nums">{formatTime(appt.scheduledAt)}</p>
-                          <p className="text-[10px] font-medium text-success tabular-nums">{formatCurrency(appt.price)}</p>
+                          <p className="text-xs text-foreground-2 tabular-nums">{formatTime(appt.scheduledAt)}</p>
+                          <p className="text-xs font-medium text-success tabular-nums">{formatCurrency(appt.price)}</p>
                         </div>
                       </div>
                     </div>
@@ -355,7 +357,7 @@ export function AppointmentBreakdownWidget({
             onClick={() => navigate('/calendar')}
             className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer mt-auto self-end"
           >
-            <span className="text-[11px] font-medium">{t('upcomingAppointments.seeAppointments')}</span>
+            <span className="text-xs font-medium">{t('upcomingAppointments.seeAppointments')}</span>
             <ArrowUpRight className="h-3 w-3" />
           </button>
         </div>

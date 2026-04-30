@@ -64,7 +64,7 @@ export function ReviewsWidget({
           onClick={() => navigate('/marketplace?tab=reviews')}
           className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
         >
-          <span className="text-[11px] font-medium">{t('reviews.seeAll')}</span>
+          <span className="text-xs font-medium">{t('reviews.seeAll')}</span>
           <ArrowUpRight className="h-3 w-3" />
         </button>
       </div>
@@ -185,8 +185,8 @@ export function ReviewsWidget({
             )}
           </div>
           <div className="flex justify-between">
-            <span className="text-[10px] text-foreground-3">{t('reviews.worst')}</span>
-            <span className="text-[10px] text-foreground-3">{t('reviews.amazing')}</span>
+            <span className="text-xs text-foreground-3">{t('reviews.worst')}</span>
+            <span className="text-xs text-foreground-3">{t('reviews.amazing')}</span>
           </div>
         </div>
       </div>

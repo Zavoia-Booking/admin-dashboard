@@ -59,12 +59,12 @@ export function CapacityUtilizationWidget({
                 color={color}
               />
               <div className="flex flex-col items-center md:items-start min-w-0">
-                <span className="text-xs md:text-sm font-semibold text-foreground-1">{g.period}</span>
+                <span className="text-sm font-semibold text-foreground-1">{g.period}</span>
                 <div className="flex flex-col md:flex-row items-center gap-0 md:gap-2">
-                  <span className="text-[10px] md:text-xs" style={{ color }}>
+                  <span className="text-xs" style={{ color }}>
                     {label}
                   </span>
-                  <span className="text-[10px] md:text-xs text-foreground-3">
+                  <span className="text-xs text-foreground-3">
                     {g.available}% {t('capacityUtilization.available')}
                   </span>
                 </div>
@@ -84,7 +84,7 @@ export function CapacityUtilizationWidget({
         ].map(l => (
           <div key={l.labelKey} className="flex items-center gap-1">
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: l.color }} />
-            <span className="text-[11px] text-foreground-3">{t(l.labelKey)}</span>
+            <span className="text-xs text-foreground-3">{t(l.labelKey)}</span>
           </div>
         ))}
       </div>
