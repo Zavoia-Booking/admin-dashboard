@@ -226,7 +226,9 @@
         "totalAfterTrial": "Total după probă",
         "totalLtd": "Total luna aceasta",
         "seatsControlSub": "{{used}} membru activ · {{currency}}{{unit}}/loc/lună",
-        "seatsControlSub_other": "{{used}} membri activi · {{currency}}{{unit}}/loc/lună"
+        "seatsControlSub_other": "{{used}} membri activi · {{currency}}{{unit}}/loc/lună",
+        "addSeatNowLine": "Adaugă un loc acum: {{currency}}{{amount}} astăzi.",
+        "addSeatNowExplainer": "Calculat proporțional pentru {{daysRemaining}} din {{totalDays}} zile rămase — apoi {{currency}}{{monthlyAmount}}/loc/lună de la {{date}}."
       },
       "banners": {
         "trialEndsIn": "Proba se încheie în {{count}} zi",
@@ -270,6 +272,8 @@
         "download": "Descarcă factura",
         "thisYear": "anul acesta",
         "statusPaid": "Plătit",
+        "statusFailed": "Factură în așteptare",
+        "statusFailedHint": "Plata a fost primită, dar factura fiscală nu a putut fi generată încă. Echipa noastră a fost notificată — contactează suportul dacă ai nevoie urgent.",
         "empty": {
           "title": "Nicio factură încă",
           "body": "Odată ce ești taxat, facturile apar aici. Copiile PDF ajung și pe email."
@@ -331,6 +335,13 @@
       "addingSeatsContent_other": "Adaugi {{count}} locuri. Vei fi taxat {{amount}} {{currency}} acum.",
       "removingSeatsContent": "Elimini {{count}} loc. Locurile eliminate rămân active până la sfârșitul perioadei de facturare.",
       "removingSeatsContent_other": "Elimini {{count}} locuri. Locurile eliminate rămân active până la sfârșitul perioadei de facturare.",
+      "dueTodaySuffix": "de plată acum",
+      "proratedExplainer": "Calculat proporțional pentru cele {{daysRemaining}} din {{totalDays}} zile rămase din ciclul curent de facturare.",
+      "thenMonthlyLine": "Apoi {{amount}} {{currency}}/lună începând cu {{date}}.",
+      "howCalculated": "Cum se calculează?",
+      "tooltipMonthly": "Preț lunar: {{amount}} {{currency}} per loc",
+      "tooltipDaysRemaining": "Zile rămase: {{daysRemaining}} din {{totalDays}}",
+      "tooltipProratedCharge": "Sumă proporțională acum: {{amount}} {{currency}}",
       "addSeats": "Adaugă locuri",
       "removeSeats": "Elimină locuri",
       "cancel": "Anulează"

@@ -43,7 +43,7 @@ const moreNavItems: BottomNavItem[] = [
   { i18nKey: 'sidebar.locations', url: '/locations', icon: MapPin },
   { i18nKey: 'sidebar.customers', url: '/customers', icon: UserCircle },
   { i18nKey: 'sidebar.support', url: '/support', icon: MessageCircle },
-  { i18nKey: 'sidebar.settings', url: '/settings', icon: Settings2 },
+  { i18nKey: 'sidebar.account', url: '/account', icon: Settings2 },
 ];
 
 const USFlag = () => (

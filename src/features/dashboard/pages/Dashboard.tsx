@@ -13,10 +13,9 @@ import {
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { MapPin, Loader2 } from "lucide-react";
 import {
-  TodayOverviewWidget,
+  LocationCapacityWidget,
   NeedsAttentionWidget,
   AppointmentBreakdownWidget,
-  CapacityUtilizationWidget,
   ReviewsWidget,
 } from "../components";
 import {
@@ -24,12 +23,12 @@ import {
 } from "../actions";
 import { listLocationsAction } from "../../locations/actions";
 import { getAllLocationsSelector, getLocationLoadingSelector } from "../../locations/selectors";
+import { selectCurrentUser } from "../../auth/selectors";
 import type { RootState } from "../../../app/providers/store";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 
 const WIDGET_CONFIG: Record<string, { label: string; span: number }> = {
-  todayOverview: { label: "Today Overview", span: 2 },
-  capacityUtilization: { label: "Capacity Utilization", span: 1 },
+  locationCapacity: { label: "Location & Capacity", span: 3 },
   appointmentBreakdown: { label: "Appointment Breakdown", span: 3 },
   reviews: { label: "Reviews", span: 1 },
   needsAttention: { label: "Needs Attention", span: 2 },
@@ -39,74 +38,92 @@ const WIDGET_CONFIG: Record<string, { label: string; span: number }> = {
 function DashboardSkeleton() {
   return (
     <div className="space-y-4">
-      {/* Row 1: Today Overview (2col) + Capacity Utilization (1col) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Today Overview */}
-        <div className="lg:col-span-2 bg-surface border border-border rounded-2xl p-5">
-          {/* Header: title + status badge + action */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-3.5 w-28" />
-              <Skeleton className="h-5 w-16 rounded-full" />
+      {/* Row 1: Merged Location & Capacity widget (full width) */}
+      <div className="bg-surface border border-border rounded-2xl p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-9 w-9 rounded-[10px]" />
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-2.5 w-28" />
             </div>
-            <Skeleton className="h-5 w-24 rounded" />
           </div>
-          {/* Metrics grid: 2 columns */}
-          <div className="grid grid-cols-2 gap-5 mb-4">
-            {[0, 1].map((col) => (
-              <div key={col} className="space-y-2.5">
-                <div className="flex items-center gap-1.5">
-                  <Skeleton className="h-3.5 w-3.5 rounded" />
-                  <Skeleton className="h-2.5 w-20" />
-                </div>
-                {[0, 1, 2].map((row) => (
-                  <div key={row} className="flex items-center gap-2">
-                    <Skeleton className="h-2.5 w-[88px] shrink-0" />
-                    <Skeleton className="h-2 flex-1 rounded-full" />
-                    <Skeleton className="h-2.5 w-6 shrink-0" />
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-          {/* Staff table */}
-          <Skeleton className="h-px w-full mb-3" />
-          <div className="space-y-2.5">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-3">
-                <Skeleton className="h-7 w-7 rounded-full shrink-0" />
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-3 w-32 hidden md:block" />
-                <Skeleton className="h-3 w-20 hidden md:block" />
-              </div>
-            ))}
-          </div>
+          <Skeleton className="h-5 w-24 rounded" />
         </div>
-
-        {/* Capacity Utilization */}
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <Skeleton className="h-3 w-36 mb-5" />
-          <div className="flex flex-row md:flex-col gap-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex items-center gap-3 flex-1">
-                <Skeleton className="h-14 w-14 rounded-full shrink-0" />
-                <div className="space-y-1.5">
-                  <Skeleton className="h-2.5 w-12" />
-                  <Skeleton className="h-3 w-16" />
-                  <Skeleton className="h-2 w-20" />
+        {/* Today headline strip */}
+        <div className="grid grid-cols-3 gap-0 rounded-xl border border-border overflow-hidden mb-5">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`p-3.5 space-y-2 ${i > 0 ? 'border-l border-border' : ''}`}>
+              <Skeleton className="h-2 w-12" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-2 w-16" />
+            </div>
+          ))}
+        </div>
+        {/* Metrics table — desktop */}
+        <div className="hidden md:block mb-5">
+          <div className="grid grid-cols-4 gap-4 pb-2 border-b border-border">
+            {[0, 1, 2, 3].map((i) => (
+              <Skeleton key={i} className="h-2.5 w-16" />
+            ))}
+          </div>
+          {[0, 1, 2].map((row) => (
+            <div key={row} className="grid grid-cols-4 gap-4 py-3 border-b border-border-subtle last:border-b-0">
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="h-3 w-8" />
+              <Skeleton className="h-3 w-16" />
+              <div className="space-y-1">
+                <Skeleton className="h-1.5 w-full rounded-full" />
+                <div className="flex justify-between">
+                  <Skeleton className="h-2 w-12" />
+                  <Skeleton className="h-2 w-12" />
                 </div>
               </div>
-            ))}
-          </div>
-          {/* Legend */}
-          <div className="flex flex-wrap gap-3 mt-5">
-            {[0, 1, 2, 3].map((i) => (
-              <div key={i} className="flex items-center gap-1">
-                <Skeleton className="h-1.5 w-1.5 rounded-full" />
-                <Skeleton className="h-2 w-10" />
+            </div>
+          ))}
+        </div>
+        {/* Metrics rows — mobile */}
+        <div className="md:hidden mb-5 space-y-3">
+          <Skeleton className="h-2 w-32" />
+          {[0, 1].map((i) => (
+            <div key={i} className="space-y-2 py-2">
+              <div className="flex justify-between">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-3 w-32" />
               </div>
-            ))}
+              <Skeleton className="h-1.5 w-full rounded-full" />
+            </div>
+          ))}
+        </div>
+        {/* Staff list */}
+        <div className="space-y-2 mb-5">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-2.5 w-20" />
+            <Skeleton className="h-4 w-20 rounded" />
           </div>
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="flex items-center gap-3 py-2">
+              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+              <div className="flex-1 space-y-1">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-2.5 w-48 hidden md:block" />
+              </div>
+              <Skeleton className="h-4 w-4" />
+            </div>
+          ))}
+        </div>
+        {/* Legend */}
+        <div className="flex flex-wrap gap-4 pt-3 border-t border-border-subtle">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <Skeleton className="h-1.5 w-1.5 rounded-full" />
+              <Skeleton className="h-2 w-12" />
+            </div>
+          ))}
         </div>
       </div>
 
@@ -258,7 +275,8 @@ function renderWidget(
   widgetId: string,
   data: any,
   locationId: number,
-  onRefresh: () => void
+  onRefresh: () => void,
+  businessCurrency: string
 ) {
   const {
     locationWidget,
@@ -272,8 +290,8 @@ function renderWidget(
     appointmentWidget.today.pending + appointmentWidget.week.pending;
 
   const widgets: Record<string, React.ReactNode> = {
-    todayOverview: (
-      <TodayOverviewWidget
+    locationCapacity: (
+      <LocationCapacityWidget
         locationId={locationId}
         locationName={locationWidget.name}
         isCurrentlyOpen={locationWidget.isCurrentlyOpen}
@@ -284,13 +302,8 @@ function renderWidget(
         potentialRevenueToday={locationWidget.potentialRevenueToday}
         potentialRevenueThisWeek={locationWidget.potentialRevenueThisWeek}
         potentialRevenueThisMonth={locationWidget.potentialRevenueThisMonth}
-      />
-    ),
-    capacityUtilization: (
-      <CapacityUtilizationWidget
-        today={capacityUtilizationWidget.today}
-        week={capacityUtilizationWidget.week}
-        month={capacityUtilizationWidget.month}
+        capacity={capacityUtilizationWidget}
+        businessCurrency={businessCurrency}
       />
     ),
     appointmentBreakdown: (
@@ -299,6 +312,7 @@ function renderWidget(
         weeklyDistribution={appointmentWidget.week}
         monthlyDistribution={appointmentWidget.month}
         upcomingAppointments={appointmentWidget.upcoming}
+        businessCurrency={businessCurrency}
       />
     ),
     reviews: (
@@ -332,8 +346,10 @@ export default function DashboardPage() {
 
   const locations = useSelector(getAllLocationsSelector);
   const isLoadingLocations = useSelector(getLocationLoadingSelector);
+  const currentUser = useSelector(selectCurrentUser);
+  const businessCurrency = currentUser?.business?.businessCurrency || 'eur';
 
-  const defaultWidgetOrder = ["todayOverview", "capacityUtilization", "appointmentBreakdown", "reviews", "needsAttention"];
+  const defaultWidgetOrder = ["locationCapacity", "appointmentBreakdown", "reviews", "needsAttention"];
 
   useEffect(() => {
     dispatch(listLocationsAction.request());
@@ -413,7 +429,7 @@ export default function DashboardPage() {
                     hover:-translate-y-0.5 hover:shadow-md hover:border-border-strong
                     ${colSpanUtil}
                   `}>
-                    {renderWidget(widgetId, data, parseInt(locationId!, 10), handleRefreshDashboard)}
+                    {renderWidget(widgetId, data, parseInt(locationId!, 10), handleRefreshDashboard, businessCurrency)}
                   </div>
                 );
               })}

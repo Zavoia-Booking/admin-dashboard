@@ -5,12 +5,14 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 import { Clock, ArrowUpRight, User } from 'lucide-react';
 
 import type { AppointmentDistribution, UpcomingAppointment } from '../actions';
+import { formatPriceMinor } from '../../../shared/utils/currency';
 
 interface AppointmentBreakdownWidgetProps {
   todayDistribution: AppointmentDistribution;
   weeklyDistribution: AppointmentDistribution;
   monthlyDistribution: AppointmentDistribution;
   upcomingAppointments: UpcomingAppointment[];
+  businessCurrency: string;
 }
 
 type TabKey = 'today' | 'week' | 'month';
@@ -102,6 +104,7 @@ export function AppointmentBreakdownWidget({
   weeklyDistribution,
   monthlyDistribution,
   upcomingAppointments,
+  businessCurrency,
 }: AppointmentBreakdownWidgetProps) {
   const { t, i18n } = useTranslation('dashboard');
   const navigate = useNavigate();
@@ -154,13 +157,7 @@ export function AppointmentBreakdownWidget({
       minute: '2-digit',
     });
 
-  const formatCurrency = (cents: number) =>
-    new Intl.NumberFormat(locale === 'ro' ? 'ro-RO' : 'en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(cents / 100);
+  const formatCurrency = (cents: number) => formatPriceMinor(cents, businessCurrency);
 
   return (
     <div className="flex flex-col gap-4 h-full">

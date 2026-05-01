@@ -11,7 +11,6 @@ import {
   Save,
   Loader2,
 } from 'lucide-react';
-import BillingAndSubscription from '../components/BillingAndSubscription';
 import BillingAndSubscriptionV2 from '../components/BillingAndSubscriptionV2';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/components/ui/responsive-tabs';
 import { LimitedAccessBanner } from '../../../shared/components/common/subscription/LimitedAccessBanner';
@@ -80,10 +79,7 @@ const SettingsPage = () => {
         case 'profile':
           return <BusinessProfile onDirtyChange={setIsProfileDirty} />;
         case 'billing':
-          // Quick rollback during dev: localStorage.setItem('billing_v2', '0')
-          return typeof window !== 'undefined' && window.localStorage.getItem('billing_v2') === '0'
-            ? <BillingAndSubscription />
-            : <BillingAndSubscriptionV2 />;
+          return <BillingAndSubscriptionV2 />;
         default:
           return null;
       }

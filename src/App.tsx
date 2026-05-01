@@ -7,6 +7,7 @@ import AccountLinkingRequiredModal from './features/auth/components/AccountLinki
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
 import AccountStatusPromptDialog from './features/auth/components/AccountStatusPromptDialog'
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
+import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
 import { Spinner } from './shared/components/ui/spinner'
 
 // Lazy-loaded pages (each route becomes a separate chunk)
@@ -104,6 +105,7 @@ function App() {
       <AccountLinkingRequiredModal />
       <AccountStatusPromptDialog />
       <SeatOverflowGate />
+      <PushListenersBootstrap />
     </BrowserRouter>
   )
 }

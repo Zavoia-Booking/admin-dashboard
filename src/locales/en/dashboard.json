@@ -27,7 +27,7 @@
     "seeMore": "See more"
   },
   "capacityUtilization": {
-    "title": "Capacity Utilization",
+    "title": "Capacity",
     "today": "Today",
     "thisWeek": "This Week",
     "thisMonth": "This Month",
@@ -35,7 +35,18 @@
     "moderate": "Moderate",
     "healthy": "Healthy",
     "high": "High",
-    "available": "available"
+    "available": "available",
+    "booked": "booked"
+  },
+  "locationCapacity": {
+    "subtitle": "Location · ID {{id}}",
+    "potential": "Potential",
+    "revenueToday": "revenue today",
+    "period": "Period",
+    "appts": "Appts",
+    "capacityBooked": "Capacity booked",
+    "weekAndMonth": "This week & month",
+    "apptsShort": "appts"
   },
   "appointmentBreakdown": {
     "title": "Appointment Breakdown",

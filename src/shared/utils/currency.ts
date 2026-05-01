@@ -195,10 +195,26 @@ export function priceFromStorage(amountMinor: number, currency: string = 'usd'):
   if (amountMinor === 0 || amountMinor === null || amountMinor === undefined) {
     return 0;
   }
-  
+
   const minorUnits = getCurrencyMinorUnits(currency);
   const divisor = Math.pow(10, minorUnits);
-  
+
   return amountMinor / divisor;
+}
+
+/**
+ * Formats an integer-minor-units amount as a display string with the
+ * currency's friendly symbol (e.g. 'lei' for RON, '€' for EUR).
+ *
+ * Output shape: `<value> <symbol>` — e.g. `5.00 lei`, `5.00 €`, `100 Ft`.
+ *
+ * @example
+ * formatPriceMinor(500, 'RON')  // '5.00 lei'
+ * formatPriceMinor(500, 'EUR')  // '5.00 €'
+ */
+export function formatPriceMinor(amountMinor: number, currency: string): string {
+  const value = priceFromStorage(amountMinor, currency);
+  const minorUnits = getCurrencyMinorUnits(currency);
+  return `${value.toFixed(minorUnits)} ${getCurrencySymbol(currency)}`;
 }
 

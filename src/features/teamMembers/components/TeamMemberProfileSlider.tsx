@@ -162,7 +162,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   {/* Avatar with verification badge */}
                   <div className="relative">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src="" />
+                      <AvatarImage src={displayTeamMember.profileImage || undefined} />
                       <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
                         {displayTeamMember.firstName?.[0] || '?'}{displayTeamMember.lastName?.[0] || '?'}
                       </AvatarFallback>

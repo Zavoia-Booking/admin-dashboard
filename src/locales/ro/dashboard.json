@@ -27,7 +27,7 @@
     "seeMore": "Vezi mai mult"
   },
   "capacityUtilization": {
-    "title": "Utilizare capacitate",
+    "title": "Capacitate",
     "today": "Azi",
     "thisWeek": "Săptămâna aceasta",
     "thisMonth": "Luna aceasta",
@@ -35,7 +35,18 @@
     "moderate": "Moderată",
     "healthy": "Sănătoasă",
     "high": "Ridicată",
-    "available": "disponibil"
+    "available": "disponibil",
+    "booked": "rezervat"
+  },
+  "locationCapacity": {
+    "subtitle": "Locație · ID {{id}}",
+    "potential": "Potențial",
+    "revenueToday": "venit azi",
+    "period": "Perioadă",
+    "appts": "Progr.",
+    "capacityBooked": "Capacitate rezervată",
+    "weekAndMonth": "Săptămâna & luna",
+    "apptsShort": "progr."
   },
   "appointmentBreakdown": {
     "title": "Detaliu programări",

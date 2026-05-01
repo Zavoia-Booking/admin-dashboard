@@ -28,6 +28,16 @@ export type SubscriptionSummary = {
     nextPeriodTeamMembersCost: number | null;
     nextPeriodTotalMonthlyCost: number | null;
   };
+  // Live Stripe preview: cost of adding ONE seat today.
+  // Null for LTD / trial / no-subscription / pending-payment / preview-failure.
+  // Multiply proratedPricePerSeat × N for an approximate "adding N seats today" total.
+  proratedSeatInfo?: {
+    proratedPricePerSeat: number;
+    fullMonthlyPricePerSeat: number;
+    daysRemaining: number;
+    totalDaysInPeriod: number;
+    nextChargeDate: string | null;
+  } | null;
   isLtd?: boolean;        // True if this is a Life Time Deal account
   ltdSince?: string;      // When LTD was granted
   pendingPayment?: {
@@ -162,9 +172,12 @@ export type SmsCheckoutResponse = {
 
 export type BusinessInvoiceType = 'subscription' | 'sms_purchase' | 'ltd_seats';
 
+export type BusinessInvoiceStatus = 'success' | 'failed';
+
 export type BusinessInvoice = {
   id: number;
   invoiceType: BusinessInvoiceType;
+  status: BusinessInvoiceStatus;
   amountMinor: number;
   currency: string;
   oblioLink: string | null;

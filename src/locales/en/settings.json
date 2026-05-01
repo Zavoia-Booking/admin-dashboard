@@ -226,7 +226,9 @@
         "totalAfterTrial": "Total after trial",
         "totalLtd": "Total this month",
         "seatsControlSub": "{{used}} active member · {{currency}}{{unit}}/seat/mo",
-        "seatsControlSub_other": "{{used}} active members · {{currency}}{{unit}}/seat/mo"
+        "seatsControlSub_other": "{{used}} active members · {{currency}}{{unit}}/seat/mo",
+        "addSeatNowLine": "Add a seat now: {{currency}}{{amount}} today.",
+        "addSeatNowExplainer": "Prorated for {{daysRemaining}} of {{totalDays}} days remaining — then {{currency}}{{monthlyAmount}}/seat/month from {{date}}."
       },
       "banners": {
         "trialEndsIn": "Trial ends in {{count}} day",
@@ -270,6 +272,8 @@
         "download": "Download invoice",
         "thisYear": "this year",
         "statusPaid": "Paid",
+        "statusFailed": "Invoice pending",
+        "statusFailedHint": "Payment received, but the fiscal invoice could not be generated yet. Our team has been notified — contact support if you need it urgently.",
         "empty": {
           "title": "No invoices yet",
           "body": "Once you're charged, invoices appear here. PDF copies also go to your email."
@@ -331,6 +335,13 @@
       "addingSeatsContent_other": "You are adding {{count}} seats. You will be charged {{amount}} {{currency}} now.",
       "removingSeatsContent": "You are removing {{count}} seat. Removed seats remain active until the end of the billing period.",
       "removingSeatsContent_other": "You are removing {{count}} seats. Removed seats remain active until the end of the billing period.",
+      "dueTodaySuffix": "due today",
+      "proratedExplainer": "Prorated for the {{daysRemaining}} of {{totalDays}} days remaining in this billing cycle.",
+      "thenMonthlyLine": "Then {{amount}} {{currency}}/month from {{date}}.",
+      "howCalculated": "How is this calculated?",
+      "tooltipMonthly": "Monthly price: {{amount}} {{currency}} per seat",
+      "tooltipDaysRemaining": "Days remaining: {{daysRemaining}} of {{totalDays}}",
+      "tooltipProratedCharge": "Prorated charge today: {{amount}} {{currency}}",
       "addSeats": "Add seats",
       "removeSeats": "Remove seats",
       "cancel": "Cancel"

@@ -47,6 +47,11 @@ import {
   createLtdSeatsCheckoutSession,
   abortPendingPayment,
 } from '../api';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '../../../shared/components/ui/tooltip';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import {
   selectSubscriptionSummary,
@@ -77,6 +82,7 @@ import type {
   BillingEntityType,
   UpdateBillingDetailsDTO,
 } from '../../business/types';
+import { formatPriceMinor, getCurrencySymbol } from '../../../shared/utils/currency';
 import './BillingAndSubscriptionV2.css';
 
 type ViewState =
@@ -100,12 +106,6 @@ const formatDate = (input: string | null | undefined): string => {
     day: 'numeric',
   });
 };
-
-const formatPriceMinor = (minorUnits: number, currency: string): string =>
-  new Intl.NumberFormat('en-EU', {
-    style: 'currency',
-    currency: (currency || 'EUR').toUpperCase(),
-  }).format(minorUnits / 100);
 
 const deriveViewState = (
   user: AuthUser | null,
@@ -275,8 +275,7 @@ const BillingAndSubscriptionV2Inner = () => {
     currentUser?.subscription?.status === 'active' &&
     !!currentUser?.subscription?.cancelAtPeriodEnd;
 
-  const currencySymbol =
-    subscriptionSummary?.currency === 'RON' ? 'lei' : '€';
+  const currencySymbol = getCurrencySymbol(subscriptionSummary?.currency || 'EUR');
 
   const viewState = deriveViewState(
     currentUser ?? null,
@@ -460,17 +459,86 @@ const BillingAndSubscriptionV2Inner = () => {
 
     if (isAdding && !ensureConfigured()) return;
 
+    // For seat increases, read the prorated preview that subscription-summary
+    // already fetched from Stripe. Decreases schedule for next period (no charge today).
+    const proratedInfo = subscriptionSummary?.proratedSeatInfo ?? null;
+    let addingContent: React.ReactNode = t('billing.confirm.addingSeatsContent', {
+      count: delta,
+      amount: additionalCost.toFixed(2),
+      currency: currencySymbol,
+    });
+
+    if (isAdding && proratedInfo) {
+      const proratedTotal = delta * proratedInfo.proratedPricePerSeat;
+      const recurringCost = delta * proratedInfo.fullMonthlyPricePerSeat;
+      addingContent = (
+        <div className="flex flex-col gap-3">
+          <div>
+            <div className="text-2xl font-semibold text-foreground-1">
+              {currencySymbol}
+              {proratedTotal.toFixed(2)}
+              <span className="ml-1.5 text-sm font-normal text-foreground-2">
+                {t('billing.confirm.dueTodaySuffix')}
+              </span>
+            </div>
+            <div className="mt-1 text-xs text-foreground-2">
+              {t('billing.confirm.proratedExplainer', {
+                daysRemaining: proratedInfo.daysRemaining,
+                totalDays: proratedInfo.totalDaysInPeriod,
+              })}
+            </div>
+          </div>
+          <div className="text-sm text-foreground-2">
+            {t('billing.confirm.thenMonthlyLine', {
+              amount: recurringCost.toFixed(2),
+              currency: currencySymbol,
+              date: formatDate(proratedInfo.nextChargeDate),
+            })}
+          </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex w-fit items-center gap-1.5 text-xs text-foreground-3 hover:text-foreground-1"
+              >
+                <Info className="h-3.5 w-3.5" />
+                <span>{t('billing.confirm.howCalculated')}</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <div className="flex flex-col gap-1">
+                <div>
+                  {t('billing.confirm.tooltipMonthly', {
+                    amount: proratedInfo.fullMonthlyPricePerSeat.toFixed(2),
+                    currency: currencySymbol,
+                  })}
+                </div>
+                <div>
+                  {t('billing.confirm.tooltipDaysRemaining', {
+                    daysRemaining: proratedInfo.daysRemaining,
+                    totalDays: proratedInfo.totalDaysInPeriod,
+                  })}
+                </div>
+                <div>
+                  {t('billing.confirm.tooltipProratedCharge', {
+                    amount: proratedTotal.toFixed(2),
+                    currency: currencySymbol,
+                  })}
+                </div>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      );
+    }
+
     setIsConfirming(true);
     const confirmed = await confirm({
       title: isAdding
         ? t('billing.confirm.confirmSeatIncrease')
         : t('billing.confirm.confirmSeatDecrease'),
       content: isAdding
-        ? t('billing.confirm.addingSeatsContent', {
-            count: delta,
-            amount: additionalCost.toFixed(2),
-            currency: currencySymbol,
-          })
+        ? addingContent
         : t('billing.confirm.removingSeatsContent', { count: Math.abs(delta) }),
       confirmationText: isAdding
         ? t('billing.confirm.addSeats')
@@ -1063,6 +1131,63 @@ const BillingAndSubscriptionV2Inner = () => {
                     </div>
                   )}
 
+                  {viewState !== 'ltd' && subscriptionSummary?.proratedSeatInfo && (
+                    <div className="mt-1 mb-2 flex items-start gap-2 rounded-md bg-surface-hover px-3 py-2 text-xs text-foreground-2">
+                      <Info className="mt-0.5 h-3.5 w-3.5 flex-none text-foreground-3" />
+                      <div className="flex-1">
+                        <div>
+                          <span className="font-medium text-foreground-1">
+                            {t('billing.v2.subscription.addSeatNowLine', {
+                              amount: subscriptionSummary.proratedSeatInfo.proratedPricePerSeat.toFixed(2),
+                              currency: currencySymbol,
+                            })}
+                          </span>{' '}
+                          <span>
+                            {t('billing.v2.subscription.addSeatNowExplainer', {
+                              daysRemaining: subscriptionSummary.proratedSeatInfo.daysRemaining,
+                              totalDays: subscriptionSummary.proratedSeatInfo.totalDaysInPeriod,
+                              monthlyAmount: subscriptionSummary.proratedSeatInfo.fullMonthlyPricePerSeat.toFixed(2),
+                              currency: currencySymbol,
+                              date: formatDate(subscriptionSummary.proratedSeatInfo.nextChargeDate),
+                            })}
+                          </span>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-foreground-3 hover:text-foreground-1"
+                            >
+                              {t('billing.confirm.howCalculated')}
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            <div className="flex flex-col gap-1">
+                              <div>
+                                {t('billing.confirm.tooltipMonthly', {
+                                  amount: subscriptionSummary.proratedSeatInfo.fullMonthlyPricePerSeat.toFixed(2),
+                                  currency: currencySymbol,
+                                })}
+                              </div>
+                              <div>
+                                {t('billing.confirm.tooltipDaysRemaining', {
+                                  daysRemaining: subscriptionSummary.proratedSeatInfo.daysRemaining,
+                                  totalDays: subscriptionSummary.proratedSeatInfo.totalDaysInPeriod,
+                                })}
+                              </div>
+                              <div>
+                                {t('billing.confirm.tooltipProratedCharge', {
+                                  amount: subscriptionSummary.proratedSeatInfo.proratedPricePerSeat.toFixed(2),
+                                  currency: currencySymbol,
+                                })}
+                              </div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  )}
+
                   {viewState === 'ltd' && (
                     <div className="bv2-line-row">
                       <div className="bv2-lbl">
@@ -1543,17 +1668,27 @@ const HistoryCard = ({
                     <div className="bv2-l1">{labelFor(inv)}</div>
                     <div className="bv2-l2">
                       <span>{formatDate(inv.createdAt)}</span>
-                      <span className="bv2-pill bv2-pill-good bv2-pill-paid">
-                        <span className="bv2-dot" />
-                        {t('billing.v2.history.statusPaid')}
-                      </span>
+                      {inv.status === 'failed' ? (
+                        <span
+                          className="bv2-pill bv2-pill-warn bv2-pill-paid"
+                          title={t('billing.v2.history.statusFailedHint')}
+                        >
+                          <span className="bv2-dot" />
+                          {t('billing.v2.history.statusFailed')}
+                        </span>
+                      ) : (
+                        <span className="bv2-pill bv2-pill-good bv2-pill-paid">
+                          <span className="bv2-dot" />
+                          {t('billing.v2.history.statusPaid')}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div className="bv2-hist-amt">
                     {formatPriceMinor(inv.amountMinor, inv.currency || currency)}
                   </div>
                   <div className="flex items-center gap-1">
-                    {inv.oblioLink ? (
+                    {inv.oblioLink && (
                       <a
                         href={inv.oblioLink}
                         target="_blank"
@@ -1563,8 +1698,6 @@ const HistoryCard = ({
                       >
                         <Download className="h-3 w-3" />
                       </a>
-                    ) : (
-                      <ChevronRight className="h-3 w-3 text-foreground-3" />
                     )}
                   </div>
                 </div>

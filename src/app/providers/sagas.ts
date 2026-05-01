@@ -18,6 +18,7 @@ import { dashboardSaga } from "../../features/dashboard/saga";
 import { notificationsSaga } from "../../features/notifications/saga";
 import { reviewsSaga } from "../../features/reviews/saga";
 import { supportSaga } from "../../features/support/saga";
+import { pushNotificationsSaga } from "../../features/push-notifications/saga";
 
 export function* rootSaga() {
     yield all([
@@ -39,5 +40,6 @@ export function* rootSaga() {
         notificationsSaga(),
         reviewsSaga(),
         supportSaga(),
+        pushNotificationsSaga(),
     ]);
 }
