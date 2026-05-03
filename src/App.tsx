@@ -7,6 +7,7 @@ import AccountLinkingRequiredModal from './features/auth/components/AccountLinki
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
 import AccountStatusPromptDialog from './features/auth/components/AccountStatusPromptDialog'
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
+import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
 import { Spinner } from './shared/components/ui/spinner'
 
@@ -105,6 +106,7 @@ function App() {
       <AccountLinkingRequiredModal />
       <AccountStatusPromptDialog />
       <SeatOverflowGate />
+      <SubscriptionBlocker />
       <PushListenersBootstrap />
     </BrowserRouter>
   )

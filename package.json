@@ -14,7 +14,11 @@
     "android:sync": "bash scripts/sync-to-windows.sh",
     "android:sync:full": "bash scripts/sync-to-windows.sh --full",
     "ios": "tsc -b && vite build --mode mobile && cross-env CAPACITOR_USE_HTTP=true npx cap sync ios",
-    "ios:prod": "tsc -b && vite build --mode mobile-prod && npx cap sync ios"
+    "ios:prod": "tsc -b && vite build --mode mobile-prod && npx cap sync ios",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
     "@capacitor-community/safe-area": "^8.0.1",
@@ -80,6 +84,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.59.1",
     "@types/mapbox-gl": "^3.5.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
