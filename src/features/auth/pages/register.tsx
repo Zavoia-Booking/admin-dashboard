@@ -6,7 +6,6 @@ import { RegisterForm } from "../components/register-form"
 import { MobileRegisterEmailForm } from "../components/MobileRegisterEmailForm"
 import { usePlatform } from "../../../shared/hooks/usePlatform"
 import { validateMobileRegisterTokenApi } from "../api"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../shared/components/ui/card"
 import { Button } from "../../../shared/components/ui/button"
 import { Spinner } from "../../../shared/components/ui/spinner"
 
@@ -16,6 +15,14 @@ type TokenState =
   | { status: 'valid'; email: string; token: string }
   | { status: 'invalid' }
 
+/**
+ * Renders the form-side content of the /register route. The persistent
+ * shell (AuthShell + AuthCard + AuthHero + toggle + heading) is provided
+ * by AuthLayout, so this component only emits what should appear in the
+ * form column — either the registration form, a loading spinner while a
+ * welcome token is validated, an inline error if the token is invalid,
+ * or the native mobile email-gate form.
+ */
 export default function RegisterPage() {
   const { t } = useTranslation('auth')
   const { isNative } = usePlatform()
@@ -47,46 +54,36 @@ export default function RegisterPage() {
     }
   }, [welcomeToken, isNative])
 
-  let content: React.ReactNode
   if (isNative) {
-    content = <MobileRegisterEmailForm />
-  } else if (tokenState.status === 'checking') {
-    content = (
+    return <MobileRegisterEmailForm />
+  }
+  if (tokenState.status === 'checking') {
+    return (
       <div className="flex items-center justify-center py-16">
         <Spinner size="lg" color="info" />
       </div>
     )
-  } else if (tokenState.status === 'invalid') {
-    content = (
-      <Card className="w-full max-w-lg mx-auto">
-        <CardHeader className="space-y-2 px-6 py-6 md:px-8 md:py-8 items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
-            <AlertCircle className="h-6 w-6 text-destructive" />
-          </div>
-          <CardTitle className="text-xl md:text-2xl text-center">{t('teamInvitation.errorTitle')}</CardTitle>
-          <CardDescription className="text-center text-sm">
-            {t('teamInvitation.errorInvalidToken')}
-          </CardDescription>
-        </CardHeader>
-        <CardContent />
-        <CardFooter className="flex flex-col gap-3 px-6 md:px-8 pb-6 md:pb-8">
-          <Button type="button" rounded="full" className="w-full h-10 md:h-12" onClick={() => navigate('/register', { replace: true })}>
-            {t('register.signUp')}
-          </Button>
-        </CardFooter>
-      </Card>
-    )
-  } else if (tokenState.status === 'valid') {
-    content = <RegisterForm initialEmail={tokenState.email} welcomeToken={tokenState.token} lockEmail />
-  } else {
-    content = <RegisterForm />
   }
-
-  return (
-    <div className="bg-muted flex min-h-svh flex-col items-center justify-center p-4 md:p-10">
-      <div className="w-full max-w-sm md:max-w-2xl lg:max-w-3xl xl:max-w-4xl">
-        {content}
+  if (tokenState.status === 'invalid') {
+    return (
+      <div className="flex flex-col items-center text-center gap-4 py-2">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10">
+          <AlertCircle className="h-6 w-6 text-destructive" />
+        </div>
+        <p className="text-sm text-foreground-2">{t('teamInvitation.errorInvalidToken')}</p>
+        <Button
+          type="button"
+          rounded="full"
+          className="w-full h-10 md:h-12"
+          onClick={() => navigate('/register', { replace: true })}
+        >
+          {t('register.signUp')}
+        </Button>
       </div>
-    </div>
-  )
+    )
+  }
+  if (tokenState.status === 'valid') {
+    return <RegisterForm initialEmail={tokenState.email} welcomeToken={tokenState.token} lockEmail />
+  }
+  return <RegisterForm />
 }

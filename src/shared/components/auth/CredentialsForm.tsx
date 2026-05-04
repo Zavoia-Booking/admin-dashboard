@@ -146,7 +146,7 @@ function CredentialsFormBase({
             />
             <button
               type="button"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
               onClick={() => setShowPassword(!showPassword)}
               tabIndex={-1}
               aria-label={showPassword ? t('credentials.hidePassword') : t('credentials.showPassword')}
