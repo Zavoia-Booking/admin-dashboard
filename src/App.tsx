@@ -40,9 +40,6 @@ const LegalPage = lazy(() => import('./features/legal/pages/legal-page'))
 // Notifications
 const NotificationsPage = lazy(() => import('./features/notifications/pages/notifications'))
 
-// Dev preview pages
-const SplashPreviewPage = lazy(() => import('./shared/components/splash/SplashPreviewPage'))
-
 // Team Member Only Pages
 const MyAssignmentsPage = lazy(() => import('./features/team-member-pages/myAssignments/pages/my-assignments'))
 const MyProfilePage = lazy(() => import('./features/team-member-pages/myProfile/pages/my-profile'))
@@ -105,9 +102,6 @@ function App() {
           <Route path="/terms" element={<LegalPage />} />
           <Route path="/cookies" element={<LegalPage />} />
           <Route path="/privacy" element={<LegalPage />} />
-
-          {/* Dev: splash animation preview with replay button */}
-          <Route path="/splash-preview" element={<SplashPreviewPage />} />
 
           {/* Info Pages */}
           <Route path="/info" element={<InfoPageComponent />} />

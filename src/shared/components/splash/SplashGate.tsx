@@ -18,23 +18,9 @@ const SAFETY_TIMEOUT_MS = 6000
  * into the screen without being clipped at the canvas edges. */
 const MARK_DISPLAY_PX = 380
 
-export type { SplashPhase }
-
-interface SplashGateProps {
-  /** Skip the sessionStorage check, the preview-route bail-out, and the
-   * sessionStorage write at the end. For dev/preview tools that drive the
-   * splash imperatively. */
-  bypass?: boolean
-  /** Fires whenever the splash phase changes. Useful for HUDs in the
-   * preview page; not used in production. */
-  onPhaseChange?: (phase: SplashPhase) => void
-}
-
-export default function SplashGate({ bypass = false, onPhaseChange }: SplashGateProps = {}) {
+export default function SplashGate() {
   const [shouldRender] = useState(() => {
-    if (bypass) return true
     if (typeof window === 'undefined') return false
-    if (window.location.pathname.startsWith('/splash-preview')) return false
     // Native-only: skip on web/desktop. Capacitor's iOS/Android wrappers
     // are the intended audience for this animation; on desktop the app
     // boots directly into the dashboard.
@@ -54,12 +40,7 @@ export default function SplashGate({ bypass = false, onPhaseChange }: SplashGate
   )
 
   const authReady =
-    bypass ||
-    (authStatus !== AuthStatusEnum.IDLE && authStatus !== AuthStatusEnum.LOADING)
-
-  useEffect(() => {
-    onPhaseChange?.(phase)
-  }, [phase, onPhaseChange])
+    authStatus !== AuthStatusEnum.IDLE && authStatus !== AuthStatusEnum.LOADING
 
   // Preload the likely-first routes AND wait for them to finish.
   // Without the wait, on slow networks/devices the splash exits while
@@ -119,12 +100,12 @@ export default function SplashGate({ bypass = false, onPhaseChange }: SplashGate
     if (phase !== 'exiting') return
     const t = setTimeout(() => {
       setPhase('done')
-      if (!bypass) sessionStorage.setItem(STORAGE_KEY, '1')
+      sessionStorage.setItem(STORAGE_KEY, '1')
       document.body.classList.remove('splash-active')
       document.body.classList.remove('splash-exiting')
     }, EXIT_MS)
     return () => clearTimeout(t)
-  }, [phase, bypass])
+  }, [phase])
 
   // ── Canvas rendering ────────────────────────────────────────────────
   // The splash mark is drawn imperatively to a <canvas> via rAF instead
@@ -264,7 +245,7 @@ export default function SplashGate({ bypass = false, onPhaseChange }: SplashGate
   // Portal the overlay to <body> so it can never inherit opacity/transform
   // from an ancestor wrapper (e.g. the .splash-app-root rise rule, which
   // would otherwise zero out the overlay when SplashGate is rendered
-  // inside a route — see SplashPreviewPage).
+  // inside a route).
   return createPortal(
     <div className={overlayClass} aria-hidden="true">
       <canvas
