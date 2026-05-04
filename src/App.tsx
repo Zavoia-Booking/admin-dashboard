@@ -21,7 +21,8 @@ const ServicesPage = lazy(() => import('./features/services/pages/services'))
 const TeamMembersPage = lazy(() => import('./features/teamMembers/pages/team-members'))
 const InvitationSuccessPage = lazy(() => import('./features/teamMembers/pages/invitation-success'))
 const SettingsPage = lazy(() => import('./features/settings/pages/settings'))
-const LoginPage = lazy(() => import('./features/auth/pages/login'))
+const AuthLayout = lazy(() => import('./features/auth/components/AuthLayout').then(m => ({ default: m.AuthLayout })))
+const LoginForm = lazy(() => import('./features/auth/components/login-form').then(m => ({ default: m.LoginForm })))
 const RegisterPage = lazy(() => import('./features/auth/pages/register'))
 const ResetPasswordPage = lazy(() => import('./features/auth/pages/reset-password'))
 const GoogleOAuthCallback = lazy(() => import('./features/auth/components/GoogleOAuthCallback'))
@@ -68,9 +69,13 @@ function App() {
           <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
           <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
 
-          {/* Auth */}
-          <Route path="/login" element={<PublicRoute element={<LoginPage />} />} />
-          <Route path="/register" element={<PublicRoute element={<RegisterPage />} />} />
+          {/* Auth — shared AuthLayout keeps the hero panel mounted across
+              tab switches between /login and /register so its animation
+              isn't interrupted on navigation. */}
+          <Route element={<PublicRoute element={<AuthLayout />} />}>
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
           <Route path="/team-invitation" element={<TeamInvitationPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />

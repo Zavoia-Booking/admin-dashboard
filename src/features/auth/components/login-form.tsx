@@ -1,144 +1,107 @@
-import { useEffect, useState } from "react"
-import type { LegalPageType } from "../../legal/components/legal-content"
-import LegalContentDialog from "../../legal/components/LegalContentDialog"
-import { cn } from "../../../shared/lib/utils"
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../../../shared/components/ui/card"
-import { Link } from "react-router-dom";
-import { loginAction, forgotPasswordAction, clearAuthErrorAction } from "../actions";
-import { useDispatch, useSelector } from "react-redux";
-import { toast } from "sonner";
-import type { RootState } from "../../../app/providers/store";
+import { useEffect, useRef, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router-dom"
+import { loginAction, forgotPasswordAction, clearAuthErrorAction } from "../actions"
+import { useDispatch, useSelector } from "react-redux"
+import { toast } from "sonner"
+import type { RootState } from "../../../app/providers/store"
 import GoogleSignInButton from "../../../shared/components/auth/GoogleSignInButton"
 import CredentialsForm, { type CredentialsFormHandle } from "../../../shared/components/auth/CredentialsForm"
-import { useRef } from "react";
-import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline";
-import { Banner } from "../../../shared/components/ui/banner";
-import { useTranslation } from "react-i18next";
+import ForgotPasswordInline from "../../../shared/components/auth/ForgotPasswordInline"
+import { Banner } from "../../../shared/components/ui/banner"
+import { useTranslation } from "react-i18next"
 
-export function LoginForm({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
-  const { t } = useTranslation('auth');
-  const [isForgotMode, setIsForgotMode] = useState(false)
+/**
+ * Renders only the form-side content of the login screen — the surrounding
+ * shell (AuthShell + AuthCard + AuthHero + tab toggle + heading) lives in
+ * <AuthLayout> so that the hero panel and animation persist across tab
+ * switches between /login and /register.
+ */
+export function LoginForm() {
+  const { t } = useTranslation('auth')
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const isForgotMode = searchParams.get('forgot') === '1'
   const [forgotSubmitted, setForgotSubmitted] = useState(false)
   const [showNoAccountBanner, setShowNoAccountBanner] = useState(false)
-  const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)
-  const dispatch = useDispatch();
+  const dispatch = useDispatch()
   const { isLoading, error: authError } = useSelector((s: RootState) => s.auth)
-  const credRef = useRef<CredentialsFormHandle | null>(null);
+  const credRef = useRef<CredentialsFormHandle | null>(null)
+
+  // Reset the "email submitted" flag whenever we leave forgot mode so the
+  // form opens fresh next time the user enters it.
+  useEffect(() => {
+    if (!isForgotMode) setForgotSubmitted(false)
+  }, [isForgotMode])
 
   const handleCredentialsSubmit = ({ email, password }: { email: string; password: string }) => {
-    dispatch(loginAction.request({ email, password }));
+    dispatch(loginAction.request({ email, password }))
   }
 
   // Check for Google login error on mount
   useEffect(() => {
-    const noAccountFlag = sessionStorage.getItem('googleLoginNoAccount');
+    const noAccountFlag = sessionStorage.getItem('googleLoginNoAccount')
     if (noAccountFlag === 'true') {
-      setShowNoAccountBanner(true);
-      sessionStorage.removeItem('googleLoginNoAccount');
+      setShowNoAccountBanner(true)
+      sessionStorage.removeItem('googleLoginNoAccount')
     }
-  }, []);
-
-  // inline forgot password handled by ForgotPasswordInline component
+  }, [])
 
   useEffect(() => {
     if (authError) {
-      // Check if it's the special account_not_found error
       if (authError === 'account_not_found') {
-        setShowNoAccountBanner(true);
-        dispatch(clearAuthErrorAction());
-        return;
+        setShowNoAccountBanner(true)
+        dispatch(clearAuthErrorAction())
+        return
       }
-      
-      // Show error toast, then reset form and clear error
       toast.error(authError, {
         duration: 8000,
         position: 'top-center',
       })
-      // Reset credentials form state (clear fields, hide password)
-      try { credRef.current?.reset(); credRef.current?.hidePassword(); } catch {}
+      try { credRef.current?.reset(); credRef.current?.hidePassword() } catch {}
       dispatch(clearAuthErrorAction())
     }
   }, [authError, dispatch])
 
+  if (isForgotMode) {
+    return (
+      <ForgotPasswordInline
+        isSubmitted={forgotSubmitted}
+        isLoading={isLoading}
+        onSubmit={(email) => { dispatch(forgotPasswordAction.request({ email })); setForgotSubmitted(true) }}
+        onBack={() => navigate('/login')}
+      />
+    )
+  }
+
   return (
-    <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card className="overflow-hidden p-0">
-        <CardContent className="grid p-0 md:grid-cols-2">
-          {!isForgotMode ? (
-            <div className="p-6 md:p-8">
-              <div className="flex flex-col gap-6">
-                <CardHeader className="p-0">
-                  <CardTitle className="text-xl md:text-2xl text-center">{t('login.title')}</CardTitle>
-                  <CardDescription className="text-center text-sm">{t('login.subtitle')}</CardDescription>
-                </CardHeader>
-                {showNoAccountBanner && (
-                  <Banner variant="info" onDismiss={() => setShowNoAccountBanner(false)}>
-                    {t('login.noAccountBanner')}{' '}
-                    <Link to="/register" className="font-medium underline underline-offset-2">
-                      {t('login.registerFirst')}
-                    </Link>.
-                  </Banner>
-                )}
-                <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} isLoading={isLoading} />
-                <div className="flex justify-center mt-1">
-                  <button
-                    type="button"
-                    onClick={() => { setIsForgotMode(true); setForgotSubmitted(false); }}
-                    className="text-sm text-foreground-2 hover:text-primary underline-offset-4 hover:underline transition-colors"
-                    aria-label="Forgot your password?"
-                  >
-                    {t('login.forgotPassword')}
-                  </button>
-                </div>
-                <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-                  <span className="bg-card text-muted-foreground relative z-10 px-2">
-                    {t('login.orContinueWith')}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  <GoogleSignInButton context="login" disabled={isLoading} />
-                </div>
-                <div className="text-center text-sm">
-                  {t('login.noAccount')}{" "}
-                  <Link to="/register" className="underline underline-offset-4">
-                    {t('login.signUp')}
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <ForgotPasswordInline
-              isSubmitted={forgotSubmitted}
-              isLoading={isLoading}
-              onSubmit={(email) => { dispatch(forgotPasswordAction.request({ email })); setForgotSubmitted(true); }}
-              onBack={() => setIsForgotMode(false)}
-            />
-          )}
-          <div className="bg-muted relative hidden md:block">
-            <img
-              src="https://images.unsplash.com/photo-1497366216548-37526070297c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=800&q=80"
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="px-6 md:px-8 pb-6">
-          <div className="text-muted-foreground text-center text-xs text-balance w-full">
-            {t('login.termsNotice')}{" "}
-            <button type="button" onClick={() => setLegalDialog("terms")} className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer">
-              {t('login.termsOfService')}
-            </button>{" "}
-            {t('login.and')}{" "}
-            <button type="button" onClick={() => setLegalDialog("privacy")} className="text-muted-foreground hover:text-primary underline underline-offset-4 cursor-pointer">
-              {t('login.privacyPolicy')}
-            </button>.
-          </div>
-        </CardFooter>
-      </Card>
-      <LegalContentDialog type={legalDialog} onOpenChange={(open) => !open && setLegalDialog(null)} />
-    </div>
+    <>
+      {showNoAccountBanner && (
+        <Banner variant="info" onDismiss={() => setShowNoAccountBanner(false)}>
+          {t('login.noAccountBanner')}{' '}
+          <Link to="/register" className="font-medium underline underline-offset-2">
+            {t('login.registerFirst')}
+          </Link>.
+        </Banner>
+      )}
+      <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} isLoading={isLoading} />
+      <div className="flex justify-center mt-1">
+        <button
+          type="button"
+          onClick={() => navigate('/login?forgot=1')}
+          className="cursor-pointer text-sm text-foreground-2 hover:text-primary underline-offset-4 hover:underline transition-colors"
+          aria-label="Forgot your password?"
+        >
+          {t('login.forgotPassword')}
+        </button>
+      </div>
+      <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+        <span className="bg-card text-muted-foreground relative z-10 px-2">
+          {t('login.orContinueWith')}
+        </span>
+      </div>
+      <div className="grid grid-cols-1 gap-4">
+        <GoogleSignInButton context="login" disabled={isLoading} />
+      </div>
+    </>
   )
 }

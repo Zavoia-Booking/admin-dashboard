@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react"
-import { useNavigate } from "react-router-dom"
 import { Button } from "../../../shared/components/ui/button"
 import { AlertCircle, User, Mail, Eye, EyeOff } from "lucide-react"
 import { Input } from "../../../shared/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../../shared/components/ui/card"
 import { Spinner } from "../../../shared/components/ui/spinner"
 import { toast } from "sonner"
 import { useDispatch, useSelector } from "react-redux"
@@ -37,14 +35,13 @@ type RegisterFormProps = {
 }
 
 export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: RegisterFormProps = {}) {
-  const { t } = useTranslation('auth');
-  const navigate = useNavigate()
+  const { t } = useTranslation('auth')
   const [pwFocused, setPwFocused] = useState<boolean>(false)
   const [pwInteracted, setPwInteracted] = useState<boolean>(false)
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)
-  const dispatch = useDispatch();
-  const { isLoading, error: authError } = useSelector((state: RootState) => state.auth);
+  const dispatch = useDispatch()
+  const { isLoading, error: authError } = useSelector((state: RootState) => state.auth)
 
   const { register, handleSubmit, formState: { errors, isValid, isSubmitting }, watch, setValue, reset, control } = useForm<FormValues>({
     mode: 'onChange',
@@ -57,17 +54,17 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
       acceptTerms: false,
     }
   })
-  
+
   const firstNameField = register('firstName', {
     required: t('register.validation.fieldRequired'),
     minLength: { value: 2, message: t('register.validation.minLength', { count: 2 }) },
     maxLength: { value: 50, message: t('register.validation.maxLength', { count: 50 }) },
-  });
+  })
   const lastNameField = register('lastName', {
     required: t('register.validation.fieldRequired'),
     minLength: { value: 2, message: t('register.validation.minLength', { count: 2 }) },
     maxLength: { value: 50, message: t('register.validation.maxLength', { count: 50 }) },
-  });
+  })
 
   const passwordField = register('password', {
     required: t('register.validation.passwordRequired'),
@@ -75,7 +72,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
   })
 
   const onSubmit = (values: FormValues) => {
-    setPwFocused(false);
+    setPwFocused(false)
     dispatch(registerOwnerRequestAction.request({
       firstName: values.firstName,
       lastName: values.lastName,
@@ -90,39 +87,24 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
       toast.error(authError, {
         duration: 8000,
         position: 'top-center',
-      });
-      
-      // Reset form to initial state (preserving any locked fields we control)
+      })
       reset({
         firstName: '',
         lastName: '',
         email: initialEmail ?? '',
         password: '',
         acceptTerms: false,
-      });
-      
-      // Reset password visibility state
-      setShowPassword(false);
-      
-      // Reset password interaction state
-      setPwInteracted(false);
-      setPwFocused(false);
-      
-      // Clear the error from Redux state so it can trigger again
-      dispatch(clearAuthErrorAction());
+      })
+      setShowPassword(false)
+      setPwInteracted(false)
+      setPwFocused(false)
+      dispatch(clearAuthErrorAction())
     }
-  }, [authError, reset, dispatch]);
+  }, [authError, reset, dispatch, initialEmail])
 
   return (
-    <Card className="w-full max-w-lg mx-auto">
-      <CardHeader className="space-y-1 px-6 py-4 md:px-8 md:py-6">
-        <CardTitle className="text-xl md:text-2xl text-center">{t('register.title')}</CardTitle>
-        <CardDescription className="text-center text-sm">
-          {t('register.subtitle')}
-        </CardDescription>
-      </CardHeader>
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <CardContent className="flex flex-col gap-3 px-6 md:px-8">
+    <>
+      <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-3">
           <div className="flex flex-col md:flex-row gap-3 md:gap-4">
             <div className="flex-1 space-y-2">
               <label htmlFor="firstName" className="text-base font-medium text-foreground-1">
@@ -143,8 +125,8 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
                   autoComplete="given-name"
                   {...firstNameField}
                   onChange={(e) => {
-                    const value = sanitizeName((e.target as HTMLInputElement).value);
-                    setValue('firstName', value, { shouldValidate: true, shouldDirty: true });
+                    const value = sanitizeName((e.target as HTMLInputElement).value)
+                    setValue('firstName', value, { shouldValidate: true, shouldDirty: true })
                   }}
                 />
                 <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
@@ -177,8 +159,8 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
                   autoComplete="family-name"
                   {...lastNameField}
                   onChange={(e) => {
-                    const value = sanitizeName((e.target as HTMLInputElement).value);
-                    setValue('lastName', value, { shouldValidate: true, shouldDirty: true });
+                    const value = sanitizeName((e.target as HTMLInputElement).value)
+                    setValue('lastName', value, { shouldValidate: true, shouldDirty: true })
                   }}
                 />
                 <User className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
@@ -246,12 +228,12 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
                         : 'border-border hover:border-border-strong focus:border-focus focus-visible:ring-focus'
                     }`}
                     {...passwordField}
-                    onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
-                    onBlur={(e) => { passwordField.onBlur(e); setPwFocused(false); }}
+                    onFocus={() => { setPwFocused(true); setPwInteracted(true) }}
+                    onBlur={(e) => { passwordField.onBlur(e); setPwFocused(false) }}
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 text-primary hover:text-primary-hover p-0 border-0 bg-transparent w-4 h-4 flex items-center justify-center cursor-pointer transition-colors"
                     onClick={() => setShowPassword(!showPassword)}
                     tabIndex={-1}
                   >
@@ -296,58 +278,41 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
               />
               <label htmlFor="acceptTerms" className="text-sm text-foreground-2 leading-normal cursor-pointer select-none">
                 {t('register.termsAgreement')}{" "}
-                <span onClick={(e) => { e.preventDefault(); setLegalDialog("terms"); }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("terms")}>
+                <span onClick={(e) => { e.preventDefault(); setLegalDialog("terms") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("terms")}>
                   {t('register.termsAndConditions')}
                 </span>,{" "}
-                <span onClick={(e) => { e.preventDefault(); setLegalDialog("cookies"); }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("cookies")}>
+                <span onClick={(e) => { e.preventDefault(); setLegalDialog("cookies") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("cookies")}>
                   {t('register.cookiesPolicy')}
                 </span>{" "}
                 {t('register.and')}{" "}
-                <span onClick={(e) => { e.preventDefault(); setLegalDialog("privacy"); }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("privacy")}>
+                <span onClick={(e) => { e.preventDefault(); setLegalDialog("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("privacy")}>
                   {t('register.confidentialityPolicy')}
                 </span>
               </label>
             </div>
           </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3 pt-4 md:pt-6 px-6 md:px-8 pb-4 md:pb-6">
-            <Button
-                className="w-full h-10 md:h-12"
-                rounded="full"
-                type="submit"
-                disabled={isLoading || !isValid || isSubmitting}
-            >
-              {(isLoading || isSubmitting) ? (
-                <div className="flex items-center justify-center gap-3">
-                  <Spinner size="sm" color="info" />
-                </div>
-              ) : (
-                t('register.signUp')
-              )}
-            </Button>
-          <div className="relative flex items-center my-4 md:my-6 w-full">
+          <Button
+            className="w-full h-10 md:h-12 mt-2"
+            rounded="full"
+            type="submit"
+            disabled={isLoading || !isValid || isSubmitting}
+          >
+            {(isLoading || isSubmitting) ? (
+              <div className="flex items-center justify-center gap-3">
+                <Spinner size="sm" color="info" />
+              </div>
+            ) : (
+              t('register.signUp')
+            )}
+          </Button>
+          <div className="relative flex items-center my-2 md:my-3 w-full">
             <div className="flex-1 h-px bg-border min-w-0"></div>
             <span className="px-4 text-sm text-muted-foreground bg-card whitespace-nowrap">{t('register.or')}</span>
             <div className="flex-1 h-px bg-border min-w-0"></div>
           </div>
-          <div className="grid grid-cols-1 gap-4 w-full">
-            {/* Reusable Google sign-in button */}
-            <GoogleSignInButton context="register" disabled={isLoading} className="w-full h-10 md:h-12" />
-          </div>
-          <div className="text-center text-sm">
-            {t('register.alreadyHaveAccount')}{" "}
-            <Button
-              variant="link"
-              className="p-0 cursor-pointer"
-              type="button"
-              onClick={() => navigate("/login")}
-            >
-              {t('register.signIn')}
-            </Button>
-          </div>
-        </CardFooter>
+          <GoogleSignInButton context="register" disabled={isLoading} className="w-full h-10 md:h-12" />
       </form>
       <LegalContentDialog type={legalDialog} onOpenChange={(open) => !open && setLegalDialog(null)} />
-    </Card>
+    </>
   )
-} 
+}

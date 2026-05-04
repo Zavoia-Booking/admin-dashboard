@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useSelector } from 'react-redux'
 import { selectAuthStatus } from '../../../features/auth/selectors'
 import { AuthStatusEnum } from '../../../features/auth/types'
+import { isNativeApp } from '../../../app/config/env'
 import { drawSplashFrame, type SplashPhase } from './splashCanvas'
 import './splash.css'
 
@@ -34,6 +35,10 @@ export default function SplashGate({ bypass = false, onPhaseChange }: SplashGate
     if (bypass) return true
     if (typeof window === 'undefined') return false
     if (window.location.pathname.startsWith('/splash-preview')) return false
+    // Native-only: skip on web/desktop. Capacitor's iOS/Android wrappers
+    // are the intended audience for this animation; on desktop the app
+    // boots directly into the dashboard.
+    if (!isNativeApp()) return false
     return sessionStorage.getItem(STORAGE_KEY) !== '1'
   })
 
@@ -65,6 +70,7 @@ export default function SplashGate({ bypass = false, onPhaseChange }: SplashGate
   // SAFETY_TIMEOUT_MS also covers this as a backstop.
   useEffect(() => {
     Promise.all([
+      import('../../../features/auth/components/AuthLayout'),
       import('../../../features/auth/pages/login'),
       import('../../../features/dashboard/pages/Dashboard'),
     ])
