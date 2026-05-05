@@ -30,5 +30,24 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
     ],
+    build: {
+      sourcemap: true,
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (
+              id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('react/jsx-runtime')
+            ) {
+              return 'react-vendor'
+            }
+          },
+        },
+      },
+    },
   }
 })

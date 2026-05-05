@@ -87,10 +87,12 @@ project(':capacitor-android').projectDir = new File('./capacitor-android')
 EOF
 
     # Copy each Capacitor plugin that has an android/ folder.
-    # Covers both @capacitor/* (core plugins) and @capacitor-community/* (community plugins).
-    for SCOPE in capacitor capacitor-community; do
-        for PLUGIN_DIR in node_modules/@$SCOPE/*/; do
-            # Skip if glob didn't match anything
+    # Discover every @capacitor* scope dynamically (covers @capacitor, @capacitor-community,
+    # @capacitor-firebase, and any future scopes).
+    for SCOPE_DIR in node_modules/@capacitor*/; do
+        [ -d "$SCOPE_DIR" ] || continue
+        SCOPE=$(basename "$SCOPE_DIR" | sed 's/^@//')
+        for PLUGIN_DIR in "$SCOPE_DIR"*/; do
             [ -d "$PLUGIN_DIR" ] || continue
             PLUGIN_NAME=$(basename "$PLUGIN_DIR")
             # Skip @capacitor core packages (android, cli, core) — these aren't plugins
@@ -101,7 +103,7 @@ EOF
             fi
             # Plugin must have an android/ subfolder
             if [ -d "$PLUGIN_DIR/android" ]; then
-                # Gradle module naming: @capacitor/foo → capacitor-foo, @capacitor-community/foo → capacitor-community-foo
+                # Gradle module naming: @<scope>/<plugin> → <scope>-<plugin>
                 MODULE_NAME="$SCOPE-$PLUGIN_NAME"
                 echo "   Copying plugin: @$SCOPE/$PLUGIN_NAME → $MODULE_NAME"
                 mkdir -p "$WINDOWS_ANDROID_PATH/$MODULE_NAME"
