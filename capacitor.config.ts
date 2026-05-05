@@ -43,9 +43,19 @@ const config: CapacitorConfig = {
 
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      // Minimum visible duration. Native splash provides instant brand
+      // background while the web view boots; once boot completes the
+      // splash auto-hides. The web splash animation begins immediately
+      // after that. Shorter = less time the user sees the static logo
+      // image before the animated mark takes over.
+      // For a fully seamless transition, the source asset at
+      // `assets/splash.png` should be a SOLID #FAFAF7 image (no logo) —
+      // then the native splash is just a colored background and the
+      // logo only appears once, animated, in the web splash.
+      // Regenerate with `npx capacitor-assets generate` after editing.
+      launchShowDuration: 200,
       launchAutoHide: true,
-      backgroundColor: '#9333ea',
+      backgroundColor: '#FAFAF7',
       androidSplashResourceName: 'splash',
       androidScaleType: 'CENTER_CROP',
       showSpinner: false,

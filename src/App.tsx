@@ -9,6 +9,7 @@ import AccountStatusPromptDialog from './features/auth/components/AccountStatusP
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
 import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
+import SplashGate from './shared/components/splash/SplashGate'
 import { Spinner } from './shared/components/ui/spinner'
 
 // Lazy-loaded pages (each route becomes a separate chunk)
@@ -20,7 +21,8 @@ const ServicesPage = lazy(() => import('./features/services/pages/services'))
 const TeamMembersPage = lazy(() => import('./features/teamMembers/pages/team-members'))
 const InvitationSuccessPage = lazy(() => import('./features/teamMembers/pages/invitation-success'))
 const SettingsPage = lazy(() => import('./features/settings/pages/settings'))
-const LoginPage = lazy(() => import('./features/auth/pages/login'))
+const AuthLayout = lazy(() => import('./features/auth/components/AuthLayout').then(m => ({ default: m.AuthLayout })))
+const LoginForm = lazy(() => import('./features/auth/components/login-form').then(m => ({ default: m.LoginForm })))
 const RegisterPage = lazy(() => import('./features/auth/pages/register'))
 const ResetPasswordPage = lazy(() => import('./features/auth/pages/reset-password'))
 const GoogleOAuthCallback = lazy(() => import('./features/auth/components/GoogleOAuthCallback'))
@@ -54,14 +56,23 @@ function RouteFallback() {
 function App() {
   return (
     <BrowserRouter>
+      {/* splash-app-root: wraps every route so the splash exit can rise
+       * the page up into view as a single unit. Without this, individual
+       * routes (Dashboard, etc) would just appear during/after the
+       * splash exit instead of animating in. */}
+      <div className="splash-app-root">
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
           <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
 
-          {/* Auth */}
-          <Route path="/login" element={<PublicRoute element={<LoginPage />} />} />
-          <Route path="/register" element={<PublicRoute element={<RegisterPage />} />} />
+          {/* Auth — shared AuthLayout keeps the hero panel mounted across
+              tab switches between /login and /register so its animation
+              isn't interrupted on navigation. */}
+          <Route element={<PublicRoute element={<AuthLayout />} />}>
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterPage />} />
+          </Route>
           <Route path="/team-invitation" element={<TeamInvitationPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -101,6 +112,7 @@ function App() {
           <Route path="*" element={<Navigate to="/calendar" replace />} />
         </Routes>
       </Suspense>
+      </div>
       <AccountLinkingModal />
       <BusinessSelectorModal />
       <AccountLinkingRequiredModal />
@@ -108,6 +120,7 @@ function App() {
       <SeatOverflowGate />
       <SubscriptionBlocker />
       <PushListenersBootstrap />
+      <SplashGate />
     </BrowserRouter>
   )
 }

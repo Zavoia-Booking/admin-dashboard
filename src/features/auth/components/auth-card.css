@@ -1,0 +1,47 @@
+/* Form-side content enter animation on tab switch. The keyed wrapper in
+ * AuthCard remounts when `mode` changes, and its direct children — the
+ * heading block and the route content — animate in with a staggered
+ * fade + settle. Two separate animation tracks: fade is short and
+ * decisive while transform runs longer with an expo-out curve for the
+ * gentle Apple-style settle. */
+@keyframes auth-card-content-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes auth-card-content-settle {
+  from {
+    transform: scale(0.97) translateY(12px);
+  }
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.auth-card-content-enter > * {
+  animation:
+    auth-card-content-fade 300ms cubic-bezier(0.32, 0.72, 0, 1) both,
+    auth-card-content-settle 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center top;
+  will-change: transform, opacity;
+}
+
+/* Subtle stagger: the form column lags the heading by ~80ms so the
+ * landing feels orchestrated rather than monolithic. */
+.auth-card-content-enter > *:nth-child(2) {
+  animation-delay: 80ms, 80ms;
+}
+
+.auth-card-content-enter > *:nth-child(3) {
+  animation-delay: 140ms, 140ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-card-content-enter > * {
+    animation: none;
+  }
+}
