@@ -49,6 +49,7 @@ export interface OffboardPreviewAppointment {
   customer: { firstName: string; lastName: string; email: string } | null;
   service: { id: number; name: string } | null;
   location: { id: number; name: string } | null;
+  staffUserIds?: number[];
 }
 
 export interface EligibleStaffMember {
@@ -60,10 +61,70 @@ export interface EligibleStaffMember {
 
 export interface OffboardPreviewResponse {
   appointments: OffboardPreviewAppointment[];
-  eligibleStaffMap: Record<string, EligibleStaffMember[]>;
+  // Keyed by appointmentId — eligible staff for each specific appointment (incl. availability check).
+  eligibleStaffMap: Record<number, EligibleStaffMember[]>;
+  orphanedAppointmentIds: number[];
 }
 
-export const getOffboardPreviewApi = async (id: number): Promise<OffboardPreviewResponse> => {
-  const { data } = await apiClient().get<OffboardPreviewResponse>(`/team-members/${id}/offboard-preview`);
+export const getOffboardPreviewApi = async (
+  id: number,
+  opts?: { locationId?: number; signal?: AbortSignal },
+): Promise<OffboardPreviewResponse> => {
+  const { data } = await apiClient().get<OffboardPreviewResponse>(
+    `/team-members/${id}/offboard-preview`,
+    {
+      params: opts?.locationId ? { locationId: opts.locationId } : undefined,
+      signal: opts?.signal,
+    },
+  );
+  return data;
+};
+
+export const getLocationUnassignPreviewApi = async (
+  userId: number,
+  locationId: number,
+  signal?: AbortSignal,
+): Promise<OffboardPreviewResponse> => {
+  const { data } = await apiClient().get<OffboardPreviewResponse>(
+    `/team-members/${userId}/unassign-location/${locationId}/preview`,
+    { signal },
+  );
+  return data;
+};
+
+export const unassignFromLocationApi = async (
+  userId: number,
+  locationId: number,
+  appointmentActions: AppointmentActionItem[],
+): Promise<{ message: string }> => {
+  const { data } = await apiClient().post<{ message: string }>(
+    `/team-members/${userId}/unassign-location/${locationId}`,
+    { appointmentActions },
+  );
+  return data;
+};
+
+export type BulkOffboardPreviewResponse = OffboardPreviewResponse;
+
+export const getBulkOffboardPreviewApi = async (
+  userIds: number[],
+  signal?: AbortSignal,
+): Promise<BulkOffboardPreviewResponse> => {
+  const { data } = await apiClient().post<BulkOffboardPreviewResponse>(
+    '/team-members/offboard-preview',
+    { userIds },
+    { signal },
+  );
+  return data;
+};
+
+export const bulkOffboardApi = async (
+  userIds: number[],
+  appointmentActions: AppointmentActionItem[],
+): Promise<{ message: string; removedUserIds: number[] }> => {
+  const { data } = await apiClient().post<{ message: string; removedUserIds: number[] }>(
+    '/team-members/offboard',
+    { userIds, appointmentActions },
+  );
   return data;
 };

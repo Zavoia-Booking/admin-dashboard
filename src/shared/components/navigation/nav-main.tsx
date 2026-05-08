@@ -50,11 +50,12 @@ export function NavMain({
   // Helper function to check if a URL matches the current location
   const isUrlActive = (url: string): boolean => {
     const [urlPath, urlSearch] = url.split('?')
-    if (pathname !== urlPath) return false
-    
+    const pathMatches = pathname === urlPath || pathname.startsWith(urlPath + '/')
+    if (!pathMatches) return false
+
     if (!urlSearch) {
-      // If no query params in URL, check if current location also has no query params
-      return !search || search === ''
+      // If no query params in URL, treat any sub-path of urlPath as already-here
+      return true
     }
     
     // Parse query parameters
@@ -115,7 +116,12 @@ export function NavMain({
                                 <Link
                                   key={subItem.title}
                                   to={subItem.url}
-                                  onClick={() => handlePopoverChange(item.title, false)}
+                                  onClick={(e) => {
+                                    if (subItemIsActive) {
+                                      e.preventDefault()
+                                    }
+                                    handlePopoverChange(item.title, false)
+                                  }}
                                   data-active={subItemIsActive}
                                   className="text-sidebar-foreground ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent active:text-sidebar-accent-foreground flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 outline-hidden focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground text-sm relative z-10"
                                 >
@@ -154,7 +160,12 @@ export function NavMain({
                           return (
                             <SidebarMenuSubItem key={subItem.title}>
                               <SidebarMenuSubButton asChild isActive={subItemIsActive}>
-                                <Link to={subItem.url}>
+                                <Link
+                                  to={subItem.url}
+                                  onClick={(e) => {
+                                    if (subItemIsActive) e.preventDefault()
+                                  }}
+                                >
                                   <span>{subItem.title}</span>
                                 </Link>
                               </SidebarMenuSubButton>
@@ -168,13 +179,18 @@ export function NavMain({
                 )
               ) : (
                 <SidebarMenuItem>
-                  <SidebarMenuButton 
-                    asChild 
+                  <SidebarMenuButton
+                    asChild
                     tooltip={item.title}
                     isActive={item.isActive}
                     className="transition-all duration-200"
                   >
-                    <Link to={item.url}>
+                    <Link
+                      to={item.url}
+                      onClick={(e) => {
+                        if (isUrlActive(item.url)) e.preventDefault()
+                      }}
+                    >
                       {item.icon && <item.icon className="h-4 w-4" />}
                       <span className="font-medium group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </Link>

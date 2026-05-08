@@ -177,12 +177,15 @@ export function MobileBottomNav() {
         <div className="overflow-y-auto max-h-[calc(100vh-144px)]">
           <div className="px-2 py-2 space-y-2">
             {moreNavItems.map((item) => {
-              const isActive = pathname === item.url;
+              const isActive = pathname === item.url || pathname.startsWith(item.url + '/');
               return (
               <Link
                 key={item.i18nKey}
                 to={item.url}
-                onClick={() => setIsOpen(false)}
+                onClick={(e) => {
+                  if (isActive) e.preventDefault();
+                  setIsOpen(false);
+                }}
                 data-slot="sidebar-menu-button"
                 data-active={isActive}
                 className={cn(
@@ -260,11 +263,15 @@ export function MobileBottomNav() {
         <div className="flex items-stretch justify-around px-0 pt-1 pb-4">
           {/* Main navigation items */}
           {mainNavItems.map((item) => {
-            const isActive = !isOpen && pathname === item.url;
+            const isCurrentPath = pathname === item.url || pathname.startsWith(item.url + '/');
+            const isActive = !isOpen && isCurrentPath;
             return (
               <Link
                 key={item.i18nKey}
                 to={item.url}
+                onClick={(e) => {
+                  if (isCurrentPath) e.preventDefault();
+                }}
                 className={cn(
                   "flex flex-col items-center justify-center gap-0.5 flex-1 min-w-0 py-1",
                   isActive

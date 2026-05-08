@@ -1,7 +1,7 @@
 import { type ReactElement } from "react";
 import { useSelector } from "react-redux";
 import { Navigate, useLocation } from "react-router-dom";
-import { selectAuthIsRegistration, selectIsAuthenticated, selectAccountStatusPrompt, selectCurrentUser } from "../selectors";
+import { selectAuthIsRegistration, selectIsAuthenticated, selectCurrentUser } from "../selectors";
 import { getHomeRouteForRole } from "../../../shared/lib/permissions";
 import AuthGate from "./AuthGate";
 
@@ -15,20 +15,15 @@ type Props = { element: ReactElement };
 export default function PublicRoute({ element }: Props) {
   const isAuthed = useSelector(selectIsAuthenticated);
   const isRegistration = useSelector(selectAuthIsRegistration);
-  const accountStatusPrompt = useSelector(selectAccountStatusPrompt);
   const user = useSelector(selectCurrentUser);
   const location = useLocation();
-
-  // Don't redirect away from the login/register page while the account status prompt dialog is active
-  // (tokens are set for API calls but the user hasn't completed the prompt yet)
-  const shouldRedirect = isAuthed && !accountStatusPrompt;
 
   // Use role-appropriate home route (e.g. /my-profile for dashboard_user, /dashboard for owner/team_member)
   const homeRoute = getHomeRouteForRole(user?.role);
 
   return (
     <AuthGate>
-      {shouldRedirect ? 
+      {isAuthed ?
         isRegistration ?
           <Navigate to="/welcome" replace state={{ from: location }} />
           :

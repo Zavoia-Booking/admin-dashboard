@@ -12,12 +12,18 @@ export interface ReviewProfessional {
   profileImage: string | null;
 }
 
+export interface ReviewLocation {
+  id: number;
+  name: string;
+}
+
 export interface BusinessReview {
   id: number;
   rating: number;
   comment: string | null;
   createdAt: string;
   customer: ReviewCustomer;
+  location: ReviewLocation | null;
 }
 
 export interface TeamMemberReview {
@@ -27,6 +33,7 @@ export interface TeamMemberReview {
   createdAt: string;
   customer: ReviewCustomer;
   professional: ReviewProfessional;
+  location: ReviewLocation | null;
 }
 
 export interface ReviewPagination {
@@ -62,6 +69,14 @@ export interface TeamMemberStats {
   totalReviews: number;
 }
 
+export interface LocationStats {
+  locationId: number;
+  name: string;
+  averageRating: number | null;
+  totalReviews: number;
+  ratingDistribution: RatingDistribution;
+}
+
 export interface ReviewStatsData {
   overall: {
     averageRating: number | null;
@@ -72,6 +87,7 @@ export interface ReviewStatsData {
     totalReviews: number;
     ratingDistribution: RatingDistribution;
   };
+  locations: LocationStats[];
   teamMembers: TeamMemberStats[];
 }
 
@@ -84,6 +100,7 @@ export interface FetchBusinessReviewsPayload {
   limit?: number;
   rating?: number;
   sortOrder?: "ASC" | "DESC";
+  locationId?: number;
 }
 
 export interface FetchTeamMemberReviewsPayload {
@@ -92,6 +109,7 @@ export interface FetchTeamMemberReviewsPayload {
   rating?: number;
   teamMemberId?: number;
   sortOrder?: "ASC" | "DESC";
+  locationId?: number;
 }
 
 export type ReviewSubTab = "business" | "team-members";

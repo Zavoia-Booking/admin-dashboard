@@ -1,4 +1,6 @@
 import { useRef, useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { setLocationPortfolioAction } from "../actions";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Button } from "../../../shared/components/ui/button";
 import { Badge } from "../../../shared/components/ui/badge";
@@ -95,6 +97,7 @@ function ImageSkeleton({
 }
 
 interface MarketplaceImagesSectionProps {
+  locationId: number | null;
   featuredImageId?: string | null;
   portfolioImages?: PortfolioImage[];
   onFeaturedImageChange: (tempId: string | null) => void;
@@ -104,12 +107,14 @@ interface MarketplaceImagesSectionProps {
 }
 
 export function MarketplaceImagesSection({
+  locationId,
   featuredImageId,
   portfolioImages,
   onFeaturedImageChange,
   onPortfolioImagesChange,
 }: MarketplaceImagesSectionProps) {
   const { t } = useTranslation("marketplace");
+  const dispatch = useDispatch();
   const images = portfolioImages || [];
   const featured = featuredImageId || null;
 
@@ -220,8 +225,12 @@ export function MarketplaceImagesSection({
   };
 
   const uploadFile = async (file: File, tempId: string) => {
+    if (!locationId) {
+      toast.error(t("portfolio.errors.noLocationSelected"));
+      return;
+    }
     try {
-      const result = await uploadMarketplaceImageApi(file);
+      const result = await uploadMarketplaceImageApi(locationId, file);
 
       // Use a functional update to avoid race conditions with concurrent uploads
       onPortfolioImagesChange((currentImages) =>
@@ -229,13 +238,23 @@ export function MarketplaceImagesSection({
           img.tempId === tempId
             ? {
                 ...img,
-                url: result.url,
-                key: result.key,
+                url: result.url ?? img.url,
+                key: result.key ?? img.key,
                 isUploading: false,
                 uploadError: undefined,
               }
             : img,
         ),
+      );
+
+      // Sync server-truth into Redux so other UI (publish gating, switching
+      // back to this location later) sees the new state without re-fetching.
+      dispatch(
+        setLocationPortfolioAction({
+          locationId,
+          portfolioImages: result.portfolioImages,
+          featuredImage: result.featuredImage,
+        }),
       );
     } catch (error) {
       console.error(`[Portfolio] Upload failed for ${file.name}:`, error);
@@ -348,6 +367,10 @@ export function MarketplaceImagesSection({
 
     // If image has a key, it's saved on server - need to delete via API
     if (imageToRemove?.key) {
+      if (!locationId) {
+        toast.error(t("portfolio.errors.noLocationSelected"));
+        return;
+      }
       // Set deleting state
       onPortfolioImagesChange((currentImages) =>
         currentImages.map((img) =>
@@ -356,10 +379,17 @@ export function MarketplaceImagesSection({
       );
 
       try {
-        await deleteMarketplaceImageApi(imageToRemove.key);
+        const result = await deleteMarketplaceImageApi(locationId, imageToRemove.key);
         // Success - remove from local state
         onPortfolioImagesChange((currentImages) =>
           currentImages.filter((img) => img.tempId !== tempId),
+        );
+        dispatch(
+          setLocationPortfolioAction({
+            locationId,
+            portfolioImages: result.portfolioImages,
+            featuredImage: result.featuredImage,
+          }),
         );
       } catch (error) {
         console.error("Delete failed:", error);
@@ -396,9 +426,21 @@ export function MarketplaceImagesSection({
       ),
     );
 
+    if (!locationId) {
+      toast.error(t("portfolio.errors.noLocationSelected"));
+      return;
+    }
+
     try {
-      await updateMarketplaceFeaturedImageApi(image.url);
+      const result = await updateMarketplaceFeaturedImageApi(locationId, image.url);
       onFeaturedImageChange(tempId);
+      dispatch(
+        setLocationPortfolioAction({
+          locationId,
+          portfolioImages: result.portfolioImages,
+          featuredImage: result.featuredImage,
+        }),
+      );
     } catch (error) {
       console.error("Failed to set featured image:", error);
       toast.error(t("portfolio.errors.updateFeaturedFailed"));

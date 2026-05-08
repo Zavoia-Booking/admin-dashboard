@@ -1,5 +1,5 @@
 import { getType } from "typesafe-actions";
-import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, offboardTeamMemberAction } from "./actions";
+import { inviteTeamMemberAction, listTeamMembersAction, clearInviteResponseAction, resendInvitationAction, cancelInvitationAction, deleteTeamMemberAction, fetchTeamMemberByIdAction, offboardTeamMemberAction, bulkOffboardTeamMembersAction } from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { TeamMember, TeamMemberSummary } from "../../shared/types/team-member";
 import type { InviteTeamMemberResponse } from "./types";
@@ -112,6 +112,15 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
       return { ...state, isOffboarding: false, offboardError: null };
 
     case getType(offboardTeamMemberAction.failure):
+      return { ...state, isOffboarding: false, offboardError: action.payload.message };
+
+    case getType(bulkOffboardTeamMembersAction.request):
+      return { ...state, isOffboarding: true, offboardError: null };
+
+    case getType(bulkOffboardTeamMembersAction.success):
+      return { ...state, isOffboarding: false, offboardError: null };
+
+    case getType(bulkOffboardTeamMembersAction.failure):
       return { ...state, isOffboarding: false, offboardError: action.payload.message };
 
     default:

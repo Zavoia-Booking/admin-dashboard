@@ -1,15 +1,16 @@
-import { takeLatest, call, put, all } from "redux-saga/effects";
-import { 
-  fetchMarketplaceListingAction, 
-  publishMarketplaceListingAction, 
-  updateMarketplaceVisibilityAction,
+import { takeLatest, takeEvery, call, put, all } from "redux-saga/effects";
+import {
+  fetchMarketplaceListingAction,
+  publishMarketplaceListingAction,
+  updateLocationMarketplaceFlagsAction,
   updateBookingSettingsAction,
 } from "./actions";
-import { 
-  getMarketplaceListingApi, 
-  publishMarketplaceListingApi, 
-  updateMarketplaceVisibilityApi,
+import {
+  getMarketplaceListingApi,
+  publishMarketplaceListingApi,
+  updateLocationMarketplaceFlagsApi,
   updateBookingSettingsApi,
+  type LocationMarketplaceFlagsResponse,
 } from "./api";
 import type { MarketplaceListingResponse, BookingSettings } from "./types";
 import type { ActionType } from "typesafe-actions";
@@ -39,15 +40,28 @@ function* handlePublishMarketplaceListing(action: ActionType<typeof publishMarke
   }
 }
 
-function* handleUpdateMarketplaceVisibility(action: ActionType<typeof updateMarketplaceVisibilityAction.request>) {
+function* handleUpdateLocationMarketplaceFlags(action: ActionType<typeof updateLocationMarketplaceFlagsAction.request>) {
+  const { locationId, isPublic, allowOnlineBooking } = action.payload;
   try {
-    const result: { isVisible: boolean } = yield call(updateMarketplaceVisibilityApi, action.payload.isVisible);
-    yield put(updateMarketplaceVisibilityAction.success({ isVisible: result.isVisible }));
-    toast.success(result.isVisible ? 'Listing is now visible to users' : 'Listing is now hidden from users');
+    const result: LocationMarketplaceFlagsResponse = yield call(
+      updateLocationMarketplaceFlagsApi,
+      locationId,
+      { isPublic, allowOnlineBooking },
+    );
+    yield put(updateLocationMarketplaceFlagsAction.success({
+      locationId: result.id,
+      isPublic: result.isPublic,
+      allowOnlineBooking: result.allowOnlineBooking,
+    }));
+    if (isPublic !== undefined) {
+      toast.success(isPublic ? 'Location is now public on the marketplace' : 'Location is hidden from the marketplace');
+    } else if (allowOnlineBooking !== undefined) {
+      toast.success(allowOnlineBooking ? 'Online appointments enabled for this location' : 'Online appointments disabled for this location');
+    }
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to update visibility";
+    const message = error?.response?.data?.error || error?.message || "Failed to update location";
     toast.error(message);
-    yield put(updateMarketplaceVisibilityAction.failure({ message }));
+    yield put(updateLocationMarketplaceFlagsAction.failure({ locationId, message }));
   }
 }
 
@@ -67,8 +81,7 @@ export function* marketplaceSaga(): Generator<any, void, any> {
   yield all([
     takeLatest(fetchMarketplaceListingAction.request, handleFetchMarketplaceListing),
     takeLatest(publishMarketplaceListingAction.request, handlePublishMarketplaceListing),
-    takeLatest(updateMarketplaceVisibilityAction.request, handleUpdateMarketplaceVisibility),
+    takeEvery(updateLocationMarketplaceFlagsAction.request, handleUpdateLocationMarketplaceFlags),
     takeLatest(updateBookingSettingsAction.request, handleUpdateBookingSettings),
   ]);
 }
-

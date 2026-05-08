@@ -3,15 +3,9 @@ import { useTranslation } from "react-i18next";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../../../shared/components/ui/select";
+import { LocationSelector } from "../../../shared/components/common/LocationSelector";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
-import { MapPin, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import {
   LocationCapacityWidget,
   NeedsAttentionWidget,
@@ -367,8 +361,8 @@ export default function DashboardPage() {
     }
   }, [dispatch, locationId]);
 
-  const handleLocationChange = (value: string) => {
-    navigate(`/dashboard/${value}`);
+  const handleLocationChange = (id: number) => {
+    navigate(`/dashboard/${id}`);
   };
 
   const handleRefreshDashboard = () => {
@@ -446,25 +440,15 @@ export default function DashboardPage() {
         <div className="space-y-5">
           {/* Page header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-primary shrink-0" />
-                {isLoadingLocations ? (
-                  <Skeleton className="h-7 w-48" />
-                ) : (
-                  <Select value={locationId} onValueChange={handleLocationChange}>
-                    <SelectTrigger className="w-auto min-w-[200px] h-8 text-lg font-bold border-none shadow-none px-0 focus:ring-0">
-                      <SelectValue placeholder={t("page.selectLocation")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {locations.map((location) => (
-                        <SelectItem key={location.id} value={String(location.id)}>
-                          {location.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
+            <div className="space-y-1 min-w-0">
+              <div className="w-full sm:w-[280px]">
+                <LocationSelector
+                  locations={locations}
+                  selectedLocationId={locationId ? parseInt(locationId, 10) : null}
+                  onSelect={handleLocationChange}
+                  isLoading={isLoadingLocations}
+                  placeholder={t("page.selectLocation")}
+                />
               </div>
               <p className="text-xs text-foreground-3">
                 {t("page.analyticsDashboard")} &bull;{" "}

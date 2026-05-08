@@ -6,6 +6,8 @@ import {
   ArrowUpDown,
   ChevronDown,
   MessageSquareText,
+  X,
+  MapPin,
 } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import {
@@ -55,6 +57,7 @@ export function ReviewsTab() {
   const [teamMemberFilter, setTeamMemberFilter] = useState<number | null>(
     null,
   );
+  const [locationFilter, setLocationFilter] = useState<number | null>(null);
   const [sortOrder, setSortOrder] = useState<"DESC" | "ASC">("DESC");
   const [teamMemberDropdownOpen, setTeamMemberDropdownOpen] = useState(false);
 
@@ -71,6 +74,7 @@ export function ReviewsTab() {
           offset: 0,
           limit: PAGE_SIZE,
           rating: ratingFilter ?? undefined,
+          locationId: locationFilter ?? undefined,
           sortOrder,
         }),
       );
@@ -81,11 +85,12 @@ export function ReviewsTab() {
           limit: PAGE_SIZE,
           rating: ratingFilter ?? undefined,
           teamMemberId: teamMemberFilter ?? undefined,
+          locationId: locationFilter ?? undefined,
           sortOrder,
         }),
       );
     }
-  }, [dispatch, subTab, ratingFilter, teamMemberFilter, sortOrder]);
+  }, [dispatch, subTab, ratingFilter, teamMemberFilter, locationFilter, sortOrder]);
 
   const handleLoadMore = useCallback(() => {
     if (subTab === "business") {
@@ -94,6 +99,7 @@ export function ReviewsTab() {
           offset: businessReviews.length,
           limit: PAGE_SIZE,
           rating: ratingFilter ?? undefined,
+          locationId: locationFilter ?? undefined,
           sortOrder,
         }),
       );
@@ -104,6 +110,7 @@ export function ReviewsTab() {
           limit: PAGE_SIZE,
           rating: ratingFilter ?? undefined,
           teamMemberId: teamMemberFilter ?? undefined,
+          locationId: locationFilter ?? undefined,
           sortOrder,
         }),
       );
@@ -115,6 +122,7 @@ export function ReviewsTab() {
     teamMemberReviews.length,
     ratingFilter,
     teamMemberFilter,
+    locationFilter,
     sortOrder,
   ]);
 
@@ -126,6 +134,17 @@ export function ReviewsTab() {
     setSubTab(tab);
     setRatingFilter(null);
     setTeamMemberFilter(null);
+    setLocationFilter(null);
+  };
+
+  const selectedLocation = stats?.locations?.find(
+    (l) => l.locationId === locationFilter,
+  );
+
+  const clearAllFilters = () => {
+    setRatingFilter(null);
+    setTeamMemberFilter(null);
+    setLocationFilter(null);
   };
 
   const reviews = subTab === "business" ? businessReviews : teamMemberReviews;
@@ -142,7 +161,74 @@ export function ReviewsTab() {
   return (
     <div className="max-w-5xl mb-0 md:mb-8 space-y-5">
       {/* Stats Panel */}
-      <ReviewStatsPanel stats={stats} loading={statsLoading} />
+      <ReviewStatsPanel
+        stats={stats}
+        loading={statsLoading}
+        selectedLocationId={locationFilter}
+        selectedTeamMemberId={teamMemberFilter}
+        onLocationClick={(id) =>
+          setLocationFilter((prev) => (prev === id ? null : id))
+        }
+        onTeamMemberClick={(id) => {
+          setTeamMemberFilter((prev) => (prev === id ? null : id));
+          // Clicking a team member from the panel implies the team-members sub-tab
+          if (subTab !== "team-members") setSubTab("team-members");
+        }}
+      />
+
+      {/* Active filter chips */}
+      {(selectedLocation || selectedTeamMember || ratingFilter !== null) && (
+        <div className="flex flex-wrap items-center gap-2">
+          {selectedLocation && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-primary/30 bg-primary/10 text-primary">
+              <MapPin className="h-3 w-3" />
+              {selectedLocation.name}
+              <button
+                type="button"
+                onClick={() => setLocationFilter(null)}
+                className="hover:bg-primary/20 rounded-full p-0.5"
+                aria-label={t("filters.clearLocation")}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {selectedTeamMember && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-primary/30 bg-primary/10 text-primary">
+              {selectedTeamMember.firstName} {selectedTeamMember.lastName}
+              <button
+                type="button"
+                onClick={() => setTeamMemberFilter(null)}
+                className="hover:bg-primary/20 rounded-full p-0.5"
+                aria-label={t("filters.clearTeamMember")}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          {ratingFilter !== null && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-amber-300 bg-amber-50 text-amber-700">
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              {ratingFilter}
+              <button
+                type="button"
+                onClick={() => setRatingFilter(null)}
+                className="hover:bg-amber-100 rounded-full p-0.5"
+                aria-label={t("filters.clearRating")}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={clearAllFilters}
+            className="text-xs font-medium text-foreground-3 hover:text-foreground-2 underline underline-offset-2"
+          >
+            {t("filters.clearAll")}
+          </button>
+        </div>
+      )}
 
       {/* Sub-tabs: Business Reviews / Team Member Reviews */}
       <div className="flex items-center gap-2">

@@ -4,12 +4,16 @@
     "disabledTooltip": "Această funcționalitate nu este disponibilă în planul tău curent.",
     "blockedMessage": "Această funcționalitate nu este disponibilă în planul tău curent.",
     "bannerMessage": "Acces limitat: Unele funcționalități nu sunt disponibile în planul tău curent.",
+    "blockerEyebrowOwner": "Abonament · Expirat",
+    "blockerEyebrowMember": "Acces · Limitat",
     "blockerOwnerTitle": "Abonamentul tău a expirat",
     "blockerOwnerDescription": "Reînnoiește abonamentul pentru a recăpăta acces complet la dashboard și a continua să îți administrezi afacerea.",
-    "blockerOwnerCta": "Mergi la Facturare",
+    "blockerOwnerCta": "Reînnoiește abonamentul",
+    "blockerOwnerSecondaryCta": "Mergi la cont",
     "blockerMemberTitle": "Acces limitat",
     "blockerMemberDescription": "Administratorul afacerii trebuie să reînnoiască abonamentul. Te rugăm să îl contactezi pentru a restabili accesul.",
     "blockerMemberCta": "Contactează suportul",
+    "blockerMemberSecondaryCta": "Mergi la contul meu",
     "blockerSignOut": "Deconectare"
   },
   "remoteLocation": {

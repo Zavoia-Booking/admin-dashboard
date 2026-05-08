@@ -61,6 +61,9 @@
       "saving": "Saving...",
       "publishing": "Publishing..."
     },
+    "portfolio": {
+      "location": "Location"
+    },
     "promotions": {
       "comingSoon": "Promotions Coming Soon",
       "description": "Create discounts, special offers, and promotional campaigns to attract more customers from the marketplace."
@@ -133,13 +136,16 @@
       "addAtLeastOne": "Add at least 1 tag to go live."
     }
   },
-  "locationCatalog": {
-    "title": "Catalog Overview",
+  "locationVisibility": {
     "noLocations": "No locations available. Please add a location first.",
-    "description": "Check which services, bundles, and team members are active at each location. To make changes, use the <assignmentsLink>Assignments</assignmentsLink> section.",
+    "description": "Toggle marketplace visibility and online appointments per location. Manage services, bundles, and team members in the <assignmentsLink>Assignments</assignmentsLink> section.",
     "assignmentsLink": "Assignments",
     "editLocation": "Edit location",
     "manageAssignments": "Manage assignments",
+    "isPublic": "Listing is Public",
+    "isPublicDescription": "Display this location inside our marketplace.",
+    "allowOnlineBooking": "Online Appointments",
+    "allowOnlineBookingDescription": "Choose if customers can book appointments from the marketplace.",
     "service_one": "Service",
     "service_other": "Services",
     "noServices": "No services yet",
@@ -186,7 +192,8 @@
       "uploadFailed": "Failed to upload {{name}}",
       "deleteFailed": "Failed to delete image",
       "updateFeaturedFailed": "Failed to update featured image",
-      "waitForUpload": "Please wait for the image to finish uploading"
+      "waitForUpload": "Please wait for the image to finish uploading",
+      "noLocationSelected": "Please select a location first"
     }
   },
   "advancedSettings": {

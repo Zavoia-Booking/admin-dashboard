@@ -133,13 +133,16 @@
       "addAtLeastOne": "Adaugă cel puțin 1 etichetă pentru a fi live."
     }
   },
-  "locationCatalog": {
-    "title": "Locații & Echipă",
+  "locationVisibility": {
     "noLocations": "Nicio locație disponibilă. Te rugăm adaugă o locație mai întâi.",
-    "description": "Vezi ce servicii, pachete și membri ai echipei sunt activi în fiecare locație. Pentru modificări, accesează secțiunea <assignmentsLink>Alocări</assignmentsLink>.",
+    "description": "Activează vizibilitatea pe marketplace și programările online pentru fiecare locație. Gestionează serviciile, pachetele și echipa în secțiunea <assignmentsLink>Alocări</assignmentsLink>.",
     "assignmentsLink": "Alocări",
     "editLocation": "Editează locația",
     "manageAssignments": "Gestionează alocările",
+    "isPublic": "Listing Public",
+    "isPublicDescription": "Afișează această locație în marketplace-ul nostru.",
+    "allowOnlineBooking": "Programări Online",
+    "allowOnlineBookingDescription": "Alege dacă clienții pot rezerva programări din marketplace.",
     "service_one": "Serviciu",
     "service_other": "Servicii",
     "noServices": "Niciun serviciu încă",

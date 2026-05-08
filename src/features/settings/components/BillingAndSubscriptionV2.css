@@ -10,6 +10,10 @@
   grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
+  padding-bottom: 24px;
+}
+@media (max-width: 720px) {
+  .bv2-grid { padding-bottom: 32px; }
 }
 .bv2-grid > .bv2-col {
   display: flex;
@@ -113,7 +117,13 @@
     padding: 18px;
     gap: 16px;
   }
-  .bv2-hero-right { align-items: stretch; }
+  .bv2-hero-right {
+    align-items: center;
+    text-align: center;
+  }
+  .bv2-hero-right .bv2-hero-price { align-self: center; }
+  .bv2-hero-right > button,
+  .bv2-hero-right > a { align-self: stretch; }
 }
 
 /* ── Status pill ── */
@@ -610,7 +620,8 @@
   margin-left: 3px;
 }
 @media (max-width: 720px) {
-  .bv2-hist-summary { grid-template-columns: 1fr; }
+  .bv2-hist-summary { grid-template-columns: 1fr 1fr; }
+  .bv2-hist-summary > div:nth-child(3) { grid-column: 1 / -1; }
 }
 
 /* ── History rows ── */
@@ -687,6 +698,22 @@
   background: var(--surface-hover);
   color: var(--text-primary);
 }
+
+/* See-more button row inside Purchase history */
+.bv2-hist-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+@media (max-width: 720px) {
+  .bv2-hist-more { justify-content: stretch; }
+  .bv2-hist-more > button { width: 100%; }
+}
+
+/* All-invoices list (drawer/dialog content) */
+.bv2-hist-all .bv2-hist-row:last-child { border-bottom: 0; }
 
 /* Compact "● paid" pill that sits inline next to the date */
 .bv2-pill-paid {
@@ -955,13 +982,50 @@
   gap: 6px;
 }
 
-@media (max-width: 480px) {
-  .bv2-sms-pack {
-    grid-template-columns: 22px 1fr auto;
-    row-gap: 6px;
+@media (max-width: 720px) {
+  .bv2-sms-buy-row {
+    flex-direction: column;
+    align-items: stretch;
   }
-  .bv2-sms-pack .bv2-pack-rate { grid-column: 2; }
-  .bv2-sms-pack .bv2-pack-price { grid-column: 3; grid-row: 1 / span 2; align-self: center; }
+  .bv2-sms-buy-row > button { width: 100%; }
+  .bv2-sms-buy-row .bv2-info { order: -1; }
+}
+
+@media (max-width: 720px) {
+  .bv2-sms-pack {
+    grid-template-columns: 22px minmax(0, 1fr) auto;
+    column-gap: 12px;
+    row-gap: 4px;
+    padding: 12px 14px;
+    align-items: center;
+  }
+  .bv2-sms-pack .bv2-radio { grid-column: 1; grid-row: 1 / span 2; }
+  .bv2-sms-pack .bv2-pack-l { grid-column: 2; grid-row: 1 / span 2; }
+  .bv2-sms-pack .bv2-pack-count {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+  .bv2-sms-pack .bv2-pack-price {
+    grid-column: 3;
+    grid-row: 1;
+    align-self: end;
+    padding-left: 0;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.1;
+  }
+  .bv2-sms-pack .bv2-pack-rate {
+    grid-column: 3;
+    grid-row: 2;
+    align-self: start;
+    font-size: 10px;
+    line-height: 1.25;
+  }
+  .bv2-sms-pack .bv2-pack-rate strong {
+    display: block;
+    font-size: 11px;
+    line-height: 1.2;
+  }
 }
 
 /* ── Invoice form ── */
@@ -1019,6 +1083,25 @@
   padding-top: 14px;
   margin-top: 4px;
   border-top: 1px solid var(--border);
+}
+@media (max-width: 720px) {
+  .bv2-form-foot { justify-content: stretch; }
+  .bv2-form-foot > button { width: 100%; }
+}
+
+/* Entity-type segmented control — full-width 50/50 on mobile */
+.bv2-entity-segments { display: inline-flex; }
+@media (max-width: 720px) {
+  .bv2-entity-segments {
+    display: flex !important;
+    width: 100%;
+    align-self: stretch !important;
+  }
+  .bv2-entity-segments > .bv2-seg-btn {
+    flex: 1 1 0;
+    text-align: center;
+    justify-content: center;
+  }
 }
 
 /* RO flag inline */

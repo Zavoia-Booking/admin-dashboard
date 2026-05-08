@@ -19,13 +19,8 @@ import {
   checkTeamInvitationAction,
   completeTeamInvitationAction,
   clearAuthErrorAction,
-  showAccountStatusPromptAction,
-  acceptAccountStatusPromptAction,
-  declineAccountStatusPromptAction,
-  clearAccountStatusPromptAction,
-  dismissBusinessSelectorModal,
 } from "./actions";
-import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi, reactivateAccountApi, cancelAccountDeletionApi } from "./api";
+import { logoutApi, registerOwnerRequestApi, loginApi, getCurrentUserApi, forgotPasswordApi, resetPasswordApi, googleLoginApi, googleRegisterApi, reauthForLinkApi, linkGoogleApi, unlinkGoogleApi, linkGoogleByCodeApi, selectBusinessApi, sendBusinessLinkEmailApi, checkTeamInvitationApi, completeTeamInvitationApi } from "./api";
 import type { RegisterOwnerPayload, AuthResponse, AuthUser } from "./types";
 import { reauthForLinkAction, linkGoogleAction, closeAccountLinkingModal, unlinkGoogleAction, linkGoogleByCodeAction } from "./actions";
 import { listLocationsAction } from "../locations/actions";
@@ -98,26 +93,6 @@ function* handleLogin(action: { type: string; payload: { email: string, password
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = (yield call(loginApi, action.payload)) as AuthResponse;
-
-    // Check for disabled or scheduled-for-deletion account
-    if (response.accountDisabled || response.accountScheduledForDeletion) {
-      // Store tokens so we can call reactivate/cancel-delete APIs
-      yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
-      if (response.refreshToken) {
-        yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
-      }
-      if (response.csrfToken) {
-        yield put(setCsrfToken({ csrfToken: response.csrfToken }));
-      }
-      yield put(setAuthUserAction({ user: response.user }));
-
-      // Show the account status prompt dialog instead of completing login
-      yield put(showAccountStatusPromptAction({
-        type: response.accountDisabled ? 'disabled' : 'scheduled_for_deletion',
-      }));
-      yield put(setAuthLoadingAction({ isLoading: false }));
-      return;
-    }
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
@@ -195,8 +170,6 @@ export function* authSaga(): Generator<any, void, any> {
     takeLatest(sendBusinessLinkEmailAction.request, handleSendBusinessLinkEmail),
     takeLatest(checkTeamInvitationAction.request, handleCheckTeamInvitation),
     takeLatest(completeTeamInvitationAction.request, handleCompleteTeamInvitation),
-    takeLatest(acceptAccountStatusPromptAction, handleAcceptAccountStatusPrompt),
-    takeLatest(declineAccountStatusPromptAction, handleDeclineAccountStatusPrompt),
   ]);
 }
 
@@ -234,34 +207,14 @@ function* handleGoogleLogin(action: ReturnType<typeof googleLoginAction.request>
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = yield call(googleLoginApi, action.payload);
 
-    // Check for disabled or scheduled-for-deletion account
-    if (response.accountDisabled || response.accountScheduledForDeletion) {
-      // Store tokens so we can call reactivate/cancel-delete APIs
-      yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
-      if (response.refreshToken) {
-        yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
-      }
-      if (response.csrfToken) {
-        yield put(setCsrfToken({ csrfToken: response.csrfToken }));
-      }
-      yield put(setAuthUserAction({ user: response.user }));
-
-      // Show the account status prompt dialog instead of completing login
-      yield put(showAccountStatusPromptAction({
-        type: response.accountDisabled ? 'disabled' : 'scheduled_for_deletion',
-      }));
-      yield put(setAuthLoadingAction({ isLoading: false }));
-      return;
-    }
-
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
-    
+
     // Persist refresh token to storage for native apps
     if (response.refreshToken) {
       yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
     }
-    
+
     // Fetch locations post-authentication only if user has a business
     const hasBusinessGoogle = Boolean(response.user?.businessId || (response.user as any)?.business?.id);
     if (hasBusinessGoogle) {
@@ -349,24 +302,6 @@ function* handleGoogleRegister(action: ReturnType<typeof googleRegisterAction.re
   try {
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = yield call(googleRegisterApi, action.payload);
-
-    // Check for disabled or scheduled-for-deletion account (existing user via register page)
-    if (response.accountDisabled || response.accountScheduledForDeletion) {
-      yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
-      if (response.refreshToken) {
-        yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
-      }
-      if (response.csrfToken) {
-        yield put(setCsrfToken({ csrfToken: response.csrfToken }));
-      }
-      yield put(setAuthUserAction({ user: response.user }));
-
-      yield put(showAccountStatusPromptAction({
-        type: response.accountDisabled ? 'disabled' : 'scheduled_for_deletion',
-      }));
-      yield put(setAuthLoadingAction({ isLoading: false }));
-      return;
-    }
 
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
@@ -616,29 +551,6 @@ function* handleSelectBusiness(action: ReturnType<typeof selectBusinessAction.re
     yield put(setAuthLoadingAction({ isLoading: true }));
     const response: AuthResponse = yield call(selectBusinessApi, action.payload);
 
-    // Check for disabled or scheduled-for-deletion account on the selected business
-    if (response.accountDisabled || response.accountScheduledForDeletion) {
-      // Store tokens so we can call reactivate/cancel-delete APIs
-      yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
-      if (response.refreshToken) {
-        yield call([tokenStorage, 'saveRefreshToken'], response.refreshToken);
-      }
-      if (response.csrfToken) {
-        yield put(setCsrfToken({ csrfToken: response.csrfToken }));
-      }
-      yield put(setAuthUserAction({ user: response.user }));
-
-      // Clear the business selection modal so the prompt dialog can show
-      yield put(dismissBusinessSelectorModal());
-
-      // Show the account status prompt dialog instead of completing login
-      yield put(showAccountStatusPromptAction({
-        type: response.accountDisabled ? 'disabled' : 'scheduled_for_deletion',
-      }));
-      yield put(setAuthLoadingAction({ isLoading: false }));
-      return;
-    }
-
     // Store access token in Redux (memory) + optional CSRF token + refresh token for native apps
     yield put(setTokensAction({ accessToken: response.accessToken, csrfToken: response.csrfToken ?? null, refreshToken: response.refreshToken ?? null }));
     
@@ -710,60 +622,6 @@ function* handleCheckTeamInvitation(action: ReturnType<typeof checkTeamInvitatio
   } finally {
     yield put(setAuthLoadingAction({ isLoading: false }));
   }
-}
-
-function* handleAcceptAccountStatusPrompt(): Generator<any, void, any> {
-  try {
-    yield put(setAuthLoadingAction({ isLoading: true }));
-
-    const prompt: { type: 'disabled' | 'scheduled_for_deletion' } | null = yield select((s: RootState) => s.auth.accountStatusPrompt);
-    if (!prompt) return;
-
-    // Call the appropriate API (tokens are already in Redux)
-    if (prompt.type === 'disabled') {
-      yield call(reactivateAccountApi);
-    } else {
-      yield call(cancelAccountDeletionApi);
-    }
-
-    // Clear the prompt
-    yield put(clearAccountStatusPromptAction());
-
-    // Fetch latest user data (account status fields will now be cleared)
-    yield put(fetchCurrentUserAction.request());
-    yield put(listLocationsAction.request());
-
-    const { toast } = yield import('sonner');
-    toast.success(prompt.type === 'disabled' ? 'Account reactivated successfully!' : 'Account deletion cancelled!');
-  } catch (error: any) {
-    const message = getErrorMessage(error);
-    const { toast } = yield import('sonner');
-    toast.error(message || 'Failed to update account status. Please try again.');
-  } finally {
-    yield put(setAuthLoadingAction({ isLoading: false }));
-  }
-}
-
-function* handleDeclineAccountStatusPrompt(): Generator<any, void, any> {
-  try {
-    // Call logout API to clear server-side session while tokens are still set
-    yield call(logoutApi);
-  } catch {
-    // Ignore errors - we're clearing state anyway
-  }
-  // Clear stored refresh token
-  yield call([tokenStorage, 'clearRefreshToken']);
-  // Reset auth state completely (this clears tokens, user, and accountStatusPrompt)
-  yield put(logoutRequestAction.success());
-
-  // Clean up OAuth sessionStorage flags and redirect to login
-  // (GoogleOAuthCallback has no effect to handle "unauthenticated + no error" after code was processed)
-  try {
-    sessionStorage.removeItem('oauthContext');
-    sessionStorage.removeItem('oauthCodeProcessed');
-    sessionStorage.removeItem('oauthRedirected');
-  } catch { /* empty */ }
-  window.location.replace('/login');
 }
 
 function* handleCompleteTeamInvitation(action: ReturnType<typeof completeTeamInvitationAction.request>): Generator<any, void, any> {

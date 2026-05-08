@@ -66,12 +66,11 @@ export default function MarketplacePage() {
     useBusinessEmail: boolean;
     useBusinessPhone: boolean;
     useBusinessDescription: boolean;
-    allowOnlineBooking: boolean;
-    isVisible: boolean;
     industryTagIds?: number[];
   }) => {
     // Note: portfolioImages AND featured image are saved immediately on upload/delete/select,
     // not in the save payload anymore
+    // Note: per-location publicity / online-booking flags are toggled inline per location
     const payload: PublishMarketplaceListingPayload = {
       marketplaceName: data.marketplaceName,
       marketplaceEmail: data.marketplaceEmail,
@@ -84,8 +83,6 @@ export default function MarketplacePage() {
       showTeamMembers: true,
       showServices: true,
       showLocations: true,
-      allowOnlineBooking: data.allowOnlineBooking,
-      isVisible: data.isVisible,
       industryTagIds: data.industryTagIds,
     };
 
@@ -119,7 +116,6 @@ export default function MarketplacePage() {
             business={business}
             locationsWithAssignments={locationCatalog}
             isPublishing={isPublishing}
-            isVisible={listing.isVisible}
             isListed={listing.isListed}
             marketplaceName={listing.marketplaceName}
             marketplaceEmail={listing.marketplaceEmail}
@@ -129,9 +125,6 @@ export default function MarketplacePage() {
             useBusinessEmail={listing.useBusinessEmail}
             useBusinessPhone={listing.useBusinessPhone}
             useBusinessDescription={listing.useBusinessDescription}
-            allowOnlineBooking={listing.allowOnlineBooking}
-            featuredImage={listing.featuredImage}
-            portfolioImages={listing.portfolioImages}
             industries={industries}
             industryTags={industryTags}
             selectedIndustryTags={selectedIndustryTags}

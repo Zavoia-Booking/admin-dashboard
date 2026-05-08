@@ -5,8 +5,8 @@ import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
 import BusinessSelectorModal from './features/auth/components/BusinessSelectorModal'
-import AccountStatusPromptDialog from './features/auth/components/AccountStatusPromptDialog'
 import SeatOverflowGate from './features/teamMembers/components/SeatOverflowGate'
+import SeatOverflowDetector from './features/teamMembers/components/SeatOverflowDetector'
 import { SubscriptionBlocker } from './shared/components/common/subscription/SubscriptionBlocker'
 import PushListenersBootstrap from './features/push-notifications/PushListenersBootstrap'
 import SplashGate from './shared/components/splash/SplashGate'
@@ -116,7 +116,7 @@ function App() {
       <AccountLinkingModal />
       <BusinessSelectorModal />
       <AccountLinkingRequiredModal />
-      <AccountStatusPromptDialog />
+      <SeatOverflowDetector />
       <SeatOverflowGate />
       <SubscriptionBlocker />
       <PushListenersBootstrap />

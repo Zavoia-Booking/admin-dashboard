@@ -1,4 +1,4 @@
-import { Star, Info, Building2, Eye } from "lucide-react";
+import { Star, Info, Building2, Eye, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Card, CardContent } from "../../../shared/components/ui/card";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
@@ -7,11 +7,16 @@ import {
   AvatarImage,
   AvatarFallback,
 } from "../../../shared/components/ui/avatar";
-import type { ReviewStatsData, TeamMemberStats } from "../types";
+import { cn } from "../../../shared/lib/utils";
+import type { LocationStats, ReviewStatsData, TeamMemberStats } from "../types";
 
 interface ReviewStatsPanelProps {
   stats: ReviewStatsData | null;
   loading: boolean;
+  selectedLocationId: number | null;
+  selectedTeamMemberId: number | null;
+  onLocationClick: (locationId: number) => void;
+  onTeamMemberClick: (teamMemberId: number) => void;
 }
 
 function StarRow({
@@ -71,9 +76,11 @@ function RatingBar({
 function OverallRatingCard({
   rating,
   totalReviews,
+  locationCount,
 }: {
   rating: number | null;
   totalReviews: number;
+  locationCount: number;
 }) {
   const { t } = useTranslation("reviews");
   const hasReviews = totalReviews > 0;
@@ -102,12 +109,75 @@ function OverallRatingCard({
           <div className="flex flex-col gap-0.5 pb-0.5">
             <StarRow rating={rating} size="md" />
             <span className="text-[11px] text-foreground-3">
-              {t("stats.totalReviews", { count: totalReviews })}
+              {locationCount > 0
+                ? t("stats.totalReviewsAcrossLocations", {
+                    count: totalReviews,
+                    locations: locationCount,
+                  })
+                : t("stats.totalReviews", { count: totalReviews })}
             </span>
           </div>
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+function LocationRow({
+  location,
+  selected,
+  onClick,
+}: {
+  location: LocationStats;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  const { t } = useTranslation("reviews");
+  const hasReviews = location.totalReviews > 0;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
+        selected
+          ? "bg-primary/10 hover:bg-primary/15"
+          : "hover:bg-surface-hover",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center justify-center h-8 w-8 rounded-md shrink-0",
+          selected ? "bg-primary/20" : "bg-primary/10",
+        )}
+      >
+        <MapPin
+          className={cn(
+            "h-3.5 w-3.5",
+            selected ? "text-primary" : "text-primary/80",
+          )}
+        />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-foreground truncate leading-tight">
+          {location.name}
+        </p>
+        <p className="text-[11px] text-foreground-3 leading-tight">
+          {t("stats.totalReviews", { count: location.totalReviews })}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1 shrink-0">
+        <span className="text-sm font-bold text-foreground tabular-nums">
+          {hasReviews && location.averageRating !== null
+            ? location.averageRating.toFixed(1)
+            : "—"}
+        </span>
+        <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
+      </div>
+    </button>
   );
 }
 
@@ -166,12 +236,29 @@ function BusinessRatingCard({
   );
 }
 
-function TeamMemberRow({ member }: { member: TeamMemberStats }) {
+function TeamMemberRow({
+  member,
+  selected,
+  onClick,
+}: {
+  member: TeamMemberStats;
+  selected: boolean;
+  onClick: () => void;
+}) {
   const { t } = useTranslation("reviews");
   const hasReviews = member.totalReviews > 0;
 
   return (
-    <div className="flex items-center gap-2.5 px-3 py-2">
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors",
+        selected
+          ? "bg-primary/10 hover:bg-primary/15"
+          : "hover:bg-surface-hover",
+      )}
+    >
       <Avatar className="h-8 w-8 shrink-0">
         {member.profileImage && (
           <AvatarImage
@@ -200,11 +287,18 @@ function TeamMemberRow({ member }: { member: TeamMemberStats }) {
         </span>
         <Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" />
       </div>
-    </div>
+    </button>
   );
 }
 
-export function ReviewStatsPanel({ stats, loading }: ReviewStatsPanelProps) {
+export function ReviewStatsPanel({
+  stats,
+  loading,
+  selectedLocationId,
+  selectedTeamMemberId,
+  onLocationClick,
+  onTeamMemberClick,
+}: ReviewStatsPanelProps) {
   const { t } = useTranslation("reviews");
 
   if (loading) {
@@ -213,13 +307,15 @@ export function ReviewStatsPanel({ stats, loading }: ReviewStatsPanelProps) {
 
   if (!stats) return null;
 
-  const { overall, business, teamMembers } = stats;
+  const { overall, business, teamMembers, locations = [] } = stats;
+  const locationCount = locations.length;
 
   return (
     <div className="space-y-3">
       <OverallRatingCard
         rating={overall.averageRating}
         totalReviews={overall.totalReviews}
+        locationCount={locationCount}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -228,6 +324,26 @@ export function ReviewStatsPanel({ stats, loading }: ReviewStatsPanelProps) {
           totalReviews={business.totalReviews}
           ratingDistribution={business.ratingDistribution}
         />
+
+        {locations.length > 0 && (
+          <Card className="border-border bg-surface shadow-sm h-fit">
+            <CardContent className="p-0">
+              <h3 className="text-sm font-semibold text-foreground px-3.5 pt-3 pb-1.5">
+                {t("stats.locationsTitle")}
+              </h3>
+              <div className="max-h-[220px] overflow-y-auto divide-y divide-border">
+                {locations.map((loc) => (
+                  <LocationRow
+                    key={loc.locationId}
+                    location={loc}
+                    selected={selectedLocationId === loc.locationId}
+                    onClick={() => onLocationClick(loc.locationId)}
+                  />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {teamMembers.length > 0 && (
           <Card className="border-border bg-surface shadow-sm h-fit">
@@ -240,6 +356,8 @@ export function ReviewStatsPanel({ stats, loading }: ReviewStatsPanelProps) {
                   <TeamMemberRow
                     key={member.teamMemberId}
                     member={member}
+                    selected={selectedTeamMemberId === member.teamMemberId}
+                    onClick={() => onTeamMemberClick(member.teamMemberId)}
                   />
                 ))}
               </div>

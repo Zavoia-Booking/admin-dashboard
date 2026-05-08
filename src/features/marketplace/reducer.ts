@@ -15,7 +15,7 @@ const initialState: MarketplaceState = {
   industryTags: [],
   selectedIndustryTags: [],
   isPublishing: false,
-  isUpdatingVisibility: false,
+  updatingLocationFlags: [],
   // Booking settings
   bookingSettings: null,
   isSavingBookingSettings: false,
@@ -52,19 +52,47 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
     case getType(actions.publishMarketplaceListingAction.failure):
       return { ...state, isPublishing: false, error: action.payload.message };
 
-    case getType(actions.updateMarketplaceVisibilityAction.request):
-      return { ...state, isUpdatingVisibility: true, error: null };
-
-    case getType(actions.updateMarketplaceVisibilityAction.success):
+    case getType(actions.updateLocationMarketplaceFlagsAction.request):
       return {
         ...state,
-        isUpdatingVisibility: false,
-        listing: state.listing ? { ...state.listing, isVisible: action.payload.isVisible } : null,
+        updatingLocationFlags: state.updatingLocationFlags.includes(action.payload.locationId)
+          ? state.updatingLocationFlags
+          : [...state.updatingLocationFlags, action.payload.locationId],
         error: null,
       };
 
-    case getType(actions.updateMarketplaceVisibilityAction.failure):
-      return { ...state, isUpdatingVisibility: false, error: action.payload.message };
+    case getType(actions.updateLocationMarketplaceFlagsAction.success):
+      return {
+        ...state,
+        updatingLocationFlags: state.updatingLocationFlags.filter((id) => id !== action.payload.locationId),
+        locationCatalog: state.locationCatalog.map((loc) =>
+          loc.id === action.payload.locationId
+            ? { ...loc, isPublic: action.payload.isPublic, allowOnlineBooking: action.payload.allowOnlineBooking }
+            : loc,
+        ),
+        error: null,
+      };
+
+    case getType(actions.setLocationPortfolioAction):
+      return {
+        ...state,
+        locationCatalog: state.locationCatalog.map((loc) =>
+          loc.id === action.payload.locationId
+            ? {
+                ...loc,
+                portfolioImages: action.payload.portfolioImages,
+                featuredImage: action.payload.featuredImage,
+              }
+            : loc,
+        ),
+      };
+
+    case getType(actions.updateLocationMarketplaceFlagsAction.failure):
+      return {
+        ...state,
+        updatingLocationFlags: state.updatingLocationFlags.filter((id) => id !== action.payload.locationId),
+        error: action.payload.message,
+      };
 
     // Booking Settings
     case getType(actions.updateBookingSettingsAction.request):

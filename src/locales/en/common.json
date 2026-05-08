@@ -4,12 +4,16 @@
     "disabledTooltip": "This feature is not available on your current plan.",
     "blockedMessage": "This feature is not available on your current plan.",
     "bannerMessage": "Limited access: Some features are unavailable on your current plan.",
+    "blockerEyebrowOwner": "Subscription · Expired",
+    "blockerEyebrowMember": "Access · Limited",
     "blockerOwnerTitle": "Your subscription has ended",
     "blockerOwnerDescription": "Renew your subscription to regain full access to your dashboard and continue managing your business.",
-    "blockerOwnerCta": "Go to Billing",
+    "blockerOwnerCta": "Renew subscription",
+    "blockerOwnerSecondaryCta": "Go to account",
     "blockerMemberTitle": "Limited access",
     "blockerMemberDescription": "Your business administrator needs to renew the subscription. Please contact them to restore access.",
     "blockerMemberCta": "Contact support",
+    "blockerMemberSecondaryCta": "Go to my account",
     "blockerSignOut": "Sign out"
   },
   "remoteLocation": {

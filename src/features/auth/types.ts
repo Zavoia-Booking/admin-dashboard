@@ -63,10 +63,7 @@ export type AuthUser = {
   reason?: string;
   unreadNotificationsCount?: number;
   // Account management fields
-  accountStatus?: 'active' | 'pending_acceptance' | 'disabled';
-  deletionScheduledAt?: string | null;
-  accountDisabled?: boolean;
-  accountScheduledForDeletion?: boolean;
+  accountStatus?: 'active' | 'pending_acceptance';
 };
 
 export type AuthResponse = {
@@ -76,9 +73,6 @@ export type AuthResponse = {
   csrfToken: string;
   refreshToken?: string; // Returned for native apps
   isNewUser?: boolean; // Returned by unified Google OAuth endpoint
-  // Account status flags (present when account is disabled or scheduled for deletion)
-  accountDisabled?: boolean;
-  accountScheduledForDeletion?: boolean;
 };
 
 export enum AuthStatusEnum {
@@ -141,10 +135,6 @@ export interface AuthState {
     email: string;
   } | null;
   teamInvitationError?: string | null;
-  // Account status prompt (shown during login when account is disabled or scheduled for deletion)
-  accountStatusPrompt?: {
-    type: 'disabled' | 'scheduled_for_deletion';
-  } | null;
 }
 
 export type CheckTeamInvitationResponse = {
@@ -176,23 +166,13 @@ export type CompleteTeamInvitationResponse = {
 // Account management types
 export type AccountActionResponse = {
   message: string;
-  ok: boolean;
-  deletionScheduledAt?: string; // Only returned for schedule deletion
-};
-
-export type AccountBlocker = {
-  messageCode: string;
-  code: string;
-  details: Record<string, unknown>;
+  businessDeleted?: boolean;
+  userDeleted?: boolean;
 };
 
 export type AccountActionError = {
   statusCode: number;
   message: string;
-  code?: 'needs_to_remove_team_members' | 'must_leave_all_organisations' | 'account_has_blockers';
-  details?: {
-    teamMemberCount?: number;
-    organisationCount?: number;
-    blockers?: AccountBlocker[];
-  };
+  code?: 'has_active_subscription';
+  details?: Record<string, unknown>;
 };

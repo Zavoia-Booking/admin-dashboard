@@ -26,6 +26,21 @@ import {
 import { Skeleton } from '../../../shared/components/ui/skeleton';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../../../shared/components/ui/dialog';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from '../../../shared/components/ui/drawer';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
@@ -1579,6 +1594,8 @@ const HistoryCard = ({
   currency: string;
 }) => {
   const { t } = useTranslation('settings');
+  const isMobile = useIsMobile();
+  const [seeMoreOpen, setSeeMoreOpen] = useState(false);
 
   const summary = useMemo(() => {
     const total = invoices.reduce((acc, inv) => acc + (inv.amountMinor || 0), 0);
@@ -1625,6 +1642,57 @@ const HistoryCard = ({
     );
   }
 
+  const renderInvoiceRow = (inv: BusinessInvoice) => (
+    <div key={inv.id} className="bv2-hist-row">
+      <div className="bv2-hist-icon">{iconFor(inv)}</div>
+      <div className="bv2-hist-mid">
+        <div className="bv2-l1">{labelFor(inv)}</div>
+        <div className="bv2-l2">
+          <span>{formatDate(inv.createdAt)}</span>
+          {inv.status === 'failed' ? (
+            <span
+              className="bv2-pill bv2-pill-warn bv2-pill-paid"
+              title={t('billing.v2.history.statusFailedHint')}
+            >
+              <span className="bv2-dot" />
+              {t('billing.v2.history.statusFailed')}
+            </span>
+          ) : (
+            <span className="bv2-pill bv2-pill-good bv2-pill-paid">
+              <span className="bv2-dot" />
+              {t('billing.v2.history.statusPaid')}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="bv2-hist-amt">
+        {formatPriceMinor(inv.amountMinor, inv.currency || currency)}
+      </div>
+      <div className="flex items-center gap-1">
+        {inv.oblioLink && (
+          <a
+            href={inv.oblioLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={t('billing.v2.history.download')}
+            className="bv2-hist-dl"
+          >
+            <Download className="h-3 w-3" />
+          </a>
+        )}
+      </div>
+    </div>
+  );
+
+  const visibleInvoices = invoices.slice(0, 3);
+  const hasMore = invoices.length > visibleInvoices.length;
+
+  const allInvoicesContent = (
+    <div className="bv2-hist-all">
+      {invoices.map((inv) => renderInvoiceRow(inv))}
+    </div>
+  );
+
   return (
     <Card>
       <CardContent>
@@ -1660,49 +1728,51 @@ const HistoryCard = ({
                 </div>
               </div>
             </div>
-            <div>
-              {invoices.map((inv) => (
-                <div key={inv.id} className="bv2-hist-row">
-                  <div className="bv2-hist-icon">{iconFor(inv)}</div>
-                  <div className="bv2-hist-mid">
-                    <div className="bv2-l1">{labelFor(inv)}</div>
-                    <div className="bv2-l2">
-                      <span>{formatDate(inv.createdAt)}</span>
-                      {inv.status === 'failed' ? (
-                        <span
-                          className="bv2-pill bv2-pill-warn bv2-pill-paid"
-                          title={t('billing.v2.history.statusFailedHint')}
-                        >
-                          <span className="bv2-dot" />
-                          {t('billing.v2.history.statusFailed')}
-                        </span>
-                      ) : (
-                        <span className="bv2-pill bv2-pill-good bv2-pill-paid">
-                          <span className="bv2-dot" />
-                          {t('billing.v2.history.statusPaid')}
-                        </span>
-                      )}
-                    </div>
+            <div>{visibleInvoices.map((inv) => renderInvoiceRow(inv))}</div>
+            {hasMore && (
+              <div className="bv2-hist-more">
+                <Button
+                  type="button"
+                  variant="outline"
+                  rounded="full"
+                  size="sm"
+                  onClick={() => setSeeMoreOpen(true)}
+                  className="bv2-btn-compact"
+                >
+                  {t('billing.v2.history.seeMore')}
+                </Button>
+              </div>
+            )}
+
+            {isMobile ? (
+              <Drawer open={seeMoreOpen} onOpenChange={setSeeMoreOpen}>
+                <DrawerContent className="outline-none !z-[80] !bg-white dark:!bg-surface">
+                  <DrawerHeader className="text-left">
+                    <DrawerTitle>{t('billing.v2.history.allInvoices')}</DrawerTitle>
+                    <DrawerDescription>
+                      {t('billing.v2.history.allInvoicesDescription')}
+                    </DrawerDescription>
+                  </DrawerHeader>
+                  <div className="px-4 pb-6 max-h-[70vh] overflow-y-auto">
+                    {allInvoicesContent}
                   </div>
-                  <div className="bv2-hist-amt">
-                    {formatPriceMinor(inv.amountMinor, inv.currency || currency)}
+                </DrawerContent>
+              </Drawer>
+            ) : (
+              <Dialog open={seeMoreOpen} onOpenChange={setSeeMoreOpen}>
+                <DialogContent className="max-w-xl">
+                  <DialogHeader>
+                    <DialogTitle>{t('billing.v2.history.allInvoices')}</DialogTitle>
+                    <DialogDescription>
+                      {t('billing.v2.history.allInvoicesDescription')}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="max-h-[60vh] overflow-y-auto pr-1">
+                    {allInvoicesContent}
                   </div>
-                  <div className="flex items-center gap-1">
-                    {inv.oblioLink && (
-                      <a
-                        href={inv.oblioLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={t('billing.v2.history.download')}
-                        className="bv2-hist-dl"
-                      >
-                        <Download className="h-3 w-3" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </>
         )}
       </CardContent>
@@ -2118,7 +2188,7 @@ const Bv2InvoiceDetailsCard = () => {
             <span className="bv2-field-label">
               {t('billing.invoiceDetails.entityTypeLabel')}
             </span>
-            <div className="inline-flex rounded-full border border-border bg-surface-hover p-0.5 self-start">
+            <div className="bv2-entity-segments inline-flex rounded-full border border-border bg-surface-hover p-0.5 self-start">
               {(['company', 'person'] as const).map((opt) => {
                 const active = form.billingEntityType === opt;
                 return (

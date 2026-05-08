@@ -15,17 +15,13 @@ export interface PortfolioImageData {
 export interface MarketplaceListing {
   businessId: number;
   isListed: boolean;
-  isVisible: boolean; // Controls marketplace visibility to users
   showTeamMembers: boolean;
   showServices: boolean;
   showLocations: boolean;
-  allowOnlineBooking: boolean;
-  portfolioImages: PortfolioImageData[] | null;
   marketplaceName?: string | null; // Custom name for marketplace
   marketplaceEmail?: string | null; // Public contact email
   marketplacePhone?: string | null; // Public contact phone
   marketplaceDescription?: string | null; // Business description
-  featuredImage?: string | null; // Featured image URL
   useBusinessName?: boolean; // Use business name or custom
   useBusinessEmail?: boolean; // Use business email or custom
   useBusinessPhone?: boolean; // Use business phone or custom
@@ -59,6 +55,8 @@ export interface Location {
   timezone: string;
   workingHours: any;
   open247: boolean;
+  isPublic: boolean;
+  allowOnlineBooking: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -114,6 +112,8 @@ export interface LocationWithAssignments extends Location {
   services: Service[];
   bundles?: MarketplaceBundle[];
   teamMembers: TeamMember[];
+  portfolioImages: PortfolioImageData[];
+  featuredImage: string | null;
 }
 
 export interface MarketplaceListingResponse {
@@ -136,15 +136,14 @@ export interface PublishMarketplaceListingPayload {
   showTeamMembers?: boolean;
   showServices?: boolean;
   showLocations?: boolean;
-  allowOnlineBooking?: boolean;
-  isVisible?: boolean;
   useBusinessName?: boolean;
   useBusinessEmail?: boolean;
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
   industryTagIds?: number[];
-  // Note: Assignments are managed in the Assignments flow
-  // Note: Portfolio images AND featured image are saved immediately on change, not on Save
+  // Note: Per-location publicity and online-booking flags are toggled inline per location, not in this payload.
+  // Note: Assignments are managed in the Assignments flow.
+  // Note: Portfolio images AND featured image are saved immediately on change, not on Save.
 }
 
 // Booking settings for marketplace
@@ -185,7 +184,8 @@ export interface MarketplaceState {
   industryTags: IndustryTag[];
   selectedIndustryTags: IndustryTag[];
   isPublishing: boolean;
-  isUpdatingVisibility: boolean;
+  // Per-location flag updates in flight (location IDs)
+  updatingLocationFlags: number[];
   // Booking settings
   bookingSettings: BookingSettings | null;
   isSavingBookingSettings: boolean;

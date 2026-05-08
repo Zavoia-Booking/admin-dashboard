@@ -12,19 +12,17 @@ import { Card, CardContent } from "../../../shared/components/ui/card";
 import type {
   Business,
   LocationWithAssignments,
-  PortfolioImageData,
 } from "../types";
 import { MarketplaceImagesSection } from "./MarketplaceImagesSection";
+import { PortfolioLocationSelector } from "./PortfolioLocationSelector";
 import { SectionDivider } from "../../../shared/components/common/SectionDivider";
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
 
 // Profile Tab Components
-import { VisibilityToggleCard } from "./profile/VisibilityToggleCard";
-import { BookingToggleCard } from "./profile/BookingToggleCard";
 import { MarketplaceDetailsSection } from "./profile/MarketplaceDetailsSection";
-import { LocationCatalogSection } from "./profile/LocationCatalogSection";
+import { LocationVisibilitySection } from "./profile/LocationVisibilitySection";
 import IndustrySection from "./profile/IndustrySection.tsx";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
@@ -34,7 +32,6 @@ interface ListingConfigurationViewProps {
   business: Business | null;
   locationsWithAssignments: LocationWithAssignments[];
   isPublishing: boolean;
-  isVisible: boolean;
   isListed: boolean;
   marketplaceName?: string | null;
   marketplaceEmail?: string | null;
@@ -44,9 +41,6 @@ interface ListingConfigurationViewProps {
   useBusinessEmail?: boolean;
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
-  allowOnlineBooking: boolean;
-  featuredImage?: string | null;
-  portfolioImages?: PortfolioImageData[] | null;
   industries: any[];
   industryTags: any[];
   selectedIndustryTags: any[];
@@ -81,6 +75,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
   const canWrite = useCanWrite();
 
+  // Per-location portfolio selection (persisted by PortfolioLocationSelector)
+  const [selectedPortfolioLocationId, setSelectedPortfolioLocationId] = useState<number | null>(null);
+
   // Should we show the global save/publish button?
   // We hide it on the portfolio tab if the listing is already published (isListed = true)
   // because portfolio changes are instant. We keep it if it's the initial "Publish" flow.
@@ -111,10 +108,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     useBusinessEmail: props.useBusinessEmail ?? true,
     useBusinessPhone: props.useBusinessPhone ?? true,
     useBusinessDescription: props.useBusinessDescription ?? true,
-    allowOnlineBooking: props.allowOnlineBooking,
-    isVisible: props.isVisible,
-    featuredImage: props.featuredImage,
-    portfolioImages: props.portfolioImages,
+    selectedLocationId: selectedPortfolioLocationId,
+    locationsWithAssignments,
     selectedIndustryTags: props.selectedIndustryTags,
     onSave: props.onSave,
   });
@@ -296,23 +291,13 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
           >
           <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-white dark:sm:bg-surface overflow-hidden">
             <CardContent className="p-0 sm:p-4 space-y-10">
-              {/* Visibility & Booking Section */}
+              {/* Visibility & Appointments Section (per location) */}
               <div className="px-0 space-y-6">
                 <SectionDivider
                   title={t("configuration.sections.visibilityAndAppointments")}
                   className="mt-4 uppercase tracking-wider text-foreground-2"
                 />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <VisibilityToggleCard
-                    isVisible={form.isVisible}
-                    onToggleVisibility={form.setIsVisible}
-                    isUpdatingVisibility={isPublishing}
-                  />
-                  <BookingToggleCard
-                    onlineBooking={form.onlineBooking}
-                    setOnlineBooking={form.setOnlineBooking}
-                  />
-                </div>
+                <LocationVisibilitySection locations={locationsWithAssignments} />
               </div>
 
               {/* Marketplace Details Section */}
@@ -348,9 +333,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
                 onTagsChange={form.setSelectedIndustryTags}
                 error={form.industryTagsError || undefined}
               />
-
-              {/* Location Catalog Section */}
-              <LocationCatalogSection locations={locationsWithAssignments} />
             </CardContent>
           </Card>
           </div>
@@ -360,11 +342,19 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "portfolio",
       label: t("configuration.tabs.portfolio"),
-      showBadge: form.portfolio.length === 0,
+      showBadge: !form.hasAnyPortfolioImage,
       content: (
         <div className="space-y-6">
           <LimitedAccessBanner className="!px-0 !pt-0" />
+          <div className="max-w-5xl">
+            <PortfolioLocationSelector
+              locations={locationsWithAssignments}
+              selectedLocationId={selectedPortfolioLocationId}
+              onSelect={setSelectedPortfolioLocationId}
+            />
+          </div>
           <MarketplaceImagesSection
+            locationId={selectedPortfolioLocationId}
             featuredImageId={form.featuredImageId}
             portfolioImages={form.portfolio}
             onFeaturedImageChange={form.setFeaturedImageId}
@@ -403,7 +393,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         isPublishing ||
         !isCombinedDirty ||
         form.hasValidationErrors ||
-        form.portfolio.length === 0 ||
+        !form.hasAnyPortfolioImage ||
         form.selectedIndustryTags.length === 0
       }
     >

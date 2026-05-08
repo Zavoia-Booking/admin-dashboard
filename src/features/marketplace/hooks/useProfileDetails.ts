@@ -12,8 +12,6 @@ interface UseProfileDetailsProps {
   useBusinessEmail: boolean;
   useBusinessPhone: boolean;
   useBusinessDescription: boolean;
-  allowOnlineBooking: boolean;
-  isVisible: boolean;
   selectedIndustryTags: { id: number; name: string }[];
 }
 
@@ -27,22 +25,18 @@ export function useProfileDetails({
   useBusinessEmail: initialUseBusinessEmail,
   useBusinessPhone: initialUseBusinessPhone,
   useBusinessDescription: initialUseBusinessDescription,
-  allowOnlineBooking: initialAllowOnlineBooking,
-  isVisible: initialIsVisible,
   selectedIndustryTags: initialSelectedIndustryTags,
 }: UseProfileDetailsProps) {
   const [useBusinessName, setUseBusinessName] = useState<boolean>(initialUseBusinessName);
   const [useBusinessEmail, setUseBusinessEmail] = useState<boolean>(initialUseBusinessEmail);
   const [useBusinessPhone, setUseBusinessPhone] = useState<boolean>(initialUseBusinessPhone);
   const [useBusinessDescription, setUseBusinessDescription] = useState<boolean>(initialUseBusinessDescription);
-  
+
   const [name, setName] = useState<string>(marketplaceName || business?.name || '');
   const [email, setEmail] = useState<string>(marketplaceEmail || business?.email || '');
   const [phone, setPhone] = useState<string>(marketplacePhone || business?.phone || '');
   const [description, setDescription] = useState<string>(marketplaceDescription || business?.description || '');
-  
-  const [onlineBooking, setOnlineBooking] = useState<boolean>(initialAllowOnlineBooking);
-  const [isVisible, setIsVisible] = useState<boolean>(initialIsVisible);
+
   const [selectedIndustryTags, setSelectedIndustryTags] = useState<{ id: number; name: string }[]>(initialSelectedIndustryTags);
 
   // Validation state
@@ -123,8 +117,6 @@ export function useProfileDetails({
     setEmail(marketplaceEmail || business?.email || '');
     setPhone(marketplacePhone || business?.phone || '');
     setDescription(marketplaceDescription || business?.description || '');
-    setOnlineBooking(initialAllowOnlineBooking);
-    setIsVisible(initialIsVisible);
     setSelectedIndustryTags(initialSelectedIndustryTags);
   }, [
     initialUseBusinessName,
@@ -139,8 +131,6 @@ export function useProfileDetails({
     business?.email,
     business?.phone,
     business?.description,
-    initialAllowOnlineBooking,
-    initialIsVisible,
     initialSelectedIndustryTags,
   ]);
 
@@ -155,8 +145,6 @@ export function useProfileDetails({
       email !== (marketplaceEmail || business?.email || '') ||
       phone !== (marketplacePhone || business?.phone || '') ||
       description !== (marketplaceDescription || business?.description || '') ||
-      onlineBooking !== initialAllowOnlineBooking ||
-      isVisible !== initialIsVisible ||
       JSON.stringify(selectedIndustryTags.map(t => t.id).sort()) !== JSON.stringify(initialSelectedIndustryTags.map(t => t.id).sort())
     );
   }, [
@@ -168,8 +156,6 @@ export function useProfileDetails({
     email, marketplaceEmail, business?.email,
     phone, marketplacePhone, business?.phone,
     description, marketplaceDescription, business?.description,
-    onlineBooking, initialAllowOnlineBooking,
-    isVisible, initialIsVisible,
     selectedIndustryTags, initialSelectedIndustryTags
   ]);
 
@@ -258,8 +244,6 @@ export function useProfileDetails({
     email,
     phone,
     description,
-    onlineBooking,
-    isVisible,
     selectedIndustryTags,
     isDirty,
     nameError,
@@ -277,8 +261,6 @@ export function useProfileDetails({
     setEmail: handleEmailChange,
     setPhone: handlePhoneChange,
     setDescription,
-    setOnlineBooking,
-    setIsVisible,
     setSelectedIndustryTags,
     validateBeforeSave,
   };

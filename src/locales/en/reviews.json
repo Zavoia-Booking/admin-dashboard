@@ -13,8 +13,11 @@
     "overallBadge": "Visible to clients",
     "businessTitle": "Business Reviews",
     "teamTitle": "Team Members",
+    "locationsTitle": "Locations",
     "noRating": "No rating yet",
-    "infoText": "Your public rating is the combined average of business reviews and all team member reviews. This is the score your clients see on your profile."
+    "totalReviewsAcrossLocations_one": "{{count}} review across {{locations}} location",
+    "totalReviewsAcrossLocations_other": "{{count}} reviews across {{locations}} locations",
+    "infoText": "Your public rating is the combined average of all location and team member reviews. This is the score your clients see on your profile."
   },
   "subTabs": {
     "business": "Business Reviews",
@@ -23,7 +26,11 @@
   "filters": {
     "allTeamMembers": "All Team Members",
     "newest": "Newest",
-    "oldest": "Oldest"
+    "oldest": "Oldest",
+    "clearLocation": "Clear location filter",
+    "clearTeamMember": "Clear team member filter",
+    "clearRating": "Clear rating filter",
+    "clearAll": "Clear all"
   },
   "card": {
     "reviewFor": "Review for"

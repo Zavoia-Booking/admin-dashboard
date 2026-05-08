@@ -10,7 +10,7 @@ export const selectMarketplaceIndustries = (state: RootState) => state.marketpla
 export const selectMarketplaceIndustryTags = (state: RootState) => state.marketplace.industryTags;
 export const selectMarketplaceSelectedIndustryTags = (state: RootState) => state.marketplace.selectedIndustryTags;
 export const selectMarketplacePublishing = (state: RootState) => state.marketplace.isPublishing;
-export const selectMarketplaceUpdatingVisibility = (state: RootState) => state.marketplace.isUpdatingVisibility;
+export const selectUpdatingLocationFlags = (state: RootState) => state.marketplace.updatingLocationFlags;
 
 // Booking Settings selectors
 export const selectBookingSettings = (state: RootState) => state.marketplace.bookingSettings;

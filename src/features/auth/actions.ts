@@ -165,19 +165,3 @@ export const completeTeamInvitationAction = createAsyncAction(
   'auth/COMPLETE_TEAM_INVITATION_FAILURE',
 )<CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, { message: string }>();
 
-// Account status prompt actions (disabled / scheduled for deletion at login)
-export const showAccountStatusPromptAction = createAction(
-  'auth/SHOW_ACCOUNT_STATUS_PROMPT',
-)<{ type: 'disabled' | 'scheduled_for_deletion' }>();
-
-export const acceptAccountStatusPromptAction = createAction(
-  'auth/ACCEPT_ACCOUNT_STATUS_PROMPT',
-)<void>();
-
-export const declineAccountStatusPromptAction = createAction(
-  'auth/DECLINE_ACCOUNT_STATUS_PROMPT',
-)<void>();
-
-export const clearAccountStatusPromptAction = createAction(
-  'auth/CLEAR_ACCOUNT_STATUS_PROMPT',
-)<void>();

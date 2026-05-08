@@ -80,8 +80,8 @@
       "legal_cookies": "Cookies Policy"
     },
     "advancedSettings": {
-      "title": "Advanced Settings",
-      "description": "Disable or delete your account"
+      "title": "Delete Account",
+      "description": "Permanently delete your account."
     },
     "toast": {
       "invalidImage": "Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)",
@@ -274,6 +274,10 @@
         "statusPaid": "Paid",
         "statusFailed": "Invoice pending",
         "statusFailedHint": "Payment received, but the fiscal invoice could not be generated yet. Our team has been notified — contact support if you need it urgently.",
+        "seeMore": "See all invoices",
+        "allInvoices": "All invoices",
+        "allInvoicesDescription": "Browse every invoice in your account.",
+        "close": "Close",
         "empty": {
           "title": "No invoices yet",
           "body": "Once you're charged, invoices appear here. PDF copies also go to your email."

@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { Business, PortfolioImageData } from '../types';
+import type { Business, LocationWithAssignments } from '../types';
 import { useProfileDetails } from './useProfileDetails';
 import { usePortfolioManagement } from './usePortfolioManagement';
 
@@ -13,10 +13,8 @@ interface UseMarketplaceFormProps {
   useBusinessEmail: boolean;
   useBusinessPhone: boolean;
   useBusinessDescription: boolean;
-  allowOnlineBooking: boolean;
-  isVisible: boolean;
-  featuredImage?: string | null;
-  portfolioImages?: PortfolioImageData[] | null;
+  selectedLocationId: number | null;
+  locationsWithAssignments: LocationWithAssignments[];
   selectedIndustryTags: { id: number; name: string }[];
   onSave: (data: any) => void;
 }
@@ -31,15 +29,12 @@ export function useMarketplaceForm({
   useBusinessEmail: initialUseBusinessEmail,
   useBusinessPhone: initialUseBusinessPhone,
   useBusinessDescription: initialUseBusinessDescription,
-  allowOnlineBooking,
-  isVisible: initialIsVisible,
-  featuredImage,
-  portfolioImages,
+  selectedLocationId,
+  locationsWithAssignments,
   selectedIndustryTags: initialSelectedIndustryTags,
   onSave,
 }: UseMarketplaceFormProps) {
 
-  // Use focused hooks
   const profile = useProfileDetails({
     business,
     marketplaceName,
@@ -50,32 +45,28 @@ export function useMarketplaceForm({
     useBusinessEmail: initialUseBusinessEmail,
     useBusinessPhone: initialUseBusinessPhone,
     useBusinessDescription: initialUseBusinessDescription,
-    allowOnlineBooking,
-    isVisible: initialIsVisible,
     selectedIndustryTags: initialSelectedIndustryTags,
   });
 
   const portfolio = usePortfolioManagement({
-    featuredImage,
-    portfolioImages,
+    locationId: selectedLocationId,
+    locationsWithAssignments,
   });
 
-  // Combined dirty state
+  // True if at least one location has any portfolio image — required for publish.
+  const hasAnyPortfolioImage = useMemo(
+    () => locationsWithAssignments.some((l) => (l.portfolioImages || []).length > 0),
+    [locationsWithAssignments],
+  );
+
   const isDirty = useMemo(() => {
     return profile.isDirty || portfolio.isDirty;
   }, [profile.isDirty, portfolio.isDirty]);
 
-  // Save handler with validation
   const handleSave = useCallback(() => {
-    // Validate profile details
     const isProfileValid = profile.validateBeforeSave();
+    if (!isProfileValid) return;
 
-    if (!isProfileValid) {
-      return;
-    }
-
-    // Compose data from all hooks
-    // Note: portfolioImages AND featured image are saved immediately on change, not here
     onSave({
       marketplaceName: profile.useBusinessName ? (business?.name || '') : profile.name,
       marketplaceEmail: profile.useBusinessEmail ? (business?.email || '') : profile.email,
@@ -85,17 +76,10 @@ export function useMarketplaceForm({
       useBusinessEmail: profile.useBusinessEmail,
       useBusinessPhone: profile.useBusinessPhone,
       useBusinessDescription: profile.useBusinessDescription,
-      allowOnlineBooking: profile.onlineBooking,
-      isVisible: profile.isVisible,
-      industryTagIds: profile.selectedIndustryTags.map(tag => tag.id),
+      industryTagIds: profile.selectedIndustryTags.map((tag) => tag.id),
     });
-  }, [
-    profile,
-    business,
-    onSave,
-  ]);
+  }, [profile, business, onSave]);
 
-  // Flatten and return all state/methods for compatibility
   return {
     // Profile state
     useBusinessName: profile.useBusinessName,
@@ -106,8 +90,6 @@ export function useMarketplaceForm({
     email: profile.email,
     phone: profile.phone,
     description: profile.description,
-    onlineBooking: profile.onlineBooking,
-    isVisible: profile.isVisible,
     selectedIndustryTags: profile.selectedIndustryTags,
     nameError: profile.nameError,
     emailError: profile.emailError,
@@ -115,15 +97,14 @@ export function useMarketplaceForm({
     descriptionError: profile.descriptionError,
     industryTagsError: profile.industryTagsError,
     hasValidationErrors: profile.hasValidationErrors,
-    
-    // Portfolio state
+
+    // Portfolio (per active location)
     featuredImageId: portfolio.featuredImageId,
     portfolio: portfolio.portfolio,
-    
-    // Combined state
+    hasAnyPortfolioImage,
+
     isDirty,
-    
-    // Profile setters
+
     setUseBusinessName: profile.setUseBusinessName,
     setUseBusinessEmail: profile.setUseBusinessEmail,
     setUseBusinessPhone: profile.setUseBusinessPhone,
@@ -132,15 +113,11 @@ export function useMarketplaceForm({
     setEmail: profile.setEmail,
     setPhone: profile.setPhone,
     setDescription: profile.setDescription,
-    setOnlineBooking: profile.setOnlineBooking,
-    setIsVisible: profile.setIsVisible,
     setSelectedIndustryTags: profile.setSelectedIndustryTags,
-    
-    // Portfolio setters
+
     setFeaturedImageId: portfolio.setFeaturedImageId,
     setPortfolio: portfolio.setPortfolio,
-    
-    // Actions
+
     handleSave,
   };
 }

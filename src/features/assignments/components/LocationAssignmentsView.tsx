@@ -41,6 +41,8 @@ import {
 import { listLocationsAction } from "../../locations/actions";
 import { selectCurrentUser } from "../../auth/selectors";
 import { fetchCurrentUserAction } from "../../auth/actions";
+import { getLocationUnassignPreviewApi } from "../../teamMembers/api";
+import { openReconciliationAction } from "../../reconciliation/actions";
 import type { LocationType } from "../../../shared/types/location";
 import type { StaffService } from "../types";
 
@@ -361,13 +363,34 @@ export function LocationAssignmentsView() {
 
   // Save team member toggle directly to backend
   const handleSaveTeamMemberToggle = useCallback(
-    (userId: number, enabled: boolean) => {
+    async (userId: number, enabled: boolean) => {
       if (!selectedLocationId || !selectedLocation) return;
 
       // If any switch is already saving, ignore (all switches are disabled in UI)
       // Check both state and saveOperation to catch rapid clicks
       if (savingTeamMemberIds.size > 0 || saveOperation === "teamMembers") {
         return;
+      }
+
+      // Unassign path: check whether the member has appointments at this location.
+      // If yes → open the reconciliation modal in unassign_from_location mode and
+      // bail out of the direct toggle. If no → proceed with the existing fast path.
+      if (!enabled) {
+        try {
+          const preview = await getLocationUnassignPreviewApi(userId, selectedLocationId);
+          if (preview.appointments && preview.appointments.length > 0) {
+            dispatch(
+              openReconciliationAction({
+                mode: 'unassign_from_location',
+                userId,
+                locationId: selectedLocationId,
+              }),
+            );
+            return;
+          }
+        } catch {
+          // Preview failed → fall through to legacy fast path.
+        }
       }
 
       // Calculate new member IDs from current Redux state

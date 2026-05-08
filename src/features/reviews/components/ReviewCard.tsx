@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star, MapPin } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
   Avatar,
@@ -89,6 +89,13 @@ export function BusinessReviewCard({ review }: BusinessReviewCardProps) {
             {review.comment}
           </p>
         )}
+
+        {review.location && (
+          <div className="inline-flex items-center gap-1 text-[11px] text-foreground-3 mt-1">
+            <MapPin className="h-3 w-3" />
+            <span>{review.location.name}</span>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -140,8 +147,8 @@ export function TeamMemberReviewCard({ review }: TeamMemberReviewCardProps) {
           </p>
         )}
 
-        {/* Team member attribution */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+        {/* Team member + location attribution */}
+        <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-border/50">
           <Avatar className="h-5 w-5">
             {review.professional.profileImage && (
               <AvatarImage
@@ -159,6 +166,12 @@ export function TeamMemberReviewCard({ review }: TeamMemberReviewCardProps) {
               {review.professional.firstName} {review.professional.lastName}
             </span>
           </span>
+          {review.location && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-foreground-3">
+              <MapPin className="h-3 w-3" />
+              {review.location.name}
+            </span>
+          )}
         </div>
       </div>
     </div>

@@ -107,22 +107,7 @@ export const changeOwnerPasswordApi = async (payload: { currentPassword: string;
 };
 
 // Account management APIs
-export const deactivateAccountApi = async (): Promise<AccountActionResponse> => {
-    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/deactivate`);
-    return data;
-};
-
-export const reactivateAccountApi = async (): Promise<AccountActionResponse> => {
-    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/reactivate`);
-    return data;
-};
-
-export const scheduleAccountDeletionApi = async (): Promise<AccountActionResponse> => {
+export const deleteAccountApi = async (): Promise<AccountActionResponse> => {
     const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/delete`);
-    return data;
-};
-
-export const cancelAccountDeletionApi = async (): Promise<AccountActionResponse> => {
-    const { data } = await apiClient().post<AccountActionResponse>(`/auth/account/cancel-delete`);
     return data;
 };

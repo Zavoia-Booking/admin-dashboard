@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mail, Phone, Check, Loader2, Calendar, MapPin, User, Info } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -9,8 +9,10 @@ import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { TeamMember, TeamMemberAppointment } from '../../../shared/types/team-member';
 import { UserRole } from '../../../shared/types/auth';
-import { deleteTeamMemberAction, fetchTeamMemberByIdAction } from '../actions';
-import { selectIsDeleting, selectDeleteResponse, selectCurrentTeamMember, selectIsFetchingTeamMember } from '../selectors';
+import { deleteTeamMemberAction, fetchTeamMemberByIdAction, offboardTeamMemberAction } from '../actions';
+import { selectIsDeleting, selectDeleteResponse, selectCurrentTeamMember, selectIsFetchingTeamMember, selectIsOffboarding, selectOffboardError } from '../selectors';
+import { getOffboardPreviewApi } from '../api';
+import { openReconciliationAction } from '../../reconciliation/actions';
 import { DeleteConfirmDialog } from '../../../shared/components/common/DeleteConfirmDialog';
 import { AssignmentsCard } from '../../../shared/components/common/AssignmentsCard';
 import type { DeleteResponse } from '../../../shared/types/delete-response';
@@ -30,6 +32,8 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const isDeleting = useSelector(selectIsDeleting) as boolean;
+  const isOffboarding = useSelector(selectIsOffboarding) as boolean;
+  const offboardError = useSelector(selectOffboardError) as string | null;
   const deleteResponseFromState = useSelector(selectDeleteResponse);
   const currentTeamMember = useSelector(selectCurrentTeamMember) as TeamMember | null;
   const isFetchingTeamMember = useSelector(selectIsFetchingTeamMember) as boolean;
@@ -37,7 +41,9 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleteResponse, setDeleteResponse] = useState<DeleteResponse | null>(null);
   const [hasAttemptedDelete, setHasAttemptedDelete] = useState(false);
+  const [hasAttemptedOffboard, setHasAttemptedOffboard] = useState(false);
   const [localTeamMember, setLocalTeamMember] = useState<TeamMember | null>(null);
+  const wasOffboardingRef = useRef(false);
 
   // Fetch team member by ID when slider opens
   useEffect(() => {
@@ -61,6 +67,26 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
       }
     }
   }, [deleteResponseFromState, hasAttemptedDelete, onClose]);
+
+  // Close slider after a successful offboard (new flow). Mirrors the legacy delete effect above
+  // but for the offboard action chain (direct empty-actions path OR completion via reconciliation modal).
+  useEffect(() => {
+    if (isOffboarding) {
+      wasOffboardingRef.current = true;
+      return;
+    }
+    if (wasOffboardingRef.current && !isOffboarding && hasAttemptedOffboard) {
+      wasOffboardingRef.current = false;
+      if (!offboardError) {
+        setShowDeleteDialog(false);
+        setDeleteResponse(null);
+        setHasAttemptedOffboard(false);
+        onClose();
+      } else {
+        setHasAttemptedOffboard(false);
+      }
+    }
+  }, [isOffboarding, offboardError, hasAttemptedOffboard, onClose]);
 
   // Update local state when currentTeamMember from Redux changes
   useEffect(() => {
@@ -114,11 +140,38 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
     setHasAttemptedDelete(false);
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteResponse?.canDelete || !displayTeamMember) return;
-    // User confirmed - now make the backend call
-    setHasAttemptedDelete(true);
-    dispatch(deleteTeamMemberAction.request({ id: displayTeamMember.id }));
+    try {
+      // Fetch the offboard preview so we know if appointments need reconciliation.
+      const preview = await getOffboardPreviewApi(displayTeamMember.id);
+      if (!preview.appointments || preview.appointments.length === 0) {
+        // No appointments → direct full offboard (unlinks services + locations + removes role).
+        setHasAttemptedOffboard(true);
+        dispatch(
+          offboardTeamMemberAction.request({
+            id: displayTeamMember.id,
+            appointmentActions: [],
+          }),
+        );
+        return;
+      }
+      // Has appointments → open reconciliation modal in remove_member mode.
+      // The slider stays open in the background; it'll auto-close after the modal commits
+      // a successful offboard (the offboard saga drives the same isOffboarding flag).
+      setHasAttemptedOffboard(true);
+      setShowDeleteDialog(false);
+      dispatch(
+        openReconciliationAction({
+          mode: 'remove_member',
+          userId: displayTeamMember.id,
+        }),
+      );
+    } catch {
+      // Preview failed → fall back to the legacy delete flow.
+      setHasAttemptedDelete(true);
+      dispatch(deleteTeamMemberAction.request({ id: displayTeamMember.id }));
+    }
   };
 
   const handleCloseDialog = (open: boolean) => {
@@ -142,7 +195,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
         onClose={onClose}
         title={hasValidData ? `${displayTeamMember.firstName} ${displayTeamMember.lastName}` : t('profileSlider.loading')}
       >
-        <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
           {isFetchingTeamMember || !hasValidData ? (
             <div className="flex items-center justify-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -173,24 +226,24 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                   </div>
 
                   {/* Name and status */}
-                  <div className="flex-1">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex flex-col gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex min-w-0 flex-1 flex-col gap-2">
                         <div>
-                          <h4 className="text-xl font-semibold text-foreground-1">
+                          <h4 className="text-xl font-semibold text-foreground-1 break-words">
                             {displayTeamMember.firstName || 'N/A'} {displayTeamMember.lastName || 'N/A'}
                           </h4>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-foreground-2">
-                          <Mail className="h-4 w-4" />
-                          <span className="flex-1">{localTeamMember?.email}</span>
+                        <div className="flex items-center gap-2 text-sm text-foreground-2 min-w-0">
+                          <Mail className="h-4 w-4 shrink-0" />
+                          <span className="min-w-0 flex-1 truncate">{localTeamMember?.email}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-foreground-2">
-                          <Phone className="h-4 w-4" />
-                          <span className="flex-1">{localTeamMember?.phone}</span>
+                        <div className="flex items-center gap-2 text-sm text-foreground-2 min-w-0">
+                          <Phone className="h-4 w-4 shrink-0" />
+                          <span className="min-w-0 flex-1 truncate">{localTeamMember?.phone}</span>
                         </div>
                       </div>
-                      {getStatusBadge(displayTeamMember.roleStatus)}
+                      <div className="shrink-0">{getStatusBadge(displayTeamMember.roleStatus)}</div>
                     </div>
                   </div>
                 </div>
@@ -329,10 +382,10 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                         variant="outline"
                         rounded="full"
                         onClick={handleDeleteClick}
-                        className="w-1/2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        disabled={isDeleting as boolean}
+                        className="w-full max-w-xs px-5 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={isDeleting || isOffboarding}
                       >
-                        {isDeleting ? (
+                        {isDeleting || isOffboarding ? (
                           <>
                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                             {t('profileSlider.removing')}
@@ -359,7 +412,7 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
           resourceName={`${displayTeamMember.firstName} ${displayTeamMember.lastName}`}
           deleteResponse={deleteResponse}
           onConfirm={handleConfirmDelete}
-          isLoading={isDeleting}
+          isLoading={isDeleting || isOffboarding}
           className="z-[80]"
           overlayClassName="z-[80]"
           secondaryActions={[

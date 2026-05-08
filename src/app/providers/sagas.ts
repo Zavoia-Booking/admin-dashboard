@@ -19,6 +19,7 @@ import { notificationsSaga } from "../../features/notifications/saga";
 import { reviewsSaga } from "../../features/reviews/saga";
 import { supportSaga } from "../../features/support/saga";
 import { pushNotificationsSaga } from "../../features/push-notifications/saga";
+import { reconciliationSaga } from "../../features/reconciliation/saga";
 
 export function* rootSaga() {
     yield all([
@@ -41,5 +42,6 @@ export function* rootSaga() {
         reviewsSaga(),
         supportSaga(),
         pushNotificationsSaga(),
+        reconciliationSaga(),
     ]);
 }

@@ -19,8 +19,6 @@ export const selectTeamInvitationError = (s: { auth: AuthState }) => s.auth.team
 export const selectMemberRegistrationError = (s: { auth: AuthState }) => s.auth.memberRegistrationError;
 export const selectIsMemberRegistrationLoading = (s: { auth: AuthState }) => s.auth.isMemberRegistrationLoading;
 
-export const selectAccountStatusPrompt = (s: { auth: AuthState }) => s.auth.accountStatusPrompt;
-
 // Role selectors
 export const selectUserRole = (s: { auth: AuthState }) => s.auth.user?.role as UserRole | undefined;
 export const selectIsOwner = (s: { auth: AuthState }) => s.auth.user?.role === UserRole.OWNER;

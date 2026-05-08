@@ -51,3 +51,9 @@ export const offboardTeamMemberAction = createAsyncAction(
   'teamMembers/OFFBOARD_SUCCESS',
   'teamMembers/OFFBOARD_FAILURE',
 )<{ id: number; appointmentActions: AppointmentActionItem[] }, void, { message: string }>();
+
+export const bulkOffboardTeamMembersAction = createAsyncAction(
+  'teamMembers/BULK_OFFBOARD_REQUEST',
+  'teamMembers/BULK_OFFBOARD_SUCCESS',
+  'teamMembers/BULK_OFFBOARD_FAILURE',
+)<{ userIds: number[]; appointmentActions: AppointmentActionItem[] }, void, { message: string }>();

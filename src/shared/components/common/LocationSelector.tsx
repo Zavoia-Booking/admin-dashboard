@@ -1,0 +1,178 @@
+import { type FC, useEffect, useCallback, useState, useRef } from "react";
+import { Check, ChevronDown, Loader2, MapPin } from "lucide-react";
+import {
+    Command,
+    CommandGroup,
+    CommandItem,
+    CommandList,
+} from "../ui/command.tsx";
+import { cn } from "../../lib/utils.ts";
+import type { LocationType } from "../../types/location.ts";
+
+interface LocationSelectorProps {
+    locations: Array<LocationType>;
+    selectedLocationId: number | null;
+    onSelect: (id: number) => void;
+    isLoading?: boolean;
+    isLoadingContext?: boolean;
+    placeholder?: string;
+    loadingLabel?: string;
+    noLocationsLabel?: string;
+    groupHeading?: string;
+    closedClassName?: string;
+    mobile?: boolean;
+    onOpenChange?: (open: boolean) => void;
+}
+
+export const LocationSelector: FC<LocationSelectorProps> = ({
+    locations,
+    selectedLocationId,
+    onSelect,
+    isLoading = false,
+    isLoadingContext = false,
+    placeholder = "Select a location",
+    loadingLabel = "Loading locations…",
+    noLocationsLabel = "No locations",
+    groupHeading = "Location",
+    closedClassName,
+    mobile,
+    onOpenChange,
+}) => {
+    const [open, setOpen] = useState(false);
+    const [listMounted, setListMounted] = useState(false);
+    const rootRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        onOpenChange?.(open);
+    }, [open, onOpenChange]);
+
+    useEffect(() => {
+        if (open) {
+            setListMounted(true);
+            return;
+        }
+        const timer = window.setTimeout(() => setListMounted(false), 250);
+        return () => window.clearTimeout(timer);
+    }, [open]);
+
+    useEffect(() => {
+        if (!open) return;
+        const onDocClickCapture = (e: MouseEvent) => {
+            const target = e.target as Node | null;
+            if (!target) return;
+            if (rootRef.current?.contains(target)) return;
+            e.stopPropagation();
+            e.preventDefault();
+            setOpen(false);
+        };
+        document.addEventListener("click", onDocClickCapture, true);
+        return () => document.removeEventListener("click", onDocClickCapture, true);
+    }, [open]);
+
+    const handleSelect = useCallback((id: number) => {
+        setOpen(false);
+        if (id === selectedLocationId) return;
+        onSelect(id);
+    }, [onSelect, selectedLocationId]);
+
+    const selectedLocation = locations.find((l) => l.id === selectedLocationId);
+    const showListContainer = listMounted && !isLoading && locations.length > 0;
+    const lastIdx = locations.length - 1;
+
+    if (isLoading) {
+        return (
+            <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-4">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{loadingLabel}</span>
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+            </div>
+        );
+    }
+
+    if (locations.length === 0) {
+        return (
+            <div className="flex h-11 items-center gap-2 rounded-full border border-border bg-surface px-4">
+                <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{noLocationsLabel}</span>
+            </div>
+        );
+    }
+
+    return (
+        <div ref={rootRef} className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen((o) => !o)}
+                aria-expanded={open}
+                aria-haspopup="listbox"
+                className={cn(
+                    "group relative flex h-11 w-full min-w-0 items-center justify-between gap-2 bg-surface px-4 text-left text-base font-normal text-foreground-1 transition-colors dark:bg-neutral-900",
+                    "cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                    showListContainer
+                        ? "!rounded-b-none !rounded-t-[22px] border-x border-t border-b border-border-strong shadow-none dark:border-border-strong"
+                        : cn(
+                            mobile
+                                ? "border border-border-strong dark:border-border-strong"
+                                : "border border-border hover:border-border-strong dark:border-border dark:hover:border-border-strong",
+                            closedClassName ?? "!rounded-full",
+                        ),
+                )}
+            >
+                <MapPin className={cn("h-4 w-4 shrink-0 transition-colors", showListContainer ? "text-primary" : "text-muted-foreground group-hover:text-primary")} aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground-1">
+                    {selectedLocation?.name ?? placeholder}
+                </span>
+                {isLoadingContext ? (
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground" aria-hidden />
+                ) : (
+                    <ChevronDown
+                        className={cn("h-4 w-4 shrink-0 text-foreground-3 transition-transform", open && "rotate-180")}
+                        aria-hidden
+                    />
+                )}
+            </button>
+
+            {showListContainer ? (
+                <div
+                    data-state={open ? "open" : "closed"}
+                    className={cn(
+                        "add-appointment-popover-expand absolute left-0 right-0 top-full z-[85] -mt-px box-border max-h-[min(320px,50vh)] w-full overflow-hidden rounded-b-[22px] rounded-t-none border border-t-0 border-border-strong bg-surface p-0 shadow-md dark:border-border-strong dark:bg-neutral-900",
+                    )}
+                >
+                    <Command shouldFilter={false} className="w-full min-w-0 max-w-full">
+                        <CommandList className="max-h-[min(260px,40vh)] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto">
+                            <CommandGroup heading={groupHeading}>
+                                {locations.map((location, index) => {
+                                    const isSelected = location.id === selectedLocationId;
+                                    return (
+                                        <CommandItem
+                                            key={location.id}
+                                            value={`loc-${location.id}`}
+                                            onSelect={() => handleSelect(location.id)}
+                                            className={cn(
+                                                "flex cursor-pointer items-center gap-2 p-3",
+                                                isSelected && "bg-muted/50",
+                                                index === lastIdx && "rounded-b-[18px]",
+                                                mobile && "data-[selected=true]:bg-transparent",
+                                            )}
+                                        >
+                                            <span className="flex h-4 w-5 shrink-0 items-center justify-center" aria-hidden>
+                                                {isSelected ? (
+                                                    <Check className="h-4 w-4 text-green-600 dark:text-green-400" strokeWidth={2.75} />
+                                                ) : null}
+                                            </span>
+                                            <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">
+                                                {location.name}
+                                            </span>
+                                        </CommandItem>
+                                    );
+                                })}
+                            </CommandGroup>
+                        </CommandList>
+                    </Command>
+                </div>
+            ) : null}
+        </div>
+    );
+};

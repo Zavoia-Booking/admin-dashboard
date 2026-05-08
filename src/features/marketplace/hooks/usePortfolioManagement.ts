@@ -1,66 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PortfolioImage } from '../components/MarketplaceImagesSection';
-import type { PortfolioImageData } from '../types';
+import type { LocationWithAssignments } from '../types';
 
 interface UsePortfolioManagementProps {
-  featuredImage?: string | null;
-  portfolioImages?: PortfolioImageData[] | null;
+  locationId: number | null;
+  locationsWithAssignments: LocationWithAssignments[];
 }
 
+/**
+ * Per-location portfolio state.
+ *
+ * Re-initializes from Redux only when the active locationId changes — NOT on
+ * every catalog update. This is important because each successful upload/delete
+ * dispatches setLocationPortfolioAction (so Redux stays the source of truth and
+ * other UI like publish-button gating updates), but we don't want that dispatch
+ * to clobber in-flight optimistic state in the gallery component.
+ */
 export function usePortfolioManagement({
-  featuredImage,
-  portfolioImages,
+  locationId,
+  locationsWithAssignments,
 }: UsePortfolioManagementProps) {
   const [featuredImageId, setFeaturedImageId] = useState<string | null>(null);
   const [portfolio, setPortfolio] = useState<PortfolioImage[]>([]);
-  
-  // Track initial state for dirty detection
-  // Note: Portfolio images AND featured choice are saved immediately, so nothing is dirty here
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Consolidated effect: Initialize on mount and sync when props change
+  // Always read the freshest catalog from inside the effect without making it
+  // an effect dependency.
+  const catalogRef = useRef(locationsWithAssignments);
+  catalogRef.current = locationsWithAssignments;
+
   useEffect(() => {
-    if (portfolioImages && portfolioImages.length > 0) {
-      const existingImages: PortfolioImage[] = portfolioImages.map((img, index) => ({
-        tempId: `existing-${index}`,
-        url: img.url,
-        key: img.key,
-        originalName: img.originalName,
-        size: img.size,
-      }));
-      
-      setPortfolio(existingImages);
-      
-      if (featuredImage) {
-        // Find by URL
-        const featuredImg = existingImages.find(img => img.url === featuredImage);
-        if (featuredImg) {
-          setFeaturedImageId(featuredImg.tempId);
-        }
-      }
-    } else {
+    const activeLocation =
+      locationId == null
+        ? null
+        : catalogRef.current.find((l) => l.id === locationId) ?? null;
+
+    if (!activeLocation) {
       setPortfolio([]);
       setFeaturedImageId(null);
+      return;
     }
-    
-    // Mark as initialized after first run
-    if (!isInitialized) {
-      setIsInitialized(true);
-    }
-  }, [portfolioImages, featuredImage, isInitialized]);
 
-  // Check if portfolio is dirty
-  // Always false because changes are instant
-  const isDirty = false;
+    const sourceImages = activeLocation.portfolioImages || [];
+    const sourceFeatured = activeLocation.featuredImage;
+
+    const existingImages: PortfolioImage[] = sourceImages.map((img, index) => ({
+      tempId: `loc-${activeLocation.id}-${img.key ?? index}`,
+      url: img.url,
+      key: img.key,
+      originalName: img.originalName,
+      size: img.size,
+    }));
+
+    setPortfolio(existingImages);
+    setFeaturedImageId(
+      sourceFeatured
+        ? existingImages.find((img) => img.url === sourceFeatured)?.tempId ?? null
+        : null,
+    );
+  }, [locationId]);
 
   return {
-    // State
     featuredImageId,
     portfolio,
-    isDirty,
-    // Setters
     setFeaturedImageId,
     setPortfolio,
+    isDirty: false,
   };
 }
-

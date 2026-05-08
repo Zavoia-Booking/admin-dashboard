@@ -80,8 +80,8 @@
       "legal_cookies": "Politica de Cookie-uri"
     },
     "advancedSettings": {
-      "title": "Setări Avansate",
-      "description": "Dezactivează sau șterge contul"
+      "title": "Șterge Contul",
+      "description": "Șterge contul definitiv."
     },
     "toast": {
       "invalidImage": "Te rugăm selectează un fișier imagine valid (JPEG, PNG, WebP, SVG sau AVIF)",
@@ -274,6 +274,10 @@
         "statusPaid": "Plătit",
         "statusFailed": "Factură în așteptare",
         "statusFailedHint": "Plata a fost primită, dar factura fiscală nu a putut fi generată încă. Echipa noastră a fost notificată — contactează suportul dacă ai nevoie urgent.",
+        "seeMore": "Vezi toate facturile",
+        "allInvoices": "Toate facturile",
+        "allInvoicesDescription": "Răsfoiește toate facturile contului tău.",
+        "close": "Închide",
         "empty": {
           "title": "Nicio factură încă",
           "body": "Odată ce ești taxat, facturile apar aici. Copiile PDF ajung și pe email."

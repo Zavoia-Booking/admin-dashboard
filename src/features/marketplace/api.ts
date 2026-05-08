@@ -1,39 +1,75 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData } from "./types";
 import { apiClient } from "../../shared/lib/http";
+
+export interface LocationPortfolioMutationResponse {
+  url?: string;
+  key?: string;
+  alreadyExisted?: boolean;
+  success?: boolean;
+  portfolioImages: PortfolioImageData[];
+  featuredImage: string | null;
+}
 
 export const getMarketplaceListingApi = async (): Promise<MarketplaceListingResponse> => {
   const { data } = await apiClient().get<MarketplaceListingResponse>('/marketplace-listing');
   return data;
 }
 
-export const uploadMarketplaceImageApi = async (file: File): Promise<{
-  url: string;
-  key: string;
-}> => {
+export const uploadMarketplaceImageApi = async (
+  locationId: number,
+  file: File,
+): Promise<LocationPortfolioMutationResponse> => {
   const formData = new FormData();
   formData.append('file', file);
-  const { data } = await apiClient().post('/marketplace-listing/upload-image', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const { data } = await apiClient().post<LocationPortfolioMutationResponse>(
+    `/marketplace-listing/locations/${locationId}/portfolio`,
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
   return data;
 };
 
-export const deleteMarketplaceImageApi = async (key: string): Promise<void> => {
-  await apiClient().delete(`/marketplace-listing/delete-image/${encodeURIComponent(key)}`);
+export const deleteMarketplaceImageApi = async (
+  locationId: number,
+  key: string,
+): Promise<LocationPortfolioMutationResponse> => {
+  const { data } = await apiClient().delete<LocationPortfolioMutationResponse>(
+    `/marketplace-listing/locations/${locationId}/portfolio/${encodeURIComponent(key)}`,
+  );
+  return data;
 };
 
-export const updateMarketplaceFeaturedImageApi = async (url: string): Promise<void> => {
-  await apiClient().post('/marketplace-listing/update-featured-image', { url });
+export const updateMarketplaceFeaturedImageApi = async (
+  locationId: number,
+  url: string,
+): Promise<LocationPortfolioMutationResponse> => {
+  const { data } = await apiClient().post<LocationPortfolioMutationResponse>(
+    `/marketplace-listing/locations/${locationId}/portfolio/featured`,
+    { url },
+  );
+  return data;
 };
 
 export const publishMarketplaceListingApi = async (payload: PublishMarketplaceListingPayload): Promise<void> => {
   await apiClient().post('/marketplace-listing/publish', payload);
 }
 
-export const updateMarketplaceVisibilityApi = async (isVisible: boolean): Promise<{ isVisible: boolean }> => {
-  const { data } = await apiClient().post<{ isVisible: boolean }>('/marketplace-listing/update-visibility', { isVisible });
-  return data;
+export interface LocationMarketplaceFlagsResponse {
+  id: number;
+  isPublic: boolean;
+  allowOnlineBooking: boolean;
 }
+
+export const updateLocationMarketplaceFlagsApi = async (
+  locationId: number,
+  payload: { isPublic?: boolean; allowOnlineBooking?: boolean },
+): Promise<LocationMarketplaceFlagsResponse> => {
+  const { data } = await apiClient().patch<LocationMarketplaceFlagsResponse>(
+    `/marketplace-listing/locations/${locationId}/marketplace-flags`,
+    payload,
+  );
+  return data;
+};
 
 // Keys allowed by backend UpdateBookingSettingsDto (strip id, businessId, createdAt, updatedAt)
 const BOOKING_SETTINGS_UPDATE_KEYS = [
