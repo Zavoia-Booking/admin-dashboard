@@ -93,17 +93,34 @@
   display: block;
 }
 
-/* Letter strokes — thin enough to act as "drawn texture" overlay during the
-   reveal rather than dominating it. The recognizable letter shape comes
-   from the fill, which crossfades in alongside the trace. */
+/* Letter ink. Light mode reads dark-on-cream via the standard text color;
+   dark mode reads as the brand cream (palette neutral-100) on the dark
+   surface so the wordmark keeps its warm character instead of going pure
+   white. The CSS rule overrides the inline `fill="#22221E"` attributes on
+   each <path>; the WAAPI reveal animations only touch fill-opacity /
+   stroke-opacity, so the color itself is owned by CSS. */
 .auth-hero-letter {
-  stroke: #22221E;
+  fill: var(--foreground);
+  stroke: var(--foreground);
   stroke-width: 8;
   stroke-linecap: butt;
   stroke-linejoin: miter;
   stroke-miterlimit: 4;
   fill-opacity: 0;
   stroke-opacity: 1;
+}
+
+.dark .auth-hero-letter {
+  fill: var(--color-neutral-100);
+  stroke: var(--color-neutral-100);
+}
+
+/* Cream-color "holes" punched through letters like 'a' and 'o'. They must
+   match the panel surface in any theme, otherwise they show up as bright
+   patches on a dark background. Tracks `var(--base)` (same token the
+   .auth-hero panel uses for its background-color). */
+.auth-hero-counter {
+  fill: var(--base);
 }
 
 /* Dash starts hidden; WAAPI animates scaleX. scaleY thickens it slightly

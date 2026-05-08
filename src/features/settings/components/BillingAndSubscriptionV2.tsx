@@ -26,6 +26,7 @@ import {
 import { Skeleton } from '../../../shared/components/ui/skeleton';
 import { Button } from '../../../shared/components/ui/button';
 import { Card, CardContent } from '../../../shared/components/ui/card';
+import { cn } from '../../../shared/lib/utils';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
@@ -47,11 +48,6 @@ import {
   createLtdSeatsCheckoutSession,
   abortPendingPayment,
 } from '../api';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../../../shared/components/ui/tooltip';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import {
   selectSubscriptionSummary,
@@ -472,76 +468,53 @@ const BillingAndSubscriptionV2Inner = () => {
       const proratedTotal = delta * proratedInfo.proratedPricePerSeat;
       const recurringCost = delta * proratedInfo.fullMonthlyPricePerSeat;
       addingContent = (
-        <div className="flex flex-col gap-3">
-          <div>
-            <div className="text-2xl font-semibold text-foreground-1">
+        <div className="flex cursor-default flex-col gap-4 pt-1">
+          <div className="flex cursor-default items-baseline gap-1.5">
+            <span className="cursor-default text-3xl font-bold tracking-tight tabular-nums text-foreground-1">
               {currencySymbol}
               {proratedTotal.toFixed(2)}
-              <span className="ml-1.5 text-sm font-normal text-foreground-2">
-                {t('billing.confirm.dueTodaySuffix')}
-              </span>
-            </div>
-            <div className="mt-1 text-xs text-foreground-2">
-              {t('billing.confirm.proratedExplainer', {
-                daysRemaining: proratedInfo.daysRemaining,
-                totalDays: proratedInfo.totalDaysInPeriod,
-              })}
-            </div>
+            </span>
+            <span className="cursor-default text-sm font-medium text-foreground-3">
+              {t('billing.confirm.dueTodaySuffix')}
+            </span>
           </div>
-          <div className="text-sm text-foreground-2">
-            {t('billing.confirm.thenMonthlyLine', {
-              amount: recurringCost.toFixed(2),
-              currency: currencySymbol,
+          <p className="cursor-default text-sm leading-relaxed text-foreground-3 dark:text-foreground-2">
+            {t('billing.confirm.coversUntilLine', {
+              count: delta,
               date: formatDate(proratedInfo.nextChargeDate),
             })}
-          </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex w-fit items-center gap-1.5 text-xs text-foreground-3 hover:text-foreground-1"
-              >
-                <Info className="h-3.5 w-3.5" />
-                <span>{t('billing.confirm.howCalculated')}</span>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              <div className="flex flex-col gap-1">
-                <div>
-                  {t('billing.confirm.tooltipMonthly', {
-                    amount: proratedInfo.fullMonthlyPricePerSeat.toFixed(2),
-                    currency: currencySymbol,
-                  })}
-                </div>
-                <div>
-                  {t('billing.confirm.tooltipDaysRemaining', {
-                    daysRemaining: proratedInfo.daysRemaining,
-                    totalDays: proratedInfo.totalDaysInPeriod,
-                  })}
-                </div>
-                <div>
-                  {t('billing.confirm.tooltipProratedCharge', {
-                    amount: proratedTotal.toFixed(2),
-                    currency: currencySymbol,
-                  })}
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          </p>
+          <p className="cursor-default text-sm leading-relaxed text-foreground-3 dark:text-foreground-2">
+            {t('billing.confirm.afterThatRenews', {
+              count: delta,
+              currency: currencySymbol,
+              amount: recurringCost.toFixed(2),
+            })}
+          </p>
         </div>
       );
     }
 
     setIsConfirming(true);
     const confirmed = await confirm({
-      title: isAdding
-        ? t('billing.confirm.confirmSeatIncrease')
-        : t('billing.confirm.confirmSeatDecrease'),
+      title: isAdding ? (
+        <span className="block cursor-default text-xl font-bold leading-tight tracking-tight text-foreground-1">
+          {t('billing.confirm.confirmSeatIncrease', { count: delta })}
+        </span>
+      ) : (
+        t('billing.confirm.confirmSeatDecrease')
+      ),
       content: isAdding
         ? addingContent
         : t('billing.confirm.removingSeatsContent', { count: Math.abs(delta) }),
       confirmationText: isAdding
-        ? t('billing.confirm.addSeats')
+        ? t('billing.confirm.payAmount', {
+            currency: currencySymbol,
+            amount: (proratedInfo
+              ? delta * proratedInfo.proratedPricePerSeat
+              : additionalCost
+            ).toFixed(2),
+          })
         : t('billing.confirm.removeSeats'),
       cancellationText: t('billing.confirm.cancel'),
     });
@@ -621,6 +594,20 @@ const BillingAndSubscriptionV2Inner = () => {
         : subscriptionSummary?.paidSeats || 0;
   const seatLineCost = seatsForBreakdown * seatPrice;
   const totalCost = basePlanCost + seatLineCost;
+  const paidSeatsCount = subscriptionSummary?.paidSeats || 0;
+  // Only meaningful for active subscriptions, where the stepper baseline is
+  // paidSeats. In trial/inactive/canceled, the stepper is configuring an
+  // initial subscription, not modifying one — there's no "previous" value.
+  const seatDelta =
+    viewState === 'active' || viewState === 'past_due'
+      ? (Number(totalSeats) || 0) - paidSeatsCount
+      : 0;
+  // Retain the last positive delta so the proration banner keeps its content
+  // legible during its close animation (when delta drops back to 0).
+  const lastPositiveDelta = useRef(1);
+  useEffect(() => {
+    if (seatDelta > 0) lastPositiveDelta.current = seatDelta;
+  }, [seatDelta]);
 
   const planName =
     subscriptionSummary?.planName || currentUser?.subscription?.planName || t('billing.freePlan');
@@ -940,7 +927,7 @@ const BillingAndSubscriptionV2Inner = () => {
 
       <div className="bv2-grid">
         {/* Left column */}
-        <div className="bv2-col">
+        <div className="bv2-col mb-6">
           {/* Subscription details card */}
           <Card>
             <CardContent>
@@ -1131,63 +1118,6 @@ const BillingAndSubscriptionV2Inner = () => {
                     </div>
                   )}
 
-                  {viewState !== 'ltd' && subscriptionSummary?.proratedSeatInfo && (
-                    <div className="mt-1 mb-2 flex items-start gap-2 rounded-md bg-surface-hover px-3 py-2 text-xs text-foreground-2">
-                      <Info className="mt-0.5 h-3.5 w-3.5 flex-none text-foreground-3" />
-                      <div className="flex-1">
-                        <div>
-                          <span className="font-medium text-foreground-1">
-                            {t('billing.v2.subscription.addSeatNowLine', {
-                              amount: subscriptionSummary.proratedSeatInfo.proratedPricePerSeat.toFixed(2),
-                              currency: currencySymbol,
-                            })}
-                          </span>{' '}
-                          <span>
-                            {t('billing.v2.subscription.addSeatNowExplainer', {
-                              daysRemaining: subscriptionSummary.proratedSeatInfo.daysRemaining,
-                              totalDays: subscriptionSummary.proratedSeatInfo.totalDaysInPeriod,
-                              monthlyAmount: subscriptionSummary.proratedSeatInfo.fullMonthlyPricePerSeat.toFixed(2),
-                              currency: currencySymbol,
-                              date: formatDate(subscriptionSummary.proratedSeatInfo.nextChargeDate),
-                            })}
-                          </span>
-                        </div>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              type="button"
-                              className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-foreground-3 hover:text-foreground-1"
-                            >
-                              {t('billing.confirm.howCalculated')}
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">
-                            <div className="flex flex-col gap-1">
-                              <div>
-                                {t('billing.confirm.tooltipMonthly', {
-                                  amount: subscriptionSummary.proratedSeatInfo.fullMonthlyPricePerSeat.toFixed(2),
-                                  currency: currencySymbol,
-                                })}
-                              </div>
-                              <div>
-                                {t('billing.confirm.tooltipDaysRemaining', {
-                                  daysRemaining: subscriptionSummary.proratedSeatInfo.daysRemaining,
-                                  totalDays: subscriptionSummary.proratedSeatInfo.totalDaysInPeriod,
-                                })}
-                              </div>
-                              <div>
-                                {t('billing.confirm.tooltipProratedCharge', {
-                                  amount: subscriptionSummary.proratedSeatInfo.proratedPricePerSeat.toFixed(2),
-                                  currency: currencySymbol,
-                                })}
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                    </div>
-                  )}
-
                   {viewState === 'ltd' && (
                     <div className="bv2-line-row">
                       <div className="bv2-lbl">
@@ -1206,7 +1136,15 @@ const BillingAndSubscriptionV2Inner = () => {
                         ? t('billing.v2.subscription.totalAfterTrial')
                         : viewState === 'ltd'
                           ? t('billing.v2.subscription.totalLtd')
-                          : t('billing.total')}
+                          : seatDelta !== 0
+                            ? subscriptionSummary?.proratedSeatInfo?.nextChargeDate
+                              ? t('billing.v2.subscription.totalStartingDate', {
+                                  date: formatDate(
+                                    subscriptionSummary.proratedSeatInfo.nextChargeDate,
+                                  ),
+                                })
+                              : t('billing.v2.subscription.totalAfterUpdate')
+                            : t('billing.total')}
                     </div>
                     <div className="bv2-r">
                       {currencySymbol}
@@ -1216,6 +1154,104 @@ const BillingAndSubscriptionV2Inner = () => {
                       )}
                     </div>
                   </div>
+
+                  {viewState !== 'ltd' &&
+                    subscriptionSummary?.proratedSeatInfo &&
+                    (() => {
+                      const info = subscriptionSummary.proratedSeatInfo;
+                      const isOpen = seatDelta > 0;
+                      const displayDelta = isOpen ? seatDelta : lastPositiveDelta.current;
+                      const isZeroDay = info.daysRemaining === 0;
+                      const isFullPeriod =
+                        !isZeroDay && info.daysRemaining >= info.totalDaysInPeriod;
+                      const monthlyAmount = (displayDelta * info.fullMonthlyPricePerSeat).toFixed(
+                        2,
+                      );
+                      const todayAmount = (displayDelta * info.proratedPricePerSeat).toFixed(2);
+                      const showMath = !isFullPeriod && !isZeroDay;
+                      return (
+                        <div
+                          className={cn(
+                            'grid transition-[grid-template-rows] duration-200 ease-out',
+                            isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                          )}
+                        >
+                          <div className="overflow-hidden">
+                            <div
+                              role="status"
+                              aria-live="polite"
+                              aria-hidden={!isOpen}
+                              className={cn(
+                                'mt-3 mb-3 flex items-start gap-3.5 rounded-lg bg-surface-hover px-4 py-3 text-xs text-foreground-2',
+                                'origin-top transition-[opacity,transform] duration-200 ease-out',
+                                isOpen ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
+                              )}
+                            >
+                              <Info
+                                aria-hidden="true"
+                                className="mt-0.5 h-4 w-4 flex-none text-info"
+                              />
+                              <div className="min-w-0 flex-1 space-y-1">
+                                <div className="text-sm font-semibold leading-tight text-foreground-1">
+                                  {isZeroDay
+                                    ? t('billing.v2.subscription.addingSeatsZeroDayLine', {
+                                        count: displayDelta,
+                                      })
+                                    : t('billing.v2.subscription.addingSeatsLine', {
+                                        count: displayDelta,
+                                      })}
+                                </div>
+                                <div className="leading-relaxed">
+                                  {isZeroDay
+                                    ? t('billing.v2.subscription.addingSeatsZeroDayExplainer', {
+                                        monthlyAmount,
+                                        currency: currencySymbol,
+                                        date: formatDate(info.nextChargeDate),
+                                      })
+                                    : isFullPeriod
+                                      ? t(
+                                          'billing.v2.subscription.addingSeatsFullPeriodExplainer',
+                                          {
+                                            monthlyAmount,
+                                            currency: currencySymbol,
+                                            date: formatDate(info.nextChargeDate),
+                                          },
+                                        )
+                                      : t('billing.v2.subscription.addingSeatsExplainer', {
+                                          monthlyAmount,
+                                          currency: currencySymbol,
+                                          date: formatDate(info.nextChargeDate),
+                                        })}
+                                </div>
+                                {showMath && (
+                                  <div className="pt-0.5 font-mono text-[11px] tabular-nums text-foreground-3">
+                                    {t('billing.v2.subscription.addingSeatsMath', {
+                                      count: displayDelta,
+                                      seatPrice: info.fullMonthlyPricePerSeat.toFixed(2),
+                                      daysRemaining: info.daysRemaining,
+                                      totalDays: info.totalDaysInPeriod,
+                                      result: todayAmount,
+                                      currency: currencySymbol,
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                              {!isZeroDay && (
+                                <div className="flex flex-none flex-col items-end leading-none">
+                                  <span className="text-lg font-semibold tabular-nums text-foreground-1">
+                                    {currencySymbol}
+                                    {todayAmount}
+                                  </span>
+                                  <span className="mt-1 text-[11px] font-medium uppercase tracking-wider text-foreground-3">
+                                    {t('billing.v2.subscription.todayLabel')}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                 </>
               )}
 
@@ -1279,7 +1315,9 @@ const BillingAndSubscriptionV2Inner = () => {
                             ? cancelLoading
                             : viewState === 'past_due'
                               ? portalLoading
-                              : updatingSeats || seatsLocked
+                              : updatingSeats ||
+                                seatsLocked ||
+                                (viewState === 'active' && seatDelta === 0)
                       }
                       className="gap-1.5 bv2-btn-upgrade"
                     >
@@ -1302,11 +1340,17 @@ const BillingAndSubscriptionV2Inner = () => {
                               ? t('billing.upgrade')
                               : viewState === 'canceled'
                                 ? t('billing.renewSubscription')
-                                : viewState === 'trial' ||
-                                    viewState === 'inactive' ||
-                                    viewState === 'active'
-                                  ? t('billing.updateSeats')
-                                  : t('billing.applySeatChanges')}
+                                : viewState === 'active' && seatDelta > 0
+                                  ? t('billing.addSeatsCount', { count: seatDelta })
+                                  : viewState === 'active' && seatDelta < 0
+                                    ? t('billing.removeSeatsCount', {
+                                        count: Math.abs(seatDelta),
+                                      })
+                                    : viewState === 'trial' ||
+                                        viewState === 'inactive' ||
+                                        viewState === 'active'
+                                      ? t('billing.updateSeats')
+                                      : t('billing.applySeatChanges')}
                       {(viewState === 'ltd' ||
                         viewState === 'trial' ||
                         viewState === 'inactive' ||
@@ -2118,7 +2162,17 @@ const Bv2InvoiceDetailsCard = () => {
             <span className="bv2-field-label">
               {t('billing.invoiceDetails.entityTypeLabel')}
             </span>
-            <div className="inline-flex rounded-full border border-border bg-surface-hover p-0.5 self-start">
+            <div className="relative flex min-w-[220px] self-start rounded-full border border-border bg-surface-hover p-0.5">
+              <div
+                aria-hidden="true"
+                className="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-full bg-surface shadow-sm transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+                style={{
+                  transform:
+                    form.billingEntityType === 'person'
+                      ? 'translateX(100%)'
+                      : 'translateX(0)',
+                }}
+              />
               {(['company', 'person'] as const).map((opt) => {
                 const active = form.billingEntityType === opt;
                 return (
@@ -2126,11 +2180,12 @@ const Bv2InvoiceDetailsCard = () => {
                     type="button"
                     key={opt}
                     onClick={() => handleTypeChange(opt)}
-                    className={`bv2-seg-btn px-4 py-1 rounded-full text-[12.5px] font-medium transition-colors ${
+                    className={cn(
+                      'bv2-seg-btn relative z-10 w-1/2 cursor-pointer rounded-full px-4 py-1 text-center text-[12.5px] font-medium transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
                       active
-                        ? 'bg-surface text-foreground-1 shadow-sm'
-                        : 'text-foreground-2 hover:text-foreground-1'
-                    }`}
+                        ? 'text-foreground-1'
+                        : 'text-foreground-2 hover:text-foreground-1',
+                    )}
                   >
                     {opt === 'company'
                       ? t('billing.invoiceDetails.company')
@@ -2146,6 +2201,7 @@ const Bv2InvoiceDetailsCard = () => {
             </p>
           </div>
 
+          <div className="bv2-card-content-enter" key={isCompany ? 'company' : 'person'}>
           {isCompany ? (
             <>
               <div className="bv2-form-row">
@@ -2301,6 +2357,7 @@ const Bv2InvoiceDetailsCard = () => {
               )}
               {t('billing.invoiceDetails.saveButton')}
             </Button>
+          </div>
           </div>
         </form>
       </CardContent>

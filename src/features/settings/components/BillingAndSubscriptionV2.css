@@ -203,7 +203,6 @@
 .bv2-line-total {
   padding-top: 14px;
   margin-top: 4px;
-  border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: baseline;
@@ -966,6 +965,37 @@
 
 /* ── Invoice form ── */
 .bv2-form { display: grid; gap: 16px; }
+
+/* Entity-type toggle re-entry animation (mirrors auth-card-content-enter):
+   when the user switches Company ⇄ Individual, the keyed wrapper remounts
+   and its direct children animate in with a fade + gentle scale/translate
+   settle. Two animation tracks: short opacity, longer transform with
+   expo-out for an Apple-style settle. */
+@keyframes bv2-card-content-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes bv2-card-content-settle {
+  from { transform: scale(0.97) translateY(12px); }
+  to { transform: scale(1) translateY(0); }
+}
+.bv2-card-content-enter { display: grid; gap: 16px; }
+.bv2-card-content-enter > * {
+  animation:
+    bv2-card-content-fade 300ms cubic-bezier(0.32, 0.72, 0, 1) both,
+    bv2-card-content-settle 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center top;
+  will-change: transform, opacity;
+}
+.bv2-card-content-enter > *:nth-child(2) { animation-delay: 60ms, 60ms; }
+.bv2-card-content-enter > *:nth-child(3) { animation-delay: 120ms, 120ms; }
+.bv2-card-content-enter > *:nth-child(4) { animation-delay: 180ms, 180ms; }
+.bv2-card-content-enter > *:nth-child(5) { animation-delay: 230ms, 230ms; }
+.bv2-card-content-enter > *:nth-child(n+6) { animation-delay: 270ms, 270ms; }
+@media (prefers-reduced-motion: reduce) {
+  .bv2-card-content-enter > * { animation: none; }
+}
+
 .bv2-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
