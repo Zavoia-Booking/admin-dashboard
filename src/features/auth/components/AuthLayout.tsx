@@ -5,6 +5,25 @@ import type { LegalPageType } from "../../legal/components/legal-content"
 import LegalContentDialog from "../../legal/components/LegalContentDialog"
 import { AuthShell } from "./AuthShell"
 import { AuthCard } from "./AuthCard"
+import { LanguageSwitcher } from "../../../shared/components/common/LanguageSwitcher"
+import { DarkModeToggle } from "../../../shared/components/common/DarkModeToggle"
+
+/**
+ * Theme + language controls grouped as a single segmented pill for the
+ * unauthenticated auth pages. The outer container owns the chrome (border,
+ * surface tint, backdrop blur, shadow); the two embedded buttons share the
+ * shell, divided by a 1px rule. Reads as one unified "page tools" control
+ * rather than two separate floating buttons.
+ */
+function AuthControlsCluster() {
+  return (
+    <div className="inline-flex items-center h-9 rounded-md border border-border/60 bg-background/70 backdrop-blur-sm shadow-sm overflow-hidden dark:shadow-none dark:bg-background/40">
+      <DarkModeToggle variant="embedded" />
+      <div className="h-5 w-px bg-border/60" aria-hidden="true" />
+      <LanguageSwitcher variant="embedded" />
+    </div>
+  )
+}
 
 /**
  * Layout for the auth routes (/login and /register). Owns the persistent
@@ -60,7 +79,19 @@ export function AuthLayout() {
 
   return (
     <>
+      <div
+        className="hidden md:block fixed z-50"
+        style={{
+          top: "max(1rem, env(safe-area-inset-top))",
+          right: "max(1rem, env(safe-area-inset-right))",
+        }}
+      >
+        <AuthControlsCluster />
+      </div>
       <AuthShell>
+        <div className="md:hidden w-full flex justify-end">
+          <AuthControlsCluster />
+        </div>
         <div className="splash-target-card w-full">
           <AuthCard mode={mode} title={title} subtitle={subtitle} isForgotMode={isForgotMode}>
             <Outlet />
