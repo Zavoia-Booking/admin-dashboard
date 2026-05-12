@@ -32,9 +32,9 @@ interface BottomNavItem {
 
 const mainNavItems: BottomNavItem[] = [
   { i18nKey: 'sidebar.dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { i18nKey: 'sidebar.assignments', url: '/assignments', icon: ClipboardList },
+  { i18nKey: 'mobileNav.assignments', url: '/assignments', icon: ClipboardList },
   { i18nKey: 'sidebar.calendar', url: '/calendar', icon: Calendar },
-  { i18nKey: 'sidebar.marketplace', url: '/marketplace', icon: Store },
+  { i18nKey: 'mobileNav.marketplace', url: '/marketplace', icon: Store },
 ];
 
 const moreNavItems: BottomNavItem[] = [

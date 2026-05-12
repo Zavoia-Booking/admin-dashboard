@@ -7,7 +7,7 @@
     "assignments": "Alocări",
     "teamMembers": "Membri echipă",
     "customers": "Clienți",
-    "marketplace": "Piață",
+    "marketplace": "Marketplace",
     "support": "Suport",
     "account": "Cont",
     "home": "Acasă",
@@ -21,7 +21,7 @@
     "services": "Servicii",
     "locations": "Locații",
     "customers": "Clienți",
-    "marketplace": "Piață",
+    "marketplace": "Marketplace",
     "support": "Suport",
     "account": "Cont",
     "logOut": "Deconectare",
@@ -61,7 +61,9 @@
     }
   },
   "mobileNav": {
-    "more": "Mai mult"
+    "more": "Mai mult",
+    "assignments": "Atribuiri",
+    "marketplace": "Marketplace"
   },
   "theme": {
     "dark": "Întunecat",

@@ -16,12 +16,12 @@
   "sidebar": {
     "dashboard": "Dashboard",
     "calendar": "Calendar",
-    "assignments": "Assign",
+    "assignments": "Assignments",
     "teamMembers": "Team Members",
     "services": "Services",
     "locations": "Locations",
     "customers": "Customers",
-    "marketplace": "Market",
+    "marketplace": "Marketplace",
     "support": "Support",
     "account": "Account",
     "logOut": "Log Out",
@@ -61,7 +61,9 @@
     }
   },
   "mobileNav": {
-    "more": "More"
+    "more": "More",
+    "assignments": "Assign",
+    "marketplace": "Marketplace"
   },
   "theme": {
     "dark": "Dark",
