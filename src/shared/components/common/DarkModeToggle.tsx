@@ -66,9 +66,9 @@ export function DarkModeToggle({ variant = "sidebar" }: DarkModeToggleProps = {}
           ) : (
             <Sun className={iconClassName} />
           )}
-          <span className="text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+          {/* <span className="text-sm font-medium text-sidebar-foreground group-data-[collapsible=icon]:hidden">
             {isDark ? t('theme.dark') : t('theme.light')}
-          </span>
+          </span> */}
         </div>
       )}
     </Button>

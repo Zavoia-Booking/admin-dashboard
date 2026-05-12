@@ -1906,6 +1906,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                 maxLength={500}
                 showCharacterCount
                 error={notesError ?? undefined}
+                textareaClassName="!h-41"
               />
             </div>
           </div>

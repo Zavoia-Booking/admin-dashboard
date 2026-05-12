@@ -227,15 +227,20 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
 
     // Unlink Google account handlers
     case getType(unlinkGoogleAction.request): {
-      return { ...state, linkingLoading: true, linkingError: null } as any;
+      return { ...state, linkingLoading: true, linkingError: null, linkingErrorCode: null } as any;
     }
 
     case getType(unlinkGoogleAction.success): {
-      return { ...state, linkingLoading: false, linkingError: null } as any;
+      return { ...state, linkingLoading: false, linkingError: null, linkingErrorCode: null } as any;
     }
 
     case getType(unlinkGoogleAction.failure): {
-      return { ...state, linkingLoading: false, linkingError: (action as any).payload.message } as any;
+      return {
+        ...state,
+        linkingLoading: false,
+        linkingError: (action as any).payload.message,
+        linkingErrorCode: (action as any).payload.code ?? null,
+      } as any;
     }
 
     case getType(googleLoginAction.request):

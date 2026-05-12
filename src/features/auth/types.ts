@@ -120,6 +120,7 @@ export interface AuthState {
   pendingLinkTxId?: string;
   linkingLoading?: boolean;
   linkingError?: string | null;
+  linkingErrorCode?: string | null;
   businessSelectionRequired?: BusinessSelectionRequired | null;
   accountLinkingRequired?: AccountLinkingDetails | null;
   isRegistration?: boolean;

@@ -358,3 +358,52 @@ export const sanitizeDescriptionInput = (value: string): string => {
     .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, "") // Remove iframe tags
     .trim();
 };
+
+// ============================================================
+// PERSON NAME VALIDATION (first name, last name)
+// ============================================================
+
+/**
+ * Pattern for person names. Permits letters (including accented),
+ * spaces, hyphens, and apostrophes. No digits, no punctuation —
+ * names don't need them. Romanian/Latin diacritics covered by À-ÿ.
+ */
+export const PERSON_NAME_PATTERN = /^[A-Za-zÀ-ÿ\s\-']+$/;
+
+export const validatePersonName = (
+  fieldLabel: string,
+  value: string
+): string | null => {
+  const v = (value ?? "").trim();
+  if (!v) return `Please enter ${fieldLabel.toLowerCase()}`;
+  if (v.length > 32) return "Maximum 32 characters allowed";
+  if (!PERSON_NAME_PATTERN.test(v)) {
+    return "Please remove digits and special characters (only - ' allowed)";
+  }
+  return null;
+};
+
+// ============================================================
+// URL VALIDATION (social profiles, website)
+// ============================================================
+
+/**
+ * Validates an optional URL field. Empty values pass.
+ * Non-empty values must be parseable as a URL — protocol is
+ * optional (we prepend https:// for the parse check).
+ */
+export const validateUrlField = (value: string): string | null => {
+  const v = (value ?? "").trim();
+  if (!v) return null;
+  if (v.length > 300) return "Maximum 300 characters allowed";
+  const withProtocol = /^https?:\/\//i.test(v) ? v : `https://${v}`;
+  try {
+    const u = new URL(withProtocol);
+    if (!u.hostname.includes(".")) {
+      return "Please enter a valid URL (like https://example.com)";
+    }
+    return null;
+  } catch {
+    return "Please enter a valid URL (like https://example.com)";
+  }
+};

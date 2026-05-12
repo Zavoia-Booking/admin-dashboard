@@ -42,20 +42,20 @@
     "searchPlaceholder": "Search team members by name or email..."
   },
   "inviteSlider": {
-    "title": "Invite Team Member",
+    "title": "Invite team member",
     "subscriptionInfo": {
       "title": "Subscription Info",
       "description": "Review your subscription details and available seats."
     },
     "contactInfo": {
-      "title": "Contact Information",
-      "description": "Enter the email address of the team member you want to invite.",
-      "emailLabel": "Email Address *",
-      "emailPlaceholder": "e.g. contact@example.com"
+      "title": "Team member details",
+      "description": "Enter the email address of the person you want to invite.",
+      "emailLabel": "Email address *",
+      "emailPlaceholder": "name@example.com"
     },
     "locationAssignment": {
-      "title": "Location Assignment",
-      "description": "Select which locations this team member will have access to.",
+      "title": "Location access",
+      "description": "Choose which locations this team member can access.",
       "noLocations": "No locations available. Please create a location first.",
       "noLocationsSelected": "No locations selected. At least one location is required.",
       "oneLocationSelected": "1 location selected. At least one location must remain selected.",
@@ -68,12 +68,16 @@
     },
     "buttons": {
       "cancel": "Cancel",
-      "sendInvitation": "Send Invitation",
+      "continue": "Continue",
+      "sendInvitation": "Send invite",
       "goToBilling": "Go to Billing"
     },
     "confirmDialog": {
-      "title": "Send Invitation",
-      "description": "Are you sure you want to send an invitation to {{email}}?"
+      "eyebrow": "Team · Invitation",
+      "title": "Invite team member",
+      "description_one": "{{email}} will be invited to join {{businessName}} and access the selected location.",
+      "description_other": "{{email}} will be invited to join {{businessName}} and access the selected locations.",
+      "acceptanceNote": "They'll receive an email invitation and can access the business after accepting it."
     }
   },
   "subscriptionInfo": {

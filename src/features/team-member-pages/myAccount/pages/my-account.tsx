@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
 import { PageHeader } from '../../../../shared/components/layouts/PageHeader';
 import { Button } from '../../../../shared/components/ui/button';
-import { Save, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import MyAccountContent from '../components/MyAccountContent';
 
 export default function MyAccountPage() {
@@ -33,10 +33,7 @@ export default function MyAccountPage() {
           </span>
         </>
       ) : (
-        <>
-          <span>{t('buttons.saveChanges')}</span>
-          <Save className="hidden md:inline h-4 w-4" />
-        </>
+        <span>{t('buttons.saveChanges')}</span>
       )}
     </Button>
   );

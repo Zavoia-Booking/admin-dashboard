@@ -33,13 +33,22 @@ import type {
   BusinessInvoicesResponse,
 } from "./types";
 import { fetchCurrentUserAction } from "../auth/actions";
+import { translateMessageCode } from "../../shared/utils/error";
+
+function extractMessage(error: any, fallback: string): string {
+  const raw = error?.response?.data?.message;
+  const translated = Array.isArray(raw)
+    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
+    : translateMessageCode(raw ?? '');
+  return translated || error?.message || fallback;
+}
 
 function* handleGetSubscriptionSummary() {
   try {
     const response: SubscriptionSummary = yield call(getSubscriptionSummary);
     yield put(getSubscriptionSummaryAction.success({ subscriptionSummary: response }));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to fetch pricing summary';
+    const message = extractMessage(error, 'Failed to fetch pricing summary');
     yield put(getSubscriptionSummaryAction.failure({ message }));
   }
 }
@@ -48,13 +57,13 @@ function* handleCreateCheckoutSession(action: ReturnType<typeof createCheckoutSe
   try {
     const response: CheckoutResponse = yield call(createCheckoutSession, action.payload);
     yield put(createCheckoutSessionAction.success({ checkoutResponse: response }));
-    
+
     // Redirect to Stripe Checkout if URL is provided
     if (response.url) {
       window.location.href = response.url;
     }
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to create checkout session';
+    const message = extractMessage(error, 'Failed to create checkout session');
     yield put(createCheckoutSessionAction.failure({ message }));
   }
 }
@@ -64,13 +73,13 @@ function* handleGetCustomerPortalUrl(action: ReturnType<typeof getCustomerPortal
   try {
     const response: { url: string } = yield call(getCustomerPortalUrl, action.payload.returnUrl);
     yield put(getCustomerPortalUrlAction.success({ url: response.url }));
-    
+
     // Redirect to Customer Portal if URL is provided
     if (response.url) {
       window.location.href = response.url;
     }
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to get customer portal URL';
+    const message = extractMessage(error, 'Failed to get customer portal URL');
     yield put(getCustomerPortalUrlAction.failure({ message }));
   }
 }
@@ -88,7 +97,7 @@ function* handleModifySubscription(action: ReturnType<typeof modifySubscriptionA
       window.location.href = '/info?type=subscription-cancelled';
     }
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to modify subscription';
+    const message = extractMessage(error, 'Failed to modify subscription');
     yield put(modifySubscriptionAction.failure({ message }));
   }
 }
@@ -97,14 +106,14 @@ function* handleCancelRemoval() {
   try {
     const response: { success: boolean } = yield call(cancelRemoval);
     yield put(cancelRemovalAction.success({ success: response.success }));
-    
+
     // Refresh pricing summary to reflect the cancellation
     yield put(getSubscriptionSummaryAction.request());
-    
+
     // Redirect to success page
     window.location.href = '/info?type=cancel-removal-success';
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to cancel removal';
+    const message = extractMessage(error, 'Failed to cancel removal');
     yield put(cancelRemovalAction.failure({ message }));
   }
 }
@@ -115,7 +124,7 @@ function* handleGetSmsBalance() {
     const response: SmsBalanceResponse = yield call(getSmsBalance);
     yield put(getSmsBalanceAction.success({ balance: response.data }));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS balance';
+    const message = extractMessage(error, 'Failed to fetch SMS balance');
     yield put(getSmsBalanceAction.failure({ message }));
   }
 }
@@ -125,7 +134,7 @@ function* handleGetSmsPackages() {
     const response: SmsPackagesResponse = yield call(getSmsPackages);
     yield put(getSmsPackagesAction.success({ packages: response.data }));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS packages';
+    const message = extractMessage(error, 'Failed to fetch SMS packages');
     yield put(getSmsPackagesAction.failure({ message }));
   }
 }
@@ -134,13 +143,13 @@ function* handleCreateSmsCheckout(action: ReturnType<typeof createSmsCheckoutAct
   try {
     const response: SmsCheckoutResponse = yield call(createSmsCheckout, action.payload);
     yield put(createSmsCheckoutAction.success(response));
-    
+
     // Redirect to Stripe Checkout
     if (response.url) {
       window.location.href = response.url;
     }
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to create SMS checkout';
+    const message = extractMessage(error, 'Failed to create SMS checkout');
     yield put(createSmsCheckoutAction.failure({ message }));
   }
 }
@@ -155,7 +164,7 @@ function* handleGetSmsPurchases(action: ReturnType<typeof getSmsPurchasesAction.
       nextCursor: response.nextCursor
     }));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to fetch SMS purchases';
+    const message = extractMessage(error, 'Failed to fetch SMS purchases');
     yield put(getSmsPurchasesAction.failure({ message }));
   }
 }
@@ -172,7 +181,7 @@ function* handleGetBusinessInvoices(action: ReturnType<typeof getBusinessInvoice
       append,
     }));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to fetch invoices';
+    const message = extractMessage(error, 'Failed to fetch invoices');
     yield put(getBusinessInvoicesAction.failure({ message }));
   }
 }

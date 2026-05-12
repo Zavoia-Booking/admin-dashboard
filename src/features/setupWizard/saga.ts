@@ -8,6 +8,7 @@ import { apiClient } from "../../shared/lib/http";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
 import type { RootState } from "../../app/providers/store";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
+import { translateMessageCode } from "../../shared/utils/error";
 
 // Helper function to upload logo file to R2
 function* uploadLogoIfNeeded(wizardData: Partial<WizardData>) {
@@ -171,11 +172,11 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
     // Fetch locations for the newly created business
     yield put(fetchCurrentBusinessAction.request());
   } catch (error: any) {
-    // Map backend messages robustly (string | array | nested)
+    // Map backend messages robustly (string | array | nested), translating each code.
     const raw = error?.response?.data?.message ?? error?.message;
     const message = Array.isArray(raw)
-      ? raw.filter(Boolean).join('\n')
-      : (raw || 'Something went wrong, please try again');
+      ? raw.filter(Boolean).map((m: string) => translateMessageCode(m)).join('\n')
+      : (translateMessageCode(raw ?? '') || 'Something went wrong, please try again');
     yield put(wizardCompleteAction.failure({ message }));
   }
 }

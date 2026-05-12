@@ -449,7 +449,7 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     yield put(listLocationsAction.request());
     
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.response?.data?.error || 'Failed to link Google account';
+    const message = getErrorMessage(error) || 'Failed to link Google account';
     yield put(linkGoogleAction.failure({ message }));
   }
 }
@@ -477,12 +477,18 @@ function* handleUnlinkGoogle(action: ReturnType<typeof unlinkGoogleAction.reques
     const { toast } = yield import('sonner');
     toast.success('Google account has been unlinked from your account.');
   } catch (error: any) {
+    const rawMessage = error?.response?.data?.message;
+    const code = typeof rawMessage === 'string' && /^[A-Z_]+\.[A-Z]\d{2}$/.test(rawMessage)
+      ? rawMessage
+      : undefined;
     const message = getErrorMessage(error);
-    yield put(unlinkGoogleAction.failure({ message }));
-    
-    // Show error message
-    const { toast } = yield import('sonner');
-    toast.error(message);
+    yield put(unlinkGoogleAction.failure({ message, code }));
+
+    // Suppress global toast when the dialog already renders the "set a password first" branch.
+    if (code !== 'AUTH.E11') {
+      const { toast } = yield import('sonner');
+      toast.error(message);
+    }
   }
 }
 
@@ -529,7 +535,7 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
       }
     }, 100);
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.response?.data?.error || error?.message || 'Failed to link Google account';
+    const message = getErrorMessage(error) || 'Failed to link Google account';
     yield put(linkGoogleByCodeAction.failure({ message }));
     // Defer toast to Settings page after redirect
     try {

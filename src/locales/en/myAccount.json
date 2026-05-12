@@ -4,53 +4,70 @@
   },
   "buttons": {
     "saving": "Saving",
-    "saveChanges": "Save Changes"
+    "saveChanges": "Save changes"
   },
   "advanced": {
     "title": "Advanced",
-    "description": "Manage organisation membership and account lifecycle"
+    "description": "Manage organisation membership and account deletion."
+  },
+  "roles": {
+    "owner": "Owner",
+    "manager": "Manager",
+    "employee": "Team member",
+    "team_member": "Team member",
+    "admin": "Admin",
+    "staff": "Staff",
+    "dashboard_user": "Member"
   },
   "profile": {
+    "requiredHint": "Required fields",
+    "hero": {
+      "eyebrow": "My account",
+      "placeholderName": "Your account",
+      "emailVerified": "Email verified"
+    },
     "personalInfo": {
-      "title": "Personal Information",
-      "description": "Your profile details visible on the marketplace"
+      "title": "Personal information",
+      "description": "Your name and profile photo."
     },
     "profilePhoto": {
-      "label": "Profile Photo",
-      "description": "Your profile photo appears on your marketplace profile",
+      "label": "Profile photo",
+      "description": "Your photo appears on your team profile.",
       "edit": "Edit",
-      "uploading": "Uploading..."
+      "uploading": "Uploading…"
     },
     "contactInfo": {
-      "title": "Contact Information",
-      "description": "Your contact details for account communication"
+      "title": "Contact details",
+      "description": "Email and phone we use to reach you."
     },
     "accountSecurity": {
-      "title": "Account Security",
-      "description": "Manage your account authentication and security",
-      "changePassword": "Change Password",
-      "changePasswordHint": "Update your account password. Leave current password empty if setting up for the first time.",
-      "currentPassword": "Current Password",
+      "title": "Account security",
+      "description": "Manage sign-in, password, and connected accounts.",
+      "changePassword": "Change password",
+      "changePasswordHint": "Update the password used to sign in.",
+      "changePasswordReveal": "Change password",
+      "changePasswordCancel": "Cancel",
+      "currentPassword": "Current password",
       "currentPasswordPlaceholder": "Enter current password",
-      "newPassword": "New Password",
+      "newPassword": "New password",
       "newPasswordPlaceholder": "Enter new password",
-      "confirmPassword": "Confirm New Password",
-      "confirmPasswordPlaceholder": "Confirm new password",
-      "updating": "Updating...",
-      "legalTitle": "Legal Documents",
-      "legalDescription": "Review our terms, privacy policy, and cookies policy",
+      "confirmPassword": "Confirm new password",
+      "confirmPasswordPlaceholder": "Re-enter new password",
+      "updating": "Updating…",
+      "legalTitle": "Legal documents",
+      "legalDescription": "Review our terms, privacy policy, and cookie policy.",
       "legal_terms": "Terms and Conditions",
-      "legal_privacy": "Confidentiality Policy",
-      "legal_cookies": "Cookies Policy"
+      "legal_privacy": "Privacy Policy",
+      "legal_cookies": "Cookie Policy"
     },
     "fields": {
-      "firstName": "First Name",
+      "firstName": "First name",
       "firstNamePlaceholder": "Enter your first name",
-      "lastName": "Last Name",
+      "lastName": "Last name",
       "lastNamePlaceholder": "Enter your last name",
-      "email": "Email Address",
-      "emailPlaceholder": "your@email.com",
-      "phone": "Phone Number",
+      "email": "Email *",
+      "emailPlaceholder": "you@example.com",
+      "phone": "Phone",
       "phonePlaceholder": "+1 (555) 123-4567"
     },
     "toast": {
@@ -59,15 +76,16 @@
       "updateFailed": "Failed to update profile",
       "invalidImage": "Please select a valid image file (JPEG, PNG, WebP, SVG, or AVIF)",
       "fileTooLarge": "File size must be less than {{max}}MB",
-      "imageUploadSuccess": "Profile image uploaded successfully!",
-      "imageUploadFailed": "Failed to upload profile image",
+      "imageUploadSuccess": "Profile photo updated.",
+      "imageUploadFailed": "Failed to upload profile photo",
       "enterPassword": "Please enter a new password",
       "passwordMinLength": "Password must be at least 8 characters",
       "passwordsNoMatch": "Passwords do not match",
       "passwordPolicyFailed": "Password must include uppercase, lowercase, number, and special character (@$!%*?&)",
-      "passwordChanged": "Password changed successfully!",
-      "passwordSet": "Password set successfully!",
-      "passwordUpdateFailed": "Failed to update password"
+      "passwordChanged": "Password changed.",
+      "passwordSet": "Password set.",
+      "passwordUpdateFailed": "Failed to update password",
+      "fixErrorsBeforeSave": "Please fix the errors before saving."
     }
   }
 }

@@ -22,6 +22,8 @@ export interface TextFieldProps {
   onFocus?: () => void;
   onBlur?: () => void;
   inputRef?: React.RefObject<HTMLInputElement | null>;
+  autoComplete?: string;
+  readOnly?: boolean;
 }
 
 export const TextField: React.FC<TextFieldProps> = ({
@@ -43,6 +45,8 @@ export const TextField: React.FC<TextFieldProps> = ({
   onFocus,
   onBlur,
   inputRef,
+  autoComplete = "off",
+  readOnly = false,
 }) => {
   const generatedId = useId();
   const id = providedId ?? generatedId;
@@ -66,7 +70,8 @@ export const TextField: React.FC<TextFieldProps> = ({
           maxLength={type === 'password' ? undefined : maxLength}
           disabled={disabled}
           autoFocus={autoFocus}
-          autoComplete="off"
+          autoComplete={autoComplete}
+          readOnly={readOnly}
           onKeyDown={onKeyDown}
           onFocus={onFocus}
           onBlur={onBlur}

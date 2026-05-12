@@ -28,6 +28,7 @@
     }
   },
   "subscriptionBlocker": {
+    "eyebrow": "Billing · Active plan",
     "title": "Cancel your subscription first",
     "message": "You have an active subscription. To delete your account, please cancel your subscription first.",
     "hint": "After your subscription is cancelled (or scheduled for cancellation), you'll be able to delete your account.",
@@ -35,6 +36,7 @@
     "goToBilling": "Go to billing"
   },
   "deleteAccountDialog": {
+    "eyebrow": "Danger zone",
     "title": "Delete account permanently?",
     "intro": "This will immediately and permanently:",
     "bullets": {
@@ -54,22 +56,26 @@
     "title": "Leave Organisation",
     "cardDescription": "Remove yourself from this business. You must cancel or reassign all your active appointments first.",
     "cardHint": "Ask the business owner to reassign your appointments to another team member, or cancel them yourself.",
-    "confirmMessage": "Are you sure you want to leave this organisation?",
-    "confirmHint": "You will lose access to this business and all associated data. This action cannot be undone.",
+    "confirmEyebrow": "Organisation membership",
+    "confirmTitle": "Leave this organisation?",
+    "confirmMessage": "You'll lose access to this business and everything connected to it — bookings, customers, and team data.",
+    "confirmHint": "This action is permanent. You'll need a new invitation to rejoin.",
     "confirmButton": "Leave Organisation",
-    "leaving": "Leaving...",
+    "leaving": "Leaving…",
     "cancel": "Cancel",
-    "successTitle": "Successfully Left Organisation",
-    "successMessage": "You have successfully left the organisation.",
-    "successHint": "Your access to this business has been removed. You will now be logged out.",
-    "successButton": "Confirm"
+    "successEyebrow": "All done",
+    "successTitle": "You've left the organisation",
+    "successMessage": "Your access to this business has been removed.",
+    "successHint": "We'll sign you out now. You can sign back in any time with another account or invitation.",
+    "successButton": "Got it"
   },
   "activeAppointments": {
-    "title": "Active Appointments Found",
-    "message_one": "You have 1 active appointment that must be resolved before you can leave.",
-    "message_other": "You have {{count}} active appointments that must be resolved before you can leave.",
-    "hint": "Please cancel your pending appointments or ask the business owner to reassign them to another team member before trying again.",
-    "understood": "Understood"
+    "eyebrow": "Action required",
+    "title": "You still have active appointments",
+    "message_one": "There is 1 active appointment tied to your seat. Resolve it before leaving the organisation.",
+    "message_other": "There are {{count}} active appointments tied to your seat. Resolve them before leaving the organisation.",
+    "hint": "Cancel your pending appointments yourself, or ask the business owner to reassign them to another team member.",
+    "understood": "Got it"
   },
   "common": {
     "cancel": "Cancel"

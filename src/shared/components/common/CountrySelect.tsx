@@ -224,7 +224,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
               "w-full h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
               hasError
                 ? "border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error"
-                : "border-border bg-info-100 hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus text-neutral-900",
+                : "border-border dark:border-border-subtle bg-surface dark:bg-neutral-900 hover:bg-surface-hover hover:border-border-strong focus:border-focus focus-visible:ring-focus text-foreground-1",
               !value && "text-muted-foreground"
             )}
           >

@@ -16,13 +16,22 @@ import {
 import type { SupportTicket, SupportApiResponse } from "./types";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
+import { translateMessageCode } from "../../shared/utils/error";
+
+function extractMessage(error: any, fallback: string): string {
+  const raw = error?.response?.data?.message;
+  const translated = Array.isArray(raw)
+    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
+    : translateMessageCode(raw ?? '');
+  return translated || error?.message || fallback;
+}
 
 function* handleListTickets() {
   try {
     const response: SupportApiResponse<SupportTicket[]> = yield call(listTicketsApi);
     yield put(listTicketsAction.success(response.data));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || "Failed to fetch tickets";
+    const message = extractMessage(error, "Failed to fetch tickets");
     yield put(listTicketsAction.failure({ message }));
   }
 }
@@ -32,7 +41,7 @@ function* handleGetTicketById(action: ActionType<typeof getTicketByIdAction.requ
     const response: SupportApiResponse<SupportTicket> = yield call(getTicketByIdApi, action.payload.id);
     yield put(getTicketByIdAction.success(response.data));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || "Failed to fetch ticket";
+    const message = extractMessage(error, "Failed to fetch ticket");
     yield put(getTicketByIdAction.failure({ message }));
   }
 }
@@ -44,7 +53,7 @@ function* handleCreateTicket(action: ActionType<typeof createTicketAction.reques
     toast.success("Ticket created successfully");
     yield put(listTicketsAction.request());
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || "Failed to create ticket";
+    const message = extractMessage(error, "Failed to create ticket");
     yield put(createTicketAction.failure({ message }));
     toast.error("Failed to create ticket");
   }
@@ -59,7 +68,7 @@ function* handleAddMessage(action: ActionType<typeof addMessageAction.request>) 
     );
     yield put(addMessageAction.success(response.data));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || "Failed to send message";
+    const message = extractMessage(error, "Failed to send message");
     yield put(addMessageAction.failure({ message }));
     toast.error("Failed to send message");
   }
@@ -72,7 +81,7 @@ function* handleCloseTicket(action: ActionType<typeof closeTicketAction.request>
     toast.success("Ticket closed");
     yield put(listTicketsAction.request());
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || "Failed to close ticket";
+    const message = extractMessage(error, "Failed to close ticket");
     yield put(closeTicketAction.failure({ message }));
     toast.error("Failed to close ticket");
   }

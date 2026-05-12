@@ -892,6 +892,33 @@ textarea {
   display: none;  /* Chrome, Safari, and Opera */
 }
 
+/*
+ * Vaul drawer close-animation override.
+ *
+ * Vaul drives close via CSS @keyframes (slideToRight / slideToLeft / etc.)
+ * with hard-coded `animation-duration: .5s` and
+ * `animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1)`.
+ *
+ * That curve decelerates near the end — the panel approaches its off-screen
+ * position with diminishing speed and reads as a "pause / drag" right before
+ * it disappears.
+ *
+ * Override: linear curve, ~250ms. Constant velocity all the way out, no
+ * end-of-motion deceleration. Open path is untouched (Vaul's default open
+ * feels right; [data-state="closed"] only matches during close).
+ */
+[data-vaul-drawer][data-state="closed"] {
+  animation-duration: 250ms !important;
+  animation-timing-function: linear !important;
+}
+
+/* Backdrop (overlay) uses opacity *transition*, not animation. Match the
+ * panel timing so they finish together. */
+[data-vaul-overlay][data-state="closed"] {
+  transition-duration: 250ms !important;
+  transition-timing-function: linear !important;
+}
+
 /* Mobile: hide scrollbar but keep scrolling working */
 @media (max-width: 767px) {
   ::-webkit-scrollbar {

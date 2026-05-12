@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Outlet, useLocation, useSearchParams } from "react-router-dom"
 import { useTranslation } from "react-i18next"
 import type { LegalPageType } from "../../legal/components/legal-content"
@@ -55,6 +55,15 @@ export function AuthLayout() {
       : undefined
 
   const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)
+
+  useEffect(() => {
+    document.documentElement.classList.add("scrollbar-hide")
+    document.body.classList.add("scrollbar-hide")
+    return () => {
+      document.documentElement.classList.remove("scrollbar-hide")
+      document.body.classList.remove("scrollbar-hide")
+    }
+  }, [])
 
   const footer = (
     <div className="text-muted-foreground text-center text-xs text-balance w-full">

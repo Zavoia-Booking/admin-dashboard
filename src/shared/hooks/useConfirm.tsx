@@ -3,10 +3,23 @@ import * as React from 'react';
 import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTranslation } from 'react-i18next';
+import {
+  modalScrim,
+  modalPanel,
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalFooterRowRight,
+  modalSecondary,
+  modalPrimary,
+  modalDestructive,
+} from '../components/ui/modal-tokens';
 
 type MaybeNode = React.ReactNode | string | null | undefined;
 
 export type ConfirmOptions = {
+    /** Short small-caps caption above the title — gives the dialog editorial weight. */
+    eyebrow?: string;
     title?: MaybeNode;
     content?: MaybeNode;
     confirmationText?: string;
@@ -147,6 +160,7 @@ export function useConfirmRadix() {
     );
 
     const Panel: React.FC<{
+        eyebrow?: string;
         title?: MaybeNode;
         content?: MaybeNode;
         destructive?: boolean;
@@ -159,6 +173,7 @@ export function useConfirmRadix() {
         attachDismissHandlers?: (props: Record<string, any>) => Record<string, any>;
         useActionWrappers: 'alert' | 'dialog';
     }> = ({
+              eyebrow,
               title,
               content,
               destructive,
@@ -172,37 +187,37 @@ export function useConfirmRadix() {
               useActionWrappers,
           }) => {
         const baseContentProps = attachDismissHandlers({
-            className:
-                `fixed left-1/2 top-1/2 z-[10000] w-[95vw] max-w-md -translate-x-1/2 -translate-y-1/2
-         rounded-2xl bg-surface border border-border p-6 shadow-xl outline-none
-         data-[state=open]:animate-in data-[state=closed]:animate-out
-         data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0`,
+            className: modalPanel,
         });
 
         const overlayProps = {
-            className:
-                `fixed inset-0 z-[9999] bg-black/50
-         data-[state=open]:animate-in data-[state=closed]:animate-out
-         data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0`,
+            className: modalScrim,
         };
+
+        const confirmPillClass = destructive ? modalDestructive : modalPrimary;
 
         return (
             <Root open onOpenChange={handleOpenChange}>
                 <Portal>
                     <Overlay {...overlayProps} />
                     <Content {...baseContentProps} className={`${baseContentProps.className} ${className ?? ''}`}>
+                        {eyebrow && (
+                            <div className={modalEyebrow}>{eyebrow}</div>
+                        )}
                         {title != null && (
-                            <Title className="text-lg font-semibold leading-6 text-foreground-1">
+                            <Title className={modalTitleCompact}>
                                 {title}
                             </Title>
                         )}
                         {content != null && (
-                            <Description className="mt-2 text-sm text-foreground-3 dark:text-foreground-2">
-                                {typeof content === 'string' ? content : content}
+                            <Description asChild>
+                                <div className={`mt-3 ${modalBody}`}>
+                                    {content}
+                                </div>
                             </Description>
                         )}
 
-                        <div className="mt-6 flex justify-end gap-3">
+                        <div className={`mt-7 ${modalFooterRowRight}`}>
                             {renderActions ? (
                                 renderActions({
                                     onCancel: onCancelClick,
@@ -213,19 +228,13 @@ export function useConfirmRadix() {
                                 <>
                                     {showCancel && (useActionWrappers === 'alert' ? (
                                         <Cancel asChild>
-                                            <button
-                                                onClick={onCancelClick}
-                                                className="rounded-full h-11 px-6 border border-border bg-surface-hover hover:bg-surface-active text-sm font-medium text-foreground-1 cursor-pointer"
-                                            >
+                                            <button onClick={onCancelClick} className={modalSecondary}>
                                                 {cancellationText}
                                             </button>
                                         </Cancel>
                                     ) : (
                                         <Close asChild>
-                                            <button
-                                                onClick={onCancelClick}
-                                                className="rounded-full h-11 px-6 border border-border bg-surface-hover hover:bg-surface-active text-sm font-medium text-foreground-1 cursor-pointer"
-                                            >
+                                            <button onClick={onCancelClick} className={modalSecondary}>
                                                 {cancellationText}
                                             </button>
                                         </Close>
@@ -233,27 +242,13 @@ export function useConfirmRadix() {
 
                                     {useActionWrappers === 'alert' ? (
                                         <Action asChild>
-                                            <button
-                                                onClick={onConfirmClick}
-                                                autoFocus
-                                                className={`rounded-full h-11 px-6 text-sm font-semibold text-white cursor-pointer
-                          ${destructive
-                                                    ? 'bg-destructive hover:bg-destructive/90'
-                                                    : 'bg-primary hover:bg-primary-hover'}`}
-                                            >
+                                            <button onClick={onConfirmClick} autoFocus className={confirmPillClass}>
                                                 {confirmationText}
                                             </button>
                                         </Action>
                                     ) : (
                                         <Close asChild>
-                                            <button
-                                                onClick={onConfirmClick}
-                                                autoFocus
-                                                className={`rounded-full h-11 px-6 text-sm font-semibold text-white cursor-pointer
-                          ${destructive
-                                                    ? 'bg-destructive hover:bg-destructive/90'
-                                                    : 'bg-primary hover:bg-primary-hover'}`}
-                                            >
+                                            <button onClick={onConfirmClick} autoFocus className={confirmPillClass}>
                                                 {confirmationText}
                                             </button>
                                         </Close>
@@ -272,6 +267,7 @@ export function useConfirmRadix() {
         if (!open) return null;
 
         const {
+            eyebrow,
             title,
             content,
             confirmationText = translatedDefaults.confirmationText!,
@@ -287,6 +283,7 @@ export function useConfirmRadix() {
             // Use Dialog so overlay/Escape will close. Treat those as cancel.
             return (
                 <Panel
+                    eyebrow={eyebrow}
                     title={title}
                     content={content}
                     destructive={destructive}
@@ -315,6 +312,7 @@ export function useConfirmRadix() {
         // Non-dismissible, safer: use AlertDialog
         return (
             <Panel
+                eyebrow={eyebrow}
                 title={title}
                 content={content}
                 destructive={destructive}

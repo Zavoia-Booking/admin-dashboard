@@ -18,10 +18,10 @@ function* handleInviteTeamMember(action: ReturnType<typeof inviteTeamMemberActio
  
   } catch (error: any) {
     const resp = error?.response?.data;
-    const backendMessage = Array.isArray(resp?.message)
-      ? resp?.message?.join(' ')
-      : resp?.message;
-    const message = backendMessage || resp?.error || error?.message || i18n.t('teamMembers:toasts.inviteFailed');
+    const rawMessage = Array.isArray(resp?.message)
+      ? resp.message.map((m: string) => translateMessageCode(m)).join(' ')
+      : translateMessageCode(resp?.message ?? '');
+    const message = rawMessage || translateMessageCode(resp?.error ?? '') || error?.message || i18n.t('teamMembers:toasts.inviteFailed');
     yield put(inviteTeamMemberAction.failure({ message }));
   }
 }

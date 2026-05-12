@@ -5,6 +5,15 @@ import { Input } from '../../../shared/components/ui/input';
 import { Label } from '../../../shared/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../../../shared/components/ui/alert-dialog';
+import {
+  modalPanel,
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalFooterRowRight,
+  modalSecondary,
+  modalPrimary,
+} from '../../../shared/components/ui/modal-tokens';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { Pill } from '../../../shared/components/ui/pill';
@@ -185,14 +194,14 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     });
   
     if (isTrial) {
-      return t('inviteSlider.buttons.sendInvitation');
+      return t('inviteSlider.buttons.continue');
     }
 
     if (isCancelled || !hasSubscription || !hasAvailableSeats) {
       return t('inviteSlider.buttons.goToBilling');
     }
 
-    return t('inviteSlider.buttons.sendInvitation');
+    return t('inviteSlider.buttons.continue');
   }
 
   const getDisableEmailStatus = () => {
@@ -387,17 +396,37 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
 
       {/* Confirmation Dialog */}
       <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('inviteSlider.confirmDialog.title')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('inviteSlider.confirmDialog.description', { email: watch('email') })}
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-3 !text-left">
+            <div className={modalEyebrow}>{t('inviteSlider.confirmDialog.eyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('inviteSlider.confirmDialog.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-left">
+                <p className={modalBody}>
+                  {t('inviteSlider.confirmDialog.description', {
+                    email: watch('email'),
+                    businessName: currentUser?.business?.name ?? '',
+                    count: locationIds?.length || 1,
+                  })}
+                </p>
+                <p className={modalBody}>
+                  {t('inviteSlider.confirmDialog.acceptanceNote')}
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('inviteSlider.buttons.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmInvite}>
-              {t('inviteSlider.buttons.sendInvitation')}
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <AlertDialogCancel asChild>
+              <button type="button" className={modalSecondary}>
+                {t('inviteSlider.buttons.cancel')}
+              </button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <button type="button" onClick={handleConfirmInvite} className={modalPrimary}>
+                {t('inviteSlider.buttons.sendInvitation')}
+              </button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
