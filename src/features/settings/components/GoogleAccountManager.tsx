@@ -5,7 +5,16 @@ import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../shared/components/ui/dialog';
 import { Input } from '../../../shared/components/ui/input';
-import { Loader2, Link as LinkIcon, Unlink, AlertCircle } from 'lucide-react';
+import { Loader2, Link as LinkIcon, Unlink } from 'lucide-react';
+import {
+  modalPanel,
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalFooterRowRight,
+  modalSecondary,
+  modalPrimary,
+} from '../../../shared/components/ui/modal-tokens';
 import { toast } from 'sonner';
 import type { RootState } from '../../../app/providers/store';
 import { unlinkGoogleAction, linkGoogleByCodeAction } from '../../auth/actions';
@@ -23,14 +32,19 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
   const user = useSelector((state: RootState) => state.auth.user);
   const linkingLoading = useSelector((state: RootState) => (state as any).auth.linkingLoading) as boolean;
   const linkingError = useSelector((state: RootState) => (state as any).auth.linkingError) as string | null;
-  
+  const linkingErrorCode = useSelector((state: RootState) => (state as any).auth.linkingErrorCode) as string | null;
+
   const [showUnlinkDialog, setShowUnlinkDialog] = useState(false);
   const [password, setPassword] = useState('');
   const [unlinkAttempted, setUnlinkAttempted] = useState(false);
 
   const isGoogleLinked = !!user?.googleSub;
-  // Only show "needs password" screen if user has attempted unlink AND got the specific error
-  const needsPasswordFirst = unlinkAttempted && (linkingError?.includes('AUTH.E11') || linkingError?.includes('set a password first'));
+  // Show the "set a password first" branch when we know the user has no password yet,
+  // or when the backend rejected an unlink attempt with AUTH.E11. Comparing against the
+  // raw error code (not the translated message) keeps this correct across locales.
+  const userHasNoPassword = user?.hasPassword === false;
+  const backendRejectedAsNoPassword = unlinkAttempted && linkingErrorCode === 'AUTH.E11';
+  const needsPasswordFirst = isGoogleLinked && (userHasNoPassword || backendRejectedAsNoPassword);
   const prevGoogleLinked = useRef(isGoogleLinked);
 
   useEffect(() => {
@@ -183,98 +197,107 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
           setUnlinkAttempted(false);
         }
       }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className={modalPanel}>
           {needsPasswordFirst ? (
             // Show "set password first" message
             <>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <AlertCircle className="h-5 w-5 text-warning" />
+              <DialogHeader className="space-y-4 !text-left">
+                <div className={modalEyebrow}>{t('googleAccount.passwordRequiredEyebrow')}</div>
+                <DialogTitle className={`${modalTitleCompact} text-left`}>
                   {t('googleAccount.passwordRequired')}
                 </DialogTitle>
-                <DialogDescription className="pt-2">
-                  {t('googleAccount.passwordRequiredDescription')}
+                <DialogDescription asChild>
+                  <div className="space-y-3 text-left">
+                    <p className={modalBody}>
+                      {t('googleAccount.passwordRequiredDescription')}
+                    </p>
+                    <p className={modalBody}>
+                      {t('googleAccount.passwordRequiredHint')}
+                    </p>
+                  </div>
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
-                <p className="text-sm text-muted-foreground">
-                  {t('googleAccount.passwordRequiredHint')}
-                </p>
-              </div>
-              <DialogFooter className="flex gap-2">
-                <Button
-                  variant="outline"
-                  rounded="full"
+              <DialogFooter className={`${modalFooterRowRight} mt-7`}>
+                <button
+                  type="button"
                   onClick={() => {
                     setShowUnlinkDialog(false);
                     setPassword('');
                     setUnlinkAttempted(false);
                   }}
+                  className={modalSecondary}
                 >
                   {t('googleAccount.cancel')}
-                </Button>
-                <Button
-                  rounded="full"
+                </button>
+                <button
+                  type="button"
                   onClick={() => {
                     setShowUnlinkDialog(false);
                     setPassword('');
                     setUnlinkAttempted(false);
                     onSetPasswordClick?.();
                   }}
+                  className={modalPrimary}
                 >
                   {t('googleAccount.setUpPassword')}
-                </Button>
+                </button>
               </DialogFooter>
             </>
           ) : (
             // Normal unlink flow with password confirmation
             <>
-              <DialogHeader>
-                <DialogTitle>{t('googleAccount.unlinkTitle')}</DialogTitle>
-                <DialogDescription>
-                  {t('googleAccount.unlinkDescription')}
+              <DialogHeader className="space-y-3 !text-left">
+                <div className={modalEyebrow}>{t('googleAccount.unlinkEyebrow')}</div>
+                <DialogTitle className={`${modalTitleCompact} text-left`}>
+                  {t('googleAccount.unlinkTitle')}
+                </DialogTitle>
+                <DialogDescription asChild>
+                  <p className={modalBody}>
+                    {t('googleAccount.unlinkDescription')}
+                  </p>
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="password">{t('googleAccount.currentPassword')}</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('googleAccount.currentPasswordPlaceholder')}
-                    className={`w-full ${unlinkAttempted && linkingError ? 'border-destructive' : ''}`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !linkingLoading) {
-                        handleUnlinkConfirm();
-                      }
-                    }}
-                    disabled={linkingLoading}
-                  />
-                  {unlinkAttempted && linkingError && (
-                    <p className="text-sm text-destructive">{linkingError}</p>
-                  )}
-                </div>
+              <div className="mt-5 space-y-2">
+                <Label htmlFor="password" className="text-[13px] font-medium text-neutral-700 dark:text-foreground-2">
+                  {t('googleAccount.currentPassword')}
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={t('googleAccount.currentPasswordPlaceholder')}
+                  className={`w-full ${unlinkAttempted && linkingError ? 'border-destructive' : ''}`}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !linkingLoading) {
+                      handleUnlinkConfirm();
+                    }
+                  }}
+                  disabled={linkingLoading}
+                />
+                {unlinkAttempted && linkingError && (
+                  <p className="text-[13px] text-destructive">{linkingError}</p>
+                )}
               </div>
-              <DialogFooter className="flex gap-2">
-                <Button
-                  variant="outline"
-                  rounded="full"
+              <DialogFooter className={`${modalFooterRowRight} mt-7`}>
+                <button
+                  type="button"
                   onClick={() => {
                     setShowUnlinkDialog(false);
                     setPassword('');
                     setUnlinkAttempted(false);
                   }}
                   disabled={linkingLoading}
+                  className={modalSecondary}
                 >
                   {t('googleAccount.cancel')}
-                </Button>
-                <Button
-                  variant="destructive"
-                  rounded="full"
+                </button>
+                <button
+                  type="button"
                   onClick={handleUnlinkConfirm}
                   disabled={!password.trim() || linkingLoading}
+                  className={`${modalPrimary} bg-destructive hover:bg-destructive/90 focus-visible:ring-destructive/40`}
                 >
                   {linkingLoading ? (
                     <>
@@ -284,7 +307,7 @@ const GoogleAccountManager: React.FC<GoogleAccountManagerProps> = ({ className, 
                   ) : (
                     t('googleAccount.unlinkAccount')
                   )}
-                </Button>
+                </button>
               </DialogFooter>
             </>
           )}

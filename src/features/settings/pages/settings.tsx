@@ -8,7 +8,6 @@ import { Button } from '../../../shared/components/ui/button';
 import {
   User,
   CreditCard,
-  Save,
   Loader2,
 } from 'lucide-react';
 import BillingAndSubscriptionV2 from '../components/BillingAndSubscriptionV2';
@@ -139,10 +138,7 @@ const SettingsPage = () => {
           </span>
         </>
       ) : (
-        <>
-          <span>{t('buttons.saveChanges')}</span>
-          <Save className="hidden md:inline h-4 w-4" />
-        </>
+        <span>{t('buttons.saveChanges')}</span>
       )}
     </Button>
   );

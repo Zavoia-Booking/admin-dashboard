@@ -54,6 +54,13 @@ import { formatDateInTimezone } from "./timezone.ts";
 import type { CalendarDayFilters, DayDataResponse, LocationContextData, CalendarSummaryResponse } from "../../shared/types/calendar.ts";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
+import { translateMessageCode } from "../../shared/utils/error";
+
+function calendarErrorMessage(error: any): string {
+  const raw = error?.response?.data?.message;
+  if (Array.isArray(raw)) return raw.map((m: string) => translateMessageCode(m)).join(' ');
+  return translateMessageCode(raw ?? '');
+}
 import { dropSuccessHaptic } from "./haptics.ts";
 
 function wallDateFromIso(iso: string): Date {
@@ -365,7 +372,7 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
                 details,
             });
         }
-        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.bookingGroupCreationFailed"));
+        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.bookingGroupCreationFailed"));
     }
 }
 
@@ -382,7 +389,8 @@ function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleA
         const status = error?.response?.status;
         if (status === 409) {
             const raw = error?.response?.data?.message;
-            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable")) : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
+            const firstRaw = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? '') : (raw ?? '');
+            const message = translateMessageCode(firstRaw) || i18n.t("calendar:page.toasts.timeSlotNotAvailable");
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
             yield put(setUpdateConflictOffer({
                 appointmentId: 0,
@@ -397,7 +405,7 @@ function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleA
                 toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.rescheduleGroupFailed"));
+            toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.rescheduleGroupFailed"));
         }
     }
 }
@@ -417,7 +425,7 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
         toast.success(i18n.t(toastKey, { status }));
     } catch (error: any) {
         yield put(updateAppointmentStatus.failure(error));
-        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentStatusUpdateFailed"));
+        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentStatusUpdateFailed"));
     }
 }
 
@@ -441,7 +449,8 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
         const status = error?.response?.status;
         if (status === 409) {
             const raw = error?.response?.data?.message;
-            const message = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable")) : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
+            const firstRaw = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? '') : (raw ?? '');
+            const message = translateMessageCode(firstRaw) || i18n.t("calendar:page.toasts.timeSlotNotAvailable");
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
             yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType, bookingGroupId: action.payload.bookingGroupId }));
             if (conflictType === 'staff_appointment') {
@@ -450,7 +459,7 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
                 toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
+            toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
         }
     }
 }
@@ -539,7 +548,7 @@ function* handleUpdateGroupItemsStaff(action: ActionType<typeof updateGroupItems
                 toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
         } else {
-            toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
+            toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
         }
     }
 }
@@ -558,7 +567,7 @@ function* handleCancelAppointment(action: ActionType<typeof cancelAppointment.re
         toast.success(i18n.t("calendar:page.toasts.appointmentCancelled"));
     } catch (error: any) {
         yield put(cancelAppointment.failure(error));
-        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.appointmentCancelFailed"));
+        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentCancelFailed"));
     }
 }
 
@@ -575,7 +584,7 @@ function* handleCreateCalendarBlock(action: ActionType<typeof createCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockCreated"));
     } catch (error: any) {
         yield put(createCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.blockCreateFailed"));
+        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.blockCreateFailed"));
     }
 }
 
@@ -588,7 +597,7 @@ function* handleDeleteCalendarBlock(action: ActionType<typeof deleteCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockDeleted"));
     } catch (error: any) {
         yield put(deleteCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.blockDeleteFailed"));
+        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.blockDeleteFailed"));
     }
 }
 
@@ -610,7 +619,7 @@ function* handleUpdateCalendarBlock(action: ActionType<typeof updateCalendarBloc
         toast.success(i18n.t("calendar:page.toasts.blockUpdated"));
     } catch (error: any) {
         yield put(updateCalendarBlock.failure(error));
-        toast.error(error?.response?.data?.message || i18n.t("calendar:page.toasts.blockUpdateFailed"));
+        toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.blockUpdateFailed"));
     }
 }
 

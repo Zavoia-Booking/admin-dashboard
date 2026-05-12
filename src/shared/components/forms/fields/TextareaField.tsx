@@ -18,6 +18,7 @@ export interface TextareaFieldProps {
   autoFocus?: boolean;
   helperText?: string;
   disabled?: boolean;
+  textareaClassName?: string;
 }
 
 export const TextareaField: React.FC<TextareaFieldProps> = ({
@@ -35,12 +36,13 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
   autoFocus = false,
   helperText,
   disabled = false,
+  textareaClassName = "",
 }) => {
   const currentLength = value?.length || 0;
   const isOverLimit = currentLength > maxLength;
 
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-2 pt-2 ${className}`}>
       <div className="flex flex-col space-y-1.5">
         <div className="flex items-center justify-between">
           <Label htmlFor={id} className="text-base font-medium">
@@ -78,7 +80,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
           error
             ? "border-destructive bg-error-bg focus-visible:ring-error"
             : "border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
-        }`}
+        } ${textareaClassName}`}
         aria-invalid={!!error}
       />
       <div className="h-5">

@@ -77,7 +77,8 @@
     "duration": "Duration",
     "price": "Price",
     "seeAll": "See all",
-    "seeAppointments": "See appointments"
+    "seeAppointments": "See appointments",
+    "guestCustomer": "Guest"
   },
   "reviews": {
     "title": "Your Reviews",

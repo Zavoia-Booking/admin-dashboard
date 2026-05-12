@@ -36,7 +36,7 @@ export interface UpcomingAppointment {
   price: number;
   status: string;
   staffSnapshot: StaffSnapshot[];
-  customerSnapshot: CustomerSnapshot;
+  customerSnapshot: CustomerSnapshot | null;
 }
 
 export interface LocationStaffMember {
@@ -54,7 +54,7 @@ export interface UnresolvedAppointment {
   scheduledAt: string;
   endsAt: string;
   status: string;
-  customerSnapshot: CustomerSnapshot;
+  customerSnapshot: CustomerSnapshot | null;
   staffSnapshot: StaffSnapshot[];
 }
 

@@ -77,7 +77,8 @@
     "duration": "Durată",
     "price": "Preț",
     "seeAll": "Vezi toate",
-    "seeAppointments": "Vezi programările"
+    "seeAppointments": "Vezi programările",
+    "guestCustomer": "Invitat"
   },
   "reviews": {
     "title": "Recenziile tale",

@@ -283,7 +283,7 @@ export function MobileBottomNav() {
                   <item.icon className="h-6 w-6 shrink-0" />
                 </span>
                 <span className={cn(
-                  "text-[10px] leading-tight truncate max-w-full",
+                  "text-[12px] leading-tight truncate max-w-full",
                   isActive ? "font-semibold" : "font-medium",
                 )}>
                   {t(item.i18nKey)}
@@ -320,7 +320,7 @@ export function MobileBottomNav() {
               />
             </div>
             <span className={cn(
-              "text-[10px] leading-tight truncate max-w-full",
+              "text-[12px] leading-tight truncate max-w-full",
               isOpen ? "font-semibold" : "font-medium",
             )}>
               {t('mobileNav.more')}

@@ -42,20 +42,20 @@
     "searchPlaceholder": "Caută membri după nume sau email..."
   },
   "inviteSlider": {
-    "title": "Invită membru echipă",
+    "title": "Invită membru în echipă",
     "subscriptionInfo": {
       "title": "Informații abonament",
       "description": "Verifică detaliile abonamentului și locurile disponibile."
     },
     "contactInfo": {
-      "title": "Informații contact",
-      "description": "Introdu adresa de email a membrului echipei pe care vrei să îl inviți.",
-      "emailLabel": "Adresă email *",
-      "emailPlaceholder": "ex. contact@exemplu.com"
+      "title": "Detalii membru echipă",
+      "description": "Introdu emailul persoanei pe care vrei să o inviți.",
+      "emailLabel": "Email *",
+      "emailPlaceholder": "nume@exemplu.com"
     },
     "locationAssignment": {
-      "title": "Atribuire locații",
-      "description": "Selectează la ce locații va avea acces acest membru al echipei.",
+      "title": "Acces la locații",
+      "description": "Alege locațiile la care va avea acces.",
       "noLocations": "Nu există locații disponibile. Creează mai întâi o locație.",
       "noLocationsSelected": "Nicio locație selectată. Este necesară cel puțin o locație.",
       "oneLocationSelected": "1 locație selectată. Cel puțin o locație trebuie să rămână selectată.",
@@ -68,12 +68,16 @@
     },
     "buttons": {
       "cancel": "Anulează",
+      "continue": "Continuă",
       "sendInvitation": "Trimite invitația",
       "goToBilling": "Mergi la Facturare"
     },
     "confirmDialog": {
-      "title": "Trimite invitația",
-      "description": "Sigur vrei să trimiți o invitație către {{email}}?"
+      "eyebrow": "Echipă · Invitație",
+      "title": "Invită membru în echipă",
+      "description_one": "{{email}} va primi o invitație pentru a se alătura afacerii {{businessName}} și va avea acces la locația selectată.",
+      "description_other": "{{email}} va primi o invitație pentru a se alătura afacerii {{businessName}} și va avea acces la locațiile selectate.",
+      "acceptanceNote": "După ce acceptă invitația, va putea folosi contul de business."
     }
   },
   "subscriptionInfo": {

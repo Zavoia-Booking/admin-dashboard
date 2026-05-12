@@ -119,7 +119,7 @@ export const unlinkGoogleAction = createAsyncAction(
   'auth/UNLINK_GOOGLE_REQUEST',
   'auth/UNLINK_GOOGLE_SUCCESS',
   'auth/UNLINK_GOOGLE_FAILURE',
-)<{ password: string }, { message: string }, { message: string }>();
+)<{ password: string }, { message: string }, { message: string; code?: string }>();
 
 // Link Google from Settings by exchanging auth code (authenticated user)
 export const linkGoogleByCodeAction = createAsyncAction(

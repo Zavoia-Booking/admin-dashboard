@@ -4,6 +4,18 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { Dialog, DialogPortal, DialogTitle } from '../../ui/dialog';
+import {
+  modalScrim,
+  modalPanelLarge,
+  modalEyebrow,
+  modalTitleLarge,
+  modalBody,
+  modalFooterRow,
+  modalGhost,
+  modalSecondary,
+  modalPrimary,
+  ModalArrow,
+} from '../../ui/modal-tokens';
 import { usePlatform } from '../../../hooks/usePlatform';
 import { selectCurrentUser } from '../../../../features/auth/selectors';
 import { logoutRequestAction } from '../../../../features/auth/actions';
@@ -99,13 +111,7 @@ export const SubscriptionBlocker: React.FC = () => {
   return (
     <Dialog open modal>
       <DialogPortal>
-        {/* Warm-grey scrim with subtle blur — lets the dashboard read through
-            faintly without competing with the modal. Fade-in tied to Radix
-            data-state via tailwindcss-animate. */}
-        <div
-          className="fixed inset-0 z-[300] bg-[oklch(15%_0.004_70/0.42)] backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in-0"
-          data-state="open"
-        />
+        <div className={modalScrim} data-state="open" />
         <DialogPrimitive.Content
           ref={contentRef}
           aria-describedby={undefined}
@@ -113,96 +119,37 @@ export const SubscriptionBlocker: React.FC = () => {
           onInteractOutside={(e) => e.preventDefault()}
           onEscapeKeyDown={(e) => e.preventDefault()}
           onOpenAutoFocus={(e) => {
-            // Radix auto-focuses the first focusable child by default —
-            // that's the sign-out button in our DOM order. After a Cmd+R
-            // refresh, the browser's :focus-visible heuristic carries over
-            // and shows a ring on whichever button receives that focus,
-            // which reads like a "pressed" state. Focus the Content panel
-            // itself instead: it has tabindex=-1, so screen readers still
-            // announce the dialog, but no visible focus ring appears. The
-            // ring shows only when a keyboard user actually Tabs to a
-            // button.
+            // Focus the Content panel itself (tabindex=-1) instead of letting
+            // Radix auto-focus the first button — prevents a stale :focus-visible
+            // ring from appearing after Cmd+R.
             e.preventDefault();
             contentRef.current?.focus();
           }}
-          className={[
-            'fixed left-1/2 top-1/2 z-[300] w-[calc(100%-2rem)] max-w-[520px] -translate-x-1/2 -translate-y-1/2',
-            'rounded-2xl bg-neutral-50 text-neutral-900',
-            'p-7 sm:p-10',
-            'shadow-[0_24px_56px_oklch(15%_0.004_70/0.22),0_2px_8px_oklch(15%_0.004_70/0.10)]',
-            'focus:outline-none focus-visible:outline-none',
-            'data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-[0.97] data-[state=open]:duration-250',
-          ].join(' ')}
+          className={modalPanelLarge}
         >
-          {/* Eyebrow — small caps, terracotta. Sets the editorial tone. */}
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700">
-            {eyebrow}
-          </div>
+          <div className={modalEyebrow}>{eyebrow}</div>
 
-          <DialogTitle className="m-0 text-[26px] sm:text-[28px] font-semibold leading-[1.15] tracking-[-0.022em] text-neutral-900">
-            {title}
-          </DialogTitle>
+          <DialogTitle className={modalTitleLarge}>{title}</DialogTitle>
 
-          <p className="mt-3.5 mb-7 max-w-[420px] text-[15px] leading-[1.55] text-neutral-700 [text-wrap:pretty]">
-            {description}
-          </p>
+          <p className={`mt-3.5 mb-7 max-w-[420px] ${modalBody}`}>{description}</p>
 
           {/* Footer row. Desktop: sign-out left, secondary + primary right.
               Mobile: stack with primary on top, then secondary, then sign-out. */}
-          <div className="flex flex-col gap-3 border-t border-neutral-200 pt-5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <div className={modalFooterRow}>
             <div className="order-2 flex justify-center sm:order-1 sm:justify-start">
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className="cursor-pointer appearance-none rounded-md border-0 bg-transparent px-3 py-2 text-[13px] font-medium text-neutral-600 underline-offset-[3px] outline-none hover:underline focus-visible:ring-2 focus-visible:ring-neutral-400/40"
-              >
+              <button type="button" onClick={handleSignOut} className={modalGhost}>
                 {t('limitedUsage.blockerSignOut')}
               </button>
             </div>
 
             <div className="order-1 flex flex-col-reverse gap-2 sm:order-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleSecondary}
-                className="cursor-pointer rounded-full border border-neutral-200 bg-neutral-50 px-[22px] py-3 text-[14px] font-medium text-neutral-900 outline-none transition-colors duration-150 hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-primary-500/30"
-              >
+              <button type="button" onClick={handleSecondary} className={modalSecondary}>
                 {secondaryLabel}
               </button>
 
-              {/* Primary button: pill, inset highlight + soft drop shadow,
-                  arrow icon nudges right on hover. The group/translate is the
-                  one moment of motion that earns its keep. */}
-              <button
-                type="button"
-                onClick={handlePrimary}
-                className={[
-                  'group inline-flex cursor-pointer items-center justify-center gap-2',
-                  'rounded-full bg-primary-500 px-[22px] py-3',
-                  'text-[14px] font-semibold tracking-[-0.005em] text-neutral-50',
-                  'shadow-[inset_0_1px_0_oklch(100%_0_0/0.18),0_1px_2px_oklch(15%_0.004_70/0.18)]',
-                  'outline-none transition-[background,transform] duration-150',
-                  'hover:bg-primary-600 hover:-translate-y-[0.5px]',
-                  'active:translate-y-0',
-                  'focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-50',
-                ].join(' ')}
-              >
+              <button type="button" onClick={handlePrimary} className={modalPrimary}>
                 <span>{primaryLabel}</span>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  className="transition-transform duration-200 group-hover:translate-x-[2px]"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M3 8h10M9 4l4 4-4 4"
-                    stroke="currentColor"
-                    strokeWidth="1.6"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+                <ModalArrow />
               </button>
             </div>
           </div>

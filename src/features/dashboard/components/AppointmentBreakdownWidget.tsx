@@ -294,9 +294,17 @@ export function AppointmentBreakdownWidget({
               {/* Table rows */}
               <div className="flex flex-col divide-y divide-border-subtle">
                 {next3.map(appt => {
-                  const customerParts = [appt.customerSnapshot.firstName, appt.customerSnapshot.lastName].filter(Boolean);
-                  const customerName = customerParts.join(' ');
-                  const initials = customerParts.map(p => p[0]).join('').toUpperCase();
+                  const customer = appt.customerSnapshot;
+                  const customerParts = customer
+                    ? [customer.firstName, customer.lastName].filter(Boolean)
+                    : [];
+                  const customerName = customerParts.length
+                    ? customerParts.join(' ')
+                    : t('upcomingAppointments.guestCustomer');
+                  const initials = customerParts.length
+                    ? customerParts.map(p => p[0]).join('').toUpperCase()
+                    : '?';
+                  const customerImage = customer?.profileImage ?? null;
                   const staff = appt.staffSnapshot[0];
                   const staffName = staff
                     ? [staff.firstName, staff.lastName].filter(Boolean).join(' ') || '—'
@@ -310,8 +318,8 @@ export function AppointmentBreakdownWidget({
                       {/* Desktop row */}
                       <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-3 items-center px-2 py-3.5">
                         <div className="flex items-center gap-2 min-w-0">
-                          {appt.customerSnapshot.profileImage ? (
-                            <img src={appt.customerSnapshot.profileImage} alt={customerName} className="h-6 w-6 rounded-full object-cover shrink-0" />
+                          {customerImage ? (
+                            <img src={customerImage} alt={customerName} className="h-6 w-6 rounded-full object-cover shrink-0" />
                           ) : (
                             <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                               <span className="text-[10px] font-bold text-primary">{initials}</span>
@@ -327,8 +335,8 @@ export function AppointmentBreakdownWidget({
                       </div>
                       {/* Mobile card */}
                       <div className="flex md:hidden items-center gap-2.5 px-2 py-3">
-                        {appt.customerSnapshot.profileImage ? (
-                          <img src={appt.customerSnapshot.profileImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
+                        {customerImage ? (
+                          <img src={customerImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
                         ) : (
                           <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                             <span className="text-[10px] font-bold text-primary">{initials}</span>

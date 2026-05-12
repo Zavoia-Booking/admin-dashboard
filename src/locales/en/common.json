@@ -1,4 +1,5 @@
 {
+  "changeLanguage": "Change language",
   "limitedUsage": {
     "label": "Limited usage",
     "disabledTooltip": "This feature is not available on your current plan.",

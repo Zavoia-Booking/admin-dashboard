@@ -4,6 +4,7 @@ import { selectCurrentUser } from '../../../features/auth/selectors';
 import BusinessSetupPrompt from '../common/BusinessSetupPrompt';
 
 interface BusinessSetupGateProps extends PropsWithChildren {
+  eyebrow?: string;
   title?: string;
   message?: string;
   ctaLabel?: string;
@@ -12,6 +13,7 @@ interface BusinessSetupGateProps extends PropsWithChildren {
 
 export default function BusinessSetupGate({
   children,
+  eyebrow,
   title,
   message,
   ctaLabel,
@@ -21,6 +23,7 @@ export default function BusinessSetupGate({
 
   if (!user?.businessId) {
     const isOwner = user?.role === 'owner' || user?.role === 'OWNER' || user?.role === 'Owner';
+    const resolvedEyebrow = isOwner ? (eyebrow ?? 'Setup · Required') : (eyebrow ?? 'Access · Restricted');
     const resolvedTitle = isOwner ? (title ?? 'Complete your business setup') : (title ?? 'Business unavailable');
     const resolvedMessage = isOwner
       ? (message ?? 'Before inviting team members, creating services, or adding locations, please finish setting up your business information.')
@@ -30,6 +33,7 @@ export default function BusinessSetupGate({
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <div className="max-w-2xl w-full">
           <BusinessSetupPrompt
+            eyebrow={resolvedEyebrow}
             title={resolvedTitle}
             message={resolvedMessage}
             ctaLabel={resolvedCta}

@@ -1,10 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Building2, Users, Wrench } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
-import { Button } from '../ui/button';
+import {
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalPrimary,
+  ModalArrow,
+} from '../ui/modal-tokens';
 
 interface BusinessSetupPromptProps {
+  eyebrow?: string;
   title?: string;
   message?: string;
   ctaLabel?: string;
@@ -12,6 +18,7 @@ interface BusinessSetupPromptProps {
 }
 
 const BusinessSetupPrompt: React.FC<BusinessSetupPromptProps> = ({
+  eyebrow = 'Setup · Required',
   title = 'Complete your business setup',
   message = 'Before inviting team members, creating services, or adding locations, please finish setting up your business information.',
   ctaLabel = 'Finish business setup',
@@ -20,31 +27,30 @@ const BusinessSetupPrompt: React.FC<BusinessSetupPromptProps> = ({
   const navigate = useNavigate();
 
   return (
-    <Card className="rounded-lg border bg-surface p-6 text-center">
-      <CardContent className="p-0">
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex items-center justify-center gap-2 text-foreground-3">
-            <Building2 className="h-6 w-6" />
-            <Users className="h-5 w-5" />
-            <Wrench className="h-5 w-5" />
-            <MapPin className="h-5 w-5" />
-          </div>
-          <h3 className="text-lg font-medium text-foreground-1">{title}</h3>
-          <p className="text-foreground-2 max-w-md">{message}</p>
-          {ctaLabel && (
-            <Button
-              onClick={() => navigate(onClickNavigateTo)}
-              className="mt-2"
-            >
-              {ctaLabel}
-            </Button>
-          )}
+    <div className="rounded-2xl border border-neutral-200 bg-neutral-50 p-7 sm:p-10 text-center dark:border-neutral-800 dark:bg-neutral-900">
+      <div className="flex flex-col items-center gap-5">
+        <div className="inline-flex items-center gap-3 rounded-full bg-neutral-100 px-4 py-2 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+          <Building2 className="h-5 w-5" />
+          <Users className="h-5 w-5" />
+          <Wrench className="h-5 w-5" />
+          <MapPin className="h-5 w-5" />
         </div>
-      </CardContent>
-    </Card>
+        {eyebrow && <div className={modalEyebrow}>{eyebrow}</div>}
+        <h3 className={modalTitleCompact}>{title}</h3>
+        <p className={`mx-auto max-w-[420px] ${modalBody}`}>{message}</p>
+        {ctaLabel && (
+          <button
+            type="button"
+            onClick={() => navigate(onClickNavigateTo)}
+            className={`${modalPrimary} mt-1`}
+          >
+            <span>{ctaLabel}</span>
+            <ModalArrow />
+          </button>
+        )}
+      </div>
+    </div>
   );
 };
 
 export default BusinessSetupPrompt;
-
-

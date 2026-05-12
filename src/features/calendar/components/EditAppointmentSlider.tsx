@@ -22,6 +22,7 @@ import {
   ArrowUpRight,
   CalendarCheck,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../../shared/components/ui/button";
@@ -36,8 +37,6 @@ import { Badge } from "../../../shared/components/ui/badge";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -48,6 +47,16 @@ import {
 import { Switch } from "../../../shared/components/ui/switch";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { cn } from "../../../shared/lib/utils";
+import {
+  modalPanel,
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalBodyMuted,
+  modalFooterRowRight,
+  modalSecondary,
+  modalDestructive,
+} from "../../../shared/components/ui/modal-tokens";
 import {
   Dialog,
   DialogPortal,
@@ -1096,7 +1105,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 rounded="full"
-                                onClick={() => setCancelDialogOpen(true)}
+                                onClick={(e) => {
+                                  e.currentTarget.blur();
+                                  setCancelDialogOpen(true);
+                                }}
                                 className="inline-flex !h-8 !min-h-8 items-center gap-1.5 px-3.5 text-xs font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-focus/60"
                                 disabled={actionLoading !== null}
                               >
@@ -1888,39 +1900,54 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
         <AlertDialogPortal>
           <AlertDialogOverlay onClick={() => setCancelDialogOpen(false)} />
           <AlertDialogPrimitive.Content
-            className={cn(
-              "fixed left-4 right-4 top-[50%] z-[100] grid translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:left-[50%] sm:right-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] rounded-xl",
-              "max-w-md",
-              APPOINTMENT_DIALOG_CURSOR,
-            )}
+            className={cn(modalPanel, APPOINTMENT_DIALOG_CURSOR)}
           >
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("page.appointments.edit.cancelAppointmentTitle")}</AlertDialogTitle>
+            <AlertDialogHeader className="space-y-4 !text-left">
+              <div className={modalEyebrow}>
+                {t("page.appointments.edit.cancelEyebrow")}
+              </div>
+              <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+                {t("page.appointments.edit.cancelConfirmTitle")}
+              </AlertDialogTitle>
               <AlertDialogDescription asChild>
-                <div className="space-y-4">
+                <div className="space-y-4 text-left">
+                  <p className={modalBody}>
+                    {t("page.appointments.edit.cancelIntro")}
+                  </p>
+
                   {appointment.bookingGroupId && (
-                    <p className="text-sm text-amber-600 dark:text-amber-400 font-medium">
-                      {t("page.appointments.edit.cancelEntireGroup")}
-                    </p>
+                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3.5">
+                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300 mt-0.5" />
+                      <p className="text-[14px] font-medium leading-[1.5] text-amber-900 dark:text-amber-100">
+                        {t("page.appointments.edit.cancelEntireGroup")}
+                      </p>
+                    </div>
                   )}
-                  <div>
-                    <Label
-                      htmlFor="cancelReason"
-                      className="text-base font-medium"
-                    >
-                      {t("page.appointments.edit.reasonForCancellation")}
-                    </Label>
+
+                  <div className="space-y-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <Label
+                        htmlFor="cancelReason"
+                        className="text-[13px] font-semibold tracking-[-0.005em] text-neutral-800 dark:text-foreground-1"
+                      >
+                        {t("page.appointments.edit.reasonForCancellation")}
+                      </Label>
+                      <span className={modalBodyMuted + " text-[12px]"}>
+                        {t("page.appointments.edit.reasonOptional")}
+                      </span>
+                    </div>
                     <Textarea
                       id="cancelReason"
                       placeholder={t("page.appointments.edit.enterCancelReason")}
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
-                      className="min-h-[80px] resize-none mt-2"
+                      className="min-h-[88px] resize-none rounded-xl border-neutral-300 dark:border-border-subtle bg-neutral-50 dark:bg-surface text-[14px] leading-[1.5] focus-visible:ring-2 focus-visible:ring-primary-500/30"
                     />
                   </div>
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
+
+                  <div className="rounded-xl border border-neutral-200 dark:border-border-subtle bg-neutral-50/60 dark:bg-surface/60 p-4 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
                         <Switch
                           id="notify-customer"
                           checked={notifyCustomer}
@@ -1929,47 +1956,46 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         />
                         <Label
                           htmlFor="notify-customer"
-                          className="text-sm font-medium"
+                          className="text-[14px] font-medium text-neutral-800 dark:text-foreground-1"
                         >
                           {t("page.appointments.edit.notifyCustomer")}
                         </Label>
                       </div>
                     </div>
+
                     {notifyCustomer && (
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">
+                      <div className="space-y-2.5">
+                        <Label className="text-[12px] font-semibold uppercase tracking-[0.06em] text-neutral-500 dark:text-foreground-3">
                           {t("page.appointments.edit.notificationMethod")}
                         </Label>
-                        <div className="flex gap-2">
-                          {(["email", "sms", "both"] as const).map((method) => (
-                            <button
-                              key={method}
-                              type="button"
-                              onClick={() =>
-                                handleNotificationMethodSelect(method)
-                              }
-                              className={cn(
-                                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md border text-xs font-medium transition-colors",
-                                notificationMethod === method
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-background border-border hover:bg-muted",
-                              )}
-                            >
-                              {method === "email" && (
-                                <Mail className="h-3 w-3" />
-                              )}
-                              {method === "sms" && (
-                                <MessageSquare className="h-3 w-3" />
-                              )}
-                              {method === "both" && (
-                                <div className="flex gap-0.5">
-                                  <Mail className="h-2.5 w-2.5" />
-                                  <MessageSquare className="h-2.5 w-2.5" />
-                                </div>
-                              )}
-                              {method.charAt(0).toUpperCase() + method.slice(1)}
-                            </button>
-                          ))}
+                        <div className="flex flex-wrap gap-2">
+                          {(["email", "sms", "both"] as const).map((method) => {
+                            const active = notificationMethod === method;
+                            return (
+                              <button
+                                key={method}
+                                type="button"
+                                onClick={() => handleNotificationMethodSelect(method)}
+                                className={cn(
+                                  "inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[12.5px] font-medium",
+                                  "border transition-colors duration-150",
+                                  active
+                                    ? "bg-primary-500 text-white border-primary-500 hover:bg-primary-600"
+                                    : "bg-neutral-50 dark:bg-surface border-neutral-300 dark:border-border-subtle text-neutral-700 dark:text-foreground-2 hover:border-neutral-400 hover:bg-neutral-100 dark:hover:bg-surface-hover",
+                                )}
+                              >
+                                {method === "email" && <Mail className="h-3 w-3" />}
+                                {method === "sms" && <MessageSquare className="h-3 w-3" />}
+                                {method === "both" && (
+                                  <div className="flex gap-0.5">
+                                    <Mail className="h-2.5 w-2.5" />
+                                    <MessageSquare className="h-2.5 w-2.5" />
+                                  </div>
+                                )}
+                                {method.charAt(0).toUpperCase() + method.slice(1)}
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -1977,22 +2003,26 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                 </div>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel
+            <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+              <button
+                type="button"
                 onClick={() => {
                   setCancelReason("");
                   setNotifyCustomer(true);
                   setNotificationMethod("both");
+                  setCancelDialogOpen(false);
                 }}
+                className={modalSecondary}
               >
                 {t("page.appointments.back")}
-              </AlertDialogCancel>
-              <AlertDialogAction
+              </button>
+              <button
+                type="button"
                 onClick={handleCancelConfirm}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                className={modalDestructive}
               >
-                {t("page.appointments.edit.cancelAppointmentTitle")}
-              </AlertDialogAction>
+                <span>{t("page.appointments.edit.cancelAppointmentTitle")}</span>
+              </button>
             </AlertDialogFooter>
           </AlertDialogPrimitive.Content>
         </AlertDialogPortal>

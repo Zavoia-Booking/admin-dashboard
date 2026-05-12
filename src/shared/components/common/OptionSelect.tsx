@@ -46,7 +46,7 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
   return (
     <div className={cn("space-y-2 pt-2", className)}>
       {label && (
-        <Label className="text-base font-medium" htmlFor={id}>{label}</Label>
+        <Label className="text-base font-medium mb-0" htmlFor={id}>{label}</Label>
       )}
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -58,10 +58,10 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
             aria-haspopup="listbox"
             aria-expanded={open}
             className={cn(
-              "w-full h-12 md:h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
+              "w-full !min-h-0 h-12 md:h-10 justify-between items-center font-normal transition-all focus-visible:ring-1 focus-visible:ring-offset-0 cursor-pointer",
               hasError
                 ? "border-destructive bg-error-bg hover:bg-error-bg hover:border-destructive focus-visible:ring-error"
-                : "border-border bg-info-100 hover:bg-info-100 hover:border-border focus:border-focus focus-visible:ring-focus"
+                : "border-border dark:border-border-subtle bg-surface dark:bg-neutral-900 hover:bg-surface-hover hover:border-border-strong focus:border-focus focus-visible:ring-focus"
             )}
           >
             <span className="flex items-center gap-2 min-w-0">
@@ -112,18 +112,18 @@ export const OptionSelect: React.FC<OptionSelectProps> = ({
           </Command>
         </PopoverContent>
       </Popover>
-      {errorMessage && (
-        <div className="h-5 mt-1">
+      <div className="h-5">
+        {errorMessage && (
           <p
-            className="flex items-center gap-1.5 text-xs text-destructive"
+            className="mt-1 flex items-center gap-1.5 text-xs text-destructive"
             role="alert"
             aria-live="polite"
           >
             <AlertCircle className="h-3.5 w-3.5" />
             <span>{errorMessage}</span>
           </p>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

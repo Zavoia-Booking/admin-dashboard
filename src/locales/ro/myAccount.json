@@ -4,70 +4,88 @@
   },
   "buttons": {
     "saving": "Se salvează",
-    "saveChanges": "Salvează Modificările"
+    "saveChanges": "Salvează modificările"
   },
   "advanced": {
     "title": "Avansat",
-    "description": "Gestionează apartenența la organizație și ciclul de viață al contului"
+    "description": "Gestionează apartenența la organizație și ștergerea contului."
+  },
+  "roles": {
+    "owner": "Proprietar",
+    "manager": "Manager",
+    "employee": "Membru echipă",
+    "team_member": "Membru echipă",
+    "admin": "Administrator",
+    "staff": "Personal",
+    "dashboard_user": "Membru"
   },
   "profile": {
+    "requiredHint": "Câmpuri obligatorii",
+    "hero": {
+      "eyebrow": "Contul meu",
+      "placeholderName": "Contul tău",
+      "emailVerified": "Email verificat"
+    },
     "personalInfo": {
-      "title": "Informații Personale",
-      "description": "Detaliile profilului tău vizibile pe marketplace"
+      "title": "Informații personale",
+      "description": "Numele și fotografia ta de profil."
     },
     "profilePhoto": {
-      "label": "Fotografie Profil",
-      "description": "Fotografia ta de profil apare pe profilul tău de marketplace",
+      "label": "Fotografia de profil",
+      "description": "Fotografia ta apare pe profilul de echipă.",
       "edit": "Editează",
-      "uploading": "Se încarcă..."
+      "uploading": "Se încarcă…"
     },
     "contactInfo": {
-      "title": "Informații de Contact",
-      "description": "Detaliile tale de contact pentru comunicarea contului"
+      "title": "Date de contact",
+      "description": "Emailul și telefonul pe care le folosim pentru a te contacta."
     },
     "accountSecurity": {
-      "title": "Securitate Cont",
-      "description": "Gestionează autentificarea și securitatea contului tău",
-      "changePassword": "Schimbă Parola",
-      "changePasswordHint": "Actualizează parola contului. Lasă parola curentă goală dacă o configurezi pentru prima dată.",
-      "currentPassword": "Parola Curentă",
-      "currentPasswordPlaceholder": "Introdu parola curentă",
-      "newPassword": "Parolă Nouă",
+      "title": "Securitatea contului",
+      "description": "Gestionează autentificarea, parola și conturile conectate.",
+      "changePassword": "Schimbă parola",
+      "changePasswordHint": "Actualizează parola folosită pentru autentificare.",
+      "changePasswordReveal": "Schimbă parola",
+      "changePasswordCancel": "Renunță",
+      "currentPassword": "Parola actuală",
+      "currentPasswordPlaceholder": "Introdu parola actuală",
+      "newPassword": "Parola nouă",
       "newPasswordPlaceholder": "Introdu parola nouă",
-      "confirmPassword": "Confirmă Parola Nouă",
-      "confirmPasswordPlaceholder": "Confirmă parola nouă",
-      "updating": "Se actualizează...",
-      "legalTitle": "Documente Legale",
-      "legalDescription": "Consultă termenii, politica de confidențialitate și politica de cookie-uri",
-      "legal_terms": "Termeni și Condiții",
-      "legal_privacy": "Politica de Confidențialitate",
-      "legal_cookies": "Politica de Cookie-uri"
+      "confirmPassword": "Confirmă parola nouă",
+      "confirmPasswordPlaceholder": "Reintrodu parola nouă",
+      "updating": "Se actualizează…",
+      "legalTitle": "Documente legale",
+      "legalDescription": "Consultă termenii, politica de confidențialitate și politica privind cookie-urile.",
+      "legal_terms": "Termeni și condiții",
+      "legal_privacy": "Politica de confidențialitate",
+      "legal_cookies": "Politica privind cookie-urile"
     },
     "fields": {
       "firstName": "Prenume",
-      "firstNamePlaceholder": "Introdu prenumele tău",
+      "firstNamePlaceholder": "Introdu prenumele",
       "lastName": "Nume",
-      "lastNamePlaceholder": "Introdu numele tău",
-      "email": "Adresă Email",
-      "emailPlaceholder": "email@exemplu.com",
-      "phone": "Număr de Telefon",
-      "phonePlaceholder": "+1 (555) 123-4567"
+      "lastNamePlaceholder": "Introdu numele",
+      "email": "Email *",
+      "emailPlaceholder": "tu@exemplu.ro",
+      "phone": "Telefon",
+      "phonePlaceholder": "+40 7XX XXX XXX"
     },
     "toast": {
       "loadFailed": "Nu s-a putut încărca profilul",
-      "updateSuccess": "Profil actualizat cu succes!",
+      "updateSuccess": "Profil actualizat.",
       "updateFailed": "Nu s-a putut actualiza profilul",
       "invalidImage": "Selectează un fișier imagine valid (JPEG, PNG, WebP, SVG sau AVIF)",
-      "fileTooLarge": "Dimensiunea fișierului trebuie să fie mai mică de {{max}}MB",
-      "imageUploadSuccess": "Imaginea de profil a fost încărcată cu succes!",
-      "imageUploadFailed": "Nu s-a putut încărca imaginea de profil",
+      "fileTooLarge": "Dimensiunea fișierului trebuie să fie sub {{max}}MB",
+      "imageUploadSuccess": "Fotografia de profil a fost actualizată.",
+      "imageUploadFailed": "Nu s-a putut încărca fotografia de profil",
       "enterPassword": "Introdu o parolă nouă",
       "passwordMinLength": "Parola trebuie să aibă cel puțin 8 caractere",
       "passwordsNoMatch": "Parolele nu coincid",
       "passwordPolicyFailed": "Parola trebuie să conțină literă mare, literă mică, cifră și caracter special (@$!%*?&)",
-      "passwordChanged": "Parola a fost schimbată cu succes!",
-      "passwordSet": "Parola a fost setată cu succes!",
-      "passwordUpdateFailed": "Nu s-a putut actualiza parola"
+      "passwordChanged": "Parola a fost schimbată.",
+      "passwordSet": "Parola a fost setată.",
+      "passwordUpdateFailed": "Nu s-a putut actualiza parola",
+      "fixErrorsBeforeSave": "Te rugăm să corectezi erorile înainte de a salva."
     }
   }
 }

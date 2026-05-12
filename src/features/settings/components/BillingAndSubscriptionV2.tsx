@@ -85,6 +85,16 @@ import {
   useBillingDetailsContext,
 } from '../context/BillingDetailsContext';
 import type { BusinessInvoice, SmsPackage, SubscriptionSummary } from '../types';
+import { translateMessageCode } from '../../../shared/utils/error';
+
+function extractBillingError(err: unknown): string {
+  const e = err as { response?: { data?: { message?: string | string[] } }; message?: string };
+  const raw = e?.response?.data?.message;
+  const translated = Array.isArray(raw)
+    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
+    : translateMessageCode(raw ?? '');
+  return translated || e?.message || '';
+}
 import type { AuthUser } from '../../auth/types';
 import { updateBillingDetailsApi } from '../../business/api';
 import type {
@@ -318,6 +328,7 @@ const BillingAndSubscriptionV2Inner = () => {
     const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
     const estimated = base + perSeat * (Number(totalSeats) || 0);
     const confirmed = await confirm({
+      eyebrow: t('billing.confirm.startSubscriptionEyebrow'),
       title: t('billing.confirm.startSubscription'),
       content:
         totalSeats > 0
@@ -353,6 +364,9 @@ const BillingAndSubscriptionV2Inner = () => {
     // itself is still active and paid through the period — those keep the normal at-period-end copy.
     const isPastDue = currentUser?.entitlements?.status === 'past_due';
     const confirmed = await confirm({
+      eyebrow: isScheduled
+        ? t('billing.confirm.scheduledChangeEyebrow')
+        : t('billing.confirm.manageSubscriptionEyebrow'),
       title: isScheduled
         ? t('billing.confirm.keepSubscription')
         : t('billing.confirm.cancelSubscription'),
@@ -378,6 +392,7 @@ const BillingAndSubscriptionV2Inner = () => {
 
   const handleCancelRemoval = async () => {
     const confirmed = await confirm({
+      eyebrow: t('billing.confirm.scheduledChangeEyebrow'),
       title: t('billing.confirm.undoScheduledCancellation'),
       content: t('billing.confirm.undoScheduledContent'),
       confirmationText: t('billing.confirm.undoCancellation'),
@@ -407,8 +422,7 @@ const BillingAndSubscriptionV2Inner = () => {
           throw new Error('No checkout URL returned');
         }
       } catch (err: unknown) {
-        const e = err as { response?: { data?: { message?: string } }; message?: string };
-        toast.error(e?.response?.data?.message || e?.message || t('billing.toast.updateFailed'));
+        toast.error(extractBillingError(err) || t('billing.toast.updateFailed'));
       } finally {
         setUpdatingSeats(false);
       }
@@ -425,6 +439,7 @@ const BillingAndSubscriptionV2Inner = () => {
       const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
       const estimated = base + perSeat * (Number(totalSeats) || 0);
       const confirmed = await confirm({
+        eyebrow: t('billing.confirm.startSubscriptionEyebrow'),
         title: t('billing.confirm.startSubscription'),
         content:
           totalSeats > 0
@@ -512,6 +527,7 @@ const BillingAndSubscriptionV2Inner = () => {
 
     setIsConfirming(true);
     const confirmed = await confirm({
+      eyebrow: t('billing.confirm.seatChangeEyebrow'),
       title: isAdding ? (
         <span className="block cursor-default text-xl font-bold leading-tight tracking-tight text-foreground-1">
           {t('billing.confirm.confirmSeatIncrease', { count: delta })}
@@ -570,8 +586,7 @@ const BillingAndSubscriptionV2Inner = () => {
         throw new Error('Seat update failed');
       }
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(e?.response?.data?.message || e?.message || t('billing.toast.updateFailed'));
+      toast.error(extractBillingError(err) || t('billing.toast.updateFailed'));
       dispatch(getSubscriptionSummaryAction.request());
       dispatch(fetchCurrentUserAction.request());
     } finally {
@@ -587,8 +602,7 @@ const BillingAndSubscriptionV2Inner = () => {
       dispatch(getSubscriptionSummaryAction.request());
       dispatch(fetchCurrentUserAction.request());
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(e?.response?.data?.message || e?.message || t('billing.toast.updateFailed'));
+      toast.error(extractBillingError(err) || t('billing.toast.updateFailed'));
     } finally {
       setRetryingPayment(false);
     }
@@ -2172,12 +2186,7 @@ const Bv2InvoiceDetailsCard = () => {
       toast.success(t('billing.invoiceDetails.toastSuccess'));
       await reload();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } }; message?: string };
-      toast.error(
-        e?.response?.data?.message ||
-          e?.message ||
-          t('billing.invoiceDetails.toastFailure'),
-      );
+      toast.error(extractBillingError(err) || t('billing.invoiceDetails.toastFailure'));
     } finally {
       setIsSubmitting(false);
     }

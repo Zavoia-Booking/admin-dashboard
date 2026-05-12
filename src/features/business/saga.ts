@@ -5,13 +5,18 @@ import { fetchCurrentUserAction } from '../auth/actions';
 import type { Business } from './types';
 import type { ActionType } from 'typesafe-actions';
 import { toast } from 'sonner';
+import { translateMessageCode } from '../../shared/utils/error';
 
 function* handleFetchCurrentBusiness(): Generator<any, void, any> {
   try {
     const { business }: { business: Business } = yield call(getCurrentBusinessApi);
     yield put(fetchCurrentBusinessAction.success(business));
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to fetch business';
+    const raw = error?.response?.data?.message;
+    const translated = Array.isArray(raw)
+      ? raw.map((m: string) => translateMessageCode(m)).join(' ')
+      : translateMessageCode(raw ?? '');
+    const message = translated || error?.message || 'Failed to fetch business';
     yield put(fetchCurrentBusinessAction.failure({ message }));
   }
 }
@@ -31,7 +36,11 @@ function* handleUpdateBusiness(action: ActionType<typeof updateBusinessAction.re
       window.location.href = '/marketplace?tab=profile#industry';
     }
   } catch (error: any) {
-    const message = error?.response?.data?.message || error?.message || 'Failed to update business';
+    const raw = error?.response?.data?.message;
+    const translated = Array.isArray(raw)
+      ? raw.map((m: string) => translateMessageCode(m)).join(' ')
+      : translateMessageCode(raw ?? '');
+    const message = translated || error?.message || 'Failed to update business';
     yield put(updateBusinessAction.failure({ message }));
     toast.error(message);
   }

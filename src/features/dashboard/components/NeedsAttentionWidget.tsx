@@ -507,7 +507,9 @@ function UnresolvedAppointmentsDialog({
     return visibleAppointments.filter(appt => {
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
-        const customer = `${appt.customerSnapshot.firstName} ${appt.customerSnapshot.lastName}`.toLowerCase();
+        const customer = appt.customerSnapshot
+          ? `${appt.customerSnapshot.firstName} ${appt.customerSnapshot.lastName}`.toLowerCase()
+          : '';
         const staff = appt.staffSnapshot[0]
           ? `${appt.staffSnapshot[0].firstName} ${appt.staffSnapshot[0].lastName}`.toLowerCase()
           : '';
@@ -875,8 +877,15 @@ function DialogAppointmentRow({
 }: DialogAppointmentRowProps) {
   const { t } = useTranslation('dashboard');
 
-  const customerName = `${appointment.customerSnapshot.firstName} ${appointment.customerSnapshot.lastName}`;
-  const initials = `${appointment.customerSnapshot.firstName[0] ?? ''}${appointment.customerSnapshot.lastName[0] ?? ''}`.toUpperCase();
+  const customer = appointment.customerSnapshot;
+  const customerName = customer
+    ? `${customer.firstName} ${customer.lastName}`.trim() || t('upcomingAppointments.guestCustomer')
+    : t('upcomingAppointments.guestCustomer');
+  const initials = customer
+    ? `${customer.firstName[0] ?? ''}${customer.lastName[0] ?? ''}`.toUpperCase() || '?'
+    : '?';
+  const customerImage = customer?.profileImage ?? null;
+  const customerEmail = customer?.email ?? '';
   const staffName = appointment.staffSnapshot[0]
     ? `${appointment.staffSnapshot[0].firstName} ${appointment.staffSnapshot[0].lastName}`
     : '—';
@@ -919,8 +928,8 @@ function DialogAppointmentRow({
           onClick={(e) => e.stopPropagation()}
         />
         <div className="flex items-center gap-2 min-w-0 flex-1">
-          {appointment.customerSnapshot.profileImage ? (
-            <img src={appointment.customerSnapshot.profileImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
+          {customerImage ? (
+            <img src={customerImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
           ) : (
             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
               <span className="text-[10px] font-bold text-primary">{initials}</span>
@@ -965,9 +974,9 @@ function DialogAppointmentRow({
 
       {/* Customer */}
       <div className="flex items-center gap-2 min-w-0">
-        {appointment.customerSnapshot.profileImage ? (
+        {customerImage ? (
           <img
-            src={appointment.customerSnapshot.profileImage}
+            src={customerImage}
             alt={customerName}
             className="h-7 w-7 rounded-full object-cover shrink-0"
           />
@@ -978,7 +987,7 @@ function DialogAppointmentRow({
         )}
         <div className="min-w-0">
           <p className="text-sm font-medium text-foreground-1 truncate">{customerName}</p>
-          <p className="text-xs text-foreground-3 truncate">{appointment.customerSnapshot.email}</p>
+          <p className="text-xs text-foreground-3 truncate">{customerEmail}</p>
         </div>
       </div>
 

@@ -58,7 +58,7 @@ export default function teamMembersReducer(state: TeamMembersState = initialStat
       return { ...state, isInviting: false, error: action.payload.message, inviteResponse: null };
 
     case getType(clearInviteResponseAction):
-      return { ...state, inviteResponse: null };
+      return { ...state, inviteResponse: null, error: null };
 
     case getType(listTeamMembersAction.request):
       return { ...state, isLoading: true, error: null };

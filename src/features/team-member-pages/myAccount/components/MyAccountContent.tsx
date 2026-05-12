@@ -2,11 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState } from '../../../../app/providers/store';
-import { User, Mail, Phone, Shield, Camera, Loader2, Save, Lock, FileText, ChevronRight, Settings, LogOut, Info, AlertTriangle, Calendar, Trash2, CheckCircle } from 'lucide-react';
+import { User, Mail, Phone, Camera, Loader2, Lock, FileText, ChevronRight, LogOut, Info, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
 import { Label } from '../../../../shared/components/ui/label';
 import { Input } from '../../../../shared/components/ui/input';
-import { Card, CardContent } from '../../../../shared/components/ui/card';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,9 +14,21 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from '../../../../shared/components/ui/alert-dialog';
+import {
+  modalPanel,
+  modalEyebrow,
+  modalTitleCompact,
+  modalBody,
+  modalBodyMuted,
+  modalHelperSmall,
+  modalFooterRowRight,
+  modalSecondary,
+  modalDestructive,
+  modalPrimary,
+} from '../../../../shared/components/ui/modal-tokens';
 import { toast } from 'sonner';
-import FormSectionHeader from '../../../../shared/components/forms/FormSectionHeader';
 import TextField from '../../../../shared/components/forms/fields/TextField';
+import '../../../settings/components/Profile.css';
 import { getTeamMemberProfile, updateTeamMemberProfile, changeTeamMemberPassword, uploadTeamMemberProfileImage, leaveOrganisationApi, type TeamMemberProfile } from '../api';
 import {
   setPasswordApi,
@@ -27,7 +38,13 @@ import { fetchCurrentUserAction, logoutRequestAction } from '../../../auth/actio
 import GoogleAccountManager from '../../../settings/components/GoogleAccountManager';
 import { translateMessageCode } from '../../../../shared/utils/error';
 import { PasswordStrength } from '../../../auth/components/PasswordStrength';
-import { validatePasswordPolicy } from '../../../../shared/utils/validation';
+import {
+  validatePasswordPolicy,
+  validatePersonName,
+  requiredEmailError,
+  isE164,
+  sanitizePhoneToE164Draft,
+} from '../../../../shared/utils/validation';
 import { Popover, PopoverTrigger, PopoverContent } from '../../../../shared/components/ui/popover';
 import LegalContentDialog from '../../../legal/components/LegalContentDialog';
 import type { LegalPageType } from '../../../legal/components/legal-content';
@@ -75,7 +92,25 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [pwFocused, setPwFocused] = useState(false);
   const [pwInteracted, setPwInteracted] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPwTouched, setCurrentPwTouched] = useState(false);
   const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
+
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const validatePhone = (value: string): string | undefined => {
+    const v = value.trim();
+    if (!v) return undefined;
+    return isE164(v) ? undefined : 'Enter a valid phone number';
+  };
+
+  const validateAll = (): Record<string, string | undefined> => ({
+    firstName: validatePersonName('First name', formData.firstName) ?? undefined,
+    lastName:  validatePersonName('Last name',  formData.lastName)  ?? undefined,
+    email:     requiredEmailError('Email',      formData.email)     ?? undefined,
+    phone:     validatePhone(formData.phone),
+  });
 
   const userHasPassword = user?.hasPassword === true;
   const isPasswordPolicyValid = validatePasswordPolicy(newPassword) === true;
@@ -111,6 +146,14 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   };
 
   const handleSaveProfile = async () => {
+    const next = validateAll();
+    setErrors(next);
+    if (Object.values(next).some(Boolean)) {
+      setTouched(Object.keys(next).reduce((a, k) => ({ ...a, [k]: true }), {} as Record<string, boolean>));
+      toast.error(t('profile.toast.fixErrorsBeforeSave'));
+      return;
+    }
+
     setIsSaving(true);
     onSavingChange?.(true);
     try {
@@ -234,6 +277,8 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       setNewPassword('');
       setConfirmPassword('');
       setPwInteracted(false);
+      setShowPasswordSection(false);
+      setCurrentPwTouched(false);
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const message = error?.response?.data?.message || error?.message || t('profile.toast.passwordUpdateFailed');
@@ -252,98 +297,104 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
 
     return (
       <React.Suspense fallback={null}>
-        <div className="space-y-6">
-          {/* Personal Information Skeleton */}
-          <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-3 pb-2 border-b border-border mb-6">
-              <Skeleton className="h-9 w-9 rounded-xl" />
-              <div className="space-y-1">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-3 w-64" />
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-4 w-72" />
-                <div className="pt-2">
-                  <Skeleton className="h-24 w-24 rounded-full" />
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-6">
-                <div className="flex-1 min-w-[280px] space-y-2">
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-10 w-full" />
-                </div>
-                <div className="flex-1 min-w-[280px] space-y-2">
-                  <Skeleton className="h-5 w-24" />
-                  <Skeleton className="h-10 w-full" />
+        <div className="profile-grid">
+          <div className="profile-col">
+            {/* Hero Skeleton */}
+            <div className="profile-hero profile-tone-neutral">
+              <div className="profile-hero-left">
+                <Skeleton className="h-14 w-14 rounded-2xl" />
+                <div className="profile-hero-meta space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-48" />
+                  <Skeleton className="h-3 w-64" />
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Contact Information Skeleton */}
-          <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-3 pb-2 border-b border-border mb-6">
-              <Skeleton className="h-9 w-9 rounded-xl" />
-              <div className="space-y-1">
-                <Skeleton className="h-5 w-44" />
-                <Skeleton className="h-3 w-56" />
+            {/* Personal Information Skeleton */}
+            <div className="profile-section">
+              <div className="profile-section-header">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3 w-64" />
+                </div>
+              </div>
+              <div className="profile-field-stack">
+                <div className="profile-avatar">
+                  <Skeleton className="h-[88px] w-[88px] rounded-full" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-8 w-20 rounded-full" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+                <div className="profile-field-grid">
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-10 w-full" />
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="flex flex-wrap gap-6">
-              <div className="flex-1 min-w-[280px] space-y-2">
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-              <div className="flex-1 min-w-[280px] space-y-2">
-                <Skeleton className="h-5 w-28" />
-                <Skeleton className="h-10 w-full" />
-              </div>
-            </div>
-          </div>
 
-          {/* Account Security Skeleton */}
-          <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-            <div className="flex items-center gap-3 pb-2 border-b border-border mb-6">
-              <Skeleton className="h-9 w-9 rounded-xl" />
-              <div className="space-y-1">
-                <Skeleton className="h-5 w-36" />
-                <Skeleton className="h-3 w-72" />
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <Skeleton className="h-4 w-32" />
+            {/* Contact Information Skeleton */}
+            <div className="profile-section">
+              <div className="profile-section-header">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-44" />
                   <Skeleton className="h-3 w-56" />
                 </div>
-                <Skeleton className="h-8 w-20 rounded-full" />
               </div>
-              <div className="pt-4 border-t border-border">
-                <div className="space-y-1 mb-4">
+              <div className="profile-field-grid">
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-28" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              </div>
+            </div>
+
+            {/* Account Security Skeleton */}
+            <div className="profile-section">
+              <div className="profile-section-header">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-5 w-36" />
+                  <Skeleton className="h-3 w-72" />
+                </div>
+              </div>
+              <div className="profile-field-stack">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-56" />
+                  </div>
+                  <Skeleton className="h-8 w-20 rounded-full" />
+                </div>
+                <div className="profile-divider" />
+                <div className="space-y-2 mb-2">
                   <Skeleton className="h-4 w-32" />
                   <Skeleton className="h-3 w-44" />
                 </div>
-                <div className="flex flex-wrap gap-6">
-                  <div className="flex-1 min-w-[280px] space-y-2">
+                <div className="profile-field-grid">
+                  <div className="space-y-2">
                     <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-10 w-full" />
                   </div>
-                  <div className="flex-1 min-w-[280px] space-y-2">
+                  <div className="space-y-2">
                     <Skeleton className="h-5 w-28" />
                     <Skeleton className="h-10 w-full" />
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-6 mt-4">
-                  <div className="flex-1 min-w-[280px] space-y-2">
-                    <Skeleton className="h-5 w-40" />
-                    <Skeleton className="h-10 w-full" />
-                  </div>
-                  <div className="flex-1 min-w-[280px]" />
-                </div>
-                <Skeleton className="h-9 w-36 mt-4" />
+                <Skeleton className="h-9 w-36" />
               </div>
             </div>
           </div>
@@ -352,301 +403,357 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
     );
   }
 
+  const displayName = `${formData.firstName} ${formData.lastName}`.trim() || formData.email || t('profile.hero.placeholderName');
+
   return (
     <form
       id="my-account-form"
       onSubmit={(e) => { e.preventDefault(); handleSaveProfile(); }}
-      className="space-y-6"
     >
-      {/* Basic Information Section */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <FormSectionHeader
-          icon={User}
-          title={t('profile.personalInfo.title')}
-          description={t('profile.personalInfo.description')}
-          className="mb-6"
-        />
-
-        <div className="space-y-6">
-          {/* Profile Image Upload - Circular Display */}
-          <div className="space-y-2">
-            <Label className="text-base font-medium text-foreground-1">{t('profile.profilePhoto.label')}</Label>
-            <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              {t('profile.profilePhoto.description')}
-            </p>
-
-            {/* Hidden file input */}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,image/avif"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-
-            {/* Circular Profile Image Preview with Edit Button */}
-            <div className="flex items-center gap-4 pt-2">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border flex items-center justify-center">
-                  {formData.profileImage ? (
-                    <img
-                      src={formData.profileImage}
-                      alt="Profile"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-12 h-12 text-muted-foreground" />
-                  )}
-                </div>
-                {/* Edit Button on Image */}
-                <div
-                  onClick={() => !isUploadingImage && fileInputRef.current?.click()}
-                  className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-surface text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-surface-hover transition-colors border border-border ${isUploadingImage ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                    }`}
-                >
-                  <Camera className="h-3 w-3" />
-                  {isUploadingImage ? t('profile.profilePhoto.uploading') : t('profile.profilePhoto.edit')}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Two Column Layout - Name Fields */}
-          <div className="flex flex-wrap gap-6">
-            <div className="flex-1 min-w-[280px]">
-              <TextField
-                label={t('profile.fields.firstName')}
-                placeholder={t('profile.fields.firstNamePlaceholder')}
-                value={formData.firstName}
-                onChange={(value) => setFormData(prev => ({ ...prev, firstName: value }))}
-                icon={User}
-                disabled={isSaving}
-                maxLength={32}
-              />
-            </div>
-
-            <div className="flex-1 min-w-[280px]">
-              <TextField
-                label={t('profile.fields.lastName')}
-                placeholder={t('profile.fields.lastNamePlaceholder')}
-                value={formData.lastName}
-                onChange={(value) => setFormData(prev => ({ ...prev, lastName: value }))}
-                icon={User}
-                disabled={isSaving}
-                maxLength={32}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Contact Information Section */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <FormSectionHeader
-          icon={Mail}
-          title={t('profile.contactInfo.title')}
-          description={t('profile.contactInfo.description')}
-          className="mb-6"
-        />
-
-        <div className="flex flex-wrap gap-6">
-          <div className="flex-1 min-w-[280px]">
-            <TextField
-              label={t('profile.fields.email')}
-              placeholder={t('profile.fields.emailPlaceholder')}
-              value={formData.email}
-              onChange={(value) => setFormData(prev => ({ ...prev, email: value }))}
-              icon={Mail}
-              disabled={isSaving}
-              maxLength={150}
-            />
-          </div>
-
-          <div className="flex-1 min-w-[280px]">
-            <TextField
-              label={t('profile.fields.phone')}
-              placeholder={t('profile.fields.phonePlaceholder')}
-              value={formData.phone}
-              onChange={(value) => setFormData(prev => ({ ...prev, phone: value }))}
-              icon={Phone}
-              disabled={isSaving}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Account Security Section */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-        <FormSectionHeader
-          icon={Shield}
-          title={t('profile.accountSecurity.title')}
-          description={t('profile.accountSecurity.description')}
-          className="mb-6"
-        />
-
-        <div className="space-y-6">
-          {/* Google Account Link/Unlink */}
-          <GoogleAccountManager
-            onSetPasswordClick={handleSetPasswordClick}
-            returnUrl="/my-account"
+      <div className="profile-grid">
+        <div className="profile-col">
+          {/* Hidden file input for avatar upload (triggered from hero edit button) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,image/avif"
+            onChange={handleFileSelect}
+            className="hidden"
           />
 
-          {/* Password Section */}
-          <div className="pt-4 border-t border-border">
-            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-              <div className="space-y-1 flex-1 min-w-0 mb-4">
-                <Label className="text-sm font-medium text-foreground">
-                  {t('profile.accountSecurity.changePassword')}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {t('profile.accountSecurity.changePasswordHint')}
-                </p>
-              </div>
-            </div>
-
-            {userHasPassword && (
-              <div className="flex flex-wrap gap-6">
-                <div className="flex-1 min-w-[280px]">
-                  <TextField
-                    id="current-password"
-                    label={t('profile.accountSecurity.currentPassword')}
-                    placeholder={t('profile.accountSecurity.currentPasswordPlaceholder')}
-                    value={currentPassword}
-                    onChange={setCurrentPassword}
-                    type="password"
-                    icon={Lock}
-                    disabled={isChangingPassword}
-                    inputRef={passwordInputRef}
-                  />
-                </div>
-                <div className="flex-1 min-w-[280px]" />
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-6">
-              <div className="flex-1 min-w-[280px] space-y-2 pt-2">
-                <Label htmlFor="new-password" className="text-base font-medium">
-                  {t('profile.accountSecurity.newPassword')}
-                </Label>
-                <Popover open={pwFocused} modal={false}>
-                  <PopoverTrigger asChild>
-                    <div className="relative">
-                      <Input
-                        ref={!userHasPassword ? passwordInputRef : undefined}
-                        id="new-password"
-                        type="password"
-                        placeholder={t('profile.accountSecurity.newPasswordPlaceholder')}
-                        value={newPassword}
-                        onChange={(e) => { setNewPassword(e.target.value); if (!pwInteracted) setPwInteracted(true); }}
-                        onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
-                        onBlur={() => setPwFocused(false)}
-                        disabled={isChangingPassword}
-                        className="!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
-                      />
-                      <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
-                    </div>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="top"
-                    align="start"
-                    sideOffset={8}
-                    avoidCollisions={false}
-                    className="p-0 border-none bg-transparent shadow-none w-auto"
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                  >
-                    <PasswordStrength password={newPassword} variant="panel" />
-                  </PopoverContent>
-                </Popover>
-                <div className="min-h-[28px]">
-                  {pwInteracted && newPassword.length > 0 ? (
-                    <PasswordStrength password={newPassword} variant="bar" />
+          {/* Hero band */}
+          <header className="profile-hero profile-tone-neutral">
+            <div className="profile-hero-left">
+              <div className="profile-hero-crest">
+                <div className="profile-hero-crest-frame">
+                  {formData.profileImage ? (
+                    <img src={formData.profileImage} alt="" />
                   ) : (
-                    <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
+                    <User aria-hidden />
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => !isUploadingImage && fileInputRef.current?.click()}
+                  disabled={isUploadingImage}
+                  className="profile-hero-crest-edit"
+                  aria-label={isUploadingImage ? t('profile.profilePhoto.uploading') : t('profile.profilePhoto.edit')}
+                >
+                  {isUploadingImage ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+              <div className="profile-hero-meta">
+                <div className="profile-eyebrow">{t('profile.hero.eyebrow')}</div>
+                <h2>{displayName}</h2>
+                <div className="profile-row2">
+                  {formData.email && <span>{formData.email}</span>}
+                  {user?.role && (
+                    <>
+                      <span className="profile-sep" aria-hidden>·</span>
+                      <span>{t(`roles.${user.role}`, {
+                        defaultValue: user.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+                      })}</span>
+                    </>
                   )}
                 </div>
               </div>
-              <div className="flex-1 min-w-[280px]">
+            </div>
+            <div className="profile-hero-right">
+              {user?.emailVerified && (
+                <span className="profile-pill profile-pill-verified">
+                  <CheckCircle className="h-3 w-3" />
+                  {t('profile.hero.emailVerified')}
+                </span>
+              )}
+            </div>
+          </header>
+
+          {/* Section: Personal Information */}
+          <section className="profile-section" aria-labelledby="profile-section-personal">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-personal" className="profile-section-title">{t('profile.personalInfo.title')}</h3>
+                <p className="profile-section-sub">{t('profile.personalInfo.description')}</p>
+              </div>
+            </header>
+
+            <div className="profile-field-stack">
+              <div className="profile-field-grid">
                 <TextField
-                  id="confirm-password"
-                  label={t('profile.accountSecurity.confirmPassword')}
-                  placeholder={t('profile.accountSecurity.confirmPasswordPlaceholder')}
-                  value={confirmPassword}
-                  onChange={setConfirmPassword}
-                  type="password"
-                  icon={Lock}
-                  disabled={isChangingPassword}
-                  error={confirmPassword.length > 0 && !passwordsMatch ? t('profile.toast.passwordsNoMatch') : undefined}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      if (canSubmitPassword) handleChangePassword();
-                    }
+                  label={t('profile.fields.firstName')}
+                  placeholder={t('profile.fields.firstNamePlaceholder')}
+                  value={formData.firstName}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, firstName: value }));
+                    setErrors(prev => ({ ...prev, firstName: validatePersonName('First name', value) ?? undefined }));
                   }}
+                  onBlur={() => setTouched(prev => ({ ...prev, firstName: true }))}
+                  error={touched.firstName ? errors.firstName : undefined}
+                  icon={User}
+                  disabled={isSaving}
+                  maxLength={32}
+                  required
+                />
+                <TextField
+                  label={t('profile.fields.lastName')}
+                  placeholder={t('profile.fields.lastNamePlaceholder')}
+                  value={formData.lastName}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, lastName: value }));
+                    setErrors(prev => ({ ...prev, lastName: validatePersonName('Last name', value) ?? undefined }));
+                  }}
+                  onBlur={() => setTouched(prev => ({ ...prev, lastName: true }))}
+                  error={touched.lastName ? errors.lastName : undefined}
+                  icon={User}
+                  disabled={isSaving}
+                  maxLength={32}
+                  required
                 />
               </div>
             </div>
+          </section>
 
-            <div className="pt-2">
-              <Button
-                type="button"
-                size="sm"
-                rounded="full"
-                className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
-                onClick={handleChangePassword}
-                disabled={!canSubmitPassword || isChangingPassword}
-              >
-                {isChangingPassword ? (
+          {/* Section: Contact Information */}
+          <section className="profile-section" aria-labelledby="profile-section-contact">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-contact" className="profile-section-title">{t('profile.contactInfo.title')}</h3>
+                <p className="profile-section-sub">{t('profile.contactInfo.description')}</p>
+              </div>
+            </header>
+
+            <div className="profile-field-grid">
+              <TextField
+                label={t('profile.fields.email')}
+                placeholder={t('profile.fields.emailPlaceholder')}
+                value={formData.email}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, email: value }));
+                  setErrors(prev => ({ ...prev, email: requiredEmailError('Email', value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
+                error={touched.email ? errors.email : undefined}
+                icon={Mail}
+                disabled={isSaving}
+                maxLength={150}
+                required
+              />
+              <TextField
+                label={t('profile.fields.phone')}
+                placeholder={t('profile.fields.phonePlaceholder')}
+                value={formData.phone}
+                onChange={(value) => {
+                  const sanitized = sanitizePhoneToE164Draft(value);
+                  setFormData(prev => ({ ...prev, phone: sanitized }));
+                  setErrors(prev => ({ ...prev, phone: validatePhone(sanitized) }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, phone: true }))}
+                error={touched.phone ? errors.phone : undefined}
+                icon={Phone}
+                disabled={isSaving}
+              />
+            </div>
+          </section>
+
+          {/* Section: Account Security */}
+          <section className="profile-section" aria-labelledby="profile-section-security">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-security" className="profile-section-title">{t('profile.accountSecurity.title')}</h3>
+                <p className="profile-section-sub">{t('profile.accountSecurity.description')}</p>
+              </div>
+            </header>
+
+            <div className="profile-field-stack">
+              <GoogleAccountManager
+                onSetPasswordClick={handleSetPasswordClick}
+                returnUrl="/my-account"
+              />
+
+              <div className="profile-divider" />
+
+              {/* Password change */}
+              <div className="profile-subgroup">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="profile-subgroup-head flex-1 min-w-0">
+                    <div className="profile-subgroup-title">{t('profile.accountSecurity.changePassword')}</div>
+                    <div className="profile-subgroup-sub">{t('profile.accountSecurity.changePasswordHint')}</div>
+                  </div>
+                  {!showPasswordSection && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordSection(true)}
+                      className="profile-btn-ghost profile-btn-compact shrink-0 self-start sm:self-auto"
+                    >
+                      <Lock className="h-3 w-3" />
+                      {t('profile.accountSecurity.changePasswordReveal')}
+                    </button>
+                  )}
+                </div>
+
+                {showPasswordSection && (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    {t('profile.accountSecurity.updating')}
-                  </>
-                ) : (
-                  <>
-                    {t('profile.accountSecurity.changePassword')}
-                    <Save className="h-4 w-4 ml-2" />
+                    {userHasPassword && (
+                      <div className="profile-field-grid">
+                        <TextField
+                          id="current-password"
+                          label={t('profile.accountSecurity.currentPassword')}
+                          placeholder={t('profile.accountSecurity.currentPasswordPlaceholder')}
+                          value={currentPassword}
+                          onChange={setCurrentPassword}
+                          type="password"
+                          icon={Lock}
+                          disabled={isChangingPassword}
+                          inputRef={passwordInputRef}
+                          readOnly={!currentPwTouched}
+                          onFocus={() => setCurrentPwTouched(true)}
+                        />
+                        <div />
+                      </div>
+                    )}
+
+                    <div className="profile-field-grid">
+                      <div className="space-y-2 pt-2">
+                        <Label htmlFor="new-password" className="text-base font-medium">
+                          {t('profile.accountSecurity.newPassword')}
+                        </Label>
+                        <Popover open={pwFocused} modal={false}>
+                          <PopoverTrigger asChild>
+                            <div className="relative">
+                              <Input
+                                ref={!userHasPassword ? passwordInputRef : undefined}
+                                id="new-password"
+                                type="password"
+                                autoComplete="new-password"
+                                placeholder={t('profile.accountSecurity.newPasswordPlaceholder')}
+                                value={newPassword}
+                                onChange={(e) => { setNewPassword(e.target.value); if (!pwInteracted) setPwInteracted(true); }}
+                                onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
+                                onBlur={() => setPwFocused(false)}
+                                disabled={isChangingPassword}
+                                className="!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                              />
+                              <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                            </div>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            side="top"
+                            align="start"
+                            sideOffset={8}
+                            avoidCollisions={false}
+                            className="p-0 border-none bg-transparent shadow-none w-auto"
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                          >
+                            <PasswordStrength password={newPassword} variant="panel" />
+                          </PopoverContent>
+                        </Popover>
+                        <div className="min-h-[28px]">
+                          {pwInteracted && newPassword.length > 0 ? (
+                            <PasswordStrength password={newPassword} variant="bar" />
+                          ) : (
+                            <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
+                          )}
+                        </div>
+                      </div>
+                      <TextField
+                        id="confirm-password"
+                        label={t('profile.accountSecurity.confirmPassword')}
+                        placeholder={t('profile.accountSecurity.confirmPasswordPlaceholder')}
+                        value={confirmPassword}
+                        onChange={setConfirmPassword}
+                        type="password"
+                        icon={Lock}
+                        disabled={isChangingPassword}
+                        autoComplete="new-password"
+                        error={confirmPassword.length > 0 && !passwordsMatch ? t('profile.toast.passwordsNoMatch') : undefined}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (canSubmitPassword) handleChangePassword();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPasswordSection(false);
+                          setCurrentPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          setPwInteracted(false);
+                          setCurrentPwTouched(false);
+                        }}
+                        disabled={isChangingPassword}
+                        className="profile-btn-ghost"
+                      >
+                        {t('profile.accountSecurity.changePasswordCancel')}
+                      </button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        rounded="full"
+                        className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
+                        onClick={handleChangePassword}
+                        disabled={!canSubmitPassword || isChangingPassword}
+                      >
+                        {isChangingPassword ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t('profile.accountSecurity.updating')}
+                          </>
+                        ) : (
+                          t('profile.accountSecurity.changePassword')
+                        )}
+                      </Button>
+                    </div>
                   </>
                 )}
-              </Button>
-            </div>
-          </div>
+              </div>
 
-          {/* Legal Documents */}
-          <div className="pt-4 border-t border-border">
-            <div className="space-y-1 mb-3">
-              <Label className="text-sm font-medium text-foreground">
-                {t('profile.accountSecurity.legalTitle')}
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                {t('profile.accountSecurity.legalDescription')}
-              </p>
+              <div className="profile-divider" />
+
+              {/* Legal Documents */}
+              <div className="profile-subgroup">
+                <div className="profile-subgroup-head">
+                  <div className="profile-subgroup-title">{t('profile.accountSecurity.legalTitle')}</div>
+                  <div className="profile-subgroup-sub">{t('profile.accountSecurity.legalDescription')}</div>
+                </div>
+                <div>
+                  {(['terms', 'privacy', 'cookies'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setLegalDialogType(type)}
+                      className="profile-line-row"
+                    >
+                      <div className="profile-line-icon"><FileText className="h-4 w-4" /></div>
+                      <div className="profile-line-lbl">{t(`profile.accountSecurity.legal_${type}`)}</div>
+                      <ChevronRight className="profile-line-chev h-4 w-4" />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className="space-y-1">
-              {(['terms', 'privacy', 'cookies'] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => setLegalDialogType(type)}
-                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground-2 transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
-                >
-                  <FileText className="h-4 w-4 shrink-0" />
-                  <span className="flex-1 text-left">{t(`profile.accountSecurity.legal_${type}`)}</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                </button>
-              ))}
-            </div>
-          </div>
+          </section>
+
+          {/* Section: Advanced */}
+          <section className="profile-section" aria-labelledby="profile-section-advanced">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-advanced" className="profile-section-title">{t('advanced.title')}</h3>
+                <p className="profile-section-sub">{t('advanced.description')}</p>
+              </div>
+            </header>
+            <AdvancedAccountSection />
+          </section>
         </div>
-      </div>
-
-      {/* Advanced Settings Section */}
-      <div className="rounded-lg border border-border bg-card p-6 shadow-sm mb-10">
-        <FormSectionHeader
-          icon={Settings}
-          title={t('advanced.title')}
-          description={t('advanced.description')}
-          className="mb-6"
-        />
-        <AdvancedAccountSection />
       </div>
 
       <LegalContentDialog
@@ -674,7 +781,8 @@ const AdvancedAccountSection = () => {
 
   // ── Leave Organisation ──────────────────────────────────────────────
 
-  const handleLeaveOrganisation = () => {
+  const handleLeaveOrganisation = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();
     setShowLeaveOrgConfirm(true);
   };
 
@@ -708,7 +816,8 @@ const AdvancedAccountSection = () => {
 
   // ── Account Deletion (immediate) ───────────────────────────────────
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();
     setShowDeleteConfirm(true);
   };
 
@@ -728,197 +837,212 @@ const AdvancedAccountSection = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="profile-field-stack">
       {/* Account Actions */}
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4">
         {/* Leave Organisation — hidden for dashboard_user */}
         {!isDashboardUser && (
-          <Card className="border border-border/60 overflow-hidden">
-            <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
-              <div className="space-y-1 min-w-0">
-                <h4 className="text-base font-medium text-foreground">{t('leaveOrganisation.title')}</h4>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  {t('leaveOrganisation.cardDescription')}
-                </p>
-                <div className="mt-3 p-3 rounded-lg border border-blue-200/80 dark:border-blue-800/60 bg-blue-50/70 dark:bg-blue-950/40">
-                  <p className="text-xs font-medium text-blue-800 dark:text-blue-200 flex items-start gap-2">
-                    <Info className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    {t('leaveOrganisation.cardHint')}
-                  </p>
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 rounded-xl border border-border bg-surface-hover/50 p-4 sm:p-5">
+            <div className="space-y-1 min-w-0 flex-1">
+              <h4 className="text-[14px] font-semibold text-foreground-1 leading-tight">{t('leaveOrganisation.title')}</h4>
+              <p className="text-[13px] text-foreground-2 leading-[1.45]">
+                {t('leaveOrganisation.cardDescription')}
+              </p>
+              <div className="profile-banner profile-banner-info" style={{ marginTop: 10 }}>
+                <Info className="profile-banner-icon h-3.5 w-3.5" />
+                <div className="profile-banner-body" style={{ fontSize: 12 }}>
+                  {t('leaveOrganisation.cardHint')}
                 </div>
               </div>
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                rounded="full"
-                onClick={handleLeaveOrganisation}
-                disabled={isLeavingOrganisation || showLeaveOrgConfirm}
-                className="shrink-0 !h-9 !px-4"
-              >
-                {isLeavingOrganisation ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                    {t('leaveOrganisation.leaving')}
-                  </>
-                ) : (
-                  <>
-                    <LogOut className="h-3.5 w-3.5 mr-1.5" />
-                    {t('leaveOrganisation.title')}
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Delete Account */}
-        <Card className="border border-border/60 overflow-hidden">
-          <CardContent className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 p-4 sm:p-5">
-            <div className="space-y-1 min-w-0">
-              <h4 className="text-base font-medium text-foreground">{t('dangerZone.deleteAccount.title')}</h4>
-              <p className="text-sm text-muted-foreground leading-relaxed">{t('dangerZone.deleteAccount.description')}</p>
-              <p className="text-xs text-muted-foreground">{t('dangerZone.deleteAccount.irreversible')}</p>
             </div>
             <Button
               type="button"
               variant="destructive"
               size="sm"
               rounded="full"
-              onClick={handleDeleteClick}
-              disabled={isDeleting}
+              onClick={handleLeaveOrganisation}
+              disabled={isLeavingOrganisation || showLeaveOrgConfirm}
               className="shrink-0 !h-9 !px-4"
             >
-              <AlertTriangle className={`h-3.5 w-3.5 mr-1.5 ${isDeleting ? 'animate-pulse' : ''}`} />
-              {isDeleting ? t('dangerZone.deleteAccount.deleting') : t('dangerZone.deleteAccount.button')}
+              {isLeavingOrganisation ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  {t('leaveOrganisation.leaving')}
+                </>
+              ) : (
+                <>
+                  <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                  {t('leaveOrganisation.title')}
+                </>
+              )}
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        )}
+
+        {/* Delete Account */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 rounded-xl border border-border bg-surface-hover/50 p-4 sm:p-5">
+          <div className="space-y-1 min-w-0 flex-1">
+            <h4 className="text-[14px] font-semibold text-foreground-1 leading-tight">{t('dangerZone.deleteAccount.title')}</h4>
+            <p className="text-[13px] text-foreground-2 leading-[1.45]">{t('dangerZone.deleteAccount.description')}</p>
+            <p className="text-[12px] text-foreground-3">{t('dangerZone.deleteAccount.irreversible')}</p>
+          </div>
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            rounded="full"
+            onClick={handleDeleteClick}
+            disabled={isDeleting}
+            className="shrink-0 !h-9 !px-4"
+          >
+            <AlertTriangle className={`h-3.5 w-3.5 mr-1.5 ${isDeleting ? 'animate-pulse' : ''}`} />
+            {isDeleting ? t('dangerZone.deleteAccount.deleting') : t('dangerZone.deleteAccount.button')}
+          </Button>
+        </div>
       </div>
 
       {/* Leave Organisation confirmation */}
       <AlertDialog open={showLeaveOrgConfirm} onOpenChange={(open) => !open && setShowLeaveOrgConfirm(false)}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-destructive/10">
-                <LogOut className="h-5 w-5 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-left">{t('leaveOrganisation.title')}</AlertDialogTitle>
-            </div>
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>{t('leaveOrganisation.confirmEyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('leaveOrganisation.confirmTitle')}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-4 text-left pt-1">
-                <p className="text-sm text-foreground leading-relaxed">{t('leaveOrganisation.confirmMessage')}</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{t('leaveOrganisation.confirmHint')}</p>
+              <div className="space-y-3 text-left">
+                <p className={modalBody}>{t('leaveOrganisation.confirmMessage')}</p>
+                <p className={modalBodyMuted}>{t('leaveOrganisation.confirmHint')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
-            <Button variant="outline" rounded="full" onClick={() => setShowLeaveOrgConfirm(false)}>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button
+              type="button"
+              onClick={() => setShowLeaveOrgConfirm(false)}
+              className={modalSecondary}
+              disabled={isLeavingOrganisation}
+            >
               {t('leaveOrganisation.cancel')}
-            </Button>
-            <Button variant="destructive" rounded="full" onClick={handleLeaveOrgConfirm} disabled={isLeavingOrganisation}>
+            </button>
+            <button
+              type="button"
+              onClick={handleLeaveOrgConfirm}
+              className={modalDestructive}
+              disabled={isLeavingOrganisation}
+            >
               {isLeavingOrganisation ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {t('leaveOrganisation.leaving')}
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t('leaveOrganisation.leaving')}</span>
                 </>
               ) : (
-                t('leaveOrganisation.confirmButton')
+                <span>{t('leaveOrganisation.confirmButton')}</span>
               )}
-            </Button>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Leave Organisation success */}
       <AlertDialog open={showLeaveOrgSuccess} onOpenChange={(open) => !open && handleLeaveOrgSuccessOk()}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/40">
-                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
-              </div>
-              <AlertDialogTitle className="text-left">{t('leaveOrganisation.successTitle')}</AlertDialogTitle>
-            </div>
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>{t('leaveOrganisation.successEyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('leaveOrganisation.successTitle')}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-4 text-left pt-1">
-                <p className="text-sm text-foreground leading-relaxed">{t('leaveOrganisation.successMessage')}</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{t('leaveOrganisation.successHint')}</p>
+              <div className="space-y-3 text-left">
+                <p className={modalBody}>{t('leaveOrganisation.successMessage')}</p>
+                <p className={modalBodyMuted}>{t('leaveOrganisation.successHint')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
-            <Button rounded="full" onClick={handleLeaveOrgSuccessOk}>
-              {t('leaveOrganisation.successButton')}
-            </Button>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button type="button" onClick={handleLeaveOrgSuccessOk} className={modalPrimary}>
+              <span>{t('leaveOrganisation.successButton')}</span>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Active Appointments — info modal when leave is blocked */}
       <AlertDialog open={activeAppointmentsCount !== null} onOpenChange={(open) => !open && setActiveAppointmentsCount(null)}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
-                <Calendar className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-              </div>
-              <AlertDialogTitle className="text-left">{t('activeAppointments.title')}</AlertDialogTitle>
-            </div>
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>{t('activeAppointments.eyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('activeAppointments.title')}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-4 text-left pt-1">
+              <div className="space-y-3 text-left">
                 {activeAppointmentsCount !== null && (
-                  <p className="text-sm text-foreground leading-relaxed">
+                  <p className={modalBody}>
                     {t('activeAppointments.message', { count: activeAppointmentsCount })}
                   </p>
                 )}
-                <p className="text-sm text-muted-foreground leading-relaxed">{t('activeAppointments.hint')}</p>
+                <p className={modalBodyMuted}>{t('activeAppointments.hint')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
-            <Button rounded="full" onClick={() => setActiveAppointmentsCount(null)}>
-              {t('activeAppointments.understood')}
-            </Button>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button type="button" onClick={() => setActiveAppointmentsCount(null)} className={modalPrimary}>
+              <span>{t('activeAppointments.understood')}</span>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Delete Account confirmation — final, immediate */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-                <Trash2 className="h-5 w-5 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-left">{t('deleteAccountDialog.title')}</AlertDialogTitle>
-            </div>
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>{t('deleteAccountDialog.eyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('deleteAccountDialog.title')}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-4 text-left pt-1">
-                <p className="text-sm text-foreground leading-relaxed">{t('deleteAccountDialog.intro')}</p>
-                <ul className="space-y-1.5 text-sm text-muted-foreground list-disc pl-5">
+              <div className="space-y-4 text-left">
+                <p className={modalBody}>{t('deleteAccountDialog.intro')}</p>
+                <ul className={`${modalBody} list-disc space-y-1.5 pl-5 marker:text-neutral-400 dark:marker:text-neutral-500`}>
                   <li>{t('deleteAccountDialog.bullets.appointments')}</li>
                   <li>{t('deleteAccountDialog.bullets.account')}</li>
                 </ul>
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200 leading-relaxed">
+                <div className="flex items-start gap-2.5 rounded-xl border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30 p-3.5">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive dark:text-red-300 mt-0.5" />
+                  <p className="text-[14px] font-medium leading-[1.5] text-red-800 dark:text-red-200">
                     {t('deleteAccountDialog.irreversibleWarning')}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{t('deleteAccountDialog.otherAccountsHint')}</p>
+                <p className={modalHelperSmall}>{t('deleteAccountDialog.otherAccountsHint')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
-            <Button variant="outline" rounded="full" onClick={() => setShowDeleteConfirm(false)}>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              className={modalSecondary}
+              disabled={isDeleting}
+            >
               {t('deleteAccountDialog.cancel')}
-            </Button>
-            <Button variant="destructive" rounded="full" onClick={handleDeleteConfirm} disabled={isDeleting}>
-              {isDeleting ? t('deleteAccountDialog.deleting') : t('deleteAccountDialog.confirmDelete')}
-            </Button>
+            </button>
+            <button
+              type="button"
+              onClick={handleDeleteConfirm}
+              className={modalDestructive}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>{t('deleteAccountDialog.deleting')}</span>
+                </>
+              ) : (
+                <span>{t('deleteAccountDialog.confirmDelete')}</span>
+              )}
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

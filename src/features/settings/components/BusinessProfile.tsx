@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Globe, Shield, Instagram, Facebook, User, Camera, Loader2, Save, Lock, Info, LogOut, FileText, ChevronRight, Settings } from 'lucide-react';
+import { Building2, Mail, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, LogOut, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
 import CurrencySelect from '../../../shared/components/common/CurrencySelect';
-import FormSectionHeader from '../../../shared/components/forms/FormSectionHeader';
 import TextField from '../../../shared/components/forms/fields/TextField';
 import TextareaField from '../../../shared/components/forms/fields/TextareaField';
+import './Profile.css';
 import OptionSelect from '../../../shared/components/common/OptionSelect';
 import { uploadBusinessLogo } from '../api';
 import GoogleAccountManager from './GoogleAccountManager';
@@ -24,7 +24,15 @@ import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
 import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { PasswordStrength } from '../../auth/components/PasswordStrength';
-import { validatePasswordPolicy } from '../../../shared/utils/validation';
+import {
+  validatePasswordPolicy,
+  validateBusinessName,
+  validateDescription,
+  requiredEmailError,
+  isE164,
+  sanitizePhoneToE164Draft,
+  validateUrlField,
+} from '../../../shared/utils/validation';
 import { Input } from '../../../shared/components/ui/input';
 import { Popover, PopoverTrigger, PopoverContent } from '../../../shared/components/ui/popover';
 import LegalContentDialog from '../../legal/components/LegalContentDialog';
@@ -111,7 +119,36 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const [isSettingPassword, setIsSettingPassword] = useState(false);
   const [pwFocused, setPwFocused] = useState(false);
   const [pwInteracted, setPwInteracted] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPwTouched, setCurrentPwTouched] = useState(false);
   const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
+
+  const [errors, setErrors] = useState<Record<string, string | undefined>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  const CURRENCY_WHITELIST = ['eur','usd','ron','gbp','chf','sek','nok','dkk','pln','czk','huf','bgn','hrk','try'];
+
+  const validatePhone = (value: string): string | undefined => {
+    const v = value.trim();
+    if (!v) return undefined;
+    return isE164(v) ? undefined : 'Enter a valid phone number';
+  };
+
+  const validateAll = (): Record<string, string | undefined> => ({
+    businessName: validateBusinessName(formData.businessName) ?? undefined,
+    businessEmail: requiredEmailError('Business email', formData.businessEmail) ?? undefined,
+    businessPhone: validatePhone(formData.businessPhone),
+    industryId: formData.industryId == null ? 'Please select an industry' : undefined,
+    description: validateDescription(formData.description, 500) ?? undefined,
+    businessCurrency: CURRENCY_WHITELIST.includes(formData.businessCurrency?.toLowerCase())
+      ? undefined
+      : 'Please select a valid currency',
+    instagramUrl: validateUrlField(formData.instagramUrl) ?? undefined,
+    facebookUrl:  validateUrlField(formData.facebookUrl)  ?? undefined,
+    tiktokUrl:    validateUrlField(formData.tiktokUrl)    ?? undefined,
+    websiteUrl:   validateUrlField(formData.websiteUrl)   ?? undefined,
+    pinterestUrl: validateUrlField(formData.pinterestUrl) ?? undefined,
+  });
 
   const userHasPassword = user?.hasPassword === true;
   const isPasswordPolicyValid = validatePasswordPolicy(newPassword) === true;
@@ -183,6 +220,12 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
 
+  const selectedIndustryName = useMemo(() => {
+    if (formData.industryId == null) return null;
+    const found = industries.find(i => i.id === formData.industryId);
+    return found ? toTitleCase(found.name) : null;
+  }, [formData.industryId, industries]);
+
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -229,7 +272,15 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    
+
+    const next = validateAll();
+    setErrors(next);
+    if (Object.values(next).some(Boolean)) {
+      setTouched(Object.keys(next).reduce((a, k) => ({ ...a, [k]: true }), {} as Record<string, boolean>));
+      toast.error(t('profile.toast.fixErrorsBeforeSave'));
+      return;
+    }
+
     // Prepare update data (logo is handled separately via upload endpoint)
     const updateData: UpdateBusinessDTO = {
       name: formData.businessName,
@@ -285,6 +336,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       setNewPassword('');
       setConfirmPassword('');
       setPwInteracted(false);
+      setShowPasswordSection(false);
+      setCurrentPwTouched(false);
       dispatch(fetchCurrentUserAction.request());
     } catch (error: any) {
       const fallback = userHasPassword ? t('profile.toast.passwordChangeFailed') : t('profile.toast.passwordSetFailed');
@@ -300,416 +353,473 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
   return (
     <form id="business-info-form" onSubmit={handleSubmit} className="w-full">
-      <div className="space-y-6">
-        {/* Basic Information Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <FormSectionHeader
-            icon={Building2}
-            title={t('profile.basicInfo.title')}
-            description={t('profile.basicInfo.description')}
-            className="mb-6"
+      <div className="profile-grid">
+        <div className="profile-col">
+          {/* Hidden file input for logo upload (triggered from hero edit button) */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,image/avif"
+            onChange={handleFileSelect}
+            className="hidden"
           />
-          
-          <div className="space-y-6">
-            {/* Logo Upload - Circular Display */}
-            <div className="space-y-2">
-              <Label className="text-base font-medium text-foreground-1">{t('profile.basicInfo.logo')}</Label>
-              <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                {t('profile.basicInfo.logoDescription')}
-              </p>
-              
-              {/* Hidden file input */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,image/avif"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              
-              {/* Circular Logo Preview with Edit Button */}
-              <div className="flex items-center gap-4 pt-2">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-muted border-2 border-border flex items-center justify-center">
-                    {formData.logo ? (
-                      <img
-                        src={formData.logo}
-                        alt="Business logo"
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-12 h-12 text-muted-foreground" />
-                    )}
-                  </div>
-                  {/* Edit Button on Logo */}
-                  <div
-                    onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
-                    className={`absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 flex items-center gap-1 px-2 py-1 bg-surface text-foreground-1 text-xs font-medium rounded-md shadow-lg hover:bg-surface-hover transition-colors border border-border ${
-                      isUploadingLogo ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
-                    }`}
-                  >
-                    <Camera className="h-3 w-3" />
-                    {isUploadingLogo ? t('profile.basicInfo.uploading') : t('profile.basicInfo.edit')}
-                  </div>
+
+          {/* Hero band */}
+          <header className="profile-hero profile-tone-neutral">
+            <div className="profile-hero-left">
+              <div className="profile-hero-crest">
+                <div className="profile-hero-crest-frame">
+                  {formData.logo ? (
+                    <img src={formData.logo} alt="" />
+                  ) : (
+                    <Building2 aria-hidden />
+                  )}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => !isUploadingLogo && fileInputRef.current?.click()}
+                  disabled={isUploadingLogo}
+                  className="profile-hero-crest-edit"
+                  aria-label={isUploadingLogo ? t('profile.basicInfo.uploading') : t('profile.basicInfo.edit')}
+                >
+                  {isUploadingLogo ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Camera className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </div>
+              <div className="profile-hero-meta">
+                <div className="profile-eyebrow">{t('profile.hero.eyebrow')}</div>
+                <h2>{formData.businessName || t('profile.hero.placeholderName')}</h2>
+                {selectedIndustryName && (
+                  <div className="profile-row2">
+                    <span>{selectedIndustryName}</span>
+                  </div>
+                )}
               </div>
             </div>
+            <div className="profile-hero-right">
+              <span className="profile-pill profile-pill-good">
+                <span className="profile-pill-dot" />
+                {t('profile.hero.ownerBadge')}
+              </span>
+            </div>
+          </header>
 
-            {/* Two Column Layout */}
-            <div className="flex flex-wrap gap-6">
-              <div className="flex-1 min-w-[280px]">
+          {/* Section: Basic Information */}
+          <section className="profile-section" aria-labelledby="profile-section-basic">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-basic" className="profile-section-title">{t('profile.basicInfo.title')}</h3>
+                <p className="profile-section-sub">{t('profile.basicInfo.subtitle')}</p>
+              </div>
+            </header>
+
+            <div className="profile-field-stack">
+              <div className="profile-field-grid">
                 <TextField
                   label={t('profile.basicInfo.businessName')}
                   placeholder={t('profile.basicInfo.businessNamePlaceholder')}
                   value={formData.businessName}
-                  onChange={(value) => setFormData(prev => ({ ...prev, businessName: value }))}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, businessName: value }));
+                    setErrors(prev => ({ ...prev, businessName: validateBusinessName(value) ?? undefined }));
+                  }}
+                  onBlur={() => setTouched(prev => ({ ...prev, businessName: true }))}
+                  error={touched.businessName ? errors.businessName : undefined}
                   icon={Building2}
                   required
                 />
-              </div>
-              
-              <div className="flex-1 min-w-[280px]">
                 <OptionSelect
                   label={t('profile.basicInfo.industry')}
                   placeholder={t('profile.basicInfo.industryPlaceholder')}
                   value={formData.industryId != null ? String(formData.industryId) : ''}
-                  onChange={(value) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      industryId: value ? Number(value) : null,
-                    }))
-                  }
+                  onChange={(value) => {
+                    const next = value ? Number(value) : null;
+                    setFormData((prev) => ({ ...prev, industryId: next }));
+                    setErrors(prev => ({ ...prev, industryId: next == null ? 'Please select an industry' : undefined }));
+                  }}
                   options={industries.map((i) => ({ value: String(i.id), label: toTitleCase(i.name) }))}
+                  error={touched.industryId ? errors.industryId : undefined}
+                />
+              </div>
+
+              {originalSnapshot != null && formData.industryId !== originalSnapshot.industryId && (
+                <div className="profile-banner profile-banner-info">
+                  <Info className="profile-banner-icon h-4 w-4" aria-hidden />
+                  <div className="profile-banner-body">
+                    <strong>{t('profile.basicInfo.changingIndustry')}</strong>
+                    <ul>
+                      <li>{t('profile.basicInfo.industryWarning1')}</li>
+                      <li>{t('profile.basicInfo.industryWarning2')}</li>
+                      <li>{t('profile.basicInfo.industryWarning3')}</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
+                <TextareaField
+                  label={t('profile.basicInfo.description')}
+                  placeholder={t('profile.basicInfo.descriptionPlaceholder')}
+                  value={formData.description}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, description: value }));
+                    setErrors(prev => ({ ...prev, description: validateDescription(value, 500) ?? undefined }));
+                  }}
+                  error={errors.description}
+                  maxLength={500}
+                />
+                <p className="text-[13px] text-foreground-3 leading-[1.5]">
+                  {t('profile.basicInfo.descriptionTip')}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="businessCurrency" className="text-base font-medium">
+                  {t('profile.basicInfo.currency')}
+                </Label>
+                <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                  {t('profile.basicInfo.currencyDescription')}
+                </p>
+                <CurrencySelect
+                  id="businessCurrency"
+                  value={formData.businessCurrency}
+                  onChange={(value) => {
+                    setFormData(prev => ({ ...prev, businessCurrency: value }));
+                    setErrors(prev => ({
+                      ...prev,
+                      businessCurrency: CURRENCY_WHITELIST.includes(value?.toLowerCase())
+                        ? undefined
+                        : 'Please select a valid currency',
+                    }));
+                  }}
+                  error={touched.businessCurrency ? errors.businessCurrency : undefined}
                 />
               </div>
             </div>
+          </section>
 
-            {originalSnapshot != null && formData.industryId !== originalSnapshot.industryId && (
-              <div className="rounded-lg border border-info-border bg-info-bg dark:bg-info-bg/30 p-4 mt-1">
-                <div className="flex gap-2 mb-2">
-                  <Info className="h-4 w-4 text-info shrink-0 mt-0.5" aria-hidden />
-                  <span className="text-sm font-medium text-info">{t('profile.basicInfo.changingIndustry')}</span>
-                </div>
-                <ul className="space-y-2 text-sm text-foreground-2 leading-relaxed list-none pl-0">
-                  <li className="flex gap-2">
-                    <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
-                    <span>{t('profile.basicInfo.industryWarning1')}</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
-                    <span>{t('profile.basicInfo.industryWarning2')}</span>
-                  </li>
-                  <li className="flex gap-2">
-                    <span className="text-info mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full bg-info block" aria-hidden />
-                    <span>{t('profile.basicInfo.industryWarning3')}</span>
-                  </li>
-                </ul>
+          {/* Section: Contact */}
+          <section className="profile-section" aria-labelledby="profile-section-contact">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-contact" className="profile-section-title">{t('profile.contact.title')}</h3>
+                <p className="profile-section-sub">{t('profile.contact.description')}</p>
               </div>
-            )}
+            </header>
 
-            {/* Description */}
-            <TextareaField
-              label={t('profile.basicInfo.description')}
-              placeholder={t('profile.basicInfo.descriptionPlaceholder')}
-              value={formData.description}
-              onChange={(value) => setFormData(prev => ({ ...prev, description: value }))}
-              maxLength={500}
-            />
-
-            {/* Currency */}
-            <div className="space-y-2">
-              <Label htmlFor="businessCurrency" className="text-base font-medium">
-                {t('profile.basicInfo.currency')}
-              </Label>
-              <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                {t('profile.basicInfo.currencyDescription')}
-              </p>
-              <CurrencySelect
-                id="businessCurrency"
-                value={formData.businessCurrency}
-                onChange={(value) => setFormData(prev => ({ ...prev, businessCurrency: value }))}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Contact Information Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <FormSectionHeader
-            icon={Mail}
-            title={t('profile.contact.title')}
-            description={t('profile.contact.description')}
-            className="mb-6"
-          />
-          
-          <div className="flex flex-wrap gap-6">
-            <div className="flex-1 min-w-[280px]">
+            <div className="profile-field-grid">
               <TextField
                 label={t('profile.contact.email')}
                 placeholder={t('profile.contact.emailPlaceholder')}
                 value={formData.businessEmail}
-                onChange={(value) => setFormData(prev => ({ ...prev, businessEmail: value }))}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, businessEmail: value }));
+                  setErrors(prev => ({ ...prev, businessEmail: requiredEmailError('Business email', value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, businessEmail: true }))}
+                error={touched.businessEmail ? errors.businessEmail : undefined}
                 icon={Mail}
                 required
               />
-            </div>
-            
-            <div className="flex-1 min-w-[280px]">
               <TextField
                 label={t('profile.contact.phone')}
                 placeholder={t('profile.contact.phonePlaceholder')}
                 value={formData.businessPhone}
-                onChange={(value) => setFormData(prev => ({ ...prev, businessPhone: value }))}
+                onChange={(value) => {
+                  const sanitized = sanitizePhoneToE164Draft(value);
+                  setFormData(prev => ({ ...prev, businessPhone: sanitized }));
+                  setErrors(prev => ({ ...prev, businessPhone: validatePhone(sanitized) }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, businessPhone: true }))}
+                error={touched.businessPhone ? errors.businessPhone : undefined}
                 icon={Globe}
               />
             </div>
-          </div>
-        </div>
+          </section>
 
-        {/* Social Media Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-          <FormSectionHeader
-            icon={Globe}
-            title={t('profile.social.title')}
-            description={t('profile.social.description')}
-            className="mb-6"
-          />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
+          {/* Section: Social Media */}
+          <section className="profile-section" aria-labelledby="profile-section-social">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-social" className="profile-section-title">{t('profile.social.title')}</h3>
+                <p className="profile-section-sub">{t('profile.social.description')}</p>
+              </div>
+            </header>
+
+            <div className="profile-field-grid">
               <TextField
                 label={t('profile.social.instagram')}
                 placeholder={t('profile.social.instagramPlaceholder')}
                 value={formData.instagramUrl}
-                onChange={(value) => setFormData(prev => ({ ...prev, instagramUrl: value }))}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, instagramUrl: value }));
+                  setErrors(prev => ({ ...prev, instagramUrl: validateUrlField(value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, instagramUrl: true }))}
+                error={touched.instagramUrl ? errors.instagramUrl : undefined}
                 icon={Instagram}
               />
-            </div>
-            
-            <div>
               <TextField
                 label={t('profile.social.facebook')}
                 placeholder={t('profile.social.facebookPlaceholder')}
                 value={formData.facebookUrl}
-                onChange={(value) => setFormData(prev => ({ ...prev, facebookUrl: value }))}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, facebookUrl: value }));
+                  setErrors(prev => ({ ...prev, facebookUrl: validateUrlField(value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, facebookUrl: true }))}
+                error={touched.facebookUrl ? errors.facebookUrl : undefined}
                 icon={Facebook}
               />
-            </div>
-
-            <div>
               <TextField
                 label={t('profile.social.tiktok')}
                 placeholder={t('profile.social.tiktokPlaceholder')}
                 value={formData.tiktokUrl}
-                onChange={(value) => setFormData(prev => ({ ...prev, tiktokUrl: value }))}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, tiktokUrl: value }));
+                  setErrors(prev => ({ ...prev, tiktokUrl: validateUrlField(value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, tiktokUrl: true }))}
+                error={touched.tiktokUrl ? errors.tiktokUrl : undefined}
                 icon={Globe}
               />
-            </div>
-
-            <div>
               <TextField
                 label={t('profile.social.website')}
                 placeholder={t('profile.social.websitePlaceholder')}
                 value={formData.websiteUrl}
-                onChange={(value) => setFormData(prev => ({ ...prev, websiteUrl: value }))}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, websiteUrl: value }));
+                  setErrors(prev => ({ ...prev, websiteUrl: validateUrlField(value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, websiteUrl: true }))}
+                error={touched.websiteUrl ? errors.websiteUrl : undefined}
                 icon={Globe}
               />
-            </div>
-
-            <div>
               <TextField
                 label={t('profile.social.pinterest')}
                 placeholder={t('profile.social.pinterestPlaceholder')}
                 value={formData.pinterestUrl}
-                onChange={(value) => setFormData(prev => ({ ...prev, pinterestUrl: value }))}
+                onChange={(value) => {
+                  setFormData(prev => ({ ...prev, pinterestUrl: value }));
+                  setErrors(prev => ({ ...prev, pinterestUrl: validateUrlField(value) ?? undefined }));
+                }}
+                onBlur={() => setTouched(prev => ({ ...prev, pinterestUrl: true }))}
+                error={touched.pinterestUrl ? errors.pinterestUrl : undefined}
                 icon={Globe}
               />
             </div>
-          </div>
-        </div>
+          </section>
         
-        {/* Account Security Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm mb-10">
-          <FormSectionHeader
-            icon={Shield}
-            title={t('profile.security.title')}
-            description={t('profile.security.description')}
-            className="mb-6"
-          />
-          
-          <div className="space-y-6">
-            <GoogleAccountManager onSetPasswordClick={handleSetPasswordClick} />
-            
-            {/* Password Section - always visible */}
-            <div className="pt-4 border-t border-border">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                <div className="space-y-1 flex-1 min-w-0 mb-4">
-                  <Label className="text-sm font-medium text-foreground">
-                    {t('profile.security.changePassword')}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {t('profile.security.changePasswordDescription')}
-                  </p>
-                </div>
+          {/* Section: Account Security */}
+          <section className="profile-section" aria-labelledby="profile-section-security">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-security" className="profile-section-title">{t('profile.security.title')}</h3>
+                <p className="profile-section-sub">{t('profile.security.description')}</p>
               </div>
+            </header>
 
-              {userHasPassword && (
-                <div className="flex flex-wrap gap-6">
-                  <div className="flex-1 min-w-[280px]">
-                    <TextField
-                      id="current-password"
-                      label={t('profile.security.currentPassword')}
-                      placeholder={t('profile.security.currentPasswordPlaceholder')}
-                      value={currentPassword}
-                      onChange={setCurrentPassword}
-                      type="password"
-                      icon={Lock}
-                      disabled={isSettingPassword}
-                      inputRef={passwordInputRef}
-                    />
+            <div className="profile-field-stack">
+              <GoogleAccountManager onSetPasswordClick={handleSetPasswordClick} />
+
+              <div className="profile-divider" />
+
+              {/* Password change */}
+              <div className="profile-subgroup">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="profile-subgroup-head flex-1 min-w-0">
+                    <div className="profile-subgroup-title">{t('profile.security.changePassword')}</div>
+                    <div className="profile-subgroup-sub">{t('profile.security.changePasswordDescription')}</div>
                   </div>
-                  <div className="flex-1 min-w-[280px]" />
-                </div>
-              )}
-              
-              <div className="flex flex-wrap gap-6">
-                <div className="flex-1 min-w-[280px] space-y-2 pt-2">
-                  <Label htmlFor="new-password" className="text-base font-medium">
-                    {t('profile.security.newPassword')}
-                  </Label>
-                  <Popover open={pwFocused} modal={false}>
-                    <PopoverTrigger asChild>
-                      <div className="relative">
-                        <Input
-                          ref={!userHasPassword ? passwordInputRef : undefined}
-                          id="new-password"
-                          type="password"
-                          placeholder={t('profile.security.newPasswordPlaceholder')}
-                          value={newPassword}
-                          onChange={(e) => { setNewPassword(e.target.value); if (!pwInteracted) setPwInteracted(true); }}
-                          onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
-                          onBlur={() => setPwFocused(false)}
-                          disabled={isSettingPassword}
-                          className="!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
-                        />
-                        <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      side="top"
-                      align="start"
-                      sideOffset={8}
-                      avoidCollisions={false}
-                      className="p-0 border-none bg-transparent shadow-none w-auto"
-                      onOpenAutoFocus={(e) => e.preventDefault()}
+                  {!showPasswordSection && (
+                    <button
+                      type="button"
+                      onClick={() => setShowPasswordSection(true)}
+                      className="profile-btn-ghost profile-btn-compact shrink-0 self-start sm:self-auto"
                     >
-                      <PasswordStrength password={newPassword} variant="panel" />
-                    </PopoverContent>
-                  </Popover>
-                  <div className="min-h-[28px]">
-                    {pwInteracted && newPassword.length > 0 ? (
-                      <PasswordStrength password={newPassword} variant="bar" />
-                    ) : (
-                      <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex-1 min-w-[280px]">
-                  <TextField
-                    id="confirm-password"
-                    label={t('profile.security.confirmPassword')}
-                    placeholder={t('profile.security.confirmPasswordPlaceholder')}
-                    value={confirmPassword}
-                    onChange={setConfirmPassword}
-                    type="password"
-                    icon={Lock}
-                    disabled={isSettingPassword}
-                    error={confirmPassword.length > 0 && !passwordsMatch ? t('profile.toast.passwordsNoMatch') : undefined}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (canSubmitPassword) handlePasswordSubmit();
-                      }
-                    }}
-                  />
-                </div>
-              </div>
-              
-              <div className="pt-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  rounded="full"
-                  className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
-                  onClick={handlePasswordSubmit}
-                  disabled={!canSubmitPassword || isSettingPassword}
-                >
-                  {isSettingPassword ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {t('profile.security.updating')}
-                    </>
-                  ) : (
-                    <>
-                      {userHasPassword ? t('profile.security.changePasswordButton') : t('profile.security.setPasswordButton')}
-                      <Save className="h-4 w-4 ml-2" />
-                    </>
+                      <Lock className="h-3 w-3" />
+                      {t('profile.security.changePasswordReveal')}
+                    </button>
                   )}
-                </Button>
-              </div>
-            </div>
+                </div>
 
-            {/* Legal Documents */}
-            <div className="pt-4 border-t border-border">
-              <div className="space-y-1 mb-3">
-                <Label className="text-sm font-medium text-foreground">
-                  {t('profile.security.legalTitle')}
-                </Label>
-                <p className="text-xs text-muted-foreground">
-                  {t('profile.security.legalDescription')}
-                </p>
+                {showPasswordSection && (
+                  <>
+                    {userHasPassword && (
+                      <div className="profile-field-grid">
+                        <TextField
+                          id="current-password"
+                          label={t('profile.security.currentPassword')}
+                          placeholder={t('profile.security.currentPasswordPlaceholder')}
+                          value={currentPassword}
+                          onChange={setCurrentPassword}
+                          type="password"
+                          icon={Lock}
+                          disabled={isSettingPassword}
+                          inputRef={passwordInputRef}
+                          readOnly={!currentPwTouched}
+                          onFocus={() => setCurrentPwTouched(true)}
+                        />
+                        <div />
+                      </div>
+                    )}
+
+                    <div className="profile-field-grid">
+                      <div className="space-y-2 pt-2">
+                        <Label htmlFor="new-password" className="text-base font-medium">
+                          {t('profile.security.newPassword')}
+                        </Label>
+                        <Popover open={pwFocused} modal={false}>
+                          <PopoverTrigger asChild>
+                            <div className="relative">
+                              <Input
+                                ref={!userHasPassword ? passwordInputRef : undefined}
+                                id="new-password"
+                                type="password"
+                                autoComplete="new-password"
+                                placeholder={t('profile.security.newPasswordPlaceholder')}
+                                value={newPassword}
+                                onChange={(e) => { setNewPassword(e.target.value); if (!pwInteracted) setPwInteracted(true); }}
+                                onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
+                                onBlur={() => setPwFocused(false)}
+                                disabled={isSettingPassword}
+                                className="!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 border-border dark:border-border-subtle hover:border-border-strong focus:border-focus focus-visible:ring-focus"
+                              />
+                              <Lock className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
+                            </div>
+                          </PopoverTrigger>
+                          <PopoverContent
+                            side="top"
+                            align="start"
+                            sideOffset={8}
+                            avoidCollisions={false}
+                            className="p-0 border-none bg-transparent shadow-none w-auto"
+                            onOpenAutoFocus={(e) => e.preventDefault()}
+                          >
+                            <PasswordStrength password={newPassword} variant="panel" />
+                          </PopoverContent>
+                        </Popover>
+                        <div className="min-h-[28px]">
+                          {pwInteracted && newPassword.length > 0 ? (
+                            <PasswordStrength password={newPassword} variant="bar" />
+                          ) : (
+                            <span className="invisible block text-xs leading-normal" aria-hidden="true">0</span>
+                          )}
+                        </div>
+                      </div>
+                      <TextField
+                        id="confirm-password"
+                        label={t('profile.security.confirmPassword')}
+                        placeholder={t('profile.security.confirmPasswordPlaceholder')}
+                        value={confirmPassword}
+                        onChange={setConfirmPassword}
+                        type="password"
+                        icon={Lock}
+                        disabled={isSettingPassword}
+                        autoComplete="new-password"
+                        error={confirmPassword.length > 0 && !passwordsMatch ? t('profile.toast.passwordsNoMatch') : undefined}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (canSubmitPassword) handlePasswordSubmit();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPasswordSection(false);
+                          setCurrentPassword('');
+                          setNewPassword('');
+                          setConfirmPassword('');
+                          setPwInteracted(false);
+                          setCurrentPwTouched(false);
+                        }}
+                        disabled={isSettingPassword}
+                        className="profile-btn-ghost"
+                      >
+                        {t('profile.security.changePasswordCancel')}
+                      </button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        rounded="full"
+                        className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
+                        onClick={handlePasswordSubmit}
+                        disabled={!canSubmitPassword || isSettingPassword}
+                      >
+                        {isSettingPassword ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t('profile.security.updating')}
+                          </>
+                        ) : (
+                          userHasPassword ? t('profile.security.changePasswordButton') : t('profile.security.setPasswordButton')
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
-              <div className="space-y-1">
-                {(['terms', 'privacy', 'cookies'] as const).map((type) => (
+
+              <div className="profile-divider" />
+
+              {/* Legal Documents */}
+              <div className="profile-subgroup">
+                <div className="profile-subgroup-head">
+                  <div className="profile-subgroup-title">{t('profile.security.legalTitle')}</div>
+                  <div className="profile-subgroup-sub">{t('profile.security.legalDescription')}</div>
+                </div>
+                <div>
+                  {(['terms', 'privacy', 'cookies'] as const).map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => setLegalDialogType(type)}
+                      className="profile-line-row"
+                    >
+                      <div className="profile-line-icon"><FileText className="h-4 w-4" /></div>
+                      <div className="profile-line-lbl">{t(`profile.security.legal_${type}`)}</div>
+                      <ChevronRight className="profile-line-chev h-4 w-4" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mobile-only logout */}
+              {isMobile && (
+                <>
+                  <div className="profile-divider" />
                   <button
-                    key={type}
                     type="button"
-                    onClick={() => setLegalDialogType(type)}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground-2 transition-colors hover:bg-muted hover:text-foreground cursor-pointer"
+                    onClick={() => dispatch(logoutRequestAction.request())}
+                    className="profile-btn-ghost profile-tone-danger"
+                    style={{ width: '100%' }}
                   >
-                    <FileText className="h-4 w-4 shrink-0" />
-                    <span className="flex-1 text-left">{t(`profile.security.legal_${type}`)}</span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <LogOut className="h-4 w-4" />
+                    {t('profile.security.logOut')}
                   </button>
-                ))}
-              </div>
+                </>
+              )}
             </div>
+          </section>
 
-            {/* Log out - only on mobile; desktop has it in the sidebar */}
-            {isMobile && (
-              <div className="pt-4 mt-4 border-t border-border">
-                <button
-                  type="button"
-                  onClick={() => dispatch(logoutRequestAction.request())}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border border-border bg-muted/30 py-3 text-sm font-semibold text-foreground transition-colors hover:bg-red-500/10 hover:text-red-600 hover:border-red-500/30 active:bg-red-500/15 dark:hover:text-red-400 dark:hover:border-red-500/40"
-                >
-                  <LogOut className="h-4 w-4 shrink-0" />
-                  {t('profile.security.logOut')}
-                </button>
+          {/* Section: Advanced Settings */}
+          <section className="profile-section" aria-labelledby="profile-section-advanced">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-advanced" className="profile-section-title">{t('profile.advancedSettings.title')}</h3>
+                <p className="profile-section-sub">{t('profile.advancedSettings.description')}</p>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Advanced Settings Section */}
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm mb-10">
-          <FormSectionHeader
-            icon={Settings}
-            title={t('profile.advancedSettings.title')}
-            description={t('profile.advancedSettings.description')}
-            className="mb-6"
-          />
-          <AdvancedSettings />
+            </header>
+            <AdvancedSettings />
+          </section>
         </div>
       </div>
 

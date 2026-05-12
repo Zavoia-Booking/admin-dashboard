@@ -1,8 +1,9 @@
+import type React from 'react';
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Trash2, CreditCard, ArrowRight } from 'lucide-react';
+import { AlertTriangle, CreditCard } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -13,6 +14,21 @@ import {
   AlertDialogTitle,
   AlertDialogDescription,
 } from '../../../shared/components/ui/alert-dialog';
+import {
+  modalPanel,
+  modalPanelLarge,
+  modalEyebrow,
+  modalTitleCompact,
+  modalTitleLarge,
+  modalBody,
+  modalBodyMuted,
+  modalHelperSmall,
+  modalFooterRowRight,
+  modalSecondary,
+  modalPrimary,
+  modalDestructive,
+  ModalArrow,
+} from '../../../shared/components/ui/modal-tokens';
 import { selectIsOwner } from '../../auth/selectors';
 import { logoutRequestAction } from '../../auth/actions';
 import { deleteAccountApi } from '../../auth/api';
@@ -29,7 +45,8 @@ const AdvancedSettings = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSubscriptionBlocker, setShowSubscriptionBlocker] = useState(false);
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.blur();
     setShowDeleteConfirm(true);
   };
 
@@ -90,70 +107,66 @@ const AdvancedSettings = () => {
 
       {/* Active subscription blocker — owner must cancel sub first */}
       <AlertDialog open={showSubscriptionBlocker} onOpenChange={(open) => !open && setShowSubscriptionBlocker(false)}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 dark:bg-violet-900/40">
-                <CreditCard className="h-5 w-5 text-violet-600 dark:text-violet-400" />
-              </div>
-              <AlertDialogTitle className="text-left">{t('subscriptionBlocker.title')}</AlertDialogTitle>
-            </div>
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>{t('subscriptionBlocker.eyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('subscriptionBlocker.title')}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-3 text-left pt-1">
-                <p className="text-sm text-foreground leading-relaxed">{t('subscriptionBlocker.message')}</p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{t('subscriptionBlocker.hint')}</p>
+              <div className="space-y-3 text-left">
+                <p className={modalBody}>{t('subscriptionBlocker.message')}</p>
+                <p className={modalBodyMuted}>{t('subscriptionBlocker.hint')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
-            <Button variant="outline" rounded="full" onClick={() => setShowSubscriptionBlocker(false)}>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button type="button" onClick={() => setShowSubscriptionBlocker(false)} className={modalSecondary}>
               {t('subscriptionBlocker.cancel')}
-            </Button>
-            <Button rounded="full" onClick={handleGoToBilling} className="gap-1">
-              {t('subscriptionBlocker.goToBilling')}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
+            </button>
+            <button type="button" onClick={handleGoToBilling} className={modalPrimary}>
+              <span>{t('subscriptionBlocker.goToBilling')}</span>
+              <ModalArrow />
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Delete Account confirmation — final, immediate */}
       <AlertDialog open={showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(false)}>
-        <AlertDialogContent className="sm:max-w-lg">
-          <AlertDialogHeader>
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-                <Trash2 className="h-5 w-5 text-destructive" />
-              </div>
-              <AlertDialogTitle className="text-left">{t('deleteAccountDialog.title')}</AlertDialogTitle>
-            </div>
+        <AlertDialogContent className={modalPanelLarge}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>{t('deleteAccountDialog.eyebrow')}</div>
+            <AlertDialogTitle className={`${modalTitleLarge} text-left`}>
+              {t('deleteAccountDialog.title')}
+            </AlertDialogTitle>
             <AlertDialogDescription asChild>
-              <div className="space-y-4 text-left pt-1">
-                <p className="text-sm text-foreground leading-relaxed">{t('deleteAccountDialog.intro')}</p>
-                <ul className="space-y-1.5 text-sm text-muted-foreground list-disc pl-5">
+              <div className="space-y-4 text-left">
+                <p className={modalBody}>{t('deleteAccountDialog.intro')}</p>
+                <ul className={`${modalBody} list-disc space-y-1.5 pl-5 marker:text-neutral-400 dark:marker:text-neutral-500`}>
                   <li>{t('deleteAccountDialog.bullets.appointments')}</li>
                   {isOwner && <li>{t('deleteAccountDialog.bullets.teamMembers')}</li>}
                   {isOwner && <li>{t('deleteAccountDialog.bullets.businessData')}</li>}
                   {isOwner && <li>{t('deleteAccountDialog.bullets.marketplace')}</li>}
                   <li>{t('deleteAccountDialog.bullets.account')}</li>
                 </ul>
-                <div className="flex items-start gap-2 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive mt-0.5" />
-                  <p className="text-sm font-medium text-red-800 dark:text-red-200 leading-relaxed">
+                <div className="flex items-start gap-2.5 rounded-xl border border-red-200 dark:border-red-800/60 bg-red-50 dark:bg-red-950/30 p-3.5">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive dark:text-red-300 mt-0.5" />
+                  <p className="text-[14px] font-medium leading-[1.5] text-red-800 dark:text-red-200">
                     {t('deleteAccountDialog.irreversibleWarning')}
                   </p>
                 </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">{t('deleteAccountDialog.otherAccountsHint')}</p>
+                <p className={modalHelperSmall}>{t('deleteAccountDialog.otherAccountsHint')}</p>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-row justify-end gap-2 sm:gap-2 mt-4">
-            <Button variant="outline" rounded="full" onClick={() => setShowDeleteConfirm(false)}>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button type="button" onClick={() => setShowDeleteConfirm(false)} className={modalSecondary} disabled={isDeleting}>
               {t('deleteAccountDialog.cancel')}
-            </Button>
-            <Button variant="destructive" rounded="full" onClick={handleDeleteConfirm} disabled={isDeleting}>
+            </button>
+            <button type="button" onClick={handleDeleteConfirm} className={modalDestructive} disabled={isDeleting}>
               {isDeleting ? t('deleteAccountDialog.deleting') : t('deleteAccountDialog.confirmDelete')}
-            </Button>
+            </button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

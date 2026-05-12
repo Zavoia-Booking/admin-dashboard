@@ -28,6 +28,7 @@
     }
   },
   "subscriptionBlocker": {
+    "eyebrow": "Facturare · Abonament activ",
     "title": "Anulează mai întâi abonamentul",
     "message": "Ai un abonament activ. Pentru a șterge contul, te rugăm să îți anulezi mai întâi abonamentul.",
     "hint": "După ce abonamentul este anulat (sau programat pentru anulare), vei putea șterge contul.",
@@ -35,6 +36,7 @@
     "goToBilling": "Mergi la facturare"
   },
   "deleteAccountDialog": {
+    "eyebrow": "Zonă periculoasă",
     "title": "Ștergi contul definitiv?",
     "intro": "Această acțiune va executa imediat și definitiv:",
     "bullets": {
@@ -54,21 +56,25 @@
     "title": "Părăsește organizația",
     "cardDescription": "Retrage-te din această afacere. Trebuie să anulezi sau să realoci toate programările tale active mai întâi.",
     "cardHint": "Cere proprietarului afacerii să-ți realoce programările unui alt membru al echipei sau anulează-le tu însuți.",
-    "confirmMessage": "Sigur vrei să părăsești această organizație?",
-    "confirmHint": "Vei pierde accesul la această afacere și la toate datele asociate. Acțiunea nu poate fi anulată.",
+    "confirmEyebrow": "Apartenență organizație",
+    "confirmTitle": "Părăsești această organizație?",
+    "confirmMessage": "Vei pierde accesul la această afacere și la tot ce este legat de ea — programări, clienți și date despre echipă.",
+    "confirmHint": "Acțiunea este definitivă. Vei avea nevoie de o nouă invitație pentru a reveni.",
     "confirmButton": "Părăsește organizația",
-    "leaving": "Se părăsește...",
+    "leaving": "Se părăsește…",
     "cancel": "Anulare",
-    "successTitle": "Ai părăsit organizația cu succes",
-    "successMessage": "Ai părăsit cu succes organizația.",
-    "successHint": "Accesul tău la această afacere a fost revocat. Vei fi deconectat.",
-    "successButton": "Confirm"
+    "successEyebrow": "Gata",
+    "successTitle": "Ai părăsit organizația",
+    "successMessage": "Accesul tău la această afacere a fost revocat.",
+    "successHint": "Te vom deconecta acum. Te poți autentifica oricând cu un alt cont sau cu o invitație nouă.",
+    "successButton": "Am înțeles"
   },
   "activeAppointments": {
-    "title": "Programări active găsite",
-    "message_one": "Ai 1 programare activă care trebuie rezolvată înainte de a părăsi.",
-    "message_other": "Ai {{count}} programări active care trebuie rezolvate înainte de a părăsi.",
-    "hint": "Anulează programările în așteptare sau cere proprietarului afacerii să le realoce unui alt membru al echipei înainte de a încerca din nou.",
+    "eyebrow": "Acțiune necesară",
+    "title": "Mai ai programări active",
+    "message_one": "Există 1 programare activă atribuită ție. Rezolv-o înainte de a părăsi organizația.",
+    "message_other": "Există {{count}} programări active atribuite ție. Rezolvă-le înainte de a părăsi organizația.",
+    "hint": "Anulează programările în așteptare tu însuți sau cere proprietarului afacerii să le realoce unui alt membru al echipei.",
     "understood": "Am înțeles"
   },
   "common": {
