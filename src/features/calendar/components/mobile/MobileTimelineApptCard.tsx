@@ -1,4 +1,5 @@
 import { memo, type CSSProperties, type FC } from "react";
+import { useTranslation } from "react-i18next";
 import { useDraggable } from "@dnd-kit/core";
 import type { SlimAppointment } from "../../../../shared/types/calendar";
 import {
@@ -65,6 +66,7 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
   disableDrag = false,
   isGroupDragging = false,
 }) => {
+  const { t } = useTranslation("calendar");
   const colorCoding = calendarPreferences.getColorCoding();
   const { backgroundColor, color, stripeColor } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
 
@@ -120,7 +122,7 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
       {...(dndEnabled ? listeners : {})}
       {...(dndEnabled ? attributes : {})}
       onClick={onTap}
-      aria-label={`${appointment.bookedItemName ?? "Appointment"}`}
+      aria-label={`${appointment.bookedItemName ?? t('page.aria.appointmentFallback')}`}
       className={`absolute z-10 overflow-hidden border-none text-left transition-transform duration-[240ms] ease-out
         ${dragStateClass}
         ${compact ? "rounded-md pl-[9px] pr-1.5 py-0.5" : "rounded-lg pl-[11px] pr-2 py-1"}`}

@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
 import { Badge } from '../../../shared/components/ui/badge';
-import { 
+import {
   Scissors,
   Package,
   TrendingUp,
@@ -18,6 +19,7 @@ export function ServicesAnalytics({
   topServices,
   servicesByBookingType
 }: ServicesAnalyticsProps) {
+  const { t } = useTranslation('dashboard');
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -33,7 +35,7 @@ export function ServicesAnalytics({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground-1">Services Analytics</h2>
+      <h2 className="text-xl font-semibold text-foreground-1">{t('servicesAnalytics.heading')}</h2>
 
       {/* Booking Type Breakdown */}
       <div className="grid md:grid-cols-2 gap-4">
@@ -46,7 +48,7 @@ export function ServicesAnalytics({
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground-1">{servicesByBookingType.single}</p>
-                  <p className="text-sm text-foreground-3">Single Services</p>
+                  <p className="text-sm text-foreground-3">{t('servicesAnalytics.singleServices')}</p>
                 </div>
               </div>
               <Badge variant="secondary" className="bg-info-bg text-info border-info-border">
@@ -65,7 +67,7 @@ export function ServicesAnalytics({
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground-1">{servicesByBookingType.bundle}</p>
-                  <p className="text-sm text-foreground-3">Bundle Bookings</p>
+                  <p className="text-sm text-foreground-3">{t('servicesAnalytics.bundleBookings')}</p>
                 </div>
               </div>
               <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
@@ -81,7 +83,7 @@ export function ServicesAnalytics({
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-success" />
-            Most Booked Services
+            {t('servicesAnalytics.mostBookedServices')}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -103,7 +105,7 @@ export function ServicesAnalytics({
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-foreground-1 truncate">{service.name}</p>
                       {service.bookingType === 'bundle' && (
-                        <Badge variant="secondary" className="text-xs">Bundle</Badge>
+                        <Badge variant="secondary" className="text-xs">{t('servicesAnalytics.bundleBadge')}</Badge>
                       )}
                     </div>
                     <p className="text-xs text-foreground-3">{service.categoryName}</p>
@@ -112,11 +114,11 @@ export function ServicesAnalytics({
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm font-semibold text-foreground-1">{service.appointmentCount}</p>
-                    <p className="text-xs text-foreground-3">bookings</p>
+                    <p className="text-xs text-foreground-3">{t('servicesAnalytics.bookings')}</p>
                   </div>
                   <div className="text-right min-w-20">
                     <p className="text-sm font-semibold text-success">{formatCurrency(service.revenue)}</p>
-                    <p className="text-xs text-foreground-3">revenue</p>
+                    <p className="text-xs text-foreground-3">{t('servicesAnalytics.revenue')}</p>
                   </div>
                 </div>
               </div>
@@ -128,7 +130,7 @@ export function ServicesAnalytics({
       {/* Service Availability */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Service Availability</CardTitle>
+          <CardTitle className="text-base">{t('servicesAnalytics.serviceAvailability')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-3">
@@ -149,12 +151,12 @@ export function ServicesAnalytics({
                   {service.isEnabled ? (
                     <div className="flex items-center gap-1 text-success">
                       <CheckCircle className="h-4 w-4" />
-                      <span className="text-xs font-medium">Active</span>
+                      <span className="text-xs font-medium">{t('servicesAnalytics.active')}</span>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1 text-foreground-3">
                       <XCircle className="h-4 w-4" />
-                      <span className="text-xs font-medium">Disabled</span>
+                      <span className="text-xs font-medium">{t('servicesAnalytics.disabled')}</span>
                     </div>
                   )}
                 </div>

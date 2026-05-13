@@ -13,6 +13,7 @@
 
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { useTranslation } from "react-i18next"
 import { cn } from "../../lib/utils"
 
 const spinnerVariants = cva(
@@ -68,12 +69,13 @@ export interface SpinnerProps
 
 const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
   ({ className, size, color = "default", dotClassName, ...props }, ref) => {
+    const { t } = useTranslation('common')
     return (
       <div
         ref={ref}
         className={cn(spinnerVariants({ size }), className)}
         role="status"
-        aria-label="Loading"
+        aria-label={t('aria.loading')}
         {...props}
       >
         <div 
@@ -97,7 +99,7 @@ const Spinner = React.forwardRef<HTMLDivElement, SpinnerProps>(
             dotClassName
           )} 
         />
-        <span className="sr-only">Loading...</span>
+        <span className="sr-only">{t('loading')}</span>
       </div>
     )
   }

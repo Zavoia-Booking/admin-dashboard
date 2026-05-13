@@ -92,7 +92,7 @@ function* handleDeleteService(
     } else {
       // Service was successfully deleted
       toast.success(i18n.t("services:toasts.services.deleteSuccess"));
-      yield put(deleteServicesAction.success({ canDelete: true, message: 'Service deleted successfully' }));
+      yield put(deleteServicesAction.success({ canDelete: true, message: i18n.t("services:toasts.services.deleteSuccess") }));
       yield put(getServicesAction.request());
     }
   } catch (error: unknown) {

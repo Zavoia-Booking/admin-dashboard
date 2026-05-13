@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation, Trans } from "react-i18next";
 import { Button } from "../../ui/button";
 import { Skeleton } from "../../ui/skeleton";
 import { CalendarSync, ArrowRight } from "lucide-react";
@@ -25,6 +26,7 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
   onUpgrade,
 }) => {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation('common');
   const { isNative } = usePlatform();
 
   // Native: hide entirely. Card uses "subscription"/"trial"/"upgrade plan" wording
@@ -70,7 +72,7 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
   return (
     <>
       <div className="flex items-end gap-2 mb-8 pt-4">
-        <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Your subscription status</h3>
+        <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t('trialStatus.sectionHeading')}</h3>
         <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
       </div>
 
@@ -100,35 +102,38 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
                     <CalendarSync className="h-6 w-6 text-white" />
                   </div>
                   <h3 className="text-lg md:text-xl font-bold text-foreground-1">
-                    Free trial active
+                    {t('trialStatus.freeTrialActive')}
                   </h3>
                 </div>
                 <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mt-6">
-                  Full access to all features until{" "}
-                  <span className="font-semibold text-foreground-1">
-                    {trialInfo.trialEnd.toLocaleDateString("en-US", {
-                      month: "long",
-                      day: "numeric",
-                    })}
-                  </span>
-                  .
+                  <Trans
+                    i18nKey="trialStatus.fullAccessUntil"
+                    t={t}
+                    values={{
+                      date: trialInfo.trialEnd.toLocaleDateString(i18n.language, {
+                        month: "long",
+                        day: "numeric",
+                      }),
+                    }}
+                    components={{ bold: <span className="font-semibold text-foreground-1" /> }}
+                  />
                 </p>
                 <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-4">
-                  Continue without interruption—upgrade when it suits you.
+                  {t('trialStatus.continueWithoutInterruption')}
                 </p>
                 <div className="flex items-center gap-4 text-xs text-foreground-3 dark:text-foreground-2">
                   <span>
-                    Started on{" "}
-                    {trialInfo.trialStart.toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
+                    {t('trialStatus.startedOn', {
+                      date: trialInfo.trialStart.toLocaleDateString(i18n.language, {
+                        month: "short",
+                        day: "numeric",
+                      }),
                     })}
                   </span>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-50 dark:bg-success-bg rounded-full border border-green-200 dark:border-success-border">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400 dark:bg-success animate-pulse"></div>
                     <span className="text-xs font-semibold text-green-700 dark:text-success">
-                      {trialInfo.daysRemaining}{" "}
-                      {trialInfo.daysRemaining === 1 ? "day" : "days"} left
+                      {t(trialInfo.daysRemaining === 1 ? 'trialStatus.daysLeft_one' : 'trialStatus.daysLeft_other', { count: trialInfo.daysRemaining })}
                     </span>
                   </div>
                 </div>
@@ -137,7 +142,7 @@ const TrialStatusCard: React.FC<TrialStatusCardProps> = ({
                 onClick={handleUpgrade}
                 className="group inline-flex items-center justify-center gap-1.5 rounded-full bg-primary hover:bg-primary-hover text-white py-6 !px-6 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
               >
-                <span>Upgrade plan</span>
+                <span>{t('trialStatus.upgradePlan')}</span>
                 <ArrowRight
                   className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5"
                   aria-hidden="true"

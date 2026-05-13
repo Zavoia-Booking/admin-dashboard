@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../../shared/components/ui/card';
-import { 
-  DollarSign, 
+import {
+  DollarSign,
   CalendarCheck,
   Users,
   Activity
@@ -13,18 +14,19 @@ interface TodayOverviewProps {
   staffLoadPercentage: number;
 }
 
-export function TodayOverview({ 
-  appointments, 
-  revenue, 
+export function TodayOverview({
+  appointments,
+  revenue,
   staffAvailable,
   staffLoadPercentage,
 }: TodayOverviewProps) {
+  const { t } = useTranslation('dashboard');
 
   return (
     <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-base font-semibold text-foreground-1">Today's Overview</h2>
+        <h2 className="text-base font-semibold text-foreground-1">{t('todayOverview.todaysOverview')}</h2>
       </div>
 
       {/* Stats Grid */}
@@ -38,7 +40,7 @@ export function TodayOverview({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground-1">{appointments}</p>
-                <p className="text-[10px] text-foreground-3">Appointments</p>
+                <p className="text-[10px] text-foreground-3">{t('todayOverview.appointments')}</p>
               </div>
             </div>
           </CardContent>
@@ -53,7 +55,7 @@ export function TodayOverview({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground-1">${revenue.toLocaleString()}</p>
-                <p className="text-[10px] text-foreground-3">Revenue</p>
+                <p className="text-[10px] text-foreground-3">{t('todayOverview.revenue')}</p>
               </div>
             </div>
           </CardContent>
@@ -68,7 +70,7 @@ export function TodayOverview({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground-1">{staffAvailable}</p>
-                <p className="text-[10px] text-foreground-3">Staff Available</p>
+                <p className="text-[10px] text-foreground-3">{t('todayOverview.staffAvailable')}</p>
               </div>
             </div>
           </CardContent>
@@ -83,7 +85,7 @@ export function TodayOverview({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground-1">{staffLoadPercentage}%</p>
-                <p className="text-[10px] text-foreground-3">Location Load</p>
+                <p className="text-[10px] text-foreground-3">{t('todayOverview.locationLoad')}</p>
               </div>
             </div>
           </CardContent>

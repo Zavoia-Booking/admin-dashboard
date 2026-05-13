@@ -1,35 +1,12 @@
 {
   "AUTH": {
-    "S01": "Invitation sent",
-    "S02": "Invitation accepted",
-    "S03": "Please complete registration",
-    "S04": "Account created",
-    "S05": "Google account unlinked",
-    "S06": "Password set",
-    "S07": "You’ve been logged out",
-    "S08": "If this email exists, a reset link has been sent",
-    "S09": "Password reset",
-    "S10": "Email already verified",
-    "S11": "Email verified",
-    "S12": "Business owner account created",
-    "S13": "Verification email sent (if eligible)",
-    "S14": "Verification email already sent. Check your inbox",
-    "S15": "Business owner access granted",
-    "S16": "Account created with Google",
-    "S17": "Continue setting up your business",
-    "S18": "Business owner account created",
-    "S19": "Signed in with Google",
-    "S20": "Google account linked and signed in",
-    "S21": "Google account linked",
-    "S22": "Password updated",
-
     "E01": "This user is already on your team",
     "E02": "You can’t invite yourself",
     "E03": "This user already has a pending invitation",
     "E04": "Please select at least one location",
     "E05": "Team limit reached. Upgrade to add more members",
     "E06": "Couldn’t send invitation. Try again",
-    "E07": "Invalid locations or no access",
+    "E07": "Some locations are invalid or you don’t have access",
     "E08": "Please log in to continue",
     "E09": "Enter your password to unlink Google",
     "E10": "No Google account linked",
@@ -37,12 +14,12 @@
     "E12": "Incorrect password",
     "E13": "Account not found",
     "E14": "Password must be at least 8 characters long",
-    "E15": "Password already set. Use change password",
+    "E15": "Password already set. Use Change password instead",
     "E16": "Use Google sign-in for this account",
     "E17": "Please select a business",
     "E18": "Google verification required",
     "E19": "You already have a business",
-    "E20": "Account exists. Add business owner access?",
+    "E20": "An account already exists with this email",
     "E21": "You have a pending invitation",
     "E22": "No account found. Please register",
     "E23": "Please log in again to continue",
@@ -53,70 +30,46 @@
     "E28": "Incorrect email or password",
     "E29": "You don’t have access to this dashboard",
     "E30": "Google email doesn’t match your account",
-    "E31": "Account exists. Add business owner access?",
-    "E32": "Account exists. Add business owner access?",
+    "E31": "This email is already linked to a marketplace customer account",
+    "E32": "This email is already linked to a team member account",
     "E33": "Email already in use",
     "E34": "Password must include uppercase, lowercase, number, and symbol",
     "E35": "Please enter a valid phone number",
-    "E36": "No password set. Use set password",
+    "E36": "Set a password first",
     "E37": "Current password is wrong",
     "E38": "Couldn’t change password. Try again"
   },
   "ACCOUNT": {
-    "S01": "Account deactivated",
-    "S02": "Account reactivated",
-    "S03": "Account deletion scheduled",
-    "S04": "Account deletion cancelled",
-    "S05": "You left the organisation",
-
     "E01": "Couldn’t update account status. Try again",
     "E02": "Account role not found",
     "E03": "You can’t perform this action",
-    "E04": "Remove all team members before deleting your account",
-    "E05": "Resolve your active appointments before leaving",
-    "E06": "Couldn’t leave organisation. Try again",
-    "E07": "Leave all organisations before deleting your account",
-    "E08": "Resolve all appointments before deleting your account",
-    "E09": "Cancel your subscription before deleting your account",
-    "E10": "Fix the issues below before continuing"
+    "E05": "Complete or cancel active appointments before leaving",
+    "E06": "Couldn’t leave business. Try again",
+    "E09": "Cancel your subscription before deleting your account"
   },
   "LOCATION": {
-    "S01": "Location added",
-    "S02": "Location updated",
-    "S03": "Location deleted",
-
-    "E01": "Location not found or no access",
+    "E01": "You don’t have access to this location",
     "E02": "Couldn’t create location. Try again",
     "E03": "Couldn’t update location. Try again",
     "E04": "Couldn’t delete location. Try again",
     "E05": "Invalid location selection",
     "E06": "This location doesn’t belong to your business",
-    "E07": "This location can’t be deleted (it has active links)"
+    "E07": "This location can’t be deleted because it’s still in use"
   },
   "SERVICE": {
-    "S01": "Service added",
-    "S02": "Service updated",
-    "S03": "Service deleted",
-
-    "E01": "Service not found or no access",
+    "E01": "You don’t have access to this service",
     "E02": "Couldn’t create service. Try again",
     "E03": "Couldn’t update service. Try again",
     "E04": "Couldn’t delete service. Try again",
     "E05": "Service already exists",
-    "E06": "Invalid locations or no access",
-    "E07": "Invalid team members or no access",
-    "E08": "This service can’t be deleted (it has active links)"
+    "E06": "Some locations are invalid or you don’t have access",
+    "E07": "Some team members are invalid or you don’t have access",
+    "E08": "This service can’t be deleted because it’s still in use"
   },
   "TEAM": {
-    "S01": "Team member updated",
-    "S02": "Invitation cancelled",
-    "S03": "Invitation resent",
-    "S04": "Team member removed",
-    "S05": "Team member offboarded",
-
-    "E01": "Invalid locations or no access",
-    "E02": "Invalid services or no access",
-    "E03": "Team member not found or no access",
+    "E01": "Some locations are invalid or you don’t have access",
+    "E02": "Some services are invalid or you don’t have access",
+    "E03": "You don’t have access to this team member",
     "E04": "Couldn’t update team member. Try again",
     "E05": "Account not found",
     "E06": "You can only cancel invitations from your business",
@@ -128,19 +81,19 @@
     "E12": "Invalid invitation or user already registered",
     "E13": "Couldn’t remove team member. Try again",
     "E14": "Invalid team member selection",
-    "E15": "This team member can’t be removed (has active assignments)",
-    "E16": "You can’t remove the business owner"
+    "E15": "This team member can’t be removed — they have active assignments",
+    "E16": "You can’t remove the business owner",
+    "E17": "Handle all upcoming appointments before removing this team member",
+    "E18": "Pick a valid team member to reassign appointments to",
+    "E19": "This team member can’t perform the selected service",
+    "E20": "Couldn’t unassign team member from location. Try again"
   },
   "CATEGORY": {
-    "S01": "Category added",
-    "S02": "Category updated",
-    "S03": "Category deleted",
-
-    "E01": "Category not found or no access",
+    "E01": "You don’t have access to this category",
     "E02": "Couldn’t update category. Try again",
     "E03": "Couldn’t create category. Try again",
     "E04": "Couldn’t delete category. Try again",
-    "E05": "Invalid category or no access",
+    "E05": "Invalid category or you don’t have access",
     "E06": "Category limit reached (max 25)",
     "E07": "Invalid category name",
     "E08": "Invalid category color"
@@ -157,11 +110,6 @@
     "E09": "Business not found"
   },
   "ASSIGNMENTS": {
-    "S01": "Assignments loaded",
-    "S02": "Team member assignments updated",
-    "S03": "Service assignments updated",
-    "S04": "Location assignments updated",
-
     "E01": "Couldn’t load team assignments. Try again",
     "E02": "Couldn’t load service assignments. Try again",
     "E03": "Couldn’t load location assignments. Try again",
@@ -170,13 +118,6 @@
     "E06": "Couldn’t update location assignments. Try again"
   },
   "MARKETPLACE_LISTING": {
-    "S01": "Listing loaded",
-    "S02": "Listing updated",
-    "S03": "Listing published",
-    "S04": "Listing unpublished",
-    "S05": "Visibility settings updated",
-    "S06": "Booking settings updated",
-
     "E01": "Business not found",
     "E02": "Couldn’t load listing. Try again",
     "E03": "Couldn’t update listing. Try again",
@@ -193,16 +134,9 @@
     "E14": "Couldn’t update visibility settings. Try again",
     "E15": "Couldn’t load booking settings. Try again",
     "E16": "Couldn’t update booking settings. Try again",
-    "E17": "Active subscription required to be visible on marketplace"
+    "E17": "An active subscription is required to publish your marketplace listing"
   },
   "BUSINESS_CUSTOMER": {
-    "S01": "Customer added",
-    "S02": "Customer updated",
-    "S03": "Customer removed",
-    "S04": "Customers merged",
-    "S05": "Customer linked to account",
-    "S06": "Duplicate ignored",
-
     "E01": "Customer not found",
     "E02": "A customer with this email already exists",
     "E03": "This customer is linked to an account and can’t be edited",
@@ -219,82 +153,31 @@
     "E14": "One or both customers not found",
     "E15": "Couldn’t load customer history. Try again"
   },
- "BUSINESS": {
-    "S01": "Business updated",
-
+  "BUSINESS": {
     "E01": "Business not found",
     "E02": "Couldn’t update business. Try again",
     "E03": "Couldn’t load business. Try again",
     "E04": "Industry not found"
   },
- "BUNDLE": {
-    "S01": "Bundle created",
-    "S02": "Bundle updated",
-    "S03": "Bundle deleted",
-
-    "E01": "Bundle not found or no access",
+  "BUNDLE": {
+    "E01": "You don’t have access to this bundle",
     "E02": "Couldn’t create bundle. Try again",
     "E03": "Couldn’t update bundle. Try again",
     "E04": "Couldn’t delete bundle. Try again",
-    "E05": "Invalid services or no access",
+    "E05": "Some services are invalid or you don’t have access",
     "E06": "Add at least one service",
     "E07": "Enter a fixed price",
     "E08": "Enter a discount percentage",
     "E09": "Discount must be between 0 and 100",
-    "E10": "This bundle can’t be deleted (it’s in use)"
-  },
-  "CUSTOMER_BOOKING": {
-    "S01": "Calendar loaded",
-    "S02": "Available times loaded",
-
-    "E01": "Business not found",
-    "E02": "This business isn’t available for booking",
-    "E03": "Location not found",
-    "E04": "This location isn’t available for booking",
-    "E05": "Service not found",
-    "E06": "This service isn’t available at this location",
-    "E07": "No staff available for this service at this location",
-    "E08": "This staff member can’t perform this service",
-    "E09": "Couldn’t load availability. Try again"
-  },
- "CUSTOMER": {
-    "S01": "Account deactivated",
-
-    "E01": "Couldn’t deactivate account. Try again"
-  },
-  "PUSH_NOTIFICATION": {
-    "S01": "Notifications enabled",
-    "S02": "Notifications disabled",
-    "S03": "Notifications loaded",
-    "S04": "Unread count loaded",
-    "S05": "Notification marked as read",
-    "S06": "All notifications marked as read",
-    "S07": "Notification sent",
-
-    "E01": "Couldn’t enable notifications. Try again",
-    "E02": "Couldn’t disable notifications. Try again",
-    "E03": "Couldn’t load notifications. Try again",
-    "E04": "Couldn’t load unread count. Try again",
-    "E05": "Couldn’t mark notification as read",
-    "E06": "Couldn’t mark all notifications as read",
-    "E07": "Couldn’t send notification. Try again",
-    "E08": "Invalid notification token"
+    "E10": "This bundle can’t be deleted because it’s still in use"
   },
   "TEAM_MEMBER_ACCOUNT": {
-    "S01": "Profile loaded",
-    "S02": "Profile updated",
-    "S03": "Profile image uploaded",
-    "S04": "Password updated",
-    "S05": "Marketplace profile updated",
-    "S06": "Portfolio image uploaded",
-    "S07": "Portfolio image deleted",
-
     "E01": "Account not found",
     "E02": "Couldn’t load profile. Try again",
     "E03": "Couldn’t update profile. Try again",
     "E04": "Couldn’t upload profile image. Try again",
     "E05": "Email already in use",
-    "E06": "No password set. Use set password",
+    "E06": "Set a password first",
     "E07": "Current password is wrong",
     "E08": "Couldn’t change password. Try again",
     "E09": "Couldn’t load marketplace profile. Try again",
@@ -307,26 +190,14 @@
     "E16": "Couldn’t upload portfolio image. Try again",
     "E17": "Couldn’t delete portfolio image. Try again",
     "E18": "Couldn’t load assigned locations. Try again",
-    "E19": "Location not found or not assigned",
+    "E19": "You don’t have access to this location",
     "E20": "Couldn’t load location assignments. Try again"
   },
   "DASHBOARD": {
-    "S01": "Dashboard loaded",
-    "S02": "Layout saved",
-
     "E01": "Couldn’t load dashboard. Try again",
     "E02": "Couldn’t save layout. Try again"
   },
   "SMS": {
-    "S01": "Region pricing created",
-    "S02": "Region pricing updated",
-    "S03": "Region pricing deleted",
-    "S04": "SMS package created",
-    "S05": "SMS package updated",
-    "S06": "SMS package deleted",
-    "S07": "Purchase started",
-    "S08": "SMS credits added",
-
     "E01": "These country codes are already used in another region",
     "E02": "Region pricing not found",
     "E03": "Remove packages before deleting this region",
@@ -341,28 +212,15 @@
     "E12": "Not enough SMS credits"
   },
   "REVIEW": {
-    "S01": "Reviews loaded",
-    "S02": "Review stats loaded",
-
     "E01": "Couldn’t load reviews. Try again",
     "E02": "Couldn’t load review stats. Try again",
-    "E03": "Team member not found or no access"
+    "E03": "You don’t have access to this team member"
   },
   "BUSINESS_NOTIFICATION": {
-    "S01": "Notifications loaded",
-    "S02": "Notification marked as read",
-    "S03": "All notifications marked as read",
-
     "E01": "Notification not found",
     "E02": "Couldn’t process notification. Try again"
   },
   "SUPPORT": {
-    "S01": "Ticket created",
-    "S02": "Tickets loaded",
-    "S03": "Ticket details loaded",
-    "S04": "Message sent",
-    "S05": "Ticket closed",
-
     "E01": "Couldn’t load tickets. Try again",
     "E02": "Couldn’t create ticket. Try again",
     "E03": "Ticket not found",
@@ -371,36 +229,8 @@
     "E06": "Couldn’t close ticket. Try again"
   },
   "MAP_TILES": {
-    "S01": "Map loaded",
-    "S02": "Locations loaded",
-
     "E01": "Invalid map location",
-    "E02": "Zoom level not supported",
     "E03": "Couldn’t load map. Try again"
-  },
-  "MARKETPLACE_BOOKING": {
-    "S01": "Appointment booked",
-    "S02": "Booking confirmed",
-
-    "E01": "This business isn’t available for booking",
-    "E02": "This service isn’t available for online booking",
-    "E03": "This location isn’t available",
-    "E04": "This staff member isn’t available",
-    "E05": "This staff member doesn’t offer this service",
-    "E06": "This time slot is no longer available",
-    "E07": "Couldn’t complete booking. Try again",
-    "E08": "This time is too soon. Choose a later time",
-    "E09": "This time is too far in advance",
-    "E10": "This time conflicts with another appointment",
-    "E11": "This time is outside working hours",
-    "E12": "This service is already added",
-    "E13": "No availability for this service at this time",
-    "E14": "This time slot is unavailable",
-    "E15": "This staff member isn’t working at this time",
-    "E16": "Bundle not found",
-    "E17": "This staff member can’t perform all services in this bundle",
-    "E18": "Select a service or a bundle, not both"
   },
   "fallback": "Something went wrong. Please try again or contact support"
 }
-

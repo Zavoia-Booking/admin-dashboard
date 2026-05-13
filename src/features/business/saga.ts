@@ -5,18 +5,15 @@ import { fetchCurrentUserAction } from '../auth/actions';
 import type { Business } from './types';
 import type { ActionType } from 'typesafe-actions';
 import { toast } from 'sonner';
-import { translateMessageCode } from '../../shared/utils/error';
+import { getErrorMessage } from '../../shared/utils/error';
+import i18n from '../../shared/lib/i18n';
 
 function* handleFetchCurrentBusiness(): Generator<any, void, any> {
   try {
     const { business }: { business: Business } = yield call(getCurrentBusinessApi);
     yield put(fetchCurrentBusinessAction.success(business));
-  } catch (error: any) {
-    const raw = error?.response?.data?.message;
-    const translated = Array.isArray(raw)
-      ? raw.map((m: string) => translateMessageCode(m)).join(' ')
-      : translateMessageCode(raw ?? '');
-    const message = translated || error?.message || 'Failed to fetch business';
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchCurrentBusinessAction.failure({ message }));
   }
 }
@@ -28,19 +25,15 @@ function* handleUpdateBusiness(action: ActionType<typeof updateBusinessAction.re
       message: response.message,
       shouldRedirectToMarketplace: response.shouldRedirectToMarketplace,
     }));
-    toast.success('Business information updated successfully');
+    toast.success(i18n.t('business:page.toasts.updateSuccess'));
     // Refresh the business data and current user (for updated business phone/email)
     yield put(fetchCurrentBusinessAction.request());
     yield put(fetchCurrentUserAction.request());
     if (response.shouldRedirectToMarketplace) {
       window.location.href = '/marketplace?tab=profile#industry';
     }
-  } catch (error: any) {
-    const raw = error?.response?.data?.message;
-    const translated = Array.isArray(raw)
-      ? raw.map((m: string) => translateMessageCode(m)).join(' ')
-      : translateMessageCode(raw ?? '');
-    const message = translated || error?.message || 'Failed to update business';
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(updateBusinessAction.failure({ message }));
     toast.error(message);
   }

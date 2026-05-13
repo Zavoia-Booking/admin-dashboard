@@ -234,7 +234,7 @@ export function MyReviewsTab() {
       } catch (error: any) {
         if (!cancelled) {
           console.error("Failed to fetch my stats:", error);
-          toast.error(error?.response?.data?.error || "Failed to load stats");
+          toast.error(error?.response?.data?.error || t("common:errors.failedToLoadStats"));
         }
       } finally {
         if (!cancelled) setStatsLoading(false);
@@ -264,7 +264,7 @@ export function MyReviewsTab() {
         if (!cancelled) {
           console.error("Failed to fetch my reviews:", error);
           toast.error(
-            error?.response?.data?.error || "Failed to load reviews",
+            error?.response?.data?.error || t("common:errors.failedToLoadReviews"),
           );
         }
       } finally {
@@ -289,7 +289,7 @@ export function MyReviewsTab() {
       setTotal(response.pagination.total);
     } catch (error: any) {
       console.error("Failed to load more reviews:", error);
-      toast.error(error?.response?.data?.error || "Failed to load reviews");
+      toast.error(error?.response?.data?.error || t("common:errors.failedToLoadReviews"));
     } finally {
       setLoadingMore(false);
     }

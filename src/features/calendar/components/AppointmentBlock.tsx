@@ -1,5 +1,6 @@
 import { type FC, memo, useCallback } from "react";
 import { useDispatch } from "react-redux";
+import { useTranslation } from "react-i18next";
 import type { SlimAppointment, Appointment } from "../../../shared/types/calendar.ts";
 import { toggleEditFormAction } from "../actions.ts";
 import { formatTimeRange } from "./utils.tsx";
@@ -48,6 +49,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
   colorMap,
 }) => {
   const dispatch = useDispatch();
+  const { t } = useTranslation("calendar");
   const colorCoding = calendarPreferences.getColorCoding();
   const { backgroundColor, color } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
 
@@ -121,7 +123,7 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
           {isCancelled && (
             <div className="mb-0.5">
               <span className="inline-block text-[9px] font-bold uppercase tracking-wide px-1 py-px rounded bg-destructive/20 text-destructive">
-                Cancelled
+                {t('page.appointmentCard.cancelled')}
               </span>
             </div>
           )}

@@ -1,5 +1,90 @@
 {
   "changeLanguage": "Change language",
+  "aria": {
+    "back": "Back",
+    "previous": "Previous",
+    "next": "Next",
+    "toggleSidebar": "Toggle Sidebar",
+    "selectHour": "Select hour",
+    "selectMinute": "Select minute",
+    "selectPeriod": "Select period",
+    "clearSearch": "Clear search",
+    "loading": "Loading"
+  },
+  "loading": "Loading...",
+  "businessSetupGate": {
+    "ownerEyebrow": "Setup · Required",
+    "restrictedEyebrow": "Access · Restricted",
+    "ownerTitle": "Complete your business setup",
+    "restrictedTitle": "Business unavailable",
+    "ownerMessage": "Before inviting team members, creating services, or adding locations, please finish setting up your business information.",
+    "restrictedMessage": "Your access to this business appears to be inactive. You may have been removed from the business or the business was deleted. Please contact the business administrator.",
+    "ownerCta": "Finish business setup"
+  },
+  "confirmDialog": {
+    "defaultTitle": "Are you sure?"
+  },
+  "selection": {
+    "select": "Select {{name}}",
+    "deselect": "Deselect {{name}}"
+  },
+  "errors": {
+    "generic": "An error occurred",
+    "failedToLoadCategories": "Failed to load categories",
+    "failedToDeleteService": "Failed to delete service",
+    "failedToLoadReviews": "Failed to load reviews",
+    "failedToLoadStats": "Failed to load stats",
+    "failedToLeaveOrganisation": "Failed to leave organisation",
+    "sessionRefreshFailed": "Session refresh failed",
+    "uploadFailed": "Upload failed",
+    "unknownAvailabilityFetch": "Unknown availability fetch error"
+  },
+  "countrySelect": {
+    "autoDetect": "Auto-detect country from your browser",
+    "autoDetectShort": "Auto-detect"
+  },
+  "timezoneSelect": {
+    "autoDetect": "Auto-detect timezone from your browser",
+    "autoDetectShort": "Auto-detect"
+  },
+  "logoUpload": {
+    "altPreview": "Business logo preview",
+    "dropZone": {
+      "dropHere": "Drop your logo here",
+      "uploadYour": "Upload your logo",
+      "releaseToUpload": "Release to upload",
+      "clickToBrowse": "Click to browse or drag and drop",
+      "maxSizeLabel": "Max size recommended:",
+      "maxSizeDetails": "{{width}}×{{height}}px, up to {{sizeMB}}MB",
+      "autoOptimize": "Larger images will be automatically optimized for you."
+    },
+    "errors": {
+      "unsupportedFormat": "Unsupported file format ({{detectedType}}). Please use {{allowed}} instead.",
+      "tooLarge": "File size exceeds maximum allowed size of {{maxSizeMB}}MB",
+      "softLimitWarning": "Your file exceeds our recommended limits. We'll optimize it automatically."
+    }
+  },
+  "duration": {
+    "none": "None",
+    "days": "days",
+    "hours": "hours",
+    "minutes": "minutes",
+    "other": "Other"
+  },
+  "placeholders": {
+    "searchCountries": "Search countries...",
+    "searchTimezones": "Search timezones..."
+  },
+  "trialStatus": {
+    "sectionHeading": "Your subscription status",
+    "freeTrialActive": "Free trial active",
+    "fullAccessUntil": "Full access to all features until <bold>{{date}}</bold>.",
+    "continueWithoutInterruption": "Continue without interruption—upgrade when it suits you.",
+    "startedOn": "Started on {{date}}",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "upgradePlan": "Upgrade plan"
+  },
   "limitedUsage": {
     "label": "Limited usage",
     "disabledTooltip": "This feature is not available on your current plan.",
@@ -151,6 +236,57 @@
       "resourceTitle": "Resource"
     },
     "close": "Close"
+  },
+  "units": {
+    "hourShort": "h",
+    "minuteShort": "min"
+  },
+  "validation": {
+    "password": {
+      "minLength": "Password must be at least 8 characters long",
+      "invalid": "Please enter a valid password."
+    },
+    "email": {
+      "atSymbol": "Email must include an @ symbol",
+      "noSpaces": "Email can't contain spaces",
+      "notStartWithAt": "Email can't start with @",
+      "notEndWithAt": "Email can't end with @",
+      "singleAtSymbol": "Email can only have one @ symbol",
+      "needsDomain": "Email must include a domain (like .com)",
+      "generic": "Please enter a valid email address"
+    },
+    "required": "Please enter {{field}}",
+    "minLengthField": "{{field}} must be at least {{min}} characters",
+    "minLengthGeneric": "Enter at least {{min}} characters",
+    "minLength2Generic": "Enter at least 2 characters",
+    "minLength2Use": "Use at least 2 characters",
+    "maxLengthGeneric": "Maximum {{max}} characters allowed",
+    "businessName": "Please enter a business name",
+    "locationName": "Please enter a location name",
+    "categoryName": "Please enter a category name",
+    "nameSpecialChars": "Please remove special characters (only - ' & . ( ) allowed)",
+    "categoryNameSpecialChars": "Please remove special characters. Allowed: letters, numbers, spaces, - ' & . ( )",
+    "personNameSpecialChars": "Please remove digits and special characters (only - ' allowed)",
+    "addressFieldSpecialChars": "Please remove special characters",
+    "descriptionUnsafeChars": "Special characters < > aren't allowed",
+    "url": "Please enter a valid URL (like https://example.com)",
+    "phoneRequired": "Phone number is required",
+    "phoneInvalid": "Enter a valid phone number",
+    "industryRequired": "Please select an industry",
+    "industryTagsRequired": "Please select at least one industry tag",
+    "currencyInvalid": "Please select a valid currency",
+    "fields": {
+      "email": "email",
+      "businessEmail": "business email",
+      "firstName": "first name",
+      "lastName": "last name",
+      "streetAddress": "street address",
+      "buildingNumber": "building or apartment number",
+      "city": "city",
+      "postcode": "postcode",
+      "country": "country",
+      "teamMemberEmail": "team member email"
+    }
   }
 }
 

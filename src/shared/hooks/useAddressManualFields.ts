@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { composeFullAddress } from '../utils/address';
 import { sanitizeDigits, validateStreetAddress, validateBuildingNumber, validateCity, validatePostcode, validateCountry } from '../utils/validation';
 
@@ -22,6 +23,7 @@ type Params = {
 };
 
 export const useAddressManualFields = ({ components, fullAddressDisplay, onChange, onComponentsChange, onValidityChange }: Params) => {
+  const { t } = useTranslation('common');
   const [streetBase, setStreetBase] = useState(''); // Display value (full address for locked mode, street name for manual)
   const [actualStreet, setActualStreet] = useState(''); // Actual street component for composition
   const [streetNumber, setStreetNumber] = useState('');
@@ -68,13 +70,13 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
 
     // Only validate if fields have actual values (from saved draft)
     // Don't show errors for empty fields on initial load
-    if (street) setStreetError(validateStreetAddress(street));
-    if (streetNumber) setNumberError(validateBuildingNumber(streetNumber));
-    if (city) setCityError(validateCity(city));
-    if (postalCode) setPostalError(validatePostcode(postalCode));
-    if (country) setCountryError(validateCountry(country));
+    if (street) setStreetError(validateStreetAddress(street, t));
+    if (streetNumber) setNumberError(validateBuildingNumber(streetNumber, t));
+    if (city) setCityError(validateCity(city, t));
+    if (postalCode) setPostalError(validatePostcode(postalCode, t));
+    if (country) setCountryError(validateCountry(country, t));
     hasHydratedRef.current = true;
-  }, [components, fullAddressDisplay]);
+  }, [components, fullAddressDisplay, t]);
 
   const emitChange = useCallback((s: string, n: string, c: string, p: string, co: string) => {
     const fullAddress = composeFullAddress(s, n, c, p, co);
@@ -98,34 +100,34 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
   const onStreetChange = useCallback((next: string) => {
     setStreetBase(next);
     setActualStreet(next); // Update both display and actual street
-    setStreetError(validateStreetAddress(next));
+    setStreetError(validateStreetAddress(next, t));
     emitChange(next, streetNumber, city, postalCode, country);
-  }, [emitChange, streetNumber, city, postalCode, country]);
+  }, [emitChange, streetNumber, city, postalCode, country, t]);
 
   const onNumberChange = useCallback((next: string) => {
     setStreetNumber(next);
-    setNumberError(validateBuildingNumber(next));
+    setNumberError(validateBuildingNumber(next, t));
     emitChange(actualStreet, next, city, postalCode, country); // Use actualStreet, not streetBase
-  }, [emitChange, actualStreet, city, postalCode, country]);
+  }, [emitChange, actualStreet, city, postalCode, country, t]);
 
   const onCityChange = useCallback((next: string) => {
     setCity(next);
-    setCityError(validateCity(next));
+    setCityError(validateCity(next, t));
     emitChange(actualStreet, streetNumber, next, postalCode, country);
-  }, [emitChange, actualStreet, streetNumber, postalCode, country]);
+  }, [emitChange, actualStreet, streetNumber, postalCode, country, t]);
 
   const onPostalChange = useCallback((next: string) => {
     const digits = sanitizeDigits(next);
     setPostalCode(digits);
-    setPostalError(validatePostcode(digits));
+    setPostalError(validatePostcode(digits, t));
     emitChange(actualStreet, streetNumber, city, digits, country);
-  }, [emitChange, actualStreet, streetNumber, city, country]);
+  }, [emitChange, actualStreet, streetNumber, city, country, t]);
 
   const onCountryChange = useCallback((next: string) => {
     setCountry(next);
-    setCountryError(validateCountry(next));
+    setCountryError(validateCountry(next, t));
     emitChange(actualStreet, streetNumber, city, postalCode, next);
-  }, [emitChange, actualStreet, streetNumber, city, postalCode]);
+  }, [emitChange, actualStreet, streetNumber, city, postalCode, t]);
 
   const isValid = useMemo(() => !(streetError || numberError || cityError || postalError || countryError), [streetError, numberError, cityError, postalError, countryError]);
 
@@ -179,11 +181,11 @@ export const useAddressManualFields = ({ components, fullAddressDisplay, onChang
         setPostalError(null);
         setCountryError(null);
       } else {
-        setStreetError(validateStreetAddress(street));
-        setNumberError(validateBuildingNumber(streetNumber));
-        setCityError(validateCity(city));
-        setPostalError(validatePostcode(postalCode));
-        setCountryError(validateCountry(country));
+        setStreetError(validateStreetAddress(street, t));
+        setNumberError(validateBuildingNumber(streetNumber, t));
+        setCityError(validateCity(city, t));
+        setPostalError(validatePostcode(postalCode, t));
+        setCountryError(validateCountry(country, t));
       }
     },
   } as const;

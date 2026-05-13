@@ -283,7 +283,7 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
               onClick={onCreateProfile}
               className="btn-primary group !h-8 text-base w-full md:!w-52 rounded-full shadow-lg active:scale-95 flex items-center gap-2 w-full md:hidden"
             >
-              <span>Create My Profile</span>
+              <span>{t('noProfileYet.createProfile')}</span>
               <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1" />
             </Button>
           </CardContent>

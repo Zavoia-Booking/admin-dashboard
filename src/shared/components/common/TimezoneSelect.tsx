@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Globe, Check, MapPin, ChevronDown, AlertCircle } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Button } from '../ui/button';
@@ -179,6 +180,7 @@ export const DetectTimezoneButton: React.FC<DetectTimezoneButtonProps> = ({
   onDetect,
   className,
 }) => {
+  const { t } = useTranslation('common');
   const handleDetect = () => {
     const detected = detectTimezone();
     onDetect(detected);
@@ -192,10 +194,10 @@ export const DetectTimezoneButton: React.FC<DetectTimezoneButtonProps> = ({
         'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-surface text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap',
         className
       )}
-      title="Auto-detect timezone from your browser"
+      title={t('timezoneSelect.autoDetect')}
     >
       <MapPin className="h-3.5 w-3.5 text-foreground-3 dark:text-foreground-2" />
-      Auto-detect
+      {t('timezoneSelect.autoDetectShort')}
     </button>
   );
 };
@@ -207,6 +209,7 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
   placeholder = 'Select timezone...',
   countryCode,
 }) => {
+  const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -358,8 +361,8 @@ export const TimezoneSelect: React.FC<TimezoneSelectProps> = React.memo(({
       <PopoverContent className="w-[calc(100vw-2rem)] md:w-[420px] p-0 shadow-lg border border-border max-h-[min(320px,50vh)] overflow-hidden !z-[80]" align="start" side="bottom" sideOffset={8} avoidCollisions={true} collisionPadding={16}>
         <Command shouldFilter={false}>
           <div className="p-2 bg-popover">
-            <CommandInput 
-              placeholder="Search timezones..." 
+            <CommandInput
+              placeholder={t('placeholders.searchTimezones')}
               value={search}
               onValueChange={setSearch}
               className="border-0 focus:border-0 focus:ring-0 shadow-none"

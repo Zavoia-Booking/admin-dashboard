@@ -1,0 +1,168 @@
+{
+  "page": {
+    "errors": {
+      "saveFailed": "Failed to save progress",
+      "loadDraftFailed": "Failed to load draft",
+      "completeFailed": "Something went wrong, please try again"
+    }
+  },
+  "layout": {
+    "businessSetupWizard": "Business Setup Wizard",
+    "businessSetup": "Business Setup",
+    "saveDraft": "Save Draft",
+    "close": "Close",
+    "back": "Back",
+    "continue": "Continue",
+    "finishSetup": "Finish Setup",
+    "completed": "{{value}}% completed",
+    "stepFallback": "Step {{number}}"
+  },
+  "steps": {
+    "labels": {
+      "businessInfo": "Business Info",
+      "location": "Location",
+      "team": "Team"
+    },
+    "businessInfo": {
+      "title": "Tell Us About Your Business",
+      "subtitle": "This helps us customize your booking setup."
+    },
+    "location": {
+      "title": "Where Do You Offer Services?",
+      "subtitle": "Help customers find you or let them know you offer remote services"
+    },
+    "team": {
+      "title": "Want to Add Your Team?",
+      "subtitle": "Invite team members so they can take bookings, manage their schedule, or access the calendar."
+    }
+  },
+  "stepBusinessInfo": {
+    "businessName": "Business Name",
+    "businessNamePlaceholder": "e.g. Sarah's Salon & Spa",
+    "businessEmailTitle": "Business email *",
+    "useAccountEmailLabel": "your account",
+    "useAccountEmailOn": "Your account email will be used for business contact.",
+    "useAccountEmailOff": "Provide a separate email for business contact.",
+    "businessPhone": "Business Phone *",
+    "businessPhonePlaceholder": "+1 555 123 4567",
+    "businessDescription": "Business Description",
+    "businessDescriptionPlaceholder": "Tell customers what makes your business special...",
+    "industry": "Industry *",
+    "industryHelper": "This helps us suggest relevant services and templates",
+    "currency": "Currency *",
+    "currencyHelper": "Choose your default pricing currency. You can always change it later in settings.",
+    "country": "Country *",
+    "countryHelper": "Select your business's country of operation.",
+    "timezone": "Timezone *",
+    "timezoneHelper": "Select your business timezone for accurate appointment scheduling.",
+    "businessLogo": "Business Logo (Optional)",
+    "validation": {
+      "phoneRequired": "Phone number is required",
+      "phoneInvalid": "Enter a valid phone number",
+      "currencyRequired": "Currency is required for pricing display",
+      "currencyInvalid": "Please select a valid currency",
+      "countryRequired": "Please select your country",
+      "countryInvalid": "Please select a valid country",
+      "timezoneRequired": "Please select your timezone",
+      "timezoneInvalid": "Please select a valid timezone"
+    }
+  },
+  "stepLocation": {
+    "namePhysicalPlaceholder": "e.g. Downtown Office",
+    "nameRemotePlaceholder": "Online",
+    "addressLabel": "Address *",
+    "contactInfoTitle": "Contact information",
+    "contactInheritedLabel": "the previous step",
+    "locationEmail": "Location Email *",
+    "locationPhone": "Location Phone *",
+    "useBusinessContactPhysicalOn": "Your business contact info will be used for this location.",
+    "useBusinessContactRemoteOn": "Business contact info will be used for this location.",
+    "useBusinessContactOff": "Provide different contact details for this location.",
+    "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
+    "workingHours": "Working Hours",
+    "validation": {
+      "timezoneRequired": "Timezone is required"
+    },
+    "toasts": {
+      "enterAddress": "Please enter a valid address first",
+      "geocodeNotFound": "Could not find location on map. Please search for the correct address in the map.",
+      "geocodeError": "Could not geocode address. Please adjust the pin manually.",
+      "selectOnMap": "Please select a location on the map",
+      "selectOnMapOrSearch": "Please select a location on the map or search for an address",
+      "pinConfirmed": "Location pin confirmed"
+    }
+  },
+  "stepTeam": {
+    "worksSoloLabel": "I work solo",
+    "worksSoloDescriptionOn": "Perfect! You're all set to manage your business independently",
+    "worksSoloDescriptionOff": "Enable this to skip team setup for now. You can always invite team members later from your dashboard to help manage bookings and collaborate",
+    "worksSoloNote": "You can invite team members anytime from your dashboard settings to collaborate and manage bookings together.",
+    "inviteTeamMember": "Invite Team Member",
+    "ariaWhatDoesInvitingDo": "What does inviting do?",
+    "invitePopover": "Team members will receive an email invitation to join your business account. They can set their own availability and manage their bookings.",
+    "emailPlaceholder": "e.g. colleague@company.com",
+    "addTeamMember": "Add Team Member",
+    "emailGeneralError": "Please enter a valid email address",
+    "limitReached": "You have reached the maximum number of team member invitations during setup.",
+    "remainingInvites_one": "You can invite up to {{count}} more team member during setup.",
+    "remainingInvites_other": "You can invite up to {{count}} more team members during setup.",
+    "maxLimitError": "You can invite up to 10 team members during setup",
+    "selfEmailError": "You can't invite your own email address",
+    "invitations": "Invitations",
+    "ariaRemoveInvitation": "Remove invitation",
+    "removeTitle": "Remove",
+    "ariaCollapseInvitations": "Collapse invitations",
+    "ariaExpandInvitations": "Expand invitations",
+    "toasts": {
+      "inviteRemoved": "Invite removed",
+      "undo": "Undo"
+    },
+    "emptyListHint": "Add teammate emails above and we'll send them invitations when you complete setup."
+  },
+  "stepLaunch": {
+    "welcomeAboard": "Welcome Aboard",
+    "tagline": "The calm behind your calendar",
+    "whatNext": "Here's what you can do next",
+    "createServiceTitle": "Now you can create your first service",
+    "createServiceDescription": "Services are what your clients will see and book on your page. Start by adding one — describe what you offer, how long each session takes, and what it costs so they can easily schedule.",
+    "createServiceReassurance": "No need to get it perfect — you can edit or add more services anytime.",
+    "twoMinutes": "It takes only 2 minutes",
+    "createService": "Create a Service",
+    "quickOverview": "Quick overview",
+    "business": "Business",
+    "allSet": "All set",
+    "location": "Location",
+    "remote": "Remote",
+    "onSite": "On-site",
+    "team": "Team",
+    "teamMemberInvited_one": "team member invited",
+    "teamMemberInvited_other": "team members invited",
+    "awaitingAcceptance": "Awaiting acceptance",
+    "justYou": "Just you for now",
+    "addTeamLater": "You can add team members later",
+    "moreYouCanDo": "More you can do now",
+    "assignServices": "Assign services",
+    "assignServicesDescription": "Match services with the right team members—so bookings are routed to the right people.",
+    "assignments": "Assignments",
+    "manageLocations": "Manage locations",
+    "manageLocationsDescription": "Refine your location setup or add more locations as your business grows.",
+    "locations": "Locations",
+    "calendarAndAppointments": "Calendar & Appointments",
+    "manageSchedule": "Manage your schedule",
+    "manageScheduleDescription": "View your calendar, create appointments, and keep everything organized in one place.",
+    "calendar": "Calendar",
+    "customizationAndBranding": "Customization & Branding",
+    "customizeProfile": "Customize your profile",
+    "customizeProfileDescription": "Polish your profile with branding, contact info, and details that make a great first impression.",
+    "settings": "Settings",
+    "goToDashboard": "Go to Dashboard"
+  },
+  "industrySelector": {
+    "ariaSelectIndustry": "Select industry"
+  },
+  "page": {
+    "progressSavedTitle": "Progress Saved",
+    "progressSavedDescription": "You can continue setup anytime from your dashboard.",
+    "completeError": "We couldn't finish your setup"
+  }
+}

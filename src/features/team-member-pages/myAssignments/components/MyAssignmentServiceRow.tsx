@@ -1,5 +1,6 @@
 import { Clock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatDuration } from '../../../../shared/utils/formatDuration';
 import { Badge } from '../../../../shared/components/ui/badge';
 import { DashedDivider } from '../../../../shared/components/common/DashedDivider';
 import { getCurrencyDisplay } from '../../../../shared/utils/currency';
@@ -24,15 +25,6 @@ export function MyAssignmentServiceRow({
   const categoryTextColor = categoryBg
     ? getReadableTextColor(categoryBg)
     : undefined;
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ''}`;
-    }
-    return `${mins}m`;
-  };
 
   return (
     <div
@@ -90,7 +82,7 @@ export function MyAssignmentServiceRow({
             <div className="flex items-center gap-1.5 min-w-20">
               <Clock className="h-3 w-3 text-foreground-1" />
               <span className="text-sm font-semibold text-foreground-1">
-                {formatDuration(service.duration)}
+                {formatDuration(service.duration, t)}
               </span>
             </div>
           </div>
@@ -124,7 +116,7 @@ export function MyAssignmentServiceRow({
                   </span>{' '}
                   •{' '}
                   <span className="text-foreground-3 ml-0.5 dark:text-foreground-2">
-                    {formatDuration(service.defaultDuration)}
+                    {formatDuration(service.defaultDuration, t)}
                   </span>
                 </p>
                 <Badge

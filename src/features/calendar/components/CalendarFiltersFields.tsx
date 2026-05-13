@@ -423,6 +423,7 @@ const MobileServiceBundlePreview: FC<{
   emptyLabel,
   addMoreLabel,
 }) => {
+  const { t } = useTranslation("calendar");
   const selectedServices = useMemo(
     () => services.filter((s) => serviceIds.includes(s.id)),
     [services, serviceIds],
@@ -433,7 +434,7 @@ const MobileServiceBundlePreview: FC<{
   );
 
   return (
-    <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Selected services and bundles">
+    <div className="flex flex-wrap items-center gap-2" role="group" aria-label={t('page.aria.selectedServicesAndBundles')}>
       {selectedServices.map((svc) => {
         const bg = svc.category?.color || getColorHex(svc.category?.name || svc.label);
         return (
@@ -683,7 +684,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
         <div
           className="flex flex-wrap items-center gap-1.5"
           role="group"
-          aria-label="Filter by appointment status"
+          aria-label={t('page.aria.filterByStatus')}
         >
           <button
             type="button"
@@ -780,7 +781,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
                     });
                   }}
                   emptyLabel={t("page.filters.searchServicesPlaceholder")}
-                  addMoreLabel={t("page.filters.addMore", { defaultValue: "Add / Edit" })}
+                  addMoreLabel={t("page.filters.addMore")}
                 />
                 <MobileServiceBundlePicker
                   open={mobilePickerOpen}
@@ -922,7 +923,7 @@ export const CalendarFiltersFields: FC<CalendarFiltersFieldsProps> = ({ draft })
           <div
             className="flex flex-wrap items-center gap-1.5"
             role="group"
-            aria-label="Filter by booking source"
+            aria-label={t('page.aria.filterByBookingSource')}
           >
             <button
               type="button"

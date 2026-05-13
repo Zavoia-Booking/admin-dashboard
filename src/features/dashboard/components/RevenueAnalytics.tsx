@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Activity } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export function RevenueAnalytics({
   weeklyLoadPercentage,
   monthlyLoadPercentage
 }: RevenueAnalyticsProps) {
+  const { t } = useTranslation('dashboard');
 
   const formatCurrency = (cents: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -26,7 +28,7 @@ export function RevenueAnalytics({
 
   return (
     <div className="space-y-3">
-      <h2 className="text-base font-semibold text-foreground-1">Revenue Analytics</h2>
+      <h2 className="text-base font-semibold text-foreground-1">{t('revenueAnalytics.heading')}</h2>
 
       {/* Revenue Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
@@ -34,7 +36,7 @@ export function RevenueAnalytics({
         <Card className="py-3">
           <CardContent className="p-0 px-3">
             <div className="space-y-0.5">
-              <p className="text-[10px] text-foreground-3">This Week</p>
+              <p className="text-[10px] text-foreground-3">{t('revenueAnalytics.thisWeek')}</p>
               <p className="text-lg font-bold text-foreground-1">{formatCurrency(revenueThisWeek)}</p>
             </div>
           </CardContent>
@@ -49,7 +51,7 @@ export function RevenueAnalytics({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground-1">{weeklyLoadPercentage}%</p>
-                <p className="text-[10px] text-foreground-3">Week Load</p>
+                <p className="text-[10px] text-foreground-3">{t('revenueAnalytics.weekLoad')}</p>
               </div>
             </div>
           </CardContent>
@@ -59,7 +61,7 @@ export function RevenueAnalytics({
         <Card className="py-3">
           <CardContent className="p-0 px-3">
             <div className="space-y-0.5">
-              <p className="text-[10px] text-foreground-3">This Month</p>
+              <p className="text-[10px] text-foreground-3">{t('revenueAnalytics.thisMonth')}</p>
               <p className="text-lg font-bold text-foreground-1">{formatCurrency(revenueThisMonth)}</p>
             </div>
           </CardContent>
@@ -74,7 +76,7 @@ export function RevenueAnalytics({
               </div>
               <div>
                 <p className="text-lg font-bold text-foreground-1">{monthlyLoadPercentage}%</p>
-                <p className="text-[10px] text-foreground-3">Month Load</p>
+                <p className="text-[10px] text-foreground-3">{t('revenueAnalytics.monthLoad')}</p>
               </div>
             </div>
           </CardContent>

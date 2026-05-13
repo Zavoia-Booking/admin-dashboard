@@ -6,6 +6,7 @@ import {
   ChevronRight,
   ArrowRight,
 } from "lucide-react";
+import { formatDuration } from "../../../../shared/utils/formatDuration";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Button } from "../../../../shared/components/ui/button";
 import {
@@ -83,15 +84,6 @@ export function LocationServiceRow({
   const categoryTextColor = categoryBg
     ? getReadableTextColor(categoryBg)
     : undefined;
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ""}`;
-    }
-    return `${mins}m`;
-  };
 
   // Handle popover open - initialize local state
   const handlePopoverOpenChange = (open: boolean) => {
@@ -295,7 +287,7 @@ export function LocationServiceRow({
               <div className="flex items-center w-fit rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-info/20 dark:bg-info/60 text-foreground-3 border border-border dark:border-border-subtle">
                 {t("page.locationService.fields.serviceDefault")}{" "}
                 <span className="ml-1 text-foreground-2">
-                  {formatDuration(service.defaultDuration)}
+                  {formatDuration(service.defaultDuration, t)}
                 </span>
               </div>
             )}
@@ -512,7 +504,7 @@ export function LocationServiceRow({
             <div className="flex items-center gap-1.5 min-w-20">
               <Clock className="h-3 w-3 text-foreground-1" />
               <span className="text-sm font-semibold text-foreground-1">
-                {formatDuration(effectiveDuration)}
+                {formatDuration(effectiveDuration, t)}
               </span>
             </div>
           </div>
@@ -544,7 +536,7 @@ export function LocationServiceRow({
                 </span>{" "}
                 •{" "}
                 <span className="text-foreground-3 ml-0.5 dark:text-foreground-2">
-                  {formatDuration(service.defaultDuration)}
+                  {formatDuration(service.defaultDuration, t)}
                 </span>
               </p>
               <Badge

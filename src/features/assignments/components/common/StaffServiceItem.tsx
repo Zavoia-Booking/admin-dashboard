@@ -8,6 +8,7 @@ import {
   Info,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatDuration } from "../../../../shared/utils/formatDuration";
 import { Switch } from "../../../../shared/components/ui/switch";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Input } from "../../../../shared/components/ui/input";
@@ -53,15 +54,6 @@ export function StaffServiceItem({
   const expandedContentRef = useRef<HTMLDivElement>(null);
   const onErrorChangeRef = useRef(onErrorChange);
   const prevErrorRef = useRef<string | null>(null);
-
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ""}`;
-    }
-    return `${mins}m`;
-  };
 
   // Get the current duration value to display
   const currentDurationValue =
@@ -324,7 +316,7 @@ export function StaffServiceItem({
           </div>
           <Clock className="h-3 w-3 ml-1 text-foreground-3 dark:text-foreground-2" />
           <span className="ml-1 min-w-10 font-semibold text-foreground-3 dark:text-foreground-2">
-            {formatDuration(effectiveDuration)}
+            {formatDuration(effectiveDuration, t)}
           </span>
         </div>
       )}
@@ -398,7 +390,7 @@ export function StaffServiceItem({
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3 text-foreground-3 dark:text-foreground-2" />
             <span className="text-sm font-semibold text-foreground-3 dark:text-foreground-2">
-              {formatDuration(effectiveDuration)}
+              {formatDuration(effectiveDuration, t)}
             </span>
           </div>
           </div>
@@ -511,7 +503,7 @@ export function StaffServiceItem({
                     <div className="flex items-center w-fit cursor-default rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-info/20 dark:bg-info/60 text-foreground-3 border border-border dark:border-border-subtle">
                       {t("page.locationService.fields.serviceDefault")}{" "}
                       <span className="ml-1 text-foreground-2">
-                        {formatDuration(service.inheritedDuration)}
+                        {formatDuration(service.inheritedDuration, t)}
                       </span>
                     </div>
                   )}

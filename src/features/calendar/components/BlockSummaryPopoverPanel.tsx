@@ -34,47 +34,23 @@ import type { TFunction } from "i18next";
 const BLOCK_SUMMARY_PANEL_CURSOR =
   "cursor-default [&_button:not(:disabled)]:cursor-pointer [&_button:disabled]:cursor-not-allowed";
 
-export function getBlockScopeLabel(scope: string, t?: TFunction): string {
-  if (t) {
-    switch (scope) {
-      case "location": return t("page.blocks.scope.locationBlock");
-      case "staff": return t("page.blocks.scope.staffTimeOff");
-      case "business": return t("page.blocks.scope.businessBlock");
-      default: return scope;
-    }
-  }
+export function getBlockScopeLabel(scope: string, t: TFunction): string {
   switch (scope) {
-    case "location":
-      return "Location Block";
-    case "staff":
-      return "Staff Time Off";
-    case "business":
-      return "Business Block";
-    default:
-      return scope;
+    case "location": return t("page.blocks.scope.locationBlock");
+    case "staff": return t("page.blocks.scope.staffTimeOff");
+    case "business": return t("page.blocks.scope.businessBlock");
+    default: return scope;
   }
 }
 
-function staffAppliesLine(block: CalendarBlockDto, staffName: string | null, t?: TFunction): string {
-  if (t) {
-    switch (block.blockScope) {
-      case "location":
-        return t("page.blocks.scope.entireLocation");
-      case "business":
-        return t("page.blocks.scope.allLocations");
-      case "staff":
-        return staffName ?? (block.userId != null ? t("page.common.staffId", { id: block.userId }) : t("page.common.unassigned"));
-      default:
-        return block.blockScope;
-    }
-  }
+function staffAppliesLine(block: CalendarBlockDto, staffName: string | null, t: TFunction): string {
   switch (block.blockScope) {
     case "location":
-      return "Entire location";
+      return t("page.blocks.scope.entireLocation");
     case "business":
-      return "All locations";
+      return t("page.blocks.scope.allLocations");
     case "staff":
-      return staffName ?? (block.userId != null ? `Staff #${block.userId}` : "Unassigned");
+      return staffName ?? (block.userId != null ? t("page.common.staffId", { id: block.userId }) : t("page.common.unassigned"));
     default:
       return block.blockScope;
   }
@@ -139,7 +115,7 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
         0,
         Math.round((new Date(block.endsAt).getTime() - new Date(block.startsAt).getTime()) / 60000),
       );
-  const durationText = durationMinutes != null ? formatDurationHuman(durationMinutes) : null;
+  const durationText = durationMinutes != null ? formatDurationHuman(durationMinutes, t) : null;
   const notesTrimmed = block.notes?.trim() ?? "";
 
   const headerMetaLine = `${timeDisplay}${durationText ? ` · ${durationText}` : ""} · ${appliesLine}`;

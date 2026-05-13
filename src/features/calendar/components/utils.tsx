@@ -6,54 +6,33 @@ import type { CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import { getCalendarLocale } from "../timezone.ts";
 
-/** Shown when an appointment has no customer name; booking channel is in "Booked via …". */
-export const NO_CUSTOMER_DISPLAY_LABEL = "No customer data";
-
-/** i18n-aware version: callers with access to `t` should prefer this over the constant. */
+/** i18n-aware customer display fallback. Pass `t` from useTranslation('calendar'). */
 export function getNoCustomerDisplayLabel(t: TFunction): string {
   return t("page.common.noCustomerData");
 }
 
 /** Human label for API bookingSource (admin, phone, walk_in, marketplace). */
-export function getBookingSourceLabel(source: string | null | undefined, t?: TFunction): string {
+export function getBookingSourceLabel(source: string | null | undefined, t: TFunction): string {
   if (source == null || source === '') return '—';
-  if (t) {
-    const map: Record<string, string> = {
-      admin: t("page.common.bookingSources.admin"),
-      phone: t("page.common.bookingSources.phone"),
-      walk_in: t("page.common.bookingSources.walkIn"),
-      marketplace: t("page.common.bookingSources.marketplace"),
-    };
-    return map[source] ?? source;
-  }
   const map: Record<string, string> = {
-    admin: 'Admin',
-    phone: 'Phone',
-    walk_in: 'Walk-in',
-    marketplace: 'Marketplace',
+    admin: t("page.common.bookingSources.admin"),
+    phone: t("page.common.bookingSources.phone"),
+    walk_in: t("page.common.bookingSources.walkIn"),
+    marketplace: t("page.common.bookingSources.marketplace"),
   };
   return map[source] ?? source;
 }
 
 /** Phrase inside the edit-appointment booking pill (no separate "Booking source" label). */
-export function getBookedViaLabel(source: string | null | undefined, t?: TFunction): string {
-  if (source == null || source === '') return t ? t("page.common.bookedVia.empty") : 'Booked via —';
-  if (t) {
-    const map: Record<string, string> = {
-      admin: t("page.common.bookedVia.admin"),
-      phone: t("page.common.bookedVia.phone"),
-      walk_in: t("page.common.bookedVia.walkIn"),
-      marketplace: t("page.common.bookedVia.marketplace"),
-    };
-    return map[source] ?? t("page.common.bookedVia.generic", { source: String(source).replace(/_/g, ' ') });
-  }
+export function getBookedViaLabel(source: string | null | undefined, t: TFunction): string {
+  if (source == null || source === '') return t("page.common.bookedVia.empty");
   const map: Record<string, string> = {
-    admin: 'Booked via admin',
-    phone: 'Booked via phone',
-    walk_in: 'Booked via walk in',
-    marketplace: 'Booked via marketplace',
+    admin: t("page.common.bookedVia.admin"),
+    phone: t("page.common.bookedVia.phone"),
+    walk_in: t("page.common.bookedVia.walkIn"),
+    marketplace: t("page.common.bookedVia.marketplace"),
   };
-  return map[source] ?? `Booked via ${String(source).replace(/_/g, ' ')}`;
+  return map[source] ?? t("page.common.bookedVia.generic", { source: String(source).replace(/_/g, ' ') });
 }
 
 /**
@@ -111,25 +90,17 @@ export function getBookingSourcePillParts(source: string | null | undefined): {
   };
 }
 
-export const getStatusBadge = (status: string, t?: TFunction): ReactElement => {
+export const getStatusBadge = (status: string, t: TFunction): ReactElement => {
   const dot = (cls: string) => (
     <div className={cn('h-2 w-2 shrink-0 rounded-full', cls)} aria-hidden />
   );
-  const labels: Record<string, string> = t
-    ? {
-        confirmed: t("page.common.statuses.confirmed"),
-        completed: t("page.common.statuses.completed"),
-        no_show: t("page.common.statuses.noShow"),
-        pending: t("page.common.statuses.pending"),
-        cancelled: t("page.common.statuses.cancelled"),
-      }
-    : {
-        confirmed: 'Confirmed',
-        completed: 'Completed',
-        no_show: 'No-show',
-        pending: 'Pending',
-        cancelled: 'Cancelled',
-      };
+  const labels: Record<string, string> = {
+    confirmed: t("page.common.statuses.confirmed"),
+    completed: t("page.common.statuses.completed"),
+    no_show: t("page.common.statuses.noShow"),
+    pending: t("page.common.statuses.pending"),
+    cancelled: t("page.common.statuses.cancelled"),
+  };
   switch (status) {
     case 'confirmed':
       return (
@@ -226,25 +197,15 @@ export const getStatusDotClass = (status: string): string => {
 };
 
 /** Text-only status label (translated). */
-export const getStatusLabelText = (status: string, t?: TFunction): string => {
-    if (t) {
-        const map: Record<string, string> = {
-            confirmed: t('page.common.statuses.confirmed'),
-            completed: t('page.common.statuses.completed'),
-            no_show: t('page.common.statuses.noShow'),
-            pending: t('page.common.statuses.pending'),
-            cancelled: t('page.common.statuses.cancelled'),
-        };
-        return map[status] ?? status;
-    }
-    const fallback: Record<string, string> = {
-        confirmed: 'Confirmed',
-        completed: 'Completed',
-        no_show: 'No-show',
-        pending: 'Pending',
-        cancelled: 'Cancelled',
+export const getStatusLabelText = (status: string, t: TFunction): string => {
+    const map: Record<string, string> = {
+        confirmed: t('page.common.statuses.confirmed'),
+        completed: t('page.common.statuses.completed'),
+        no_show: t('page.common.statuses.noShow'),
+        pending: t('page.common.statuses.pending'),
+        cancelled: t('page.common.statuses.cancelled'),
     };
-    return fallback[status] ?? status;
+    return map[status] ?? status;
 };
 
 export const findItemByKey = (list: Array<any>, key: string, value: string | number) => {
@@ -276,24 +237,28 @@ export const formatTimeRange = (startIso: string, endIso: string, timezone?: str
     return `${formatTime(startIso, timezone)} - ${formatTime(endIso, timezone)}`;
 }
 
-/** Human-readable duration e.g. 3h 45m, 45m, 2h. */
-export function formatDurationHuman(totalMinutes: number): string {
+/** Human-readable duration e.g. 3h 45min, 45min, 2h. */
+export function formatDurationHuman(totalMinutes: number, t: TFunction): string {
     if (totalMinutes <= 0) return '—';
     const h = Math.floor(totalMinutes / 60);
     const m = Math.round(totalMinutes % 60);
-    if (h === 0) return `${m}m`;
-    if (m === 0) return `${h}h`;
-    return `${h}h ${m}m`;
+    const hUnit = t('common:units.hourShort');
+    const mUnit = t('common:units.minuteShort');
+    if (h === 0) return `${m}${mUnit}`;
+    if (m === 0) return `${h}${hUnit}`;
+    return `${h}${hUnit} ${m}${mUnit}`;
 }
 
-/** Compact duration for mobile card left column: 30m, 1h, 1h30m. */
-export function formatDurationCompact(totalMinutes: number): string {
+/** Compact duration for mobile card left column: 30min, 1h, 1h30min. */
+export function formatDurationCompact(totalMinutes: number, t: TFunction): string {
     if (totalMinutes <= 0) return '—';
     const h = Math.floor(totalMinutes / 60);
     const m = Math.round(totalMinutes % 60);
-    if (h === 0) return `${m}m`;
-    if (m === 0) return `${h}h`;
-    return `${h}h${m}m`;
+    const hUnit = t('common:units.hourShort');
+    const mUnit = t('common:units.minuteShort');
+    if (h === 0) return `${m}${mUnit}`;
+    if (m === 0) return `${h}${hUnit}`;
+    return `${h}${hUnit}${m}${mUnit}`;
 }
 
 /** Split formatted time into `clock` and optional `meridiem` (null for 24h). */
@@ -317,26 +282,15 @@ export const formatClockAndMeridiem = (
     return { clock: formatted, meridiem: null };
 };
 
-const STATUS_OVERVIEW: Record<string, string> = {
-    confirmed: 'Confirmed',
-    completed: 'Completed',
-    cancelled: 'Cancelled',
-    no_show: 'No-show',
-    pending: 'Pending',
-};
-
-export function getStatusOverviewLabel(status: string, t?: TFunction): string {
-    if (t) {
-        const map: Record<string, string> = {
-            confirmed: t("page.common.statuses.confirmed"),
-            completed: t("page.common.statuses.completed"),
-            cancelled: t("page.common.statuses.cancelled"),
-            no_show: t("page.common.statuses.noShow"),
-            pending: t("page.common.statuses.pending"),
-        };
-        return map[status] ?? status.replace(/_/g, ' ');
-    }
-    return STATUS_OVERVIEW[status] ?? status.replace(/_/g, ' ');
+export function getStatusOverviewLabel(status: string, t: TFunction): string {
+    const map: Record<string, string> = {
+        confirmed: t("page.common.statuses.confirmed"),
+        completed: t("page.common.statuses.completed"),
+        cancelled: t("page.common.statuses.cancelled"),
+        no_show: t("page.common.statuses.noShow"),
+        pending: t("page.common.statuses.pending"),
+    };
+    return map[status] ?? status.replace(/_/g, ' ');
 }
 
 /**
@@ -372,12 +326,12 @@ export const formatSlotTime = (slot: string): string => {
  * Resolve staff user IDs to display names using the location staff list.
  * Returns "Unassigned" if no staff assigned.
  */
-export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: CalendarStaffMember[], t?: TFunction): string => {
-    if (staffUserIds.length === 0) return t ? t("page.common.unassigned") : 'Unassigned';
+export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: CalendarStaffMember[], t: TFunction): string => {
+    if (staffUserIds.length === 0) return t("page.common.unassigned");
 
     const names = staffUserIds.map(id => {
         const staff = locationStaff.find(s => s.id === id);
-        return staff ? `${staff.firstName} ${staff.lastName}` : (t ? t("page.common.staffId", { id }) : `Staff #${id}`);
+        return staff ? `${staff.firstName} ${staff.lastName}` : t("page.common.staffId", { id });
     });
 
     return names.join(', ');
@@ -390,11 +344,11 @@ export const getStaffDisplayNames = (staffUserIds: number[], locationStaff: Cale
 export const getStaffDisplayNameOrUnassigned = (
     staffUserId: number | null,
     locationStaff: CalendarStaffMember[],
-    t?: TFunction,
+    t: TFunction,
 ): string => {
-    if (staffUserId == null) return t ? t("page.common.unassigned") : 'Unassigned';
+    if (staffUserId == null) return t("page.common.unassigned");
     const staff = locationStaff.find(s => s.id === staffUserId);
-    return staff ? `${staff.firstName} ${staff.lastName}` : (t ? t("page.common.unknown") : 'Unknown');
+    return staff ? `${staff.firstName} ${staff.lastName}` : t("page.common.unknown");
 };
 
 /**

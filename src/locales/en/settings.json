@@ -1,4 +1,18 @@
 {
+  "page": {
+    "errors": {
+      "fetchPricingSummary": "Failed to fetch pricing summary",
+      "createCheckoutSession": "Failed to create checkout session",
+      "getCustomerPortalUrl": "Failed to get customer portal URL",
+      "modifySubscription": "Failed to modify subscription",
+      "cancelRemoval": "Failed to cancel removal",
+      "fetchSmsBalance": "Failed to fetch SMS balance",
+      "fetchSmsPackages": "Failed to fetch SMS packages",
+      "createSmsCheckout": "Failed to create SMS checkout",
+      "fetchSmsPurchases": "Failed to fetch SMS purchases",
+      "fetchInvoices": "Failed to fetch invoices"
+    }
+  },
   "tabs": {
     "profile": "Profile",
     "profileMobile": "Profile",

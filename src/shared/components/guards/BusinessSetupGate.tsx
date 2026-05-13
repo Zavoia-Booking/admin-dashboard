@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react';
 import { useSelector } from 'react-redux';
+import { useTranslation } from 'react-i18next';
 import { selectCurrentUser } from '../../../features/auth/selectors';
 import BusinessSetupPrompt from '../common/BusinessSetupPrompt';
 
@@ -20,15 +21,20 @@ export default function BusinessSetupGate({
   navigateTo = '/welcome',
 }: BusinessSetupGateProps) {
   const user = useSelector(selectCurrentUser);
+  const { t } = useTranslation('common');
 
   if (!user?.businessId) {
     const isOwner = user?.role === 'owner' || user?.role === 'OWNER' || user?.role === 'Owner';
-    const resolvedEyebrow = isOwner ? (eyebrow ?? 'Setup · Required') : (eyebrow ?? 'Access · Restricted');
-    const resolvedTitle = isOwner ? (title ?? 'Complete your business setup') : (title ?? 'Business unavailable');
+    const resolvedEyebrow = isOwner
+      ? (eyebrow ?? t('businessSetupGate.ownerEyebrow'))
+      : (eyebrow ?? t('businessSetupGate.restrictedEyebrow'));
+    const resolvedTitle = isOwner
+      ? (title ?? t('businessSetupGate.ownerTitle'))
+      : (title ?? t('businessSetupGate.restrictedTitle'));
     const resolvedMessage = isOwner
-      ? (message ?? 'Before inviting team members, creating services, or adding locations, please finish setting up your business information.')
-      : (message ?? 'Your access to this business appears to be inactive. You may have been removed from the business or the business was deleted. Please contact the business administrator.');
-    const resolvedCta = isOwner ? (ctaLabel ?? 'Finish business setup') : undefined;
+      ? (message ?? t('businessSetupGate.ownerMessage'))
+      : (message ?? t('businessSetupGate.restrictedMessage'));
+    const resolvedCta = isOwner ? (ctaLabel ?? t('businessSetupGate.ownerCta')) : undefined;
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-10rem)]">
         <div className="max-w-2xl w-full">

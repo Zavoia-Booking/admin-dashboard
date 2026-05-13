@@ -20,6 +20,7 @@ import {
 import type { LocationFullAssignment, StaffServicesAtLocation } from "./types";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleFetchLocationFullAssignment(
   action: ReturnType<typeof fetchLocationFullAssignmentAction.request>,
@@ -37,7 +38,7 @@ function* handleFetchLocationFullAssignment(
   } catch (error: any) {
     yield put(
       fetchLocationFullAssignmentAction.failure({
-        message: error?.message || "Failed to fetch location data",
+        message: getErrorMessage(error),
       }),
     );
     toast.error(i18n.t("assignments:page.toasts.failedToLoadLocationData"));
@@ -62,7 +63,7 @@ function* handleUpdateLocationServices(
   } catch (error: any) {
     yield put(
       updateLocationServicesAction.failure({
-        message: error?.message || "Failed to update location services",
+        message: getErrorMessage(error),
       }),
     );
     toast.error(
@@ -89,7 +90,7 @@ function* handleUpdateLocationBundles(
   } catch (error: any) {
     yield put(
       updateLocationBundlesAction.failure({
-        message: error?.message || "Failed to update location bundles",
+        message: getErrorMessage(error),
       }),
     );
     toast.error(
@@ -112,7 +113,7 @@ function* handleFetchStaffServicesAtLocation(
   } catch (error: any) {
     yield put(
       fetchStaffServicesAtLocationAction.failure({
-        message: error?.message || "Failed to fetch staff services",
+        message: getErrorMessage(error),
       }),
     );
     toast.error(i18n.t("assignments:page.toasts.failedToLoadStaffServices"));
@@ -137,7 +138,7 @@ function* handleUpdateStaffServices(
   } catch (error: any) {
     yield put(
       updateStaffServicesAction.failure({
-        message: error?.message || "Failed to update staff services",
+        message: getErrorMessage(error),
       }),
     );
     toast.error(i18n.t("assignments:page.toasts.failedToUpdateStaffServices"));
@@ -208,7 +209,7 @@ function* handleUpdateLocationAssignments(
   } catch (error: any) {
     yield put(
       updateLocationAssignmentsAction.failure({
-        message: error?.message || "Failed to update location assignments",
+        message: getErrorMessage(error),
       }),
     );
 
@@ -266,7 +267,7 @@ function* handleUpdateLocationTeamMembers(
   } catch (error: any) {
     yield put(
       updateLocationTeamMembersAction.failure({
-        message: error?.message || "Failed to update team members",
+        message: getErrorMessage(error),
       }),
     );
     toast.error(i18n.t("assignments:page.toasts.failedToUpdateTeamMembers"));

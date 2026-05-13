@@ -1,4 +1,5 @@
 import { Check, Clock } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "../../../lib/utils";
 import { highlightMatches } from "../../../utils/highlight";
 import type { Service, CurrencyDisplay } from "./types";
@@ -21,6 +22,7 @@ export function ServiceItem({
   onToggle,
 }: ServiceItemProps) {
   const CurrencyIcon = currencyDisplay.icon;
+  const { t } = useTranslation("common");
 
   return (
     <div
@@ -39,7 +41,7 @@ export function ServiceItem({
       tabIndex={0}
       role="button"
       aria-pressed={isSelected}
-      aria-label={`${isSelected ? "Deselect" : "Select"} ${service.name}`}
+      aria-label={t(isSelected ? "selection.deselect" : "selection.select", { name: service.name })}
     >
       {/* Circle checkbox */}
       <div

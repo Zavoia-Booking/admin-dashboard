@@ -121,7 +121,7 @@ export default function TeamInvitationPage() {
     );
   }
 
-  const isPasswordValid = validatePasswordPolicy(passwordValue) === true;
+  const isPasswordValid = validatePasswordPolicy(passwordValue, t) === true;
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-muted to-background">
@@ -226,7 +226,7 @@ export default function TeamInvitationPage() {
                       }`}
                       {...register('password', {
                         required: t('teamInvitation.validation.passwordRequired'),
-                        validate: (value) => validatePasswordPolicy(value),
+                        validate: (value) => validatePasswordPolicy(value, t),
                       })}
                       onFocus={() => { setPwFocused(true); setPwInteracted(true); }}
                       onBlur={(e) => { register('password').onBlur(e); setPwFocused(false); }}

@@ -11,7 +11,7 @@ function* handleListCategories(): Generator<any, void, any> {
   } catch (error: unknown) {
     console.error("Failed to load categories:", error);
     const errorMessage = getErrorMessage(error);
-    toast.error("Failed to load categories");
+    toast.error(errorMessage);
     yield put(listCategoriesAction.failure({ message: errorMessage }));
   }
 }

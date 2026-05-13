@@ -11,6 +11,9 @@
     "open247": "Deschis 24/7",
     "appointments": "Programări",
     "revenue": "Venituri",
+    "staffAvailable": "Personal disponibil",
+    "locationLoad": "Încărcare locație",
+    "todaysOverview": "Prezentarea de astăzi",
     "potentialRevenue": "Venit potențial",
     "today": "Azi",
     "thisWeek": "Săptămâna aceasta",
@@ -25,6 +28,30 @@
     "seeLocation": "Vezi locația",
     "locationBlocked": "Această locație nu este disponibilă pentru programări în intervalul {{start}} – {{end}}",
     "seeMore": "Vezi mai mult"
+  },
+  "servicesAnalytics": {
+    "heading": "Analiza serviciilor",
+    "singleServices": "Servicii individuale",
+    "bundleBookings": "Rezervări pachete",
+    "active": "Activ",
+    "disabled": "Dezactivat",
+    "mostBookedServices": "Cele mai rezervate servicii",
+    "serviceAvailability": "Disponibilitate servicii",
+    "bundleBadge": "Pachet",
+    "bookings": "rezervări",
+    "revenue": "venituri"
+  },
+  "revenueAnalytics": {
+    "heading": "Analiza veniturilor",
+    "thisWeek": "Săptămâna aceasta",
+    "thisMonth": "Luna aceasta",
+    "weekLoad": "Încărcare săptămână",
+    "monthLoad": "Încărcare lună"
+  },
+  "staffPerformance": {
+    "heading": "Performanța echipei",
+    "booked": "Rezervat",
+    "utilization": "Utilizare"
   },
   "capacityUtilization": {
     "title": "Capacitate",

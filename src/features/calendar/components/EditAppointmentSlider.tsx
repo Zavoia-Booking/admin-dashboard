@@ -1302,7 +1302,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                             className={cn(
                               "h-auto bg-info-100 text-xs !min-h-0 h-6 py-3.5 text-primary hover:text-primary md:text-foreground-1 md:text-foreground-3 md:dark:text-foreground-2 md:hover:bg-info-100 dark:border dark:bg-surface dark:hover:bg-surface group-hover:bg-info-100 dark:group-hover:border-border-strong dark:group-hover:bg-surface dark:group-hover:text-primary group-hover:text-primary max-w-full justify-start text-left",
                             )}
-                            aria-label="Scroll to services for this booking group"
+                            aria-label={t('page.aria.scrollToGroupServices')}
                           >
                             <span
                               className="h-2.5 w-2.5 shrink-0 rounded-full"
@@ -1351,7 +1351,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               auditTimezone,
                             )}
                             {appointmentSlotMinutes > 0
-                              ? ` (${formatDurationHuman(appointmentSlotMinutes)})`
+                              ? ` (${formatDurationHuman(appointmentSlotMinutes, t)})`
                               : ""}
                           </dd>
                         </div>
@@ -1528,7 +1528,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                 </span>
                               ) : null}
                               <span className="w-full min-w-0 truncate">
-                                {formatDurationHuman(serviceDetailTotalDuration)} - {t("page.appointments.edit.acrossGroup")}
+                                {formatDurationHuman(serviceDetailTotalDuration, t)} - {t("page.appointments.edit.acrossGroup")}
                               </span>
                             </>
                           ) : (
@@ -1544,8 +1544,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               />
                               <span className="min-w-0">
                                 {groupBookingWallTimeRange
-                                  ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`
-                                  : `${formatDurationHuman(serviceDetailTotalDuration)} - ${t("page.appointments.edit.acrossGroup")}`}
+                                  ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration, t)} - ${t("page.appointments.edit.acrossGroup")}`
+                                  : `${formatDurationHuman(serviceDetailTotalDuration, t)} - ${t("page.appointments.edit.acrossGroup")}`}
                               </span>
                             </>
                           )
@@ -1579,6 +1579,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                         {item.durationMinutes > 0
                                           ? formatDurationHuman(
                                               item.durationMinutes,
+                                              t,
                                             )
                                           : "—"}
                                       </span>

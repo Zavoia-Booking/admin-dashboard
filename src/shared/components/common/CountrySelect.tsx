@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertCircle, ChevronDown, Check, Globe, MapPin } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
@@ -128,6 +129,7 @@ export const DetectCountryButton: React.FC<DetectCountryButtonProps> = ({
   onDetect,
   className,
 }) => {
+  const { t } = useTranslation('common');
   const handleDetect = () => {
     const detected = detectCountry();
     if (detected) {
@@ -143,10 +145,10 @@ export const DetectCountryButton: React.FC<DetectCountryButtonProps> = ({
         'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-border bg-surface text-foreground-1 shadow-sm hover:bg-surface-hover active:bg-surface-active transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-0 cursor-pointer whitespace-nowrap',
         className
       )}
-      title="Auto-detect country from your browser"
+      title={t('countrySelect.autoDetect')}
     >
       <MapPin className="h-3.5 w-3.5 text-foreground-3 dark:text-foreground-2" />
-      Auto-detect
+      {t('countrySelect.autoDetectShort')}
     </button>
   );
 };
@@ -159,6 +161,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
   id,
   className,
 }) => {
+  const { t } = useTranslation('common');
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -251,7 +254,7 @@ export const CountrySelect: React.FC<CountrySelectProps> = ({
           <Command shouldFilter={false}>
             <div className="p-2 bg-popover">
               <CommandInput
-                placeholder="Search countries..."
+                placeholder={t('placeholders.searchCountries')}
                 value={search}
                 onValueChange={setSearch}
                 className="border-0 focus:border-0 focus:ring-0 shadow-none"

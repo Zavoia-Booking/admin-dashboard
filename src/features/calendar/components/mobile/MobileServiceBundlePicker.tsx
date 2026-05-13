@@ -108,7 +108,7 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
     const map = new Map<number, CategoryGroup>();
     for (const s of filteredServices) {
       const catId = s.category?.id ?? UNCATEGORIZED_KEY;
-      const catName = s.category?.name ?? tServices("categories.uncategorized", { defaultValue: "Uncategorized" });
+      const catName = s.category?.name ?? tServices("categories.uncategorized");
       const catColor = s.category?.color;
       if (!map.has(catId)) {
         map.set(catId, {
@@ -296,7 +296,7 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
               onClick={() => onOpenChange(false)}
               className="group gap-2 h-11 flex-1 cursor-pointer"
             >
-              {t("page.common.done", { defaultValue: "Done" })}
+              {t("page.common.done")}
               <ArrowRight className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
             </Button>
           </div>

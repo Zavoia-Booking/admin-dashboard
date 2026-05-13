@@ -71,14 +71,14 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
           aria-describedby={undefined}
         >
           <DialogPrimitive.Title className="sr-only">
-            {count} block{count !== 1 ? "s" : ""}
+            {t(count === 1 ? 'page.counts.blockOne' : 'page.counts.blockOther', { count })}
           </DialogPrimitive.Title>
           {/* Header */}
           <div className="relative shrink-0 px-5 pb-0 pt-5 md:px-6">
             <div className="flex items-center gap-4 pr-12">
               <div className="min-w-0 flex-1 space-y-1">
                 <h2 className="min-w-0 truncate text-lg font-semibold leading-snug text-foreground-1">
-                  {count} block{count !== 1 ? "s" : ""}
+                  {t(count === 1 ? 'page.counts.blockOne' : 'page.counts.blockOther', { count })}
                 </h2>
                 <p className="text-xs text-foreground-3 tabular-nums">
                   {timeRangeStr}
@@ -92,7 +92,7 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
                   "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground opacity-70 transition-[opacity,color]",
                   "hover:opacity-100 hover:text-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
                 )}
-                aria-label="Close"
+                aria-label={t('page.common.close')}
                 onClick={() => setOpen(false)}
               >
                 <X className="h-5 w-5" />
@@ -112,7 +112,7 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
               {blocks.map((block) => {
                 const staffName =
                   block.blockScope === "staff" && block.userId
-                    ? getStaffDisplayNames([block.userId], locationStaff)
+                    ? getStaffDisplayNames([block.userId], locationStaff, t)
                     : null;
                 const staffMember = block.blockScope === "staff" && block.userId
                   ? locationStaff.find((s) => s.id === block.userId) ?? null

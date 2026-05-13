@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { toast } from 'sonner';
 import { History, Loader2, MapPin, Clock, ChevronDown, Download } from 'lucide-react';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
@@ -12,6 +13,7 @@ import { getCalendarTimezone } from '../../calendar/selectors';
 import { fetchAllCustomerHistoryApi, fetchCustomerHistoryApi } from '../api';
 import { buildCustomerHistoryPdfBlob } from '../buildCustomerHistoryPdf';
 import { priceFromStorage } from '../../../shared/utils/currency';
+import { formatDuration } from '../../../shared/utils/formatDuration';
 import type {
   FullActivityItem,
   AppointmentActivityMetadata,
@@ -65,13 +67,6 @@ function isMilestoneMetadata(
   return item.type === 'milestone';
 }
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}min` : `${h}h`;
-}
-
 function formatPrice(price: number, currency: string): string {
   const value = priceFromStorage(price, currency);
   return new Intl.NumberFormat('en', {
@@ -81,16 +76,16 @@ function formatPrice(price: number, currency: string): string {
   }).format(value);
 }
 
-function getSourceLabel(source: string): string {
+function getSourceLabel(source: string, t: TFunction): string {
   switch (source) {
     case 'manual':
-      return 'Manually added';
+      return t('details.history.source.manual');
     case 'marketplace':
-      return 'Via marketplace';
+      return t('details.history.source.marketplace');
     case 'import':
-      return 'Imported';
+      return t('details.history.source.import');
     default:
-      return source;
+      return t('details.history.source.unknown', { source });
   }
 }
 
@@ -208,6 +203,8 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
             count: allItems.length,
           }),
           pageFooter: t('details.history.pdf.pageFooter'),
+          hourShort: t('common:units.hourShort'),
+          minuteShort: t('common:units.minuteShort'),
         },
       });
       const pdfUrl = URL.createObjectURL(pdfBlob);
@@ -233,8 +230,8 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
     <BaseSlider
       isOpen={isOpen}
       onClose={onClose}
-      title="Customer history"
-      subtitle="Full activity timeline for this customer."
+      title={t('details.history.title')}
+      subtitle={t('details.history.subtitle')}
       icon={History}
       iconColor="text-foreground-1"
       contentClassName="bg-surface scrollbar-hide"
@@ -259,7 +256,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
             ) : (
               <Download className="h-3.5 w-3.5" />
             )}
-            <span>Download history</span>
+            <span>{t('details.history.downloadButton')}</span>
           </Button>
         </div>
         {isLoadingInitial ? (
@@ -269,9 +266,9 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
         ) : items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <History className="mb-3 h-8 w-8 text-foreground-3/50" />
-            <p className="text-sm font-medium text-foreground-2">No activity yet</p>
+            <p className="text-sm font-medium text-foreground-2">{t('details.history.empty.title')}</p>
             <p className="mt-1 text-xs text-foreground-3">
-              Appointments and milestones will appear here.
+              {t('details.history.empty.body')}
             </p>
           </div>
         ) : (
@@ -311,7 +308,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
                           </span>
                           {item.type === 'appointment' && item.status && (
                             <span className="shrink-0 [&_*]:text-[10px]">
-                              {getStatusBadge(item.status)}
+                              {getStatusBadge(item.status, t)}
                             </span>
                           )}
                         </div>
@@ -329,7 +326,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
                             )}
                             <span className="inline-flex items-center gap-1">
                               <Clock className="h-3 w-3" />
-                              {formatDuration(item.metadata.duration)}
+                              {formatDuration(item.metadata.duration, t)}
                             </span>
                             <span>
                               {formatPrice(item.metadata.price, item.metadata.currency)}
@@ -339,7 +336,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
 
                         {isMilestoneMetadata(item) && (
                           <div className="mt-1 text-xs text-foreground-3">
-                            {getSourceLabel(item.metadata.source)}
+                            {getSourceLabel(item.metadata.source, t)}
                           </div>
                         )}
                       </div>
@@ -363,7 +360,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                   ) : (
                     <>
-                      <span>Load more</span>
+                      <span>{t('details.history.loadMore')}</span>
                       <ChevronDown className="h-3.5 w-3.5 mt-0.5 text-foreground-3 group-hover:text-foreground-1 transition-colors" />
                     </>
                   )}
@@ -373,7 +370,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
 
             {pagination && (
               <p className="mt-3 text-center text-xs text-foreground-3">
-                Showing {items.length} of {pagination.total}
+                {t('details.history.showingCount', { shown: items.length, total: pagination.total })}
               </p>
             )}
           </>

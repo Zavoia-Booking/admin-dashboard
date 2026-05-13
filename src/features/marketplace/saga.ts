@@ -15,13 +15,16 @@ import {
 import type { MarketplaceListingResponse, BookingSettings } from "./types";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
+import i18n from "../../shared/lib/i18n";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleFetchMarketplaceListing() {
   try {
     const response: MarketplaceListingResponse = yield call(getMarketplaceListingApi);
     yield put(fetchMarketplaceListingAction.success(response));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to fetch marketplace listing";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    toast.error(message || i18n.t('marketplace:page.toasts.listingDataLoadFailed'));
     yield put(fetchMarketplaceListingAction.failure({ message }));
   }
 }
@@ -30,12 +33,12 @@ function* handlePublishMarketplaceListing(action: ActionType<typeof publishMarke
   try {
     yield call(publishMarketplaceListingApi, action.payload);
     yield put(publishMarketplaceListingAction.success());
-    toast.success('Marketplace listing published successfully!');
+    toast.success(i18n.t('marketplace:page.toasts.listingPublished'));
     // Refetch the listing data to get updated state
     yield put(fetchMarketplaceListingAction.request());
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to publish marketplace listing";
-    toast.error(message);
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    toast.error(message || i18n.t('marketplace:page.toasts.listingPublishFailed'));
     yield put(publishMarketplaceListingAction.failure({ message }));
   }
 }
@@ -54,13 +57,16 @@ function* handleUpdateLocationMarketplaceFlags(action: ActionType<typeof updateL
       allowOnlineBooking: result.allowOnlineBooking,
     }));
     if (isPublic !== undefined) {
-      toast.success(isPublic ? 'Location is now public on the marketplace' : 'Location is hidden from the marketplace');
+      toast.success(i18n.t(isPublic ? 'marketplace:page.toasts.locationPublic' : 'marketplace:page.toasts.locationHidden'));
     } else if (allowOnlineBooking !== undefined) {
-      toast.success(allowOnlineBooking ? 'Online appointments enabled for this location' : 'Online appointments disabled for this location');
+      toast.success(i18n.t(allowOnlineBooking ? 'marketplace:page.toasts.onlineEnabled' : 'marketplace:page.toasts.onlineDisabled'));
     }
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to update location";
-    toast.error(message);
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    const fallbackKey = allowOnlineBooking !== undefined
+      ? 'marketplace:page.toasts.onlineBookingUpdateFailed'
+      : 'marketplace:page.toasts.locationVisibilityUpdateFailed';
+    toast.error(message || i18n.t(fallbackKey));
     yield put(updateLocationMarketplaceFlagsAction.failure({ locationId, message }));
   }
 }
@@ -69,10 +75,10 @@ function* handleUpdateBookingSettings(action: ActionType<typeof updateBookingSet
   try {
     const response: BookingSettings = yield call(updateBookingSettingsApi, action.payload);
     yield put(updateBookingSettingsAction.success(response));
-    toast.success('Booking settings saved successfully!');
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to save booking settings";
-    toast.error(message);
+    toast.success(i18n.t('marketplace:page.toasts.bookingSettingsSaved'));
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    toast.error(message || i18n.t('marketplace:page.toasts.bookingSettingsSaveFailed'));
     yield put(updateBookingSettingsAction.failure({ message }));
   }
 }

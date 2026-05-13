@@ -1,5 +1,90 @@
 {
   "changeLanguage": "Schimbă limba",
+  "aria": {
+    "back": "Înapoi",
+    "previous": "Anterior",
+    "next": "Următor",
+    "toggleSidebar": "Comută bara laterală",
+    "selectHour": "Selectează ora",
+    "selectMinute": "Selectează minutul",
+    "selectPeriod": "Selectează perioada",
+    "clearSearch": "Șterge căutarea",
+    "loading": "Se încarcă"
+  },
+  "loading": "Se încarcă...",
+  "businessSetupGate": {
+    "ownerEyebrow": "Configurare · Necesară",
+    "restrictedEyebrow": "Acces · Restricționat",
+    "ownerTitle": "Finalizează configurarea afacerii",
+    "restrictedTitle": "Afacere indisponibilă",
+    "ownerMessage": "Înainte de a invita membrii echipei, de a crea servicii sau de a adăuga locații, te rugăm să finalizezi configurarea informațiilor afacerii tale.",
+    "restrictedMessage": "Accesul tău la această afacere pare să fie inactiv. Este posibil să fi fost eliminat din afacere sau afacerea să fi fost ștearsă. Te rugăm să contactezi administratorul afacerii.",
+    "ownerCta": "Finalizează configurarea"
+  },
+  "confirmDialog": {
+    "defaultTitle": "Ești sigur?"
+  },
+  "selection": {
+    "select": "Selectează {{name}}",
+    "deselect": "Deselectează {{name}}"
+  },
+  "errors": {
+    "generic": "A apărut o eroare",
+    "failedToLoadCategories": "Încărcarea categoriilor a eșuat",
+    "failedToDeleteService": "Ștergerea serviciului a eșuat",
+    "failedToLoadReviews": "Încărcarea recenziilor a eșuat",
+    "failedToLoadStats": "Încărcarea statisticilor a eșuat",
+    "failedToLeaveOrganisation": "Părăsirea organizației a eșuat",
+    "sessionRefreshFailed": "Reîmprospătarea sesiunii a eșuat",
+    "uploadFailed": "Încărcarea a eșuat",
+    "unknownAvailabilityFetch": "Eroare necunoscută la obținerea disponibilității"
+  },
+  "countrySelect": {
+    "autoDetect": "Detectează țara automat din browser",
+    "autoDetectShort": "Detectează automat"
+  },
+  "timezoneSelect": {
+    "autoDetect": "Detectează fusul orar automat din browser",
+    "autoDetectShort": "Detectează automat"
+  },
+  "logoUpload": {
+    "altPreview": "Previzualizare logo afacere",
+    "dropZone": {
+      "dropHere": "Plasează logo-ul aici",
+      "uploadYour": "Încarcă logo-ul tău",
+      "releaseToUpload": "Eliberează pentru a încărca",
+      "clickToBrowse": "Apasă pentru a răsfoi sau trage și plasează",
+      "maxSizeLabel": "Dimensiunea maximă recomandată:",
+      "maxSizeDetails": "{{width}}×{{height}}px, până la {{sizeMB}}MB",
+      "autoOptimize": "Imaginile mai mari vor fi optimizate automat pentru tine."
+    },
+    "errors": {
+      "unsupportedFormat": "Format de fișier nesuportat ({{detectedType}}). Te rugăm să folosești {{allowed}}.",
+      "tooLarge": "Fișierul depășește dimensiunea maximă de {{maxSizeMB}}MB",
+      "softLimitWarning": "Fișierul depășește limitele recomandate. Îl vom optimiza automat."
+    }
+  },
+  "duration": {
+    "none": "Niciuna",
+    "days": "zile",
+    "hours": "ore",
+    "minutes": "minute",
+    "other": "Altul"
+  },
+  "placeholders": {
+    "searchCountries": "Caută țări...",
+    "searchTimezones": "Caută fusuri orare..."
+  },
+  "trialStatus": {
+    "sectionHeading": "Statusul abonamentului tău",
+    "freeTrialActive": "Perioadă de probă activă",
+    "fullAccessUntil": "Acces complet la toate funcționalitățile până pe <bold>{{date}}</bold>.",
+    "continueWithoutInterruption": "Continuă fără întreruperi—poți face upgrade când îți convine.",
+    "startedOn": "Început pe {{date}}",
+    "daysLeft_one": "{{count}} zi rămasă",
+    "daysLeft_other": "{{count}} zile rămase",
+    "upgradePlan": "Upgrade plan"
+  },
   "limitedUsage": {
     "label": "Utilizare limitată",
     "disabledTooltip": "Această funcționalitate nu este disponibilă în planul tău curent.",
@@ -151,6 +236,57 @@
       "resourceTitle": "Resursa"
     },
     "close": "Închide"
+  },
+  "units": {
+    "hourShort": "h",
+    "minuteShort": "min"
+  },
+  "validation": {
+    "password": {
+      "minLength": "Parola trebuie să aibă cel puțin 8 caractere",
+      "invalid": "Introduceți o parolă validă."
+    },
+    "email": {
+      "atSymbol": "Emailul trebuie să conțină simbolul @",
+      "noSpaces": "Emailul nu poate conține spații",
+      "notStartWithAt": "Emailul nu poate începe cu @",
+      "notEndWithAt": "Emailul nu poate se termina cu @",
+      "singleAtSymbol": "Emailul poate conține un singur simbol @",
+      "needsDomain": "Emailul trebuie să conțină un domeniu (de exemplu .com)",
+      "generic": "Introduceți o adresă de email validă"
+    },
+    "required": "Introduceți {{field}}",
+    "minLengthField": "{{field}} trebuie să aibă cel puțin {{min}} caractere",
+    "minLengthGeneric": "Introduceți cel puțin {{min}} caractere",
+    "minLength2Generic": "Introduceți cel puțin 2 caractere",
+    "minLength2Use": "Folosiți cel puțin 2 caractere",
+    "maxLengthGeneric": "Maximum {{max}} caractere permise",
+    "businessName": "Introduceți numele afacerii",
+    "locationName": "Introduceți numele locației",
+    "categoryName": "Introduceți numele categoriei",
+    "nameSpecialChars": "Eliminați caracterele speciale (sunt permise doar - ' & . ( ))",
+    "categoryNameSpecialChars": "Eliminați caracterele speciale. Sunt permise: litere, cifre, spații, - ' & . ( )",
+    "personNameSpecialChars": "Eliminați cifrele și caracterele speciale (sunt permise doar - ')",
+    "addressFieldSpecialChars": "Eliminați caracterele speciale",
+    "descriptionUnsafeChars": "Caracterele speciale < > nu sunt permise",
+    "url": "Introduceți un URL valid (de exemplu https://example.com)",
+    "phoneRequired": "Numărul de telefon este obligatoriu",
+    "phoneInvalid": "Introduceți un număr de telefon valid",
+    "industryRequired": "Te rugăm să selectezi o industrie",
+    "industryTagsRequired": "Te rugăm să selectezi cel puțin o etichetă de industrie",
+    "currencyInvalid": "Te rugăm să selectezi o monedă validă",
+    "fields": {
+      "email": "emailul",
+      "businessEmail": "emailul afacerii",
+      "firstName": "prenumele",
+      "lastName": "numele",
+      "streetAddress": "adresa străzii",
+      "buildingNumber": "numărul clădirii sau apartamentului",
+      "city": "orașul",
+      "postcode": "codul poștal",
+      "country": "țara",
+      "teamMemberEmail": "emailul membrului echipei"
+    }
   }
 }
 

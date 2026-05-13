@@ -131,27 +131,27 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const validatePhone = (value: string): string | undefined => {
     const v = value.trim();
     if (!v) return undefined;
-    return isE164(v) ? undefined : 'Enter a valid phone number';
+    return isE164(v) ? undefined : t('common:validation.phoneInvalid');
   };
 
   const validateAll = (): Record<string, string | undefined> => ({
-    businessName: validateBusinessName(formData.businessName) ?? undefined,
-    businessEmail: requiredEmailError('Business email', formData.businessEmail) ?? undefined,
+    businessName: validateBusinessName(formData.businessName, t) ?? undefined,
+    businessEmail: requiredEmailError('businessEmail', formData.businessEmail, t) ?? undefined,
     businessPhone: validatePhone(formData.businessPhone),
-    industryId: formData.industryId == null ? 'Please select an industry' : undefined,
-    description: validateDescription(formData.description, 500) ?? undefined,
+    industryId: formData.industryId == null ? t('common:validation.industryRequired') : undefined,
+    description: validateDescription(formData.description, t, 500) ?? undefined,
     businessCurrency: CURRENCY_WHITELIST.includes(formData.businessCurrency?.toLowerCase())
       ? undefined
-      : 'Please select a valid currency',
-    instagramUrl: validateUrlField(formData.instagramUrl) ?? undefined,
-    facebookUrl:  validateUrlField(formData.facebookUrl)  ?? undefined,
-    tiktokUrl:    validateUrlField(formData.tiktokUrl)    ?? undefined,
-    websiteUrl:   validateUrlField(formData.websiteUrl)   ?? undefined,
-    pinterestUrl: validateUrlField(formData.pinterestUrl) ?? undefined,
+      : t('common:validation.currencyInvalid'),
+    instagramUrl: validateUrlField(formData.instagramUrl, t) ?? undefined,
+    facebookUrl:  validateUrlField(formData.facebookUrl, t)  ?? undefined,
+    tiktokUrl:    validateUrlField(formData.tiktokUrl, t)    ?? undefined,
+    websiteUrl:   validateUrlField(formData.websiteUrl, t)   ?? undefined,
+    pinterestUrl: validateUrlField(formData.pinterestUrl, t) ?? undefined,
   });
 
   const userHasPassword = user?.hasPassword === true;
-  const isPasswordPolicyValid = validatePasswordPolicy(newPassword) === true;
+  const isPasswordPolicyValid = validatePasswordPolicy(newPassword, t) === true;
   const passwordsMatch = newPassword === confirmPassword;
   const canSubmitPassword = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0
     && (!userHasPassword || currentPassword.trim().length > 0);
@@ -313,7 +313,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
   const handlePasswordSubmit = async () => {
     setPwFocused(false);
-    const policyResult = validatePasswordPolicy(newPassword);
+    const policyResult = validatePasswordPolicy(newPassword, t);
     if (policyResult !== true) {
       toast.error(t('profile.toast.passwordPolicyFailed'));
       return;
@@ -424,7 +424,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   value={formData.businessName}
                   onChange={(value) => {
                     setFormData(prev => ({ ...prev, businessName: value }));
-                    setErrors(prev => ({ ...prev, businessName: validateBusinessName(value) ?? undefined }));
+                    setErrors(prev => ({ ...prev, businessName: validateBusinessName(value, t) ?? undefined }));
                   }}
                   onBlur={() => setTouched(prev => ({ ...prev, businessName: true }))}
                   error={touched.businessName ? errors.businessName : undefined}
@@ -438,7 +438,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   onChange={(value) => {
                     const next = value ? Number(value) : null;
                     setFormData((prev) => ({ ...prev, industryId: next }));
-                    setErrors(prev => ({ ...prev, industryId: next == null ? 'Please select an industry' : undefined }));
+                    setErrors(prev => ({ ...prev, industryId: next == null ? t('common:validation.industryRequired') : undefined }));
                   }}
                   options={industries.map((i) => ({ value: String(i.id), label: toTitleCase(i.name) }))}
                   error={touched.industryId ? errors.industryId : undefined}
@@ -466,7 +466,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                   value={formData.description}
                   onChange={(value) => {
                     setFormData(prev => ({ ...prev, description: value }));
-                    setErrors(prev => ({ ...prev, description: validateDescription(value, 500) ?? undefined }));
+                    setErrors(prev => ({ ...prev, description: validateDescription(value, t, 500) ?? undefined }));
                   }}
                   error={errors.description}
                   maxLength={500}
@@ -492,7 +492,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                       ...prev,
                       businessCurrency: CURRENCY_WHITELIST.includes(value?.toLowerCase())
                         ? undefined
-                        : 'Please select a valid currency',
+                        : t('common:validation.currencyInvalid'),
                     }));
                   }}
                   error={touched.businessCurrency ? errors.businessCurrency : undefined}
@@ -517,7 +517,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 value={formData.businessEmail}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, businessEmail: value }));
-                  setErrors(prev => ({ ...prev, businessEmail: requiredEmailError('Business email', value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, businessEmail: requiredEmailError('businessEmail', value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, businessEmail: true }))}
                 error={touched.businessEmail ? errors.businessEmail : undefined}
@@ -556,7 +556,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 value={formData.instagramUrl}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, instagramUrl: value }));
-                  setErrors(prev => ({ ...prev, instagramUrl: validateUrlField(value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, instagramUrl: validateUrlField(value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, instagramUrl: true }))}
                 error={touched.instagramUrl ? errors.instagramUrl : undefined}
@@ -568,7 +568,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 value={formData.facebookUrl}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, facebookUrl: value }));
-                  setErrors(prev => ({ ...prev, facebookUrl: validateUrlField(value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, facebookUrl: validateUrlField(value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, facebookUrl: true }))}
                 error={touched.facebookUrl ? errors.facebookUrl : undefined}
@@ -580,7 +580,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 value={formData.tiktokUrl}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, tiktokUrl: value }));
-                  setErrors(prev => ({ ...prev, tiktokUrl: validateUrlField(value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, tiktokUrl: validateUrlField(value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, tiktokUrl: true }))}
                 error={touched.tiktokUrl ? errors.tiktokUrl : undefined}
@@ -592,7 +592,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 value={formData.websiteUrl}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, websiteUrl: value }));
-                  setErrors(prev => ({ ...prev, websiteUrl: validateUrlField(value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, websiteUrl: validateUrlField(value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, websiteUrl: true }))}
                 error={touched.websiteUrl ? errors.websiteUrl : undefined}
@@ -604,7 +604,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 value={formData.pinterestUrl}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, pinterestUrl: value }));
-                  setErrors(prev => ({ ...prev, pinterestUrl: validateUrlField(value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, pinterestUrl: validateUrlField(value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, pinterestUrl: true }))}
                 error={touched.pinterestUrl ? errors.pinterestUrl : undefined}

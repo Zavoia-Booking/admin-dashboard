@@ -110,10 +110,10 @@ const initialForm: FormState = {
 const SLIDER_COMBO_TRIGGER_CLASS =
   '!px-5 h-10 text-sm border-border-strong text-foreground-1 group disabled:opacity-50 disabled:cursor-not-allowed';
 
-const BOOKING_SOURCES: { value: AppointmentBookingSource; label: string; icon: React.ReactNode }[] = [
-  { value: 'admin' as AppointmentBookingSource, label: 'Admin', icon: <ShieldCheck className="h-4 w-4" /> },
-  { value: 'phone' as AppointmentBookingSource, label: 'Phone', icon: <Phone className="h-4 w-4" /> },
-  { value: 'walk_in' as AppointmentBookingSource, label: 'Walk-in', icon: <Footprints className="h-4 w-4" /> },
+const BOOKING_SOURCES: { value: AppointmentBookingSource; labelKey: string; icon: React.ReactNode }[] = [
+  { value: 'admin' as AppointmentBookingSource, labelKey: 'page.common.bookingSources.admin', icon: <ShieldCheck className="h-4 w-4" /> },
+  { value: 'phone' as AppointmentBookingSource, labelKey: 'page.common.bookingSources.phone', icon: <Phone className="h-4 w-4" /> },
+  { value: 'walk_in' as AppointmentBookingSource, labelKey: 'page.common.bookingSources.walkIn', icon: <Footprints className="h-4 w-4" /> },
 ];
 
 interface AppointmentItemRowService {
@@ -990,8 +990,8 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   );
 
   const notesError = useMemo(
-    () => validateDescription(form.notes, 500),
-    [form.notes],
+    () => validateDescription(form.notes, t, 500),
+    [form.notes, t],
   );
 
   const allowSubmitWhileSlotsLoading =
@@ -1795,7 +1795,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
               </div>
 
               {availableSlotsLoading && form.date && slotFetchItems ? (
-                <div className="space-y-2" aria-busy="true" aria-label="Loading next available date">
+                <div className="space-y-2" aria-busy="true" aria-label={t('page.aria.loadingNextAvailable')}>
                   <div className="flex items-start gap-2">
                     <Skeleton className="h-4 w-4 mt-0.5 flex-shrink-0 rounded-md" />
                     <div className="flex-1 min-w-0 space-y-1.5">
@@ -1834,7 +1834,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         }));
                       }}
                     >
-                      <span>Next available date</span>
+                      <span>{t('page.appointmentCard.nextAvailableDate')}</span>
                       <ArrowRight className="h-4 w-4 ml-2 text-primary transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
                     </Button>
                   </div>
@@ -1865,27 +1865,20 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                     description={t('page.appointments.add.bookingSourceDesc')}
                   />
                   <div className="flex flex-wrap gap-2 sm:gap-3">
-                    {BOOKING_SOURCES.map((source) => {
-                      const bookingSourceLabels: Record<string, string> = {
-                        admin: t('page.filters.bookingSources.admin'),
-                        phone: t('page.filters.bookingSources.phone'),
-                        walk_in: t('page.filters.bookingSources.walkIn'),
-                      };
-                      return (
-                        <Pill
-                          key={source.value}
-                          selected={form.bookingSource === source.value}
-                          showCheckmark
-                          className="!min-h-12 w-auto justify-start items-center transition-none active:scale-100"
-                          onClick={() => handleBookingSourceSelect(source.value)}
-                        >
-                          <span className="flex items-center gap-1.5">
-                            {source.icon}
-                            {bookingSourceLabels[source.value] ?? source.label}
-                          </span>
-                        </Pill>
-                      );
-                    })}
+                    {BOOKING_SOURCES.map((source) => (
+                      <Pill
+                        key={source.value}
+                        selected={form.bookingSource === source.value}
+                        showCheckmark
+                        className="!min-h-12 w-auto justify-start items-center transition-none active:scale-100"
+                        onClick={() => handleBookingSourceSelect(source.value)}
+                      >
+                        <span className="flex items-center gap-1.5">
+                          {source.icon}
+                          {t(source.labelKey)}
+                        </span>
+                      </Pill>
+                    ))}
                   </div>
                 </div>
               </>

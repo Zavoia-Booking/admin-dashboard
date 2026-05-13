@@ -311,14 +311,14 @@ function BlockDrawerTimeSlotSelect({
 // Types
 // ─────────────────────────────────────────────────────────────
 
-const WEEKDAY_LABELS: { value: number; label: string }[] = [
-  { value: 0, label: 'Sun' },
-  { value: 1, label: 'Mon' },
-  { value: 2, label: 'Tue' },
-  { value: 3, label: 'Wed' },
-  { value: 4, label: 'Thu' },
-  { value: 5, label: 'Fri' },
-  { value: 6, label: 'Sat' },
+const WEEKDAY_VALUES: { value: number }[] = [
+  { value: 0 },
+  { value: 1 },
+  { value: 2 },
+  { value: 3 },
+  { value: 4 },
+  { value: 5 },
+  { value: 6 },
 ];
 
 /** Green check for selected rows — same affordance as calendar Filters "services & bundles" list. */
@@ -395,7 +395,7 @@ function BlockRepeatWeekdaysCombo({
   }, [open]);
 
   const showListContainer = listMounted && !disabled;
-  const lastDayIdx = WEEKDAY_LABELS.length - 1;
+  const lastDayIdx = WEEKDAY_VALUES.length - 1;
 
   return (
     <div ref={rootRef} className={cn('relative', disabled && 'pointer-events-none opacity-50')}>
@@ -430,7 +430,7 @@ function BlockRepeatWeekdaysCombo({
           <Command shouldFilter={false} className="w-full min-w-0 max-w-full">
             <CommandList className="max-h-[min(260px,40vh)] w-full min-w-0 max-w-full overflow-x-hidden overflow-y-auto">
               <CommandGroup heading={listGroupHeading}>
-                {WEEKDAY_LABELS.map(({ value, label }, index) => {
+                {WEEKDAY_VALUES.map(({ value }, index) => {
                   const selected = selectedDays.includes(value);
                   return (
                     <CommandItem
@@ -444,7 +444,7 @@ function BlockRepeatWeekdaysCombo({
                       )}
                     >
                       <RepeatWeekdayListRowCheck visible={selected} />
-                      <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">{weekdayLabelMap[value] ?? label}</span>
+                      <span className="min-w-0 flex-1 text-sm font-medium text-foreground-1">{weekdayLabelMap[value]}</span>
                     </CommandItem>
                   );
                 })}
@@ -825,12 +825,12 @@ export const CreateBlockDrawer: React.FC = () => {
   const timeSlots = useTimeSlots(bookingSettings?.slotIntervalMinutes);
 
   const blockTitleError = useMemo(
-    () => validateDescription(form.title, BLOCK_TITLE_MAX_LEN),
-    [form.title],
+    () => validateDescription(form.title, t, BLOCK_TITLE_MAX_LEN),
+    [form.title, t],
   );
   const blockNotesError = useMemo(
-    () => validateDescription(form.notes, BLOCK_NOTES_MAX_LEN),
-    [form.notes],
+    () => validateDescription(form.notes, t, BLOCK_NOTES_MAX_LEN),
+    [form.notes, t],
   );
 
   // ─────────────────────────────────────────────────────────────
@@ -1240,7 +1240,7 @@ export const CreateBlockDrawer: React.FC = () => {
                     description={
                       recurrenceAllowed
                         ? t("page.blocks.create.repeatOnDesc")
-                        : t("page.blocks.create.repeatOffDesc")
+                        : t("page.blocks.create.recurringNeedsSingleDayDesc")
                     }
                   />
                   <div className="flex items-center justify-between rounded-xl border border-border bg-white px-4 py-3 dark:bg-card">

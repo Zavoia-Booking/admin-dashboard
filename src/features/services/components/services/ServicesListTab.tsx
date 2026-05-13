@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Edit, Clock, MapPin, Users, Bookmark } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatDuration } from "../../../../shared/utils/formatDuration";
 import EditServiceSlider from "./EditServiceSlider";
 import {
   createCategoryApi,
@@ -210,14 +211,6 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
     setIsEditSliderOpen(true);
   };
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ""}`;
-    }
-    return `${mins}m`;
-  };
 
   // Highlight helper using shared utility
   const highlightMatches = (text: string) => {
@@ -293,7 +286,7 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
                   {
                     icon: Clock,
                     label: text("page.service.metadata.duration"),
-                    value: formatDuration(service.duration),
+                    value: formatDuration(service.duration, text),
                   },
                 ];
 

@@ -6,6 +6,7 @@ import type { Reducer } from "redux";
 import type { Service } from "../../shared/types/service.ts";
 import { getDefaultServiceFilters } from "./utils.ts";
 import { toggleAddFormAction } from "./actions";
+import i18n from "../../shared/lib/i18n";
 
 type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
@@ -111,7 +112,7 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
       return {
         ...state,
         isLoading: false,
-        error: (action.payload as any)?.message || "An error occurred",
+        error: (action.payload as any)?.message || i18n.t("common:errors.generic"),
       };
 
     case getType(actions.setServiceFilterAction.success):
@@ -130,7 +131,7 @@ export const ServicesReducer: Reducer<ServicesState, any> = (
       return { ...state, isDeleting: false, deleteError: null, deleteResponse: action.payload };
 
     case getType(actions.deleteServicesAction.failure):
-      return { ...state, isDeleting: false, deleteError: (action.payload as any)?.message || "Failed to delete service" };
+      return { ...state, isDeleting: false, deleteError: (action.payload as any)?.message || i18n.t("common:errors.failedToDeleteService") };
 
     default:
       return state;

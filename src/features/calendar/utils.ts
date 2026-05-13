@@ -91,16 +91,7 @@ export const getWeekDays = (currentWeekStart: Date) => {
     });
 };
 
-export const STATUS_LIST = [
-    { value: 'all', label: 'Any status' },
-    { value: 'confirmed', label: 'Confirmed' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'no_show', label: 'No-show' },
-    { value: 'cancelled', label: 'Cancelled' },
-];
-
-/** Translated STATUS_LIST. Callers with `t` should prefer this over `STATUS_LIST`. */
+/** Returns the calendar status list with translated labels. */
 export function getTranslatedStatusList(t: TFunction): Array<{ value: string; label: string }> {
     return [
         { value: 'all', label: t("page.common.anyStatus") },

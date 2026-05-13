@@ -3,6 +3,7 @@ import { getType } from "typesafe-actions";
 import * as actions from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
+import i18n from "../../shared/lib/i18n";
 
 const initialState: CategoriesState = {
   categories: [],
@@ -38,7 +39,7 @@ export const CategoriesReducer: Reducer<CategoriesState, any> = (
       return {
         ...state,
         isLoading: false,
-        error: (action.payload as any)?.message || "Failed to load categories",
+        error: (action.payload as any)?.message || i18n.t("common:errors.failedToLoadCategories"),
       };
 
     default:

@@ -54,6 +54,10 @@ import enAuth from '../../locales/en/auth.json';
 import roAuth from '../../locales/ro/auth.json';
 import enCalendar from '../../locales/en/calendar.json';
 import roCalendar from '../../locales/ro/calendar.json';
+import setupWizardEn from '../../locales/en/setupWizard.json';
+import setupWizardRo from '../../locales/ro/setupWizard.json';
+import enBusiness from '../../locales/en/business.json';
+import roBusiness from '../../locales/ro/business.json';
 
 const resources = {
   en: {
@@ -77,6 +81,8 @@ const resources = {
     myProfile: enMyProfile,
     auth: enAuth,
     calendar: enCalendar,
+    setupWizard: setupWizardEn,
+    business: enBusiness,
   },
   ro: {
     services: roServices,
@@ -99,6 +105,8 @@ const resources = {
     myProfile: roMyProfile,
     auth: roAuth,
     calendar: roCalendar,
+    setupWizard: setupWizardRo,
+    business: roBusiness,
   },
 };
 

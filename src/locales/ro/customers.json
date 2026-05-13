@@ -160,6 +160,21 @@
       "cannotEdit": "Acest client a fost combinat și nu mai poate fi editat."
     },
     "history": {
+      "title": "Istoric client",
+      "subtitle": "Cronologie completă a activității acestui client.",
+      "downloadButton": "Descarcă istoricul",
+      "loadMore": "Încarcă mai multe",
+      "showingCount": "Se afișează {{shown}} din {{total}}",
+      "empty": {
+        "title": "Nu există activitate încă",
+        "body": "Programările și etapele vor apărea aici."
+      },
+      "source": {
+        "manual": "Adăugat manual",
+        "marketplace": "Prin marketplace",
+        "import": "Importat",
+        "unknown": "{{source}}"
+      },
       "downloadFailed": "Nu s-a putut genera PDF-ul",
       "downloadFailedDescription": "A apărut o problemă la crearea fișierului. Încearcă din nou.",
       "pdf": {

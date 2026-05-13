@@ -6,13 +6,14 @@ import type { LocationType } from "../../shared/types/location";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import type { DeleteResponse } from "../../shared/types/delete-response";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleFetchLocationById(action: ActionType<typeof fetchLocationByIdAction.request>): Generator<any, void, any> {
   try {
     const location: LocationType = yield call(getLocationByIdApi, action.payload.locationId);
     yield put(fetchLocationByIdAction.success({ location }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || i18n.t("locations:toasts.fetchFailed");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchLocationByIdAction.failure({ message }));
   }
 }
@@ -31,8 +32,8 @@ function* handleCreateLocation(action: ActionType<typeof createLocationAction.re
   try {
     yield call(createLocationApi, action.payload.location);
     yield put(listLocationsAction.request());
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to create location";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(createLocationAction.failure({ message }));
   }
 }
@@ -42,8 +43,8 @@ function* handleUpdateLocation(action: ActionType<typeof updateLocationAction.re
     const response: any = yield call(updateLocationApi, action.payload.location);
     yield put(updateLocationAction.success({ updateResponse: response }));
     yield put(listLocationsAction.request());
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || i18n.t("locations:toasts.updateFailed");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(updateLocationAction.failure({ message }));
   }
 }
@@ -52,8 +53,8 @@ function* handleListLocations(): Generator<any, void, any> {
   try {
     const { locations } = yield call(listLocationsApi);
     yield put(listLocationsAction.success({ locations }));
-  } catch (error: any) {
-    yield put(listLocationsAction.failure({ message: error?.message || i18n.t("locations:toasts.listFailed") }));
+  } catch (error: unknown) {
+    yield put(listLocationsAction.failure({ message: getErrorMessage(error) }));
   }
 }
 
@@ -71,8 +72,8 @@ function* handleDeleteLocation(action: ActionType<typeof deleteLocationAction.re
       toast.success(i18n.t("locations:toasts.deleteSuccess"));
       yield put(listLocationsAction.request());
     }
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || i18n.t("locations:toasts.deleteFailed");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     toast.error(message);
     yield put(deleteLocationAction.failure({ message }));
   }

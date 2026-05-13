@@ -191,7 +191,7 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
       {/* All-day block overlays — compact banner at the top, not full-height */}
       {blocks.filter(b => b.isAllDay).map(block => {
         const staffName = block.blockScope === 'staff' && block.userId
-          ? getStaffDisplayNames([block.userId], locationStaff)
+          ? getStaffDisplayNames([block.userId], locationStaff, t)
           : null;
         const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
         return (
@@ -232,7 +232,7 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
             /* Single block — stripe background + corner icon badge, no text */
             const block = group.blocks[0];
             const staffName = block.blockScope === 'staff' && block.userId
-              ? getStaffDisplayNames([block.userId], locationStaff) : null;
+              ? getStaffDisplayNames([block.userId], locationStaff, t) : null;
             const clipped = dateKey && timezone
               ? clampBlockToViewDay(block.startsAt, block.endsAt, dateKey, timezone)
               : { startsAt: block.startsAt, endsAt: block.endsAt };
@@ -430,7 +430,7 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
               >
                 <div className="flex items-center gap-1.5 min-w-0 w-full">
                   <span className="font-bold text-xs leading-tight truncate min-w-0 text-foreground">
-                    {n} appointments
+                    {t(n === 1 ? 'page.counts.appointmentOne' : 'page.counts.appointmentOther', { count: n })}
                   </span>
                 </div>
                 {cardHeight > 44 && (

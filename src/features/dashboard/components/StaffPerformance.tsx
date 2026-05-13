@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../../shared/components/ui/card';
 import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
 import { Progress } from '../../../shared/components/ui/progress';
-import { 
+import {
   Star,
   Clock
 } from 'lucide-react';
@@ -14,6 +15,7 @@ interface StaffPerformanceProps {
 export function StaffPerformance({
   staffPerformance
 }: StaffPerformanceProps) {
+  const { t } = useTranslation('dashboard');
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase();
   };
@@ -25,7 +27,7 @@ export function StaffPerformance({
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold text-foreground-1">Staff Performance</h2>
+      <h2 className="text-xl font-semibold text-foreground-1">{t('staffPerformance.heading')}</h2>
 
       {/* Staff Performance List */}
       <Card>
@@ -63,7 +65,7 @@ export function StaffPerformance({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-xs text-foreground-3">
                         <Clock className="h-3 w-3" />
-                        <span>Booked</span>
+                        <span>{t('staffPerformance.booked')}</span>
                       </div>
                       <p className="text-lg font-semibold text-foreground-1">
                         {Math.floor(staff.bookedMinutes / 60)}h {staff.bookedMinutes % 60}m
@@ -72,7 +74,7 @@ export function StaffPerformance({
 
                     {/* Utilization */}
                     <div className="space-y-1">
-                      <p className="text-xs text-foreground-3">Utilization</p>
+                      <p className="text-xs text-foreground-3">{t('staffPerformance.utilization')}</p>
                       <div className="flex items-center gap-2">
                         <Progress 
                           value={utilization} 

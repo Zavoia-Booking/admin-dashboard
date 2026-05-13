@@ -61,11 +61,9 @@ type State = {
     resolver?: Resolver;
 };
 
+// Title/confirm/cancel are filled with translated text inside the hook via translatedDefaults.
 const defaults: ConfirmOptions = {
-    title: 'Are you sure?',
     content: undefined,
-    confirmationText: 'Yes',
-    cancellationText: 'No',
     showCancel: true,
     dismissible: false, // AlertDialog behavior by default
     destructive: false,

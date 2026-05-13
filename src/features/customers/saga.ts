@@ -5,13 +5,14 @@ import type { Customer, CustomersListResponse } from "../../shared/types/custome
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleFetchCustomerById(action: ActionType<typeof fetchCustomerByIdAction.request>) {
   try {
     const customer: Customer = yield call(fetchCustomerByIdApi, action.payload.id);
     yield put(fetchCustomerByIdAction.success({ customer }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to fetch customer";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchCustomerByIdAction.failure({ message }));
   }
 }
@@ -26,8 +27,8 @@ function* handleAddCustomer(action: ActionType<typeof addCustomerAction.request>
       filters: [], 
       pagination: { offset: 0, limit: 20 } 
     }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to add customer";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(addCustomerAction.failure({ message }));
   }
 }
@@ -42,8 +43,8 @@ function* handleUpdateCustomer(action: ActionType<typeof updateCustomerAction.re
       filters: [], 
       pagination: { offset: 0, limit: 20 } 
     }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to update customer";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(updateCustomerAction.failure({ message }));
   }
 }
@@ -58,8 +59,8 @@ function* handleRemoveCustomer(action: ActionType<typeof removeCustomerAction.re
       filters: [], 
       pagination: { offset: 0, limit: 20 } 
     }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to remove customer";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(removeCustomerAction.failure({ message }));
   }
 }
@@ -74,8 +75,8 @@ function* handleMergeCustomer(action: ActionType<typeof mergeCustomerAction.requ
       filters: [], 
       pagination: { offset: 0, limit: 20 } 
     }));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to merge customers";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(mergeCustomerAction.failure({ message }));
   }
 }
@@ -84,8 +85,8 @@ function* handleListCustomers(action: ActionType<typeof listCustomersAction.requ
   try {
     const response: CustomersListResponse = yield call(listCustomersApi, action.payload);
     yield put(listCustomersAction.success(response));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to list customers";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(listCustomersAction.failure({ message }));
   }
 }

@@ -6,6 +6,7 @@ import React, {
   useImperativeHandle,
   useRef,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Label } from "../../../shared/components/ui/label";
 import { Input } from "../../../shared/components/ui/input";
 import { Phone, AlertCircle, Building2 } from "lucide-react";
@@ -39,6 +40,8 @@ import { setLogoBufferAction, clearLogoBufferAction } from "../actions";
 
 const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange }, ref) => {
+    const { t } = useTranslation('common');
+    const { t: tw } = useTranslation('setupWizard');
     const dispatch = useDispatch();
     const [industries, setIndustries] = useState<Industry[]>([]);
     const [isLoadingIndustries, setIsLoadingIndustries] = useState(true);
@@ -90,7 +93,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           ? {}
           : {
               validate: (value) => {
-                const error = validateBusinessName(value);
+                const error = validateBusinessName(value, t);
                 return error === null ? true : error;
               },
             },
@@ -106,7 +109,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           : {
               validate: (value) => {
                 if (useAccountEmail) return true; // When toggle is ON, validation is skipped
-                const error = requiredEmailError("Business email", value);
+                const error = requiredEmailError('businessEmail', value, t);
                 return error === null ? true : error;
               },
             },
@@ -120,9 +123,9 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         rules: isWizardLoading
           ? {}
           : {
-              required: "Phone number is required",
+              required: tw('stepBusinessInfo.validation.phoneRequired'),
               validate: (value: string) =>
-                isE164(value) || "Enter a valid phone number",
+                isE164(value) || tw('stepBusinessInfo.validation.phoneInvalid'),
             },
       });
 
@@ -134,10 +137,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         rules: isWizardLoading
           ? {}
           : {
-              required: "Currency is required for pricing display",
+              required: tw('stepBusinessInfo.validation.currencyRequired'),
               validate: (value) => {
                 const validCodes = ['eur', 'usd', 'ron', 'gbp', 'chf', 'sek', 'nok', 'dkk', 'pln', 'czk', 'huf', 'bgn', 'hrk', 'try'];
-                return validCodes.includes(value?.toLowerCase()) || "Please select a valid currency";
+                return validCodes.includes(value?.toLowerCase()) || tw('stepBusinessInfo.validation.currencyInvalid');
               },
             },
         defaultValue: data.businessInfo?.businessCurrency || 'eur',
@@ -151,11 +154,11 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         rules: isWizardLoading
           ? {}
           : {
-              required: "Please select your country",
+              required: tw('stepBusinessInfo.validation.countryRequired'),
               validate: (value) => {
-                if (!value || value.trim() === '') return "Please select your country";
+                if (!value || value.trim() === '') return tw('stepBusinessInfo.validation.countryRequired');
                 // ISO 3166-1 alpha-2 codes are 2 lowercase letters
-                return /^[a-z]{2}$/i.test(value) || "Please select a valid country";
+                return /^[a-z]{2}$/i.test(value) || tw('stepBusinessInfo.validation.countryInvalid');
               },
             },
         defaultValue: (data.businessInfo as any)?.countryCode || '',
@@ -169,11 +172,11 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         rules: isWizardLoading
           ? {}
           : {
-              required: "Please select your timezone",
+              required: tw('stepBusinessInfo.validation.timezoneRequired'),
               validate: (value) => {
-                if (!value || value.trim() === '') return "Please select your timezone";
+                if (!value || value.trim() === '') return tw('stepBusinessInfo.validation.timezoneRequired');
                 // IANA timezone format check (basic validation)
-                return value.includes('/') || value === 'UTC' || "Please select a valid timezone";
+                return value.includes('/') || value === 'UTC' || tw('stepBusinessInfo.validation.timezoneInvalid');
               },
             },
         defaultValue: (data.businessInfo as any)?.timezone || '',
@@ -187,7 +190,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
         rules: {
           validate: (value) => {
             if (!value || !value.trim()) return true; // Optional field
-            const error = validateDescription(value, 500);
+            const error = validateDescription(value, t, 500);
             return error === null ? true : error;
           },
         },
@@ -477,8 +480,8 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
             value={(businessNameField.value as string) || ""}
             onChange={(v) => businessNameField.onChange(v)}
             error={(businessNameState.isTouched || businessNameState.isDirty || nameHasDraft) ? (businessNameState.error?.message as unknown as string) : undefined}
-            label="Business Name"
-            placeholder="e.g. Sarah's Salon & Spa"
+            label={tw('stepBusinessInfo.businessName')}
+            placeholder={tw('stepBusinessInfo.businessNamePlaceholder')}
             required
             icon={Building2}
           />
@@ -489,7 +492,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               useInheritedContact={useAccountEmail}
               onToggleChange={handleUseAccountEmailChange}
               inheritedEmail={accountEmail}
-              inheritedLabel="your account"
+              inheritedLabel={tw('stepBusinessInfo.useAccountEmailLabel')}
               localEmail={(businessEmailField.value as string) || ""}
               localPhone={""}
               onEmailChange={(email) => businessEmailField.onChange(email)}
@@ -499,23 +502,23 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
               id="business-email-toggle"
               showEmail={true}
               showPhone={false}
-              title="Business email *"
+              title={tw('stepBusinessInfo.businessEmailTitle')}
               emailLabel=""
-              helperTextOn="Your account email will be used for business contact."
-              helperTextOff="Provide a separate email for business contact."
+              helperTextOn={tw('stepBusinessInfo.useAccountEmailOn')}
+              helperTextOff={tw('stepBusinessInfo.useAccountEmailOff')}
             />
             <div className="space-y-2">
               <Label
                 htmlFor="businessInfo.phone"
                 className="text-base font-medium cursor-default"
               >
-                Business Phone *
+                {tw('stepBusinessInfo.businessPhone')}
               </Label>
               <div className="relative">
                 <Input
                   id="businessInfo.phone"
                   type="tel"
-                  placeholder="+1 555 123 4567"
+                  placeholder={tw('stepBusinessInfo.businessPhonePlaceholder')}
                   className={`h-10 !pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                     (businessPhoneState.isTouched || businessPhoneState.isDirty || phoneHasDraft) && businessPhoneState.error
                       ? "border-destructive bg-error-bg focus-visible:ring-0"
@@ -549,8 +552,8 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
           <TextareaField
             value={(businessDescriptionField.value as string) || ""}
             onChange={(v) => businessDescriptionField.onChange(v)}
-            label="Business Description"
-            placeholder="Tell customers what makes your business special..."
+            label={tw('stepBusinessInfo.businessDescription')}
+            placeholder={tw('stepBusinessInfo.businessDescriptionPlaceholder')}
             maxLength={500}
             rows={3}
             id="businessInfo.description"
@@ -560,10 +563,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           <div className="space-y-3 pt-4">
             <Label className="text-base font-medium cursor-defaul mb-0">
-              Industry *
+              {tw('stepBusinessInfo.industry')}
             </Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              This helps us suggest relevant services and templates
+              {tw('stepBusinessInfo.industryHelper')}
             </p>
             {isLoadingIndustries ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -582,10 +585,11 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           <div className="space-y-2 pt-4">
             <Label htmlFor="businessInfo.businessCurrency" className="text-base font-medium cursor-default">
-              Currency *
+              {tw('stepBusinessInfo.currency')}
             </Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-            Choose your default pricing currency. You can always change it later in settings.            </p>
+              {tw('stepBusinessInfo.currencyHelper')}
+            </p>
             <CurrencySelect
               id="businessInfo.businessCurrency"
               value={(businessCurrencyField.value as string) || 'eur'}
@@ -596,10 +600,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           <div className="space-y-2 pt-4">
             <Label htmlFor="businessInfo.countryCode" className="text-base font-medium cursor-default">
-              Country *
+              {tw('stepBusinessInfo.country')}
             </Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              Select your business's country of operation.
+              {tw('stepBusinessInfo.countryHelper')}
             </p>
             <CountrySelect
               id="businessInfo.countryCode"
@@ -611,10 +615,10 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           <div className="space-y-2 pt-4">
             <Label htmlFor="businessInfo.timezone" className="text-base font-medium cursor-default">
-              Timezone *
+              {tw('stepBusinessInfo.timezone')}
             </Label>
             <p className="text-sm text-foreground-3 dark:text-foreground-2">
-              Select your business timezone for accurate appointment scheduling.
+              {tw('stepBusinessInfo.timezoneHelper')}
             </p>
             <TimezoneSelect
               value={(timezoneField.value as string) || ''}
@@ -626,7 +630,7 @@ const StepBusinessInfo = forwardRef<StepHandle, StepProps>(
 
           <div className="space-y-2 pt-4">
             <Label className="text-base font-medium cursor-default">
-              Business Logo (Optional)
+              {tw('stepBusinessInfo.businessLogo')}
             </Label>
             <LogoUpload
               value={businessLogo}

@@ -1,5 +1,6 @@
 import { type FC, useCallback, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import type {
   DayDataResponse,
   SlimAppointment,
@@ -45,6 +46,7 @@ const MonthEventsSheet: FC<MonthEventsSheetProps> = ({
   onSnapChange,
   onSwipeMonth,
 }) => {
+  const { t } = useTranslation("calendar");
   const [dragDelta, setDragDelta] = useState<number>(0);
   const dragRef = useRef<{ y: number; snap: number; height: number } | null>(
     null,
@@ -129,7 +131,7 @@ const MonthEventsSheet: FC<MonthEventsSheetProps> = ({
     >
       <div
         role="slider"
-        aria-label="Resize events list"
+        aria-label={t('page.aria.resizeEventsList')}
         aria-valuemin={Math.round(SHEET_MIN_SNAP * 100)}
         aria-valuemax={Math.round(SHEET_MAX_SNAP * 100)}
         aria-valuenow={Math.round(effectiveSnap * 100)}

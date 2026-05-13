@@ -119,7 +119,7 @@ export function getBlockDisplayData(
           (new Date(block.endsAt).getTime() - new Date(block.startsAt).getTime()) / 60000,
         ),
       );
-  const durationText = durationMinutes != null ? formatDurationHuman(durationMinutes) : null;
+  const durationText = durationMinutes != null ? formatDurationHuman(durationMinutes, t) : null;
 
   const staffMember =
     block.blockScope === "staff" && block.userId

@@ -72,8 +72,8 @@
   "activeAppointments": {
     "eyebrow": "Acțiune necesară",
     "title": "Mai ai programări active",
-    "message_one": "Există 1 programare activă atribuită ție. Rezolv-o înainte de a părăsi organizația.",
-    "message_other": "Există {{count}} programări active atribuite ție. Rezolvă-le înainte de a părăsi organizația.",
+    "message_one": "Există 1 programare activă alocată ție. Rezolv-o înainte de a părăsi organizația.",
+    "message_other": "Există {{count}} programări active alocate ție. Rezolvă-le înainte de a părăsi organizația.",
     "hint": "Anulează programările în așteptare tu însuți sau cere proprietarului afacerii să le realoce unui alt membru al echipei.",
     "understood": "Am înțeles"
   },

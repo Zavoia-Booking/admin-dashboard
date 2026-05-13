@@ -89,7 +89,7 @@ const QuickCreateCustomerForm: React.FC<QuickCreateCustomerFormProps> = ({
     rules: {
       validate: (value) => {
         if (!value || value.trim().length === 0) return true;
-        const error = emailError(t("page.appointments.customer.quickCreate.email"), value);
+        const error = emailError(value, t);
         return error === null ? true : error;
       },
     },

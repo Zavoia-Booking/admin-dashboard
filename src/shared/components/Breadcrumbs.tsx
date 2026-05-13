@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import type { FC } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { NotificationBell } from './common/NotificationBell';
@@ -58,6 +59,7 @@ function shouldShowBell(pathname: string, search: string): boolean {
 }
 
 export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOverride, onPrev, onNext }) => {
+  const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -84,7 +86,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
             rounded="full"
             onClick={handleBack}
             className="h-8 !w-8 shrink-0"
-            aria-label="Back"
+            aria-label={t('aria.back')}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -99,7 +101,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
                 rounded="full"
                 onClick={onPrev}
                 className="!h-7 !w-7 !min-h-7 !min-w-7 !p-0 shrink-0 active:scale-95 transition-transform"
-                aria-label="Previous"
+                aria-label={t('aria.previous')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
@@ -114,7 +116,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
                 rounded="full"
                 onClick={onNext}
                 className="!h-7 !w-7 !min-h-7 !min-w-7 !p-0 shrink-0 active:scale-95 transition-transform"
-                aria-label="Next"
+                aria-label={t('aria.next')}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>

@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { handleListNavKey, handlePeriodNavKey } from './timeUtils';
 import { Popover, PopoverContent, PopoverTrigger } from '../../components/ui/popover';
 import { Drawer, DrawerContent, DrawerTrigger, DrawerClose, DrawerFooter, DrawerTitle, DrawerDescription } from '../../components/ui/drawer';
@@ -17,6 +18,7 @@ const hours = Array.from({ length: 12 }, (_, i) => i + 1);
 const minutes = Array.from({ length: 60 }, (_, i) => i);
 
 const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, onChange, min, max, stepMinutes }) => {
+  const { t } = useTranslation('common');
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const hourScrollRef = useRef<HTMLDivElement>(null);
@@ -154,7 +156,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
       <div className="text-base font-medium text-foreground-1 text-center pb-3 border-b border-border">{headerText}</div>
       <div className="flex items-start justify-center gap-2">
         {/* Hour selector */}
-        <div className="flex flex-col items-center w-28" role="listbox" aria-label="Select hour">
+        <div className="flex flex-col items-center w-28" role="listbox" aria-label={t('aria.selectHour')}>
           <div className="text-xs text-foreground-3 dark:text-foreground-2 mb-1 font-medium pb-2">Hour</div>
           <div
             ref={hourScrollRef}
@@ -183,7 +185,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
         <div className="self-stretch w-px bg-border rounded-full mx-2" />
 
         {/* Minute selector */}
-        <div className="flex flex-col items-center w-28" role="listbox" aria-label="Select minute">
+        <div className="flex flex-col items-center w-28" role="listbox" aria-label={t('aria.selectMinute')}>
           <div className="text-xs text-foreground-3 dark:text-foreground-2 mb-1 font-medium pb-2">Minute</div>
           <div
             ref={minuteScrollRef}
@@ -212,7 +214,7 @@ const CustomTimePicker: React.FC<CustomTimePickerProps> = ({ id, label, value, o
         <div className="self-stretch w-px bg-border rounded-full mx-2" />
 
         {/* AM/PM selector */}
-        <div className="flex flex-col items-center w-20" role="listbox" aria-label="Select period">
+        <div className="flex flex-col items-center w-20" role="listbox" aria-label={t('aria.selectPeriod')}>
           <div className="text-xs text-foreground-3 dark:text-foreground-2 mb-1 font-medium">Period</div>
           <div className="flex flex-col gap-2 w-full h-44 justify-center">
             <div
