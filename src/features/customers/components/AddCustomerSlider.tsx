@@ -78,7 +78,7 @@ const AddCustomerSlider: React.FC<AddCustomerSliderProps> = ({
     rules: {
       validate: (value) => {
         if (!value || value.trim().length === 0) return true; // Optional field
-        const error = requiredEmailError("Email", value);
+        const error = requiredEmailError('email', value, t);
         return error === null ? true : error;
       },
     },

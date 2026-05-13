@@ -34,6 +34,7 @@ import type {
 } from "./types";
 import { fetchCurrentUserAction } from "../auth/actions";
 import { translateMessageCode } from "../../shared/utils/error";
+import i18n from "../../shared/lib/i18n";
 
 function extractMessage(error: any, fallback: string): string {
   const raw = error?.response?.data?.message;
@@ -48,7 +49,7 @@ function* handleGetSubscriptionSummary() {
     const response: SubscriptionSummary = yield call(getSubscriptionSummary);
     yield put(getSubscriptionSummaryAction.success({ subscriptionSummary: response }));
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to fetch pricing summary');
+    const message = extractMessage(error, i18n.t('settings:page.errors.fetchPricingSummary'));
     yield put(getSubscriptionSummaryAction.failure({ message }));
   }
 }
@@ -63,7 +64,7 @@ function* handleCreateCheckoutSession(action: ReturnType<typeof createCheckoutSe
       window.location.href = response.url;
     }
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to create checkout session');
+    const message = extractMessage(error, i18n.t('settings:page.errors.createCheckoutSession'));
     yield put(createCheckoutSessionAction.failure({ message }));
   }
 }
@@ -79,7 +80,7 @@ function* handleGetCustomerPortalUrl(action: ReturnType<typeof getCustomerPortal
       window.location.href = response.url;
     }
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to get customer portal URL');
+    const message = extractMessage(error, i18n.t('settings:page.errors.getCustomerPortalUrl'));
     yield put(getCustomerPortalUrlAction.failure({ message }));
   }
 }
@@ -97,7 +98,7 @@ function* handleModifySubscription(action: ReturnType<typeof modifySubscriptionA
       window.location.href = '/info?type=subscription-cancelled';
     }
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to modify subscription');
+    const message = extractMessage(error, i18n.t('settings:page.errors.modifySubscription'));
     yield put(modifySubscriptionAction.failure({ message }));
   }
 }
@@ -113,7 +114,7 @@ function* handleCancelRemoval() {
     // Redirect to success page
     window.location.href = '/info?type=cancel-removal-success';
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to cancel removal');
+    const message = extractMessage(error, i18n.t('settings:page.errors.cancelRemoval'));
     yield put(cancelRemovalAction.failure({ message }));
   }
 }
@@ -124,7 +125,7 @@ function* handleGetSmsBalance() {
     const response: SmsBalanceResponse = yield call(getSmsBalance);
     yield put(getSmsBalanceAction.success({ balance: response.data }));
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to fetch SMS balance');
+    const message = extractMessage(error, i18n.t('settings:page.errors.fetchSmsBalance'));
     yield put(getSmsBalanceAction.failure({ message }));
   }
 }
@@ -134,7 +135,7 @@ function* handleGetSmsPackages() {
     const response: SmsPackagesResponse = yield call(getSmsPackages);
     yield put(getSmsPackagesAction.success({ packages: response.data }));
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to fetch SMS packages');
+    const message = extractMessage(error, i18n.t('settings:page.errors.fetchSmsPackages'));
     yield put(getSmsPackagesAction.failure({ message }));
   }
 }
@@ -149,7 +150,7 @@ function* handleCreateSmsCheckout(action: ReturnType<typeof createSmsCheckoutAct
       window.location.href = response.url;
     }
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to create SMS checkout');
+    const message = extractMessage(error, i18n.t('settings:page.errors.createSmsCheckout'));
     yield put(createSmsCheckoutAction.failure({ message }));
   }
 }
@@ -164,7 +165,7 @@ function* handleGetSmsPurchases(action: ReturnType<typeof getSmsPurchasesAction.
       nextCursor: response.nextCursor
     }));
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to fetch SMS purchases');
+    const message = extractMessage(error, i18n.t('settings:page.errors.fetchSmsPurchases'));
     yield put(getSmsPurchasesAction.failure({ message }));
   }
 }
@@ -181,7 +182,7 @@ function* handleGetBusinessInvoices(action: ReturnType<typeof getBusinessInvoice
       append,
     }));
   } catch (error: any) {
-    const message = extractMessage(error, 'Failed to fetch invoices');
+    const message = extractMessage(error, i18n.t('settings:page.errors.fetchInvoices'));
     yield put(getBusinessInvoicesAction.failure({ message }));
   }
 }

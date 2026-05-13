@@ -1,4 +1,5 @@
 import { type FC } from "react";
+import { useTranslation } from "react-i18next";
 import { UserX, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar";
 import type { CalendarStaffMember } from "../../../../shared/types/calendar";
@@ -27,6 +28,7 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
   staffColorMap,
   unassignedLabel,
 }) => {
+  const { t } = useTranslation("calendar");
   const isUnassigned = staff == null;
   const initials = staff
     ? `${(staff.firstName?.[0] ?? "").toUpperCase()}${(staff.lastName?.[0] ?? "").toUpperCase()}` || "?"
@@ -47,8 +49,8 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
       aria-pressed={isFiltered}
       aria-label={
         isFiltered
-          ? `${shortName} — tap to show all staff`
-          : `Show only ${shortName}`
+          ? t('page.aria.tapToShowAllStaff', { shortName })
+          : t('page.aria.showOnlyStaff', { shortName })
       }
       className={cn(
         "flex items-center gap-1.5 w-full h-11 px-2",

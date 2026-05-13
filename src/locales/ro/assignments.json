@@ -1,7 +1,7 @@
 {
   "page": {
-    "title": "Atribuiri",
-    "subtitle": "Gestionați atribuirile de servicii și personal pe locații",
+    "title": "Alocări",
+    "subtitle": "Gestionați alocările de servicii și personal pe locații",
     "assignments": {
       "titleWithCount": "Locații ({{count}}{{ofTotal}})",
       "titleOfTotal": " din {{total}}",
@@ -11,12 +11,12 @@
       },
       "emptyState": {
         "noLocationsAvailable": "Nu sunt locații disponibile",
-        "noLocationsAvailableDescription": "Creați mai întâi locații pentru a gestiona serviciile și atribuirile de personal.",
+        "noLocationsAvailableDescription": "Creați mai întâi locații pentru a gestiona serviciile și alocările de personal.",
         "goToLocations": "Mergi la Locații",
         "noLocations": "Nu s-au găsit locații",
         "noLocationsMatchSearch": "Nicio locație nu se potrivește căutării dvs.",
         "selectLocationTitle": "Selectați o locație pentru a începe",
-        "selectLocationDescription": "Alegeți o locație din listă pentru a gestiona ce servicii sunt disponibile și configurați atribuirile membrilor echipei."
+        "selectLocationDescription": "Alegeți o locație din listă pentru a gestiona ce servicii sunt disponibile și configurați alocările membrilor echipei."
       }
     },
     "locationService": {
@@ -79,7 +79,7 @@
         "description": "Adăugați servicii pentru a le face disponibile la această locație.",
         "noServicesCreated": {
           "title": "Niciun serviciu creat încă",
-          "description": "Creați primul dvs. serviciu pentru a începe. Odată creat, îl puteți atribui acestei locații."
+          "description": "Creați primul dvs. serviciu pentru a începe. Odată creat, îl puteți aloca acestei locații."
         }
       }
     },
@@ -109,7 +109,7 @@
         "description": "Selectați pachete pentru a le face disponibile la această locație.",
         "noBundlesCreated": {
           "title": "Niciun pachet creat încă",
-          "description": "Creați primul dvs. pachet pentru a începe. Odată creat, îl puteți atribui acestei locații."
+          "description": "Creați primul dvs. pachet pentru a începe. Odată creat, îl puteți aloca acestei locații."
         },
         "noBundles": "Nu sunt pachete disponibile",
         "noBundlesDescription": "Nu există pachete disponibile pentru selecție.",
@@ -148,7 +148,7 @@
       },
       "bookingMode": {
         "title": "Permiteți clienților să selecteze membri specifici ai echipei",
-        "descriptionOff": "Clienții vor rezerva direct locația. Joburile sunt atribuite automat pe baza personalului pe care îl activați mai jos.",
+        "descriptionOff": "Clienții vor rezerva direct locația. Joburile sunt alocate automat pe baza personalului pe care îl activați mai jos.",
         "descriptionOn": "Clienții pot acum alege specialistul preferat. Puteți personaliza serviciile și prețurile pentru fiecare membru al echipei mai jos."
       },
       "simpleMode": {
@@ -164,7 +164,7 @@
         "noServices": "Fără servicii"
       },
       "status": {
-        "notAssigned": "Neatribuit"
+        "notAssigned": "Nealocat"
       },
       "badge": {
         "custom": "Tarife personalizate"
@@ -181,23 +181,23 @@
         "override": "personalizare",
         "overrides": "personalizări",
         "totalOverrides": "personalizări total",
-        "assigned": "Atribuiți",
+        "assigned": "Alocați",
         "customized": "Personalizați"
       },
       "servicesCount_one": "Oferă {{count}} serviciu",
       "servicesCount_other": "Oferă {{count}} servicii",
-      "noServicesAssigned": "Niciun serviciu atribuit încă",
+      "noServicesAssigned": "Niciun serviciu alocat încă",
       "buttons": {
         "manage": "Gestionează",
         "manageServices": "Gestionează Serviciile"
       },
       "emptyState": {
-        "title": "Niciun membru al echipei atribuit",
-        "description": "Atribuiți membri ai echipei la această locație pentru a gestiona serviciile lor.",
+        "title": "Niciun membru al echipei alocat",
+        "description": "Alocați membri ai echipei la această locație pentru a gestiona serviciile lor.",
         "noMatchingMembers": "Niciun membru al echipei nu se potrivește căutării dvs.",
         "noMembersWithOverrides": "Niciun membru al echipei nu are personalizări.",
         "noTeamMembersInBusiness": "Nu există membri ai echipei disponibili",
-        "noTeamMembersInBusinessDescription": "Adăugați mai întâi membri ai echipei în afacerea dvs. pentru a-i atribui locațiilor."
+        "noTeamMembersInBusinessDescription": "Adăugați mai întâi membri ai echipei în afacerea dvs. pentru a-i aloca locațiilor."
       }
     },
     "ariaLabels": {
@@ -261,12 +261,12 @@
       "teamMemberRemoveFailed": "Nu s-a putut elimina {{memberName}} de la această locație",
       "locationServicesUpdated": "Serviciile locației au fost actualizate cu succes",
       "locationBundlesUpdated": "Pachetele locației au fost actualizate cu succes",
-      "locationAssignmentsUpdated": "Atribuirile locației au fost actualizate cu succes",
+      "locationAssignmentsUpdated": "Alocările locației au fost actualizate cu succes",
       "teamMembersUpdated": "Membrii echipei au fost actualizați cu succes",
       "staffServicesUpdated": "Serviciile echipei au fost actualizate cu succes",
       "failedToUpdateLocationServices": "Nu s-au putut actualiza serviciile locației",
       "failedToUpdateLocationBundles": "Nu s-au putut actualiza pachetele locației",
-      "failedToUpdateLocationAssignments": "Nu s-au putut actualiza atribuirile locației",
+      "failedToUpdateLocationAssignments": "Nu s-au putut actualiza alocările locației",
       "failedToUpdateTeamMembers": "Nu s-au putut actualiza membrii echipei",
       "failedToUpdateStaffServices": "Nu s-au putut actualiza serviciile echipei",
       "failedToLoadLocationData": "Nu s-au putut încărca datele locației",

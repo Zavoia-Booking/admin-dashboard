@@ -331,7 +331,7 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
               </div>
             )}
             {!customerLoading && customerSearchCompleted && customerSearch.length >= 2 && customerResults.length === 0 && (
-              <CommandEmpty>No customers found.</CommandEmpty>
+              <CommandEmpty>{t('page.customerSearch.noneFound')}</CommandEmpty>
             )}
             {!customerLoading && customerResults.length > 0 && (
               <CommandGroup>
@@ -389,12 +389,12 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
             {customerLoadingMore && (
               <div className="flex items-center justify-center gap-2 py-3 text-xs text-foreground-3 dark:text-foreground-2">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Loading more customers...
+                {t('page.customerSearch.loadingMore')}
               </div>
             )}
             {!customerLoading && !customerLoadingMore && customerSearchCompleted && customerResults.length > 0 && !customerHasMore && (
               <div className="py-2 text-center text-xs text-foreground-3 dark:text-foreground-2">
-                End of results
+                {t('page.customerSearch.endOfResults')}
               </div>
             )}
           </CommandList>

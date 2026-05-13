@@ -445,7 +445,7 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                                   </span>
                                   {item.type === 'appointment' && item.status && (
                                     <span className="shrink-0 [&_*]:text-[10px]">
-                                      {getStatusBadge(item.status)}
+                                      {getStatusBadge(item.status, t)}
                                     </span>
                                   )}
                                 </div>

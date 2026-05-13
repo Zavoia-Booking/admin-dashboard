@@ -145,7 +145,7 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
               "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground opacity-70 transition-[opacity,color]",
               "hover:opacity-100 hover:text-destructive focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
             )}
-            aria-label="Close"
+            aria-label={t('page.common.close')}
             onClick={() => setOpen(false)}
           >
             <X className="h-5 w-5" />
@@ -199,12 +199,12 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
         {!loading && blocks && blocks.length > 0 && (
           <div className="mt-3">
             {appointments.length > 0 && (
-              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">Blocks</p>
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide mb-2">{t('page.blocks.blocks')}</p>
             )}
             <div className="space-y-2">
               {blocks.map((block) => {
                 const staffName = block.blockScope === 'staff' && block.userId
-                  ? getStaffDisplayNames([block.userId], locationStaff) : null;
+                  ? getStaffDisplayNames([block.userId], locationStaff, t) : null;
                 const ReasonIcon = getCalendarBlockReasonIcon(block.reason);
                 const durationMin = block.isAllDay ? null : Math.round(
                   (new Date(block.endsAt).getTime() - new Date(block.startsAt).getTime()) / 60000,

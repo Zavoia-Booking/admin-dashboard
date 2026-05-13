@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useSetupWizard } from "../../../shared/hooks/useSetupWizard";
 import { useDispatch, useSelector } from "react-redux";
 import { wizardCompleteAction } from "../actions";
@@ -22,34 +23,33 @@ import type { TeamMember } from "../../../shared/types/team-member";
 import type { StepHandle } from "../types";
 import LaunchPageSkeleton from "../components/LaunchPageSkeleton";
 
-const stepConfig = [
-  {
-    component: StepBusinessInfo,
-    title: "Tell Us About Your Business",
-    subtitle: "This helps us customize your booking setup.",
-  },
-  {
-    component: StepLocation,
-    title: "Where Do You Offer Services?",
-    subtitle:
-      "Help customers find you or let them know you offer remote services",
-  },
-  {
-    component: StepTeam,
-    title: "Want to Add Your Team?",
-    subtitle:
-      "Invite team members so they can take bookings, manage their schedule, or access the calendar.",
-  },
-];
-
 // Split to avoid calling wizard hooks when wizard is completed (prevents flicker)
 const WizardRunner: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { t } = useTranslation("setupWizard");
   const stepRef = useRef<StepHandle>(null);
   const [canProceedToNext, setCanProceedToNext] = useState(false);
   const [completeRequested, setCompleteRequested] = useState(false);
   const hasInitializedRef = useRef(false);
+
+  const stepConfig = [
+    {
+      component: StepBusinessInfo,
+      title: t("steps.businessInfo.title"),
+      subtitle: t("steps.businessInfo.subtitle"),
+    },
+    {
+      component: StepLocation,
+      title: t("steps.location.title"),
+      subtitle: t("steps.location.subtitle"),
+    },
+    {
+      component: StepTeam,
+      title: t("steps.team.title"),
+      subtitle: t("steps.team.subtitle"),
+    },
+  ];
 
   const {
     currentStep,
@@ -65,7 +65,11 @@ const WizardRunner: React.FC = () => {
     getProgress,
   } = useSetupWizard();
 
-  const stepLabels = ["Business Info", "Location", "Team"];
+  const stepLabels = [
+    t("steps.labels.businessInfo"),
+    t("steps.labels.location"),
+    t("steps.labels.team"),
+  ];
   const isLastStep = currentStep === totalSteps;
   const { component: CurrentStepComponent, title: effectiveTitle, subtitle: effectiveSubtitle } = stepConfig[currentStep - 1];
 
@@ -83,7 +87,7 @@ const WizardRunner: React.FC = () => {
       updateData(formData);
     }
     await saveAndFinishLater(formData);
-    toast.success("Progress Saved", { description: "You can continue setup anytime from your dashboard." });
+    toast.success(t("page.progressSavedTitle"), { description: t("page.progressSavedDescription") });
     navigate("/dashboard");
   };
 
@@ -115,7 +119,7 @@ const WizardRunner: React.FC = () => {
     
     // If there's an error, show it and reset
     if (wizardError) {
-      toast.error("We couldn't finish your setup", { description: String(wizardError), icon: undefined });
+      toast.error(t("page.completeError"), { description: String(wizardError), icon: undefined });
       setCompleteRequested(false);
       return;
     }
@@ -164,7 +168,7 @@ const WizardRunner: React.FC = () => {
       canProceed={canProceedToNext && !(completeRequested && isWizardLoading)}
       isLoading={isLoading}
       showNext={true}
-      nextLabel={currentStep === totalSteps ? "Finish Setup" : "Continue"}
+      nextLabel={currentStep === totalSteps ? t("layout.finishSetup") : t("layout.continue")}
       isLoadingDraft={showSkeleton }
     >
       {showSkeleton ? (

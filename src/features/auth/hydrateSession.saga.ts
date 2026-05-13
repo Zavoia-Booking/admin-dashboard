@@ -3,6 +3,8 @@ import { refreshSession, readCookie, CSRF_COOKIE_NAME } from "../../shared/lib/h
 import { hydrateSessionAction, setTokensAction } from "./actions";
 import type { RootState } from "../../app/providers/store";
 import { isNativeApp } from "../../app/config/env";
+import i18n from "../../shared/lib/i18n";
+import { getErrorMessage } from "../../shared/utils/error";
 // no-op
 
 
@@ -42,7 +44,7 @@ function* hydrateSessionWorker(): Generator<any, void, any> {
     // refreshSession already updates Redux state; nothing else needed here
     yield call(refreshSession);
   } catch (e: any) {
-    yield put(hydrateSessionAction.failure(e?.message || "Unable to hydrate session"));
+    yield put(hydrateSessionAction.failure({ message: getErrorMessage(e) || i18n.t('auth:page.errors.hydrateSessionFailed') }));
   }
 }
 

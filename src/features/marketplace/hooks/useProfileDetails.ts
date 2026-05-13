@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Business } from '../types';
 import { requiredEmailError, isE164, sanitizePhoneToE164Draft, validateBusinessName, validateDescription } from '../../../shared/utils/validation';
 
@@ -27,6 +28,7 @@ export function useProfileDetails({
   useBusinessDescription: initialUseBusinessDescription,
   selectedIndustryTags: initialSelectedIndustryTags,
 }: UseProfileDetailsProps) {
+  const { t } = useTranslation('marketplace');
   const [useBusinessName, setUseBusinessName] = useState<boolean>(initialUseBusinessName);
   const [useBusinessEmail, setUseBusinessEmail] = useState<boolean>(initialUseBusinessEmail);
   const [useBusinessPhone, setUseBusinessPhone] = useState<boolean>(initialUseBusinessPhone);
@@ -51,35 +53,33 @@ export function useProfileDetails({
     if (useBusinessName) {
       setNameError(null);
     } else {
-      const error = validateBusinessName(name);
+      const error = validateBusinessName(name, t);
       setNameError(error);
     }
-  }, [useBusinessName, name]);
+  }, [useBusinessName, name, t]);
 
   useEffect(() => {
     if (useBusinessEmail) {
       setEmailError(null);
     } else {
-      // Validate when switching to custom email - use helper
-      const error = requiredEmailError("Email", email);
+      const error = requiredEmailError('email', email, t);
       setEmailError(error);
     }
-  }, [useBusinessEmail, email]);
+  }, [useBusinessEmail, email, t]);
 
   useEffect(() => {
     if (useBusinessPhone) {
       setPhoneError(null);
     } else {
-      // Validate when switching to custom phone - replicate react-hook-form validation logic
       if (!phone || phone.trim().length === 0) {
-        setPhoneError("Phone number is required");
+        setPhoneError(t('common:validation.phoneRequired'));
       } else if (!isE164(phone)) {
-        setPhoneError("Enter a valid phone number");
+        setPhoneError(t('common:validation.phoneInvalid'));
       } else {
         setPhoneError(null);
       }
     }
-  }, [useBusinessPhone, phone]);
+  }, [useBusinessPhone, phone, t]);
 
   useEffect(() => {
     if (useBusinessDescription) {
@@ -88,11 +88,11 @@ export function useProfileDetails({
       if (!description || !description.trim()) {
         setDescriptionError(null);
       } else {
-        const error = validateDescription(description, 500);
+        const error = validateDescription(description, t, 500);
         setDescriptionError(error);
       }
     }
-  }, [useBusinessDescription, description]);
+  }, [useBusinessDescription, description, t]);
 
   const handleNameChange = (value: string) => {
     setName(value);
@@ -194,38 +194,38 @@ export function useProfileDetails({
 
     // Validate custom business name
     if (!useBusinessName) {
-      const error = validateBusinessName(name);
+      const error = validateBusinessName(name, t);
       setNameError(error);
       if (error) isValid = false;
     }
 
     // Only validate custom fields
     if (!useBusinessEmail) {
-      const error = requiredEmailError("Email", email);
+      const error = requiredEmailError('email', email, t);
       setEmailError(error);
       if (error) isValid = false;
     }
 
     if (!useBusinessPhone) {
       if (!phone || phone.trim().length === 0) {
-        setPhoneError("Phone number is required");
+        setPhoneError(t('common:validation.phoneRequired'));
         isValid = false;
       } else if (!isE164(phone)) {
-        setPhoneError("Enter a valid phone number");
+        setPhoneError(t('common:validation.phoneInvalid'));
         isValid = false;
       }
     }
 
     // Validate custom business description
     if (!useBusinessDescription && description && description.trim()) {
-      const error = validateDescription(description, 500);
+      const error = validateDescription(description, t, 500);
       setDescriptionError(error);
       if (error) isValid = false;
     }
 
     // Validate industry tags
     if (selectedIndustryTags.length === 0) {
-      setIndustryTagsError("Please select at least one industry tag");
+      setIndustryTagsError(t('common:validation.industryTagsRequired'));
       isValid = false;
     } else {
       setIndustryTagsError(null);

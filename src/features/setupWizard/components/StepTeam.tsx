@@ -31,6 +31,7 @@ import {
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../auth/selectors";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { emailError } from "../../../shared/utils/validation";
 
 // Local UI state for team members (includes UI-only fields like status and id)
@@ -52,6 +53,8 @@ export function getAvatarBgColor(email: string | undefined): string {
 
 const StepTeam = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
+    const { t } = useTranslation('common');
+    const { t: tw } = useTranslation('setupWizard');
     const currentUser = useSelector(selectCurrentUser);
     // Local state for team data - will be populated by useEffect
     const [localTeamMembers, setLocalTeamMembers] = useState<LocalTeamMember[]>(
@@ -142,11 +145,11 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       if (localTeamMembers.length >= 10) {
         setError("email", {
           type: "manual",
-          message: "You can invite up to 10 team members during setup",
+          message: tw('stepTeam.maxLimitError'),
         });
         return;
       }
-      
+
       // Disallow inviting your own email
       if (
         currentUser?.email &&
@@ -154,7 +157,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
       ) {
         setError("email", {
           type: "manual",
-          message: "You can't invite your own email address",
+          message: tw('stepTeam.selfEmailError'),
         });
         return;
       }
@@ -184,7 +187,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
               <div className="flex items-center justify-between gap-6 rounded-md border border-border bg-surface px-6 py-3 shadow-sm">
                 <div className="min-w-12">
                   <p className="text-sm font-medium text-foreground-1 truncate mb-2">
-                    Invite removed
+                    {tw('stepTeam.toasts.inviteRemoved')}
                   </p>
                   <p className="text-xs text-foreground-3 dark:text-foreground-2 truncate">
                     {removed.email}
@@ -204,7 +207,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     toast.dismiss(t);
                   }}
                 >
-                  Undo
+                  {tw('stepTeam.toasts.undo')}
                 </Button>
               </div>
             ),
@@ -244,7 +247,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                   localWorksSolo ? "text-neutral-900" : ""
                 }`}
               >
-                I work solo
+                {tw('stepTeam.worksSoloLabel')}
               </Label>
             </div>
             <Switch
@@ -260,13 +263,12 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
               : "text-foreground-3 dark:text-foreground-2"
           }`}>
             {localWorksSolo
-              ? "Perfect! You're all set to manage your business independently"
-              : "Enable this to skip team setup for now. You can always invite team members later from your dashboard to help manage bookings and collaborate"}
+              ? tw('stepTeam.worksSoloDescriptionOn')
+              : tw('stepTeam.worksSoloDescriptionOff')}
           </p>
           {localWorksSolo && (
             <p className="text-sm text-neutral-900 mt-3 pt-3 border-t border-info-300">
-              You can invite team members anytime from your dashboard settings
-              to collaborate and manage bookings together.
+              {tw('stepTeam.worksSoloNote')}
             </p>
           )}
         </div>
@@ -277,13 +279,13 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
             <div className="space-y-2 border-t border-border pt-6 mb-2">
               <div className="flex items-center justify-between">
                 <Label className="text-base font-medium text-foreground-1">
-                  Invite Team Member
+                  {tw('stepTeam.inviteTeamMember')}
                 </Label>
                 <Popover>
                   <PopoverTrigger asChild>
                     <button
                       type="button"
-                      aria-label="What does inviting do?"
+                      aria-label={tw('stepTeam.ariaWhatDoesInvitingDo')}
                       className="inline-flex items-center justify-center text-foreground-3 dark:text-foreground-1 hover:text-foreground-1 p-0 focus-visible:outline-none cursor-pointer"
                     >
                       <HelpCircle className="h-5 w-5" />
@@ -295,9 +297,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     sideOffset={6}
                     className="text-sm leading-relaxed max-w-xs"
                   >
-                    Team members will receive an email invitation to join your
-                    business account. They can set their own availability and
-                    manage their bookings.
+                    {tw('stepTeam.invitePopover')}
                   </PopoverContent>
                 </Popover>
               </div>
@@ -306,7 +306,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                   <div className="flex-1 relative">
                     <Input
                       type="email"
-                      placeholder="e.g. colleague@company.com"
+                      placeholder={tw('stepTeam.emailPlaceholder')}
                       autoComplete="off"
                       className={`!pr-11 transition-all focus-visible:ring-1 focus-visible:ring-offset-0 ${
                         errors.email
@@ -317,7 +317,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       {...register("email", {
                         validate: (value: string) => {
                           if (!value || !value.trim()) return true;
-                          const error = emailError("Team member email", value);
+                          const error = emailError(value, t);
                           return error === null ? true : error;
                         },
                       })}
@@ -347,7 +347,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                     className="gap-2 h-11 cursor-pointer w-full md:w-auto"
                   >
                     <Plus className="h-4 w-4" />
-                    Add Team Member
+                    {tw('stepTeam.addTeamMember')}
                   </Button>
                 </div>
                 <div className="h-5">
@@ -361,21 +361,16 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                       <span>
                         {String(
                           errors.email.message ||
-                            "Please enter a valid email address"
+                            tw('stepTeam.emailGeneralError')
                         )}
                       </span>
                     </p>
                   )}
                 </div>
                 <p className="text-sm text-foreground-3 dark:text-foreground-2 mt-2 pb-2 md:pb-0">
-                  {localTeamMembers.length >= 20 ? (
-                    "You have reached the maximum number of team member invitations during setup."
-                  ) : (
-                    <>
-                      You can invite up to {20 - localTeamMembers.length} more team member
-                      {20 - localTeamMembers.length === 1 ? "" : "s"} during setup.
-                    </>
-                  )}
+                  {localTeamMembers.length >= 20
+                    ? tw('stepTeam.limitReached')
+                    : tw('stepTeam.remainingInvites', { count: 20 - localTeamMembers.length })}
                 </p>
               </div>
             </div>
@@ -388,7 +383,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label className="text-base font-medium text-foreground-1">
-                    Invitations
+                    {tw('stepTeam.invitations')}
                   </Label>
                   <Badge variant="secondary" className="mr-2 dark:bg-sidebar text-sm">
                     {localTeamMembers.length}
@@ -431,8 +426,8 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                               variant="ghost"
                               onClick={() => removeMember(index)}
                               className="h-7 w-7 p-0 hover:bg-error-bg text-destructive cursor-pointer"
-                              aria-label="Remove invitation"
-                              title="Remove"
+                              aria-label={tw('stepTeam.ariaRemoveInvitation')}
+                              title={tw('stepTeam.removeTitle')}
                             >
                               <Trash2 className="h-3.5 w-3.5" />
                             </Button>
@@ -484,8 +479,8 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                                       variant="ghost"
                                       onClick={() => removeMember(actualIndex)}
                                       className="h-7 w-7 p-0 hover:bg-error-bg text-destructive cursor-pointer"
-                                      aria-label="Remove invitation"
-                                      title="Remove"
+                                      aria-label={tw('stepTeam.ariaRemoveInvitation')}
+                                      title={tw('stepTeam.removeTitle')}
                                     >
                                       <Trash2 className="h-3.5 w-3.5" />
                                     </Button>
@@ -501,8 +496,8 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
                             type="button"
                             aria-label={
                               showAllMembers
-                                ? "Collapse invitations"
-                                : "Expand invitations"
+                                ? tw('stepTeam.ariaCollapseInvitations')
+                                : tw('stepTeam.ariaExpandInvitations')
                             }
                             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-surface dark:bg-neutral-900 shadow-sm active:bg-surface-active cursor-pointer"
                             onClick={() => setShowAllMembers((v) => !v)}
@@ -522,8 +517,7 @@ const StepTeam = forwardRef<StepHandle, StepProps>(
             )}
             {localTeamMembers.length === 0 && (
               <p className="text-sm text-foreground-3 dark:text-foreground-2 pb-6">
-                Add teammate emails above and we'll send them invitations when
-                you complete setup.{" "}
+                {tw('stepTeam.emptyListHint')}
               </p>
             )}
           </>

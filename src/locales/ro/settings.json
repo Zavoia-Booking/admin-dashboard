@@ -1,4 +1,18 @@
 {
+  "page": {
+    "errors": {
+      "fetchPricingSummary": "Nu s-a putut obține sumarul de preț",
+      "createCheckoutSession": "Crearea sesiunii de checkout a eșuat",
+      "getCustomerPortalUrl": "Nu s-a putut obține URL-ul portalului clientului",
+      "modifySubscription": "Modificarea abonamentului a eșuat",
+      "cancelRemoval": "Anularea ștergerii a eșuat",
+      "fetchSmsBalance": "Nu s-a putut obține soldul SMS",
+      "fetchSmsPackages": "Nu s-au putut obține pachetele SMS",
+      "createSmsCheckout": "Crearea checkout-ului SMS a eșuat",
+      "fetchSmsPurchases": "Nu s-au putut obține achizițiile SMS",
+      "fetchInvoices": "Nu s-au putut obține facturile"
+    }
+  },
   "tabs": {
     "profile": "Profil",
     "profileMobile": "Profil",

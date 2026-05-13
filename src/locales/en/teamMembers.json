@@ -1,4 +1,7 @@
 {
+  "roles": {
+    "teamMember": "Team Member"
+  },
   "page": {
     "title": "Team Members",
     "displayNameFallback": {
@@ -138,7 +141,9 @@
     "listFailed": "Failed to list team members",
     "removeSuccess": "Team member removed successfully",
     "removeFailed": "Failed to remove team member",
-    "fetchFailed": "Failed to fetch team member"
+    "fetchFailed": "Failed to fetch team member",
+    "invitationCancelled": "Invitation cancelled",
+    "invitationResent": "Invitation resent"
   },
   "seatOverflow": {
     "title": "You've exceeded your seat limit",

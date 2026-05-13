@@ -149,7 +149,7 @@ export const CalendarStaffFilter: FC<CalendarStaffFilterProps> = ({
       {showLabel ? (
         <div className={CALENDAR_FILTER_SECTION_TITLE}>{servicesT("filters.byStaff")}</div>
       ) : null}
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter by staff member">
+      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('page.aria.filterByStaffMember')}>
         {!isSingleStaffLocation ? (
           <button
             type="button"

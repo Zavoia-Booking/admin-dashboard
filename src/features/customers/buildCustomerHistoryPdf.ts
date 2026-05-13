@@ -21,6 +21,8 @@ export interface CustomerHistoryPdfTranslations {
   typeMilestone: string;
   metaLine: string;
   pageFooter: string;
+  hourShort: string;
+  minuteShort: string;
 }
 
 const COLORS = {
@@ -45,11 +47,13 @@ const GAP_MD = 4;
 const PAGE_BOTTOM_SAFE = 268;
 const LABEL_COL_MM = 38;
 
-function formatDuration(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}min` : `${h}h`;
+function formatDuration(minutes: number, hUnit: string, mUnit: string): string {
+  const safe = Math.max(0, Math.floor(minutes ?? 0));
+  const h = Math.floor(safe / 60);
+  const m = safe % 60;
+  if (h === 0) return `${m} ${mUnit}`;
+  if (m === 0) return `${h}${hUnit}`;
+  return `${h}${hUnit} ${m}${mUnit}`;
 }
 
 function formatPrice(price: number, currency: string, locale: string): string {
@@ -105,7 +109,7 @@ function buildRows(
     if (m.locationName) {
       rows.push({ label: `${t.locationLabel}:`, value: m.locationName });
     }
-    rows.push({ label: `${t.durationLabel}:`, value: formatDuration(m.duration) });
+    rows.push({ label: `${t.durationLabel}:`, value: formatDuration(m.duration, t.hourShort, t.minuteShort) });
     rows.push({ label: `${t.priceLabel}:`, value: formatPrice(m.price, m.currency, locale) });
   } else if (isMilestoneMetadata(item)) {
     rows.push({

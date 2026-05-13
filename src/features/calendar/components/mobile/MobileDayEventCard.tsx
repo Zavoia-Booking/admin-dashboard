@@ -46,7 +46,7 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
   const { stripeColor } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
 
   const { clock, meridiem } = formatClockAndMeridiem(appointment.scheduledAt, timezone);
-  const durationCompact = formatDurationCompact(appointment.duration);
+  const durationCompact = formatDurationCompact(appointment.duration, t);
   const metaLabel = meridiem ? `${meridiem} · ${durationCompact}` : durationCompact;
 
   const isGroupSegment = !!appointment.bookingGroupId && (groupSize ?? 1) > 1;
@@ -72,7 +72,7 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
     <button
       type="button"
       onClick={onClick}
-      aria-label={`${statusLabel} ${appointment.bookedItemName} at ${clock}${meridiem ? ` ${meridiem}` : ''}`}
+      aria-label={t('page.aria.appointmentAt', { status: statusLabel, name: appointment.bookedItemName, clock, meridiemSuffix: meridiem ? ` ${meridiem}` : '' })}
       className={cn(
         "w-full text-left rounded-xl border border-border bg-white dark:bg-neutral-900/30 dark:bg-card",
         "shadow-sm active:scale-[0.98] transition-all duration-150",
@@ -113,7 +113,7 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
             {isGroupSegment && (
               <span
                 className="inline-flex items-center gap-1 shrink-0 rounded-full border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-foreground-3"
-                title={`Booking ${order} of ${groupSize}`}
+                title={t('page.appointmentCard.groupBookingTooltip', { order, groupSize })}
               >
                 <span
                   className="h-1.5 w-1.5 rounded-full shrink-0 ring-1 ring-background"
@@ -171,8 +171,8 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
             {appointment.overrideReason && (
               <span
                 className="inline-flex shrink-0 ml-auto"
-                title={`Override: ${appointment.overrideReason}`}
-                aria-label={`Override: ${appointment.overrideReason}`}
+                title={t('page.appointmentCard.overrideTooltip', { reason: appointment.overrideReason })}
+                aria-label={t('page.appointmentCard.overrideTooltip', { reason: appointment.overrideReason })}
               >
                 <ShieldAlert className="h-3.5 w-3.5 text-amber-500" aria-hidden />
               </span>

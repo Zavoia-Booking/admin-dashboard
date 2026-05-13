@@ -32,6 +32,7 @@ interface CustomerSearchPickerProps {
 }
 
 function CustomerSelectedCard({ display, isEditMode, onClear }: CustomerSelectedCardProps) {
+  const { t } = useTranslation('calendar');
   const avatarColorKey =
     display?.email?.trim() ||
     `${display?.firstName ?? ''}-${display?.lastName ?? ''}-${display?.phone ?? ''}`;
@@ -48,7 +49,7 @@ function CustomerSelectedCard({ display, isEditMode, onClear }: CustomerSelected
       </Avatar>
       <div className="flex-1 min-w-0">
         <div className="font-medium text-base truncate text-foreground-1">
-          {getCustomerDisplayLabel(display, isEditMode)}
+          {getCustomerDisplayLabel(display, t, isEditMode)}
         </div>
         {display?.email && (
           <div className="text-sm text-foreground-3 dark:text-foreground-2 truncate mt-0.5">{display.email}</div>
@@ -58,7 +59,7 @@ function CustomerSelectedCard({ display, isEditMode, onClear }: CustomerSelected
         )}
         {isEditMode && (
           <div className="text-xs text-foreground-3 dark:text-foreground-2 mt-1">
-            Customer cannot be changed for existing appointments.
+            {t('page.customerSearch.lockedForEdit')}
           </div>
         )}
       </div>
@@ -184,7 +185,7 @@ const CustomerSearchPicker: React.FC<CustomerSearchPickerProps> = ({
                   }}
                 >
                   <span className="text-primary text-xl leading-none font-semibold transition-transform duration-400 ease-out group-hover:scale-125">+</span>
-                  <span>New Customer</span>
+                  <span>{t('page.customerSearch.newCustomer')}</span>
                 </Button>
               ) : null
             )}

@@ -1,8 +1,8 @@
 {
-  "pageTitle": "Atribuirile mele",
+  "pageTitle": "Alocările mele",
   "toast": {
-    "loadLocationsFailed": "Nu s-au putut încărca locațiile atribuite",
-    "loadAssignmentsFailed": "Nu s-au putut încărca atribuirile"
+    "loadLocationsFailed": "Nu s-au putut încărca locațiile alocate",
+    "loadAssignmentsFailed": "Nu s-au putut încărca alocările"
   },
   "locationsPanel": {
     "title": "Locații ({{count}}{{ofTotal}})",
@@ -10,10 +10,10 @@
     "searchPlaceholder": "Caută locații..."
   },
   "services": {
-    "title": "Servicii atribuite ție",
+    "title": "Servicii alocate ție",
     "description": "Acestea sunt serviciile pe care le poți efectua la această locație cu tarifele tale actuale.",
     "stats": {
-      "assigned": "Atribuite",
+      "assigned": "Alocate",
       "customized": "Personalizate"
     },
     "defaultLabel": "Implicit",
@@ -25,13 +25,13 @@
       "showLess": "Arată mai puțin"
     },
     "emptyState": {
-      "title": "Niciun serviciu atribuit",
-      "description": "Nu ai niciun serviciu atribuit la această locație încă. Contactează managerul pentru a primi servicii atribuite."
+      "title": "Niciun serviciu alocat",
+      "description": "Nu ai niciun serviciu alocat la această locație încă. Contactează managerul pentru a primi servicii alocate."
     }
   },
   "bundles": {
     "title": "Pachete pe care le poți efectua",
-    "description": "Aceste pachete includ cel puțin un serviciu la care ești atribuit la această locație.",
+    "description": "Aceste pachete includ cel puțin un serviciu la care ești alocat la această locație.",
     "stats": {
       "assigned": "Disponibile"
     },
@@ -55,13 +55,13 @@
   },
   "emptyState": {
     "noLocations": {
-      "title": "Nicio locație atribuită",
-      "description": "Nu ești atribuit la nicio locație încă. Contactează managerul pentru a fi atribuit la locații."
+      "title": "Nicio locație alocată",
+      "description": "Nu ești alocat la nicio locație încă. Contactează managerul pentru a fi alocat la locații."
     },
     "noLocationsMatchSearch": "Nicio locație nu corespunde căutării",
     "selectLocation": {
       "title": "Selectează o locație",
-      "description": "Alege o locație din listă pentru a vedea serviciile și pachetele tale atribuite."
+      "description": "Alege o locație din listă pentru a vedea serviciile și pachetele tale alocate."
     }
   }
 }

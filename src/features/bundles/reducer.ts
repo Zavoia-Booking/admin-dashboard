@@ -3,6 +3,7 @@ import { type ActionType, getType } from "typesafe-actions";
 import * as actions from "./actions";
 import { logoutRequestAction } from "../auth/actions";
 import type { Reducer } from "redux";
+import i18n from "../../shared/lib/i18n";
 
 type Actions = ActionType<typeof actions> | ActionType<typeof logoutRequestAction>;
 
@@ -53,7 +54,7 @@ export const BundlesReducer: Reducer<BundlesState, any> = (
       return {
         ...state,
         isLoading: false,
-        error: action.payload.message || "An error occurred",
+        error: action.payload.message || i18n.t("common:errors.generic"),
       };
 
     case getType(actions.createBundleAction.success):
@@ -77,14 +78,14 @@ export const BundlesReducer: Reducer<BundlesState, any> = (
       return {
         ...state,
         isLoading: false,
-        error: action.payload.message || "An error occurred",
+        error: action.payload.message || i18n.t("common:errors.generic"),
       };
 
     case getType(actions.deleteBundleAction.failure):
       return {
         ...state,
         isDeleting: false,
-        deleteError: action.payload.message || "An error occurred",
+        deleteError: action.payload.message || i18n.t("common:errors.generic"),
         deleteResponse: action.payload,
       };
 

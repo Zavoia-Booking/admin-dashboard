@@ -29,6 +29,7 @@ import type { RootState } from "../../app/providers/store";
 import { refreshSession } from "../../shared/lib/http";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
 import { getErrorMessage } from "../../shared/utils/error";
+import i18n from "../../shared/lib/i18n";
 
 function* handleRegisterOwnerRequest(action: { type: string; payload: RegisterOwnerPayload }): Generator<any, void, any> {
   try {
@@ -84,8 +85,8 @@ function* handleLogout(): Generator<any, void, any> {
     // Still clear the token even if API call fails
     yield call([tokenStorage, 'clearRefreshToken']);
     
-    const message = error?.response?.data?.error || error?.message || "Logout failed";
-    yield put(logoutRequestAction.failure(message));
+    const message = getErrorMessage(error) || i18n.t('auth:page.errors.logoutFailed');
+    yield put(logoutRequestAction.failure({ message }));
   }
 }
 
@@ -178,7 +179,7 @@ function* handleFetchCurrentUser(): Generator<any, void, any> {
     const user: AuthUser = (yield call(getCurrentUserApi)) as any;
     yield put(setAuthUserAction({ user }));
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Fetch current user failed";
+    const message = getErrorMessage(error) || i18n.t('auth:page.errors.fetchCurrentUserFailed');
     yield put(fetchCurrentUserAction.failure({ message }));
   }
 }
@@ -187,8 +188,8 @@ function* handleForgotPassword(action: { type: string; payload: { email: string 
   try {
     yield call(forgotPasswordApi, action.payload);
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Forgot password failed";
-    yield put(forgotPasswordAction.failure(message));
+    const message = getErrorMessage(error) || i18n.t('auth:page.errors.forgotPasswordFailed');
+    yield put(forgotPasswordAction.failure({ message }));
   }
 }
 
@@ -399,7 +400,7 @@ function* handleReauthForLink(action: ReturnType<typeof reauthForLinkAction.requ
     const txId: string | undefined = yield select((s: RootState) => (s as any).auth.pendingLinkTxId);
     
     if (!txId) {
-      yield put(reauthForLinkAction.failure({ message: 'Link session expired. Please try Google sign-in again.' }));
+      yield put(reauthForLinkAction.failure({ message: i18n.t('auth:page.errors.linkSessionExpired') }));
       yield put(closeAccountLinkingModal());
       return;
     }
@@ -408,7 +409,7 @@ function* handleReauthForLink(action: ReturnType<typeof reauthForLinkAction.requ
     yield put(reauthForLinkAction.success({ proof: res.proof }));
     yield put(linkGoogleAction.request({ tx_id: txId, proof: res.proof }));
   } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || 'Verification failed';
+    const message = getErrorMessage(error) || i18n.t('auth:page.errors.verificationFailed');
     yield put(reauthForLinkAction.failure({ message }));
   }
 }
@@ -432,12 +433,12 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     yield put(fetchCurrentUserAction.request());
     
     // Close modal and show success
-    yield put(linkGoogleAction.success({ message: 'Google account linked successfully!' }));
+    yield put(linkGoogleAction.success({ message: i18n.t('auth:page.toasts.googleLinkedSuccess') }));
     yield put(closeAccountLinkingModal());
-    
+
     // Determine context; for register flow we stay on wizard (handled elsewhere)
     const { toast } = yield import('sonner');
-    toast.success('Google account linked!');
+    toast.success(i18n.t('auth:page.toasts.googleLinked'));
     
     // Clear context marker
     try { sessionStorage.removeItem('linkContext'); } catch { /* empty */ }
@@ -449,7 +450,7 @@ function* handleLinkGoogle(action: ReturnType<typeof linkGoogleAction.request>):
     yield put(listLocationsAction.request());
     
   } catch (error: any) {
-    const message = getErrorMessage(error) || 'Failed to link Google account';
+    const message = getErrorMessage(error) || i18n.t('auth:page.errors.googleLinkFailed');
     yield put(linkGoogleAction.failure({ message }));
   }
 }
@@ -471,11 +472,11 @@ function* handleUnlinkGoogle(action: ReturnType<typeof unlinkGoogleAction.reques
       yield put(setAuthUserAction({ user: updatedUser }));
     }
     
-    yield put(unlinkGoogleAction.success({ message: 'Google account unlinked successfully' }));
-    
+    yield put(unlinkGoogleAction.success({ message: i18n.t('auth:page.toasts.googleUnlinkedSuccess') }));
+
     // Show success message
     const { toast } = yield import('sonner');
-    toast.success('Google account has been unlinked from your account.');
+    toast.success(i18n.t('auth:page.toasts.googleUnlinked'));
   } catch (error: any) {
     const rawMessage = error?.response?.data?.message;
     const code = typeof rawMessage === 'string' && /^[A-Z_]+\.[A-Z]\d{2}$/.test(rawMessage)
@@ -514,11 +515,11 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
     }
     
     yield put(setAuthUserAction({ user: response.user }));
-    yield put(linkGoogleByCodeAction.success({ message: 'Google account linked', user: response.user, accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
-    
+    yield put(linkGoogleByCodeAction.success({ message: i18n.t('auth:page.toasts.googleLinkedShort'), user: response.user, accessToken: response.accessToken, csrfToken: response.csrfToken ?? null }));
+
     // Defer toast to Settings page after redirect
     try {
-      sessionStorage.setItem('postLinkToast', 'Google account linked to your profile');
+      sessionStorage.setItem('postLinkToast', i18n.t('auth:page.toasts.googleLinkedToProfile'));
       sessionStorage.setItem('postLinkToastType', 'success');
     } catch { /* empty */ }
     
@@ -535,7 +536,7 @@ function* handleLinkGoogleByCode(action: ReturnType<typeof linkGoogleByCodeActio
       }
     }, 100);
   } catch (error: any) {
-    const message = getErrorMessage(error) || 'Failed to link Google account';
+    const message = getErrorMessage(error) || i18n.t('auth:page.errors.googleLinkFailed');
     yield put(linkGoogleByCodeAction.failure({ message }));
     // Defer toast to Settings page after redirect
     try {
@@ -605,7 +606,7 @@ function* handleSendBusinessLinkEmail(action: ReturnType<typeof sendBusinessLink
     // Show success toast
     try {
       const { toast } = yield import('sonner');
-      toast.success('Email sent! Please check your inbox to complete the account linking.');
+      toast.success(i18n.t('auth:page.toasts.emailLinkSent'));
     } catch {}
   } catch (error: any) {
     const message = getErrorMessage(error);

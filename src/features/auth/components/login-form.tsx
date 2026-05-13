@@ -83,13 +83,13 @@ export function LoginForm() {
           </Link>.
         </Banner>
       )}
-      <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} isLoading={isLoading} />
+      <CredentialsForm ref={credRef} onSubmit={handleCredentialsSubmit} submitLabel={t('login.submitLabel')} loadingLabel={t('credentials.loggingIn')} isLoading={isLoading} />
       <div className="flex justify-center mt-1">
         <button
           type="button"
           onClick={() => navigate('/login?forgot=1')}
           className="cursor-pointer text-sm text-foreground-2 hover:text-primary underline-offset-4 hover:underline transition-colors"
-          aria-label="Forgot your password?"
+          aria-label={t('loginAria.forgotPassword')}
         >
           {t('login.forgotPassword')}
         </button>

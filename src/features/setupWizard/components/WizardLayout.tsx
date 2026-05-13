@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Progress } from "../../../shared/components/ui/progress";
 import { Button } from "../../../shared/components/ui/button";
 import { Save, ArrowLeft, ArrowRight, X, Check } from "lucide-react";
@@ -18,13 +19,15 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
   onSave,
   canProceed,
   isLoading,
-  nextLabel = "Continue",
+  nextLabel,
   onClose,
   stepLabels,
   onGoToStep,
   showNext,
   isLoadingDraft = false,
 }) => {
+  const { t } = useTranslation("setupWizard");
+  const resolvedNextLabel = nextLabel ?? t("layout.continue");
   return (
     <div className="min-h-[100svh] cursor-default">
       <div className="container mx-auto pt-0 md:pt-8 pb-0 md:pb-8 min-h-[100svh] flex flex-col">
@@ -35,7 +38,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
               <div className="md:sticky md:top-0 md:max-h-screen md:overflow-auto pb-4 md:rounded-tl-2xl">
                 <div className="px-4 min-h-20 bg-surface border-b flex items-center">
                   <h1 className="text-xl font-semibold text-foreground-1 ">
-                    Business Setup Wizard
+                    {t("layout.businessSetupWizard")}
                   </h1>
                 </div>
                 <div className="mb-4 mt-4 px-4">
@@ -51,7 +54,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     className="h-1.5 [&>div]:bg-primary bg-surface mb-2"
                   />
                   <div className="text-sm text-foreground-3 dark:text-foreground-2">
-                    {Math.round(progress)}% completed
+                    {t("layout.completed", { value: Math.round(progress) })}
                   </div>
                     </>
                   )}
@@ -70,7 +73,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     (
                     stepLabels ||
                     Array.from({ length: totalSteps }).map(
-                      (_, i) => `Step ${i + 1}`
+                      (_, i) => t("layout.stepFallback", { number: i + 1 })
                     )
                   ).map((label, idx) => {
                     const stepNum = idx + 1;
@@ -125,7 +128,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                 {/* Mobile: first row (title + actions) */}
                 <div className="md:hidden flex items-center justify-between">
                   <div className="text-lg font-semibold text-foreground-1">
-                    Business Setup
+                    {t("layout.businessSetup")}
                   </div>
                   <div className="flex items-center gap-2">
                     {onSave && (
@@ -141,7 +144,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                           <>
                             <span className="opacity-0 inline-flex items-center gap-2">
                               <Save className="hidden md:inline text-primary" />
-                              <span>Save Draft</span>
+                              <span>{t("layout.saveDraft")}</span>
                             </span>
                             <span className="absolute inset-0 flex items-center justify-center">
                               <Spinner size="sm" color="default" />
@@ -150,7 +153,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                         ) : (
                           <>
                             <Save className="hidden md:inline text-primary" />
-                            <span>Save Draft</span>
+                            <span>{t("layout.saveDraft")}</span>
                           </>
                         )}
                       </Button>
@@ -159,7 +162,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Close"
+                        aria-label={t("layout.close")}
                         onClick={onClose}
                         className="h-8 w-8"
                       >
@@ -184,7 +187,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                         <>
                           <span className="opacity-0 inline-flex items-center gap-2">
                             <Save className="hidden md:inline text-primary" />
-                            <span>Save Draft</span>
+                            <span>{t("layout.saveDraft")}</span>
                           </span>
                           <span className="absolute inset-0 flex items-center justify-center">
                             <Spinner size="sm" color="default" />
@@ -193,7 +196,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                       ) : (
                           <>
                           <Save className="hidden md:inline text-primary" />
-                          <span>Save Draft</span>
+                          <span>{t("layout.saveDraft")}</span>
                         </>
                       )}
                     </Button>
@@ -202,7 +205,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     <Button
                       variant="ghost"
                       size="icon"
-                      aria-label="Close"
+                      aria-label={t("layout.close")}
                       onClick={onClose}
                       className="h-8 w-8 ml-2 [&_svg]:!size-5"
                     >
@@ -224,7 +227,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     <>
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-foreground-3">
-                      {Math.round(progress)}% completed
+                      {t("layout.completed", { value: Math.round(progress) })}
                     </span>
                   </div>
                   <Progress
@@ -258,7 +261,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                   className="gap-2 h-11 w-40 cursor-pointer"
                 >
                   <ArrowLeft className="h-4 w-4" />
-                  Back
+                  {t("layout.back")}
                 </Button>
                 {showNext !== false && (
                   <Button
@@ -267,7 +270,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     disabled={!canProceed}
                     className={`gap-2 h-11 ${currentStep === 3 ? 'w-48' : 'w-40'} cursor-pointer`}
                   >
-                    {nextLabel}
+                    {resolvedNextLabel}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 )}
@@ -290,7 +293,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                     className="h-11 cursor-pointer flex-1"
                   >
                     <ArrowLeft className="h-4 w-4" />
-                    Back
+                    {t("layout.back")}
                   </Button>
                   {showNext !== false && (
                     <Button
@@ -299,7 +302,7 @@ const WizardLayout: React.FC<WizardLayoutProps> = ({
                       disabled={!canProceed}
                       className="h-11 cursor-pointer flex-2"
                     >
-                      {nextLabel}
+                      {resolvedNextLabel}
                       <ArrowRight className="h-4 w-4" />
                     </Button>
                   )}

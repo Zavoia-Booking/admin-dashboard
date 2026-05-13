@@ -13,6 +13,7 @@ import {
   Clock,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { formatDuration } from "../../../../shared/utils/formatDuration";
 import { BundleFilters } from "./BundleFilters";
 import { EmptyState } from "../../../../shared/components/common/EmptyState";
 import AddBundleSlider from "./AddBundleSlider";
@@ -175,16 +176,6 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
     dispatch(listBundlesAction.request());
   };
 
-  // Format duration helper (same as services)
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ""}`;
-    }
-    return `${mins}m`;
-  };
-
   // Calculate total duration from all services in bundle
   const getTotalDuration = (bundle: Bundle): number => {
     return bundle.services.reduce(
@@ -344,7 +335,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                       {
                         icon: Clock,
                         label: t("page.service.metadata.duration"),
-                        value: formatDuration(getTotalDuration(bundle)),
+                        value: formatDuration(getTotalDuration(bundle), t),
                       },
                     ]}
                     price={formatBundlePrice(bundle)}

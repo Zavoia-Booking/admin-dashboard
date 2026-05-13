@@ -80,7 +80,7 @@ export const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = "s
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          aria-label={t("common:changeLanguage", { defaultValue: "Change language" })}
+          aria-label={t("common:changeLanguage")}
           className={triggerClassName}
         >
           <div className={innerWrapperClassName}>

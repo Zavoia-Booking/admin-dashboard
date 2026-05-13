@@ -17,16 +17,14 @@ import type {
   TeamMemberReviewsResponse,
 } from "./types";
 import type { ActionType } from "typesafe-actions";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleFetchReviewStats() {
   try {
     const response: ReviewStatsResponse = yield call(getReviewStatsApi);
     yield put(fetchReviewStatsAction.success(response.data));
-  } catch (error: any) {
-    const message =
-      error?.response?.data?.error ||
-      error?.message ||
-      "Failed to fetch review stats";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchReviewStatsAction.failure({ message }));
   }
 }
@@ -40,11 +38,8 @@ function* handleFetchBusinessReviews(
       action.payload,
     );
     yield put(fetchBusinessReviewsAction.success(response));
-  } catch (error: any) {
-    const message =
-      error?.response?.data?.error ||
-      error?.message ||
-      "Failed to fetch business reviews";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchBusinessReviewsAction.failure({ message }));
   }
 }
@@ -58,11 +53,8 @@ function* handleFetchMoreBusinessReviews(
       action.payload,
     );
     yield put(fetchMoreBusinessReviewsAction.success(response));
-  } catch (error: any) {
-    const message =
-      error?.response?.data?.error ||
-      error?.message ||
-      "Failed to fetch business reviews";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchMoreBusinessReviewsAction.failure({ message }));
   }
 }
@@ -76,11 +68,8 @@ function* handleFetchTeamMemberReviews(
       action.payload,
     );
     yield put(fetchTeamMemberReviewsAction.success(response));
-  } catch (error: any) {
-    const message =
-      error?.response?.data?.error ||
-      error?.message ||
-      "Failed to fetch team member reviews";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchTeamMemberReviewsAction.failure({ message }));
   }
 }
@@ -94,11 +83,8 @@ function* handleFetchMoreTeamMemberReviews(
       action.payload,
     );
     yield put(fetchMoreTeamMemberReviewsAction.success(response));
-  } catch (error: any) {
-    const message =
-      error?.response?.data?.error ||
-      error?.message ||
-      "Failed to fetch team member reviews";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchMoreTeamMemberReviewsAction.failure({ message }));
   }
 }

@@ -8,7 +8,8 @@ import { apiClient } from "../../shared/lib/http";
 import { tokenStorage } from "../../shared/lib/tokenStorage";
 import type { RootState } from "../../app/providers/store";
 import type { WizardData } from "../../shared/hooks/useSetupWizard";
-import { translateMessageCode } from "../../shared/utils/error";
+import { translateMessageCode, getErrorMessage } from "../../shared/utils/error";
+import i18n from "../../shared/lib/i18n";
 
 // Helper function to upload logo file to R2
 function* uploadLogoIfNeeded(wizardData: Partial<WizardData>) {
@@ -105,7 +106,7 @@ function* handleWizardSave(action: { type: string; payload: any }) {
       yield put(clearLogoBufferAction());
     }
   } catch (error: any) {
-    yield put(wizardSaveAction.failure({ message: error?.message || 'Failed to save progress' }));
+    yield put(wizardSaveAction.failure({ message: getErrorMessage(error) || i18n.t('setupWizard:page.errors.saveFailed') }));
   }
 }
 
@@ -176,7 +177,7 @@ function* handleWizardComplete(action: { type: string; payload: any }) {
     const raw = error?.response?.data?.message ?? error?.message;
     const message = Array.isArray(raw)
       ? raw.filter(Boolean).map((m: string) => translateMessageCode(m)).join('\n')
-      : (translateMessageCode(raw ?? '') || 'Something went wrong, please try again');
+      : (translateMessageCode(raw ?? '') || i18n.t('setupWizard:page.errors.completeFailed'));
     yield put(wizardCompleteAction.failure({ message }));
   }
 }
@@ -191,7 +192,7 @@ function* loadDraftData() {
       yield put(wizardLoadDraftAction.success(wizardData));
     }
   } catch (error: any) {
-    yield put(wizardLoadDraftAction.failure({ message: error?.message || 'Failed to load draft' }));
+    yield put(wizardLoadDraftAction.failure({ message: getErrorMessage(error) || i18n.t('setupWizard:page.errors.loadDraftFailed') }));
   }
 }
 

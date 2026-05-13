@@ -1,4 +1,5 @@
 import { memo, type FC, useMemo, type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import type {
   SlimAppointment,
   CalendarStaffMember,
@@ -97,6 +98,7 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
   day,
   locationStaff,
 }) => {
+  const { t } = useTranslation("calendar");
   // Group overlapping appointments into a single summary card — mirrors week-view behavior.
   const overlapGroups = useMemo(() => getOverlapGroups(appointments), [appointments]);
   const enableDnd = !!gridSlotStarts && gridSlotStarts.length > 0;
@@ -233,7 +235,7 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
                 style={{ top: top + 4, height: cardHeight }}
               >
                 <span className="font-bold text-[11px] leading-tight truncate min-w-0 text-foreground">
-                  {n} appointments
+                  {t(n === 1 ? 'page.counts.appointmentOne' : 'page.counts.appointmentOther', { count: n })}
                 </span>
                 {cardHeight > 36 && (
                   <span className="text-[10px] leading-none text-muted-foreground tabular-nums block mt-1">

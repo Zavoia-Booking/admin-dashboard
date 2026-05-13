@@ -6,14 +6,14 @@
       "week": "Săptămână",
       "day": "Zi",
       "block": "Blocare",
-      "addEvent": "Adaugă eveniment",
+      "addEvent": "Programare nouă",
       "calendarSettings": "Setări calendar",
       "hideSidebar": "Ascunde bara laterală",
       "showSidebar": "Afișează bara laterală",
       "switchToList": "Comută la lista de programări",
       "switchToGrid": "Comută la grila calendarului",
       "filters": "Filtre",
-      "clearAll": "Șterge tot",
+      "clearAll": "Șterge filtrele",
       "apply": "Aplică",
       "calendarFilters": "Filtre calendar",
       "calendarFiltersDrawerDesc": "Filtrează calendarul după personal, status, serviciu și altele. Apasă Aplică pentru a actualiza afișarea.",
@@ -24,8 +24,6 @@
       "subtitle": "Configurează afișarea și regulile calendarului.",
       "save": "Salvează",
       "cancel": "Anulează",
-      "savedToast": "Setările calendarului au fost salvate",
-      "saveFailedToast": "Setările calendarului nu au putut fi salvate",
       "displayPreferences": {
         "title": "Preferințe de afișare",
         "description": "Alege cum arată și funcționează calendarul.",
@@ -59,6 +57,7 @@
       }
     },
     "filters": {
+      "addMore": "Editează selecția",
       "anyStatus": "Orice status",
       "anyStatusTitle": "Orice status al programării",
       "anySource": "Orice sursă",
@@ -70,7 +69,8 @@
       "anyServiceOrBundle": "Orice serviciu sau pachet",
       "noMatchingServiceOrBundle": "Nu există servicii sau pachete care să corespundă.",
       "allSelected": "Toate selectate",
-      "nSelected": "{{count}} selectate",
+      "nSelected_one": "{{count}} selectat",
+      "nSelected_other": "{{count}} selectate",
       "servicesGroup": "Servicii",
       "bundlesGroup": "Pachete",
       "allStaff": "Tot personalul",
@@ -114,7 +114,7 @@
       "noMatchFiltersInline": "Nicio programare nu corespunde filtrelor selectate.",
       "noMatchFiltersForDay": "Nicio programare nu corespunde filtrelor selectate pentru această zi.",
       "closed": "Închis",
-      "addEvent": "Adaugă eveniment",
+      "addEvent": "Programare nouă",
       "updateStatus": "Actualizează statusul",
       "markAsComplete": "Marchează ca finalizată",
       "markCompleteConfirm": "Vrei să marchezi această programare ca finalizată?",
@@ -213,8 +213,8 @@
         "fixed": "Fix",
         "discount": "Reducere",
         "nothingToUpdate": "Nu există modificări",
-        "failedToUpdate": "Programarea nu a putut fi actualizată",
-        "failedToCreate": "Grupul de rezervări nu a putut fi creat",
+        "failedToUpdate": "Programarea nu a putut fi actualizată. Te rugăm să încerci din nou.",
+        "failedToCreate": "Grupul de programări nu a putut fi creat. Te rugăm să încerci din nou.",
         "cannotSchedulePast": "Nu poți crea o programare în trecut.",
         "cannotReschedulePast": "Nu poți reprograma o programare în trecut.",
         "spansTwoDays": "Această programare se întinde pe două zile. Încheie-o până la miezul nopții și creează o programare separată pentru ziua următoare.",
@@ -247,7 +247,7 @@
         "clientDescription": "Opțional. Caută un client existent sau adaugă unul venit fără programare.",
         "searchPlaceholder": "Caută clienți...",
         "customerCreated": "Client creat",
-        "customerCreateFailed": "Clientul nu a putut fi creat",
+        "customerCreateFailed": "Clientul nu a putut fi creat. Te rugăm să încerci din nou.",
         "quickCreate": {
           "firstNameRequired": "Prenumele este obligatoriu",
           "firstNameMin": "Prenumele trebuie să aibă cel puțin 2 caractere",
@@ -261,7 +261,7 @@
           "lastName": "Nume",
           "lastNamePlaceholder": "ex. Popescu",
           "email": "Email",
-          "emailPlaceholder": "ex. contact@afacereatamea.com",
+          "emailPlaceholder": "ex. maria.popescu@example.com",
           "phone": "Telefon",
           "phonePlaceholder": "+40 712 345 678",
           "create": "Creează"
@@ -269,20 +269,21 @@
       }
     },
     "blocks": {
+      "blocks": "Intervale blocate",
       "allDay": "Toată ziua",
       "fromTime": "De la {{time}}",
       "untilTime": "Până la {{time}}",
       "multiDayRange": "{{startDate}} {{startTime}} – {{endDate}} {{endTime}}",
       "multiDayAllDayRange": "{{startDate}} – {{endDate}} · Toată ziua",
       "recurring": "Recurent",
-      "recurringBlock": "Blocare recurentă",
-      "deleteBlock": "Ștergi blocarea?",
+      "recurringBlock": "Interval blocat recurent",
+      "deleteBlock": "Ștergi intervalul blocat?",
       "deleteDescription": "Aceasta va șterge definitiv {{scopeLabel}}{{titleSuffix}}. Acțiunea nu poate fi anulată.",
       "cancelBtn": "Anulează",
       "deleteBtn": "Șterge",
-      "editBlock": "Editează blocarea",
-      "deleteBlockBtn": "Șterge blocarea",
-      "blockDetails": "Detalii blocare",
+      "editBlock": "Editează intervalul blocat",
+      "deleteBlockBtn": "Șterge intervalul blocat",
+      "blockDetails": "Detalii interval blocat",
       "details": "Detalii",
       "actions": "Acțiuni",
       "scope": {
@@ -299,7 +300,7 @@
         "reason": "Motiv",
         "time": "Interval",
         "notes": "Note",
-        "assignedStaff": "Personal atribuit",
+        "assignedStaff": "Personal alocat",
         "location": "Locație",
         "business": "Afacere",
         "appliesTo": "Se aplică la"
@@ -317,8 +318,8 @@
       },
       "create": {
         "blockTime": "Blochează interval",
-        "editBlock": "Editează blocarea",
-        "createBlock": "Creează blocarea",
+        "editBlock": "Editează intervalul blocat",
+        "createBlock": "Creează intervalul blocat",
         "saveChanges": "Salvează modificările",
         "blockTimeSubtitle": "Marchează intervalul ca indisponibil pentru rezervări.",
         "editBlockSubtitle": "Actualizează intervalul indisponibil din calendar.",
@@ -344,7 +345,7 @@
         "multiDayContinuousHelper": "Blochează continuu de la {{startDate}} {{startTime}} până la {{endDate}} {{endTime}}. Activează Repetă pentru un tipar zilnic sau săptămânal.",
         "repeat": "Repetă",
         "repeatOnDesc": "Activează pentru a transforma această blocare într-una recurentă.",
-        "repeatOffDesc": "Blocările recurente trebuie să fie într-o singură zi calendaristică \u2014 setează data de sfârșit în aceeași zi cu data de început.",
+        "recurringNeedsSingleDayDesc": "Blocările recurente trebuie să fie într-o singură zi calendaristică. Setează data de sfârșit în aceeași zi cu data de început.",
         "makeRecurring": "Recurentă",
         "daily": "Zilnic",
         "weekly": "Săptămânal",
@@ -371,8 +372,8 @@
         "endDate": "Data de sfârșit",
         "title": "Titlu",
         "optional": "(opțional)",
-        "failedToUpdate": "Blocarea nu a putut fi actualizată",
-        "failedToCreate": "Blocarea nu a putut fi creată",
+        "failedToUpdate": "Intervalul blocat nu a putut fi actualizat. Te rugăm să încerci din nou.",
+        "failedToCreate": "Intervalul blocat nu a putut fi creat. Te rugăm să încerci din nou.",
         "weekdayLabels": {
           "sun": "Dum",
           "mon": "Lun",
@@ -390,7 +391,44 @@
         "selectTime": "Selectează ora"
       }
     },
+    "counts": {
+      "appointmentOne": "{{count}} programare",
+      "appointmentOther": "{{count}} programări",
+      "blockOne": "{{count}} interval blocat",
+      "blockOther": "{{count}} intervale blocate"
+    },
+    "aria": {
+      "openFilters": "Deschide filtrele calendarului",
+      "selectedServicesAndBundles": "Servicii și pachete selectate",
+      "filterByStatus": "Filtrează după starea programării",
+      "filterByBookingSource": "Filtrează după sursa rezervării",
+      "filterByStaffMember": "Filtrează după membru al echipei",
+      "scrollToGroupServices": "Derulează la serviciile acestui grup de rezervări",
+      "loadingNextAvailable": "Se încarcă următoarea dată disponibilă",
+      "resizeEventsList": "Redimensionează lista programărilor",
+      "tapToShowAllStaff": "{{shortName}} — apasă pentru a afișa toți membrii",
+      "showOnlyStaff": "Arată doar {{shortName}}",
+      "appointmentAt": "{{status}} {{name}} la {{clock}}{{meridiemSuffix}}",
+      "appointmentFallback": "Programare"
+    },
+    "appointmentCard": {
+      "cancelled": "Anulată",
+      "nextAvailableDate": "Următoarea dată disponibilă",
+      "groupBookingTooltip": "Rezervarea {{order}} din {{groupSize}}",
+      "overrideTooltip": "Excepție: {{reason}}"
+    },
+    "dayGrid": {
+      "locationClosedThisDay": "Locația este închisă în această zi"
+    },
+    "customerSearch": {
+      "lockedForEdit": "Clientul nu poate fi schimbat pentru programări existente.",
+      "newCustomer": "Client nou",
+      "noneFound": "Niciun client găsit.",
+      "loadingMore": "Se încarcă mai mulți clienți...",
+      "endOfResults": "Sfârșitul rezultatelor"
+    },
     "common": {
+      "done": "Gata",
       "statuses": {
         "confirmed": "Confirmată",
         "completed": "Finalizată",
@@ -407,13 +445,13 @@
       "bookedVia": {
         "admin": "Rezervată din admin",
         "phone": "Rezervată prin telefon",
-        "walkIn": "Rezervată fără programare",
+        "walkIn": "Fără programare",
         "marketplace": "Rezervată prin marketplace",
         "empty": "Rezervată prin \u2014",
         "generic": "Rezervată prin {{source}}"
       },
       "noCustomerData": "Nu există date despre client",
-      "unassigned": "Neatribuit",
+      "unassigned": "Nealocat",
       "unknown": "Necunoscut",
       "customer": "Client",
       "staffId": "Personal #{{id}}",
@@ -425,7 +463,7 @@
       "yesterday": "Ieri",
       "inDays": "Peste {{count}} zile",
       "daysAgo": "Acum {{count}} zile",
-      "assignedTo": "Atribuit lui {{names}}",
+      "assignedTo": "Alocat lui {{names}}",
       "unnamedCustomer": "Client fără nume",
       "clearFilters": "Șterge filtrele",
       "dayNames": {
@@ -460,13 +498,13 @@
       "confirm": "Confirmă"
     },
     "toasts": {
-      "bookingCreated": "Rezervare creată",
-      "bookingGroupCreated": "Grup de programări creat ({{count}} servicii)",
-      "bookingGroupCreationFailed": "Grupul de rezervări nu a putut fi creat",
-      "bookingGroupRescheduled": "Grup de rezervări reprogramat",
+      "bookingCreated": "Programare creată",
+      "bookingGroupCreated": "Grup de programări creat ({{count}} elemente)",
+      "bookingGroupCreationFailed": "Grupul de programări nu a putut fi creat",
+      "bookingGroupRescheduled": "Grup de programări reprogramat",
       "rescheduleGroupFailed": "Grupul nu a putut fi reprogramat",
       "appointmentUpdated": "Programare actualizată",
-      "appointmentUpdateFailed": "Programarea nu a putut fi actualizată",
+      "appointmentUpdateFailed": "Programarea nu a putut fi actualizată. Te rugăm să încerci din nou.",
       "appointmentStatusCompleted": "Programare finalizată",
       "appointmentStatusNoShow": "Programare marcată ca neprezentare",
       "appointmentStatusGeneric": "Programare actualizată la {{status}}",
@@ -474,26 +512,26 @@
       "appointmentCancelled": "Programare anulată",
       "appointmentCancelFailed": "Programarea nu a putut fi anulată",
       "slotUnavailable": "Interval indisponibil",
-      "slotUnavailableDesc": "Poți continua reprogramarea folosind o excepție.",
+      "slotUnavailableDesc": "Poți continua cu o excepție administrativă dacă ai permisiune.",
       "staffConflict": "Acest membru al echipei are deja o programare la această oră. Alege altă oră sau alt membru al echipei.",
       "timeSlotNotAvailable": "Interval orar indisponibil",
-      "blockCreated": "Blocare creată",
-      "blockCreateFailed": "Blocarea nu a putut fi creată",
-      "blockDeleted": "Blocare ștearsă",
-      "blockDeleteFailed": "Blocarea nu a putut fi ștearsă",
-      "blockUpdated": "Blocare actualizată",
-      "blockUpdateFailed": "Blocarea nu a putut fi actualizată",
+      "blockCreated": "Interval blocat creat",
+      "blockCreateFailed": "Intervalul blocat nu a putut fi creat. Te rugăm să încerci din nou.",
+      "blockDeleted": "Interval blocat șters",
+      "blockDeleteFailed": "Intervalul blocat nu a putut fi șters. Te rugăm să încerci din nou.",
+      "blockUpdated": "Interval blocat actualizat",
+      "blockUpdateFailed": "Intervalul blocat nu a putut fi actualizat. Te rugăm să încerci din nou.",
       "settingsSaved": "Setările calendarului au fost salvate",
-      "settingsSaveFailed": "Setările calendarului nu au putut fi salvate"
+      "settingsSaveFailed": "Setările calendarului nu au putut fi salvate. Te rugăm să încerci din nou."
     },
     "dnd": {
-      "unassigned": "Programările trebuie atribuite unui membru al echipei.",
+      "unassigned": "Programările trebuie alocate unui membru al echipei.",
       "staffConflict": "Acest membru al echipei are deja o programare la această oră. Alege altă oră sau alt membru al echipei.",
       "staffBufferConflict": "Acest interval se află în cele {{minutes}} minute tampon necesare între programările acestui membru al echipei. Alege altă oră sau alt membru.",
       "blockOverlap": "Acest interval se suprapune cu o blocare din calendar. Alege altă oră sau editează blocarea.",
       "pastTime": "Nu poți reprograma în trecut.",
-      "groupReassign": "Grupurile de programări pot fi doar reprogramate, nu reatribuite altui membru al echipei.",
-      "ineligibleStaff": "{{staffLabel}} nu este atribuit pentru acest serviciu. Alege alt membru al echipei sau editează programarea.",
+      "groupReassign": "Grupurile de programări pot fi doar reprogramate, nu realocate altui membru al echipei.",
+      "ineligibleStaff": "{{staffLabel}} nu este alocat pentru acest serviciu. Alege alt membru al echipei sau editează programarea.",
       "pastMidnight": "Programarea ar depăși miezul nopții.",
       "thisTeamMember": "Acest membru al echipei",
       "mobileCrossColumnRejected": "Deschide programarea pentru a schimba membrul echipei."
@@ -501,8 +539,8 @@
     "groupDialog": {
       "appointmentCount_one": "{{count}} programare",
       "appointmentCount_other": "{{count}} programări",
-      "blockCount_one": "{{count}} blocare",
-      "blockCount_other": "{{count}} blocări",
+      "blockCount_one": "{{count}} interval blocat",
+      "blockCount_other": "{{count}} intervale blocate",
       "loading": "Se încarcă..."
     }
   }

@@ -1,4 +1,8 @@
 {
+  "locationSwitcher": {
+    "locationsHeader": "Locații",
+    "addLocation": "Adaugă locație"
+  },
   "breadcrumbs": {
     "dashboard": "Acasă",
     "calendar": "Calendar",
@@ -16,7 +20,7 @@
   "sidebar": {
     "dashboard": "Acasă",
     "calendar": "Calendar",
-    "assignments": "Atribuiri",
+    "assignments": "Alocări",
     "teamMembers": "Membri echipă",
     "services": "Servicii",
     "locations": "Locații",
@@ -26,7 +30,7 @@
     "account": "Cont",
     "logOut": "Deconectare",
     "teamMember": {
-      "assignments": "Atribuiri",
+      "assignments": "Alocări",
       "customers": "Clienți",
       "profile": "Marketplace",
       "account": "Cont"
@@ -62,7 +66,7 @@
   },
   "mobileNav": {
     "more": "Mai mult",
-    "assignments": "Atribuiri",
+    "assignments": "Alocări",
     "marketplace": "Marketplace"
   },
   "theme": {

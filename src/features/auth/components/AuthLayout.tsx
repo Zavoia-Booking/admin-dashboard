@@ -51,7 +51,7 @@ export function AuthLayout() {
   const subtitle = isForgotMode
     ? t("forgotPassword.subtitle")
     : mode === "login"
-      ? "Login to your Zavoia workspace."
+      ? t("login.workspaceSubtitle")
       : undefined
 
   const [legalDialog, setLegalDialog] = useState<LegalPageType | null>(null)

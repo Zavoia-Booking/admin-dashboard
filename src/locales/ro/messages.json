@@ -1,124 +1,77 @@
 {
   "AUTH": {
-    "S01": "Invitație trimisă",
-    "S02": "Invitație acceptată",
-    "S03": "Completează înregistrarea",
-    "S04": "Cont creat",
-    "S05": "Cont Google deconectat",
-    "S06": "Parolă setată",
-    "S07": "Te-ai deconectat",
-    "S08": "Dacă emailul există, am trimis un link de resetare",
-    "S09": "Parolă resetată",
-    "S10": "Email deja verificat",
-    "S11": "Email verificat",
-    "S12": "Cont de proprietar creat",
-    "S13": "Email de verificare trimis (dacă este cazul)",
-    "S14": "Email de verificare trimis deja. Verifică inboxul",
-    "S15": "Acces de proprietar acordat",
-    "S16": "Cont creat cu Google",
-    "S17": "Continuă configurarea afacerii",
-    "S18": "Cont de proprietar creat",
-    "S19": "Autentificat cu Google",
-    "S20": "Cont Google conectat și autentificat",
-    "S21": "Cont Google conectat",
-    "S22": "Parolă actualizată",
-
     "E01": "Acest utilizator este deja în echipa ta",
     "E02": "Nu te poți invita pe tine",
     "E03": "Utilizatorul are deja o invitație în așteptare",
     "E04": "Selectează cel puțin o locație",
     "E05": "Ai atins limita echipei. Fă upgrade pentru mai mulți membri",
     "E06": "Nu am putut trimite invitația. Încearcă din nou",
-    "E07": "Locații invalide sau fără acces",
+    "E07": "Unele locații sunt invalide sau nu ai acces",
     "E08": "Autentifică-te pentru a continua",
     "E09": "Introdu parola pentru a deconecta Google",
     "E10": "Nu există un cont Google conectat",
     "E11": "Setează o parolă înainte să deconectezi Google",
     "E12": "Parolă incorectă",
-    "E13": "Cont negăsit",
+    "E13": "Contul nu a fost găsit",
     "E14": "Parola trebuie să aibă cel puțin 8 caractere",
-    "E15": "Parola este deja setată. Folosește schimbarea parolei",
+    "E15": "Parola este deja setată. Folosește butonul Schimbă parola",
     "E16": "Folosește autentificarea cu Google",
     "E17": "Selectează o afacere",
     "E18": "Este necesară verificarea Google",
     "E19": "Ai deja o afacere",
-    "E20": "Contul există. Adaugi acces de proprietar?",
+    "E20": "Există deja un cont cu acest email",
     "E21": "Ai o invitație în așteptare",
-    "E22": "Cont negăsit. Înregistrează-te",
+    "E22": "Nu am găsit un cont. Înregistrează-te",
     "E23": "Autentifică-te din nou pentru a continua",
     "E24": "Linkul de resetare este invalid sau expirat",
     "E25": "Lipsește linkul de verificare",
     "E26": "Linkul de verificare este invalid sau expirat",
     "E27": "Autentificarea cu Google a eșuat",
     "E28": "Email sau parolă incorecte",
-    "E29": "Nu ai acces la acest panou",
+    "E29": "Nu ai acces la acest dashboard",
     "E30": "Emailul Google nu se potrivește cu contul",
-    "E31": "Contul există. Adaugi acces de proprietar?",
-    "E32": "Contul există. Adaugi acces de proprietar?",
+    "E31": "Acest email este deja conectat la un cont de client marketplace",
+    "E32": "Acest email este deja conectat la un cont de membru al echipei",
     "E33": "Email deja folosit",
     "E34": "Parola trebuie să conțină literă mare, mică, cifră și simbol",
     "E35": "Introdu un număr de telefon valid",
-    "E36": "Nu ai parolă setată. Seteaz-o acum",
+    "E36": "Setează mai întâi o parolă",
     "E37": "Parola curentă este greșită",
     "E38": "Nu am putut schimba parola. Încearcă din nou"
   },
   "ACCOUNT": {
-    "S01": "Cont dezactivat",
-    "S02": "Cont reactivat",
-    "S03": "Ștergerea contului programată",
-    "S04": "Ștergerea contului anulată",
-    "S05": "Ai părăsit organizația",
-
     "E01": "Nu am putut actualiza contul. Încearcă din nou",
     "E02": "Rolul contului nu a fost găsit",
     "E03": "Nu poți face această acțiune",
-    "E04": "Elimină toți membrii echipei înainte să ștergi contul",
-    "E05": "Rezolvă programările active înainte să pleci",
-    "E06": "Nu am putut părăsi organizația. Încearcă din nou",
-    "E07": "Părăsește toate organizațiile înainte să ștergi contul",
-    "E08": "Rezolvă toate programările înainte să ștergi contul",
-    "E09": "Anulează abonamentul înainte să ștergi contul",
-    "E10": "Rezolvă problemele de mai jos pentru a continua"
+    "E05": "Finalizează sau anulează programările active înainte să pleci",
+    "E06": "Nu am putut părăsi afacerea. Încearcă din nou",
+    "E09": "Anulează abonamentul înainte să ștergi contul"
   },
   "LOCATION": {
-    "S01": "Locație adăugată",
-    "S02": "Locație actualizată",
-    "S03": "Locație ștearsă",
-
-    "E01": "Locație negăsită sau fără acces",
+    "E01": "Nu ai acces la această locație",
     "E02": "Nu am putut crea locația. Încearcă din nou",
     "E03": "Nu am putut actualiza locația. Încearcă din nou",
     "E04": "Nu am putut șterge locația. Încearcă din nou",
     "E05": "Selecție invalidă de locații",
     "E06": "Această locație nu aparține afacerii tale",
-    "E07": "Această locație nu poate fi ștearsă (este în uz)"
+    "E07": "Această locație nu poate fi ștearsă pentru că este în uz"
   },
   "SERVICE": {
-    "S01": "Serviciu adăugat",
-    "S02": "Serviciu actualizat",
-    "S03": "Serviciu șters",
-
-    "E01": "Serviciu negăsit sau fără acces",
+    "E01": "Nu ai acces la acest serviciu",
     "E02": "Nu am putut crea serviciul. Încearcă din nou",
     "E03": "Nu am putut actualiza serviciul. Încearcă din nou",
     "E04": "Nu am putut șterge serviciul. Încearcă din nou",
     "E05": "Serviciul există deja",
-    "E06": "Locații invalide sau fără acces",
-    "E07": "Membri invalizi sau fără acces",
-    "E08": "Acest serviciu nu poate fi șters (este în uz)"
+    "E06": "Unele locații sunt invalide sau nu ai acces",
+    "E07": "Unii membri sunt invalizi sau nu ai acces",
+    "E08": "Acest serviciu nu poate fi șters pentru că este în uz"
   },
   "TEAM": {
-    "S01": "Membru actualizat",
-    "S02": "Invitație anulată",
-    "S03": "Invitație retrimisă",
-    "S04": "Membru eliminat",
-    "S05": "Membru dezactivat",
-
-    "E01": "Locații invalide sau fără acces",
-    "E02": "Servicii invalide sau fără acces",
-    "E03": "Membru negăsit sau fără acces",
+    "E01": "Unele locații sunt invalide sau nu ai acces",
+    "E02": "Unele servicii sunt invalide sau nu ai acces",
+    "E03": "Nu ai acces la acest membru",
     "E04": "Nu am putut actualiza membrul. Încearcă din nou",
-    "E05": "Cont negăsit",
+    "E05": "Contul nu a fost găsit",
     "E06": "Poți anula doar invitațiile din afacerea ta",
     "E07": "Acest utilizator este deja activ",
     "E08": "Nu am putut anula invitația. Încearcă din nou",
@@ -128,19 +81,19 @@
     "E12": "Invitație invalidă sau utilizator deja înregistrat",
     "E13": "Nu am putut elimina membrul. Încearcă din nou",
     "E14": "Selecție invalidă de membri",
-    "E15": "Acest membru nu poate fi eliminat (are asignări active)",
-    "E16": "Nu poți elimina proprietarul"
+    "E15": "Acest membru nu poate fi eliminat — are alocări active",
+    "E16": "Nu poți elimina proprietarul",
+    "E17": "Gestionează toate programările viitoare înainte să elimini acest membru",
+    "E18": "Alege un membru valid căruia să realoci programările",
+    "E19": "Acest membru nu poate efectua serviciul selectat",
+    "E20": "Nu am putut retrage membrul de la locație. Încearcă din nou"
   },
   "CATEGORY": {
-    "S01": "Categorie adăugată",
-    "S02": "Categorie actualizată",
-    "S03": "Categorie ștearsă",
-
-    "E01": "Categorie negăsită sau fără acces",
+    "E01": "Nu ai acces la această categorie",
     "E02": "Nu am putut actualiza categoria. Încearcă din nou",
     "E03": "Nu am putut crea categoria. Încearcă din nou",
     "E04": "Nu am putut șterge categoria. Încearcă din nou",
-    "E05": "Categorie invalidă sau fără acces",
+    "E05": "Categorie invalidă sau nu ai acces",
     "E06": "Ai atins limita de categorii (max. 25)",
     "E07": "Nume de categorie invalid",
     "E08": "Culoare invalidă"
@@ -154,30 +107,18 @@
     "E06": "Link de invitație invalid",
     "E07": "Acest link a fost deja folosit",
     "E08": "Acest link a expirat",
-    "E09": "Afacere negăsită"
+    "E09": "Afacerea nu a fost găsită"
   },
   "ASSIGNMENTS": {
-    "S01": "Asignări încărcate",
-    "S02": "Asignări membru actualizate",
-    "S03": "Asignări serviciu actualizate",
-    "S04": "Asignări locație actualizate",
-
-    "E01": "Nu am putut încărca asignările echipei. Încearcă din nou",
-    "E02": "Nu am putut încărca asignările serviciului. Încearcă din nou",
-    "E03": "Nu am putut încărca asignările locației. Încearcă din nou",
-    "E04": "Nu am putut actualiza asignările membrului. Încearcă din nou",
-    "E05": "Nu am putut actualiza asignările serviciului. Încearcă din nou",
-    "E06": "Nu am putut actualiza asignările locației. Încearcă din nou"
+    "E01": "Nu am putut încărca alocările echipei. Încearcă din nou",
+    "E02": "Nu am putut încărca alocările serviciului. Încearcă din nou",
+    "E03": "Nu am putut încărca alocările locației. Încearcă din nou",
+    "E04": "Nu am putut actualiza alocările membrului. Încearcă din nou",
+    "E05": "Nu am putut actualiza alocările serviciului. Încearcă din nou",
+    "E06": "Nu am putut actualiza alocările locației. Încearcă din nou"
   },
   "MARKETPLACE_LISTING": {
-    "S01": "Listare încărcată",
-    "S02": "Listare actualizată",
-    "S03": "Listare publicată",
-    "S04": "Listare retrasă",
-    "S05": "Setări de vizibilitate actualizate",
-    "S06": "Setări de programare actualizate",
-
-    "E01": "Afacere negăsită",
+    "E01": "Afacerea nu a fost găsită",
     "E02": "Nu am putut încărca listarea. Încearcă din nou",
     "E03": "Nu am putut actualiza listarea. Încearcă din nou",
     "E04": "Nu am putut publica listarea. Încearcă din nou",
@@ -189,21 +130,14 @@
     "E10": "Selecție invalidă de servicii",
     "E11": "Selecție invalidă de categorii",
     "E12": "Selecție invalidă de membri",
-    "E13": "Setări de vizibilitate negăsite",
+    "E13": "Setările de vizibilitate nu au fost găsite",
     "E14": "Nu am putut actualiza vizibilitatea. Încearcă din nou",
     "E15": "Nu am putut încărca setările de programare. Încearcă din nou",
     "E16": "Nu am putut actualiza setările de programare. Încearcă din nou",
-    "E17": "Ai nevoie de un abonament activ pentru vizibilitate"
+    "E17": "Ai nevoie de un abonament activ pentru a publica listarea în marketplace"
   },
   "BUSINESS_CUSTOMER": {
-    "S01": "Client adăugat",
-    "S02": "Client actualizat",
-    "S03": "Client eliminat",
-    "S04": "Clienți uniți",
-    "S05": "Client conectat la cont",
-    "S06": "Duplicat ignorat",
-
-    "E01": "Client negăsit",
+    "E01": "Clientul nu a fost găsit",
     "E02": "Există deja un client cu acest email",
     "E03": "Acest client este conectat la un cont și nu poate fi editat",
     "E04": "Nu poți uni același client",
@@ -220,81 +154,30 @@
     "E15": "Nu am putut încărca istoricul clientului. Încearcă din nou"
   },
   "BUSINESS": {
-    "S01": "Afacere actualizată",
-
-    "E01": "Afacere negăsită",
+    "E01": "Afacerea nu a fost găsită",
     "E02": "Nu am putut actualiza afacerea. Încearcă din nou",
     "E03": "Nu am putut încărca afacerea. Încearcă din nou",
-    "E04": "Industrie negăsită"
+    "E04": "Industria nu a fost găsită"
   },
   "BUNDLE": {
-    "S01": "Pachet creat",
-    "S02": "Pachet actualizat",
-    "S03": "Pachet șters",
-
-    "E01": "Pachet negăsit sau fără acces",
+    "E01": "Nu ai acces la acest pachet",
     "E02": "Nu am putut crea pachetul. Încearcă din nou",
     "E03": "Nu am putut actualiza pachetul. Încearcă din nou",
     "E04": "Nu am putut șterge pachetul. Încearcă din nou",
-    "E05": "Servicii invalide sau fără acces",
+    "E05": "Unele servicii sunt invalide sau nu ai acces",
     "E06": "Adaugă cel puțin un serviciu",
     "E07": "Introdu un preț fix",
     "E08": "Introdu un procent de reducere",
     "E09": "Reducerea trebuie să fie între 0 și 100",
-    "E10": "Acest pachet nu poate fi șters (este în uz)"
-  },
-  "CUSTOMER_BOOKING": {
-    "S01": "Calendar încărcat",
-    "S02": "Intervale disponibile încărcate",
-
-    "E01": "Afacere negăsită",
-    "E02": "Această afacere nu este disponibilă pentru programări",
-    "E03": "Locație negăsită",
-    "E04": "Această locație nu este disponibilă pentru programări",
-    "E05": "Serviciu negăsit",
-    "E06": "Acest serviciu nu este disponibil la această locație",
-    "E07": "Nu există disponibilitate pentru acest serviciu la această locație",
-    "E08": "Acest membru nu poate efectua serviciul",
-    "E09": "Nu am putut încărca disponibilitatea. Încearcă din nou"
-  },
-  "CUSTOMER": {
-    "S01": "Cont dezactivat",
-
-    "E01": "Nu am putut dezactiva contul. Încearcă din nou"
-  },
-  "PUSH_NOTIFICATION": {
-    "S01": "Notificări activate",
-    "S02": "Notificări dezactivate",
-    "S03": "Notificări încărcate",
-    "S04": "Număr necitite încărcat",
-    "S05": "Notificare marcată ca citită",
-    "S06": "Toate notificările marcate ca citite",
-    "S07": "Notificare trimisă",
-
-    "E01": "Nu am putut activa notificările. Încearcă din nou",
-    "E02": "Nu am putut dezactiva notificările. Încearcă din nou",
-    "E03": "Nu am putut încărca notificările. Încearcă din nou",
-    "E04": "Nu am putut încărca numărul de necitite. Încearcă din nou",
-    "E05": "Nu am putut marca notificarea ca citită",
-    "E06": "Nu am putut marca notificările ca citite",
-    "E07": "Nu am putut trimite notificarea. Încearcă din nou",
-    "E08": "Token invalid"
+    "E10": "Acest pachet nu poate fi șters pentru că este în uz"
   },
   "TEAM_MEMBER_ACCOUNT": {
-    "S01": "Profil încărcat",
-    "S02": "Profil actualizat",
-    "S03": "Poză de profil încărcată",
-    "S04": "Parolă actualizată",
-    "S05": "Profil marketplace actualizat",
-    "S06": "Imagine portofoliu încărcată",
-    "S07": "Imagine portofoliu ștearsă",
-
-    "E01": "Cont negăsit",
+    "E01": "Contul nu a fost găsit",
     "E02": "Nu am putut încărca profilul. Încearcă din nou",
     "E03": "Nu am putut actualiza profilul. Încearcă din nou",
     "E04": "Nu am putut încărca poza de profil. Încearcă din nou",
     "E05": "Email deja folosit",
-    "E06": "Nu ai parolă setată. Seteaz-o acum",
+    "E06": "Setează mai întâi o parolă",
     "E07": "Parola curentă este greșită",
     "E08": "Nu am putut schimba parola. Încearcă din nou",
     "E09": "Nu am putut încărca profilul marketplace. Încearcă din nou",
@@ -302,105 +185,52 @@
     "E11": "Imaginea este prea mare",
     "E12": "Format de imagine invalid",
     "E13": "Completează profilul marketplace mai întâi",
-    "E14": "Imagine negăsită",
+    "E14": "Imaginea nu a fost găsită",
     "E15": "Nu am putut încărca imaginile. Încearcă din nou",
     "E16": "Nu am putut încărca imaginea. Încearcă din nou",
     "E17": "Nu am putut șterge imaginea. Încearcă din nou",
     "E18": "Nu am putut încărca locațiile. Încearcă din nou",
-    "E19": "Locație negăsită sau fără acces",
-    "E20": "Nu am putut încărca asignările. Încearcă din nou"
+    "E19": "Nu ai acces la această locație",
+    "E20": "Nu am putut încărca alocările. Încearcă din nou"
   },
   "DASHBOARD": {
-    "S01": "Dashboard încărcat",
-    "S02": "Layout salvat",
-
     "E01": "Nu am putut încărca dashboard-ul. Încearcă din nou",
     "E02": "Nu am putut salva layout-ul. Încearcă din nou"
   },
   "SMS": {
-    "S01": "Prețuri regionale create",
-    "S02": "Prețuri regionale actualizate",
-    "S03": "Prețuri regionale șterse",
-    "S04": "Pachet SMS creat",
-    "S05": "Pachet SMS actualizat",
-    "S06": "Pachet SMS șters",
-    "S07": "Achiziție pornită",
-    "S08": "Credite SMS adăugate",
-
     "E01": "Aceste coduri de țară sunt deja folosite în altă regiune",
-    "E02": "Prețuri regionale negăsite",
+    "E02": "Prețurile regionale nu au fost găsite",
     "E03": "Șterge pachetele înainte să ștergi regiunea",
-    "E04": "Pachet SMS negăsit",
+    "E04": "Pachetul SMS nu a fost găsit",
     "E05": "Cantitatea este prea mică",
     "E06": "Cantitatea este prea mare",
     "E07": "Configurație pachet invalidă",
-    "E08": "Achiziție negăsită",
+    "E08": "Achiziția nu a fost găsită",
     "E09": "Date de pachet invalide",
     "E10": "A apărut o problemă. Încearcă din nou",
     "E11": "Nu există prețuri pentru această țară",
     "E12": "Nu ai suficiente credite SMS"
   },
   "REVIEW": {
-    "S01": "Recenzii încărcate",
-    "S02": "Statistici încărcate",
-
     "E01": "Nu am putut încărca recenziile. Încearcă din nou",
     "E02": "Nu am putut încărca statisticile. Încearcă din nou",
-    "E03": "Membru negăsit sau fără acces"
+    "E03": "Nu ai acces la acest membru"
   },
   "BUSINESS_NOTIFICATION": {
-    "S01": "Notificări încărcate",
-    "S02": "Notificare marcată ca citită",
-    "S03": "Toate notificările marcate ca citite",
-
-    "E01": "Notificare negăsită",
+    "E01": "Notificarea nu a fost găsită",
     "E02": "Nu am putut procesa notificarea. Încearcă din nou"
   },
   "SUPPORT": {
-    "S01": "Tichet creat",
-    "S02": "Tichete încărcate",
-    "S03": "Detalii tichet încărcate",
-    "S04": "Mesaj trimis",
-    "S05": "Tichet închis",
-
     "E01": "Nu am putut încărca tichetele. Încearcă din nou",
     "E02": "Nu am putut crea tichetul. Încearcă din nou",
-    "E03": "Tichet negăsit",
+    "E03": "Tichetul nu a fost găsit",
     "E04": "Acest tichet este închis",
     "E05": "Nu am putut trimite mesajul. Încearcă din nou",
     "E06": "Nu am putut închide tichetul. Încearcă din nou"
   },
   "MAP_TILES": {
-    "S01": "Hartă încărcată",
-    "S02": "Locații încărcate",
-
     "E01": "Coordonate invalide",
-    "E02": "Nivel de zoom nesuportat",
     "E03": "Nu am putut încărca harta. Încearcă din nou"
-  },
-  "MARKETPLACE_BOOKING": {
-    "S01": "Programare făcută",
-    "S02": "Rezervare confirmată",
-
-    "E01": "Această afacere nu este disponibilă pentru programări",
-    "E02": "Acest serviciu nu este disponibil online",
-    "E03": "Această locație nu este disponibilă",
-    "E04": "Acest membru nu este disponibil",
-    "E05": "Acest membru nu oferă acest serviciu",
-    "E06": "Acest interval nu mai este disponibil",
-    "E07": "Nu am putut finaliza programarea. Încearcă din nou",
-    "E08": "Este prea devreme. Alege un interval mai târziu",
-    "E09": "Este prea departe în viitor",
-    "E10": "Acest interval se suprapune cu altă programare",
-    "E11": "Acest interval este în afara programului",
-    "E12": "Acest serviciu este deja adăugat",
-    "E13": "Nu există disponibilitate pentru acest serviciu la această oră",
-    "E14": "Acest interval nu este disponibil",
-    "E15": "Acest membru nu lucrează la această oră",
-    "E16": "Pachet negăsit",
-    "E17": "Acest membru nu poate efectua toate serviciile din pachet",
-    "E18": "Alege un serviciu sau un pachet, nu ambele"
   },
   "fallback": "A apărut o problemă. Încearcă din nou sau contactează suportul"
 }
-

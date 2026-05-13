@@ -1,35 +1,32 @@
 {
   "marketing": {
     "hero": {
-      "yourBusiness": "Your Business",
-      "title": "Get Discovered. Get Booked.",
-      "subtitle": "Put <bold>{{businessName}}</bold> in front of ready-to-book clients instantly. We've prepared your services for discovery—no ads, no hassle.",
-      "cta": "List My Business",
+      "yourBusiness": "Your business",
+      "title": "Make your business bookable online",
+      "subtitle": "Publish <bold>{{businessName}}</bold> on the Zavoia marketplace so clients can discover your services and book available times.",
+      "cta": "Publish my listing",
       "timeEstimate": "Takes less than 2 minutes",
-      "locationsReady_one": "{{count}} Location Visible",
-      "locationsReady_other": "{{count}} Locations Visible",
-      "instantActivation": "Instant Activation"
+      "instantActivation": "Go live instantly"
     },
     "features": {
       "catalog": {
-        "title": "YOUR TERMS",
+        "title": "Your terms",
         "description": "Launch with confidence. You're in control of your growth.",
-        "commission": "0% Commission",
+        "commission": "0% commission",
         "commission_helper": "You keep 100%",
-        "locations_active_one": "{{count}} Location Active",
-        "locations_active_other": "{{count}} Locations Active",
-        "locations_active_helper": "Ready to accept bookings",
-        "no_setup": "No Setup Cost",
+        "locations_active_one": "{{count}} location active",
+        "locations_active_other": "{{count}} locations active",
+        "locations_active_helper": "Ready to accept appointments",
+        "no_setup": "No setup cost",
         "no_setup_helper": "Start risk-free today"
       },
       "preview": {
-        "header": "Marketplace Profile",
-        "text": "This is your marketplace control center. Once listed, you'll manage your public profile and portfolio here. Configure booking rules and availability in Calendar Settings."
+        "text": "This is your marketplace control center. Once listed, you'll manage your public listing and portfolio here. Configure booking rules and availability in Calendar Settings."
       }
     },
     "benefits": {
       "bookings": {
-        "title": "24/7 Bookings",
+        "title": "Online booking, 24/7",
         "description": "Stop chasing DMs. Clients view availability and book services while you sleep. No missed opportunities."
       },
       "reach": {
@@ -37,79 +34,50 @@
         "description": "We put you on the map. Clients find and book your services instantly."
       },
       "revenue": {
-        "title": "Fill Empty Slots Automatically",
+        "title": "Fill empty slots automatically",
         "description_one": "We handle the admin - confirmations and reminders are sent automatically so you never miss a payout. Fill empty slots at your {{count}} location.",
         "description_other": "We handle the admin - confirmations and reminders are sent automatically so you never miss a payout. Fill empty slots at your {{count}} locations."
       },
-      "liveStats": "Live Stats",
-      "active": "ACTIVE"
+      "liveStats": "Live stats",
+      "active": "Active"
     }
   },
   "configuration": {
     "tabs": {
       "profile": "Profile",
-      "portfolio": "Portfolio",
-      "promotions": "Promotions"
+      "portfolio": "Portfolio"
     },
     "sections": {
-      "visibilityAndAppointments": "Visibility & Appointments",
-      "preferences": "Preferences"
+      "visibilityAndAppointments": "Visibility & online booking"
     },
     "buttons": {
-      "saveChanges": "Save Changes",
-      "publish": "Publish",
+      "saveChanges": "Save changes",
+      "publish": "Publish listing",
       "saving": "Saving...",
       "publishing": "Publishing..."
     },
-    "portfolio": {
-      "location": "Location"
-    },
-    "promotions": {
-      "comingSoon": "Promotions Coming Soon",
-      "description": "Create discounts, special offers, and promotional campaigns to attract more customers from the marketplace."
-    },
     "unsavedChanges": {
-      "title": "Unsaved Changes",
+      "title": "Unsaved changes",
       "description": "You have unsaved changes that will be lost if you leave. Are you sure you want to continue?",
-      "leave": "Leave",
+      "leave": "Leave without saving",
       "cancel": "Cancel"
-    },
-    "congratulations": {
-      "title": "Welcome to the Marketplace!",
-      "description": "You're all set to start receiving bookings.\n\nYou're now visible in the marketplace. Customers can discover and book your services starting today.\n\nLet's keep building momentum!",
-      "continue": "Continue"
     }
   },
-  "visibility": {
-    "public": "Listing is Public",
-    "private": "Listing is Private",
-    "publicDescription": "Your business is live and visible to everyone browsing the marketplace.",
-    "privateDescription": "Your business is hidden. Customers cannot find or book your services via the marketplace.",
-    "active": "Active",
-    "hidden": "Hidden"
-  },
-  "booking": {
-    "title": "Online Appointments",
-    "enabledDescription": "Customers can find and book your services directly from your marketplace profile.",
-    "disabledDescription": "Booking is disabled. Customers can see your profile but can't book your services yet.",
-    "enabled": "Enabled",
-    "disabled": "Disabled"
-  },
   "details": {
-    "title": "Marketplace Details",
+    "title": "Public listing details",
     "businessName": {
-      "notAvailable": "N/A",
-      "label": "Business Name",
+      "notAvailable": "Not set",
+      "label": "Business name",
       "useBusinessDescription": "Use your main business name for your marketplace listing. This keeps your branding consistent for customers.",
       "customDescription": "Create a unique brand name for this listing. Use it to stand out in the marketplace and separate it from your main business profile.",
-      "customLabel": "Listing Business Name",
+      "customLabel": "Public listing name",
       "placeholder": "e.g. Sarah's Salon & Spa",
       "custom": "Custom"
     },
     "contact": {
-      "title": "Contact Information",
-      "emailLabel": "Listing Email",
-      "phoneLabel": "Listing Phone",
+      "title": "Public contact information",
+      "emailLabel": "Public email",
+      "phoneLabel": "Public phone",
       "helperTextOn": "Use your main contact details so customers can reach you. All inquiries will go to your primary channels.",
       "helperTextOff": "Add contact info just for marketplace leads. Helps you track inquiries separately from your main business.",
       "inheritedLabel": "your business profile"
@@ -117,171 +85,172 @@
     "description": {
       "label": "Description",
       "useBusinessDescription": "Showcase your business overview to marketplace users. This info is pulled from your global profile settings automatically.",
-      "customDescription": "Let people know what you do and why they should book you. Keep it simple, clear, and focused on what makes you great.",
+      "customDescription": "Tell clients what you offer, who you help, and why they should choose your business. Keep it simple, clear, and focused on what makes you great.",
       "placeholder": "What do you offer, and why should people choose you?",
       "noDescription": "No profile description found. To keep your branding consistent, update your business settings—or switch to custom mode to write a tailored version for the marketplace.",
       "custom": "Custom"
     }
   },
   "industry": {
-    "title": "Industry & Tags",
+    "title": "Industry & tags",
     "primaryIndustry": {
-      "label": "Primary Industry",
+      "label": "Primary industry",
       "description": "This defines your business's main industry to ensure you show up in relevant search results. To change it, go to <settingsLink>Settings</settingsLink>.",
       "settingsLink": "Settings"
     },
     "tags": {
-      "label": "Marketplace Tags",
+      "label": "Marketplace tags",
       "description": "Tags help the right customers find you. Pick those that best describe your services.",
-      "addAtLeastOne": "Add at least 1 tag to go live."
+      "addAtLeastOne": "Add at least one tag before publishing."
     }
   },
   "locationVisibility": {
     "noLocations": "No locations available. Please add a location first.",
-    "description": "Toggle marketplace visibility and online appointments per location. Manage services, bundles, and team members in the <assignmentsLink>Assignments</assignmentsLink> section.",
+    "description": "Choose which locations appear on the marketplace and whether clients can book them online. Manage services, bundles, and team members in <assignmentsLink>Assignments</assignmentsLink>.",
     "assignmentsLink": "Assignments",
     "editLocation": "Edit location",
     "manageAssignments": "Manage assignments",
-    "isPublic": "Listing is Public",
-    "isPublicDescription": "Display this location inside our marketplace.",
-    "allowOnlineBooking": "Online Appointments",
-    "allowOnlineBookingDescription": "Choose if customers can book appointments from the marketplace.",
+    "isPublic": "Show location on marketplace",
+    "isPublicDescription": "Make this location visible in your public marketplace listing.",
+    "allowOnlineBooking": "Allow online booking",
+    "allowOnlineBookingDescription": "Let clients book appointments for this location from the marketplace.",
     "service_one": "Service",
     "service_other": "Services",
     "noServices": "No services yet",
     "bundle_one": "Bundle",
     "bundle_other": "Bundles",
     "noBundles": "No bundles yet",
-    "teamMember_one": "Team Member",
-    "teamMember_other": "Team Members",
+    "teamMember_one": "Team member",
+    "teamMember_other": "Team members",
     "noTeamMembers": "No team members yet",
-    "remoteAvailable": "Remote Available"
+    "remoteAvailable": "Remote services available"
   },
   "portfolio": {
     "visualIdentity": {
-      "title": "Visual Identity",
-      "description": "Showcase your business with high-quality images. Choose a featured photo to highlight your listing and attract more customers.",
-      "teamMemberDescription": "Showcase your best work and let your skills shine. Upload photos of your projects, techniques, and creative results to attract clients.",
-      "addAtLeastOne": "Add at least 1 image to go live."
+      "title": "Listing photos",
+      "description": "Add high-quality photos that show your space, services, team, or results. Choose a cover photo to make your listing stand out.",
+      "teamMemberDescription": "Upload photos that show your work, style, and results so clients know what to expect.",
+      "addAtLeastOne": "Add at least one image before publishing."
     },
     "altText": {
       "featuredItem": "Featured portfolio item",
       "portfolioItem": "Portfolio item",
       "portfolioImage": "Portfolio image"
     },
-    "featured": "FEATURED",
+    "featured": "Featured",
     "setCover": "Set cover",
-    "setAsMainCover": "Set as main cover",
+    "setAsMainCover": "Set as cover photo",
     "remove": "Remove",
     "removeImage": "Remove image",
-    "minimumRequired": "Minimum 1 image required",
+    "minimumRequired": "At least one image required",
     "uploadPhotos": "Upload photos",
     "dropToUpload": "Drop to upload",
     "dragAndDrop": "Drag & drop or click to browse",
     "releaseNow": "Release now",
-    "professionalGallery": "Professional Gallery",
+    "professionalGallery": "Photo gallery",
     "uploadDescription": "Upload up to {{count}} photos to showcase your business.",
     "images": "Images",
     "errors": {
       "unsupportedFormat": "Unsupported file format ({{extension}}). Please use {{formats}}.",
       "unsupportedFormatGeneric": "Unsupported file format. Please use {{formats}}.",
-      "fileSizeExceeds": "File size exceeds maximum allowed size of {{size}}MB",
+      "fileSizeExceeds": "File size exceeds the maximum allowed size of {{size}} MB.",
       "fileSizeWarning": "Your file exceeds our recommended limits. We'll optimize it automatically.",
       "maxImages": "You can only upload a maximum of {{count}} images.",
       "duplicateImage": "Image \"{{name}}\" is already in your portfolio.",
-      "uploadFailed": "Failed to upload {{name}}",
-      "deleteFailed": "Failed to delete image",
-      "updateFeaturedFailed": "Failed to update featured image",
-      "waitForUpload": "Please wait for the image to finish uploading",
-      "noLocationSelected": "Please select a location first"
+      "loadFailed": "Could not load portfolio.",
+      "uploadFailed": "Could not upload {{name}}.",
+      "deleteFailed": "Could not delete image.",
+      "updateFeaturedFailed": "Could not update cover image.",
+      "waitForUpload": "Please wait for the image to finish uploading.",
+      "noLocationSelected": "Please select a location first."
     }
   },
   "advancedSettings": {
-    "title": "Advanced Settings",
-    "description": "Fine-tune how bookings, cancellations, and time slots work for your business.",
+    "title": "Booking settings",
+    "description": "Control how clients book, cancel, reschedule, and receive notifications from the marketplace.",
     "timing": {
-      "title": "Timing & Intervals",
+      "title": "Timing & intervals",
       "bookingWindows": {
-        "title": "Booking Windows",
-        "description": "Set how soon and how far in advance customers can book your services."
+        "title": "Booking windows",
+        "description": "Set how soon and how far in advance clients can book your services."
       },
       "minAdvanceBooking": {
-        "label": "Minimum Advance Booking",
-        "helpText": "Customers must book at least this many minutes before the appointment."
+        "label": "Minimum notice before booking",
+        "helpText": "Clients must book at least this many minutes before the appointment starts."
       },
       "maxAdvanceBooking": {
-        "label": "Maximum Advance Booking",
-        "helpText": "Customers can book appointments up to this many days in advance."
+        "label": "How far ahead clients can book",
+        "helpText": "Clients can book appointments up to this many days in advance."
       },
       "bufferTime": {
-        "label": "Buffer Between Appointments",
+        "label": "Buffer between appointments",
         "helpText": "Adds a break after each appointment to prevent back-to-back bookings."
       },
       "none": "None"
     },
     "policy": {
-      "title": "Policy & Modifications",
+      "title": "Cancellations & rescheduling",
       "cancellationPolicy": {
-        "title": "Cancellation Policy",
-        "description": "Decide if and when customers can cancel or reschedule appointments."
+        "title": "Cancellation policy",
+        "description": "Decide if and when clients can cancel or reschedule appointments."
       },
       "cancellationWindow": {
-        "label": "Cancellation Window",
+        "label": "Cancellation window",
         "helpText": "Minimum notice required for cancellations or rescheduling."
       },
       "allowCancellation": {
-        "label": "Allow Cancellation",
-        "description": "Let customers cancel their appointments."
+        "label": "Allow cancellation",
+        "description": "Let clients cancel their appointments."
       },
       "allowRescheduling": {
-        "label": "Allow Rescheduling",
-        "description": "Let customers reschedule their appointments."
+        "label": "Allow rescheduling",
+        "description": "Let clients reschedule their appointments."
       }
     },
     "confirmation": {
-      "title": "Confirmation & Staff",
+      "title": "Confirmation and staff selection",
       "bookingConfirmation": {
-        "title": "Booking Confirmation",
+        "title": "Booking confirmation",
         "description": "Choose whether bookings are automatically confirmed or require manual approval."
       },
       "bookingApproval": {
-        "label": "Booking Approval",
+        "label": "Booking approval",
         "autoConfirm": "Bookings are confirmed automatically.",
         "manualConfirm": "You'll manually approve each booking request."
       },
       "staffSelection": {
-        "title": "Staff Selection Settings",
-        "description": "Configure how staff members are presented and selected during booking."
+        "title": "Staff selection",
+        "description": "Configure how team members are presented and selected during booking."
       },
       "allowStaffSelection": {
-        "label": "Allow Staff Selection",
-        "description": "Let customers choose a specific team member during booking."
+        "label": "Allow staff selection",
+        "description": "Let clients choose a specific team member during booking."
       },
       "showAnyStaffOption": {
-        "label": "Show \"Any Staff\" option",
-        "description": "Display a default option allowing customers to be matched with any available team member."
+        "label": "Show \"Any staff\" option",
+        "description": "Display a default option allowing clients to be matched with any available team member."
       },
       "calendarSettings": {
-        "title": "Team Availability Controls",
-        "description": "Set what team members are allowed to do with appointments and their calendar—without requiring approval from the business owner.",
+        "title": "Team calendar permissions",
+        "description": "Choose what team members can do with appointments and blocked time without owner approval.",
         "allowCancel": {
-          "label": "Allow Cancel Without Approval",
+          "label": "Allow cancel without approval",
           "description": "Team members can cancel appointments without approval from the business owner."
         },
         "allowReschedule": {
-          "label": "Allow Reschedule Without Approval",
+          "label": "Allow reschedule without approval",
           "description": "Team members can reschedule appointments without approval from the business owner."
         },
         "allowBlock": {
-          "label": "Allow Calendar Blocking Without Approval",
+          "label": "Allow calendar blocking without approval",
           "description": "Team members can block time on their calendar without approval from the business owner."
         },
         "blockTypes": {
-          "label": "Reasons for Blocking Time",
+          "label": "Reasons for blocking time",
           "description": "Select which reasons team members can use to block off time on their calendar.",
           "holidays": "Holidays",
-          "timeOff": "Time Off",
-          "sickDays": "Sick Days"
+          "timeOff": "Time off",
+          "sickDays": "Sick days"
         }
       }
     },
@@ -304,10 +273,10 @@
       }
     },
     "messaging": {
-      "title": "Customer Notifications",
+      "title": "Customer notifications",
       "communicationMethods": {
-        "title": "Communication Preferences",
-        "description": "Choose how customers get their appointment updates and reminders.",
+        "title": "Communication preferences",
+        "description": "Choose how clients get their appointment updates and reminders.",
         "email": {
           "label": "Email",
           "description": "Send confirmations, reminders, and updates via email."
@@ -316,12 +285,12 @@
           "label": "SMS",
           "description": "Send confirmations and reminders by text message."
         },
-        "pushNotificationHelper": "Push notifications are also sent automatically if customers use the mobile app.",
+        "pushNotificationHelper": "Push notifications are also sent automatically if clients use the mobile app.",
         "smsTrialRestriction": "SMS notifications are not available during the trial period."
       }
     },
     "adminBookingOverride": {
-      "title": "Admin Booking Rules",
+      "title": "Admin booking rules",
       "description": "When enabled, admins must respect minimum advance booking when creating appointments. When disabled, admins can create appointments at any time.",
       "label": "Enforce minimum advance for admin-created appointments",
       "helper": "When on, admins respect min advance; when off, they can book anytime."
@@ -339,6 +308,19 @@
     "next": "Next"
   },
   "page": {
-    "noListingData": "No listing data available"
+    "noListingData": "No listing data available",
+    "toasts": {
+      "listingPublished": "Marketplace listing published.",
+      "locationPublic": "Location is now visible on the marketplace.",
+      "locationHidden": "Location is now hidden from the marketplace.",
+      "onlineEnabled": "Online booking enabled for this location.",
+      "onlineDisabled": "Online booking disabled for this location.",
+      "bookingSettingsSaved": "Booking settings saved.",
+      "listingPublishFailed": "Could not publish marketplace listing. Please try again.",
+      "locationVisibilityUpdateFailed": "Could not update location visibility. Please try again.",
+      "onlineBookingUpdateFailed": "Could not update online booking settings. Please try again.",
+      "bookingSettingsSaveFailed": "Could not save booking settings. Please try again.",
+      "listingDataLoadFailed": "Could not load marketplace listing data. Please try again."
+    }
   }
 }

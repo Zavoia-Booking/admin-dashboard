@@ -107,7 +107,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
 
   const isGroupSegment = !!appointment.bookingGroupId && (groupSize ?? 1) > 1;
   const order = appointment.bookingGroupOrder ?? 1;
-  const duration = formatDurationHuman(appointment.duration);
+  const duration = formatDurationHuman(appointment.duration, t);
 
   const viaLabel = getBookedViaLabel(appointment.bookingSource, t);
 
@@ -146,7 +146,7 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
                 "inline-flex items-center gap-1 shrink-0 rounded-full border border-border",
                 "bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-foreground-3",
               )}
-              title={`Booking ${order} of ${groupSize}`}
+              title={t('page.appointmentCard.groupBookingTooltip', { order, groupSize })}
             >
               <span
                 className="h-2 w-2 rounded-full shrink-0 ring-1 ring-background"
@@ -224,8 +224,8 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
         {appointment.overrideReason ? (
           <span
             className="inline-flex shrink-0"
-            title={`Override: ${appointment.overrideReason}`}
-            aria-label={`Override: ${appointment.overrideReason}`}
+            title={t('page.appointmentCard.overrideTooltip', { reason: appointment.overrideReason })}
+            aria-label={t('page.appointmentCard.overrideTooltip', { reason: appointment.overrideReason })}
           >
             <ShieldAlert className="h-3.5 w-3.5 text-amber-500" aria-hidden />
           </span>

@@ -88,10 +88,7 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
       // 402 subscription_required: a write slipped through the proactive disable
       // (deep link, race, manual API call). Show a neutral toast and reject.
       if (status === 402 && code === "subscription_required") {
-        const message = i18n.t("limitedUsage.blockedMessage", {
-          ns: "common",
-          defaultValue: "This feature is not available on your current plan.",
-        });
+        const message = i18n.t("common:limitedUsage.blockedMessage");
         toast.error(message);
         return Promise.reject(error);
       }
@@ -227,7 +224,7 @@ async function ensureRefreshInFlight(): Promise<string> {
         refreshQueue.forEach((cb) => cb(null));
         refreshQueue = [];
         if (_storeRef) {
-          _storeRef.dispatch(hydrateSessionAction.failure(e?.message || "Session refresh failed"));
+          _storeRef.dispatch(hydrateSessionAction.failure({ message: i18n.t("auth:page.errors.sessionExpired") }));
           _storeRef.dispatch(logoutRequestAction.success());
         }
       } finally {

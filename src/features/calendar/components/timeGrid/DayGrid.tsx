@@ -870,7 +870,7 @@ export const DayGrid: FC = () => {
       {!isOpen && (
         <div className="flex items-center gap-2 px-4 py-2 bg-red-50 dark:bg-red-900/20 border-b border-border">
           <ShieldAlert className="h-4 w-4 text-red-500" />
-          <span className="text-sm text-red-600 dark:text-red-400 font-medium">Location is closed this day</span>
+          <span className="text-sm text-red-600 dark:text-red-400 font-medium">{t('page.dayGrid.locationClosedThisDay')}</span>
         </div>
       )}
 

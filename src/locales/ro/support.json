@@ -1,6 +1,10 @@
 {
   "page": {
-    "title": "Suport"
+    "title": "Suport",
+    "toasts": {
+      "ticketCreated": "Tichet creat cu succes",
+      "ticketClosed": "Tichet închis"
+    }
   },
   "status": {
     "OPEN": "Deschis",

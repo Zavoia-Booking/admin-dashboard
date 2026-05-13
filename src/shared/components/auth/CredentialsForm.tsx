@@ -13,6 +13,7 @@ export type CredentialsFormHandle = {
 type Props = {
   onSubmit: (values: { email: string; password: string }) => void;
   submitLabel?: string;
+  loadingLabel?: string;
   isLoading?: boolean;
   defaultEmail?: string;
   autoFocusField?: "email" | "password";
@@ -27,6 +28,7 @@ type Props = {
 function CredentialsFormBase({
   onSubmit,
   submitLabel,
+  loadingLabel,
   isLoading,
   defaultEmail,
   autoFocusField = "email",
@@ -164,7 +166,7 @@ function CredentialsFormBase({
         </div>
       )}
       <Button type="submit" rounded="full" className="w-full mt-8" disabled={!!isLoading}>
-        {resolvedSubmitLabel}
+        {isLoading && loadingLabel ? loadingLabel : resolvedSubmitLabel}
       </Button>
     </form>
   );

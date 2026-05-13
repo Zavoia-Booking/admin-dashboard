@@ -5,6 +5,7 @@ import {
   type DashboardApiResponse,
 } from "./actions";
 import { fetchDashboardData } from "./api";
+import { getErrorMessage } from "../../shared/utils/error";
 
 function* handleFetchDashboardData(
   action: ActionType<typeof fetchDashboardDataAction.request>
@@ -12,8 +13,8 @@ function* handleFetchDashboardData(
   try {
     const data = yield call(fetchDashboardData, action.payload.locationId);
     yield put(fetchDashboardDataAction.success(data));
-  } catch (error: any) {
-    const message = error?.response?.data?.error || error?.message || "Failed to fetch dashboard data";
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(fetchDashboardDataAction.failure({ message }));
   }
 }

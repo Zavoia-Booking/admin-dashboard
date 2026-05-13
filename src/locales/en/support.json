@@ -1,6 +1,10 @@
 {
   "page": {
-    "title": "Support"
+    "title": "Support",
+    "toasts": {
+      "ticketCreated": "Ticket created successfully",
+      "ticketClosed": "Ticket closed"
+    }
   },
   "status": {
     "OPEN": "Open",

@@ -16,22 +16,15 @@ import {
 import type { SupportTicket, SupportApiResponse } from "./types";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
-import { translateMessageCode } from "../../shared/utils/error";
-
-function extractMessage(error: any, fallback: string): string {
-  const raw = error?.response?.data?.message;
-  const translated = Array.isArray(raw)
-    ? raw.map((m: string) => translateMessageCode(m)).join(' ')
-    : translateMessageCode(raw ?? '');
-  return translated || error?.message || fallback;
-}
+import { getErrorMessage } from "../../shared/utils/error";
+import i18n from "../../shared/lib/i18n";
 
 function* handleListTickets() {
   try {
     const response: SupportApiResponse<SupportTicket[]> = yield call(listTicketsApi);
     yield put(listTicketsAction.success(response.data));
-  } catch (error: any) {
-    const message = extractMessage(error, "Failed to fetch tickets");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(listTicketsAction.failure({ message }));
   }
 }
@@ -40,8 +33,8 @@ function* handleGetTicketById(action: ActionType<typeof getTicketByIdAction.requ
   try {
     const response: SupportApiResponse<SupportTicket> = yield call(getTicketByIdApi, action.payload.id);
     yield put(getTicketByIdAction.success(response.data));
-  } catch (error: any) {
-    const message = extractMessage(error, "Failed to fetch ticket");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(getTicketByIdAction.failure({ message }));
   }
 }
@@ -50,12 +43,12 @@ function* handleCreateTicket(action: ActionType<typeof createTicketAction.reques
   try {
     const response: SupportApiResponse<SupportTicket> = yield call(createTicketApi, action.payload);
     yield put(createTicketAction.success(response.data));
-    toast.success("Ticket created successfully");
+    toast.success(i18n.t("support:page.toasts.ticketCreated"));
     yield put(listTicketsAction.request());
-  } catch (error: any) {
-    const message = extractMessage(error, "Failed to create ticket");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(createTicketAction.failure({ message }));
-    toast.error("Failed to create ticket");
+    toast.error(message);
   }
 }
 
@@ -67,10 +60,10 @@ function* handleAddMessage(action: ActionType<typeof addMessageAction.request>) 
       action.payload.message,
     );
     yield put(addMessageAction.success(response.data));
-  } catch (error: any) {
-    const message = extractMessage(error, "Failed to send message");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(addMessageAction.failure({ message }));
-    toast.error("Failed to send message");
+    toast.error(message);
   }
 }
 
@@ -78,12 +71,12 @@ function* handleCloseTicket(action: ActionType<typeof closeTicketAction.request>
   try {
     const response: SupportApiResponse<SupportTicket> = yield call(closeTicketApi, action.payload.id);
     yield put(closeTicketAction.success(response.data));
-    toast.success("Ticket closed");
+    toast.success(i18n.t("support:page.toasts.ticketClosed"));
     yield put(listTicketsAction.request());
-  } catch (error: any) {
-    const message = extractMessage(error, "Failed to close ticket");
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
     yield put(closeTicketAction.failure({ message }));
-    toast.error("Failed to close ticket");
+    toast.error(message);
   }
 }
 

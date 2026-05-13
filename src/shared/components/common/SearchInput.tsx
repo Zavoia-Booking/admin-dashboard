@@ -1,4 +1,5 @@
 import React from "react";
+import { useTranslation } from "react-i18next";
 import { Search, X } from "lucide-react";
 import { Input } from "../ui/input";
 import { cn } from "../../lib/utils";
@@ -34,6 +35,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   inputClassName,
   autoFocus,
 }, ref) => {
+  const { t } = useTranslation('common');
   const [internalValue, setInternalValue] = React.useState<string>(
     value ?? defaultValue ?? ""
   );
@@ -100,7 +102,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
             handleClear();
           }}
           className="absolute inset-y-0 right-3 flex items-center justify-center text-destructive hover:text-destructive/90 cursor-pointer"
-          aria-label="Clear search"
+          aria-label={t('aria.clearSearch')}
         >
           <X className="h-5 w-5" />
         </button>

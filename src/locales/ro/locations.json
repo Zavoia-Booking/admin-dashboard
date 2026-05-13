@@ -129,11 +129,11 @@
       "remoteNamePlaceholder": "ex. Sesiuni online"
     },
     "assignments": {
-      "title": "Atribuiri",
+      "title": "Alocări",
       "services": "Servicii",
       "teamMembers": "Membri echipă",
-      "description": "Gestionează ce servicii și membri ai echipei sunt atribuiți acestei locații. Vizualizează și modifică toate atribuirile în secțiunea Atribuiri.",
-      "goToAssignments": "Mergi la Atribuiri"
+      "description": "Gestionează ce servicii și membri ai echipei sunt alocați acestei locații. Vizualizează și modifică toate alocările în secțiunea Alocări.",
+      "goToAssignments": "Mergi la Alocări"
     },
     "removeLocation": {
       "title": "Elimină locația",

@@ -1,4 +1,7 @@
 {
+  "categories": {
+    "uncategorized": "Uncategorized"
+  },
   "page": {
     "title": "Services",
     "subtitle": "Manage your services and bundles",

@@ -1,35 +1,32 @@
 {
   "marketing": {
     "hero": {
-      "yourBusiness": "Afacerea Ta",
-      "title": "Fii Descoperit. Obține Rezervări.",
-      "subtitle": "Pune <bold>{{businessName}}</bold> în fața clienților gata să rezerve, instantaneu. Ți-am pregătit serviciile pentru descoperire—fără reclame, fără bătăi de cap.",
-      "cta": "Listează Afacerea Mea",
+      "yourBusiness": "Businessul tău",
+      "title": "Fă-ți businessul disponibil pentru programări online",
+      "subtitle": "Publică <bold>{{businessName}}</bold> în marketplace-ul Zavoia, ca oamenii să îți poată descoperi serviciile și rezerva intervalele disponibile.",
+      "cta": "Publică listarea",
       "timeEstimate": "Durează mai puțin de 2 minute",
-      "locationsReady_one": "{{count}} Locație Vizibilă",
-      "locationsReady_other": "{{count}} Locații Vizibile",
-      "instantActivation": "Activare Instantanee"
+      "instantActivation": "Publicare instantă"
     },
     "features": {
       "catalog": {
-        "title": "TERMENII TĂI",
+        "title": "Termenii tăi",
         "description": "Lansează cu încredere. Deții controlul asupra creșterii tale.",
-        "commission": "0% Comision",
+        "commission": "0% comision",
         "commission_helper": "Păstrezi 100%",
-        "locations_active_one": "{{count}} Locație Activă",
-        "locations_active_other": "{{count}} Locații Active",
+        "locations_active_one": "{{count}} locație activă",
+        "locations_active_other": "{{count}} locații active",
         "locations_active_helper": "Gata să accepte rezervări",
-        "no_setup": "Fără Costuri de Configurare",
+        "no_setup": "Fără costuri de configurare",
         "no_setup_helper": "Începe fără riscuri astăzi"
       },
       "preview": {
-        "header": "Profil Marketplace",
-        "text": "Acesta este centrul tău de control pentru marketplace. Odată listat, îți vei gestiona profilul public și portofoliul aici. Configurează regulile de rezervare și disponibilitatea în Setări Calendar."
+        "text": "Acesta este centrul tău de control pentru marketplace. Odată listat, îți vei gestiona listarea publică și portofoliul aici. Configurează regulile de rezervare și disponibilitatea în Setări calendar."
       }
     },
     "benefits": {
       "bookings": {
-        "title": "Rezervări 24/7",
+        "title": "Rezervări online, 24/7",
         "description": "Nu mai alerga după DM-uri. Clienții văd disponibilitatea și rezervă servicii în timp ce dormi. Fără oportunități ratate."
       },
       "reach": {
@@ -37,76 +34,50 @@
         "description": "Te punem pe hartă. Clienții găsesc și rezervă serviciile tale instantaneu."
       },
       "revenue": {
-        "title": "Umple Locurile Libere Automat",
+        "title": "Umple locurile libere automat",
         "description_one": "Ne ocupăm de administrare - confirmările și mementourile sunt trimise automat ca să nu ratezi niciodată o plată. Umple locurile libere la {{count}} locație.",
         "description_other": "Ne ocupăm de administrare - confirmările și mementourile sunt trimise automat ca să nu ratezi niciodată o plată. Umple locurile libere la cele {{count}} locații."
       },
-      "liveStats": "Statistici Live",
-      "active": "ACTIV"
+      "liveStats": "Statistici live",
+      "active": "Activ"
     }
   },
   "configuration": {
     "tabs": {
       "profile": "Profil",
-      "portfolio": "Portofoliu",
-      "promotions": "Promoții"
+      "portfolio": "Portofoliu"
     },
     "sections": {
-      "visibilityAndAppointments": "Vizibilitate & Programări",
-      "preferences": "Preferințe"
+      "visibilityAndAppointments": "Vizibilitate și programări online"
     },
     "buttons": {
-      "saveChanges": "Salvează Modificările",
-      "publish": "Publică",
+      "saveChanges": "Salvează modificările",
+      "publish": "Publică listarea",
       "saving": "Se salvează...",
       "publishing": "Se publică..."
     },
-    "promotions": {
-      "comingSoon": "Promoții în Curând",
-      "description": "Creează reduceri, oferte speciale și campanii promoționale pentru a atrage mai mulți clienți din marketplace."
-    },
     "unsavedChanges": {
-      "title": "Modificări Nesalvate",
+      "title": "Modificări nesalvate",
       "description": "Ai modificări nesalvate care se vor pierde dacă pleci. Ești sigur că vrei să continui?",
-      "leave": "Părăsește",
+      "leave": "Ieși fără salvare",
       "cancel": "Anulează"
-    },
-    "congratulations": {
-      "title": "Bun venit în Marketplace!",
-      "description": "Ești gata să începi să primești rezervări.\n\nEști acum vizibil în marketplace. Clienții te pot descoperi și rezerva serviciile tale începând de astăzi.\n\nSă continuăm să construim momentul!",
-      "continue": "Continuă"
     }
   },
-  "visibility": {
-    "public": "Listarea este Publică",
-    "private": "Listarea este Privată",
-    "publicDescription": "Afacerea ta este activă și vizibilă pentru toți cei care navighează în marketplace.",
-    "privateDescription": "Afacerea ta este ascunsă. Clienții nu pot găsi sau rezerva serviciile tale prin marketplace.",
-    "active": "ACTIV",
-    "hidden": "ASCUNS"
-  },
-  "booking": {
-    "title": "Programări Online",
-    "enabledDescription": "Clienții pot găsi și rezerva serviciile tale direct din profilul tău de marketplace.",
-    "disabledDescription": "Programările sunt dezactivate. Clienții îți pot vedea profilul, dar nu pot rezerva serviciile tale încă.",
-    "enabled": "ACTIVAT",
-    "disabled": "DEZACTIVAT"
-  },
   "details": {
-    "title": "Detalii Marketplace",
+    "title": "Detalii publice ale listării",
     "businessName": {
-      "notAvailable": "N/A",
-      "label": "Nume Afacere",
+      "notAvailable": "Necompletat",
+      "label": "Numele businessului",
       "useBusinessDescription": "Folosește numele principal al afacerii pentru listarea ta în marketplace. Asta păstrează brandul tău consistent pentru clienți.",
       "customDescription": "Creează un nume de brand unic pentru această listare. Folosește-l pentru a ieși în evidență în marketplace și a-l separa de profilul tău principal de afacere.",
-      "customLabel": "Nume Afacere Listare",
+      "customLabel": "Numele afișat în marketplace",
       "placeholder": "ex. Sarah's Salon & Spa",
       "custom": "Personalizat"
     },
     "contact": {
-      "title": "Informații de Contact",
-      "emailLabel": "Email Listare",
-      "phoneLabel": "Telefon Listare",
+      "title": "Date publice de contact",
+      "emailLabel": "Email public",
+      "phoneLabel": "Telefon public",
       "helperTextOn": "Folosește detaliile tale principale de contact pentru ca clienții să te poată contacta. Toate solicitările vor merge la canalele tale principale.",
       "helperTextOff": "Adaugă informații de contact doar pentru clienții potențiali din marketplace. Te ajută să urmărești solicitările separat de afacerea ta principală.",
       "inheritedLabel": "profilul afacerii tale"
@@ -114,23 +85,23 @@
     "description": {
       "label": "Descriere",
       "useBusinessDescription": "Prezintă o privire de ansamblu a afacerii pentru utilizatorii marketplace. Această informație este preluată automat din setările profilului tău global.",
-      "customDescription": "Spune-le oamenilor cu ce te ocupi și de ce ar trebui să te rezerve. Păstrează totul simplu, clar și concentrat pe ceea ce te face grozav.",
+      "customDescription": "Spune-le clienților ce oferi, cui te adresezi și de ce ar trebui să aleagă businessul tău. Păstrează totul simplu, clar și concentrat pe ceea ce te face grozav.",
       "placeholder": "Ce oferi și de ce ar trebui oamenii să te aleagă?",
       "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările afacerii — sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
       "custom": "Personalizat"
     }
   },
   "industry": {
-    "title": "Industrie & Etichete",
+    "title": "Industrie și etichete",
     "primaryIndustry": {
-      "label": "Industrie Principală",
+      "label": "Industrie principală",
       "description": "Aceasta este industria principală a afacerii tale. Te ajută să apari în rezultatele de căutare relevante. Pentru modificări, accesează <settingsLink>Setări</settingsLink>.",
       "settingsLink": "Setări"
     },
     "tags": {
-      "label": "Etichete Marketplace",
+      "label": "Etichete marketplace",
       "description": "Etichetele îi ajută pe clienți să te găsească mai ușor. Alege-le pe cele care descriu cel mai bine serviciile tale.",
-      "addAtLeastOne": "Adaugă cel puțin 1 etichetă pentru a fi live."
+      "addAtLeastOne": "Adaugă cel puțin o etichetă înainte de publicare."
     }
   },
   "locationVisibility": {
@@ -139,86 +110,88 @@
     "assignmentsLink": "Alocări",
     "editLocation": "Editează locația",
     "manageAssignments": "Gestionează alocările",
-    "isPublic": "Listing Public",
-    "isPublicDescription": "Afișează această locație în marketplace-ul nostru.",
-    "allowOnlineBooking": "Programări Online",
-    "allowOnlineBookingDescription": "Alege dacă clienții pot rezerva programări din marketplace.",
+    "isPublic": "Afișează locația în marketplace",
+    "isPublicDescription": "Fă această locație vizibilă în listarea ta publică din marketplace.",
+    "allowOnlineBooking": "Permite programări online",
+    "allowOnlineBookingDescription": "Permite clienților să rezerve programări pentru această locație din marketplace.",
     "service_one": "Serviciu",
     "service_other": "Servicii",
     "noServices": "Niciun serviciu încă",
     "bundle_one": "Pachet",
     "bundle_other": "Pachete",
     "noBundles": "Niciun pachet încă",
-    "teamMember_one": "Membru Echipă",
-    "teamMember_other": "Membri Echipă",
+    "teamMember_one": "Membru al echipei",
+    "teamMember_other": "Membri ai echipei",
     "noTeamMembers": "Niciun membru adăugat",
-    "remoteAvailable": "Remote Disponibil"
+    "remoteAvailable": "Servicii la domiciliu disponibile"
   },
   "portfolio": {
     "visualIdentity": {
-      "title": "Identitate Vizuală",
-      "description": "Prezintă-ți afacerea cu imagini de înaltă calitate. Alege o fotografie reprezentativă pentru a evidenția listarea ta și a atrage mai mulți clienți.",
-      "teamMemberDescription": "Arată-ți cele mai bune lucrări și lasă-ți talentul să strălucească. Încarcă fotografii cu proiectele, tehnicile și rezultatele tale creative pentru a atrage clienți.",
-      "addAtLeastOne": "Adaugă cel puțin 1 imagine pentru a fi live."
+      "title": "Fotografiile listării",
+      "description": "Adaugă fotografii de calitate care arată spațiul, serviciile, echipa sau rezultatele tale. Alege o fotografie de copertă pentru a evidenția listarea.",
+      "teamMemberDescription": "Încarcă fotografii care arată lucrările, stilul și rezultatele tale, ca oamenii să știe la ce să se aștepte.",
+      "addAtLeastOne": "Adaugă cel puțin o imagine înainte de publicare."
     },
     "altText": {
       "featuredItem": "Element portofoliu evidențiat",
       "portfolioItem": "Element portofoliu",
       "portfolioImage": "Imagine portofoliu"
     },
-    "featured": "EVIDENȚIAT",
+    "featured": "Reprezentativă",
     "setCover": "Setează copertă",
-    "setAsMainCover": "Setează ca și copertă principală",
+    "setAsMainCover": "Setează ca fotografie principală",
     "remove": "Elimină",
     "removeImage": "Elimină imaginea",
-    "minimumRequired": "Minim 1 imagine necesară",
+    "minimumRequired": "Este necesară cel puțin o imagine",
     "uploadPhotos": "Încarcă fotografii",
     "dropToUpload": "Dă drumul pentru a încărca",
-    "dragAndDrop": "Trage & plasează sau click pentru a răsfoi",
+    "dragAndDrop": "Trage și plasează sau apasă pentru a selecta",
     "releaseNow": "Lansează acum",
-    "professionalGallery": "Galerie Profesională",
+    "professionalGallery": "Galerie foto",
     "uploadDescription": "Încarcă până la {{count}} fotografii pentru a prezenta afacerea ta.",
     "images": "Imagini",
     "errors": {
-      "unsupportedFormat": "Format fișier nesuportat ({{extension}}). Te rugăm folosește {{formats}}.",
-      "unsupportedFormatGeneric": "Format fișier nesuportat. Te rugăm folosește {{formats}}.",
-      "fileSizeExceeds": "Mărimea fișierului depășește mărimea maximă permisă de {{size}}MB",
-      "fileSizeWarning": "Fișierul tău depășește limitele noastre recomandate. Îl vom optimiza automat.",
-      "maxImages": "Poți încărca doar un maxim de {{count}} imagini.",
-      "duplicateImage": "Imaginea \"{{name}}\" este deja în portofoliul tău.",
-      "uploadFailed": "Eșec la încărcarea {{name}}",
-      "deleteFailed": "Eșec la ștergerea imaginii",
-      "updateFeaturedFailed": "Eșec la actualizarea imaginii evidențiate",
-      "waitForUpload": "Te rugăm așteaptă ca imaginea să termine încărcarea"
+      "unsupportedFormat": "Format de fișier neacceptat ({{extension}}). Te rugăm să folosești {{formats}}.",
+      "unsupportedFormatGeneric": "Format de fișier neacceptat. Te rugăm să folosești {{formats}}.",
+      "fileSizeExceeds": "Dimensiunea fișierului depășește limita maximă permisă de {{size}} MB.",
+      "fileSizeWarning": "Fișierul depășește limitele recomandate. Îl vom optimiza automat.",
+      "maxImages": "Poți încărca maximum {{count}} imagini.",
+      "duplicateImage": "Imaginea „{{name}}” există deja în portofoliul tău.",
+      "loadFailed": "Portofoliul nu a putut fi încărcat.",
+      "uploadFailed": "Nu am putut încărca {{name}}.",
+      "deleteFailed": "Nu am putut șterge imaginea.",
+      "updateFeaturedFailed": "Nu am putut actualiza imaginea principală.",
+      "waitForUpload": "Așteaptă finalizarea încărcării imaginii.",
+      "noLocationSelected": "Selectează mai întâi o locație."
     }
   },
   "advancedSettings": {
-    "title": "Setări Avansate",
-    "description": "Ajustează în detaliu modul în care funcționează rezervările, anulările și programările în calendar.",
+    "title": "Setări de programare",
+    "description": "Controlează cum pot clienții să rezerve, să anuleze, să reprogrameze și să primească notificări din marketplace.",
     "timing": {
-      "title": "Timp & Intervale",
+      "title": "Timp și intervale",
       "bookingWindows": {
-        "title": "Ferestre de Rezervare",
+        "title": "Ferestre de rezervare",
         "description": "Alege cât de devreme sau cât de târziu pot clienții să facă o programare."
       },
       "minAdvanceBooking": {
-        "label": "Rezervare Minimă în Avans",
-        "helpText": "Clienții trebuie să facă o programare cu cel puțin atâtea minute înainte."
+        "label": "Timp minim înainte de programare",
+        "helpText": "Clienții trebuie să rezerve cu cel puțin atâtea minute înainte de începerea programării."
       },
       "maxAdvanceBooking": {
-        "label": "Rezervare Maximă în Avans",
-        "helpText": "Clienții pot face o programare cu până la atâtea zile înainte."
+        "label": "Cât de devreme pot rezerva clienții",
+        "helpText": "Clienții pot face programări cu până la atâtea zile în avans."
       },
       "bufferTime": {
-        "label": "Timp Tampon Între Programări",
+        "label": "Timp tampon între programări",
         "helpText": "Adaugă o pauză între programări pentru a evita rezervările una după alta."
       },
       "none": "Niciunul"
     },
     "policy": {
-      "title": "Politică & Modificări",
+      "title": "Anulări și reprogramări",
       "cancellationPolicy": {
-        "title": "Politică de Anulare și Reprogramare",
+        "title": "Politică de anulare și reprogramare",
         "description": "Stabilește dacă și când clienții pot anula sau reprograma programările."
       },
       "cancellationWindow": {
@@ -226,54 +199,54 @@
         "helpText": "Timpul minim necesar înainte ca o programare să poată fi anulată sau reprogramată."
       },
       "allowCancellation": {
-        "label": "Permite Anularea",
+        "label": "Permite anularea",
         "description": "Clienții pot anula singuri programările."
       },
       "allowRescheduling": {
-        "label": "Permite Reprogramarea",
+        "label": "Permite reprogramarea",
         "description": "Clienții pot schimba data sau ora programărilor."
       }
     },
     "confirmation": {
-      "title": "Confirmare & Personal",
+      "title": "Confirmare și alegerea personalului",
       "bookingConfirmation": {
-        "title": "Confirmare Rezervare",
+        "title": "Confirmare rezervare",
         "description": "Alege dacă rezervările sunt confirmate automat sau necesită aprobare manuală."
       },
       "bookingApproval": {
-        "label": "Aprobare Rezervare",
+        "label": "Aprobare rezervare",
         "autoConfirm": "Rezervările sunt confirmate automat.",
         "manualConfirm": "Vei aproba manual fiecare solicitare de rezervare."
       },
       "staffSelection": {
-        "title": "Setări Selecție Personal",
+        "title": "Selecție personal",
         "description": "Configurează cum sunt prezentați membrii echipei și cum pot fi selectați în timpul rezervării."
       },
       "allowStaffSelection": {
-        "label": "Permite Selecție Personal",
+        "label": "Permite selecția personalului",
         "description": "Lasă clienții să aleagă un membru specific al echipei la rezervare."
       },
       "showAnyStaffOption": {
-        "label": "Afișează opțiunea \"Oricare Membru din Echipă\"",
+        "label": "Afișează opțiunea „Oricare membru al echipei”",
         "description": "Adaugă o opțiune implicită care le permite clienților să rezerve cu orice membru disponibil."
       },
       "calendarSettings": {
-        "title": "Control Disponibilitate Echipa",
-        "description": "Stabilește ce pot face membrii echipei în legătură cu programările și calendarul lor — fără să îți ceară aprobarea.",
+        "title": "Permisiuni calendar pentru echipă",
+        "description": "Alege ce pot face membrii echipei cu programările și intervalele blocate fără aprobarea proprietarului.",
         "allowCancel": {
-          "label": "Permite Anulare Fără Aprobarea Ta",
+          "label": "Permite anulare fără aprobarea ta",
           "description": "Membrii echipei pot anula programări fără să îți ceară aprobarea."
         },
         "allowReschedule": {
-          "label": "Permite Reprogramare Fără Aprobarea Ta",
+          "label": "Permite reprogramare fără aprobarea ta",
           "description": "Membrii echipei pot reprograma programări fără aprobare."
         },
         "allowBlock": {
-          "label": "Permite Blocare Calendar Fără Aprobarea Ta",
+          "label": "Permite blocare calendar fără aprobarea ta",
           "description": "Membrii echipei își pot bloca timpul în calendar fără aprobare."
         },
         "blockTypes": {
-          "label": "Motive pentru Blocarea Timpului",
+          "label": "Motive pentru blocarea timpului",
           "description": "Selectează ce motive pot alege membrii echipei când își blochează timpul în calendar.",
           "holidays": "Sărbători",
           "timeOff": "Concediu",
@@ -282,12 +255,12 @@
       }
     },
     "reminders": {
-      "title": "Reamintiri",
+      "title": "Mementouri",
       "sendBefore": {
-        "label": "Trimite reamintire înainte de programare"
+        "label": "Trimite memento înainte de programare"
       },
       "enabled": {
-        "label": "Activează reamintirile"
+        "label": "Activează mementourile"
       },
       "hours": {
         "0": "Dezactivat",
@@ -300,24 +273,24 @@
       }
     },
     "messaging": {
-      "title": "Notificări Clienți",
+      "title": "Notificări clienți",
       "communicationMethods": {
-        "title": "Preferințe de Comunicare",
-        "description": "Alege cum primesc clienții actualizările și reamintirile pentru programări.",
+        "title": "Preferințe de comunicare",
+        "description": "Alege cum primesc clienții actualizările și mementourile pentru programări.",
         "email": {
           "label": "Email",
-          "description": "Trimite confirmări, reamintiri și actualizări prin email."
+          "description": "Trimite confirmări, mementouri și actualizări prin email."
         },
         "sms": {
           "label": "SMS",
-          "description": "Trimite confirmări și reamintiri prin mesaj text."
+          "description": "Trimite confirmări și mementouri prin mesaj text."
         },
         "pushNotificationHelper": "Notificările push sunt trimise automat dacă clienții folosesc aplicația mobilă.",
         "smsTrialRestriction": "Notificările SMS nu sunt disponibile în perioada de probă."
       }
     },
     "adminBookingOverride": {
-      "title": "Reguli Rezervări Admin",
+      "title": "Reguli rezervări admin",
       "description": "Când este activat, administratorii trebuie să respecte rezervarea minimă în avans la crearea programărilor. Când este dezactivat, administratorii pot crea programări oricând.",
       "label": "Aplică minimul în avans pentru programările create de admin",
       "helper": "Când este activat, adminii respectă min. în avans; când este dezactivat, pot rezerva oricând."
@@ -335,6 +308,19 @@
     "next": "Următor"
   },
   "page": {
-    "noListingData": "Nicio dată de listare disponibilă"
+    "noListingData": "Nicio dată de listare disponibilă",
+    "toasts": {
+      "listingPublished": "Listarea a fost publicată în marketplace.",
+      "locationPublic": "Locația este acum vizibilă în marketplace.",
+      "locationHidden": "Locația este acum ascunsă din marketplace.",
+      "onlineEnabled": "Programările online sunt activate pentru această locație.",
+      "onlineDisabled": "Programările online sunt dezactivate pentru această locație.",
+      "bookingSettingsSaved": "Setările de programare au fost salvate.",
+      "listingPublishFailed": "Listarea nu a putut fi publicată în marketplace. Te rugăm să încerci din nou.",
+      "locationVisibilityUpdateFailed": "Vizibilitatea locației nu a putut fi actualizată. Te rugăm să încerci din nou.",
+      "onlineBookingUpdateFailed": "Setările pentru programări online nu au putut fi actualizate. Te rugăm să încerci din nou.",
+      "bookingSettingsSaveFailed": "Setările de programare nu au putut fi salvate. Te rugăm să încerci din nou.",
+      "listingDataLoadFailed": "Datele listării nu au putut fi încărcate. Te rugăm să încerci din nou."
+    }
   }
 }

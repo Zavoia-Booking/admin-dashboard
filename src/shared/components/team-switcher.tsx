@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useTranslation } from "react-i18next"
 import { ChevronsUpDown, Plus } from "lucide-react"
 
 import {
@@ -26,6 +27,7 @@ export function LocationSwitcher({
     plan: string
   }[]
 }) {
+  const { t } = useTranslation('navigation')
   const isMobile = useIsMobile()
   const [activeLocation, setActiveLocation] = React.useState(location[0])
 
@@ -59,7 +61,7 @@ export function LocationSwitcher({
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-muted-foreground text-xs">
-              Locations
+              {t('locationSwitcher.locationsHeader')}
             </DropdownMenuLabel>
             {location.map((location, index) => (
               <DropdownMenuItem
@@ -79,7 +81,7 @@ export function LocationSwitcher({
               <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                 <Plus className="size-4" />
               </div>
-              <div className="text-muted-foreground font-medium">Add location</div>
+              <div className="text-muted-foreground font-medium">{t('locationSwitcher.addLocation')}</div>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

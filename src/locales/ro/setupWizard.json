@@ -1,0 +1,170 @@
+{
+  "page": {
+    "errors": {
+      "saveFailed": "Salvarea progresului a eșuat",
+      "loadDraftFailed": "Încărcarea schiței a eșuat",
+      "completeFailed": "Ceva nu a funcționat, te rugăm să încerci din nou"
+    }
+  },
+  "layout": {
+    "businessSetupWizard": "Configurare afacere",
+    "businessSetup": "Configurare afacere",
+    "saveDraft": "Salvează schiță",
+    "close": "Închide",
+    "back": "Înapoi",
+    "continue": "Continuă",
+    "finishSetup": "Finalizează configurarea",
+    "completed": "{{value}}% finalizat",
+    "stepFallback": "Pasul {{number}}"
+  },
+  "steps": {
+    "labels": {
+      "businessInfo": "Informații afacere",
+      "location": "Locație",
+      "team": "Echipă"
+    },
+    "businessInfo": {
+      "title": "Spune-ne despre afacerea ta",
+      "subtitle": "Acest lucru ne ajută să personalizăm configurarea rezervărilor."
+    },
+    "location": {
+      "title": "Unde oferi serviciile?",
+      "subtitle": "Ajută clienții să te găsească sau anunță-i că oferi servicii la distanță"
+    },
+    "team": {
+      "title": "Vrei să adaugi echipa?",
+      "subtitle": "Invită membri ai echipei pentru a prelua rezervări, a-și gestiona programul sau a accesa calendarul."
+    }
+  },
+  "stepBusinessInfo": {
+    "businessName": "Numele afacerii",
+    "businessNamePlaceholder": "ex. Salonul Sarah & Spa",
+    "businessEmailTitle": "Email afacere *",
+    "useAccountEmailLabel": "contul tău",
+    "useAccountEmailOn": "Emailul contului tău va fi folosit pentru contactul afacerii.",
+    "useAccountEmailOff": "Folosește un email separat pentru contactul afacerii.",
+    "businessPhone": "Telefon afacere *",
+    "businessPhonePlaceholder": "+40 712 345 678",
+    "businessDescription": "Descrierea afacerii",
+    "businessDescriptionPlaceholder": "Spune-le clienților ce face afacerea ta deosebită...",
+    "industry": "Industrie *",
+    "industryHelper": "Acest lucru ne ajută să-ți sugerăm servicii și șabloane relevante",
+    "currency": "Monedă *",
+    "currencyHelper": "Alege moneda implicită pentru prețuri. O poți schimba oricând în setări.",
+    "country": "Țară *",
+    "countryHelper": "Selectează țara în care își desfășoară activitatea afacerea ta.",
+    "timezone": "Fus orar *",
+    "timezoneHelper": "Selectează fusul orar al afacerii pentru programarea corectă a întâlnirilor.",
+    "businessLogo": "Logo afacere (opțional)",
+    "validation": {
+      "phoneRequired": "Numărul de telefon este obligatoriu",
+      "phoneInvalid": "Introdu un număr de telefon valid",
+      "currencyRequired": "Moneda este obligatorie pentru afișarea prețurilor",
+      "currencyInvalid": "Te rugăm să selectezi o monedă validă",
+      "countryRequired": "Te rugăm să selectezi țara",
+      "countryInvalid": "Te rugăm să selectezi o țară validă",
+      "timezoneRequired": "Te rugăm să selectezi fusul orar",
+      "timezoneInvalid": "Te rugăm să selectezi un fus orar valid"
+    }
+  },
+  "stepLocation": {
+    "namePhysicalPlaceholder": "ex. Birou central",
+    "nameRemotePlaceholder": "Online",
+    "addressLabel": "Adresă *",
+    "contactInfoTitle": "Informații de contact",
+    "contactInheritedLabel": "pasul anterior",
+    "locationEmail": "Email locație *",
+    "locationPhone": "Telefon locație *",
+    "useBusinessContactPhysicalOn": "Datele de contact ale afacerii vor fi folosite pentru această locație.",
+    "useBusinessContactRemoteOn": "Datele de contact ale afacerii vor fi folosite pentru această locație.",
+    "useBusinessContactOff": "Folosește alte date de contact pentru această locație.",
+    "descriptionPlaceholder": "Descrie această locație (ex. Sediul principal cu parcare)",
+    "workingHours": "Program de lucru",
+    "validation": {
+      "timezoneRequired": "Fusul orar este obligatoriu"
+    },
+    "toasts": {
+      "enterAddress": "Te rugăm să introduci mai întâi o adresă validă",
+      "geocodeNotFound": "Locația nu a fost găsită pe hartă. Te rugăm să cauți adresa corectă pe hartă.",
+      "geocodeError": "Adresa nu a putut fi geocodată. Te rugăm să ajustezi manual pin-ul.",
+      "selectOnMap": "Te rugăm să selectezi o locație pe hartă",
+      "selectOnMapOrSearch": "Te rugăm să selectezi o locație pe hartă sau să cauți o adresă",
+      "pinConfirmed": "Pin-ul locației a fost confirmat"
+    }
+  },
+  "stepTeam": {
+    "worksSoloLabel": "Lucrez singur",
+    "worksSoloDescriptionOn": "Perfect! Ești gata să-ți gestionezi afacerea independent",
+    "worksSoloDescriptionOff": "Activează această opțiune pentru a sări peste configurarea echipei. Poți invita membri oricând din dashboard pentru a gestiona împreună rezervările",
+    "worksSoloNote": "Poți invita membri ai echipei oricând din setările dashboard-ului pentru a colabora și gestiona rezervările împreună.",
+    "inviteTeamMember": "Invită un membru al echipei",
+    "ariaWhatDoesInvitingDo": "Ce face invitarea?",
+    "invitePopover": "Membrii echipei vor primi o invitație prin email pentru a se alătura contului afacerii tale. Își vor putea seta propria disponibilitate și gestiona rezervările.",
+    "emailPlaceholder": "ex. coleg@companie.com",
+    "addTeamMember": "Adaugă membru",
+    "emailGeneralError": "Te rugăm să introduci o adresă de email validă",
+    "limitReached": "Ai atins numărul maxim de invitații pentru membri în timpul configurării.",
+    "remainingInvites_one": "Mai poți invita {{count}} membru în timpul configurării.",
+    "remainingInvites_few": "Mai poți invita {{count}} membri în timpul configurării.",
+    "remainingInvites_other": "Mai poți invita {{count}} de membri în timpul configurării.",
+    "maxLimitError": "Poți invita până la 10 membri în timpul configurării",
+    "selfEmailError": "Nu îți poți invita propria adresă de email",
+    "invitations": "Invitații",
+    "ariaRemoveInvitation": "Elimină invitația",
+    "removeTitle": "Elimină",
+    "ariaCollapseInvitations": "Restrânge invitațiile",
+    "ariaExpandInvitations": "Extinde invitațiile",
+    "toasts": {
+      "inviteRemoved": "Invitație eliminată",
+      "undo": "Anulează"
+    },
+    "emptyListHint": "Adaugă mai sus emailurile colegilor și le vom trimite invitațiile când finalizezi configurarea."
+  },
+  "stepLaunch": {
+    "welcomeAboard": "Bun venit",
+    "tagline": "Liniștea din spatele calendarului tău",
+    "whatNext": "Iată ce poți face în continuare",
+    "createServiceTitle": "Acum poți crea primul tău serviciu",
+    "createServiceDescription": "Serviciile sunt cele pe care clienții le vor vedea și rezerva pe pagina ta. Începe prin a adăuga unul — descrie ce oferi, cât durează fiecare sesiune și care este prețul, ca să poată rezerva ușor.",
+    "createServiceReassurance": "Nu trebuie să fie perfect — poți edita sau adăuga mai multe servicii oricând.",
+    "twoMinutes": "Durează doar 2 minute",
+    "createService": "Creează un serviciu",
+    "quickOverview": "Privire de ansamblu",
+    "business": "Afacere",
+    "allSet": "Gata",
+    "location": "Locație",
+    "remote": "La distanță",
+    "onSite": "La sediu",
+    "team": "Echipă",
+    "teamMemberInvited_one": "membru invitat",
+    "teamMemberInvited_few": "membri invitați",
+    "teamMemberInvited_other": "de membri invitați",
+    "awaitingAcceptance": "În așteptarea acceptării",
+    "justYou": "Deocamdată doar tu",
+    "addTeamLater": "Poți adăuga membri ai echipei mai târziu",
+    "moreYouCanDo": "Mai multe acțiuni disponibile",
+    "assignServices": "Alocă servicii",
+    "assignServicesDescription": "Asociază serviciile cu membrii potriviți ai echipei — pentru ca rezervările să ajungă la persoanele potrivite.",
+    "assignments": "Alocări",
+    "manageLocations": "Gestionează locațiile",
+    "manageLocationsDescription": "Rafinează configurarea locațiilor sau adaugă altele pe măsură ce afacerea ta crește.",
+    "locations": "Locații",
+    "calendarAndAppointments": "Calendar și programări",
+    "manageSchedule": "Gestionează-ți programul",
+    "manageScheduleDescription": "Vezi-ți calendarul, creează programări și păstrează totul organizat într-un singur loc.",
+    "calendar": "Calendar",
+    "customizationAndBranding": "Personalizare și branding",
+    "customizeProfile": "Personalizează-ți profilul",
+    "customizeProfileDescription": "Finisează-ți profilul cu branding, date de contact și detalii care fac o primă impresie excelentă.",
+    "settings": "Setări",
+    "goToDashboard": "Mergi la dashboard"
+  },
+  "industrySelector": {
+    "ariaSelectIndustry": "Selectează industria"
+  },
+  "page": {
+    "progressSavedTitle": "Progres salvat",
+    "progressSavedDescription": "Poți continua configurarea oricând din dashboard.",
+    "completeError": "Nu am putut finaliza configurarea"
+  }
+}

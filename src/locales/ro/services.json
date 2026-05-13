@@ -1,4 +1,7 @@
 {
+  "categories": {
+    "uncategorized": "Necategorizat"
+  },
   "page": {
     "title": "Servicii",
     "subtitle": "Gestionați serviciile și pachetele dvs",
@@ -54,7 +57,7 @@
       "pricingDuration": "Preț și Durată",
       "pricingDurationDescription": "Setează prețul și durata implicită",
       "category": "Categorie",
-      "categoryDescription": "Atribuie acest serviciu unei categorii pentru a-l organiza și filtra ulterior",
+      "categoryDescription": "Alocă acest serviciu unei categorii pentru a-l organiza și filtra ulterior",
       "locations": "Locații",
       "locationsDescription": "Implicit, serviciul este disponibil în toate locațiile. Selectați locații specifice pentru a-l face disponibil doar acolo.",
       "teamMembers": "Membri Echipă",
@@ -88,7 +91,7 @@
       },
       "pricingNote": {
         "text": "Implicit pentru toți angajații. Poți seta prețuri și durate personalizate per membru al echipei în",
-        "link": "Atribuiri"
+        "link": "Alocări"
       },
       "locations": {
         "emptyMessage": "Nu s-au găsit locații.",
@@ -107,11 +110,11 @@
         "placeholder": "Numele categoriei",
         "helperText": "Lăsați gol pentru a crea serviciul fără categorie",
         "selectLabel": "Selectează una",
-        "selectHelperText": "Fiecare serviciu poate fi atribuit unei singure categorii",
+        "selectHelperText": "Fiecare serviciu poate fi alocat unei singure categorii",
         "manageCategoriesLink": "Administrare Categorii",
         "managePopoverTitle": "Categorii",
         "managePopoverDescription": "Gestionează categoriile folosite de serviciile tale, astfel încât totul să rămână organizat.",
-        "managePopoverHelperText": "Poți șterge o categorie doar dacă nu are niciun serviciu atribuit.",
+        "managePopoverHelperText": "Poți șterge o categorie doar dacă nu are niciun serviciu alocat.",
         "manageConfirmTitle": "Aplici modificările la categorii?",
         "manageConfirmDescription": "Aceste modificări vor actualiza lista de categorii folosită în serviciile tale. Poți reveni oricând la lista inițială din această pagină.",
         "manageConfirmConfirm": "Aplică modificările",
@@ -175,11 +178,14 @@
         "duration": {
           "required": "Durata este obligatorie",
           "min": "Durata trebuie să fie de cel puțin 1 minut"
+        },
+        "category": {
+          "required": "Te rugăm să selectezi sau să creezi o categorie"
         }
       }
     },
     "location": {
-      "currentLocation": "Atribuire la locația curentă: {{locationName}}. Schimbați locația în antet pentru a o aplica la o altă locație.",
+      "currentLocation": "Alocare la locația curentă: {{locationName}}. Schimbați locația în antet pentru a o aplica la o altă locație.",
       "allLocations": "Acest serviciu va fi creat în toate locațiile afacerii. Schimbați la o locație specifică în antet pentru a-l crea doar acolo."
     },
     "buttons": {
@@ -195,11 +201,11 @@
   },
   "editService": {
     "assignments": {
-      "title": "Atribuiri",
+      "title": "Alocări",
       "teamMembers": "Membri echipă",
       "locations": "Locații",
-      "description": "Gestionează ce membri ai echipei și locații pot oferi acest serviciu. Vizualizează și modifică toate atribuirile în secțiunea Atribuiri.",
-      "goToAssignments": "Mergi la Atribuiri"
+      "description": "Gestionează ce membri ai echipei și locații pot oferi acest serviciu. Vizualizează și modifică toate alocările în secțiunea Alocări.",
+      "goToAssignments": "Mergi la Alocări"
     },
     "removeService": {
       "title": "Elimină Serviciu",
@@ -399,7 +405,7 @@
       }
     },
     "editBundle": {
-      "goToAssignments": "Mergi la Atribuiri",
+      "goToAssignments": "Mergi la Alocări",
       "title": "Editează Pachet",
       "subtitle": "Actualizează informațiile și serviciile pachetului",
       "sections": {

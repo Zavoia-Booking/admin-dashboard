@@ -1,4 +1,5 @@
 import React, { memo } from 'react'
+import { useTranslation } from 'react-i18next'
 import type { Industry } from '../../../shared/types/industry'
 
 type IndustrySelectorProps = {
@@ -52,8 +53,9 @@ const IndustryOption = memo(function IndustryOption({ id, name, selected, onSele
 })
 
 const IndustrySelector = ({ industries, selectedId, onSelect }: IndustrySelectorProps) => {
+  const { t } = useTranslation('setupWizard')
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label="Select industry">
+    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label={t('industrySelector.ariaSelectIndustry')}>
       {industries.map((industry) => (
         <IndustryOption
           key={industry.id}

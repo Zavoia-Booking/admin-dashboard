@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Spinner } from "../ui/spinner";
@@ -38,6 +39,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
   ],
   className,
 }) => {
+  const { t } = useTranslation('common');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLImageElement | null>(null);
   const dragCounterRef = useRef(0);
@@ -132,7 +134,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
     if (extension && !extensionToMimeType[extension]) {
       const detectedType = extension.toUpperCase();
       toast.error(
-        `Unsupported file format (${detectedType}). Please use ${formatAllowedTypes()} instead.`,
+        t('logoUpload.errors.unsupportedFormat', { detectedType, allowed: formatAllowedTypes() }),
         { duration: 5000 }
       );
       return false;
@@ -146,7 +148,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
         ? extension.toUpperCase()
         : "unknown format";
       toast.error(
-        `Unsupported file format (${detectedType}). Please use ${formatAllowedTypes()} instead.`,
+        t('logoUpload.errors.unsupportedFormat', { detectedType, allowed: formatAllowedTypes() }),
         { duration: 5000 }
       );
       return false;
@@ -155,7 +157,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
     // Hard validation: File size (must block if exceeds maxSizeMB)
     const maxSizeBytes = maxSizeMB * 1024 * 1024;
     if (file.size > maxSizeBytes) {
-      toast.error(`File size exceeds maximum allowed size of ${maxSizeMB}MB`);
+      toast.error(t('logoUpload.errors.tooLarge', { maxSizeMB }));
       return false;
     }
 
@@ -189,7 +191,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
     // Show simple warning if file needs optimization
     if (needsOptimization) {
       toast.warning(
-        "Your file exceeds our recommended limits. We'll optimize it automatically.",
+        t('logoUpload.errors.softLimitWarning'),
         { duration: 5000 }
       );
     }
@@ -320,7 +322,7 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
                 <img
                   ref={imgRef}
                   src={previewUrl}
-                  alt="Business logo preview"
+                  alt={t('logoUpload.altPreview')}
                   className={cn(
                     "w-full h-full object-contain",
                     isImageLoading && "hidden"
@@ -376,24 +378,27 @@ const LogoUpload: React.FC<LogoUploadProps> = ({
                 </div>
                 <div className="space-y-2">
                   <p className="text-base font-semibold text-foreground">
-                    {dragActive ? "Drop your logo here" : "Upload your logo"}
+                    {dragActive ? t("logoUpload.dropZone.dropHere") : t("logoUpload.dropZone.uploadYour")}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {dragActive
-                      ? "Release to upload"
-                      : "Click to browse or drag and drop"}
+                      ? t("logoUpload.dropZone.releaseToUpload")
+                      : t("logoUpload.dropZone.clickToBrowse")}
                   </p>
                 </div>
                 <div className="pt-4 border-t border-border space-y-1">
                   <p className="text-xs text-muted-foreground leading-relaxed">
                     <span className="font-medium text-foreground">
-                      Max size recommended:
+                      {t("logoUpload.dropZone.maxSizeLabel")}
                     </span>{" "}
-                    {recommendedDimensions.width}×{recommendedDimensions.height}
-                    px, up to {recommendedSizeMB}MB
+                    {t("logoUpload.dropZone.maxSizeDetails", {
+                      width: recommendedDimensions.width,
+                      height: recommendedDimensions.height,
+                      sizeMB: recommendedSizeMB,
+                    })}
                   </p>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    Larger images will be automatically optimized for you.
+                    {t("logoUpload.dropZone.autoOptimize")}
                   </p>
                 </div>
               </>

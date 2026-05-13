@@ -35,7 +35,8 @@ import { useTranslation } from "react-i18next";
 const StepLocation = forwardRef<StepHandle, StepProps>(
   ({ data, onValidityChange, updateData }, ref) => {
     const { t } = useTranslation("locations");
-    
+    const { t: tw } = useTranslation("setupWizard");
+
     // Initialize toggle state from draft data to avoid flash on load
     const [useBusinessContact, setUseBusinessContact] = useState<boolean>(() => {
       const draftToggleState = data.useBusinessContact;
@@ -104,7 +105,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       control,
       rules: {
         validate: (value) => {
-          const error = validateLocationName(value);
+          const error = validateLocationName(value, t);
           return error === null ? true : error;
         },
       },
@@ -117,7 +118,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       rules: {
         validate: (value) => {
           if (useBusinessContact) return true; // Skip validation when using business contact
-          const error = requiredEmailError("Email", value);
+          const error = requiredEmailError('email', value, t);
           return error === null ? true : error;
         },
       },
@@ -131,12 +132,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           required: (value) =>
             useBusinessContact ||
             (!!value && value.trim().length > 0) ||
-            "Phone number is required",
+            tw('stepBusinessInfo.validation.phoneRequired'),
           format: (value) =>
             useBusinessContact ||
             !value ||
             isE164(value) ||
-            "Enter a valid phone number",
+            tw('stepBusinessInfo.validation.phoneInvalid'),
         },
       },
     });
@@ -149,7 +150,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         rules: {
           validate: (value) => {
             if (!value || !value.trim()) return true; // Optional field
-            const error = validateDescription(value, 500);
+            const error = validateDescription(value, t, 500);
             return error === null ? true : error;
           },
         },
@@ -167,7 +168,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
             // Only require timezone when location is remote
             if (!currentIsRemote) return true; // Skip validation for physical locations
             if (!value || value.trim().length === 0) {
-              return "Timezone is required";
+              return tw('stepLocation.validation.timezoneRequired');
             }
             return true;
           },
@@ -212,7 +213,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       const hasAddress = address && address.trim().length > 0;
 
       if (!hasAddress) {
-        toast.error('Please enter a valid address first');
+        toast.error(tw('stepLocation.toasts.enterAddress'));
         return;
       }
       
@@ -243,14 +244,14 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
             setIsMapOpen(true);
           } else {
             // Geocoding failed - show error
-            toast.error('Could not find location on map. Please search for the correct address in the map.');
+            toast.error(tw('stepLocation.toasts.geocodeNotFound'));
             // Still open map but with default center
             setInitialMapCenter([0, 0]); // Will need to search
             setIsMapOpen(true);
           }
         } catch (error) {
           console.error('Geocoding error:', error);
-          toast.error('Could not geocode address. Please adjust the pin manually.');
+          toast.error(tw('stepLocation.toasts.geocodeError'));
           setInitialMapCenter([0, 0]);
           setIsMapOpen(true);
         } finally {
@@ -272,7 +273,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         const finalCoordinates = searchedAddressData.coordinates || adjustedCoordinates;
         
         if (!finalCoordinates) {
-          toast.error('Please select a location on the map');
+          toast.error(tw('stepLocation.toasts.selectOnMap'));
           return;
         }
         
@@ -329,7 +330,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         }
         
         if (!finalLat || !finalLng) {
-          toast.error('Please select a location on the map or search for an address');
+          toast.error(tw('stepLocation.toasts.selectOnMapOrSearch'));
           return;
         }
         
@@ -361,7 +362,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         isConfirmingFromMap.current = false;
       }, 100);
 
-      toast.success('Location pin confirmed');
+      toast.success(tw('stepLocation.toasts.pinConfirmed'));
     };
 
     // Per-field draft validation - only show errors for fields that actually have draft data
@@ -576,7 +577,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
                 error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}
-                placeholder="e.g. Downtown Office"
+                placeholder={tw('stepLocation.namePhysicalPlaceholder')}
                 required
               />
 
@@ -585,7 +586,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   htmlFor="location.address"
                   className="text-base font-medium"
                 >
-                  Address *
+                  {tw('stepLocation.addressLabel')}
                 </Label>
                 {businessCountryCode && (
                   <div className="flex items-start gap-2 p-2.5 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
@@ -640,7 +641,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 onToggleChange={handleContactToggleChange}
                 inheritedEmail={businessEmail}
                 inheritedPhone={businessPhone}
-                inheritedLabel="the previous step"
+                inheritedLabel={tw('stepLocation.contactInheritedLabel')}
                 localEmail={(emailField.value as string) || ""}
                 localPhone={(phoneField.value as string) || ""}
                 onEmailChange={(email) => {
@@ -652,11 +653,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 }}
                 emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || emailHasDraft) ? (emailState.error?.message as unknown as string) : undefined}
                 phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || phoneHasDraft) ? (phoneState.error?.message as unknown as string) : undefined}
-                title="Contact information"
-                emailLabel="Location Email *"
-                phoneLabel="Location Phone *"
-                helperTextOn="Your business contact info will be used for this location."
-                helperTextOff="Provide different contact details for this location."
+                title={tw('stepLocation.contactInfoTitle')}
+                emailLabel={tw('stepLocation.locationEmail')}
+                phoneLabel={tw('stepLocation.locationPhone')}
+                helperTextOn={tw('stepLocation.useBusinessContactPhysicalOn')}
+                helperTextOff={tw('stepLocation.useBusinessContactOff')}
               />
 
               <div className="pt-4">
@@ -664,12 +665,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                   value={(descriptionField.value as string) || ""}
                   onChange={(value) => descriptionField.onChange(value)}
                   error={(descriptionState.isTouched || descriptionState.isDirty || descriptionHasDraft) ? (descriptionState.error?.message as string) : undefined}
-                  placeholder="Describe this location (e.g. Main office with parking)"
+                  placeholder={tw('stepLocation.descriptionPlaceholder')}
                 />
               </div>
 
               <div className="space-y-4 pt-4">
-                <Label className="text-base font-medium">Working Hours</Label>
+                <Label className="text-base font-medium">{tw('stepLocation.workingHours')}</Label>
                 <Open247Toggle
                   open247={open247}
                   onChange={makeWizardToggleHandler({
@@ -701,7 +702,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}
                 isRemote
                 required
-                placeholder="Online"
+                placeholder={tw('stepLocation.nameRemotePlaceholder')}
               />
 
               <TimezoneField
@@ -721,7 +722,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 onToggleChange={handleContactToggleChange}
                 inheritedEmail={businessEmail}
                 inheritedPhone={businessPhone}
-                inheritedLabel="the previous step"
+                inheritedLabel={tw('stepLocation.contactInheritedLabel')}
                 localEmail={(emailField.value as string) || ""}
                 localPhone={(phoneField.value as string) || ""}
                 onEmailChange={(email) => {
@@ -733,15 +734,15 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 }}
                 emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || emailHasDraft) ? (emailState.error?.message as unknown as string) : undefined}
                 phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || phoneHasDraft) ? (phoneState.error?.message as unknown as string) : undefined}
-                title="Contact information"
-                emailLabel="Location Email *"
-                phoneLabel="Location Phone *"
-                helperTextOn="Business contact info will be used for this location."
-                helperTextOff="Provide different contact details for this location."
+                title={tw('stepLocation.contactInfoTitle')}
+                emailLabel={tw('stepLocation.locationEmail')}
+                phoneLabel={tw('stepLocation.locationPhone')}
+                helperTextOn={tw('stepLocation.useBusinessContactRemoteOn')}
+                helperTextOff={tw('stepLocation.useBusinessContactOff')}
               />
 
               <div className="space-y-2 pt-4">
-                <Label className="text-base font-medium">Working Hours</Label>
+                <Label className="text-base font-medium">{tw('stepLocation.workingHours')}</Label>
                 <Open247Toggle
                   open247={open247}
                   onChange={makeWizardToggleHandler({

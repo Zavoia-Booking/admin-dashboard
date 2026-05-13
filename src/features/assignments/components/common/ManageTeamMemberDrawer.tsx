@@ -508,9 +508,7 @@ export function ManageTeamMemberDrawer({
                   )}
                 >
                   <span className="text-xs">
-                    {t("page.manageTeamMemberDrawer.filters.customRates", {
-                      defaultValue: "Custom rates",
-                    })}{" "}
+                    {t("page.manageTeamMemberDrawer.filters.customRates")}{" "}
                     ({customCount})
                   </span>
                 </button>
@@ -836,9 +834,7 @@ export function ManageTeamMemberDrawer({
                         )}
                       >
                         <span className="text-sm">
-                          {t("page.manageTeamMemberDrawer.filters.customRates", {
-                            defaultValue: "Custom rates",
-                          })}{" "}
+                          {t("page.manageTeamMemberDrawer.filters.customRates")}{" "}
                           ({customCount})
                         </span>
                       </button>

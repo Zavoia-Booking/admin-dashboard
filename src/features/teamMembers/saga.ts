@@ -53,7 +53,7 @@ function* handleCancelInvitation(action: ReturnType<typeof cancelInvitationActio
   try {
     yield call(cancelInvitationApi, action.payload.id);
     yield put(cancelInvitationAction.success());
-    toast.success(translateMessageCode('TEAM.S02'));
+    toast.success(i18n.t('teamMembers:toasts.invitationCancelled'));
     yield put(listTeamMembersAction.request());
     yield put(getSubscriptionSummaryAction.request());
   } catch (error: unknown) {
@@ -67,7 +67,7 @@ function* handleResendInvitation(action: ReturnType<typeof resendInvitationActio
   try {
     yield call(resendInvitationApi, action.payload.id);
     yield put(resendInvitationAction.success());
-    toast.success(translateMessageCode('TEAM.S03'));
+    toast.success(i18n.t('teamMembers:toasts.invitationResent'));
     yield put(listTeamMembersAction.request());
   } catch (error: unknown) {
     const message = getErrorMessage(error);

@@ -28,7 +28,7 @@ export default function ResetPasswordPage() {
   const navigate = useNavigate();
   const { isLoading, error: authError } = useSelector((state: RootState) => state.auth);
 
-  const isPasswordPolicyValid = validatePasswordPolicy(password) === true;
+  const isPasswordPolicyValid = validatePasswordPolicy(password, t) === true;
   const passwordsMatch = password === confirmPassword;
   const canSubmit = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0;
 

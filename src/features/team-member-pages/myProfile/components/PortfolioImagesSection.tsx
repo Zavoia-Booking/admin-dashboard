@@ -240,7 +240,7 @@ export function PortfolioImagesSection({ isActive = true }: PortfolioImagesSecti
       setImages((currentImages) =>
         currentImages.map((img) =>
           img.tempId === tempId
-            ? { ...img, isUploading: false, uploadError: "Upload failed" }
+            ? { ...img, isUploading: false, uploadError: t("common:errors.uploadFailed") }
             : img
         )
       );

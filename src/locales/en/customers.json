@@ -160,6 +160,21 @@
       "cannotEdit": "This customer has been merged and can no longer be edited."
     },
     "history": {
+      "title": "Customer history",
+      "subtitle": "Full activity timeline for this customer.",
+      "downloadButton": "Download history",
+      "loadMore": "Load more",
+      "showingCount": "Showing {{shown}} of {{total}}",
+      "empty": {
+        "title": "No activity yet",
+        "body": "Appointments and milestones will appear here."
+      },
+      "source": {
+        "manual": "Manually added",
+        "marketplace": "Via marketplace",
+        "import": "Imported",
+        "unknown": "{{source}}"
+      },
       "downloadFailed": "Couldn't create PDF",
       "downloadFailedDescription": "Something went wrong while building the file. Try again.",
       "pdf": {

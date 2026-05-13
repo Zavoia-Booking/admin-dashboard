@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { useDispatch } from "react-redux";
+import { formatDuration as sharedFormatDuration } from "../../../../shared/utils/formatDuration";
 import {
   Clock,
   AlertCircle,
@@ -379,14 +380,10 @@ export function ServiceStaffOverridesModal({
 
   const currencyDisplay = getCurrencyDisplay(currency);
 
-  const formatDuration = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${mins > 0 ? `${mins}m` : ""}`;
-    }
-    return `${mins}m`;
-  };
+  const formatDuration = useCallback(
+    (minutes: number) => sharedFormatDuration(minutes, t),
+    [t]
+  );
 
   // Fetch staff overrides when modal opens
   useEffect(() => {

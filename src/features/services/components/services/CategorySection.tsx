@@ -244,7 +244,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
       return;
     }
 
-    const validationError = validateCategoryName(trimmedName);
+    const validationError = validateCategoryName(trimmedName, text);
     if (validationError) {
       setEditError(validationError);
       return;
@@ -287,7 +287,7 @@ export const CategorySection: React.FC<CategorySectionProps> = ({
     }
 
     // Validate category name (required → min → max → pattern)
-    const validationError = validateCategoryName(trimmedName);
+    const validationError = validateCategoryName(trimmedName, text);
     if (validationError) {
       setCreateError(validationError);
       return;

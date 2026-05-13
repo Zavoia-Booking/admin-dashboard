@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import { Clock, AlertCircle } from "lucide-react";
@@ -37,6 +38,7 @@ export const DurationInput: React.FC<DurationInputProps> = ({
   compactLayout = false,
   disabled = false,
 }) => {
+  const { t } = useTranslation('common');
   // Convert between storage (minutes) and display value
   const displayValue =
     unit === "days"
@@ -54,7 +56,7 @@ export const DurationInput: React.FC<DurationInputProps> = ({
 
   // Simple default formatter for chips if none provided
   const defaultGetChipLabel = (minutes: number): string => {
-    if (minutes === 0) return "None";
+    if (minutes === 0) return t('duration.none');
     if (unit === "days") {
       const days = Math.round(minutes / 1440);
       return `${days}d`;
@@ -74,7 +76,7 @@ export const DurationInput: React.FC<DurationInputProps> = ({
   };
 
   const chipFormatter = getChipLabel || defaultGetChipLabel;
-  const unitLabel = unit === "days" ? "days" : unit === "hours" ? "hours" : "minutes";
+  const unitLabel = unit === "days" ? t('duration.days') : unit === "hours" ? t('duration.hours') : t('duration.minutes');
   const numericQuickActions = useMemo(
     () => quickActions.filter((a): a is number => typeof a === "number"),
     [quickActions]
@@ -201,7 +203,7 @@ export const DurationInput: React.FC<DurationInputProps> = ({
                       disabled && "cursor-not-allowed opacity-50"
                     )}
                   >
-                    {isOther ? "Other" : chipFormatter(action)}
+                    {isOther ? t("duration.other") : chipFormatter(action)}
                   </button>
                 );
               })}

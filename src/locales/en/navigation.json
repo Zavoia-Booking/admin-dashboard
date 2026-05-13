@@ -1,4 +1,8 @@
 {
+  "locationSwitcher": {
+    "locationsHeader": "Locations",
+    "addLocation": "Add location"
+  },
   "breadcrumbs": {
     "dashboard": "Dashboard",
     "calendar": "Calendar",

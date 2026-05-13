@@ -102,18 +102,18 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const validatePhone = (value: string): string | undefined => {
     const v = value.trim();
     if (!v) return undefined;
-    return isE164(v) ? undefined : 'Enter a valid phone number';
+    return isE164(v) ? undefined : t('common:validation.phoneInvalid');
   };
 
   const validateAll = (): Record<string, string | undefined> => ({
-    firstName: validatePersonName('First name', formData.firstName) ?? undefined,
-    lastName:  validatePersonName('Last name',  formData.lastName)  ?? undefined,
-    email:     requiredEmailError('Email',      formData.email)     ?? undefined,
+    firstName: validatePersonName('firstName', formData.firstName, t) ?? undefined,
+    lastName:  validatePersonName('lastName',  formData.lastName, t)  ?? undefined,
+    email:     requiredEmailError('email',     formData.email, t)     ?? undefined,
     phone:     validatePhone(formData.phone),
   });
 
   const userHasPassword = user?.hasPassword === true;
-  const isPasswordPolicyValid = validatePasswordPolicy(newPassword) === true;
+  const isPasswordPolicyValid = validatePasswordPolicy(newPassword, t) === true;
   const passwordsMatch = newPassword === confirmPassword;
   const canSubmitPassword = isPasswordPolicyValid && passwordsMatch && confirmPassword.length > 0
     && (!userHasPassword || currentPassword.trim().length > 0);
@@ -254,7 +254,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
 
   const handleChangePassword = async () => {
     setPwFocused(false);
-    const policyResult = validatePasswordPolicy(newPassword);
+    const policyResult = validatePasswordPolicy(newPassword, t);
     if (policyResult !== true) {
       toast.error(t('profile.toast.passwordPolicyFailed'));
       return;
@@ -489,7 +489,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                   value={formData.firstName}
                   onChange={(value) => {
                     setFormData(prev => ({ ...prev, firstName: value }));
-                    setErrors(prev => ({ ...prev, firstName: validatePersonName('First name', value) ?? undefined }));
+                    setErrors(prev => ({ ...prev, firstName: validatePersonName('firstName', value, t) ?? undefined }));
                   }}
                   onBlur={() => setTouched(prev => ({ ...prev, firstName: true }))}
                   error={touched.firstName ? errors.firstName : undefined}
@@ -504,7 +504,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                   value={formData.lastName}
                   onChange={(value) => {
                     setFormData(prev => ({ ...prev, lastName: value }));
-                    setErrors(prev => ({ ...prev, lastName: validatePersonName('Last name', value) ?? undefined }));
+                    setErrors(prev => ({ ...prev, lastName: validatePersonName('lastName', value, t) ?? undefined }));
                   }}
                   onBlur={() => setTouched(prev => ({ ...prev, lastName: true }))}
                   error={touched.lastName ? errors.lastName : undefined}
@@ -533,7 +533,7 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                 value={formData.email}
                 onChange={(value) => {
                   setFormData(prev => ({ ...prev, email: value }));
-                  setErrors(prev => ({ ...prev, email: requiredEmailError('Email', value) ?? undefined }));
+                  setErrors(prev => ({ ...prev, email: requiredEmailError('email', value, t) ?? undefined }));
                 }}
                 onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
                 error={touched.email ? errors.email : undefined}
@@ -798,7 +798,7 @@ const AdvancedAccountSection = () => {
         const count = errorData?.details?.activeAppointmentsCount ?? 0;
         setActiveAppointmentsCount(count);
       } else {
-        const message = errorData?.message || error?.message || 'Failed to leave organisation';
+        const message = errorData?.message || error?.message || t('common:errors.failedToLeaveOrganisation');
         const translatedMessage = Array.isArray(message)
           ? translateMessageCode(message[0])
           : translateMessageCode(message);

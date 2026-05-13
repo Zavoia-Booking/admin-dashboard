@@ -68,7 +68,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
 
   const passwordField = register('password', {
     required: t('register.validation.passwordRequired'),
-    validate: (value) => validatePasswordPolicy(value),
+    validate: (value) => validatePasswordPolicy(value, t),
   })
 
   const onSubmit = (values: FormValues) => {
@@ -286,7 +286,7 @@ export function RegisterForm({ initialEmail, lockEmail, welcomeToken }: Register
                 </span>{" "}
                 {t('register.and')}{" "}
                 <span onClick={(e) => { e.preventDefault(); setLegalDialog("privacy") }} className="text-primary hover:text-primary-hover underline underline-offset-2 cursor-pointer" role="link" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setLegalDialog("privacy")}>
-                  {t('register.confidentialityPolicy')}
+                  {t('register.privacyPolicy')}
                 </span>
               </label>
             </div>

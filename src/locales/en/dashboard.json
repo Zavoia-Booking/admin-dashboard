@@ -11,6 +11,9 @@
     "open247": "Open 24/7",
     "appointments": "Appointments",
     "revenue": "Revenue",
+    "staffAvailable": "Staff Available",
+    "locationLoad": "Location Load",
+    "todaysOverview": "Today's Overview",
     "potentialRevenue": "Potential Revenue",
     "today": "Today",
     "thisWeek": "This Week",
@@ -25,6 +28,30 @@
     "seeLocation": "See location",
     "locationBlocked": "This location is not available for bookings during {{start}} – {{end}}",
     "seeMore": "See more"
+  },
+  "servicesAnalytics": {
+    "heading": "Services Analytics",
+    "singleServices": "Single Services",
+    "bundleBookings": "Bundle Bookings",
+    "active": "Active",
+    "disabled": "Disabled",
+    "mostBookedServices": "Most Booked Services",
+    "serviceAvailability": "Service Availability",
+    "bundleBadge": "Bundle",
+    "bookings": "bookings",
+    "revenue": "revenue"
+  },
+  "revenueAnalytics": {
+    "heading": "Revenue Analytics",
+    "thisWeek": "This Week",
+    "thisMonth": "This Month",
+    "weekLoad": "Week Load",
+    "monthLoad": "Month Load"
+  },
+  "staffPerformance": {
+    "heading": "Staff Performance",
+    "booked": "Booked",
+    "utilization": "Utilization"
   },
   "capacityUtilization": {
     "title": "Capacity",

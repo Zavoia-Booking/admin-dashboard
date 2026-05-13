@@ -7,7 +7,7 @@ import type { TFunction } from "i18next";
 import type { AppointmentBookingSource } from '../../../shared/types/calendar';
 import { buildZonedDate } from '../timezone';
 import type { AddFormPrefill } from '../types';
-import { NO_CUSTOMER_DISPLAY_LABEL } from './utils.tsx';
+import { getNoCustomerDisplayLabel } from './utils.tsx';
 
 // ─────────────────────────────────────────────────────────────
 // Types (minimal shapes used by helpers; slider can use these or extend)
@@ -79,10 +79,10 @@ export function buildScheduledDate(date: Date | null, time: string, timezone?: s
 // Customer display
 // ─────────────────────────────────────────────────────────────
 
-export function getCustomerDisplayLabel(display: CustomerDisplay | null, _forEditMode?: boolean): string {
-  if (!display) return NO_CUSTOMER_DISPLAY_LABEL;
+export function getCustomerDisplayLabel(display: CustomerDisplay | null, t: TFunction, _forEditMode?: boolean): string {
+  if (!display) return getNoCustomerDisplayLabel(t);
   const name = [display.firstName, display.lastName].filter(Boolean).join(' ').trim();
-  return name || display.email || 'Customer';
+  return name || display.email || t('page.common.customer');
 }
 
 export function getCustomerInitials(display: CustomerDisplay | null, fallback: string): string {

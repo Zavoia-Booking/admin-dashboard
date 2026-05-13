@@ -1,5 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
+import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/components/ui/button";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import {
@@ -31,6 +32,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
   teamMembers,
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation("setupWizard");
   const isBusinessLoading = useSelector(getBusinessLoadingSelector);
   const isLocationsLoading = useSelector(getLocationLoadingSelector);
   const isLoading = isBusinessLoading || isLocationsLoading;
@@ -59,17 +61,17 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
     <div className="space-y-6 px-4 md:px-0">
       <div className="text-center py-8 md:py-6 lg:py-8 md:mb-3">
         <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2 flex items-center justify-center gap-2">
-          <span>Welcome Aboard</span>
+          <span>{t("stepLaunch.welcomeAboard")}</span>
         </h2>
         <p className="text-lg text-foreground-3 dark:text-foreground-2">
-          The calm behind your calendar
+          {t("stepLaunch.tagline")}
         </p>
       </div>
 
       {/* Here's what you can do next */}
       <div className="flex items-end gap-2 mb-6">
         <p className="text-sm text-foreground-3 dark:text-foreground-1">
-          Here's what you can do next
+          {t("stepLaunch.whatNext")}
         </p>
         <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
       </div>
@@ -113,12 +115,10 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
             </div>
             <div className="flex-1 text-center md:text-left">
               <h3 className="text-xl md:text-2xl font-bold mb-6 md:mb-3 leading-tight">
-                Now you can create your first service
+                {t("stepLaunch.createServiceTitle")}
               </h3>
               <p className="text-blue-50 text-sm leading-relaxed">
-                Services are what your clients will see and book on your page.
-                Start by adding one — describe what you offer, how long each
-                session takes, and what it costs so they can easily schedule.
+                {t("stepLaunch.createServiceDescription")}
               </p>
             </div>
           </div>
@@ -126,8 +126,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
           <div className="inline-flex items-center gap-3 text-sm bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-4 md:mb-6">
             <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5 h-6 w-6" />
             <p className="text-blue-50">
-              No need to get it perfect — you can edit or add more services
-              anytime.
+              {t("stepLaunch.createServiceReassurance")}
             </p>
           </div>
 
@@ -135,14 +134,14 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
             <div className="flex flex-col gap-1 pl-4">
               <div className="text-xs md:text-sm text-blue-100 flex items-center gap-2">
                 <Clock className="w-6 h-6" />
-                <span>It takes only 2 minutes</span>
+                <span>{t("stepLaunch.twoMinutes")}</span>
               </div>
             </div>
             <Button
               onClick={handleCreateService}
               className="group inline-flex items-center gap-1.5 rounded-full bg-white hover:bg-white text-black hover:text-black py-5 md:py-6 !px-5 md:!px-6 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
             >
-              <span>Create a Service</span>
+              <span>{t("stepLaunch.createService")}</span>
               <ArrowRight
                 className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5"
                 aria-hidden="true"
@@ -155,7 +154,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Setup Summary */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
-          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Quick overview</h3>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t("stepLaunch.quickOverview")}</h3>
           <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -178,7 +177,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                   <span className="text-sm font-semibold text-foreground-1">
-                    Business
+                    {t("stepLaunch.business")}
                   </span>
                 </div>
               </div>
@@ -196,7 +195,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                   </>
                 ) : (
                   <div className="text-lg font-bold text-foreground-1 leading-tight">
-                    All set
+                    {t("stepLaunch.allSet")}
                   </div>
                 )}
               </div>
@@ -224,7 +223,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-info-100 dark:bg-info/10 rounded-full">
                   <div className="w-1.5 h-1.5 rounded-full bg-info"></div>
                   <span className="text-sm font-semibold text-neutral-900 dark:text-foreground-1">
-                    Location
+                    {t("stepLaunch.location")}
                   </span>
                 </div>
               </div>
@@ -243,7 +242,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                           : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
                       }
                     >
-                      Remote
+                      {t("stepLaunch.remote")}
                     </div>
                     <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       {location?.timezone || business?.timezone || "—"}
@@ -263,7 +262,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                           : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
                       }
                     >
-                      On-site
+                      {t("stepLaunch.onSite")}
                     </div>
                     <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
                       {location?.timezone || business?.timezone || "—"}
@@ -294,7 +293,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 rounded-full">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary"></div>
                   <span className="text-sm font-semibold text-foreground-1">
-                    Team
+                    {t("stepLaunch.team")}
                   </span>
                 </div>
               </div>
@@ -305,21 +304,19 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                       <span className="font-semibold">
                         {teamMembers.length}
                       </span>{" "}
-                      {teamMembers.length === 1
-                        ? "team member invited"
-                        : "team members invited"}
+                      {t("stepLaunch.teamMemberInvited", { count: teamMembers.length })}
                     </div>
                     <div className="text-xs text-foreground-3 dark:text-foreground-2">
-                      Awaiting acceptance
+                      {t("stepLaunch.awaitingAcceptance")}
                     </div>
                   </>
                 ) : (
                   <>
                     <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
-                      Just you for now
+                      {t("stepLaunch.justYou")}
                     </div>
                     <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      You can add team members later
+                      {t("stepLaunch.addTeamLater")}
                     </div>
                   </>
                 )}
@@ -336,7 +333,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Next steps section */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-2">
-          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">More you can do now</h3>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t("stepLaunch.moreYouCanDo")}</h3>
           <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,11 +341,11 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
           <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-xl dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-primary/5 dark:bg-primary/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative space-y-2.5">
-              <div className="text-base font-semibold text-foreground-1 leading-tight tracking-tight">Assign services</div>
-              <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-6 mt-4">Match services with the right team members—so bookings are routed to the right people.</div>
+              <div className="text-base font-semibold text-foreground-1 leading-tight tracking-tight">{t("stepLaunch.assignServices")}</div>
+              <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-6 mt-4">{t("stepLaunch.assignServicesDescription")}</div>
               <div>
                 <Button onClick={handleGoAssignments} variant="outline" rounded="full" className="cursor-pointer inline-flex items-center gap-1.5 !px-8">
-                  <span>Assignments</span>
+                  <span>{t("stepLaunch.assignments")}</span>
                   <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 </Button>
               </div>
@@ -359,11 +356,11 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
           <div className="group relative bg-gradient-to-br from-surface to-surface-hover dark:from-neutral-900 dark:to-neutral-800 rounded-2xl p-4 md:p-5 border border-border hover:border-border-strong hover:shadow-xl dark:hover:shadow-[0_20px_25px_-5px_rgba(255,255,255,0.03),0_10px_10px_-5px_rgba(255,255,255,0.02)] transition-all duration-300 overflow-hidden">
             <div className="absolute top-0 right-0 w-20 h-20 bg-info/5 dark:bg-info/20 rounded-full -translate-y-8 translate-x-8 group-hover:scale-150 transition-transform duration-500"></div>
             <div className="relative space-y-2.5">
-              <div className="text-base font-semibold text-foreground-1 leading-tight tracking-tight">Manage locations</div>
-              <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-6 mt-4">Refine your location setup or add more locations as your business grows.</div>
+              <div className="text-base font-semibold text-foreground-1 leading-tight tracking-tight">{t("stepLaunch.manageLocations")}</div>
+              <div className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed mb-6 mt-4">{t("stepLaunch.manageLocationsDescription")}</div>
               <div>
                 <Button onClick={handleGoLocations} variant="outline" rounded="full" className="cursor-pointer inline-flex items-center gap-1.5 !px-8">
-                  <span>Locations</span>
+                  <span>{t("stepLaunch.locations")}</span>
                   <ArrowUpRight className="h-4 w-4 text-primary" aria-hidden="true" />
                 </Button>
               </div>
@@ -375,7 +372,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Calendar Section */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
-          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Calendar & Appointments</h3>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t("stepLaunch.calendarAndAppointments")}</h3>
           <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
         <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
@@ -388,10 +385,10 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg md:text-xl font-bold text-foreground-1">
-                      Manage your schedule
+                      {t("stepLaunch.manageSchedule")}
                     </h3>
                     <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      View your calendar, create appointments, and keep everything organized in one place.
+                      {t("stepLaunch.manageScheduleDescription")}
                     </p>
                   </div>
                 </div>
@@ -401,7 +398,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 variant="outline"
                 className="group inline-flex items-center gap-1.5 rounded-full py-5 md:py-6 !px-6 md:!px-8 font-semibold cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
               >
-                <span>Calendar</span>
+                <span>{t("stepLaunch.calendar")}</span>
                 <ArrowUpRight
                   className="h-4 w-4 text-primary"
                   aria-hidden="true"
@@ -415,7 +412,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
       {/* Settings Section */}
       <div>
         <div className="flex items-end gap-2 mb-6 pt-4">
-          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">Customization & Branding</h3>
+          <h3 className="text-sm text-foreground-3 dark:text-foreground-1">{t("stepLaunch.customizationAndBranding")}</h3>
           <div className="flex-1 h-px bg-border dark:bg-border-strong"></div>
         </div>
         <div className="relative bg-surface dark:bg-neutral-900 rounded-2xl border border-border shadow-sm overflow-hidden">
@@ -428,10 +425,10 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg md:text-xl font-bold text-foreground-1">
-                      Customize your profile
+                      {t("stepLaunch.customizeProfile")}
                     </h3>
                     <p className="text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      Polish your profile with branding, contact info, and details that make a great first impression.
+                      {t("stepLaunch.customizeProfileDescription")}
                     </p>
                   </div>
                 </div>
@@ -441,7 +438,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 variant="outline"
                 className="group inline-flex items-center gap-1.5 rounded-full py-5 md:py-6 !px-6 md:!px-8 font-semibold cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
               >
-                <span>Settings</span>
+                <span>{t("stepLaunch.settings")}</span>
                 <ArrowUpRight
                   className="h-4 w-4 text-primary"
                   aria-hidden="true"
@@ -460,7 +457,7 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
           onClick={() => navigate("/dashboard")}
           className="group inline-flex items-center gap-1.5 rounded-full bg-primary hover:bg-primary-hover text-white dark:text-white py-5 md:py-6 !px-6 md:!px-8 font-semibold shadow-sm cursor-pointer transition-transform active:scale-95 w-full sm:w-auto"
         >
-          <span>Go to Dashboard</span>
+          <span>{t("stepLaunch.goToDashboard")}</span>
           <ArrowRight
             className="h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5"
             aria-hidden="true"

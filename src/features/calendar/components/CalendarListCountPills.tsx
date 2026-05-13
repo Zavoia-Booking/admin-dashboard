@@ -1,4 +1,5 @@
 import type { FC } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../shared/components/ui/badge.tsx';
 import { cn } from '../../../shared/lib/utils.ts';
 
@@ -13,15 +14,21 @@ export const CalendarListCountPills: FC<{
   blockCount: number;
   className?: string;
 }> = ({ apptCount, blockCount, className }) => {
+  const { t } = useTranslation('calendar');
   if (apptCount <= 0 && blockCount <= 0) return null;
+  const apptLabel = t(
+    apptCount === 1 ? 'page.counts.appointmentOne' : 'page.counts.appointmentOther',
+    { count: apptCount },
+  );
+  const blockLabel = t(
+    blockCount === 1 ? 'page.counts.blockOne' : 'page.counts.blockOther',
+    { count: blockCount },
+  );
   return (
     <div
       className={cn('flex flex-wrap items-center justify-end gap-1.5', className)}
       role="status"
-      aria-label={[
-        apptCount > 0 && `${apptCount} appointment${apptCount !== 1 ? 's' : ''}`,
-        blockCount > 0 && `${blockCount} block${blockCount !== 1 ? 's' : ''}`,
-      ]
+      aria-label={[apptCount > 0 && apptLabel, blockCount > 0 && blockLabel]
         .filter(Boolean)
         .join(', ')}
     >
@@ -34,9 +41,7 @@ export const CalendarListCountPills: FC<{
           )}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-violet-500 shrink-0" aria-hidden />
-          <span className="truncate">
-            {apptCount} appointment{apptCount !== 1 ? 's' : ''}
-          </span>
+          <span className="truncate">{apptLabel}</span>
         </Badge>
       ) : null}
       {blockCount > 0 ? (
@@ -48,9 +53,7 @@ export const CalendarListCountPills: FC<{
           )}
         >
           <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-slate-400" aria-hidden />
-          <span className="truncate">
-            {blockCount} block{blockCount !== 1 ? 's' : ''}
-          </span>
+          <span className="truncate">{blockLabel}</span>
         </Badge>
       ) : null}
     </div>

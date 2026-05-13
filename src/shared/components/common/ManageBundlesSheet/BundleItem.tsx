@@ -69,7 +69,7 @@ export function BundleItem({
       tabIndex={0}
       role="button"
       aria-pressed={isSelected}
-      aria-label={`${isSelected ? "Deselect" : "Select"} ${bundle.bundleName}`}
+      aria-label={t(isSelected ? "common:selection.deselect" : "common:selection.select", { name: bundle.bundleName })}
     >
       {/* Circle checkbox */}
       <div

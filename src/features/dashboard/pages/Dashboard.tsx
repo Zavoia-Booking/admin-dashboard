@@ -21,11 +21,11 @@ import { selectCurrentUser } from "../../auth/selectors";
 import type { RootState } from "../../../app/providers/store";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
 
-const WIDGET_CONFIG: Record<string, { label: string; span: number }> = {
-  locationCapacity: { label: "Location & Capacity", span: 3 },
-  appointmentBreakdown: { label: "Appointment Breakdown", span: 3 },
-  reviews: { label: "Reviews", span: 1 },
-  needsAttention: { label: "Needs Attention", span: 2 },
+const WIDGET_CONFIG: Record<string, { span: number }> = {
+  locationCapacity: { span: 3 },
+  appointmentBreakdown: { span: 3 },
+  reviews: { span: 1 },
+  needsAttention: { span: 2 },
 };
 
 
