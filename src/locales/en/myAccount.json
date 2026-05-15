@@ -43,6 +43,16 @@
     "accountSecurity": {
       "title": "Account security",
       "description": "Manage sign-in, password, and connected accounts.",
+      "changeEmail": "Change account email",
+      "changeEmailDescription": "Update the email you use to sign in. We'll notify both your old and new address when you confirm the change.",
+      "changeEmailReveal": "Change email",
+      "changeEmailCancel": "Cancel",
+      "changeEmailButton": "Update email",
+      "currentEmail": "Current email",
+      "currentEmailPlaceholder": "Enter your current email",
+      "currentEmailLabel": "Current",
+      "newEmail": "New email",
+      "newEmailPlaceholder": "Enter your new email",
       "changePassword": "Change password",
       "changePasswordHint": "Update the password used to sign in.",
       "changePasswordReveal": "Change password",
@@ -85,7 +95,12 @@
       "passwordChanged": "Password changed.",
       "passwordSet": "Password set.",
       "passwordUpdateFailed": "Failed to update password",
-      "fixErrorsBeforeSave": "Please fix the errors before saving."
+      "fixErrorsBeforeSave": "Please fix the errors before saving.",
+      "emailSame": "New email must differ from current email",
+      "emailCurrentMismatch": "Current email does not match your account",
+      "emailTaken": "This email is already in use",
+      "emailChanged": "Email changed. Sign in again on your other devices to continue.",
+      "emailChangeFailed": "Failed to update email"
     }
   }
 }

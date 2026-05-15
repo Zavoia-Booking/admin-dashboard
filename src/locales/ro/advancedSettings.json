@@ -35,6 +35,12 @@
     "cancel": "Nu acum",
     "goToBilling": "Mergi la facturare"
   },
+  "instructionsEmailed": {
+    "eyebrow": "Verifică-ți emailul",
+    "title": "Ți-am trimis pașii următori pe email",
+    "message": "Ți-am trimis un email cu instrucțiuni despre cum poți șterge contul.",
+    "continue": "Continuă"
+  },
   "deleteAccountDialog": {
     "eyebrow": "Zonă periculoasă",
     "title": "Ștergi contul definitiv?",

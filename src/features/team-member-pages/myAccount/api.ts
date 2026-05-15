@@ -21,7 +21,6 @@ export interface GetTeamMemberProfileResponse {
 export interface UpdateTeamMemberProfilePayload {
   firstName?: string;
   lastName?: string;
-  email?: string;
   phone?: string;
 }
 

@@ -33,6 +33,7 @@ import { getTeamMemberProfile, updateTeamMemberProfile, changeTeamMemberPassword
 import {
   setPasswordApi,
   deleteAccountApi,
+  changeAccountEmailApi,
 } from '../../../auth/api';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../../auth/actions';
 import GoogleAccountManager from '../../../settings/components/GoogleAccountManager';
@@ -96,6 +97,13 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const [currentPwTouched, setCurrentPwTouched] = useState(false);
   const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
 
+  // Account email change state
+  const [showAccountEmailSection, setShowAccountEmailSection] = useState(false);
+  const [currentEmailInput, setCurrentEmailInput] = useState('');
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailFieldErrors, setEmailFieldErrors] = useState<{ currentEmail?: string; newEmail?: string }>({});
+
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
@@ -108,7 +116,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   const validateAll = (): Record<string, string | undefined> => ({
     firstName: validatePersonName('firstName', formData.firstName, t) ?? undefined,
     lastName:  validatePersonName('lastName',  formData.lastName, t)  ?? undefined,
-    email:     requiredEmailError('email',     formData.email, t)     ?? undefined,
     phone:     validatePhone(formData.phone),
   });
 
@@ -160,7 +167,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       await updateTeamMemberProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
         phone: formData.phone || undefined,
       });
       toast.success(t('profile.toast.updateSuccess'));
@@ -182,7 +188,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
   // Check if form has changes
   const hasChanges = formData.firstName !== originalFormData.firstName ||
     formData.lastName !== originalFormData.lastName ||
-    formData.email !== originalFormData.email ||
     formData.phone !== originalFormData.phone;
 
   // Notify parent of dirty state
@@ -200,6 +205,67 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
       }, 300);
     }, 100);
   };
+
+  const resetAccountEmailForm = () => {
+    setCurrentEmailInput('');
+    setNewEmailInput('');
+    setEmailFieldErrors({});
+  };
+
+  const handleAccountEmailSubmit = async () => {
+    const currentEmail = currentEmailInput.trim();
+    const newEmail = newEmailInput.trim();
+
+    const localErrors: { currentEmail?: string; newEmail?: string } = {};
+    const currentEmailErr = requiredEmailError('email', currentEmail, t);
+    if (currentEmailErr) {
+      localErrors.currentEmail = currentEmailErr;
+    }
+    const newEmailErr = requiredEmailError('email', newEmail, t);
+    if (newEmailErr) {
+      localErrors.newEmail = newEmailErr;
+    } else if (!localErrors.currentEmail && newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+      localErrors.newEmail = t('profile.toast.emailSame');
+    }
+    if (localErrors.currentEmail || localErrors.newEmail) {
+      setEmailFieldErrors(localErrors);
+      return;
+    }
+
+    setEmailFieldErrors({});
+    setIsSavingEmail(true);
+    try {
+      await changeAccountEmailApi({ currentEmail, newEmail });
+      toast.success(t('profile.toast.emailChanged'));
+      resetAccountEmailForm();
+      setShowAccountEmailSection(false);
+      // Refresh user data + the team-member profile so the header/email display updates.
+      dispatch(fetchCurrentUserAction.request());
+      await fetchProfile();
+    } catch (error: any) {
+      const code = error?.response?.data?.code;
+      if (code === 'CURRENT_EMAIL_MISMATCH') {
+        setEmailFieldErrors({ currentEmail: t('profile.toast.emailCurrentMismatch') });
+      } else if (code === 'EMAIL_TAKEN') {
+        setEmailFieldErrors({ newEmail: t('profile.toast.emailTaken') });
+      } else if (code === 'SAME_EMAIL') {
+        setEmailFieldErrors({ newEmail: t('profile.toast.emailSame') });
+      } else {
+        const message = error?.response?.data?.message || error?.message || t('profile.toast.emailChangeFailed');
+        const translatedMessage = Array.isArray(message)
+          ? translateMessageCode(message[0])
+          : translateMessageCode(message);
+        toast.error(translatedMessage);
+      }
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const canSubmitAccountEmail =
+    currentEmailInput.trim().length > 0 &&
+    newEmailInput.trim().length > 0 &&
+    !isSavingEmail;
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -528,21 +594,6 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
 
             <div className="profile-field-grid">
               <TextField
-                label={t('profile.fields.email')}
-                placeholder={t('profile.fields.emailPlaceholder')}
-                value={formData.email}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, email: value }));
-                  setErrors(prev => ({ ...prev, email: requiredEmailError('email', value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, email: true }))}
-                error={touched.email ? errors.email : undefined}
-                icon={Mail}
-                disabled={isSaving}
-                maxLength={150}
-                required
-              />
-              <TextField
                 label={t('profile.fields.phone')}
                 placeholder={t('profile.fields.phonePlaceholder')}
                 value={formData.phone}
@@ -573,6 +624,112 @@ const MyAccountContent = ({ onDirtyChange, onSavingChange }: MyAccountContentPro
                 onSetPasswordClick={handleSetPasswordClick}
                 returnUrl="/my-account"
               />
+
+              <div className="profile-divider" />
+
+              {/* Account email change */}
+              <div className="profile-subgroup">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="profile-subgroup-head flex-1 min-w-0">
+                    <div className="profile-subgroup-title">{t('profile.accountSecurity.changeEmail')}</div>
+                    <div className="profile-subgroup-sub">{t('profile.accountSecurity.changeEmailDescription')}</div>
+                    {user?.email && (
+                      <div className="profile-subgroup-sub mt-1">
+                        <span className="text-muted-foreground">{t('profile.accountSecurity.currentEmailLabel')}:</span>{' '}
+                        <span className="font-medium">{user.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  {!showAccountEmailSection && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAccountEmailSection(true)}
+                      className="profile-btn-ghost profile-btn-compact shrink-0 self-start sm:self-auto"
+                    >
+                      <Mail className="h-3 w-3" />
+                      {t('profile.accountSecurity.changeEmailReveal')}
+                    </button>
+                  )}
+                </div>
+
+                {showAccountEmailSection && (
+                  <>
+                    <div className="profile-field-grid">
+                      <TextField
+                        id="current-account-email"
+                        label={t('profile.accountSecurity.currentEmail')}
+                        placeholder={t('profile.accountSecurity.currentEmailPlaceholder')}
+                        value={currentEmailInput}
+                        onChange={(value) => {
+                          setCurrentEmailInput(value);
+                          if (emailFieldErrors.currentEmail) {
+                            setEmailFieldErrors(prev => ({ ...prev, currentEmail: undefined }));
+                          }
+                        }}
+                        type="email"
+                        icon={Mail}
+                        autoComplete="email"
+                        disabled={isSavingEmail}
+                        error={emailFieldErrors.currentEmail}
+                      />
+                      <TextField
+                        id="new-account-email"
+                        label={t('profile.accountSecurity.newEmail')}
+                        placeholder={t('profile.accountSecurity.newEmailPlaceholder')}
+                        value={newEmailInput}
+                        onChange={(value) => {
+                          setNewEmailInput(value);
+                          if (emailFieldErrors.newEmail) {
+                            setEmailFieldErrors(prev => ({ ...prev, newEmail: undefined }));
+                          }
+                        }}
+                        type="email"
+                        icon={Mail}
+                        autoComplete="email"
+                        disabled={isSavingEmail}
+                        error={emailFieldErrors.newEmail}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (canSubmitAccountEmail) handleAccountEmailSubmit();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAccountEmailSection(false);
+                          resetAccountEmailForm();
+                        }}
+                        disabled={isSavingEmail}
+                        className="profile-btn-ghost"
+                      >
+                        {t('profile.accountSecurity.changeEmailCancel')}
+                      </button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        rounded="full"
+                        className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
+                        onClick={handleAccountEmailSubmit}
+                        disabled={!canSubmitAccountEmail}
+                      >
+                        {isSavingEmail ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t('profile.accountSecurity.updating')}
+                          </>
+                        ) : (
+                          t('profile.accountSecurity.changeEmailButton')
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
 
               <div className="profile-divider" />
 

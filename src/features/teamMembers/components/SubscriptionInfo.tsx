@@ -5,6 +5,7 @@ import { Users, CheckCircle2, AlertTriangle, Sparkles, Ban, ArrowRight } from 'l
 import type { AuthUser } from '../../auth/types';
 import type { SubscriptionSummary } from '../../settings/types';
 import { WebOnly } from '../../../shared/components/common/platform/PlatformGate';
+import { usePlatform } from '../../../shared/hooks/usePlatform';
 
 interface SubscriptionInfoProps {
   currentUser: AuthUser | null;
@@ -101,6 +102,7 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
 }) => {
   const { t } = useTranslation('teamMembers');
   const navigate = useNavigate();
+  const { isNative } = usePlatform();
 
   const paidSeats = currentUser?.entitlements?.paidTeamSeats ?? subscriptionSummary?.currentTeamMembersCount ?? 0;
   const usedSeats = subscriptionSummary?.usedSeats ?? 0;
@@ -203,7 +205,9 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
           icon={<AlertTriangle className="h-4 w-4" />}
           title={t('subscriptionInfo.allSeatsInUse')}
         >
-          {t('subscriptionInfo.allSeatsInUseDescription')}
+          {isNative
+            ? t('subscriptionInfo.allSeatsInUseDescriptionMobile')
+            : t('subscriptionInfo.allSeatsInUseDescription')}
         </Banner>
       )}
     </>

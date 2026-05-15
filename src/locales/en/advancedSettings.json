@@ -35,6 +35,12 @@
     "cancel": "Not now",
     "goToBilling": "Go to billing"
   },
+  "instructionsEmailed": {
+    "eyebrow": "Check your inbox",
+    "title": "We've emailed you the next steps",
+    "message": "We've sent you an email with instructions on how to delete your account.",
+    "continue": "Continue"
+  },
   "deleteAccountDialog": {
     "eyebrow": "Danger zone",
     "title": "Delete account permanently?",

@@ -174,6 +174,6 @@ export type AccountActionResponse = {
 export type AccountActionError = {
   statusCode: number;
   message: string;
-  code?: 'has_active_subscription';
+  code?: 'has_active_subscription' | 'deletion_instructions_sent';
   details?: Record<string, unknown>;
 };

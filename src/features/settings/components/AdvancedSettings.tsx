@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CreditCard } from 'lucide-react';
+import { AlertTriangle, CreditCard, Mail } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -44,6 +44,7 @@ const AdvancedSettings = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showSubscriptionBlocker, setShowSubscriptionBlocker] = useState(false);
+  const [showInstructionsEmailed, setShowInstructionsEmailed] = useState(false);
 
   const handleDeleteClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.blur();
@@ -59,7 +60,10 @@ const AdvancedSettings = () => {
       dispatch(logoutRequestAction.request());
     } catch (error: any) {
       const errorData = error?.response?.data as AccountActionError | undefined;
-      if (errorData?.code === 'has_active_subscription') {
+      if (errorData?.code === 'deletion_instructions_sent') {
+        // Native: backend mailed the owner with instructions to cancel subscription on web.
+        setShowInstructionsEmailed(true);
+      } else if (errorData?.code === 'has_active_subscription') {
         setShowSubscriptionBlocker(true);
       } else {
         toast.error(errorData?.message || t('toast.failedDelete'));
@@ -104,6 +108,31 @@ const AdvancedSettings = () => {
           </Button>
         </div>
       </div>
+
+      {/* Native-only: instructions emailed to the owner because subscription must be cancelled on web */}
+      <AlertDialog open={showInstructionsEmailed} onOpenChange={(open) => !open && setShowInstructionsEmailed(false)}>
+        <AlertDialogContent className={modalPanel}>
+          <AlertDialogHeader className="space-y-4 !text-left">
+            <div className={modalEyebrow}>
+              <Mail className="inline-block h-3.5 w-3.5 mr-1.5 -mt-0.5" aria-hidden />
+              {t('instructionsEmailed.eyebrow')}
+            </div>
+            <AlertDialogTitle className={`${modalTitleCompact} text-left`}>
+              {t('instructionsEmailed.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-left">
+                <p className={modalBody}>{t('instructionsEmailed.message')}</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={`${modalFooterRowRight} mt-7`}>
+            <button type="button" onClick={() => setShowInstructionsEmailed(false)} className={modalPrimary}>
+              <span>{t('instructionsEmailed.continue')}</span>
+            </button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Active subscription blocker — owner must cancel sub first */}
       <AlertDialog open={showSubscriptionBlocker} onOpenChange={(open) => !open && setShowSubscriptionBlocker(false)}>

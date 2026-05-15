@@ -30,6 +30,7 @@ import { listLocationsAction } from '../../locations/actions';
 import { computeSeatContext } from '../../../shared/utils/billing';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { usePlatform } from '../../../shared/hooks/usePlatform';
 
 interface InviteTeamMemberSliderProps {
   isOpen: boolean;
@@ -61,6 +62,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
   const loadingPricing = useSelector(selectIsLoadingSubscriptionSummary);
   const allLocations = useSelector(getAllLocationsSelector);
   const navigate = useNavigate();
+  const { isNative } = usePlatform();
   const seatCtx = computeSeatContext({ currentUser, subscriptionSummary, teamMembersSummary });
   const isInviteAllowed = !(seatCtx.isCancelled || !seatCtx.hasSubscription || !seatCtx.hasAvailableSeats);
   const locationIds = watch('locationIds');
@@ -150,9 +152,13 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
       return;
     }
 
-    // If user can't invite (no seats, cancelled, no subscription), go straight to billing
+    // If user can't invite (no seats, cancelled, no subscription), go straight to billing.
+    // On native (iOS/Android), billing is web-only — no-op here; the footer button is
+    // also disabled in that state, so this branch is just defensive.
     if (!isInviteAllowed && !seatCtx.isTrial) {
-      navigate('/account?tab=billing');
+      if (!isNative) {
+        navigate('/account?tab=billing');
+      }
       return;
     }
 
@@ -198,7 +204,11 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
     }
 
     if (isCancelled || !hasSubscription || !hasAvailableSeats) {
-      return t('inviteSlider.buttons.goToBilling');
+      // On native, billing is web-only — keep the regular "Continue" label and let
+      // the footer disable the button so we never surface a CTA to a purchase flow.
+      return isNative
+        ? t('inviteSlider.buttons.continue')
+        : t('inviteSlider.buttons.goToBilling');
     }
 
     return t('inviteSlider.buttons.continue');
@@ -234,7 +244,7 @@ const InviteTeamMemberSlider: React.FC<InviteTeamMemberSliderProps> = ({
             formId="invite-team-member-form"
             cancelLabel={t('inviteSlider.buttons.cancel')}
             submitLabel={getTextForButton()}
-            disabled={isInviting || ((isInviteAllowed || seatCtx.isTrial) && locationIds.length === 0)}
+            disabled={isInviting || ((isInviteAllowed || seatCtx.isTrial) && locationIds.length === 0) || (isNative && !isInviteAllowed && !seatCtx.isTrial)}
             isLoading={isInviting}
           />
         }
