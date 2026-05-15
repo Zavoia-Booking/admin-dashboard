@@ -55,13 +55,7 @@
       "industryWarning3": "Astfel, afacerea ta nu apare în categoria greșită și clienții te găsesc mai ușor.",
       "descriptionPlaceholder": "Descrie ce oferi, cui te adresezi și zona în care activezi.",
       "currency": "Moneda implicită *",
-      "currencyDescription": "Folosită pentru prețuri, facturi și programări."
-    },
-    "contact": {
-      "title": "Date de contact",
-      "description": "Clienții vor folosi aceste informații pentru a te contacta.",
-      "email": "Emailul afacerii *",
-      "emailPlaceholder": "afacerea@exemplu.ro",
+      "currencyDescription": "Folosită pentru prețuri, facturi și programări.",
       "phone": "Telefonul afacerii",
       "phonePlaceholder": "+40 7XX XXX XXX"
     },
@@ -82,6 +76,16 @@
     "security": {
       "title": "Securitatea contului",
       "description": "Gestionează autentificarea, parola și conturile conectate.",
+      "changeEmail": "Schimbă adresa de email a contului",
+      "changeEmailDescription": "Actualizează adresa de email folosită pentru autentificare. Vom trimite notificări atât la adresa veche, cât și la cea nouă atunci când confirmi schimbarea.",
+      "changeEmailReveal": "Schimbă emailul",
+      "changeEmailCancel": "Renunță",
+      "changeEmailButton": "Actualizează emailul",
+      "currentEmail": "Email curent",
+      "currentEmailPlaceholder": "Introdu adresa curentă",
+      "currentEmailLabel": "Curent",
+      "newEmail": "Email nou",
+      "newEmailPlaceholder": "Introdu noua adresă",
       "changePassword": "Schimbă parola",
       "changePasswordDescription": "Actualizează parola folosită pentru autentificare.",
       "changePasswordReveal": "Schimbă parola",
@@ -121,6 +125,11 @@
       "passwordSetFailed": "Eșec la setarea parolei",
       "passwordChanged": "Parola a fost schimbată cu succes!",
       "passwordChangeFailed": "Eșec la schimbarea parolei",
+      "emailSame": "Adresa nouă trebuie să fie diferită de cea curentă",
+      "emailCurrentMismatch": "Adresa de email curentă nu corespunde contului tău",
+      "emailTaken": "Această adresă de email este deja folosită",
+      "emailChanged": "Adresa de email a fost schimbată. Conectează-te din nou pe celelalte dispozitive pentru a continua.",
+      "emailChangeFailed": "Eșec la schimbarea adresei de email",
       "fixErrorsBeforeSave": "Te rugăm să corectezi erorile înainte de a salva."
     }
   },

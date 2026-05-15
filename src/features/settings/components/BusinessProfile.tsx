@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, LogOut, FileText, ChevronRight } from 'lucide-react';
+import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, LogOut, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -17,7 +17,7 @@ import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector } from '../../business/selectors';
 import { fetchCurrentUserAction, logoutRequestAction } from '../../auth/actions';
-import { setPasswordApi, changeOwnerPasswordApi } from '../../auth/api';
+import { setPasswordApi, changeOwnerPasswordApi, changeAccountEmailApi } from '../../auth/api';
 import { translateMessageCode } from '../../../shared/utils/error';
 import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
@@ -79,12 +79,14 @@ const initialFormData: BusinessFormData = {
   logoKey: null,
 };
 
-/** Fields that are sent in the business update payload - used for dirty check */
+/** Fields that are sent in the business update payload - used for dirty check.
+ *  Note: businessEmail is intentionally excluded. The owner's account email is changed
+ *  via POST /auth/change-email (in the Account security section), which performs
+ *  verification, dual notification, and session revocation. */
 const getUpdatePayloadSnapshot = (data: BusinessFormData) => ({
   businessName: data.businessName,
   description: data.description ?? '',
   industryId: data.industryId,
-  businessEmail: data.businessEmail,
   businessPhone: data.businessPhone,
   businessCurrency: data.businessCurrency,
   instagramUrl: data.instagramUrl,
@@ -121,6 +123,14 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const [pwInteracted, setPwInteracted] = useState(false);
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPwTouched, setCurrentPwTouched] = useState(false);
+
+  // Account email change state
+  const [showAccountEmailSection, setShowAccountEmailSection] = useState(false);
+  const [currentEmailInput, setCurrentEmailInput] = useState('');
+  const [newEmailInput, setNewEmailInput] = useState('');
+  const [isSavingEmail, setIsSavingEmail] = useState(false);
+  const [emailFieldErrors, setEmailFieldErrors] = useState<{ currentEmail?: string; newEmail?: string }>({});
+
   const [legalDialogType, setLegalDialogType] = useState<LegalPageType | null>(null);
 
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -136,7 +146,6 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
   const validateAll = (): Record<string, string | undefined> => ({
     businessName: validateBusinessName(formData.businessName, t) ?? undefined,
-    businessEmail: requiredEmailError('businessEmail', formData.businessEmail, t) ?? undefined,
     businessPhone: validatePhone(formData.businessPhone),
     industryId: formData.industryId == null ? t('common:validation.industryRequired') : undefined,
     description: validateDescription(formData.description, t, 500) ?? undefined,
@@ -205,7 +214,6 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       current.businessName !== originalSnapshot.businessName ||
       current.description !== originalSnapshot.description ||
       current.industryId !== originalSnapshot.industryId ||
-      current.businessEmail !== originalSnapshot.businessEmail ||
       current.businessPhone !== originalSnapshot.businessPhone ||
       current.businessCurrency !== originalSnapshot.businessCurrency ||
       current.instagramUrl !== originalSnapshot.instagramUrl ||
@@ -281,11 +289,13 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
       return;
     }
 
-    // Prepare update data (logo is handled separately via upload endpoint)
+    // Prepare update data (logo is handled separately via upload endpoint).
+    // Email is intentionally NOT sent here — owner's account email is changed via
+    // POST /auth/change-email (Account security section), which performs verification,
+    // dual notification, and session revocation.
     const updateData: UpdateBusinessDTO = {
       name: formData.businessName,
       description: formData.description,
-      email: formData.businessEmail,
       phone: formData.businessPhone,
       businessCurrency: formData.businessCurrency,
       instagramUrl: formData.instagramUrl,
@@ -301,15 +311,81 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   };
 
   const handleSetPasswordClick = () => {
-    // Small delay to allow modal to close first, then focus and scroll to the password input
+    // Expand the password section so passwordInputRef gets attached to the actual input.
+    // Without this, the ref is null while the section is collapsed and the scroll/focus
+    // below would silently no-op for Google-registered users coming from the unlink dialog.
+    setShowPasswordSection(true);
+    // Small delay to allow modal to close + section to mount, then focus and scroll.
     setTimeout(() => {
       passwordInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Focus after scroll starts
       setTimeout(() => {
         passwordInputRef.current?.focus();
       }, 300);
     }, 100);
   };
+
+  const resetAccountEmailForm = () => {
+    setCurrentEmailInput('');
+    setNewEmailInput('');
+    setEmailFieldErrors({});
+  };
+
+  const handleAccountEmailSubmit = async () => {
+    const currentEmail = currentEmailInput.trim();
+    const newEmail = newEmailInput.trim();
+
+    // Reuse the shared per-error-mode validator (same one the setup wizard uses for
+    // businessInfo.email) so users see granular messages: "Email must include an @
+    // symbol", "Email must include a domain (like .com)", etc., already translated.
+    const localErrors: { currentEmail?: string; newEmail?: string } = {};
+    const currentEmailErr = requiredEmailError('email', currentEmail, t);
+    if (currentEmailErr) {
+      localErrors.currentEmail = currentEmailErr;
+    }
+    const newEmailErr = requiredEmailError('email', newEmail, t);
+    if (newEmailErr) {
+      localErrors.newEmail = newEmailErr;
+    } else if (!localErrors.currentEmail && newEmail.toLowerCase() === currentEmail.toLowerCase()) {
+      localErrors.newEmail = t('profile.toast.emailSame');
+    }
+    if (localErrors.currentEmail || localErrors.newEmail) {
+      setEmailFieldErrors(localErrors);
+      return;
+    }
+
+    setEmailFieldErrors({});
+    setIsSavingEmail(true);
+    try {
+      await changeAccountEmailApi({ currentEmail, newEmail });
+      toast.success(t('profile.toast.emailChanged'));
+      resetAccountEmailForm();
+      setShowAccountEmailSection(false);
+      dispatch(fetchCurrentUserAction.request());
+      dispatch(fetchCurrentBusinessAction.request());
+    } catch (error: any) {
+      const code = error?.response?.data?.code;
+      if (code === 'CURRENT_EMAIL_MISMATCH') {
+        setEmailFieldErrors({ currentEmail: t('profile.toast.emailCurrentMismatch') });
+      } else if (code === 'EMAIL_TAKEN') {
+        setEmailFieldErrors({ newEmail: t('profile.toast.emailTaken') });
+      } else if (code === 'SAME_EMAIL') {
+        setEmailFieldErrors({ newEmail: t('profile.toast.emailSame') });
+      } else {
+        const message = error?.response?.data?.message || error?.message || t('profile.toast.emailChangeFailed');
+        const translatedMessage = Array.isArray(message)
+          ? translateMessageCode(message[0])
+          : translateMessageCode(message);
+        toast.error(translatedMessage);
+      }
+    } finally {
+      setIsSavingEmail(false);
+    }
+  };
+
+  const canSubmitAccountEmail =
+    currentEmailInput.trim().length > 0 &&
+    newEmailInput.trim().length > 0 &&
+    !isSavingEmail;
 
   const handlePasswordSubmit = async () => {
     setPwFocused(false);
@@ -476,67 +552,44 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="businessCurrency" className="text-base font-medium">
-                  {t('profile.basicInfo.currency')}
-                </Label>
-                <p className="text-sm text-foreground-3 dark:text-foreground-2">
-                  {t('profile.basicInfo.currencyDescription')}
-                </p>
-                <CurrencySelect
-                  id="businessCurrency"
-                  value={formData.businessCurrency}
+              <div className="profile-field-grid items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="businessCurrency" className="text-base font-medium">
+                    {t('profile.basicInfo.currency')}
+                  </Label>
+                  <p className="text-sm text-foreground-3 dark:text-foreground-2">
+                    {t('profile.basicInfo.currencyDescription')}
+                  </p>
+                  <CurrencySelect
+                    id="businessCurrency"
+                    value={formData.businessCurrency}
+                    onChange={(value) => {
+                      setFormData(prev => ({ ...prev, businessCurrency: value }));
+                      setErrors(prev => ({
+                        ...prev,
+                        businessCurrency: CURRENCY_WHITELIST.includes(value?.toLowerCase())
+                          ? undefined
+                          : t('common:validation.currencyInvalid'),
+                      }));
+                    }}
+                    error={touched.businessCurrency ? errors.businessCurrency : undefined}
+                  />
+                </div>
+
+                <TextField
+                  label={t('profile.basicInfo.phone')}
+                  placeholder={t('profile.basicInfo.phonePlaceholder')}
+                  value={formData.businessPhone}
                   onChange={(value) => {
-                    setFormData(prev => ({ ...prev, businessCurrency: value }));
-                    setErrors(prev => ({
-                      ...prev,
-                      businessCurrency: CURRENCY_WHITELIST.includes(value?.toLowerCase())
-                        ? undefined
-                        : t('common:validation.currencyInvalid'),
-                    }));
+                    const sanitized = sanitizePhoneToE164Draft(value);
+                    setFormData(prev => ({ ...prev, businessPhone: sanitized }));
+                    setErrors(prev => ({ ...prev, businessPhone: validatePhone(sanitized) }));
                   }}
-                  error={touched.businessCurrency ? errors.businessCurrency : undefined}
+                  onBlur={() => setTouched(prev => ({ ...prev, businessPhone: true }))}
+                  error={touched.businessPhone ? errors.businessPhone : undefined}
+                  icon={Phone}
                 />
               </div>
-            </div>
-          </section>
-
-          {/* Section: Contact */}
-          <section className="profile-section" aria-labelledby="profile-section-contact">
-            <header className="profile-section-header">
-              <div>
-                <h3 id="profile-section-contact" className="profile-section-title">{t('profile.contact.title')}</h3>
-                <p className="profile-section-sub">{t('profile.contact.description')}</p>
-              </div>
-            </header>
-
-            <div className="profile-field-grid">
-              <TextField
-                label={t('profile.contact.email')}
-                placeholder={t('profile.contact.emailPlaceholder')}
-                value={formData.businessEmail}
-                onChange={(value) => {
-                  setFormData(prev => ({ ...prev, businessEmail: value }));
-                  setErrors(prev => ({ ...prev, businessEmail: requiredEmailError('businessEmail', value, t) ?? undefined }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, businessEmail: true }))}
-                error={touched.businessEmail ? errors.businessEmail : undefined}
-                icon={Mail}
-                required
-              />
-              <TextField
-                label={t('profile.contact.phone')}
-                placeholder={t('profile.contact.phonePlaceholder')}
-                value={formData.businessPhone}
-                onChange={(value) => {
-                  const sanitized = sanitizePhoneToE164Draft(value);
-                  setFormData(prev => ({ ...prev, businessPhone: sanitized }));
-                  setErrors(prev => ({ ...prev, businessPhone: validatePhone(sanitized) }));
-                }}
-                onBlur={() => setTouched(prev => ({ ...prev, businessPhone: true }))}
-                error={touched.businessPhone ? errors.businessPhone : undefined}
-                icon={Globe}
-              />
             </div>
           </section>
 
@@ -624,6 +677,112 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
 
             <div className="profile-field-stack">
               <GoogleAccountManager onSetPasswordClick={handleSetPasswordClick} />
+
+              <div className="profile-divider" />
+
+              {/* Account email change */}
+              <div className="profile-subgroup">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+                  <div className="profile-subgroup-head flex-1 min-w-0">
+                    <div className="profile-subgroup-title">{t('profile.security.changeEmail')}</div>
+                    <div className="profile-subgroup-sub">{t('profile.security.changeEmailDescription')}</div>
+                    {user?.email && (
+                      <div className="profile-subgroup-sub mt-1">
+                        <span className="text-muted-foreground">{t('profile.security.currentEmailLabel')}:</span>{' '}
+                        <span className="font-medium">{user.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  {!showAccountEmailSection && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAccountEmailSection(true)}
+                      className="profile-btn-ghost profile-btn-compact shrink-0 self-start sm:self-auto"
+                    >
+                      <Mail className="h-3 w-3" />
+                      {t('profile.security.changeEmailReveal')}
+                    </button>
+                  )}
+                </div>
+
+                {showAccountEmailSection && (
+                  <>
+                    <div className="profile-field-grid">
+                      <TextField
+                        id="current-account-email"
+                        label={t('profile.security.currentEmail')}
+                        placeholder={t('profile.security.currentEmailPlaceholder')}
+                        value={currentEmailInput}
+                        onChange={(value) => {
+                          setCurrentEmailInput(value);
+                          if (emailFieldErrors.currentEmail) {
+                            setEmailFieldErrors(prev => ({ ...prev, currentEmail: undefined }));
+                          }
+                        }}
+                        type="email"
+                        icon={Mail}
+                        autoComplete="email"
+                        disabled={isSavingEmail}
+                        error={emailFieldErrors.currentEmail}
+                      />
+                      <TextField
+                        id="new-account-email"
+                        label={t('profile.security.newEmail')}
+                        placeholder={t('profile.security.newEmailPlaceholder')}
+                        value={newEmailInput}
+                        onChange={(value) => {
+                          setNewEmailInput(value);
+                          if (emailFieldErrors.newEmail) {
+                            setEmailFieldErrors(prev => ({ ...prev, newEmail: undefined }));
+                          }
+                        }}
+                        type="email"
+                        icon={Mail}
+                        autoComplete="email"
+                        disabled={isSavingEmail}
+                        error={emailFieldErrors.newEmail}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (canSubmitAccountEmail) handleAccountEmailSubmit();
+                          }
+                        }}
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAccountEmailSection(false);
+                          resetAccountEmailForm();
+                        }}
+                        disabled={isSavingEmail}
+                        className="profile-btn-ghost"
+                      >
+                        {t('profile.security.changeEmailCancel')}
+                      </button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        rounded="full"
+                        className="!h-10 md:!h-11 !px-4 md:!px-6 !min-w-34 md:!w-44"
+                        onClick={handleAccountEmailSubmit}
+                        disabled={!canSubmitAccountEmail}
+                      >
+                        {isSavingEmail ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            {t('profile.security.updating')}
+                          </>
+                        ) : (
+                          t('profile.security.changeEmailButton')
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
 
               <div className="profile-divider" />
 

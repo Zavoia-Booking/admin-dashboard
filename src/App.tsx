@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
+import { Permission } from './shared/lib/permissions'
 import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
 import AccountLinkingRequiredModal from './features/auth/components/AccountLinkingRequiredModal'
@@ -44,6 +45,9 @@ const NotificationsPage = lazy(() => import('./features/notifications/pages/noti
 const MyAssignmentsPage = lazy(() => import('./features/team-member-pages/myAssignments/pages/my-assignments'))
 const MyProfilePage = lazy(() => import('./features/team-member-pages/myProfile/pages/my-profile'))
 const MyAccountPage = lazy(() => import('./features/team-member-pages/myAccount/pages/my-account'))
+
+// Internal email-template tester (owner-only, not surfaced in sidebar)
+const EmailTestPage = lazy(() => import('./features/email-test/pages/email-test'))
 
 function RouteFallback() {
   return (
@@ -92,6 +96,17 @@ function App() {
           <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
           <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
           <Route path="/account" element={<ProtectedRoute element={<SettingsPage />} />} />
+
+          {/* Internal email tester — direct URL only, no sidebar entry */}
+          <Route
+            path="/email-test"
+            element={
+              <ProtectedRoute
+                element={<EmailTestPage />}
+                requiredPermission={Permission.ACCESS_EMAIL_TEST}
+              />
+            }
+          />
 
           {/* Team Member Only */}
           <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />

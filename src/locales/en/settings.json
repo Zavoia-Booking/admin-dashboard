@@ -55,13 +55,7 @@
       "industryWarning3": "This keeps your business from showing in the wrong category and helps customers find you more easily.",
       "descriptionPlaceholder": "Describe what you offer, who you help, and where you operate.",
       "currency": "Default currency *",
-      "currencyDescription": "Used for prices, invoices, and bookings."
-    },
-    "contact": {
-      "title": "Contact details",
-      "description": "Clients will use these details to contact your business.",
-      "email": "Business email *",
-      "emailPlaceholder": "business@example.com",
+      "currencyDescription": "Used for prices, invoices, and bookings.",
       "phone": "Business phone",
       "phonePlaceholder": "+1 (555) 123-4567"
     },
@@ -82,6 +76,16 @@
     "security": {
       "title": "Account security",
       "description": "Manage sign-in, password, and connected accounts.",
+      "changeEmail": "Change account email",
+      "changeEmailDescription": "Update the email you use to sign in. We'll notify both your old and new address when you confirm the change.",
+      "changeEmailReveal": "Change email",
+      "changeEmailCancel": "Cancel",
+      "changeEmailButton": "Update email",
+      "currentEmail": "Current email",
+      "currentEmailPlaceholder": "Enter your current email",
+      "currentEmailLabel": "Current",
+      "newEmail": "New email",
+      "newEmailPlaceholder": "Enter your new email",
       "changePassword": "Change password",
       "changePasswordDescription": "Update the password used to sign in.",
       "changePasswordReveal": "Change password",
@@ -121,6 +125,11 @@
       "passwordSetFailed": "Failed to set password",
       "passwordChanged": "Password changed successfully!",
       "passwordChangeFailed": "Failed to change password",
+      "emailSame": "New email must differ from current email",
+      "emailCurrentMismatch": "Current email does not match your account",
+      "emailTaken": "This email is already in use",
+      "emailChanged": "Email changed. Sign in again on your other devices to continue.",
+      "emailChangeFailed": "Failed to change email",
       "fixErrorsBeforeSave": "Please fix the errors before saving."
     }
   },

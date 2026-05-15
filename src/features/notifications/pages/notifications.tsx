@@ -128,7 +128,7 @@ export default function NotificationsPage() {
       <div className="space-y-6 max-w-4xl mx-auto">
         {/* Page Header */}
         <div className="mb-4 w-full border-b border-border-strong hidden md:block">
-          <h1 className="px-4 pb-3 text-xl font-medium text-foreground">
+          <h1 className="px-4 pb-4.5 text-xl font-medium text-foreground">
             {t("title")}
           </h1>
         </div>
