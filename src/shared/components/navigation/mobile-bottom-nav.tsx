@@ -9,6 +9,8 @@ import {
   UserCircle,
   MessageCircle,
   ClipboardList,
+  FolderKanban,
+  UserRoundCog,
   MoreHorizontal,
   X,
   ChevronRight,
@@ -23,27 +25,33 @@ import { useDispatch } from 'react-redux';
 import { cn } from '../../lib/utils';
 import { useState, useEffect, useRef } from 'react';
 import { logoutRequestAction } from '../../../features/auth/actions';
+import { Permission } from '../../lib/permissions';
+import { usePermissions } from '../../hooks/usePermissions';
 
 interface BottomNavItem {
   i18nKey: string;
   url: string;
   icon: LucideIcon;
+  requiredPermission: Permission;
 }
 
-const mainNavItems: BottomNavItem[] = [
-  { i18nKey: 'sidebar.dashboard', url: '/dashboard', icon: LayoutDashboard },
-  { i18nKey: 'mobileNav.assignments', url: '/assignments', icon: ClipboardList },
-  { i18nKey: 'sidebar.calendar', url: '/calendar', icon: Calendar },
-  { i18nKey: 'mobileNav.marketplace', url: '/marketplace', icon: Store },
+const allMainNavItems: BottomNavItem[] = [
+  { i18nKey: 'sidebar.dashboard', url: '/dashboard', icon: LayoutDashboard, requiredPermission: Permission.ACCESS_DASHBOARD },
+  { i18nKey: 'mobileNav.assignments', url: '/assignments', icon: ClipboardList, requiredPermission: Permission.ACCESS_ASSIGNMENTS },
+  { i18nKey: 'sidebar.teamMember.assignments', url: '/my-assignments', icon: FolderKanban, requiredPermission: Permission.ACCESS_MY_ASSIGNMENTS },
+  { i18nKey: 'sidebar.calendar', url: '/calendar', icon: Calendar, requiredPermission: Permission.ACCESS_CALENDAR },
+  { i18nKey: 'mobileNav.marketplace', url: '/marketplace', icon: Store, requiredPermission: Permission.ACCESS_MARKETPLACE },
+  { i18nKey: 'sidebar.teamMember.profile', url: '/my-profile', icon: UserRoundCog, requiredPermission: Permission.ACCESS_MY_PROFILE },
 ];
 
-const moreNavItems: BottomNavItem[] = [
-  { i18nKey: 'sidebar.teamMembers', url: '/team-members', icon: Users },
-  { i18nKey: 'sidebar.services', url: '/services', icon: Briefcase },
-  { i18nKey: 'sidebar.locations', url: '/locations', icon: MapPin },
-  { i18nKey: 'sidebar.customers', url: '/customers', icon: UserCircle },
-  { i18nKey: 'sidebar.support', url: '/support', icon: MessageCircle },
-  { i18nKey: 'sidebar.account', url: '/account', icon: Settings2 },
+const allMoreNavItems: BottomNavItem[] = [
+  { i18nKey: 'sidebar.teamMembers', url: '/team-members', icon: Users, requiredPermission: Permission.ACCESS_TEAM_MEMBERS },
+  { i18nKey: 'sidebar.services', url: '/services', icon: Briefcase, requiredPermission: Permission.ACCESS_SERVICES },
+  { i18nKey: 'sidebar.locations', url: '/locations', icon: MapPin, requiredPermission: Permission.ACCESS_LOCATIONS },
+  { i18nKey: 'sidebar.customers', url: '/customers', icon: UserCircle, requiredPermission: Permission.ACCESS_CUSTOMERS },
+  { i18nKey: 'sidebar.support', url: '/support', icon: MessageCircle, requiredPermission: Permission.ACCESS_SUPPORT },
+  { i18nKey: 'sidebar.account', url: '/account', icon: Settings2, requiredPermission: Permission.ACCESS_SETTINGS },
+  { i18nKey: 'sidebar.teamMember.account', url: '/my-account', icon: Settings2, requiredPermission: Permission.ACCESS_MY_SETTINGS },
 ];
 
 const USFlag = () => (
@@ -78,6 +86,9 @@ export function MobileBottomNav() {
   const pathname = location.pathname;
   const { i18n, t } = useTranslation('navigation');
   const dispatch = useDispatch();
+  const { hasPermission } = usePermissions();
+  const mainNavItems = allMainNavItems.filter(item => hasPermission(item.requiredPermission));
+  const moreNavItems = allMoreNavItems.filter(item => hasPermission(item.requiredPermission));
   const [isOpen, setIsOpen] = useState(false);
   const [dragY, setDragY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -149,7 +160,7 @@ export function MobileBottomNav() {
       <div
         ref={drawerRef}
         className={cn(
-          'mobile-nav-drawer fixed left-0 right-0 z-50 bg-surface border-t border-border shadow-lg overflow-hidden',
+          'mobile-nav-drawer fixed left-0 right-0 z-[60] bg-surface border-t border-border shadow-lg overflow-hidden',
           !isDragging && 'transition-transform duration-300 ease-out',
           isOpen ? 'translate-y-0' : 'translate-y-full',
           'bottom-[64px] max-h-[calc(100vh-64px)]'
@@ -247,7 +258,7 @@ export function MobileBottomNav() {
       {/* Backdrop overlay */}
       <div
         className={cn(
-          'fixed inset-0 bg-black/30 z-40 backdrop-blur-sm transition-opacity duration-300',
+          'fixed inset-0 bg-black/30 z-[55] backdrop-blur-sm transition-opacity duration-300',
           isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         )}
         onClick={() => setIsOpen(false)}
@@ -257,7 +268,7 @@ export function MobileBottomNav() {
        * no background fills, color-only active state, generous vertical padding,
        * hairline border-top (no shadow), icons at 22px, labels at 10px. */}
       <nav
-        className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-50 bg-surface/95 backdrop-blur-md border-t border-border"
+        className="mobile-bottom-nav fixed bottom-0 left-0 right-0 z-[60] bg-surface/95 backdrop-blur-md border-t border-border"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex items-stretch justify-around px-0 pt-1 pb-4">

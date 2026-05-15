@@ -7,6 +7,8 @@ import {
   CalendarClock,
   CalendarX2,
   CalendarSync,
+  CalendarPlus,
+  CalendarMinus,
   ClipboardCheck,
   Info,
   Headset,
@@ -23,9 +25,14 @@ const NOTIFICATION_ICONS: Record<string, typeof Info> = {
   support_reply: Headset,
   appointment_cancelled_by_customer: CalendarX2,
   appointment_rescheduled_by_customer: CalendarSync,
+  appointment_rescheduled_by_team_member: CalendarSync,
   appointment_status_review: ClipboardCheck,
   team_member_accepted_invitation: UserCheck,
   team_member_left_organisation: UserMinus,
+  appointment_assigned: CalendarPlus,
+  appointment_unassigned: CalendarMinus,
+  appointment_rescheduled: CalendarSync,
+  appointment_cancelled: CalendarX2,
 };
 
 const NOTIFICATION_COLORS: Record<string, string> = {
@@ -35,9 +42,14 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   support_reply: "text-violet-500",
   appointment_cancelled_by_customer: "text-red-500",
   appointment_rescheduled_by_customer: "text-sky-500",
+  appointment_rescheduled_by_team_member: "text-sky-500",
   appointment_status_review: "text-amber-500",
   team_member_accepted_invitation: "text-emerald-500",
   team_member_left_organisation: "text-neutral-500",
+  appointment_assigned: "text-emerald-500",
+  appointment_unassigned: "text-neutral-500",
+  appointment_rescheduled: "text-sky-500",
+  appointment_cancelled: "text-red-500",
 };
 
 function getNavigationPath(notification: BusinessNotification): string | null {
@@ -51,6 +63,11 @@ function getNavigationPath(notification: BusinessNotification): string | null {
 
     case "appointment_cancelled_by_customer":
     case "appointment_rescheduled_by_customer":
+    case "appointment_rescheduled_by_team_member":
+    case "appointment_assigned":
+    case "appointment_unassigned":
+    case "appointment_rescheduled":
+    case "appointment_cancelled":
       return data?.appointmentId
         ? `/calendar?appointmentId=${data.appointmentId}`
         : "/calendar";

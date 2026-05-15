@@ -83,12 +83,15 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
 
   // Check for URL parameters to auto-open sliders
   useEffect(() => {
+    if (!isActive) return;
     const openParam = searchParams.get("open");
     if (openParam === "add") {
       dispatch(toggleAddFormAction(true));
-      setSearchParams({}, { replace: true });
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
     }
-  }, [searchParams, setSearchParams, dispatch]);
+  }, [isActive, searchParams, setSearchParams, dispatch]);
 
   // Load services and categories when tab becomes active
   useEffect(() => {

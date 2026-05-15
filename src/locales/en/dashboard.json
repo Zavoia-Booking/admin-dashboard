@@ -73,7 +73,10 @@
     "appts": "Appts",
     "capacityBooked": "Capacity booked",
     "weekAndMonth": "This week & month",
-    "apptsShort": "appts"
+    "apptsShort": "appts",
+    "noBookingsYet": "No bookings yet",
+    "noRevenueYet": "No revenue yet",
+    "fullyOpen": "Fully open"
   },
   "appointmentBreakdown": {
     "title": "Appointment Breakdown",

@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { AppLayout } from '../../../shared/components/layouts/app-layout';
+import { HeaderRightSlot } from '../../../shared/components/layouts/HeaderRightSlot';
 import BusinessProfile from '../components/BusinessProfile';
 import { Button } from '../../../shared/components/ui/button';
 import {
@@ -15,6 +16,7 @@ import { ResponsiveTabs, type ResponsiveTabItem } from '../../../shared/componen
 import { LimitedAccessBanner } from '../../../shared/components/common/subscription/LimitedAccessBanner';
 import { getBusinessUpdatingSelector } from '../../business/selectors';
 import { usePlatform } from '../../../shared/hooks/usePlatform';
+import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { selectCurrentUser } from '../../auth/selectors';
 
 type SettingsTab = 'profile' | 'billing';
@@ -27,6 +29,7 @@ const SettingsPage = () => {
   const currentUser = useSelector(selectCurrentUser);
   const [isProfileDirty, setIsProfileDirty] = React.useState(false);
   const { isNative } = usePlatform();
+  const isMobile = useIsMobile();
 
   // Owners that haven't finished the setup wizard have no businessId yet, so
   // every billing API call would 404. Hide the tab entirely until they're done.
@@ -143,9 +146,27 @@ const SettingsPage = () => {
     </Button>
   );
 
+  const HeaderSaveButton = (
+    <Button
+      type="button"
+      onClick={handleSaveProfile}
+      className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
+      disabled={!isProfileDirty || isUpdating}
+    >
+      {isUpdating ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+          <span>{t('buttons.saving')}</span>
+        </>
+      ) : (
+        <span>{t('buttons.saveChanges')}</span>
+      )}
+    </Button>
+  );
+
   if (isNative) {
     return (
-      <AppLayout headerRightContent={SaveButton}>
+      <AppLayout headerRightContent={isMobile ? HeaderSaveButton : undefined}>
         <BusinessProfile onDirtyChange={setIsProfileDirty} />
       </AppLayout>
     );
@@ -153,12 +174,15 @@ const SettingsPage = () => {
 
   return (
     <AppLayout tabbedPage>
+      {isMobile && showSaveButton && (
+        <HeaderRightSlot>{HeaderSaveButton}</HeaderRightSlot>
+      )}
       <div className="cursor-default">
         <ResponsiveTabs
           items={tabItems}
           value={activeTab}
           onValueChange={handleTabChange}
-          rightContent={showSaveButton ? SaveButton : undefined}
+          rightContent={!isMobile && showSaveButton ? SaveButton : undefined}
           stickyHeader={true}
         />
       </div>

@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { AppLayout } from "../../../shared/components/layouts/app-layout";
 import { LocationSelector } from "../../../shared/components/common/LocationSelector";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
 import { Loader2 } from "lucide-react";
 import {
   LocationCapacityWidget,
@@ -333,6 +334,7 @@ export default function DashboardPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { locationId } = useParams<{ locationId: string }>();
+  const isMobile = useIsMobile();
 
   const data = useSelector((state: RootState) => state.dashboard.data);
   const isLoading = useSelector((state: RootState) => state.dashboard.isLoading);
@@ -434,22 +436,28 @@ export default function DashboardPage() {
     );
   };
 
+  const locationSelectorNode = (
+    <LocationSelector
+      locations={locations}
+      selectedLocationId={locationId ? parseInt(locationId, 10) : null}
+      onSelect={handleLocationChange}
+      isLoading={isLoadingLocations}
+      placeholder={t("page.selectLocation")}
+    />
+  );
+
   return (
-    <AppLayout>
+    <AppLayout headerTitleContent={isMobile ? locationSelectorNode : undefined}>
       <BusinessSetupGate>
         <div className="space-y-5">
           {/* Page header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="space-y-1 min-w-0">
-              <div className="w-full sm:w-[280px]">
-                <LocationSelector
-                  locations={locations}
-                  selectedLocationId={locationId ? parseInt(locationId, 10) : null}
-                  onSelect={handleLocationChange}
-                  isLoading={isLoadingLocations}
-                  placeholder={t("page.selectLocation")}
-                />
-              </div>
+              {!isMobile && (
+                <div className="w-full sm:w-[280px]">
+                  {locationSelectorNode}
+                </div>
+              )}
               <p className="text-xs text-foreground-3">
                 {t("page.analyticsDashboard")} &bull;{" "}
                 {new Date().toLocaleDateString(i18n.language === "ro" ? "ro-RO" : "en-US", {

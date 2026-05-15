@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight } from 'lucide-react';
+import { usePermissions } from '../../../shared/hooks/usePermissions';
 
 interface RatingDistribution {
   '5': number;
@@ -36,6 +37,8 @@ export function ReviewsWidget({
 }: ReviewsWidgetProps) {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
+  const { isTeamMember } = usePermissions();
+  const reviewsHref = isTeamMember ? '/my-profile?tab=reviews' : '/marketplace?tab=reviews';
   const isEmpty = totalReviews === 0;
 
   const cx = 100;
@@ -61,7 +64,7 @@ export function ReviewsWidget({
           {t('reviews.title')}
         </p>
         <button
-          onClick={() => navigate('/marketplace?tab=reviews')}
+          onClick={() => navigate(reviewsHref)}
           className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
         >
           <span className="text-xs font-medium">{t('reviews.seeAll')}</span>

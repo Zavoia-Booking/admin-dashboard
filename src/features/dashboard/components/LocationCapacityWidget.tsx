@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ChevronRight, MapPin, UserPlus } from 'lucide-react';
 import type { LocationStaffMember } from '../actions';
 import { formatPriceMinor } from '../../../shared/utils/currency';
+import { usePermissions } from '../../../shared/hooks/usePermissions';
+import { Permission } from '../../../shared/lib/permissions';
 
 interface PeriodCapacity {
   filledPercentage: number;
@@ -105,6 +107,8 @@ export function LocationCapacityWidget({
 }: LocationCapacityWidgetProps) {
   const { t } = useTranslation('dashboard');
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canSeeLocation = hasPermission(Permission.ACCESS_ASSIGNMENTS);
 
   const formatCurrency = (cents: number) => formatPriceMinor(cents, businessCurrency);
 
@@ -156,13 +160,15 @@ export function LocationCapacityWidget({
             </p>
           </div>
         </div>
-        <button
-          onClick={() => navigate(`/assignments?locationId=${locationId}`)}
-          className="flex items-center gap-1 rounded-md px-2 py-0.5 text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer shrink-0"
-        >
-          <span className="text-xs font-semibold">{t('todayOverview.seeLocation')}</span>
-          <ArrowUpRight className="h-3 w-3" />
-        </button>
+        {canSeeLocation && (
+          <button
+            onClick={() => navigate(`/assignments?locationId=${locationId}`)}
+            className="flex items-center gap-1 rounded-md px-2 py-0.5 text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer shrink-0"
+          >
+            <span className="text-xs font-semibold">{t('todayOverview.seeLocation')}</span>
+            <ArrowUpRight className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
       {/* Today headline strip */}
@@ -171,28 +177,52 @@ export function LocationCapacityWidget({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground-3">
             {t('todayOverview.today')}
           </p>
-          <p className="mt-1 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
-            {appointmentsToday}
-          </p>
-          <p className="mt-1 text-xs text-foreground-3">{t('todayOverview.appointments').toLowerCase()}</p>
+          {appointmentsToday > 0 ? (
+            <>
+              <p className="mt-1 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
+                {appointmentsToday}
+              </p>
+              <p className="mt-1 text-xs text-foreground-3">{t('todayOverview.appointments').toLowerCase()}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm font-semibold leading-tight text-foreground-2 break-words">
+              {t('locationCapacity.noBookingsYet')}
+            </p>
+          )}
         </div>
         <div className="border-l border-border px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground-3">
             {t('locationCapacity.potential')}
           </p>
-          <p className="mt-1 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
-            {formatCurrency(potentialRevenueToday)}
-          </p>
-          <p className="mt-1 text-xs text-foreground-3">{t('locationCapacity.revenueToday')}</p>
+          {potentialRevenueToday > 0 ? (
+            <>
+              <p className="mt-1 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
+                {formatCurrency(potentialRevenueToday)}
+              </p>
+              <p className="mt-1 text-xs text-foreground-3">{t('locationCapacity.revenueToday')}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm font-semibold leading-tight text-foreground-2 break-words">
+              {t('locationCapacity.noRevenueYet')}
+            </p>
+          )}
         </div>
         <div className="border-l border-border px-4 py-3.5">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-foreground-3">
             {t('capacityUtilization.title')}
           </p>
-          <p className="mt-1 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
-            {Math.round(capacity.today.filledPercentage)}%
-          </p>
-          <p className={`mt-1 text-xs font-semibold ${todayTier.textClass}`}>{t(todayTier.labelKey)}</p>
+          {capacity.today.filledPercentage > 0 ? (
+            <>
+              <p className="mt-1 text-2xl font-semibold leading-none text-foreground-1 tabular-nums">
+                {Math.round(capacity.today.filledPercentage)}%
+              </p>
+              <p className={`mt-1 text-xs font-semibold ${todayTier.textClass}`}>{t(todayTier.labelKey)}</p>
+            </>
+          ) : (
+            <p className="mt-1 text-sm font-semibold leading-tight text-foreground-2 break-words">
+              {t('locationCapacity.fullyOpen')}
+            </p>
+          )}
         </div>
       </div>
 

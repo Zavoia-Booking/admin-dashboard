@@ -7,6 +7,7 @@ import { useIsMobile } from '../../hooks/use-mobile';
 import { Breadcrumbs } from '../Breadcrumbs';
 import { useBreadcrumbs } from '../../hooks/useBreadcrumbs';
 import { LimitedAccessBanner } from '../common/subscription/LimitedAccessBanner';
+import { HeaderRightSlotProvider, useHeaderRightSlotValue } from './HeaderRightSlot';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -25,16 +26,30 @@ interface AppLayoutProps {
   noPadding?: boolean;
   /** Optional override for the breadcrumb header title (mobile). */
   headerTitleOverride?: string;
+  /** Optional custom JSX rendered in place of the breadcrumb title (mobile).
+   *  Takes precedence over headerTitleOverride. Used by the dashboard to host
+   *  the location dropdown in the header. */
+  headerTitleContent?: React.ReactNode;
   /** Optional page-scoped prev/next handlers — render as muted chevrons next to
    *  the breadcrumb title (mobile). Used by the calendar page for day/week/month nav. */
   headerPrevAction?: () => void;
   headerNextAction?: () => void;
 }
 
-export function AppLayout({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerPrevAction, headerNextAction }: AppLayoutProps) {
+export function AppLayout(props: AppLayoutProps) {
+  return (
+    <HeaderRightSlotProvider>
+      <AppLayoutInner {...props} />
+    </HeaderRightSlotProvider>
+  );
+}
+
+function AppLayoutInner({ children, contentClassName, headerRightContent, noPadding, tabbedPage, headerTitleOverride, headerTitleContent, headerPrevAction, headerNextAction }: AppLayoutProps) {
   const isMobile = useIsMobile();
   const breadcrumbs = useBreadcrumbs();
   const location = useLocation();
+  const slotRightContent = useHeaderRightSlotValue();
+  const effectiveRightContent = headerRightContent ?? slotRightContent ?? undefined;
 
   useEffect(() => {
     // remove the inline background colors set in index.html
@@ -55,15 +70,17 @@ export function AppLayout({ children, contentClassName, headerRightContent, noPa
           <main className={`flex-1 bg-transparent overflow-y-auto ${isMobile ? 'pb-19' : 'pb-0'} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]`}>
             <div className={`w-full bg-transparent max-w-full content-container ${contentClassName ?? 'md:max-w-220'}`}>
               <div
-                className="sticky top-0 z-30 md:hidden bg-surface"
+                className="sticky top-0 z-50 md:hidden bg-surface"
                 style={{ paddingTop: "env(safe-area-inset-top)" }}
               >
                 <Breadcrumbs
                   items={breadcrumbs}
-                  rightContent={headerRightContent}
+                  rightContent={effectiveRightContent}
                   titleOverride={headerTitleOverride}
+                  titleContent={headerTitleContent}
                   onPrev={headerPrevAction}
                   onNext={headerNextAction}
+                  flush={tabbedPage}
                 />
               </div>
               {!tabbedPage && <LimitedAccessBanner />}

@@ -9,6 +9,8 @@ import {
 } from "../../../shared/components/ui/responsive-tabs";
 import { Save, AlertTriangle, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "../../../shared/components/ui/card";
+import { useIsMobile } from "../../../shared/hooks/use-mobile";
+import { HeaderRightSlot } from "../../../shared/components/layouts/HeaderRightSlot";
 import type {
   Business,
   LocationWithAssignments,
@@ -51,6 +53,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const { business, locationsWithAssignments, isPublishing, isListed } = props;
   const { t } = useTranslation("marketplace");
   const { t: tReviews } = useTranslation("reviews");
+  const isMobile = useIsMobile();
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -414,15 +417,44 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     </Button>
   );
 
+  const HeaderSaveButton = (
+    <Button
+      onClick={handleCombinedSave}
+      className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
+      disabled={
+        isPublishing ||
+        !isCombinedDirty ||
+        form.hasValidationErrors ||
+        !form.hasAnyPortfolioImage ||
+        form.selectedIndustryTags.length === 0
+      }
+    >
+      {isPublishing ? (
+        <>
+          <div className="rounded-full border-2 border-white/30 border-t-white animate-spin h-3.5 w-3.5"></div>
+          <span>{buttonLoadingText}</span>
+        </>
+      ) : (
+        <>
+          <span>{buttonText}</span>
+          {!isListed && <ArrowRight className="h-3.5 w-3.5" />}
+        </>
+      )}
+    </Button>
+  );
+
   return (
     <>
+      {isMobile && showSaveButton && (
+        <HeaderRightSlot>{HeaderSaveButton}</HeaderRightSlot>
+      )}
       <div className="cursor-default">
         {/* Responsive Tabs */}
         <ResponsiveTabs
           items={tabItems}
           value={activeTab}
           onValueChange={handleTabChange}
-          rightContent={showSaveButton ? SaveButton : undefined}
+          rightContent={!isMobile && showSaveButton ? SaveButton : undefined}
           stickyHeader={true}
         />
       </div>

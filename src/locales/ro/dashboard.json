@@ -73,7 +73,10 @@
     "appts": "Progr.",
     "capacityBooked": "Capacitate rezervată",
     "weekAndMonth": "Săptămâna & luna",
-    "apptsShort": "progr."
+    "apptsShort": "progr.",
+    "noBookingsYet": "Nicio rezervare",
+    "noRevenueYet": "Niciun venit",
+    "fullyOpen": "Complet liber"
   },
   "appointmentBreakdown": {
     "title": "Detaliu programări",

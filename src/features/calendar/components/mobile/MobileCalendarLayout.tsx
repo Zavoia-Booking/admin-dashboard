@@ -195,7 +195,7 @@ export const MobileCalendarLayout: FC<MobileCalendarLayoutProps> = ({
        *  that extend below the header aren't clipped. Negative margin reclaims
        *  the space when collapsed. */}
       <div
-        className="relative z-[60] transition-[transform,margin] duration-150 ease-out"
+        className="relative z-50 transition-[transform,margin] duration-150 ease-out"
         style={{
           transform: headerCollapsed ? "translateY(-62px)" : "translateY(0)",
           marginBottom: headerCollapsed ? -62 : 0,

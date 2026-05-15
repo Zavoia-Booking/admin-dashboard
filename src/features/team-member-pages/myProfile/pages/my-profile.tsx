@@ -4,10 +4,12 @@ import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { Save, Loader2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { AppLayout } from '../../../../shared/components/layouts/app-layout';
+import { HeaderRightSlot } from '../../../../shared/components/layouts/HeaderRightSlot';
 import { Button } from '../../../../shared/components/ui/button';
 import { ResponsiveTabs, type ResponsiveTabItem } from '../../../../shared/components/ui/responsive-tabs';
 import { LimitedAccessBanner } from '../../../../shared/components/common/subscription/LimitedAccessBanner';
 import ConfirmDialog from '../../../../shared/components/common/ConfirmDialog';
+import { useIsMobile } from '../../../../shared/hooks/use-mobile';
 import { ProfileTab, type ProfileTabRef } from '../components/ProfileTab';
 import { NoProfileYetView } from '../components/NoProfileYetView';
 import { PortfolioImagesSection } from '../components/PortfolioImagesSection';
@@ -44,6 +46,7 @@ export default function MyProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
+  const isMobile = useIsMobile();
   const profileTabRef = useRef<ProfileTabRef>(null);
   
   // Data state
@@ -300,14 +303,34 @@ export default function MyProfilePage() {
     </Button>
   );
 
+  const HeaderSaveButton = (
+    <Button
+      onClick={handleSave}
+      className="group btn-primary !h-8 px-3 rounded-full text-sm shadow-sm active:scale-95 flex items-center gap-1.5"
+      disabled={isSaving || !isDirty}
+    >
+      {isSaving ? (
+        <>
+          <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+          <span>{t('buttons.saving')}</span>
+        </>
+      ) : (
+        <span>{t('buttons.saveChanges')}</span>
+      )}
+    </Button>
+  );
+
   return (
     <AppLayout tabbedPage>
+      {isMobile && showSaveButton && (
+        <HeaderRightSlot>{HeaderSaveButton}</HeaderRightSlot>
+      )}
       <div className="space-y-6">
         <ResponsiveTabs
           items={tabItems}
           value={activeTab}
           onValueChange={handleTabChange}
-          rightContent={showSaveButton ? SaveButton : undefined}
+          rightContent={!isMobile && showSaveButton ? SaveButton : undefined}
           stickyHeader
         />
       </div>

@@ -18,21 +18,32 @@ interface BreadcrumbsProps {
   /** When provided, replaces the breadcrumb's last-item label (used on mobile to
    *  show context-specific titles like the current month name in calendar). */
   titleOverride?: string;
+  /** When provided, replaces the title area entirely with custom JSX (e.g. a
+   *  location dropdown on the dashboard). Takes precedence over titleOverride
+   *  and onPrev/onNext date-nav. */
+  titleContent?: React.ReactNode;
   /** Optional page-scoped prev/next actions rendered as small muted chevrons
    *  flanking the title. Kept visually subordinate to the back-button (smaller,
    *  muted color, tighter spacing) so they read as "nudge date" not "go back". */
   onPrev?: () => void;
   onNext?: () => void;
+  /** Drops the bottom shadow so the breadcrumb visually merges with whatever
+   *  is sticky-pinned directly below it (e.g. a ResponsiveTabs header on
+   *  tabbed pages). Without this, the shadow reads as a hard divider. */
+  flush?: boolean;
 }
 
 const BELL_ROUTES = new Set([
   '/dashboard',
   '/calendar',
   '/assignments',
+  '/my-assignments',
   '/team-members',
   '/customers',
   '/services',
   '/locations',
+  '/marketplace',
+  '/my-profile',
 ]);
 
 /** True bottom-nav tab roots (not including "More" menu items, which are one
@@ -41,9 +52,19 @@ const BELL_ROUTES = new Set([
 const TOP_LEVEL_ROUTES = new Set([
   '/dashboard',
   '/assignments',
+  '/my-assignments',
   '/calendar',
   '/marketplace',
+  '/my-profile',
 ]);
+
+function isTopLevel(pathname: string): boolean {
+  if (TOP_LEVEL_ROUTES.has(pathname)) return true;
+  // /dashboard/:locationId is also a tab root — the locationId is just a
+  // selected-location indicator, not a deeper navigation level.
+  if (pathname.startsWith('/dashboard/')) return true;
+  return false;
+}
 
 const SETTINGS_BELL_TABS = new Set(['billing', 'advanced']);
 
@@ -58,7 +79,7 @@ function shouldShowBell(pathname: string, search: string): boolean {
   return false;
 }
 
-export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOverride, onPrev, onNext }) => {
+export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOverride, titleContent, onPrev, onNext, flush }) => {
   const { t } = useTranslation('common');
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,7 +87,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
   const current = items[items.length - 1];
   const displayLabel = titleOverride ?? current?.label;
   const hasDateNav = !!onPrev || !!onNext;
-  const isTopLevelRoute = TOP_LEVEL_ROUTES.has(location.pathname);
+  const isTopLevelRoute = isTopLevel(location.pathname);
   const showBell = useMemo(
     () => shouldShowBell(location.pathname, location.search),
     [location.pathname, location.search],
@@ -77,7 +98,7 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
   };
 
   return (
-    <div className="bg-surface px-1 py-2 py-1 shadow-sm">
+    <div className={`bg-surface px-1 py-1 ${flush ? '' : 'shadow-sm'}`}>
       <div className="flex items-center gap-3 px-2">
         {!isTopLevelRoute && (
           <Button
@@ -92,7 +113,11 @@ export const Breadcrumbs: FC<BreadcrumbsProps> = ({ items, rightContent, titleOv
           </Button>
         )}
 
-        {hasDateNav ? (
+        {titleContent ? (
+          <div className="min-w-0 flex-1">
+            {titleContent}
+          </div>
+        ) : hasDateNav ? (
           <div className="flex min-w-0 flex-1 items-center gap-0.5">
             {onPrev && (
               <Button

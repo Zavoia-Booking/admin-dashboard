@@ -1,8 +1,10 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSelector } from 'react-redux';
 import { Info } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useCanWrite } from './useCanWrite';
+import { selectCurrentUser, selectIsLimitedAccess } from '../../../../features/auth/selectors';
 
 type LimitedAccessBannerProps = {
   className?: string;
@@ -14,13 +16,21 @@ type LimitedAccessBannerProps = {
  * no CTA, no link. Pairs with the per-button WriteGate tooltip so touch
  * users still understand why controls are disabled.
  *
- * Renders nothing when the user is entitled.
+ * Renders nothing when the user is entitled, when the user is an owner who
+ * hasn't completed the business setup wizard (BusinessSetupPrompt covers it),
+ * or when the user has limited access (no business — billing copy is irrelevant).
  */
 export const LimitedAccessBanner: React.FC<LimitedAccessBannerProps> = ({ className }) => {
   const { t } = useTranslation('common');
   const canWrite = useCanWrite();
+  const user = useSelector(selectCurrentUser);
+  const isLimitedAccess = useSelector(selectIsLimitedAccess);
 
   if (canWrite) return null;
+  if (isLimitedAccess) return null;
+
+  const isOwner = user?.role === 'owner' || user?.role === 'OWNER' || user?.role === 'Owner';
+  if (isOwner && !user?.wizardCompleted) return null;
 
   return (
     <div className={cn('relative z-10 px-2 py-3 md:px-4', className)}>

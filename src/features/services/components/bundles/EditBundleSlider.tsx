@@ -1034,6 +1034,7 @@ const EditBundleSlider: React.FC<EditBundleSliderProps> = ({
                             )}
                             required
                             id="discount-percentage"
+                            icon={Percent}
                           />
                           <p className="text-xs text-foreground-3 dark:text-foreground-2 mt-1">
                             {text(

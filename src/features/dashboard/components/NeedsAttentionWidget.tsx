@@ -315,8 +315,15 @@ function UnresolvedAppointmentRow({
   const [loading, setLoading] = useState<'completed' | 'no_show' | null>(null);
   const [resolved, setResolved] = useState<'completed' | 'no_show' | null>(null);
 
-  const customerName = `${appointment.customerSnapshot?.firstName} ${appointment.customerSnapshot?.lastName}`;
-  const initials = `${appointment.customerSnapshot?.firstName[0] ?? ''}${appointment.customerSnapshot?.lastName[0] ?? ''}`.toUpperCase();
+  const customer = appointment.customerSnapshot;
+  const customerParts = customer ? [customer.firstName, customer.lastName].filter(Boolean) : [];
+  const customerName = customerParts.length
+    ? customerParts.join(' ')
+    : t('upcomingAppointments.guestCustomer');
+  const initials = customerParts.length
+    ? customerParts.map(p => p[0]).join('').toUpperCase()
+    : '?';
+  const customerImage = customer?.profileImage ?? null;
   const staffName = appointment.staffSnapshot[0]
     ? `${appointment.staffSnapshot[0].firstName} ${appointment.staffSnapshot[0].lastName}`
     : '—';
@@ -353,9 +360,9 @@ function UnresolvedAppointmentRow({
     <div className={`flex flex-col md:flex-row md:items-center gap-2 md:gap-3 ${compact ? 'py-2' : 'py-2.5'} group/unresolved`}>
       {/* Customer info */}
       <div className="flex items-center gap-2 min-w-0 flex-1">
-        {appointment.customerSnapshot?.profileImage ? (
+        {customerImage ? (
           <img
-            src={appointment.customerSnapshot?.profileImage}
+            src={customerImage}
             alt={customerName}
             className="h-6 w-6 rounded-full object-cover shrink-0"
           />

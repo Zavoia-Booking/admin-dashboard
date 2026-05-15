@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   Package,
@@ -18,6 +19,7 @@ import { BundleFilters } from "./BundleFilters";
 import { EmptyState } from "../../../../shared/components/common/EmptyState";
 import AddBundleSlider from "./AddBundleSlider";
 import EditBundleSlider from "./EditBundleSlider";
+import BundlesListSkeleton from "./BundlesListSkeleton";
 import { listBundlesAction } from "../../../bundles/actions";
 import {
   getBundlesListSelector,
@@ -54,6 +56,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
   const [isAddBundleSliderOpen, setIsAddBundleSliderOpen] = useState(false);
   const [isEditBundleSliderOpen, setIsEditBundleSliderOpen] = useState(false);
   const [selectedBundle, setSelectedBundle] = useState<Bundle | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch bundles when tab becomes active
   useEffect(() => {
@@ -61,6 +64,18 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
       dispatch(listBundlesAction.request());
     }
   }, [isActive, dispatch]);
+
+  // Auto-open the Add Bundle slider when ?open=add is present on the bundles tab
+  useEffect(() => {
+    if (!isActive) return;
+    const openParam = searchParams.get("open");
+    if (openParam === "add") {
+      setIsAddBundleSliderOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("open");
+      setSearchParams(next, { replace: true });
+    }
+  }, [isActive, searchParams, setSearchParams]);
 
   // Filter and sort bundles
   const filteredBundles = useMemo(() => {
@@ -246,13 +261,9 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* While bundles are loading, show skeleton or loading state */}
+      {/* While bundles are loading, show full-page skeleton (including filters) */}
       {isLoading && bundles.length === 0 ? (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-sm text-foreground-3 dark:text-foreground-2">
-            {t("bundles.loading")}
-          </div>
-        </div>
+        <BundlesListSkeleton />
       ) : (
         <>
           {/* Bundle Filters */}
