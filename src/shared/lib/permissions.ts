@@ -93,6 +93,9 @@ export enum Permission {
   ACCESS_MARKETPLACE_PROMOTIONS = 'access:marketplace_promotions',
   ACCESS_MARKETPLACE_REVIEWS = 'access:marketplace_reviews',
 
+  // Internal email testing tool (owner-only, not surfaced in sidebar)
+  ACCESS_EMAIL_TEST = 'access:email_test',
+
   // ===========================================
   // TEAM MEMBER-ONLY PAGES (separate routes)
   // ===========================================
@@ -172,6 +175,8 @@ const OWNER_PERMISSIONS: Permission[] = [
   Permission.VIEW_SETTINGS,
   Permission.MANAGE_SETTINGS,
   Permission.MANAGE_BILLING,
+
+  Permission.ACCESS_EMAIL_TEST,
 ];
 
 /**
