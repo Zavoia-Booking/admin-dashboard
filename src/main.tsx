@@ -1,4 +1,6 @@
 import { createRoot } from 'react-dom/client'
+import '@fontsource-variable/geist'
+import '@fontsource-variable/geist-mono'
 import './shared/styles/globals.css'
 import App from './App.tsx'
 import { Provider } from 'react-redux'
