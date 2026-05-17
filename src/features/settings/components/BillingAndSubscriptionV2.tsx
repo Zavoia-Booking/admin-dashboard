@@ -1903,7 +1903,7 @@ const Bv2SmsCard = ({ viewState }: { viewState: ViewState }) => {
 
   if (balanceLoading || packagesLoading) {
     return (
-      <Card>
+      <Card id="sms-credits" className="scroll-mt-24">
         <CardContent>
           <Bv2CardHeader title={t('billing.v2.sms.title')} />
           <div className="space-y-2">
@@ -1917,7 +1917,7 @@ const Bv2SmsCard = ({ viewState }: { viewState: ViewState }) => {
   }
 
   return (
-    <Card>
+    <Card id="sms-credits" className="scroll-mt-24">
       <CardContent>
         <Bv2CardHeader
           title={t('billing.v2.sms.title')}
