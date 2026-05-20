@@ -1,217 +1,36 @@
 import { useEffect, useState, useCallback } from "react";
 import { useTranslation } from "react-i18next";
-import { Star, ArrowUpDown, MessageSquareText, Info } from "lucide-react";
+import { CalendarArrowDown, CalendarArrowUp } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../../../shared/components/ui/button";
-import { Card, CardContent } from "../../../../shared/components/ui/card";
-import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { BusinessReviewCard } from "../../../reviews/components/ReviewCard";
-import type { BusinessReview } from "../../../reviews/types";
-import type {
-  MyStatsData,
-  MyReviewsPayload,
-} from "../api";
+import { ReviewsHero } from "../../../reviews/components/ReviewsHero";
+import { RatingBreakdown } from "../../../reviews/components/RatingBreakdown";
+import { ReviewsInsightsPanel } from "../../../reviews/components/ReviewsInsightsPanel";
+import { EmptyReviewsState } from "../../../reviews/components/EmptyReviewsState";
+import { FirstReviewState } from "../../../reviews/components/FirstReviewState";
+import { MobileClearFiltersFab } from "../../../reviews/components/MobileClearFiltersFab";
+import { ReviewListSkeleton } from "../../../reviews/components/ReviewListSkeleton";
+import {
+  SortSelect,
+  type SortGroup,
+} from "../../../../shared/components/common/SortSelect";
+import type { BusinessReview, ReviewStatsData } from "../../../reviews/types";
+import type { MyStatsData, MyReviewsPayload } from "../api";
 import { getMyReviews, getMyStats } from "../api";
+import "../../../reviews/components/Reviews.css";
 
 const PAGE_SIZE = 20;
 
-function StarRow({ rating }: { rating: number | null }) {
-  return (
-    <div className="flex items-center gap-0.5">
-      {[1, 2, 3, 4, 5].map((star) => (
-        <Star
-          key={star}
-          className={`h-3 w-3 ${
-            rating !== null && star <= Math.round(rating)
-              ? "text-amber-400 fill-amber-400"
-              : "text-border fill-border"
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
-
-function RatingBar({
-  star,
-  count,
-  total,
-}: {
-  star: number;
-  count: number;
-  total: number;
-}) {
-  const percentage = total > 0 ? (count / total) * 100 : 0;
-
-  return (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[11px] text-foreground-2 w-3 text-right tabular-nums">
-        {star}
-      </span>
-      <Star className="h-2.5 w-2.5 text-amber-400 fill-amber-400 shrink-0" />
-      <div className="flex-1 h-1.5 bg-border rounded-full overflow-hidden">
-        <div
-          className="h-full bg-amber-400 rounded-full transition-all duration-500 ease-out"
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-      <span className="text-[11px] text-foreground-3 w-5 text-right tabular-nums">
-        {count}
-      </span>
-    </div>
-  );
-}
-
-function MyStatsPanel({
-  stats,
-  loading,
-}: {
-  stats: MyStatsData | null;
-  loading: boolean;
-}) {
-  const { t } = useTranslation("reviews");
-
-  if (loading) return <MyStatsSkeleton />;
-  if (!stats) return null;
-
-  const hasReviews = stats.totalReviews > 0;
-
-  return (
-    <div className="space-y-3">
-      <Card className="border-border bg-surface shadow-sm relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-amber-400/5 via-transparent to-amber-400/5 pointer-events-none" />
-        <CardContent className="px-4 py-3 relative">
-          <div className="flex items-center gap-2 mb-2.5">
-            <div className="flex items-center justify-center h-6 w-6 rounded-md bg-amber-400/10">
-              <Star className="h-3.5 w-3.5 text-amber-500" />
-            </div>
-            <h3 className="text-sm font-semibold text-foreground">
-              {t("myStats.title")}
-            </h3>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex flex-col items-center justify-center gap-0.5 sm:min-w-[80px]">
-              <span className="text-4xl font-bold text-foreground tabular-nums leading-none">
-                {hasReviews && stats.averageRating !== null
-                  ? stats.averageRating.toFixed(1)
-                  : "—"}
-              </span>
-              <StarRow rating={stats.averageRating} />
-              <span className="text-[11px] text-foreground-3 mt-0.5">
-                {t("stats.totalReviews", { count: stats.totalReviews })}
-              </span>
-            </div>
-
-            <div className="flex-1 space-y-1">
-              {[5, 4, 3, 2, 1].map((star) => (
-                <RatingBar
-                  key={star}
-                  star={star}
-                  count={
-                    stats.ratingDistribution[
-                      star.toString() as keyof typeof stats.ratingDistribution
-                    ]
-                  }
-                  total={stats.totalReviews}
-                />
-              ))}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-primary/5 border border-primary/10">
-        <Info className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-        <p className="text-[11px] text-foreground-2 leading-relaxed">
-          {t("myStats.infoText")}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function MyStatsSkeleton() {
-  return (
-    <div className="space-y-3">
-      <Card className="border-border bg-surface shadow-sm">
-        <CardContent className="px-4 py-3">
-          <div className="animate-pulse">
-            <div className="flex items-center gap-2 mb-2.5">
-              <Skeleton className="h-6 w-6 rounded-md" />
-              <Skeleton className="h-4 w-24" />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex flex-col items-center gap-1 sm:min-w-[80px]">
-                <Skeleton className="h-10 w-16" />
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-3 w-14" />
-              </div>
-              <div className="flex-1 space-y-1.5">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="flex items-center gap-1.5">
-                    <Skeleton className="h-2.5 w-3" />
-                    <Skeleton className="h-2.5 w-2.5" />
-                    <Skeleton className="h-1.5 flex-1 rounded-full" />
-                    <Skeleton className="h-2.5 w-5" />
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      <Skeleton className="h-8 w-full rounded-lg" />
-    </div>
-  );
-}
-
-function ReviewListSkeleton() {
-  return (
-    <div className="space-y-3 animate-pulse">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="flex gap-3 p-4 rounded-xl bg-surface border border-border"
-        >
-          <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3.5 w-20" />
-              </div>
-              <Skeleton className="h-3 w-16" />
-            </div>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function EmptyReviews() {
-  const { t } = useTranslation("reviews");
-
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-      <div className="h-12 w-12 rounded-full bg-surface-hover flex items-center justify-center">
-        <MessageSquareText className="h-6 w-6 text-foreground-3" />
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground-2">
-          {t("empty.title")}
-        </p>
-        <p className="text-xs text-foreground-3 max-w-xs">
-          {t("myStats.emptyDescription")}
-        </p>
-      </div>
-    </div>
-  );
-}
-
+/**
+ * Team-member reviews tab (`/my-profile?tab=reviews`).
+ *
+ * Shares the redesigned reviews UI with the owner page ([ReviewsTab]):
+ * `ReviewsHero` on top, then a two-column card — review list + sticky
+ * insights sidebar. The data layer stays team-member-scoped (local state +
+ * `getMyReviews`/`getMyStats`); only rating + sort filtering is supported
+ * because the team-member API doesn't expose date/location filters.
+ */
 export function MyReviewsTab() {
   const { t } = useTranslation("reviews");
 
@@ -301,77 +120,170 @@ export function MyReviewsTab() {
 
   const hasMore = reviews.length < total;
   const loading = reviewsLoading || loadingMore;
+  const activeFilterCount = ratingFilter !== null ? 1 : 0;
+
+  // `ReviewsInsightsPanel` expects the owner page's nested `ReviewStatsData`
+  // shape; the team-member API returns a flat `MyStatsData`. Adapt it — the
+  // panel only reads `business.ratingDistribution` + `business.totalReviews`,
+  // so the empty `locations`/`teamMembers` arrays are never touched.
+  const adaptedStats: ReviewStatsData | null = stats
+    ? {
+        overall: {
+          averageRating: stats.averageRating,
+          totalReviews: stats.totalReviews,
+        },
+        business: {
+          averageRating: stats.averageRating,
+          totalReviews: stats.totalReviews,
+          ratingDistribution: stats.ratingDistribution,
+        },
+        locations: [],
+        teamMembers: [],
+      }
+    : null;
+
+  // Only date sort is offered — the team-member reviews API supports
+  // `sortOrder` (newest/oldest) but not a `sortBy` axis, so unlike the owner
+  // page there's no rating-sort group and the value IS the sort order.
+  const sortGroups: SortGroup[] = [
+    {
+      label: t("filter.sortGroupDate"),
+      options: [
+        { value: "DESC", label: t("filter.sortNewest"), icon: CalendarArrowDown },
+        { value: "ASC", label: t("filter.sortOldest"), icon: CalendarArrowUp },
+      ],
+    },
+  ];
+
+  // True zero-state: stats loaded and the professional has never received a
+  // review. Skip the toolbar + sidebar — just the hero and a first-review CTA.
+  const isTrulyEmpty =
+    !statsLoading && stats !== null && stats.totalReviews === 0;
+
+  if (isTrulyEmpty) {
+    return (
+      <div className="w-full max-w-5xl mb-0 md:mb-8 space-y-5">
+        <ReviewsHero
+          rating={null}
+          totalReviews={0}
+          locationCount={0}
+          teamMemberCount={0}
+          loading={false}
+        />
+        <FirstReviewState />
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-5xl mb-0 md:mb-8 space-y-5">
-      <MyStatsPanel stats={stats} loading={statsLoading} />
-
-      {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-2">
-        {[5, 4, 3, 2, 1].map((star) => (
-          <button
-            key={star}
-            onClick={() => handleRatingFilter(star)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-              ratingFilter === star
-                ? "border-amber-400 bg-amber-50 text-amber-700"
-                : "border-border bg-surface text-foreground-2 hover:bg-surface-hover"
-            }`}
-          >
-            <Star
-              className={`h-3 w-3 ${
-                ratingFilter === star
-                  ? "text-amber-400 fill-amber-400"
-                  : "text-foreground-3"
-              }`}
+    <div className="w-full max-w-5xl mb-0 md:mb-8 space-y-5">
+      {/* Hero — personal reviews, so location/team counts are 0 (the hero
+          hides zero-count stats). Mobile gets the distribution inside the
+          collapsible; desktop carries it in the sidebar instead. */}
+      <ReviewsHero
+        rating={stats?.averageRating ?? null}
+        totalReviews={stats?.totalReviews ?? 0}
+        locationCount={0}
+        teamMemberCount={0}
+        loading={statsLoading && !stats}
+        expandableContent={
+          stats && stats.totalReviews > 0 ? (
+            <RatingBreakdown
+              distribution={stats.ratingDistribution}
+              total={stats.totalReviews}
+              selectedRating={ratingFilter}
+              onRatingClick={handleRatingFilter}
             />
-            {star}
-          </button>
-        ))}
+          ) : undefined
+        }
+      />
 
-        <button
-          onClick={() =>
-            setSortOrder((o) => (o === "DESC" ? "ASC" : "DESC"))
-          }
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-border bg-surface text-foreground-2 hover:bg-surface-hover transition-colors ml-auto"
-        >
-          <ArrowUpDown className="h-3 w-3" />
-          {sortOrder === "DESC" ? t("filters.newest") : t("filters.oldest")}
-        </button>
-      </div>
+      <section className="rounded-xl border border-border bg-surface px-3 py-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
+          {/* Reviews column */}
+          <section className="space-y-4 min-w-0">
+            {/* Toolbar — sort only (team-member API has no date/location
+                filters; rating is filtered by clicking the distribution). */}
+            <div className="flex items-center justify-end">
+              <SortSelect
+                value={sortOrder}
+                onValueChange={(v) => setSortOrder(v as "DESC" | "ASC")}
+                placeholder={t("filter.sortLabel")}
+                groups={sortGroups}
+              />
+            </div>
 
-      {/* Reviews list */}
-      <div className="space-y-3">
-        {reviewsLoading && reviews.length === 0 ? (
-          <ReviewListSkeleton />
-        ) : reviews.length === 0 ? (
-          <EmptyReviews />
-        ) : (
-          <>
-            {reviews.map((review) => (
-              <BusinessReviewCard key={review.id} review={review} />
-            ))}
+            {/* Reviews list — keyed on the rating filter so the wrapper
+                remounts and re-triggers the fade+settle animation on apply. */}
+            <div
+              key={ratingFilter ?? "all"}
+              className="reviews-content-enter space-y-3"
+            >
+              {reviewsLoading ? (
+                <ReviewListSkeleton />
+              ) : reviews.length === 0 ? (
+                <EmptyReviewsState
+                  kind={ratingFilter !== null ? "filtered" : "none"}
+                  variant="personal"
+                  onClearFilters={
+                    ratingFilter !== null
+                      ? () => setRatingFilter(null)
+                      : undefined
+                  }
+                />
+              ) : (
+                <>
+                  <ul className="reviews-list-stagger divide-y divide-border/60">
+                    {reviews.map((review) => (
+                      <BusinessReviewCard key={review.id} review={review} />
+                    ))}
+                  </ul>
 
-            {hasMore && (
-              <div className="flex justify-center pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLoadMore}
-                  disabled={loading}
-                  className="rounded-full px-6"
-                >
-                  {loadingMore ? (
-                    <div className="rounded-full border-2 border-foreground-3/30 border-t-foreground-3 animate-spin h-3.5 w-3.5" />
-                  ) : (
-                    t("loadMore")
+                  {hasMore && (
+                    <div className="flex justify-center pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        rounded="full"
+                        onClick={handleLoadMore}
+                        disabled={loading}
+                        className="px-6"
+                      >
+                        {loadingMore ? (
+                          <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-foreground-3/30 border-t-foreground-3 animate-spin" />
+                        ) : (
+                          t("loadMore")
+                        )}
+                      </Button>
+                    </div>
                   )}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+                </>
+              )}
+            </div>
+          </section>
+
+          {/* Insights sidebar (lg+) — sticky, hairline-separated from the
+              reviews column inside the shared card. */}
+          <aside className="hidden lg:block lg:sticky lg:top-18 min-w-0 lg:border-l lg:border-border lg:pl-8">
+            <ReviewsInsightsPanel
+              stats={adaptedStats}
+              loading={statsLoading}
+              variant="personal"
+              selectedRating={ratingFilter}
+              onRatingClick={handleRatingFilter}
+              activeFilterCount={activeFilterCount}
+              onClearAll={() => setRatingFilter(null)}
+            />
+          </aside>
+        </div>
+      </section>
+
+      {/* Mobile-only floating Clear pill — outside the card so it floats over
+          page chrome. Renders only when a rating filter is active. */}
+      <MobileClearFiltersFab
+        activeFilterCount={activeFilterCount}
+        onClearAll={() => setRatingFilter(null)}
+      />
     </div>
   );
 }

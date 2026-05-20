@@ -27,7 +27,9 @@
     "positiveShareCaption_other": "of {{count}} reviews",
     "aboutEyebrow": "About this score",
     "calculationNote": "Combined from every review across your locations and team members.",
-    "audienceNote": "This is the rating clients see on your business profile."
+    "audienceNote": "This is the rating clients see on your business profile.",
+    "calculationNotePersonal": "Combined from every review clients have left for you.",
+    "audienceNotePersonal": "This is the rating clients see on your public profile."
   },
   "hero": {
     "statusGood": "Excellent",
@@ -116,6 +118,7 @@
     "description": "Reviews from your customers will appear here once they start leaving feedback.",
     "noFilteredTitle": "No reviews match these filters",
     "noFilteredBody": "Try removing a star, location, or team member filter to see more reviews.",
+    "noFilteredBodyPersonal": "Try a different star rating to see more reviews.",
     "noFilteredAction": "Clear all filters",
     "errorTitle": "Couldn't load reviews",
     "errorBody": "Something went wrong while fetching reviews. Check your connection and try again.",

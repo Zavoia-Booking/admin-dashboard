@@ -13,6 +13,13 @@ interface ReviewsInsightsPanelProps {
   onRatingClick?: (rating: number) => void;
   activeFilterCount?: number;
   onClearAll?: () => void;
+  /**
+   * Scopes the "About this score" copy. `"business"` (default) talks about
+   * locations + team members and the business profile — used on the owner
+   * reviews page. `"personal"` talks about the professional's own reviews
+   * and their public profile — used on the team-member reviews page.
+   */
+  variant?: "business" | "personal";
 }
 
 /**
@@ -29,6 +36,7 @@ export function ReviewsInsightsPanel({
   onRatingClick,
   activeFilterCount = 0,
   onClearAll,
+  variant = "business",
 }: ReviewsInsightsPanelProps) {
   const { t } = useTranslation("reviews");
 
@@ -40,6 +48,15 @@ export function ReviewsInsightsPanel({
 
   const { business } = stats;
   if (business.totalReviews === 0) return null;
+
+  const calculationNoteKey =
+    variant === "personal"
+      ? "stats.calculationNotePersonal"
+      : "stats.calculationNote";
+  const audienceNoteKey =
+    variant === "personal"
+      ? "stats.audienceNotePersonal"
+      : "stats.audienceNote";
 
   const positiveCount =
     (business.ratingDistribution["5"] ?? 0) +
@@ -95,7 +112,7 @@ export function ReviewsInsightsPanel({
               aria-hidden="true"
             />
             <p className="text-[11.5px] text-foreground-2 leading-relaxed">
-              {t("stats.calculationNote")}
+              {t(calculationNoteKey)}
             </p>
           </div>
           <div className="flex items-start gap-2.5">
@@ -104,7 +121,7 @@ export function ReviewsInsightsPanel({
               aria-hidden="true"
             />
             <p className="text-[11.5px] text-foreground-2 leading-relaxed">
-              {t("stats.audienceNote")}
+              {t(audienceNoteKey)}
             </p>
           </div>
         </div>

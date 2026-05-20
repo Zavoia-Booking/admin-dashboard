@@ -8,6 +8,13 @@ interface EmptyReviewsStateProps {
   kind: EmptyReviewsStateKind;
   onClearFilters?: () => void;
   onRetry?: () => void;
+  /**
+   * Scopes the filtered-empty copy. `"business"` (default) names the
+   * star/location/team-member filters of the owner reviews page;
+   * `"personal"` names only the rating filter, the team-member page's
+   * single filter.
+   */
+  variant?: "business" | "personal";
 }
 
 const ICON: Record<EmptyReviewsStateKind, typeof MessageSquareText> = {
@@ -20,6 +27,7 @@ export function EmptyReviewsState({
   kind,
   onClearFilters,
   onRetry,
+  variant = "business",
 }: EmptyReviewsStateProps) {
   const { t } = useTranslation("reviews");
   const Icon = ICON[kind];
@@ -34,7 +42,9 @@ export function EmptyReviewsState({
     kind === "none"
       ? "empty.description"
       : kind === "filtered"
-        ? "empty.noFilteredBody"
+        ? variant === "personal"
+          ? "empty.noFilteredBodyPersonal"
+          : "empty.noFilteredBody"
         : "empty.errorBody";
 
   const iconTone =
