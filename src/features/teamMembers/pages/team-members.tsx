@@ -17,8 +17,7 @@ import { cancelInvitationAction, listTeamMembersAction, resendInvitationAction }
 import BusinessSetupGate from '../../../shared/components/guards/BusinessSetupGate';
 import { selectTeamMembers, selectTeamMembersLoading } from '../selectors';
 import { ItemCard, type ItemCardAction } from '../../../shared/components/common/ItemCard';
-import { Avatar, AvatarImage, AvatarFallback } from '../../../shared/components/ui/avatar';
-import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
 import { EmptyState } from '../../../shared/components/common/EmptyState';
 import TeamMembersListSkeleton from '../components/TeamMembersListSkeleton';
@@ -217,25 +216,16 @@ export default function TeamMembersPage() {
                 const canEdit = memberRoleStatus !== 'pending_acceptance';
                 const displayName = `${member.firstName || text('page.displayNameFallback.pending')} ${member.lastName || text('page.displayNameFallback.invite')}`.trim();
                 
-                // Create initials for avatar
-                const initials = member.firstName && member.lastName
-                  ? `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
-                  : (member.email?.[0] || '?').toUpperCase();
-
                 // Create avatar/thumbnail
                 const thumbnail = (
-                  <Avatar className="h-12 w-12 shrink-0">
-                    <AvatarImage 
-                      src={member.profileImage || undefined} 
-                      alt={displayName}
-                    />
-                    <AvatarFallback 
-                      className="text-sm font-medium"
-                      style={{ backgroundColor: getAvatarBgColor(member.email) }}
-                    >
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
+                  <PersonAvatar
+                    id={member.id ?? member.email ?? ''}
+                    firstName={member.firstName}
+                    lastName={member.lastName}
+                    profileImage={member.profileImage}
+                    className="h-12 w-12"
+                    initialsClassName="text-sm font-medium"
+                  />
                 );
 
                 // Build custom description with email and phone
@@ -317,26 +307,17 @@ export default function TeamMembersPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
                       {pendingMembers.map((member: TeamMember) => {
                         const displayName = `${member.firstName || text('page.displayNameFallback.pending')} ${member.lastName || text('page.displayNameFallback.invite')}`.trim();
-                        
-                        // Create initials for avatar
-                        const initials = member.firstName && member.lastName
-                          ? `${member.firstName[0]}${member.lastName[0]}`.toUpperCase()
-                          : (member.email?.[0] || '?').toUpperCase();
 
                         // Create avatar/thumbnail
                         const thumbnail = (
-                          <Avatar className="h-12 w-12 shrink-0">
-                            <AvatarImage 
-                              src={member.profileImage || undefined} 
-                              alt={displayName}
-                            />
-                            <AvatarFallback 
-                              className="text-sm font-medium"
-                              style={{ backgroundColor: getAvatarBgColor(member.email) }}
-                            >
-                              {initials}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersonAvatar
+                            id={member.id ?? member.email ?? ''}
+                            firstName={member.firstName}
+                            lastName={member.lastName}
+                            profileImage={member.profileImage}
+                            className="h-12 w-12"
+                            initialsClassName="text-sm font-medium"
+                          />
                         );
 
                         // Build custom description with email and phone

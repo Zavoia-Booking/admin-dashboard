@@ -11,7 +11,7 @@ import type { OffboardPreviewAppointment } from '../../api';
 
 export type StaffById = Map<
   number,
-  { firstName: string; lastName: string; email: string; profileImage: string | null }
+  { userId: number; firstName: string; lastName: string; email: string; profileImage: string | null }
 >;
 
 interface AppointmentsPaneProps {

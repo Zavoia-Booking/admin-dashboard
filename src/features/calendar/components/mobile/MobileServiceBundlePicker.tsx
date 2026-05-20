@@ -78,7 +78,7 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
   const currencyDisplay = useMemo(
-    () => getCurrencyDisplay(businessCurrency),
+    () => ({ ...getCurrencyDisplay(businessCurrency), currency: businessCurrency }),
     [businessCurrency],
   );
   const durationUnit = tServices("duration.minutesShort", { defaultValue: "min" });
@@ -244,7 +244,7 @@ export const MobileServiceBundlePicker: FC<MobileServiceBundlePickerProps> = ({
           {/* Bundles — reuse ServiceItem row treatment under their own header */}
           {filteredBundles.length > 0 && (
             <div className="mt-5">
-              <div className="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <div className="px-2 pb-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                 {t("page.filters.bundlesGroup")}
               </div>
               <div className="space-y-1">

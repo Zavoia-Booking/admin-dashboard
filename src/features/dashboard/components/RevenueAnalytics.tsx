@@ -1,10 +1,15 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../../shared/components/ui/card';
+import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import { Activity } from 'lucide-react';
 
 interface RevenueAnalyticsProps {
+  /** Cents (integer minor units). */
   revenueThisWeek: number;
+  /** Cents (integer minor units). */
   revenueThisMonth: number;
+  /** Business currency code. */
+  currency: string;
   weeklyLoadPercentage: number;
   monthlyLoadPercentage: number;
 }
@@ -12,19 +17,13 @@ interface RevenueAnalyticsProps {
 export function RevenueAnalytics({
   revenueThisWeek,
   revenueThisMonth,
+  currency,
   weeklyLoadPercentage,
   monthlyLoadPercentage
 }: RevenueAnalyticsProps) {
   const { t } = useTranslation('dashboard');
-
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(cents / 100);
-  };
+  const { formatPrice } = useFormatPrice();
+  const formatCurrency = (cents: number) => formatPrice(cents, currency);
 
   return (
     <div className="space-y-3">

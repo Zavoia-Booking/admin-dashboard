@@ -14,11 +14,7 @@ import {
   Globe,
   CheckCircle2,
 } from 'lucide-react';
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from '../../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../../shared/components/common/PersonAvatar';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../../../app/providers/store';
 
@@ -30,13 +26,6 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
   const { t } = useTranslation('myProfile');
   const user = useSelector((state: RootState) => state.auth.user);
   const firstName = user?.firstName || t('noProfileYet.fallbackName');
-  const fullName = user?.firstName && user?.lastName 
-    ? `${user.firstName} ${user.lastName}` 
-    : t('noProfileYet.fallbackFullName');
-  // Get initials: first letter of firstName + first letter of lastName
-  const initials = user?.firstName && user?.lastName
-    ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase()
-    : 'YN';
 
   return (
     <div className="max-w-7xl mx-auto px-0 space-y-6 cursor-default">
@@ -50,16 +39,14 @@ export function NoProfileYetView({ onCreateProfile }: NoProfileYetViewProps) {
           <div className="relative z-10 flex flex-col gap-6 w-full">
             {/* Header Row: Avatar + Title */}
             <div className="flex flex-row items-center gap-5 text-left">
-              <Avatar className="h-14 w-14 md:h-16 md:w-16 rounded-full bg-surface border-2 border-border shadow-md overflow-hidden transition-all duration-500 ease-out group-hover:scale-107 shrink-0">
-                <AvatarImage
-                  src={user?.profileImage || undefined}
-                  alt={fullName}
-                  className="object-cover"
-                />
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <PersonAvatar
+                id={user?.id ?? user?.email ?? ''}
+                firstName={user?.firstName}
+                lastName={user?.lastName}
+                profileImage={user?.profileImage}
+                className="h-14 w-14 md:h-16 md:w-16 border-2 border-border shadow-md transition-all duration-500 ease-out group-hover:scale-107"
+                initialsClassName="text-xl font-bold"
+              />
               <h2 className="text-2xl md:text-3xl font-bold leading-tight text-foreground-1">
                 {t('noProfileYet.greeting', { name: firstName })}
               </h2>

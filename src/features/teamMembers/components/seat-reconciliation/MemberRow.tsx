@@ -1,8 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Lock } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../../shared/components/ui/avatar';
-import { getAvatarBgColor } from '../../../setupWizard/components/StepTeam';
+import { PersonAvatar } from '../../../../shared/components/common/PersonAvatar';
 import { UserRole } from '../../../../shared/types/auth';
 import { cn } from '../../../../shared/lib/utils';
 import type { TeamMember } from '../../../../shared/types/team-member';
@@ -25,9 +24,6 @@ export const MemberRow: React.FC<MemberRowProps> = ({
   const { t } = useTranslation();
   const fullName = `${member.firstName ?? ''} ${member.lastName ?? ''}`.trim();
   const name = fullName || member.email;
-  const initials = fullName
-    ? `${(member.firstName?.[0] ?? '').toUpperCase()}${(member.lastName?.[0] ?? '').toUpperCase()}`
-    : (member.email?.[0] ?? '?').toUpperCase();
 
   const interactive = !locked && !!onToggle;
   const isOwner = member.role === UserRole.OWNER;
@@ -56,15 +52,14 @@ export const MemberRow: React.FC<MemberRowProps> = ({
       )}
 
       <div className="relative shrink-0">
-        <Avatar className="h-10 w-10 shrink-0">
-          <AvatarImage src={member.profileImage || undefined} alt={name} />
-          <AvatarFallback
-            className="text-sm font-medium"
-            style={{ backgroundColor: getAvatarBgColor(member.email) }}
-          >
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <PersonAvatar
+          id={member.id ?? member.email ?? ''}
+          firstName={member.firstName}
+          lastName={member.lastName}
+          profileImage={member.profileImage}
+          className="h-10 w-10"
+          initialsClassName="text-sm font-medium"
+        />
         {selected && (
           <span
             className="absolute -bottom-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full border-2 border-surface bg-error text-foreground-inverse"

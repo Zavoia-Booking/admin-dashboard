@@ -297,7 +297,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
                 <div className="p-4 overflow-y-auto max-h-[80vh] space-y-4">
                   {/* By Price */}
                   <div className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                       {text("filters.byPrice")}
                     </div>
                     <div className="grid grid-cols-2 gap-3 max-h-17">
@@ -348,7 +348,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
 
                   {/* By Duration */}
                   <div className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                       {text("filters.byDuration")}
                     </div>
                     <div className="grid grid-cols-2 gap-3">
@@ -420,7 +420,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
 
                   {/* By Category */}
                   <div className="space-y-2">
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                       {text("filters.byCategory")}
                     </div>
                     {categories.length === 0 ? (
@@ -601,7 +601,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
               >
                 {/* By Price */}
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                     {text("filters.byPrice")}
                   </div>
                   <div className="grid grid-cols-2 gap-3 max-h-17">
@@ -652,7 +652,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
 
                 {/* By Duration */}
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                     {text("filters.byDuration")}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
@@ -718,7 +718,7 @@ export const ServiceFilters: FC<ServiceFiltersProps> = ({
 
                 {/* By Category */}
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                     {text("filters.byCategory")}
                   </div>
                   {categories.length === 0 ? (

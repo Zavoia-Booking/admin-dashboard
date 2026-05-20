@@ -16,6 +16,7 @@ import { Label } from "../../../../shared/components/ui/label";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { highlightMatches } from "../../../../shared/utils/highlight";
 import { priceFromStorage } from "../../../../shared/utils/currency";
+import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import { cn } from "../../../../shared/lib/utils";
 import type { StaffService } from "../../types";
@@ -50,7 +51,6 @@ export function StaffServiceItem({
   const [durationError, setDurationError] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const CurrencyIcon = currencyDisplay.icon;
   const expandedContentRef = useRef<HTMLDivElement>(null);
   const onErrorChangeRef = useRef(onErrorChange);
   const prevErrorRef = useRef<string | null>(null);
@@ -306,14 +306,13 @@ export function StaffServiceItem({
         <div
           className={cn("text-sm shrink-0 flex items-center", hasAnyCustom)}
         >
-          <div className="min-w-18 flex items-center">
-            {CurrencyIcon ? (
-              <CurrencyIcon className="h-3 w-3 mr-0.5 text-foreground-3 dark:text-foreground-2" />
-            ) : (
-              <span className="mr-0.5 font-semibold text-foreground-3 dark:text-foreground-2">{currencyDisplay.symbol}</span>
-            )}
-            <span className="mr-2.5 font-semibold text-foreground-3 dark:text-foreground-2">{effectiveDisplayPrice.toFixed(2)}</span>
-          </div>
+          <PriceDisplay
+            amountDecimal={effectiveDisplayPrice}
+            currency={currency}
+            className="min-w-18 mr-2.5 gap-1"
+            iconClassName="h-3 w-3 text-foreground-3 dark:text-foreground-2"
+            numberClassName="font-semibold text-foreground-3 dark:text-foreground-2"
+          />
           <Clock className="h-3 w-3 ml-1 text-foreground-3 dark:text-foreground-2" />
           <span className="ml-1 min-w-10 font-semibold text-foreground-3 dark:text-foreground-2">
             {formatDuration(effectiveDuration, t)}
@@ -379,14 +378,13 @@ export function StaffServiceItem({
       {!isExpanded && service.canPerform && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-5">
-          <div className="flex items-center gap-1">
-            {CurrencyIcon ? (
-              <CurrencyIcon className="h-3 w-3 text-foreground-3 dark:text-foreground-2" />
-            ) : (
-              <span className="text-sm font-semibold text-foreground-3 dark:text-foreground-2">{currencyDisplay.symbol}</span>
-            )}
-            <span className="text-sm font-semibold text-foreground-3 dark:text-foreground-2">{effectiveDisplayPrice.toFixed(2)}</span>
-          </div>
+          <PriceDisplay
+            amountDecimal={effectiveDisplayPrice}
+            currency={currency}
+            className="gap-1"
+            iconClassName="h-3 w-3 text-foreground-3 dark:text-foreground-2"
+            numberClassName="text-sm font-semibold text-foreground-3 dark:text-foreground-2"
+          />
           <div className="flex items-center gap-1">
             <Clock className="h-3 w-3 text-foreground-3 dark:text-foreground-2" />
             <span className="text-sm font-semibold text-foreground-3 dark:text-foreground-2">
@@ -444,14 +442,12 @@ export function StaffServiceItem({
                   {hasCustomPrice && (
                     <div className="flex items-center w-fit rounded-full cursor-default px-2.5 py-0.5 text-[11px] font-medium bg-info/20 text-foreground-3 dark:bg-info/60 border border-border dark:border-border-subtle">
                       {t("page.locationService.fields.serviceDefault")}{" "}
-                      <span className="ml-1 flex items-center gap-0.5 text-foreground-2">
-                        {CurrencyIcon ? (
-                          <CurrencyIcon className="h-2.5 w-2.5 -mt-0.5" />
-                        ) : (
-                          <span>{currencyDisplay.symbol}</span>
-                        )}
-                        <span>{service.inheritedDisplayPrice.toFixed(2)}</span>
-                      </span>
+                      <PriceDisplay
+                        amountDecimal={service.inheritedDisplayPrice}
+                        currency={currency}
+                        className="ml-1 gap-1 text-foreground-2"
+                        iconClassName="h-2.5 w-2.5 -mt-0.5"
+                      />
                     </div>
                   )}
                 </div>

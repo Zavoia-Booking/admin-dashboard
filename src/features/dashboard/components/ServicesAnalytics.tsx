@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/components/ui/card';
 import { Badge } from '../../../shared/components/ui/badge';
+import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import {
   Scissors,
   Package,
@@ -13,21 +14,18 @@ import type { ServiceStats } from '../types';
 interface ServicesAnalyticsProps {
   topServices: ServiceStats[];
   servicesByBookingType: { single: number; bundle: number };
+  /** Business currency code (top service revenue uses this for display). */
+  currency: string;
 }
 
 export function ServicesAnalytics({
   topServices,
-  servicesByBookingType
+  servicesByBookingType,
+  currency,
 }: ServicesAnalyticsProps) {
   const { t } = useTranslation('dashboard');
-  const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(cents / 100);
-  };
+  const { formatPrice } = useFormatPrice();
+  const formatCurrency = (cents: number) => formatPrice(cents, currency);
 
   const totalBookings = servicesByBookingType.single + servicesByBookingType.bundle;
   const singlePercentage = Math.round((servicesByBookingType.single / totalBookings) * 100);

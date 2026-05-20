@@ -30,6 +30,13 @@ interface SortSelectProps {
   groups: SortGroup[];
   placeholder?: string;
   className?: string;
+  /**
+   * When true, render a 36×36 icon-only trigger (ArrowUpDown only) — used in
+   * tight horizontal layouts like the mobile insights band where the
+   * "Newest first" label would crowd the row. The label is still announced
+   * via aria-label so screen readers don't lose it.
+   */
+  compact?: boolean;
 }
 
 export const SortSelect: React.FC<SortSelectProps> = ({
@@ -38,6 +45,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
   groups,
   placeholder = "Sort",
   className,
+  compact = false,
 }) => {
   const [open, setOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -55,7 +63,24 @@ export const SortSelect: React.FC<SortSelectProps> = ({
       .flatMap((group) => group.options)
       .find((option) => option.value === value)?.label ?? "";
 
-  const triggerButton = (
+  const triggerButton = compact ? (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      rounded="full"
+      aria-label={selectedLabel || placeholder}
+      className={cn(
+        "h-9 w-9 !p-0 border transition-[colors,box-shadow,background-color] duration-200 ease-out flex items-center justify-center shrink-0",
+        open
+          ? "bg-info-100 border-border-strong text-foreground-1 dark:bg-neutral-900 dark:text-foreground-1 dark:border-border-strong"
+          : "border-border bg-surface-hover text-foreground-1 shadow-xs hover:bg-surface-active hover:border-border-strong dark:bg-transparent dark:text-foreground-1 dark:hover:bg-neutral-900 dark:border-border-strong",
+        className
+      )}
+    >
+      <ArrowUpDown className="h-4 w-4 text-foreground-3 dark:text-foreground-1" />
+    </Button>
+  ) : (
     <Button
       type="button"
       variant="outline"
@@ -93,7 +118,7 @@ export const SortSelect: React.FC<SortSelectProps> = ({
             )}
             <CommandGroup
               heading={
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
                   {group.label}
                 </span>
               }

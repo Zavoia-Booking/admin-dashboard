@@ -2,6 +2,7 @@ import { Check, Clock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "../../../lib/utils";
 import { highlightMatches } from "../../../utils/highlight";
+import { PriceDisplay } from "../PriceDisplay";
 import type { Service, CurrencyDisplay } from "./types";
 
 interface ServiceItemProps {
@@ -21,7 +22,6 @@ export function ServiceItem({
   durationUnit,
   onToggle,
 }: ServiceItemProps) {
-  const CurrencyIcon = currencyDisplay.icon;
   const { t } = useTranslation("common");
 
   return (
@@ -86,23 +86,15 @@ export function ServiceItem({
           </div>
           {/* Price column */}
           <div className="flex justify-start w-14">
-            <div className="flex items-center gap-0 text-xs font-medium text-foreground-1">
-              {service.price !== undefined && (
-                <>
-                  {CurrencyIcon ? (
-                    <>
-                      <CurrencyIcon className="h-3.5 w-3.5" />
-                      <span>{service.price.toFixed(2)}</span>
-                    </>
-                  ) : (
-                    <div className="flex items-center gap-0.5">
-                      <span>{currencyDisplay.symbol || ""}</span>
-                      <span>{service.price.toFixed(2)}</span>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+            {service.price !== undefined && (
+              <PriceDisplay
+                amountDecimal={service.price}
+                currency={currencyDisplay.currency}
+                className="gap-1"
+                iconClassName="h-3.5 w-3.5"
+                numberClassName="text-xs font-medium text-foreground-1"
+              />
+            )}
           </div>
         </div>
       </div>

@@ -199,13 +199,6 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
     );
   };
 
-  // Format price based on price type
-  const formatBundlePrice = (bundle: Bundle): string => {
-    const priceInCents = bundle.calculatedPriceAmountMinor;
-    const price = priceFromStorage(priceInCents, businessCurrency);
-    return price.toFixed(2);
-  };
-
   // Get price type category (for badge display)
   const getPriceTypeCategory = (bundle: Bundle) => {
     switch (bundle.priceType) {
@@ -349,7 +342,7 @@ export function BundlesTab({ isActive = true }: BundlesTabProps) {
                         value: formatDuration(getTotalDuration(bundle), t),
                       },
                     ]}
-                    price={formatBundlePrice(bundle)}
+                    priceMinor={bundle.calculatedPriceAmountMinor}
                     currency={businessCurrency}
                     actions={[
                       {

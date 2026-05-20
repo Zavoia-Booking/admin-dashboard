@@ -11,8 +11,7 @@ import { Command, CommandItem, CommandList } from '../../../shared/components/ui
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { Badge } from '../../../shared/components/ui/badge';
 import { Pill } from '../../../shared/components/ui/pill';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
-import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { cn } from '../../../shared/lib/utils';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import { FormFooter } from '../../../shared/components/forms/FormFooter';
@@ -22,7 +21,7 @@ import { SliderContentDivider } from '../../../shared/components/common/SliderCo
 import { ManageServicesSheet } from '../../../shared/components/common/ManageServicesSheet/ManageServicesSheet';
 import { ManageBundlesSheet } from '../../../shared/components/common/ManageBundlesSheet/ManageBundlesSheet';
 import { useDispatch, useSelector } from 'react-redux';
-import { getCurrencyDisplay } from '../../../shared/utils/currency';
+import { PriceDisplay } from '../../../shared/components/common/PriceDisplay';
 import { selectCurrentUser } from '../../auth/selectors';
 import {
   adminCreateAppointmentGroup,
@@ -150,7 +149,9 @@ interface AppointmentItemRowProps {
   locationServices: AppointmentItemRowService[];
   locationBundles: AppointmentItemRowBundle[];
   locationTeamMembers: AppointmentItemRowTeamMember[];
-  currencyDisplay: { icon?: React.ComponentType<{ className?: string }>; symbol?: string };
+  /** ISO 4217 code threaded so the row can format prices via the shared
+   *  PriceDisplay with locale-aware grouping. */
+  currency: string;
   onUpdateStaff: (index: number, staffUserId: number | null) => void;
   onRemoveItem: (index: number) => void;
   /** When true, the staff picker gets a soft "next step" pulse — only one row in
@@ -165,7 +166,7 @@ function AppointmentItemRow({
   locationServices,
   locationBundles,
   locationTeamMembers,
-  currencyDisplay,
+  currency,
   onUpdateStaff,
   onRemoveItem,
   isFirstUnassigned = false,
@@ -306,14 +307,12 @@ function AppointmentItemRow({
           {durationMinutes > 0 && (
             <span>{durationMinutes} min</span>
           )}
-          <span className="ml-auto inline-flex items-center gap-0.5 font-medium text-foreground-1">
-            {currencyDisplay.icon ? (
-              <currencyDisplay.icon className="h-3.5 w-3.5 text-foreground-1" />
-            ) : (
-              <span>{currencyDisplay.symbol}</span>
-            )}
-            <span>{price.toFixed(2)}</span>
-          </span>
+          <PriceDisplay
+            amountDecimal={price}
+            currency={currency}
+            className="ml-auto gap-1 font-medium text-foreground-1"
+            iconClassName="h-3.5 w-3.5 text-foreground-1"
+          />
         </div>
         {hasCustomRates && (
           <div className="mt-2">
@@ -345,19 +344,15 @@ function AppointmentItemRow({
                 >
                   <span className="flex items-center gap-2 min-w-0 flex-1">
                     {staffForRow && (
-                      <Avatar key={staffForRow.userId} className="size-5 shrink-0">
-                        {staffForRow.profileImage ? <AvatarImage src={staffForRow.profileImage} alt="" /> : null}
-                        <AvatarFallback
-                          className="text-[9px] font-semibold leading-none text-foreground-1"
-                          style={{
-                            backgroundColor: getAvatarBgColor(
-                              `${staffForRow.userId}-${staffForRow.firstName ?? ''}-${staffForRow.lastName ?? ''}`,
-                            ),
-                          }}
-                        >
-                          {((staffForRow.firstName?.trim()?.[0] ?? '') + (staffForRow.lastName?.trim()?.[0] ?? '')).toUpperCase() || '?'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <PersonAvatar
+                        key={staffForRow.userId}
+                        id={staffForRow.userId}
+                        firstName={staffForRow.firstName}
+                        lastName={staffForRow.lastName}
+                        profileImage={staffForRow.profileImage}
+                        className="size-5"
+                        initialsClassName="text-[9px] font-semibold"
+                      />
                     )}
                     <span className="truncate">
                       {staffForRow ? `${staffForRow.firstName} ${staffForRow.lastName}` : tCal('page.appointments.add.assignStaff')}
@@ -380,8 +375,6 @@ function AppointmentItemRow({
                 <Command shouldFilter={false}>
                   <CommandList>
                     {eligibleTeamMembersForRow.map((t, teamIndex) => {
-                      const initials = ((t.firstName?.trim()?.[0] ?? '') + (t.lastName?.trim()?.[0] ?? '')).toUpperCase() || '?';
-                      const avatarKey = `${t.userId}-${t.firstName ?? ''}-${t.lastName ?? ''}`;
                       return (
                         <CommandItem
                           key={t.userId}
@@ -396,15 +389,14 @@ function AppointmentItemRow({
                           )}
                         >
                           <Check className={cn('h-4 w-4 shrink-0', item.staffUserId === t.userId ? 'opacity-100' : 'opacity-0')} />
-                          <Avatar className="size-6 shrink-0">
-                            {t.profileImage ? <AvatarImage src={t.profileImage} alt="" /> : null}
-                            <AvatarFallback
-                              className="text-[10px] font-semibold leading-none text-foreground-1"
-                              style={{ backgroundColor: getAvatarBgColor(avatarKey) }}
-                            >
-                              {initials}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersonAvatar
+                            id={t.userId}
+                            firstName={t.firstName}
+                            lastName={t.lastName}
+                            profileImage={t.profileImage}
+                            className="size-6"
+                            initialsClassName="text-[10px] font-semibold"
+                          />
                           <span className="truncate">{t.firstName} {t.lastName}</span>
                         </CommandItem>
                       );
@@ -453,10 +445,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const calendarTimezone = useSelector(getCalendarTimezone);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency ?? 'eur';
-  const currencyDisplay = useMemo(
-    () => getCurrencyDisplay(businessCurrency),
-    [businessCurrency],
-  );
 
   const pendingGroupSubmitRef = useRef<Parameters<typeof adminCreateAppointmentGroup.request>[0] | null>(null);
   const pendingUpdateRef = useRef<{
@@ -1395,6 +1383,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                   ...prev,
                   customerId: customer.id,
                   customerDisplay: {
+                    id: customer.id,
                     firstName: customer.firstName,
                     lastName: customer.lastName,
                     email: customer.email,
@@ -1579,7 +1568,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                         locationServices={locationServices}
                         locationBundles={locationBundles}
                         locationTeamMembers={locationTeamMembers}
-                        currencyDisplay={currencyDisplay}
+                        currency={businessCurrency}
                         onUpdateStaff={handleUpdateItemStaff}
                         onRemoveItem={handleRemoveItem}
                         isFirstUnassigned={idx === firstUnassignedIdx}
@@ -1591,14 +1580,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
                       Total
                     </span>
                     <div className="flex items-center gap-3 text-sm text-foreground-2">
-                      <span className="inline-flex items-center gap-0.5 font-semibold text-foreground-1">
-                        {currencyDisplay.icon ? (
-                          <currencyDisplay.icon className="h-3.5 w-3.5 text-foreground-1" />
-                        ) : (
-                          <span>{currencyDisplay.symbol}</span>
-                        )}
-                        <span>{totalPrice.toFixed(2)}</span>
-                      </span>
+                      <PriceDisplay
+                        amountDecimal={totalPrice}
+                        currency={businessCurrency}
+                        className="gap-1 font-semibold text-foreground-1"
+                        iconClassName="h-3.5 w-3.5 text-foreground-1"
+                      />
                       {durationMinutes > 0 && (
                         <>
                           <span className="h-4 w-px shrink-0 bg-border" aria-hidden />

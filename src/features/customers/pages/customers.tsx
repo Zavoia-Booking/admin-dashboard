@@ -18,8 +18,7 @@ import {
     getIsMergingCustomerSelector,
 } from '../selectors';
 import { ItemCard } from '../../../shared/components/common/ItemCard';
-import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
-import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { highlightMatches as highlight } from '../../../shared/utils/highlight';
 import { EmptyState } from '../../../shared/components/common/EmptyState';
 import CustomersListSkeleton from '../components/CustomersListSkeleton';
@@ -140,20 +139,16 @@ export default function CustomersPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-2">
             {filteredCustomers.map((customer) => {
               const displayName = `${customer.firstName} ${customer.lastName}`.trim();
-              
-              const initials = customer.firstName && customer.lastName
-                ? `${customer.firstName[0]}${customer.lastName[0]}`.toUpperCase()
-                : (customer.email?.[0] || '?').toUpperCase();
 
               const thumbnail = (
-                <Avatar className="h-12 w-12 shrink-0">
-                  <AvatarFallback 
-                    className="text-sm font-medium"
-                    style={{ backgroundColor: getAvatarBgColor(customer.email) }}
-                  >
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
+                <PersonAvatar
+                  id={customer.id ?? customer.email ?? ''}
+                  firstName={customer.firstName}
+                  lastName={customer.lastName}
+                  profileImage={customer.profileImage}
+                  className="h-12 w-12"
+                  initialsClassName="text-sm font-medium"
+                />
               );
 
               const customContent = (

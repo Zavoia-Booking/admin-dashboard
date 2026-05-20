@@ -25,6 +25,7 @@ import { Input } from "../../../../shared/components/ui/input";
 import { Label } from "../../../../shared/components/ui/label";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
 import { getCurrencyDisplay } from "../../../../shared/utils/currency";
+import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 import { getReadableTextColor } from "../../../../shared/utils/color";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
@@ -69,7 +70,6 @@ export function LocationServiceRow({
   const [durationError, setDurationError] = useState<string | null>(null);
 
   const currencyDisplay = getCurrencyDisplay(currency);
-  const CurrencyIcon = currencyDisplay.icon;
 
   // Determine if location has overrides
   const hasLocationOverride =
@@ -248,14 +248,12 @@ export function LocationServiceRow({
             {localPrice !== service.defaultPrice && (
               <div className="flex items-center w-fit rounded-full px-2.5 py-0.5 text-[11px] font-medium bg-info/20 text-foreground-3 dark:bg-info/60 border border-border dark:border-border-subtle">
                 {t("page.locationService.fields.serviceDefault")}{" "}
-                <span className="ml-1 flex items-center gap-0.5 text-foreground-2">
-                  {CurrencyIcon ? (
-                    <CurrencyIcon className="h-2.5 w-2.5 -mr-0.5" />
-                  ) : (
-                    <span>{currencyDisplay.symbol}</span>
-                  )}
-                  <span>{service.defaultDisplayPrice.toFixed(2)}</span>
-                </span>
+                <PriceDisplay
+                  amountDecimal={service.defaultDisplayPrice}
+                  currency={currency}
+                  className="ml-1 gap-1 text-foreground-2"
+                  iconClassName="h-2.5 w-2.5 -mr-0.5"
+                />
               </div>
             )}
           </div>
@@ -489,18 +487,13 @@ export function LocationServiceRow({
 
           {/* Price & Duration - Big, bold, easy to read */}
           <div className="flex items-center gap-4 shrink-0">
-            <div className="flex items-center justify-start gap-0.5 min-w-18">
-              {CurrencyIcon ? (
-                <CurrencyIcon className="h-3 w-3 text-foreground-1" />
-              ) : (
-                <span className="text-sm text-foreground-1">
-                  {currencyDisplay.symbol}
-                </span>
-              )}
-              <span className="text-sm font-semibold text-foreground-1">
-                {effectiveDisplayPrice.toFixed(2)}
-              </span>
-            </div>
+            <PriceDisplay
+              amountDecimal={effectiveDisplayPrice}
+              currency={currency}
+              className="justify-start gap-1 min-w-18"
+              iconClassName="h-3 w-3 text-foreground-1"
+              numberClassName="text-sm font-semibold text-foreground-1"
+            />
             <div className="flex items-center gap-1.5 min-w-20">
               <Clock className="h-3 w-3 text-foreground-1" />
               <span className="text-sm font-semibold text-foreground-1">
@@ -524,16 +517,13 @@ export function LocationServiceRow({
                 <span className="font-medium">
                   {t("page.locationService.fields.defaultLabel")}:
                 </span>{" "}
-                <span className="text-foreground-3 dark:text-foreground-2 -mr-0.5 ml-1 flex items-center">
-                  {CurrencyIcon ? (
-                    <CurrencyIcon className="h-3 w-3" />
-                  ) : (
-                    <span className="mr-0.5">{currencyDisplay.symbol}</span>
-                  )}
-                </span>
-                <span className="text-foreground-3 mr-1.5 dark:text-foreground-2">
-                  {service.defaultDisplayPrice.toFixed(2)}
-                </span>{" "}
+                <PriceDisplay
+                  amountDecimal={service.defaultDisplayPrice}
+                  currency={currency}
+                  className="text-foreground-3 dark:text-foreground-2 -mr-0.5 ml-1 mr-1.5 gap-1"
+                  iconClassName="h-3 w-3"
+                  numberClassName="text-foreground-3 dark:text-foreground-2"
+                />{" "}
                 •{" "}
                 <span className="text-foreground-3 ml-0.5 dark:text-foreground-2">
                   {formatDuration(service.defaultDuration, t)}

@@ -271,10 +271,11 @@ export const SeatOverflowGate: React.FC = () => {
   const staffById = useMemo(() => {
     const map = new Map<
       number,
-      { firstName: string; lastName: string; email: string; profileImage: string | null }
+      { userId: number; firstName: string; lastName: string; email: string; profileImage: string | null }
     >();
     for (const m of teamMembers) {
       map.set(m.id, {
+        userId: m.id,
         firstName: m.firstName ?? '',
         lastName: m.lastName ?? '',
         email: m.email ?? '',

@@ -14,7 +14,7 @@ import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { Input } from '../../../shared/components/ui/input';
 import { Switch } from '../../../shared/components/ui/switch';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/components/ui/popover';
 import { Pill } from '../../../shared/components/ui/pill';
 import {
@@ -35,7 +35,6 @@ import {
   CALENDAR_FILTER_CHIP_LABEL,
 } from './calendarSidebarStyles';
 import { CalendarFilterPillCheckmark } from './CalendarFilterPillCheckmark';
-import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 import type { CalendarStaffMember } from '../../../shared/types/calendar';
 import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
 import { validateDescription } from '../../../shared/utils/validation';
@@ -86,16 +85,6 @@ function BlockDrawerSectionDivider() {
       </div>
     </div>
   );
-}
-
-function blockStaffInitials(member: CalendarStaffMember): string {
-  const a = member.firstName?.trim()?.[0] ?? '';
-  const b = member.lastName?.trim()?.[0] ?? '';
-  return (a + b).toUpperCase() || '?';
-}
-
-function blockStaffAvatarColorKey(member: CalendarStaffMember): string {
-  return `${member.id}-${member.firstName ?? ''}-${member.lastName ?? ''}`;
 }
 
 function blockStaffFullName(member: CalendarStaffMember): string {
@@ -1114,17 +1103,14 @@ export const CreateBlockDrawer: React.FC = () => {
                                   'border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900',
                               )}
                             >
-                              <Avatar className="size-6 shrink-0 border border-border transition-none">
-                                {member.profileImage ? (
-                                  <AvatarImage src={member.profileImage} alt="" />
-                                ) : null}
-                                <AvatarFallback
-                                  className="text-[10px] font-semibold leading-none text-foreground-1"
-                                  style={{ backgroundColor: getAvatarBgColor(blockStaffAvatarColorKey(member)) }}
-                                >
-                                  {blockStaffInitials(member)}
-                                </AvatarFallback>
-                              </Avatar>
+                              <PersonAvatar
+                                id={member.id}
+                                firstName={member.firstName}
+                                lastName={member.lastName}
+                                profileImage={member.profileImage}
+                                className="size-6 transition-none"
+                                initialsClassName="text-[10px] font-semibold"
+                              />
                               <span className={CALENDAR_FILTER_CHIP_LABEL}>{name}</span>
                               {selected ? <CalendarFilterPillCheckmark /> : null}
                             </button>

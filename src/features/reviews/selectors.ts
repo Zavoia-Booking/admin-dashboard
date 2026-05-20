@@ -10,6 +10,8 @@ export const selectBusinessReviewsTotal = (state: RootState) =>
   state.reviews.businessReviewsTotal;
 export const selectBusinessReviewsLoading = (state: RootState) =>
   state.reviews.businessReviewsLoading;
+export const selectBusinessReviewsMoreLoading = (state: RootState) =>
+  state.reviews.businessReviewsMoreLoading;
 
 export const selectTeamMemberReviews = (state: RootState) =>
   state.reviews.teamMemberReviews;
@@ -17,3 +19,7 @@ export const selectTeamMemberReviewsTotal = (state: RootState) =>
   state.reviews.teamMemberReviewsTotal;
 export const selectTeamMemberReviewsLoading = (state: RootState) =>
   state.reviews.teamMemberReviewsLoading;
+export const selectTeamMemberReviewsMoreLoading = (state: RootState) =>
+  state.reviews.teamMemberReviewsMoreLoading;
+
+export const selectReviewsError = (state: RootState) => state.reviews.error;

@@ -17,11 +17,86 @@
     "noRating": "No rating yet",
     "totalReviewsAcrossLocations_one": "{{count}} review across {{locations}} location",
     "totalReviewsAcrossLocations_other": "{{count}} reviews across {{locations}} locations",
-    "infoText": "Your public rating is the combined average of all location and team member reviews. This is the score your clients see on your profile."
+    "infoText": "Your public rating is the combined average of all location and team member reviews. This is the score your clients see on your profile.",
+    "distributionEyebrow": "Distribution",
+    "insightsEyebrow": "Insights",
+    "insightsCollapsed": "Show distribution + about",
+    "insightsExpanded": "Hide distribution + about",
+    "positiveShareLabel": "positive",
+    "positiveShareCaption_one": "of {{count}} review",
+    "positiveShareCaption_other": "of {{count}} reviews",
+    "aboutEyebrow": "About this score",
+    "calculationNote": "Combined from every review across your locations and team members.",
+    "audienceNote": "This is the rating clients see on your business profile."
+  },
+  "hero": {
+    "statusGood": "Excellent",
+    "statusOk": "Good",
+    "statusWarn": "Needs attention",
+    "statusNone": "No reviews yet",
+    "summary_zero": "Nothing to show yet · {{locations}} locations · {{teamMembers}} team members",
+    "summary_one": "{{count}} review · {{locations}} locations · {{teamMembers}} team members",
+    "summary_other": "{{count}} reviews · {{locations}} locations · {{teamMembers}} team members",
+    "summarySingleLocation_one": "{{count}} review · {{teamMembers}} team members",
+    "summarySingleLocation_other": "{{count}} reviews · {{teamMembers}} team members",
+    "refresh": "Refresh",
+    "lastUpdated": "Updated {{relative}}",
+    "lastUpdatedNow": "Just refreshed",
+    "metaReviews_one": "review",
+    "metaReviews_other": "reviews",
+    "metaLocations_one": "location",
+    "metaLocations_other": "locations",
+    "metaTeam_one": "team member",
+    "metaTeam_other": "team members"
+  },
+  "section": {
+    "reviewsTitle": "Reviews",
+    "reviewsHelper": "Customer feedback received across your business and team members.",
+    "insightsDistributionTitle": "Rating distribution",
+    "insightsDistributionHelper": "Hover any bar to see the exact count.",
+    "insightsLocationsTitle": "By location",
+    "insightsTeamTitle": "By team member",
+    "seeAllLocations": "See all {{count}} locations",
+    "seeAllTeam": "See all {{count}} members",
+    "collapse": "Show less"
   },
   "subTabs": {
-    "business": "Business Reviews",
-    "teamMembers": "Team Member Reviews"
+    "business": "Business",
+    "teamMembers": "Team Members"
+  },
+  "filter": {
+    "button": "Filters",
+    "done": "Done",
+    "apply": "Apply",
+    "sortLabel": "Sort",
+    "starsLabel": "Stars",
+    "starsAny": "Any rating",
+    "starsValue_one": "{{count}} star",
+    "starsValue_other": "{{count}} stars",
+    "locationLabel": "Location",
+    "locationAny": "All locations",
+    "teamLabel": "Team member",
+    "teamAny": "All members",
+    "sortNewest": "Newest first",
+    "sortOldest": "Oldest first",
+    "sortHighest": "Highest rated",
+    "sortLowest": "Lowest rated",
+    "sortGroupDate": "Date",
+    "sortGroupRating": "Rating",
+    "dialogDescription": "Refine the reviews shown by rating, period, comments, location, or team member.",
+    "dateLabel": "Period",
+    "dateAny": "Any time",
+    "dateLast7Days": "Last 7 days",
+    "dateLast30Days": "Last 30 days",
+    "dateLast90Days": "Last 90 days",
+    "date7Days": "7 days",
+    "date30Days": "30 days",
+    "date90Days": "90 days",
+    "dateCustom": "Custom",
+    "calendarToday": "Today",
+    "dateRangeReadout": "{{from}} – {{to}}",
+    "withCommentsLabel": "With comments only",
+    "withCommentsHelper": "Hide ratings without a written review"
   },
   "filters": {
     "allTeamMembers": "All Team Members",
@@ -33,11 +108,30 @@
     "clearAll": "Clear all"
   },
   "card": {
-    "reviewFor": "Review for"
+    "reviewFor": "Review for",
+    "businessWide": "Business-wide"
   },
   "empty": {
     "title": "No reviews yet",
-    "description": "Reviews from your customers will appear here once they start leaving feedback."
+    "description": "Reviews from your customers will appear here once they start leaving feedback.",
+    "noFilteredTitle": "No reviews match these filters",
+    "noFilteredBody": "Try removing a star, location, or team member filter to see more reviews.",
+    "noFilteredAction": "Clear all filters",
+    "errorTitle": "Couldn't load reviews",
+    "errorBody": "Something went wrong while fetching reviews. Check your connection and try again.",
+    "errorAction": "Try again"
+  },
+  "distribution": {
+    "tooltip_one": "{{count}} customer gave {{stars}} stars",
+    "tooltip_other": "{{count}} customers gave {{stars}} stars",
+    "totalLabel_one": "{{count}} total",
+    "totalLabel_other": "{{count}} total"
+  },
+  "mobile": {
+    "insightsTitle": "Insights",
+    "distributionCard": "Distribution",
+    "locationsCard": "Locations",
+    "teamCard": "Team"
   },
   "loadMore": "Load more",
   "time": {

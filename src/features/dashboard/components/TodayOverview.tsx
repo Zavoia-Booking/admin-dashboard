@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../../shared/components/ui/card';
+import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import {
   DollarSign,
   CalendarCheck,
@@ -9,7 +10,10 @@ import {
 
 interface TodayOverviewProps {
   appointments: number;
+  /** Revenue in integer minor units (cents) — formatted via shared util. */
   revenue: number;
+  /** Business currency code (e.g. `'RON'`, `'EUR'`). */
+  currency: string;
   staffAvailable: number;
   staffLoadPercentage: number;
 }
@@ -17,10 +21,12 @@ interface TodayOverviewProps {
 export function TodayOverview({
   appointments,
   revenue,
+  currency,
   staffAvailable,
   staffLoadPercentage,
 }: TodayOverviewProps) {
   const { t } = useTranslation('dashboard');
+  const { formatPrice } = useFormatPrice();
 
   return (
     <div className="space-y-3">
@@ -54,7 +60,7 @@ export function TodayOverview({
                 <DollarSign className="h-4 w-4 text-success" />
               </div>
               <div>
-                <p className="text-lg font-bold text-foreground-1">${revenue.toLocaleString()}</p>
+                <p className="text-lg font-bold text-foreground-1">{formatPrice(revenue, currency)}</p>
                 <p className="text-[10px] text-foreground-3">{t('todayOverview.revenue')}</p>
               </div>
             </div>

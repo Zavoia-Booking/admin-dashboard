@@ -3,7 +3,7 @@ import { Badge } from "../ui/badge";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { getReadableTextColor } from "../../utils/color";
-import { getCurrencyDisplay } from "../../utils/currency";
+import { PriceDisplay } from "./PriceDisplay";
 
 export interface ItemCardMetadata {
   icon?: LucideIcon;
@@ -38,7 +38,10 @@ export interface ItemCardProps {
   category?: ItemCardCategory | null;
   badges?: ItemCardBadge[];
   metadata?: ItemCardMetadata[];
-  price?: number | string;
+  /** Amount in minor units (cents). Use this for cents-stored values (bundle.calculatedPriceAmountMinor). */
+  priceMinor?: number;
+  /** Amount in major units (decimal). Use this for decimal-stored values (service.price). */
+  priceDecimal?: number;
   currency?: string;
   actions?: ItemCardAction[];
   onClick?: () => void;
@@ -56,7 +59,8 @@ export function ItemCard({
   category,
   badges = [],
   metadata = [],
-  price,
+  priceMinor,
+  priceDecimal,
   currency,
   actions = [],
   onClick,
@@ -66,7 +70,8 @@ export function ItemCard({
   bottomActions,
   metadataLayout = "default",
 }: ItemCardProps) {
-  const showPrimaryRow = metadataLayout === "default" && (metadata.length > 0 || price !== undefined);
+  const hasPrice = priceMinor !== undefined || priceDecimal !== undefined;
+  const showPrimaryRow = metadataLayout === "default" && (metadata.length > 0 || hasPrice);
   const secondaryItems = metadataLayout === "secondaryOnly" ? metadata : metadata.slice(1);
   const hasSecondaryRow = metadataLayout === "secondaryOnly" ? metadata.length > 0 : metadata.length > 1;
 
@@ -224,42 +229,19 @@ export function ItemCard({
                   <span className="font-medium">{metadata[0].value}</span>
                 </div>
               )}
-              {price !== undefined &&
-                (() => {
-                  const currencyDisplay = currency
-                    ? getCurrencyDisplay(currency)
-                    : null;
-                  const CurrencyIcon = currencyDisplay?.icon;
-
-                  return (
-                    <div
-                      className={cn(
-                        "font-bold text-foreground-1 flex items-center gap-0.5",
-                        variant === "default" ? "text-xl" : "text-lg",
-                      )}
-                    >
-                      {CurrencyIcon ? (
-                        <>
-                          <CurrencyIcon
-                            className={
-                              variant === "default" ? "h-5 w-5" : "h-4 w-4"
-                            }
-                          />
-                          <span className="font-bold">{price}</span>
-                        </>
-                      ) : currencyDisplay?.symbol ? (
-                        <>
-                          <span className="font-bold">
-                            {currencyDisplay.symbol}
-                          </span>
-                          <span className="font-bold">{price}</span>
-                        </>
-                      ) : (
-                        <span className="font-bold">${price}</span>
-                      )}
-                    </div>
-                  );
-                })()}
+              {hasPrice && currency && (
+                <PriceDisplay
+                  amountMinor={priceMinor}
+                  amountDecimal={priceDecimal}
+                  currency={currency}
+                  className={cn(
+                    "font-bold text-foreground-1 gap-1",
+                    variant === "default" ? "text-xl" : "text-lg",
+                  )}
+                  iconClassName={variant === "default" ? "h-5 w-5" : "h-4 w-4"}
+                  numberClassName="font-bold"
+                />
+              )}
             </div>
           )}
 
