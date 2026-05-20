@@ -17,12 +17,7 @@ import { getCurrencyDisplay } from "../../../../shared/utils/currency";
 import { selectCurrentUser } from "../../../auth/selectors";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
 import { StaffServiceItem } from "./StaffServiceItem";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../../../../shared/components/ui/avatar";
-import { getAvatarBgColor } from "../../../setupWizard/components/StepTeam";
+import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar";
 import { cn } from "../../../../shared/lib/utils";
 import type { StaffService, LocationService } from "../../types";
 
@@ -64,7 +59,7 @@ export function ManageTeamMemberDrawer({
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency =
     currency || currentUser?.business?.businessCurrency || "eur";
-  const currencyDisplay = getCurrencyDisplay(businessCurrency);
+  const currencyDisplay = { ...getCurrencyDisplay(businessCurrency), currency: businessCurrency };
 
   // Local state for services
   const [localServices, setLocalServices] = useState<StaffService[]>([]);
@@ -298,11 +293,6 @@ export function ManageTeamMemberDrawer({
     onSave(localServices);
   };
 
-  // Get avatar initials
-  const avatarInitials = teamMember
-    ? `${teamMember.firstName[0]}${teamMember.lastName[0]}`.toUpperCase()
-    : "";
-
   // Animated indicator for filter buttons (like ResponsiveTabs)
   const filterButtonsRef = useRef<HTMLDivElement | null>(null);
   const filterButtonsDesktopRef = useRef<HTMLDivElement | null>(null);
@@ -403,22 +393,14 @@ export function ManageTeamMemberDrawer({
         <div className="flex items-center gap-3 px-4 md:px-0">
           {teamMember && (
             <div className="hidden md:flex flex-shrink-0 items-stretch self-stretch">
-              <Avatar className="rounded-full border border-border-strong bg-surface aspect-square h-full min-w-[2.5rem]">
-                <AvatarImage
-                  src={teamMember.profileImage || undefined}
-                  alt={`${teamMember.firstName} ${teamMember.lastName}`}
-                />
-                <AvatarFallback
-                  className="text-sm font-medium"
-                  style={{
-                    backgroundColor: teamMember.email
-                      ? getAvatarBgColor(teamMember.email)
-                      : undefined,
-                  }}
-                >
-                  {avatarInitials}
-                </AvatarFallback>
-              </Avatar>
+              <PersonAvatar
+                id={teamMember.userId ?? teamMember.email ?? ''}
+                firstName={teamMember.firstName}
+                lastName={teamMember.lastName}
+                profileImage={teamMember.profileImage}
+                className="aspect-square h-full min-w-[2.5rem] border-border-strong"
+                initialsClassName="text-sm font-medium"
+              />
             </div>
           )}
           <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">
@@ -722,22 +704,14 @@ export function ManageTeamMemberDrawer({
             <div className="flex items-center gap-3 px-4 md:px-0">
               {teamMember && (
                 <div className="hidden md:flex flex-shrink-0 items-stretch self-stretch">
-                  <Avatar className="rounded-full border border-border-strong bg-surface h-13 w-13">
-                    <AvatarImage
-                      src={teamMember.profileImage || undefined}
-                      alt={`${teamMember.firstName} ${teamMember.lastName}`}
-                    />
-                    <AvatarFallback
-                      className="text-sm font-medium"
-                      style={{
-                        backgroundColor: teamMember.email
-                          ? getAvatarBgColor(teamMember.email)
-                          : undefined,
-                      }}
-                    >
-                      {avatarInitials}
-                    </AvatarFallback>
-                  </Avatar>
+                  <PersonAvatar
+                    id={teamMember.userId ?? teamMember.email ?? ''}
+                    firstName={teamMember.firstName}
+                    lastName={teamMember.lastName}
+                    profileImage={teamMember.profileImage}
+                    className="h-13 w-13 border-border-strong"
+                    initialsClassName="text-sm font-medium"
+                  />
                 </div>
               )}
               <div className="flex-1 min-w-0 flex flex-col justify-center cursor-default text-left">

@@ -2,15 +2,14 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
-import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { cn } from '../../../shared/lib/utils';
 import { SliderSectionHeader } from '../../../shared/components/forms/SliderSectionHeader';
 import { addCustomerApi } from '../../customers/api';
 import { toast } from 'sonner';
 import type { CustomerDisplay } from './addAppointmentSliderHelpers';
-import { getCustomerDisplayLabel, getCustomerInitials } from './addAppointmentSliderHelpers';
+import { getCustomerDisplayLabel } from './addAppointmentSliderHelpers';
 import QuickCreateCustomerForm from './QuickCreateCustomerForm';
-import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 import { CustomerSearchPopover, type CustomerSearchResult } from './CustomerSearchPopover';
 import './addAppointmentSliderPopover.css';
 import '../../../shared/components/forms/CollapsibleFormSection.css';
@@ -33,20 +32,17 @@ interface CustomerSearchPickerProps {
 
 function CustomerSelectedCard({ display, isEditMode, onClear }: CustomerSelectedCardProps) {
   const { t } = useTranslation('calendar');
-  const avatarColorKey =
-    display?.email?.trim() ||
-    `${display?.firstName ?? ''}-${display?.lastName ?? ''}-${display?.phone ?? ''}`;
+  const avatarId = display?.id ?? display?.email?.trim() ?? '';
 
   return (
     <div className="group flex items-center gap-3 rounded-xl border border-border dark:border-border bg-white dark:bg-surface px-4 py-3">
-      <Avatar className="h-10 w-10 flex-shrink-0">
-        <AvatarFallback
-          className="text-sm font-medium"
-          style={{ backgroundColor: getAvatarBgColor(avatarColorKey) }}
-        >
-          {getCustomerInitials(display, isEditMode ? 'W' : 'C')}
-        </AvatarFallback>
-      </Avatar>
+      <PersonAvatar
+        id={avatarId}
+        firstName={display?.firstName}
+        lastName={display?.lastName}
+        className="h-10 w-10"
+        initialsClassName="text-sm font-medium"
+      />
       <div className="flex-1 min-w-0">
         <div className="font-medium text-base truncate text-foreground-1">
           {getCustomerDisplayLabel(display, t, isEditMode)}

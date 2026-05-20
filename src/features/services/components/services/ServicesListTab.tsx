@@ -337,7 +337,7 @@ export function ServicesListTab({ isActive = true }: ServicesListTabProps) {
                     }
                     badges={badges}
                     metadata={metadata}
-                    price={service.price}
+                    priceDecimal={service.price}
                     currency={businessCurrency}
                     actions={[
                       {

@@ -5,7 +5,8 @@ import type {
   MilestoneActivityMetadata,
 } from '../../shared/types/customer';
 import { formatActivityTimelineDateTime } from '../calendar/timezone';
-import { priceFromStorage } from '../../shared/utils/currency';
+import { formatPriceMinor } from '../../shared/utils/currency';
+import { resolveIntlLocale } from '../../shared/hooks/useFormatPrice';
 
 export interface CustomerHistoryPdfTranslations {
   headingDefault: string;
@@ -57,12 +58,11 @@ function formatDuration(minutes: number, hUnit: string, mUnit: string): string {
 }
 
 function formatPrice(price: number, currency: string, locale: string): string {
-  const value = priceFromStorage(price, currency);
-  return new Intl.NumberFormat(locale || 'en', {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 2,
-  }).format(value);
+  // Use the shared utility so PDF output stays in lock-step with on-screen
+  // rendering — same grouping, same friendly symbol (`'lei'` for RON,
+  // not the locale's default `'RON'`). `resolveIntlLocale` maps i18n
+  // language codes to BCP-47 tags identically to the React hook.
+  return formatPriceMinor(price, currency, { locale: resolveIntlLocale(locale) });
 }
 
 function getSourceLabel(source: string, t: CustomerHistoryPdfTranslations): string {

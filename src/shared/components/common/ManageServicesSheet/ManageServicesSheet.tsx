@@ -81,7 +81,7 @@ export function ManageServicesSheet({
   const isMobile = useIsMobile();
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-  const currencyDisplay = getCurrencyDisplay(businessCurrency);
+  const currencyDisplay = { ...getCurrencyDisplay(businessCurrency), currency: businessCurrency };
 
   const getDisplayColor = (category: { color?: string; name: string }): string => {
     if (category.color) return category.color;
@@ -461,7 +461,7 @@ export function ManageServicesSheet({
     return (
     <>
       <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
           {t("filters.byPrice")}
         </div>
         <div className="grid grid-cols-2 gap-3 max-h-17">
@@ -501,7 +501,7 @@ export function ManageServicesSheet({
       <div className="border-t border-border-subtle" />
 
       <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
           {t("filters.byDuration")}
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -552,7 +552,7 @@ export function ManageServicesSheet({
 
       {availableCategories.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
             {t("filters.byCategory")}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -929,7 +929,11 @@ export function ManageServicesSheet({
 
   if (isMobile) {
     return (
-      <Drawer open={isOpen} onOpenChange={onClose} autoFocus={false} nested>
+      // `autoFocus` (Vaul) moves focus into the drawer body on open — without
+      // it, focus stays on the trigger button, which then sits inside Radix's
+      // `aria-hidden`-on-siblings subtree (browser blocks this for a11y).
+      // Same fix applied to [ReviewsFiltersSheet] and [SortSelect]'s Drawer.
+      <Drawer open={isOpen} onOpenChange={onClose} autoFocus nested>
         <DrawerContent className="h-[85vh] flex flex-col bg-popover text-popover-foreground !z-[90]" overlayClassName="!z-[85]">
           <DrawerTitle className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerTitle>
           <DrawerDescription className="sr-only">{title || (teamMemberName ? `${t("manageServices.title")} ${teamMemberName}` : t("manageServices.title"))}</DrawerDescription>
@@ -957,7 +961,10 @@ export function ManageServicesSheet({
         />
         <DialogPrimitive.Content
           ref={dialogContentRef}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          // Allow Radix's default auto-focus to move focus into the dialog
+          // on open. Preventing it (the previous behavior) left focus on the
+          // trigger button, which Radix then hides inside the `aria-hidden`
+          // sibling subtree — browser blocks that for a11y.
           className="fixed inset-0 m-auto z-[90] bg-popover text-popover-foreground rounded-lg border shadow-lg max-w-2xl w-[calc(100%-2rem)] h-[85vh] flex flex-col p-0 overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
         >
           <DialogPrimitive.Title className="sr-only">{resolvedTitle}</DialogPrimitive.Title>

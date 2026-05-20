@@ -34,45 +34,73 @@ function DashboardSkeleton() {
   return (
     <div className="space-y-4">
       {/* Row 1: Merged Location & Capacity widget (full width) */}
-      <div className="bg-surface border border-border rounded-2xl p-5">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-5">
+      <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
+        {/* Header — mobile */}
+        <div className="md:hidden flex items-center justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+          <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+        </div>
+        {/* Header — desktop */}
+        <div className="hidden md:flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <Skeleton className="h-9 w-9 rounded-[10px]" />
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-5 w-16 rounded-full" />
-              </div>
-              <Skeleton className="h-2.5 w-28" />
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-5 w-16 rounded-full" />
             </div>
           </div>
           <Skeleton className="h-5 w-24 rounded" />
         </div>
-        {/* Today headline strip */}
-        <div className="grid grid-cols-3 gap-0 rounded-xl border border-border overflow-hidden mb-5">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`p-3.5 space-y-2 ${i > 0 ? 'border-l border-border' : ''}`}>
-              <Skeleton className="h-2 w-12" />
-              <Skeleton className="h-6 w-20" />
+
+        {/* Today highlight — mobile (unified block) */}
+        <div className="md:hidden space-y-3">
+          <div className="space-y-2">
+            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-5 w-44" />
+            <Skeleton className="h-3.5 w-32" />
+          </div>
+          <div className="space-y-1">
+            <Skeleton className="h-2 w-full rounded-full" />
+            <div className="flex justify-between">
               <Skeleton className="h-2 w-16" />
+              <Skeleton className="h-2 w-20" />
+            </div>
+          </div>
+          <Skeleton className="h-3 w-44" />
+        </div>
+
+        {/* Section divider — mobile only */}
+        <div className="md:hidden h-px bg-border-subtle/60" />
+
+        {/* Today highlight — desktop (3 plain cells) */}
+        <div className="hidden md:grid grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className={`${i > 0 ? 'border-l border-border-subtle pl-5' : 'pr-5'} ${i === 1 ? 'pr-5' : ''} space-y-1.5`}>
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-6 w-20" />
+              <Skeleton className="h-3 w-20" />
             </div>
           ))}
         </div>
-        {/* Metrics table — desktop */}
-        <div className="hidden md:block mb-5">
+
+        {/* Metrics table — desktop (week + month only) */}
+        <div className="hidden md:block">
+          <Skeleton className="h-3 w-40 mb-2" />
           <div className="grid grid-cols-4 gap-4 pb-2 border-b border-border">
             {[0, 1, 2, 3].map((i) => (
               <Skeleton key={i} className="h-2.5 w-16" />
             ))}
           </div>
-          {[0, 1, 2].map((row) => (
+          {[0, 1].map((row) => (
             <div key={row} className="grid grid-cols-4 gap-4 py-3 border-b border-border-subtle last:border-b-0">
               <Skeleton className="h-3 w-20" />
               <Skeleton className="h-3 w-8" />
               <Skeleton className="h-3 w-16" />
               <div className="space-y-1">
-                <Skeleton className="h-1.5 w-full rounded-full" />
+                <Skeleton className="h-2 w-full rounded-full" />
                 <div className="flex justify-between">
                   <Skeleton className="h-2 w-12" />
                   <Skeleton className="h-2 w-12" />
@@ -81,42 +109,39 @@ function DashboardSkeleton() {
             </div>
           ))}
         </div>
+
         {/* Metrics rows — mobile */}
-        <div className="md:hidden mb-5 space-y-3">
-          <Skeleton className="h-2 w-32" />
+        <div className="md:hidden space-y-3">
+          <Skeleton className="h-3 w-40" />
           {[0, 1].map((i) => (
             <div key={i} className="space-y-2 py-2">
               <div className="flex justify-between">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="h-3 w-32" />
               </div>
-              <Skeleton className="h-1.5 w-full rounded-full" />
+              <Skeleton className="h-2 w-full rounded-full" />
+              <div className="flex justify-between">
+                <Skeleton className="h-2 w-12" />
+                <Skeleton className="h-2 w-16" />
+              </div>
             </div>
           ))}
         </div>
+
         {/* Staff list */}
-        <div className="space-y-2 mb-5">
+        <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Skeleton className="h-2.5 w-20" />
-            <Skeleton className="h-4 w-20 rounded" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-9 w-28 rounded-full" />
           </div>
           {[0, 1, 2].map((i) => (
             <div key={i} className="flex items-center gap-3 py-2">
-              <Skeleton className="h-8 w-8 rounded-full shrink-0" />
+              <Skeleton className="h-9 w-9 rounded-full shrink-0" />
               <div className="flex-1 space-y-1">
-                <Skeleton className="h-3 w-32" />
-                <Skeleton className="h-2.5 w-48 hidden md:block" />
+                <Skeleton className="h-3.5 w-32" />
+                <Skeleton className="h-2.5 w-28" />
               </div>
               <Skeleton className="h-4 w-4" />
-            </div>
-          ))}
-        </div>
-        {/* Legend */}
-        <div className="flex flex-wrap gap-4 pt-3 border-t border-border-subtle">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-1.5">
-              <Skeleton className="h-1.5 w-1.5 rounded-full" />
-              <Skeleton className="h-2 w-12" />
             </div>
           ))}
         </div>
@@ -298,6 +323,7 @@ function renderWidget(
         potentialRevenueThisWeek={locationWidget.potentialRevenueThisWeek}
         potentialRevenueThisMonth={locationWidget.potentialRevenueThisMonth}
         capacity={capacityUtilizationWidget}
+        nextAppointment={appointmentWidget.upcoming?.[0] ?? null}
         businessCurrency={businessCurrency}
       />
     ),
@@ -422,7 +448,7 @@ export default function DashboardPage() {
                     bg-surface border border-border rounded-2xl p-5
                     shadow-sm
                     transition-all duration-200
-                    hover:-translate-y-0.5 hover:shadow-md hover:border-border-strong
+                    md:hover:-translate-y-0.5 md:hover:shadow-md md:hover:border-border-strong
                     ${colSpanUtil}
                   `}>
                     {renderWidget(widgetId, data, parseInt(locationId!, 10), handleRefreshDashboard, businessCurrency)}
@@ -451,14 +477,14 @@ export default function DashboardPage() {
       <BusinessSetupGate>
         <div className="space-y-5">
           {/* Page header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-0">
             <div className="space-y-1 min-w-0">
               {!isMobile && (
                 <div className="w-full sm:w-[280px]">
                   {locationSelectorNode}
                 </div>
               )}
-              <p className="text-xs text-foreground-3">
+              <p className="hidden md:block text-xs text-foreground-3 py-4">
                 {t("page.analyticsDashboard")} &bull;{" "}
                 {new Date().toLocaleDateString(i18n.language === "ro" ? "ro-RO" : "en-US", {
                   weekday: "long",

@@ -22,15 +22,11 @@ import {
 import { Input } from "../../../../shared/components/ui/input";
 import { Label } from "../../../../shared/components/ui/label";
 import { PriceField } from "../../../../shared/components/forms/fields/PriceField";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../../../../shared/components/ui/avatar";
+import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar";
 import { getCurrencyDisplay } from "../../../../shared/utils/currency";
+import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import { DashedDivider } from "../../../../shared/components/common/DashedDivider";
-import { getAvatarBgColor } from "../../../setupWizard/components/StepTeam";
 import { cn } from "../../../../shared/lib/utils";
 import { Skeleton } from "../../../../shared/components/ui/skeleton";
 import { updateStaffServicesAction } from "../../actions";
@@ -67,13 +63,11 @@ function MemberOverrideRow({
   const [localDurationInput, setLocalDurationInput] = useState<string>("");
   const [durationError, setDurationError] = useState<string | null>(null);
 
-  const initials = `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
   const inheritedPrice = member.inheritedPrice;
   const inheritedDisplayPrice = member.inheritedDisplayPrice;
   const inheritedDuration = member.inheritedDuration;
   const hasCustomPrice = member.customPrice !== null;
   const hasCustomDuration = member.customDuration !== null;
-  const CurrencyIcon = currencyDisplay.icon;
 
   const currentDurationValue = member.customDuration ?? inheritedDuration;
   const durationDisplayValue = isDurationFocused
@@ -157,18 +151,14 @@ function MemberOverrideRow({
   return (
     <div className="rounded-lg border border-border bg-white dark:bg-surface space-y-3 p-3">
       <div className="flex items-center gap-2">
-        <Avatar className="h-8 w-8 flex-shrink-0">
-          <AvatarImage
-            src={member.profileImage || undefined}
-            alt={`${member.firstName} ${member.lastName}`}
-          />
-          <AvatarFallback
-            className="text-xs font-medium"
-            style={{ backgroundColor: getAvatarBgColor(member.email) }}
-          >
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <PersonAvatar
+          id={member.userId}
+          firstName={member.firstName}
+          lastName={member.lastName}
+          profileImage={member.profileImage}
+          className="h-8 w-8"
+          initialsClassName="text-xs font-medium"
+        />
         <div className="flex-1 min-w-0">
           <div className="font-medium text-sm text-foreground-1 truncate">
             {member.firstName} {member.lastName}
@@ -189,14 +179,12 @@ function MemberOverrideRow({
             {hasCustomPrice && (
               <div className="flex items-center w-fit rounded-full cursor-default px-2.5 py-0.5 text-[11px] font-medium bg-info/20 text-foreground-3 dark:text-foreground-1 dark:bg-info/60 border border-border dark:border-border-subtle">
                 {t("page.locationService.fields.serviceDefault")}{" "}
-                <span className="ml-1 flex items-center gap-0.5 text-foreground-2 dark:text-foreground-1">
-                  {CurrencyIcon ? (
-                    <CurrencyIcon className="h-2.5 w-2.5 -mt-0.5" />
-                  ) : (
-                    <span>{currencyDisplay.symbol}</span>
-                  )}
-                  <span>{inheritedDisplayPrice.toFixed(2)}</span>
-                </span>
+                <PriceDisplay
+                  amountDecimal={inheritedDisplayPrice}
+                  currency={currency}
+                  className="ml-1 gap-1 text-foreground-2 dark:text-foreground-1"
+                  iconClassName="h-2.5 w-2.5 -mt-0.5"
+                />
               </div>
             )}
           </div>

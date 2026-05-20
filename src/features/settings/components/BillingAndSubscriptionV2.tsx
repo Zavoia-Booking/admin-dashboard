@@ -103,7 +103,8 @@ import type {
   BillingEntityType,
   UpdateBillingDetailsDTO,
 } from '../../business/types';
-import { formatPriceMinor, getCurrencySymbol } from '../../../shared/utils/currency';
+import { getCurrencySymbol } from '../../../shared/utils/currency';
+import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import './BillingAndSubscriptionV2.css';
 
 type ViewState =
@@ -296,7 +297,13 @@ const BillingAndSubscriptionV2Inner = () => {
     currentUser?.subscription?.status === 'active' &&
     !!currentUser?.subscription?.cancelAtPeriodEnd;
 
-  const currencySymbol = getCurrencySymbol(subscriptionSummary?.currency || 'EUR');
+  const billingCurrency = subscriptionSummary?.currency || 'EUR';
+  const currencySymbol = getCurrencySymbol(billingCurrency);
+  const { formatDecimalValue, formatDecimalPrice } = useFormatPrice();
+  // Locale-aware decimal-input formatter, bound to the active billing
+  // currency. All `.toFixed(2)` call sites in this file should go through
+  // this so amounts get grouped (`1,234.56` / `1.234,56`) instead of raw.
+  const fmtBilling = (value: number) => formatDecimalValue(value, billingCurrency);
 
   const viewState = deriveViewState(
     currentUser ?? null,
@@ -334,11 +341,11 @@ const BillingAndSubscriptionV2Inner = () => {
         totalSeats > 0
           ? t('billing.confirm.proceedWithSeats', {
               count: totalSeats,
-              amount: estimated.toFixed(2),
+              amount: fmtBilling(estimated),
               currency: currencySymbol,
             })
           : t('billing.confirm.proceedSubscribe', {
-              amount: estimated.toFixed(2),
+              amount: fmtBilling(estimated),
               currency: currencySymbol,
             }),
       confirmationText: t('billing.confirm.continue'),
@@ -445,11 +452,11 @@ const BillingAndSubscriptionV2Inner = () => {
           totalSeats > 0
             ? t('billing.confirm.proceedWithSeats', {
                 count: totalSeats,
-                amount: estimated.toFixed(2),
+                amount: fmtBilling(estimated),
                 currency: currencySymbol,
               })
             : t('billing.confirm.proceedSubscribe', {
-                amount: estimated.toFixed(2),
+                amount: fmtBilling(estimated),
                 currency: currencySymbol,
               }),
         confirmationText: t('billing.confirm.continue'),
@@ -490,7 +497,7 @@ const BillingAndSubscriptionV2Inner = () => {
     const proratedInfo = subscriptionSummary?.proratedSeatInfo ?? null;
     let addingContent: React.ReactNode = t('billing.confirm.addingSeatsContent', {
       count: delta,
-      amount: additionalCost.toFixed(2),
+      amount: fmtBilling(additionalCost),
       currency: currencySymbol,
     });
 
@@ -501,8 +508,7 @@ const BillingAndSubscriptionV2Inner = () => {
         <div className="flex cursor-default flex-col gap-4 pt-1">
           <div className="flex cursor-default items-baseline gap-1.5">
             <span className="cursor-default text-3xl font-bold tracking-tight tabular-nums text-foreground-1">
-              {currencySymbol}
-              {proratedTotal.toFixed(2)}
+              {formatDecimalPrice(proratedTotal, billingCurrency)}
             </span>
             <span className="cursor-default text-sm font-medium text-foreground-3">
               {t('billing.confirm.dueTodaySuffix')}
@@ -518,7 +524,7 @@ const BillingAndSubscriptionV2Inner = () => {
             {t('billing.confirm.afterThatRenews', {
               count: delta,
               currency: currencySymbol,
-              amount: recurringCost.toFixed(2),
+              amount: fmtBilling(recurringCost),
             })}
           </p>
         </div>
@@ -541,10 +547,11 @@ const BillingAndSubscriptionV2Inner = () => {
       confirmationText: isAdding
         ? t('billing.confirm.payAmount', {
             currency: currencySymbol,
-            amount: (proratedInfo
-              ? delta * proratedInfo.proratedPricePerSeat
-              : additionalCost
-            ).toFixed(2),
+            amount: fmtBilling(
+              proratedInfo
+                ? delta * proratedInfo.proratedPricePerSeat
+                : additionalCost,
+            ),
           })
         : t('billing.confirm.removeSeats'),
       cancellationText: t('billing.confirm.cancel'),
@@ -656,7 +663,7 @@ const BillingAndSubscriptionV2Inner = () => {
           >
             {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {t('billing.v2.hero.upgradeCta', {
-              amount: totalCost.toFixed(2),
+              amount: fmtBilling(totalCost),
               currency: currencySymbol,
             })}
             <ArrowRight className="h-4 w-4" />
@@ -705,7 +712,7 @@ const BillingAndSubscriptionV2Inner = () => {
           >
             {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {t('billing.v2.hero.renewCta', {
-              amount: totalCost.toFixed(2),
+              amount: fmtBilling(totalCost),
               currency: currencySymbol,
             })}
             <ArrowRight className="h-4 w-4" />
@@ -737,7 +744,7 @@ const BillingAndSubscriptionV2Inner = () => {
           >
             {checkoutLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {t('billing.v2.hero.startSubscription', {
-              amount: totalCost.toFixed(2),
+              amount: fmtBilling(totalCost),
               currency: currencySymbol,
             })}
             <ArrowRight className="h-4 w-4" />
@@ -939,14 +946,13 @@ const BillingAndSubscriptionV2Inner = () => {
         <div className="bv2-hero-right">
           {showHeroPrice && (
             <div className="bv2-hero-price">
-              {currencySymbol}
-              {totalCost.toFixed(2)}
+              {formatDecimalPrice(totalCost, billingCurrency)}
               <small>{t('billing.v2.hero.perMonthSuffix')}</small>
             </div>
           )}
           {viewState === 'past_due' && subscriptionSummary?.pendingPayment && (
             <div className="bv2-hero-price bv2-danger">
-              {subscriptionSummary.pendingPayment.amount.toFixed(2)}
+              {fmtBilling(subscriptionSummary.pendingPayment.amount)}
               <small>{(subscriptionSummary.pendingPayment.currency || '').toUpperCase()} {t('billing.v2.hero.dueSuffix')}</small>
             </div>
           )}
@@ -1117,8 +1123,7 @@ const BillingAndSubscriptionV2Inner = () => {
                       )}
                     </div>
                     <div className="bv2-val">
-                      {currencySymbol}
-                      {basePlanCost.toFixed(2)}
+                      {formatDecimalPrice(basePlanCost, billingCurrency)}
                       <small className="ml-0.5 text-[11.5px] font-normal text-foreground-2">
                         {t('billing.v2.subscription.perMonthShort')}
                       </small>
@@ -1132,14 +1137,13 @@ const BillingAndSubscriptionV2Inner = () => {
                         <span className="bv2-sub">
                           {t('billing.v2.subscription.seatsLineSub', {
                             count: seatsForBreakdown,
-                            unit: seatPrice.toFixed(2),
+                            unit: fmtBilling(seatPrice),
                             currency: currencySymbol,
                           })}
                         </span>
                       </div>
                       <div className="bv2-val">
-                        {currencySymbol}
-                        {seatLineCost.toFixed(2)}
+                        {formatDecimalPrice(seatLineCost, billingCurrency)}
                         <small className="ml-0.5 text-[11.5px] font-normal text-foreground-2">
                           {t('billing.v2.subscription.perMonthShort')}
                         </small>
@@ -1176,8 +1180,7 @@ const BillingAndSubscriptionV2Inner = () => {
                             : t('billing.total')}
                     </div>
                     <div className="bv2-r">
-                      {currencySymbol}
-                      {totalCost.toFixed(2)}
+                      {formatDecimalPrice(totalCost, billingCurrency)}
                       {viewState !== 'ltd' && (
                         <small>{t('billing.v2.hero.perMonthSuffix')}</small>
                       )}
@@ -1193,10 +1196,12 @@ const BillingAndSubscriptionV2Inner = () => {
                       const isZeroDay = info.daysRemaining === 0;
                       const isFullPeriod =
                         !isZeroDay && info.daysRemaining >= info.totalDaysInPeriod;
-                      const monthlyAmount = (displayDelta * info.fullMonthlyPricePerSeat).toFixed(
-                        2,
+                      const monthlyAmount = fmtBilling(
+                        displayDelta * info.fullMonthlyPricePerSeat,
                       );
-                      const todayAmount = (displayDelta * info.proratedPricePerSeat).toFixed(2);
+                      const todayAmount = fmtBilling(
+                        displayDelta * info.proratedPricePerSeat,
+                      );
                       const showMath = !isFullPeriod && !isZeroDay;
                       return (
                         <div
@@ -1256,7 +1261,7 @@ const BillingAndSubscriptionV2Inner = () => {
                                   <div className="pt-0.5 font-mono text-[11px] tabular-nums text-foreground-3">
                                     {t('billing.v2.subscription.addingSeatsMath', {
                                       count: displayDelta,
-                                      seatPrice: info.fullMonthlyPricePerSeat.toFixed(2),
+                                      seatPrice: fmtBilling(info.fullMonthlyPricePerSeat),
                                       daysRemaining: info.daysRemaining,
                                       totalDays: info.totalDaysInPeriod,
                                       result: todayAmount,
@@ -1268,8 +1273,10 @@ const BillingAndSubscriptionV2Inner = () => {
                               {!isZeroDay && (
                                 <div className="flex flex-none flex-col items-end leading-none">
                                   <span className="text-lg font-semibold tabular-nums text-foreground-1">
-                                    {currencySymbol}
-                                    {todayAmount}
+                                    {formatDecimalPrice(
+                                      displayDelta * info.proratedPricePerSeat,
+                                      billingCurrency,
+                                    )}
                                   </span>
                                   <span className="mt-1 text-[11px] font-medium uppercase tracking-wider text-foreground-3">
                                     {t('billing.v2.subscription.todayLabel')}
@@ -1292,7 +1299,7 @@ const BillingAndSubscriptionV2Inner = () => {
                     <div className="bv2-seat-sub">
                       {t('billing.v2.subscription.seatsControlSub', {
                         used: subscriptionSummary?.usedSeats || 0,
-                        unit: seatPrice.toFixed(2),
+                        unit: fmtBilling(seatPrice),
                         currency: currencySymbol,
                       })}
                     </div>
@@ -1654,6 +1661,7 @@ const HistoryCard = ({
   const { t } = useTranslation('settings');
   const isMobile = useIsMobile();
   const [seeMoreOpen, setSeeMoreOpen] = useState(false);
+  const { formatPrice } = useFormatPrice();
 
   const summary = useMemo(() => {
     const total = invoices.reduce((acc, inv) => acc + (inv.amountMinor || 0), 0);
@@ -1724,7 +1732,7 @@ const HistoryCard = ({
         </div>
       </div>
       <div className="bv2-hist-amt">
-        {formatPriceMinor(inv.amountMinor, inv.currency || currency)}
+        {formatPrice(inv.amountMinor, inv.currency || currency)}
       </div>
       <div className="flex items-center gap-1">
         {inv.oblioLink && (
@@ -1768,7 +1776,7 @@ const HistoryCard = ({
             <div className="bv2-hist-summary">
               <div>
                 <div className="bv2-hs-lbl">{t('billing.v2.history.summary.totalPaid')}</div>
-                <div className="bv2-hs-val">{formatPriceMinor(summary.total, currency)}</div>
+                <div className="bv2-hs-val">{formatPrice(summary.total, currency)}</div>
               </div>
               <div>
                 <div className="bv2-hs-lbl">{t('billing.v2.history.summary.invoices')}</div>
@@ -1858,6 +1866,7 @@ const Bv2SmsCard = ({ viewState }: { viewState: ViewState }) => {
   const { t } = useTranslation('settings');
   const dispatch = useDispatch();
   const { ensureConfigured } = useBillingDetailsContext();
+  const { formatPrice } = useFormatPrice();
   const balance = useSelector(selectSmsBalance);
   const packages = useSelector(selectSmsPackages);
   const balanceLoading = useSelector(selectIsSmsBalanceLoading);
@@ -2004,18 +2013,18 @@ const Bv2SmsCard = ({ viewState }: { viewState: ViewState }) => {
                             <div className="bv2-pack-savings">
                               <span className="bv2-save">
                                 {t('billing.v2.sms.savingsLabel', {
-                                  amount: formatPriceMinor(savingsMinor, pkg.currency),
+                                  amount: formatPrice(savingsMinor, pkg.currency),
                                 })}
                               </span>
                             </div>
                           )}
                         </div>
                         <div className="bv2-pack-rate">
-                          <strong>{formatPriceMinor(Math.round(perSms), pkg.currency)}</strong>
+                          <strong>{formatPrice(Math.round(perSms), pkg.currency)}</strong>
                           {t('billing.v2.sms.perSms')}
                         </div>
                         <div className="bv2-pack-price">
-                          {formatPriceMinor(pkg.priceMinor, pkg.currency)}
+                          {formatPrice(pkg.priceMinor, pkg.currency)}
                         </div>
                       </button>
                     );
@@ -2040,7 +2049,7 @@ const Bv2SmsCard = ({ viewState }: { viewState: ViewState }) => {
                     {selected
                       ? t('billing.v2.sms.buyButton', {
                           count: selected.smsCount,
-                          amount: formatPriceMinor(selected.priceMinor, selected.currency),
+                          amount: formatPrice(selected.priceMinor, selected.currency),
                         })
                       : t('billing.v2.sms.selectPack')}
                   </Button>

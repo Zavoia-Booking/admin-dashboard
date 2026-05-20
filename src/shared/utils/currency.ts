@@ -203,18 +203,91 @@ export function priceFromStorage(amountMinor: number, currency: string = 'usd'):
 }
 
 /**
- * Formats an integer-minor-units amount as a display string with the
- * currency's friendly symbol (e.g. 'lei' for RON, '€' for EUR).
+ * Options for the price formatting family below. All optional.
  *
- * Output shape: `<value> <symbol>` — e.g. `5.00 lei`, `5.00 €`, `100 Ft`.
+ * `locale` — BCP-47 tag for `Intl.NumberFormat`. Defaults to `'en-US'`. In
+ *   practice, callers should source this from i18next via the
+ *   `useFormatPrice` hook so output respects the user's display language.
+ * `showDecimals` — when `false`, drops the fractional part entirely (e.g.
+ *   `'5 lei'` instead of `'5.00 lei'`). Useful for compact admin chips.
+ * `decimalPlaces` — explicit override for the number of fractional digits.
+ *   Overrides the currency's natural minor-units count. Ignored when
+ *   `showDecimals: false`.
+ */
+export interface PriceFormatOptions {
+  locale?: string;
+  showDecimals?: boolean;
+  decimalPlaces?: number;
+}
+
+/**
+ * Internal: format a decimal number with locale-aware thousands grouping +
+ * the currency's decimal-place convention. Uses `Intl.NumberFormat` with
+ * `style: 'decimal'` so we keep control of the symbol (we use friendly
+ * labels like `'lei'` that don't match the locale's default `'RON'`).
+ */
+function formatPriceNumber(value: number, currency: string, opts?: PriceFormatOptions): string {
+  const minorUnits = getCurrencyMinorUnits(currency);
+  const decimals =
+    opts?.showDecimals === false
+      ? 0
+      : opts?.decimalPlaces ?? minorUnits;
+  const locale = opts?.locale ?? 'en-US';
+  return new Intl.NumberFormat(locale, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+    useGrouping: true,
+  }).format(Number.isFinite(value) ? value : 0);
+}
+
+/**
+ * Formats a *decimal* price value (e.g. `12321699`) with locale-aware
+ * grouping and the right decimal-place count for the currency. Returns
+ * just the number — useful for surfaces that render a currency icon
+ * (Lucide) next to it.
  *
  * @example
- * formatPriceMinor(500, 'RON')  // '5.00 lei'
- * formatPriceMinor(500, 'EUR')  // '5.00 €'
+ * formatPriceValue(12321699, 'RON', { locale: 'en-US' })  // '12,321,699.00'
+ * formatPriceValue(12321699, 'RON', { locale: 'ro-RO' })  // '12.321.699,00'
  */
-export function formatPriceMinor(amountMinor: number, currency: string): string {
-  const value = priceFromStorage(amountMinor, currency);
-  const minorUnits = getCurrencyMinorUnits(currency);
-  return `${value.toFixed(minorUnits)} ${getCurrencySymbol(currency)}`;
+export function formatPriceValue(value: number, currency: string, opts?: PriceFormatOptions): string {
+  return formatPriceNumber(value, currency, opts);
+}
+
+/**
+ * Formats a *decimal* price value with the currency's friendly symbol
+ * appended. Output shape: `<grouped value> <symbol>`.
+ *
+ * @example
+ * formatPrice(12321699, 'RON', { locale: 'en-US' })  // '12,321,699.00 lei'
+ * formatPrice(12321699, 'EUR', { locale: 'ro-RO' })  // '12.321.699,00 €'
+ */
+export function formatPrice(value: number, currency: string, opts?: PriceFormatOptions): string {
+  return `${formatPriceNumber(value, currency, opts)} ${getCurrencySymbol(currency)}`;
+}
+
+/**
+ * Cents-input variant of {@link formatPriceValue}. Use this when working
+ * with API data, which stores money as integer minor units.
+ *
+ * @example
+ * formatPriceValueMinor(1232169900, 'RON', { locale: 'en-US' })  // '12,321,699.00'
+ */
+export function formatPriceValueMinor(amountMinor: number, currency: string, opts?: PriceFormatOptions): string {
+  return formatPriceValue(priceFromStorage(amountMinor, currency), currency, opts);
+}
+
+/**
+ * Cents-input variant of {@link formatPrice}. Returns value + custom
+ * symbol. The canonical "give me this money as one display string" call;
+ * components should prefer the `useFormatPrice` hook over calling this
+ * directly so they pick up the user's locale automatically.
+ *
+ * @example
+ * formatPriceMinor(500, 'RON')                          // '500.00 lei' (default en-US)
+ * formatPriceMinor(1232169900, 'RON', { locale: 'ro-RO' })  // '12.321.699,00 lei'
+ */
+export function formatPriceMinor(amountMinor: number, currency: string, opts?: PriceFormatOptions): string {
+  return formatPrice(priceFromStorage(amountMinor, currency), currency, opts);
 }
 

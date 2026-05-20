@@ -5,10 +5,9 @@ import { getLocationStaff, getStaffFilter, getDayFilters } from "../selectors.ts
 import { setStaffFilter, setDayFiltersAction } from "../actions.ts";
 import { type CalendarStaffMember } from "../../../shared/types/calendar.ts";
 import { Users } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/components/ui/avatar.tsx";
+import { PersonAvatar } from "../../../shared/components/common/PersonAvatar.tsx";
 import { cn } from "../../../shared/lib/utils";
 import { dayFiltersWithoutUnassignedOnly } from "../calendarFilters.ts";
-import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
 import { CalendarFilterPillCheckmark } from "./CalendarFilterPillCheckmark.tsx";
 import {
   CALENDAR_FILTER_SECTION_TITLE,
@@ -28,17 +27,6 @@ export type CalendarStaffFilterProps = {
     onStaffIdsChange: (nextIds: number[]) => void;
   };
 };
-
-function staffInitials(member: CalendarStaffMember): string {
-  const a = member.firstName?.trim()?.[0] ?? "";
-  const b = member.lastName?.trim()?.[0] ?? "";
-  return (a + b).toUpperCase() || "?";
-}
-
-/** Same stable key pattern as calendar staff avatars elsewhere (no email on `CalendarStaffMember`). */
-function staffAvatarColorKey(member: CalendarStaffMember): string {
-  return `${member.id}-${member.firstName ?? ""}-${member.lastName ?? ""}`;
-}
 
 function staffFullName(member: CalendarStaffMember): string {
   return `${member.firstName} ${member.lastName}`.trim();
@@ -195,17 +183,14 @@ export const CalendarStaffFilter: FC<CalendarStaffFilterProps> = ({
                 "border-neutral-500 bg-info-100 text-neutral-900 shadow-xs dark:text-neutral-900",
               )}
             >
-              <Avatar className="size-6 shrink-0 border border-border transition-none">
-                {member.profileImage ? (
-                  <AvatarImage src={member.profileImage} alt="" />
-                ) : null}
-                <AvatarFallback
-                  className="text-[10px] font-semibold leading-none text-foreground-1"
-                  style={{ backgroundColor: getAvatarBgColor(staffAvatarColorKey(member)) }}
-                >
-                  {staffInitials(member)}
-                </AvatarFallback>
-              </Avatar>
+              <PersonAvatar
+                id={member.id}
+                firstName={member.firstName}
+                lastName={member.lastName}
+                profileImage={member.profileImage}
+                className="size-6 transition-none"
+                initialsClassName="text-[10px] font-semibold"
+              />
               <span className={CALENDAR_FILTER_CHIP_LABEL}>{name}</span>
               {selected ? <CalendarFilterPillCheckmark /> : null}
             </button>

@@ -12,7 +12,7 @@ import { formatActivityTimelineDateTime } from '../../calendar/timezone';
 import { getCalendarTimezone } from '../../calendar/selectors';
 import { fetchAllCustomerHistoryApi, fetchCustomerHistoryApi } from '../api';
 import { buildCustomerHistoryPdfBlob } from '../buildCustomerHistoryPdf';
-import { priceFromStorage } from '../../../shared/utils/currency';
+import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
 import { formatDuration } from '../../../shared/utils/formatDuration';
 import type {
   FullActivityItem,
@@ -67,15 +67,6 @@ function isMilestoneMetadata(
   return item.type === 'milestone';
 }
 
-function formatPrice(price: number, currency: string): string {
-  const value = priceFromStorage(price, currency);
-  return new Intl.NumberFormat('en', {
-    style: 'currency',
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 2,
-  }).format(value);
-}
-
 function getSourceLabel(source: string, t: TFunction): string {
   switch (source) {
     case 'manual':
@@ -98,6 +89,7 @@ const CustomerHistorySlider: React.FC<CustomerHistorySliderProps> = ({
   elevated,
 }) => {
   const { t, i18n } = useTranslation('customers');
+  const { formatPrice } = useFormatPrice();
   const calendarTimezone = useSelector(getCalendarTimezone);
   const timezone = (calendarTimezone && String(calendarTimezone).trim()) || 'UTC';
 

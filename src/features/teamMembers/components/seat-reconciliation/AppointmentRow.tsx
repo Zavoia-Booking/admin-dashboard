@@ -1,7 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { XCircle, ChevronDown, MoreHorizontal, Check, Lock } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../../shared/components/common/PersonAvatar';
 import { Button } from '../../../../shared/components/ui/button';
 import {
   Popover,
@@ -15,12 +15,12 @@ import {
   DropdownMenuTrigger,
 } from '../../../../shared/components/ui/dropdown-menu';
 import { Command, CommandItem, CommandList } from '../../../../shared/components/ui/command';
-import { getAvatarBgColor } from '../../../setupWizard/components/StepTeam';
 import { cn } from '../../../../shared/lib/utils';
 import type { OffboardPreviewAppointment, EligibleStaffMember } from '../../api';
 import type { Decision } from './useDecisions';
 
 interface CurrentStaff {
+  userId: number;
   firstName: string;
   lastName: string;
   email: string;
@@ -51,9 +51,6 @@ const computeDurationMin = (startIso: string, endIso?: string) => {
   return Math.round(ms / 60000);
 };
 
-const initialsOf = (first?: string | null, last?: string | null) =>
-  `${(first?.[0] ?? '').toUpperCase()}${(last?.[0] ?? '').toUpperCase()}`;
-
 export const AppointmentRow: React.FC<AppointmentRowProps> = ({
   appt,
   decision,
@@ -81,11 +78,12 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
   const serviceName = appt.service?.name ?? '';
 
   // Avatar+name reflects current decision: reassigned target if chosen, else original staff.
-  const displayedStaff = reassignedTo
+  const displayedStaff: CurrentStaff | null = reassignedTo
     ? {
+        userId: reassignedTo.userId,
         firstName: reassignedTo.firstName,
         lastName: reassignedTo.lastName,
-        email: `${reassignedTo.userId}`,
+        email: '',
         profileImage: reassignedTo.profileImage,
       }
     : currentStaff;
@@ -111,18 +109,14 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
           {reassignedTo && (
             <span className="inline-flex items-center gap-1 text-foreground-2">
               <span aria-hidden className="text-foreground-3">→</span>
-              <Avatar className="h-5 w-5 shrink-0">
-                <AvatarImage
-                  src={reassignedTo.profileImage || undefined}
-                  alt={`${reassignedTo.firstName} ${reassignedTo.lastName}`}
-                />
-                <AvatarFallback
-                  className="text-[8px] font-semibold leading-none"
-                  style={{ backgroundColor: getAvatarBgColor(`${reassignedTo.userId}`) }}
-                >
-                  {initialsOf(reassignedTo.firstName, reassignedTo.lastName)}
-                </AvatarFallback>
-              </Avatar>
+              <PersonAvatar
+                id={reassignedTo.userId}
+                firstName={reassignedTo.firstName}
+                lastName={reassignedTo.lastName}
+                profileImage={reassignedTo.profileImage}
+                className="h-5 w-5"
+                initialsClassName="text-[8px] font-semibold"
+              />
               <span className="truncate font-medium text-foreground-1">
                 {reassignedTo.firstName}
               </span>
@@ -143,24 +137,20 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
       <div className="hidden min-w-0 items-center justify-center gap-2 sm:flex">
         {displayedStaff ? (
           <>
-            <Avatar className="h-7 w-7 shrink-0">
-              <AvatarImage
-                src={displayedStaff.profileImage || undefined}
-                alt={`${displayedStaff.firstName} ${displayedStaff.lastName}`}
-              />
-              <AvatarFallback
-                className="text-[10px] font-medium"
-                style={{ backgroundColor: getAvatarBgColor(displayedStaff.email) }}
-              >
-                {initialsOf(displayedStaff.firstName, displayedStaff.lastName)}
-              </AvatarFallback>
-            </Avatar>
+            <PersonAvatar
+              id={displayedStaff.userId}
+              firstName={displayedStaff.firstName}
+              lastName={displayedStaff.lastName}
+              profileImage={displayedStaff.profileImage}
+              className="h-7 w-7"
+              initialsClassName="text-[10px] font-medium"
+            />
             <span className="truncate text-sm text-foreground-1">
               {displayedStaff.firstName}
             </span>
           </>
         ) : (
-          <span className="text-xs text-foreground-3">—</span>
+          <span className="text-xs text-foreground-3">·</span>
         )}
       </div>
 
@@ -230,20 +220,14 @@ export const AppointmentRow: React.FC<AppointmentRowProps> = ({
                                 : 'opacity-0',
                             )}
                           />
-                          <Avatar className="size-5 shrink-0 mr-1.5">
-                            <AvatarImage
-                              src={staff.profileImage || undefined}
-                              alt={`${staff.firstName} ${staff.lastName}`}
-                            />
-                            <AvatarFallback
-                              className="text-[8px] font-semibold leading-none text-foreground-1"
-                              style={{
-                                backgroundColor: getAvatarBgColor(`${staff.userId}`),
-                              }}
-                            >
-                              {initialsOf(staff.firstName, staff.lastName)}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersonAvatar
+                            id={staff.userId}
+                            firstName={staff.firstName}
+                            lastName={staff.lastName}
+                            profileImage={staff.profileImage}
+                            className="size-5 mr-1.5"
+                            initialsClassName="text-[8px] font-semibold"
+                          />
                           {staff.firstName} {staff.lastName}
                         </CommandItem>
                       ))

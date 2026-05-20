@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent } from '../../../shared/components/ui/card';
-import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { Progress } from '../../../shared/components/ui/progress';
 import {
   Star,
@@ -16,9 +16,6 @@ export function StaffPerformance({
   staffPerformance
 }: StaffPerformanceProps) {
   const { t } = useTranslation('dashboard');
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
-  };
 
   const getUtilizationPercentage = (booked: number, available: number) => {
     if (available === 0) return 0;
@@ -40,11 +37,20 @@ export function StaffPerformance({
                 <div key={staff.id} className="p-4 rounded-lg bg-surface-hover border border-border">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="text-sm bg-primary/10 text-primary">
-                          {getInitials(staff.name)}
-                        </AvatarFallback>
-                      </Avatar>
+                      {(() => {
+                        const [firstName = '', ...rest] = staff.name.split(' ');
+                        const lastName = rest.join(' ');
+                        return (
+                          <PersonAvatar
+                            id={staff.id}
+                            firstName={firstName}
+                            lastName={lastName}
+                            profileImage={staff.avatar}
+                            className="h-12 w-12"
+                            initialsClassName="text-sm font-medium"
+                          />
+                        );
+                      })()}
                       <div>
                         <p className="font-semibold text-foreground-1">{staff.name}</p>
                         <p className="text-sm text-foreground-3">{staff.role}</p>

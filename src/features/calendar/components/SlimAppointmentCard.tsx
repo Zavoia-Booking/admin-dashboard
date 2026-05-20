@@ -9,7 +9,7 @@ import {
   getNoCustomerDisplayLabel,
 } from "./utils.tsx";
 import { ShieldAlert, User } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/components/ui/avatar.tsx";
+import { PersonAvatar, getPersonColorKey } from "../../../shared/components/common/PersonAvatar.tsx";
 import { cn } from "../../../shared/lib/utils";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import {
@@ -22,18 +22,6 @@ import {
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
-
-/** Aligned with `CalendarStaffFilter` (filters popover → by staff). */
-function staffInitials(member: CalendarStaffMember): string {
-  const a = member.firstName?.trim()?.[0] ?? "";
-  const b = member.lastName?.trim()?.[0] ?? "";
-  return (a + b).toUpperCase() || "?";
-}
-
-function staffAvatarColorKey(member: CalendarStaffMember): string {
-    return `${member.id}-${member.firstName ?? ""}-${member.lastName ?? ""}`;
-}
-
 
 /** List row grid: customer column may stack notes below name; time-onward tracks align with BlockCard. */
 export const CALENDAR_LIST_ROW_GRID_TEMPLATE =
@@ -54,21 +42,20 @@ export const StaffAvatarCluster: FC<{ staffIds: number[]; staff: CalendarStaffMe
   return (
     <div className="flex items-center -space-x-1">
       {visible.map((member) => (
-        <Avatar
+        <PersonAvatar
           key={member.id}
-          className="h-6 w-6 shrink-0 border border-border ring-1 ring-surface transition-none"
-          title={`${member.firstName} ${member.lastName}`}
-        >
-          {member.profileImage ? (
-            <AvatarImage src={member.profileImage} alt="" className="object-cover" />
-          ) : null}
-          <AvatarFallback
-            className="text-[10px] font-semibold leading-none text-foreground-1"
-            style={{ backgroundColor: getStaffAvatarColor(member.id, staffAvatarColorKey(member), staffColorMap) }}
-          >
-            {staffInitials(member)}
-          </AvatarFallback>
-        </Avatar>
+          id={member.id}
+          firstName={member.firstName}
+          lastName={member.lastName}
+          profileImage={member.profileImage}
+          colorOverride={getStaffAvatarColor(
+            member.id,
+            getPersonColorKey(member.id, member.firstName, member.lastName),
+            staffColorMap,
+          )}
+          className="h-6 w-6 ring-1 ring-surface transition-none"
+          initialsClassName="text-[10px] font-semibold"
+        />
       ))}
       {overflowCount > 0 && (
         <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center text-[10px] font-medium text-muted-foreground ring-1 ring-surface">

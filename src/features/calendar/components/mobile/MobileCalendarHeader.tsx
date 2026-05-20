@@ -35,9 +35,7 @@ import {
 import { CalendarHeaderFilters } from "../CalendarHeaderFilters";
 import { LocationSelector } from "../LocationSelector";
 import { CustomerSearchPopover, type CustomerSearchResult } from "../CustomerSearchPopover";
-import { Avatar, AvatarFallback } from "../../../../shared/components/ui/avatar";
-import { getCustomerInitials } from "../addAppointmentSliderHelpers";
-import { getAvatarBgColor } from "../../../setupWizard/components/StepTeam";
+import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar";
 import "./mobilePopoverSpring.css";
 
 interface MobileCalendarHeaderProps {
@@ -410,22 +408,16 @@ export const MobileCalendarHeader: FC<MobileCalendarHeaderProps> = ({
               const nameParts = (dayFilters.customerFullName ?? "").trim().split(" ");
               const firstName = nameParts[0] ?? "";
               const lastName = nameParts.slice(1).join(" ");
-              const avatarColorKey =
-                dayFilters.customerEmail?.trim() ||
-                `${firstName}-${lastName}-${dayFilters.customerPhone ?? ""}-${dayFilters.customerId}`;
+              const avatarId = dayFilters.customerId ?? dayFilters.customerEmail?.trim() ?? "";
               return (
                 <div className="mt-2 flex items-center gap-3 rounded-md border border-border bg-muted/30 p-2.5">
-                  <Avatar className="h-8 w-8 shrink-0">
-                    <AvatarFallback
-                      className="text-sm font-medium"
-                      style={{ backgroundColor: getAvatarBgColor(avatarColorKey) }}
-                    >
-                      {getCustomerInitials(
-                        { firstName, lastName, email: dayFilters.customerEmail ?? "", phone: dayFilters.customerPhone ?? "" },
-                        "C",
-                      )}
-                    </AvatarFallback>
-                  </Avatar>
+                  <PersonAvatar
+                    id={avatarId}
+                    firstName={firstName}
+                    lastName={lastName}
+                    className="h-8 w-8"
+                    initialsClassName="text-sm font-medium"
+                  />
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-foreground truncate">
                       {dayFilters.customerFullName || t("page.common.unnamedCustomer")}

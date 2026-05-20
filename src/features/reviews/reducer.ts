@@ -11,9 +11,11 @@ const initialState: ReviewsState = {
   businessReviews: [],
   businessReviewsTotal: 0,
   businessReviewsLoading: false,
+  businessReviewsMoreLoading: false,
   teamMemberReviews: [],
   teamMemberReviewsTotal: 0,
   teamMemberReviewsLoading: false,
+  teamMemberReviewsMoreLoading: false,
   error: null,
 };
 
@@ -47,20 +49,21 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
         error: action.payload.message,
       };
 
-    // Business reviews (append for "load more")
+    // Business reviews (append for "load more") — uses *MoreLoading so the
+    // list skeleton doesn't flash over rows the user just expanded.
     case getType(actions.fetchMoreBusinessReviewsAction.request):
-      return { ...state, businessReviewsLoading: true, error: null };
+      return { ...state, businessReviewsMoreLoading: true, error: null };
     case getType(actions.fetchMoreBusinessReviewsAction.success):
       return {
         ...state,
-        businessReviewsLoading: false,
+        businessReviewsMoreLoading: false,
         businessReviews: [...state.businessReviews, ...action.payload.data],
         businessReviewsTotal: action.payload.pagination.total,
       };
     case getType(actions.fetchMoreBusinessReviewsAction.failure):
       return {
         ...state,
-        businessReviewsLoading: false,
+        businessReviewsMoreLoading: false,
         error: action.payload.message,
       };
 
@@ -81,13 +84,13 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
         error: action.payload.message,
       };
 
-    // Team member reviews (append for "load more")
+    // Team member reviews (append for "load more") — uses *MoreLoading.
     case getType(actions.fetchMoreTeamMemberReviewsAction.request):
-      return { ...state, teamMemberReviewsLoading: true, error: null };
+      return { ...state, teamMemberReviewsMoreLoading: true, error: null };
     case getType(actions.fetchMoreTeamMemberReviewsAction.success):
       return {
         ...state,
-        teamMemberReviewsLoading: false,
+        teamMemberReviewsMoreLoading: false,
         teamMemberReviews: [
           ...state.teamMemberReviews,
           ...action.payload.data,
@@ -97,7 +100,7 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
     case getType(actions.fetchMoreTeamMemberReviewsAction.failure):
       return {
         ...state,
-        teamMemberReviewsLoading: false,
+        teamMemberReviewsMoreLoading: false,
         error: action.payload.message,
       };
 

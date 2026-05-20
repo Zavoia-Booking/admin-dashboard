@@ -63,7 +63,7 @@ export function ManageBundlesSheet({
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const currentUser = useSelector(selectCurrentUser);
   const businessCurrency = currentUser?.business?.businessCurrency || "eur";
-  const currencyDisplay = getCurrencyDisplay(businessCurrency);
+  const currencyDisplay = { ...getCurrencyDisplay(businessCurrency), currency: businessCurrency };
 
   // Escape + body-scroll-lock are handled by Radix Dialog (desktop) and Vaul Drawer (mobile).
 

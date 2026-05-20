@@ -17,8 +17,7 @@ import {
 } from "../blockReasonMeta.ts";
 import { getStaffDisplayNames } from "../utils.tsx";
 import { formatBlockTimeRange } from "../blockDisplay";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar.tsx";
-import { getAvatarBgColor } from "../../../setupWizard/components/StepTeam";
+import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar.tsx";
 import type {
   CalendarBlockDto,
   CalendarStaffMember,
@@ -162,21 +161,14 @@ export const BlockGroupDialog: FC<BlockGroupDialogProps> = ({
                       {/* Row 3: Staff avatar + name */}
                       {staffMember && (
                         <div className="flex items-center gap-1.5 mt-1.5 pl-[42px]">
-                          <Avatar className="size-5 shrink-0 border border-border">
-                            {staffMember.profileImage ? (
-                              <AvatarImage src={staffMember.profileImage} alt="" />
-                            ) : null}
-                            <AvatarFallback
-                              className="text-[8px] font-semibold leading-none text-foreground-1"
-                              style={{
-                                backgroundColor: getAvatarBgColor(
-                                  `${staffMember.id}-${staffMember.firstName ?? ""}-${staffMember.lastName ?? ""}`,
-                                ),
-                              }}
-                            >
-                              {((staffMember.firstName?.trim()?.[0] ?? "") + (staffMember.lastName?.trim()?.[0] ?? "")).toUpperCase() || "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersonAvatar
+                            id={staffMember.id}
+                            firstName={staffMember.firstName}
+                            lastName={staffMember.lastName}
+                            profileImage={staffMember.profileImage}
+                            className="size-5"
+                            initialsClassName="text-[8px] font-semibold"
+                          />
                           <span className="text-xs text-foreground-3 truncate">{staffName}</span>
                         </div>
                       )}
