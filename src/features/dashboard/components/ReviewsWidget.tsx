@@ -17,6 +17,10 @@ interface ReviewsWidgetProps {
   ratingDistribution: RatingDistribution;
 }
 
+const EYEBROW =
+  'text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500';
+const IOS_EASE = '[transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
+
 const GAUGE_COLORS = ['#E8785E', '#E8B44C', '#D6CE5C', '#5CC4A8', '#2EA88E'];
 const GRADIENT = 'linear-gradient(to right, #E8907A, #F2C87A, #ECE0A0, #A8D8C8, #58B5A9)';
 
@@ -60,12 +64,10 @@ export function ReviewsWidget({
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs font-semibold uppercase tracking-wide text-foreground-3">
-          {t('reviews.title')}
-        </p>
+        <p className={EYEBROW}>{t('reviews.title')}</p>
         <button
           onClick={() => navigate(reviewsHref)}
-          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer"
+          className={`flex items-center gap-1 px-2 py-1 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 active:scale-[0.97] transition-[background-color,transform] cursor-pointer ${IOS_EASE}`}
         >
           <span className="text-xs font-medium">{t('reviews.seeAll')}</span>
           <ArrowUpRight className="h-3 w-3" />

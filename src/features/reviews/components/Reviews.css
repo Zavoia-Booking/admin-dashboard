@@ -1,0 +1,93 @@
+/* Reviews list enter animation on sub-tab switch.
+ *
+ * Same two-track recipe as `auth-card-content-enter` (auth-card.css): a short,
+ * decisive opacity fade overlaid on a longer expo-out scale+translate settle.
+ * Driven by remounting the keyed wrapper when the active sub-tab changes.
+ */
+@keyframes reviews-content-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes reviews-content-settle {
+  from {
+    transform: scale(0.97) translateY(12px);
+  }
+  to {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.reviews-content-enter {
+  animation:
+    reviews-content-fade 300ms cubic-bezier(0.32, 0.72, 0, 1) both,
+    reviews-content-settle 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center top;
+  will-change: transform, opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviews-content-enter {
+    animation: none;
+  }
+}
+
+/* Per-item stagger inside the reviews list. Each <li> lifts up + fades in
+ * on mount, with a diminishing 50ms cascade so the first batch reads as
+ * "deliberately revealed" without making a long list slow to settle.
+ * Cap delays at index 8 so a 50-item list doesn't take 2.5s to finish.
+ * Subsequent re-renders (filter changes that keep matching items mounted)
+ * don't re-trigger — CSS animations only fire on initial node mount.
+ */
+@keyframes review-item-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reviews-list-stagger > li {
+  animation: review-item-enter 460ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.reviews-list-stagger > li:nth-child(1) {
+  animation-delay: 0ms;
+}
+.reviews-list-stagger > li:nth-child(2) {
+  animation-delay: 50ms;
+}
+.reviews-list-stagger > li:nth-child(3) {
+  animation-delay: 100ms;
+}
+.reviews-list-stagger > li:nth-child(4) {
+  animation-delay: 150ms;
+}
+.reviews-list-stagger > li:nth-child(5) {
+  animation-delay: 195ms;
+}
+.reviews-list-stagger > li:nth-child(6) {
+  animation-delay: 235ms;
+}
+.reviews-list-stagger > li:nth-child(7) {
+  animation-delay: 270ms;
+}
+.reviews-list-stagger > li:nth-child(8) {
+  animation-delay: 300ms;
+}
+.reviews-list-stagger > li:nth-child(n + 9) {
+  animation-delay: 320ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reviews-list-stagger > li {
+    animation: none;
+  }
+}

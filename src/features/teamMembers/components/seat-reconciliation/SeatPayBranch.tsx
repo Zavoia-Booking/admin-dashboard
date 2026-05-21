@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { Button } from '../../../../shared/components/ui/button';
+import { useFormatPrice } from '../../../../shared/hooks/useFormatPrice';
 
 interface PendingPayment {
   status: string;
@@ -27,6 +28,7 @@ export const SeatPayBranch: React.FC<SeatPayBranchProps> = ({
   onAbort,
 }) => {
   const { t } = useTranslation();
+  const { formatDecimalValue } = useFormatPrice();
 
   return (
     <div className="space-y-3 rounded-xl border border-border bg-surface p-4">
@@ -41,7 +43,7 @@ export const SeatPayBranch: React.FC<SeatPayBranchProps> = ({
         </p>
         <p className="mt-1 text-sm font-medium text-foreground-1">
           {t('settings:billing.pendingPayment.amount', {
-            amount: pendingPayment.amount.toFixed(2),
+            amount: formatDecimalValue(pendingPayment.amount, pendingPayment.currency),
             currency: pendingPayment.currency,
           })}
         </p>

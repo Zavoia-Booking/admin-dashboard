@@ -1,7 +1,7 @@
 import { type FC } from "react";
 import { useTranslation } from "react-i18next";
 import { UserX, X } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar";
+import { PersonAvatar, getPersonColorKey } from "../../../../shared/components/common/PersonAvatar";
 import type { CalendarStaffMember } from "../../../../shared/types/calendar";
 import {
   getStaffAvatarColor,
@@ -30,13 +30,10 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
 }) => {
   const { t } = useTranslation("calendar");
   const isUnassigned = staff == null;
-  const initials = staff
-    ? `${(staff.firstName?.[0] ?? "").toUpperCase()}${(staff.lastName?.[0] ?? "").toUpperCase()}` || "?"
-    : "";
   const avatarColor = staff
     ? getStaffAvatarColor(
         staff.id,
-        `${staff.id}-${staff.firstName ?? ""}-${staff.lastName ?? ""}`,
+        getPersonColorKey(staff.id, staff.firstName, staff.lastName),
         staffColorMap,
       )
     : undefined;
@@ -67,17 +64,15 @@ export const MobileDayColumnHeader: FC<MobileDayColumnHeaderProps> = ({
           <UserX className="h-3.5 w-3.5 text-muted-foreground" />
         </span>
       ) : (
-        <Avatar className="h-6 w-6 shrink-0 border border-border ring-1 ring-surface">
-          {staff!.profileImage ? (
-            <AvatarImage src={staff!.profileImage} alt="" className="object-cover" />
-          ) : null}
-          <AvatarFallback
-            className="text-[10px] font-semibold leading-none text-foreground-1"
-            style={avatarColor ? { backgroundColor: avatarColor } : undefined}
-          >
-            {initials}
-          </AvatarFallback>
-        </Avatar>
+        <PersonAvatar
+          id={staff!.id}
+          firstName={staff!.firstName}
+          lastName={staff!.lastName}
+          profileImage={staff!.profileImage}
+          colorOverride={avatarColor}
+          className="h-6 w-6 ring-1 ring-surface"
+          initialsClassName="text-[10px] font-semibold"
+        />
       )}
       <span
         className={cn(

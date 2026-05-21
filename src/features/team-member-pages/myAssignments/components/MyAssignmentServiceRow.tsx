@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDuration } from '../../../../shared/utils/formatDuration';
 import { Badge } from '../../../../shared/components/ui/badge';
 import { DashedDivider } from '../../../../shared/components/common/DashedDivider';
-import { getCurrencyDisplay } from '../../../../shared/utils/currency';
+import { PriceDisplay } from '../../../../shared/components/common/PriceDisplay';
 import { getReadableTextColor } from '../../../../shared/utils/color';
 import { cn } from '../../../../shared/lib/utils';
 import type { AssignedService } from '../types';
@@ -18,8 +18,6 @@ export function MyAssignmentServiceRow({
   currency = 'eur',
 }: MyAssignmentServiceRowProps) {
   const { t } = useTranslation('myAssignments');
-  const currencyDisplay = getCurrencyDisplay(currency);
-  const CurrencyIcon = currencyDisplay.icon;
 
   const categoryBg = service.category?.color || undefined;
   const categoryTextColor = categoryBg
@@ -67,18 +65,13 @@ export function MyAssignmentServiceRow({
 
           {/* Price & Duration - Big, bold, easy to read */}
           <div className="flex items-center gap-4 shrink-0">
-            <div className="flex items-center justify-start gap-0.5 min-w-18">
-              {CurrencyIcon ? (
-                <CurrencyIcon className="h-3 w-3 text-foreground-1" />
-              ) : (
-                <span className="text-sm text-foreground-1">
-                  {currencyDisplay.symbol}
-                </span>
-              )}
-              <span className="text-sm font-semibold text-foreground-1">
-                {service.displayPrice.toFixed(2)}
-              </span>
-            </div>
+            <PriceDisplay
+              amountDecimal={service.displayPrice}
+              currency={currency}
+              className="justify-start gap-1 min-w-18"
+              iconClassName="h-3 w-3 text-foreground-1"
+              numberClassName="text-sm font-semibold text-foreground-1"
+            />
             <div className="flex items-center gap-1.5 min-w-20">
               <Clock className="h-3 w-3 text-foreground-1" />
               <span className="text-sm font-semibold text-foreground-1">
@@ -104,16 +97,13 @@ export function MyAssignmentServiceRow({
                   <span className="font-medium">
                     {t('services.defaultLabel')}:
                   </span>{' '}
-                  <span className="text-foreground-3 dark:text-foreground-2 -mr-0.5 ml-1 flex items-center">
-                    {CurrencyIcon ? (
-                      <CurrencyIcon className="h-3 w-3" />
-                    ) : (
-                      <span className="mr-0.5">{currencyDisplay.symbol}</span>
-                    )}
-                  </span>
-                  <span className="text-foreground-3 mr-1.5 dark:text-foreground-2">
-                    {service.defaultDisplayPrice.toFixed(2)}
-                  </span>{' '}
+                  <PriceDisplay
+                    amountDecimal={service.defaultDisplayPrice}
+                    currency={currency}
+                    className="text-foreground-3 dark:text-foreground-2 -mr-0.5 ml-1 mr-1.5 gap-1"
+                    iconClassName="h-3 w-3"
+                    numberClassName="text-foreground-3 dark:text-foreground-2"
+                  />{' '}
                   •{' '}
                   <span className="text-foreground-3 ml-0.5 dark:text-foreground-2">
                     {formatDuration(service.defaultDuration, t)}

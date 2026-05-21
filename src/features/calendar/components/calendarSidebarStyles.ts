@@ -5,9 +5,14 @@
 export const CALENDAR_SELECT_TRIGGER =
     "flex h-10 w-full items-center gap-2 text-sm border-border bg-background text-foreground-1 hover:bg-muted/50 data-[placeholder]:text-muted-foreground";
 
-/** Section heading above filter groups ("By category", "By status", …). */
+/**
+ * Section heading above filter groups ("By category", "By status", …).
+ * Canonical app-wide eyebrow recipe — terracotta accent + tight tracking
+ * shared with [ReviewsFiltersSheet]'s Section and the modal-tokens system
+ * so every filter/sort sheet reads as one design language.
+ */
 export const CALENDAR_FILTER_SECTION_TITLE =
-  "text-xs font-semibold uppercase tracking-wide text-muted-foreground";
+  "text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500";
 
 /** Full-bleed wrapper (cancels parent horizontal padding). */
 export const CALENDAR_FILTER_DIVIDER_OUTER = "-mx-4 px-4 mb-0";

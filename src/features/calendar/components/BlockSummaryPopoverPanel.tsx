@@ -19,8 +19,7 @@ import {
 import { useIsMobile } from "../../../shared/hooks/use-mobile.ts";
 import { cn } from "../../../shared/lib/utils.ts";
 import type { CalendarBlockDto, CalendarStaffMember } from "../../../shared/types/calendar.ts";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../shared/components/ui/avatar.tsx";
-import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
+import { PersonAvatar } from "../../../shared/components/common/PersonAvatar.tsx";
 import { formatDurationHuman } from "./utils.tsx";
 import { formatBlockTimeRange } from "./blockDisplay";
 import {
@@ -210,25 +209,14 @@ export const BlockSummaryPopoverPanel: FC<BlockSummaryPopoverPanelProps> = ({
                     <div className="flex min-w-0 flex-wrap items-center gap-2.5">
                       {staffMember ? (
                         <>
-                          <Avatar
-                            className="h-9 w-9 shrink-0 ring-1 ring-border-subtle"
-                            title={`${staffMember.firstName} ${staffMember.lastName}`}
-                          >
-                            {staffMember.profileImage ? (
-                              <AvatarImage src={staffMember.profileImage} alt="" className="object-cover" />
-                            ) : null}
-                            <AvatarFallback
-                              className="text-[10px] font-semibold text-foreground-1"
-                              style={{
-                                backgroundColor: getAvatarBgColor(
-                                  `${staffMember.id}-${staffMember.firstName ?? ""}-${staffMember.lastName ?? ""}`,
-                                ),
-                              }}
-                            >
-                              {`${staffMember.firstName?.[0] ?? ""}${staffMember.lastName?.[0] ?? ""}`.toUpperCase() ||
-                                "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersonAvatar
+                            id={staffMember.id}
+                            firstName={staffMember.firstName}
+                            lastName={staffMember.lastName}
+                            profileImage={staffMember.profileImage}
+                            className="h-9 w-9 ring-1 ring-border-subtle"
+                            initialsClassName="text-[10px] font-semibold"
+                          />
                           <span className="min-w-0 truncate font-semibold text-foreground-1">{appliesLine}</span>
                         </>
                       ) : (

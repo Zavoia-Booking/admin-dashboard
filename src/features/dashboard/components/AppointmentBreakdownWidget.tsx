@@ -2,10 +2,15 @@ import { useState, useRef, useLayoutEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
-import { Clock, ArrowUpRight, User } from 'lucide-react';
+import { ArrowUpRight, User } from 'lucide-react';
 
 import type { AppointmentDistribution, UpcomingAppointment } from '../actions';
-import { formatPriceMinor } from '../../../shared/utils/currency';
+import { useFormatPrice } from '../../../shared/hooks/useFormatPrice';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
+
+const EYEBROW =
+  'text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500';
+const IOS_EASE = '[transition-timing-function:cubic-bezier(0.32,0.72,0,1)]';
 
 interface AppointmentBreakdownWidgetProps {
   todayDistribution: AppointmentDistribution;
@@ -157,14 +162,15 @@ export function AppointmentBreakdownWidget({
       minute: '2-digit',
     });
 
-  const formatCurrency = (cents: number) => formatPriceMinor(cents, businessCurrency);
+  const { formatPrice } = useFormatPrice();
+  const formatCurrency = (cents: number) => formatPrice(cents, businessCurrency);
+
+  const activeStatusCount = STATUS_CONFIG.filter(s => dist[s.key] > 0).length;
 
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* Header */}
-      <p className="text-xs font-semibold uppercase tracking-wide text-foreground-3">
-        {t('appointmentBreakdown.title')}
-      </p>
+      <p className={EYEBROW}>{t('appointmentBreakdown.title')}</p>
 
       {/* Two-column body — stacks on mobile */}
       <div className="flex flex-col md:flex-row gap-4 flex-1 min-h-0">
@@ -187,15 +193,15 @@ export function AppointmentBreakdownWidget({
               </button>
             ))}
             <span
-              className="pointer-events-none absolute -bottom-[1px] h-0.5 rounded-full bg-primary transition-all duration-300 ease-out"
+              className={`pointer-events-none absolute -bottom-[1px] h-0.5 rounded-full bg-primary transition-[left,width] duration-300 ${IOS_EASE}`}
               style={{ left: indicatorStyle.left, width: indicatorStyle.width }}
             />
           </div>
 
           {/* Donut with floating percentage pills */}
           <div className="flex justify-center">
-            <div className="relative" style={{ width: 230, height: 230 }}>
-              <ResponsiveContainer width={230} height={230}>
+            <div className="relative h-[180px] w-[180px] md:h-[230px] md:w-[230px]">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <defs>
                     <filter id="pill-shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -206,8 +212,8 @@ export function AppointmentBreakdownWidget({
                     data={displayData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={48}
-                    outerRadius={76}
+                    innerRadius="42%"
+                    outerRadius="66%"
                     paddingAngle={chartData.length > 1 ? 5 : 0}
                     cornerRadius={6}
                     dataKey="value"
@@ -215,7 +221,8 @@ export function AppointmentBreakdownWidget({
                     endAngle={-270}
                     strokeWidth={0}
                     animationDuration={600}
-                    label={chartData.length > 0 ? renderPercentageLabel : undefined}
+                    animationEasing="ease-out"
+                    label={chartData.length > 1 ? renderPercentageLabel : undefined}
                     labelLine={false}
                   >
                     {displayData.map((entry, index) => (
@@ -246,15 +253,17 @@ export function AppointmentBreakdownWidget({
             </div>
           </div>
 
-          {/* Horizontal legend */}
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            {STATUS_CONFIG.filter(s => dist[s.key] > 0).map(s => (
-              <div key={s.key} className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color }} />
-                <span className="text-xs text-foreground-2">{t(s.labelKey)}</span>
-              </div>
-            ))}
-          </div>
+          {/* Horizontal legend — only shown when ≥2 categories (single-cat is redundant with the donut color) */}
+          {activeStatusCount > 1 && (
+            <div className="flex items-center justify-center gap-4 flex-wrap">
+              {STATUS_CONFIG.filter(s => dist[s.key] > 0).map(s => (
+                <div key={s.key} className="flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+                  <span className="text-xs text-foreground-2">{t(s.labelKey)}</span>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Insight */}
           <p className="text-xs text-foreground-3 leading-relaxed border-t border-border-subtle pt-2">
@@ -268,12 +277,7 @@ export function AppointmentBreakdownWidget({
 
         {/* Right: upcoming appointments (~75%) */}
         <div className="flex flex-col gap-2 flex-1 min-w-0">
-          <div className="flex items-center gap-1.5">
-            <Clock className="h-3.5 w-3.5 text-foreground-3" />
-            <p className="text-xs font-semibold uppercase tracking-wide text-foreground-3">
-              {t('upcomingAppointments.title')}
-            </p>
-          </div>
+          <p className={EYEBROW}>{t('upcomingAppointments.title')}</p>
 
           {next3.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-1.5 py-4">
@@ -295,36 +299,32 @@ export function AppointmentBreakdownWidget({
               <div className="flex flex-col divide-y divide-border-subtle">
                 {next3.map(appt => {
                   const customer = appt.customerSnapshot;
-                  const customerParts = customer
-                    ? [customer.firstName, customer.lastName].filter(Boolean)
-                    : [];
-                  const customerName = customerParts.length
-                    ? customerParts.join(' ')
+                  const hasCustomerName = !!(customer?.firstName || customer?.lastName);
+                  const customerName = hasCustomerName
+                    ? [customer!.firstName, customer!.lastName].filter(Boolean).join(' ')
                     : t('upcomingAppointments.guestCustomer');
-                  const initials = customerParts.length
-                    ? customerParts.map(p => p[0]).join('').toUpperCase()
-                    : '?';
-                  const customerImage = customer?.profileImage ?? null;
+                  const avatarKey = customer?.userId ?? appt.uuid;
                   const staff = appt.staffSnapshot[0];
                   const staffName = staff
-                    ? [staff.firstName, staff.lastName].filter(Boolean).join(' ') || '—'
-                    : '—';
+                    ? [staff.firstName, staff.lastName].filter(Boolean).join(' ') || '·'
+                    : '·';
                   return (
                     <div
                       key={appt.uuid}
                       onClick={() => navigate(`/calendar?appointmentUuid=${appt.uuid}`)}
-                      className="cursor-pointer hover:bg-surface-active/40 rounded transition-colors duration-150"
+                      className={`cursor-pointer hover:bg-surface-active/40 active:bg-surface-active/60 active:scale-[0.995] rounded transition-[background-color,transform] duration-150 ${IOS_EASE}`}
                     >
                       {/* Desktop row */}
                       <div className="hidden md:grid grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-3 items-center px-2 py-3.5">
                         <div className="flex items-center gap-2 min-w-0">
-                          {customerImage ? (
-                            <img src={customerImage} alt={customerName} className="h-6 w-6 rounded-full object-cover shrink-0" />
-                          ) : (
-                            <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                              <span className="text-[10px] font-bold text-primary">{initials}</span>
-                            </div>
-                          )}
+                          <PersonAvatar
+                            id={avatarKey}
+                            firstName={customer?.firstName}
+                            lastName={customer?.lastName}
+                            profileImage={customer?.profileImage}
+                            className="size-6"
+                            initialsClassName="text-[10px] font-semibold"
+                          />
                           <span className="text-sm font-medium text-foreground-1 truncate">{customerName}</span>
                         </div>
                         <span className="text-xs text-foreground-3 truncate">{staffName}</span>
@@ -335,13 +335,14 @@ export function AppointmentBreakdownWidget({
                       </div>
                       {/* Mobile card */}
                       <div className="flex md:hidden items-center gap-2.5 px-2 py-3">
-                        {customerImage ? (
-                          <img src={customerImage} alt={customerName} className="h-8 w-8 rounded-full object-cover shrink-0" />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-[10px] font-bold text-primary">{initials}</span>
-                          </div>
-                        )}
+                        <PersonAvatar
+                          id={avatarKey}
+                          firstName={customer?.firstName}
+                          lastName={customer?.lastName}
+                          profileImage={customer?.profileImage}
+                          className="size-8"
+                          initialsClassName="text-[10px] font-semibold"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-foreground-1 truncate">{customerName}</p>
                           <p className="text-xs text-foreground-3 truncate">{appt.bookedItemName} &middot; {staffName}</p>
@@ -360,7 +361,7 @@ export function AppointmentBreakdownWidget({
 
           <button
             onClick={() => navigate('/calendar')}
-            className="flex items-center gap-1 px-2 py-0.5 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 transition-colors cursor-pointer mt-auto self-end"
+            className={`flex items-center gap-1 px-2 py-1 rounded-md text-primary hover:bg-primary/10 active:bg-primary/15 active:scale-[0.97] transition-[background-color,transform] cursor-pointer mt-auto self-end ${IOS_EASE}`}
           >
             <span className="text-xs font-medium">{t('upcomingAppointments.seeAppointments')}</span>
             <ArrowUpRight className="h-3 w-3" />

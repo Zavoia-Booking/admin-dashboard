@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
 import { AlertCircle } from "lucide-react";
 import type { NumberFieldProps } from "./NumberField";
-import { priceToStorage, priceFromStorage } from "../../../utils/currency";
+import { priceToStorage, priceFromStorage, formatPriceValue } from "../../../utils/currency";
+import { resolveIntlLocale } from "../../../hooks/useFormatPrice";
 
 export interface PriceFieldProps
   extends Omit<NumberFieldProps, "onChange" | "value"> {
@@ -18,21 +20,6 @@ export interface PriceFieldProps
 }
 
 /**
- * Formats a number to display with thousand separators and specified decimal places
- */
-const formatPrice = (value: number | string, decimalPlaces: number): string => {
-  if (value === "" || value === null || value === undefined) return "";
-  const numValue = typeof value === "string" ? parseFloat(value) : value;
-  if (isNaN(numValue)) return "";
-
-  // Format with thousand separators and specified decimal places
-  return numValue.toLocaleString("en-US", {
-    minimumFractionDigits: decimalPlaces,
-    maximumFractionDigits: decimalPlaces,
-  });
-};
-
-/**
  * PriceField component - extends NumberField with price-specific formatting
  *
  * 2025 SaaS Best Practice: Supports both storage formats
@@ -41,8 +28,10 @@ const formatPrice = (value: number | string, decimalPlaces: number): string => {
  *
  * Features:
  * - Right-aligned numeric text
- * - Thousand separators (commas)
- * - Decimal formatting (default: 2 decimal places)
+ * - Locale-aware thousands grouping (`1,234.56` on EN, `1.234,56` on RO)
+ * - Locale-aware decimal separator: users can type / paste either form;
+ *   the normalizer interprets dots vs commas based on the active locale
+ *   and produces canonical dot-decimal for storage
  * - Format on blur, raw value when focused
  * - Auto-select on focus for easier editing
  * - Mobile-friendly decimal keyboard
@@ -71,6 +60,16 @@ export const PriceField: React.FC<PriceFieldProps> = ({
   storageFormat = "cents", // Default to 'cents' - prices are stored as integer minor units
   liveUpdate = false, // When true, calls onChange on every keystroke
 }) => {
+  const { i18n } = useTranslation();
+  const locale = resolveIntlLocale(i18n.language);
+  // Detect which char this locale uses as the decimal separator. Anything
+  // else (between digits) is treated as a thousands separator and stripped
+  // by the normalizer below. Memoized to avoid creating an Intl instance
+  // on every render.
+  const decimalSeparator = useMemo<"." | ",">(
+    () => (new Intl.NumberFormat(locale).format(1.1).includes(",") ? "," : "."),
+    [locale],
+  );
   const [isFocused, setIsFocused] = useState(false);
   const [localInputValue, setLocalInputValue] = useState<string>("");
   const hasIcon = !!Icon;
@@ -96,32 +95,53 @@ export const PriceField: React.FC<PriceFieldProps> = ({
 
   const displayValueNum = getDisplayValue();
 
-  // Display formatted value when not focused, raw input when focused
+  // Display formatted value when not focused, raw input when focused.
+  // Formatting goes through the shared currency util so PriceField inputs,
+  // dashboard widgets, and badges all render the same grouped, locale-aware
+  // number — no more "12,321,699.00 in the input, 699.00 in the badge"
+  // mismatches.
   const displayValue = isFocused
     ? localInputValue
     : displayValueNum === 0
     ? ""
-    : formatPrice(displayValueNum, decimalPlaces);
+    : formatPriceValue(displayValueNum, currency, { locale, decimalPlaces });
 
   /**
-   * Normalizes input to standard format (dot as decimal separator)
-   * Best Practice: Force dot (.) as decimal separator only
-   * This ensures unambiguous parsing and matches industry standards for admin interfaces.
+   * Normalizes input to canonical dot-decimal so `parseFloat` can read it.
+   *
+   * Strategy: whatever char this locale uses as the *decimal* separator
+   * survives (converted to `.` if needed); the *other* char is treated as
+   * a thousands grouping and stripped.
+   *
+   * Examples (RO locale, decimal = `,`):
+   *   `12.321.699,50`  → `12321699.50`
+   *   `1234,5`         → `1234.5`
+   *   `1234.5`         → `12345` (dots are thousands here; matches RO convention)
+   *
+   * Examples (EN locale, decimal = `.`):
+   *   `12,321,699.50`  → `12321699.50`
+   *   `1234.5`         → `1234.5`
+   *   `1234,5`         → `12345` (commas are thousands)
    */
   const normalizeDecimalInput = (input: string): string => {
     const cleaned = input.replace(/\s/g, "");
+    if (decimalSeparator === ",") {
+      // RO-style: dots are thousands separators, comma is decimal.
+      return cleaned.replace(/\./g, "").replace(/,/g, ".");
+    }
+    // EN-style: commas are thousands separators, dot is decimal.
     return cleaned.replace(/,/g, "");
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const inputValue = e.target.value;
 
-    // Allow free typing while focused - just store the raw input
-    // Only allow dot (.) as decimal separator - block commas
-    // Prevent negative numbers for prices (min >= 0)
-    // Valid patterns: "123", "123.45"
+    // Allow free typing AND pasting of locale-formatted values while
+    // focused. The blur normalizer (or liveUpdate path) cleans it up.
+    // Only constraint: digits, dots, commas, whitespace. No letters, no
+    // sign characters (prices can't be negative).
     const isValidInput =
-      inputValue === "" || inputValue === "." || /^\d*\.?\d*$/.test(inputValue); // Only digits and one dot
+      inputValue === "" || /^[\d.,\s]*$/.test(inputValue);
 
     if (isValidInput) {
       setLocalInputValue(inputValue);
@@ -148,8 +168,16 @@ export const PriceField: React.FC<PriceFieldProps> = ({
 
   const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
     setIsFocused(true);
-    // Initialize local input value with the current display value (without formatting)
-    const currentDisplay = displayValueNum === 0 ? "" : String(displayValueNum);
+    // Initialize the editable buffer with an *unformatted* value rendered
+    // in the locale's decimal style so it matches what the user just saw
+    // (e.g. RO user blurs to see `12.321.699,50`, focuses to edit
+    // `12321699,50` — same separator they're used to typing).
+    let currentDisplay = "";
+    if (displayValueNum !== 0) {
+      const canonical = String(displayValueNum);
+      currentDisplay =
+        decimalSeparator === "," ? canonical.replace(".", ",") : canonical;
+    }
     setLocalInputValue(currentDisplay);
     // Select all text on focus for easier editing
     e.target.select();

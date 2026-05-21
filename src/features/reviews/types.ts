@@ -95,12 +95,19 @@ export interface ReviewStatsResponse {
   data: ReviewStatsData;
 }
 
+export type ReviewSortBy = "createdAt" | "rating";
+export type ReviewSortOrder = "ASC" | "DESC";
+
 export interface FetchBusinessReviewsPayload {
   offset?: number;
   limit?: number;
   rating?: number;
-  sortOrder?: "ASC" | "DESC";
+  sortBy?: ReviewSortBy;
+  sortOrder?: ReviewSortOrder;
   locationId?: number;
+  startDate?: string;
+  endDate?: string;
+  withCommentsOnly?: boolean;
 }
 
 export interface FetchTeamMemberReviewsPayload {
@@ -108,8 +115,12 @@ export interface FetchTeamMemberReviewsPayload {
   limit?: number;
   rating?: number;
   teamMemberId?: number;
-  sortOrder?: "ASC" | "DESC";
+  sortBy?: ReviewSortBy;
+  sortOrder?: ReviewSortOrder;
   locationId?: number;
+  startDate?: string;
+  endDate?: string;
+  withCommentsOnly?: boolean;
 }
 
 export type ReviewSubTab = "business" | "team-members";
@@ -119,9 +130,16 @@ export interface ReviewsState {
   statsLoading: boolean;
   businessReviews: BusinessReview[];
   businessReviewsTotal: number;
+  /** True only during the *replace* fetch (initial load, filter/sort apply).
+   *  Drives the full list skeleton. Separate from `*MoreLoading` so the
+   *  "Load more" pagination doesn't flash the skeleton over existing rows. */
   businessReviewsLoading: boolean;
+  /** True only during the *append* fetch ("Load more"). Drives the spinner
+   *  inside the Load more button without touching the rest of the list. */
+  businessReviewsMoreLoading: boolean;
   teamMemberReviews: TeamMemberReview[];
   teamMemberReviewsTotal: number;
   teamMemberReviewsLoading: boolean;
+  teamMemberReviewsMoreLoading: boolean;
   error: string | null;
 }

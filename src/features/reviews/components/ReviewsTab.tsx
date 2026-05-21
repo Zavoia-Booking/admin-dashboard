@@ -1,21 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useReducer, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useTranslation } from "react-i18next";
-import {
-  Star,
-  ArrowUpDown,
-  ChevronDown,
-  MessageSquareText,
-  X,
-  MapPin,
-} from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../../../shared/components/ui/avatar";
-import { Skeleton } from "../../../shared/components/ui/skeleton";
 import {
   fetchReviewStatsAction,
   fetchBusinessReviewsAction,
@@ -29,15 +15,156 @@ import {
   selectBusinessReviews,
   selectBusinessReviewsTotal,
   selectBusinessReviewsLoading,
+  selectBusinessReviewsMoreLoading,
   selectTeamMemberReviews,
   selectTeamMemberReviewsTotal,
   selectTeamMemberReviewsLoading,
+  selectTeamMemberReviewsMoreLoading,
+  selectReviewsError,
 } from "../selectors";
-import { ReviewStatsPanel } from "./ReviewStatsPanel";
 import { BusinessReviewCard, TeamMemberReviewCard } from "./ReviewCard";
-import type { ReviewSubTab } from "../types";
+import { ReviewsHero } from "./ReviewsHero";
+import { ReviewsFiltersSheet } from "./ReviewsFiltersSheet";
+import { ReviewsInsightsPanel } from "./ReviewsInsightsPanel";
+import { RatingBreakdown } from "./RatingBreakdown";
+import { MobileClearFiltersFab } from "./MobileClearFiltersFab";
+import { EmptyReviewsState } from "./EmptyReviewsState";
+import { FirstReviewState } from "./FirstReviewState";
+import { ReviewListSkeleton } from "./ReviewListSkeleton";
+import {
+  SortSelect,
+  type SortGroup,
+} from "../../../shared/components/common/SortSelect";
+import {
+  CalendarArrowDown,
+  CalendarArrowUp,
+  ArrowDownWideNarrow,
+  ArrowUpNarrowWide,
+  Eye,
+  Layers,
+} from "lucide-react";
+import type {
+  ReviewSubTab,
+  ReviewSortBy,
+  ReviewSortOrder,
+} from "../types";
+import type { DatePreset } from "./DateRangeField";
+import { cn } from "../../../shared/lib/utils";
+import "./Reviews.css";
 
 const PAGE_SIZE = 20;
+
+type FilterState = {
+  subTab: ReviewSubTab;
+  ratingFilter: number | null;
+  teamMemberFilter: number | null;
+  locationFilter: number | null;
+  datePreset: DatePreset;
+  startDate: string | null;
+  endDate: string | null;
+  withCommentsOnly: boolean;
+  sortBy: ReviewSortBy;
+  sortOrder: ReviewSortOrder;
+};
+
+type FilterAction =
+  | { type: "setSubTab"; value: ReviewSubTab }
+  | { type: "setRating"; value: number | null }
+  | { type: "setLocation"; value: number | null }
+  | { type: "setTeamMember"; value: number | null }
+  | {
+      type: "setDateRange";
+      preset: DatePreset;
+      startDate: string | null;
+      endDate: string | null;
+    }
+  | { type: "setWithCommentsOnly"; value: boolean }
+  | { type: "setSort"; sortBy: ReviewSortBy; sortOrder: ReviewSortOrder }
+  | { type: "clearAll" };
+
+const INITIAL_FILTERS: FilterState = {
+  subTab: "business",
+  ratingFilter: null,
+  teamMemberFilter: null,
+  locationFilter: null,
+  datePreset: "any",
+  startDate: null,
+  endDate: null,
+  withCommentsOnly: false,
+  sortBy: "createdAt",
+  sortOrder: "DESC",
+};
+
+function filterReducer(state: FilterState, action: FilterAction): FilterState {
+  switch (action.type) {
+    case "setSubTab":
+      // Preserve sort + date + with-comments preferences across sub-tab
+      // switches. These aren't tied to which stream you're viewing (Business
+      // vs Team) — only star/location/team-member filters are sub-tab-scoped.
+      return {
+        ...INITIAL_FILTERS,
+        subTab: action.value,
+        sortBy: state.sortBy,
+        sortOrder: state.sortOrder,
+        datePreset: state.datePreset,
+        startDate: state.startDate,
+        endDate: state.endDate,
+        withCommentsOnly: state.withCommentsOnly,
+      };
+    case "setRating":
+      return { ...state, ratingFilter: action.value };
+    case "setLocation":
+      return { ...state, locationFilter: action.value };
+    case "setTeamMember":
+      return {
+        ...state,
+        teamMemberFilter: action.value,
+        subTab: action.value !== null ? "team-members" : state.subTab,
+      };
+    case "setDateRange":
+      return {
+        ...state,
+        datePreset: action.preset,
+        startDate: action.startDate,
+        endDate: action.endDate,
+      };
+    case "setWithCommentsOnly":
+      return { ...state, withCommentsOnly: action.value };
+    case "setSort":
+      return { ...state, sortBy: action.sortBy, sortOrder: action.sortOrder };
+    case "clearAll":
+      return {
+        ...state,
+        ratingFilter: null,
+        locationFilter: null,
+        teamMemberFilter: null,
+        datePreset: "any",
+        startDate: null,
+        endDate: null,
+        withCommentsOnly: false,
+      };
+    default:
+      return state;
+  }
+}
+
+/**
+ * Encode `(sortBy, sortOrder)` as a single string for SortSelect's value
+ * prop. Keeps the SortSelect API unchanged (it only takes string values),
+ * while letting us decode back into the two reducer fields on change.
+ */
+const encodeSort = (sortBy: ReviewSortBy, sortOrder: ReviewSortOrder) =>
+  `${sortBy}-${sortOrder}`;
+
+const decodeSort = (
+  value: string,
+): { sortBy: ReviewSortBy; sortOrder: ReviewSortOrder } => {
+  const [sortBy, sortOrder] = value.split("-");
+  return {
+    sortBy: (sortBy === "rating" ? "rating" : "createdAt") as ReviewSortBy,
+    sortOrder: (sortOrder === "ASC" ? "ASC" : "DESC") as ReviewSortOrder,
+  };
+};
 
 export function ReviewsTab() {
   const dispatch = useDispatch();
@@ -45,28 +172,40 @@ export function ReviewsTab() {
 
   const stats = useSelector(selectReviewStats);
   const statsLoading = useSelector(selectReviewStatsLoading);
+  const error = useSelector(selectReviewsError);
   const businessReviews = useSelector(selectBusinessReviews);
   const businessReviewsTotal = useSelector(selectBusinessReviewsTotal);
   const businessReviewsLoading = useSelector(selectBusinessReviewsLoading);
+  const businessReviewsMoreLoading = useSelector(
+    selectBusinessReviewsMoreLoading,
+  );
   const teamMemberReviews = useSelector(selectTeamMemberReviews);
   const teamMemberReviewsTotal = useSelector(selectTeamMemberReviewsTotal);
-  const teamMemberReviewsLoading = useSelector(selectTeamMemberReviewsLoading);
-
-  const [subTab, setSubTab] = useState<ReviewSubTab>("business");
-  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
-  const [teamMemberFilter, setTeamMemberFilter] = useState<number | null>(
-    null,
+  const teamMemberReviewsLoading = useSelector(
+    selectTeamMemberReviewsLoading,
   );
-  const [locationFilter, setLocationFilter] = useState<number | null>(null);
-  const [sortOrder, setSortOrder] = useState<"DESC" | "ASC">("DESC");
-  const [teamMemberDropdownOpen, setTeamMemberDropdownOpen] = useState(false);
+  const teamMemberReviewsMoreLoading = useSelector(
+    selectTeamMemberReviewsMoreLoading,
+  );
 
-  // Fetch stats on mount
+  const [filters, dispatchFilter] = useReducer(filterReducer, INITIAL_FILTERS);
+  const {
+    subTab,
+    ratingFilter,
+    teamMemberFilter,
+    locationFilter,
+    datePreset,
+    startDate,
+    endDate,
+    withCommentsOnly,
+    sortBy,
+    sortOrder,
+  } = filters;
+
   useEffect(() => {
     dispatch(fetchReviewStatsAction.request());
   }, [dispatch]);
 
-  // Fetch reviews when filters or sub-tab change
   useEffect(() => {
     if (subTab === "business") {
       dispatch(
@@ -75,6 +214,10 @@ export function ReviewsTab() {
           limit: PAGE_SIZE,
           rating: ratingFilter ?? undefined,
           locationId: locationFilter ?? undefined,
+          startDate: startDate ?? undefined,
+          endDate: endDate ?? undefined,
+          withCommentsOnly: withCommentsOnly || undefined,
+          sortBy,
           sortOrder,
         }),
       );
@@ -86,11 +229,71 @@ export function ReviewsTab() {
           rating: ratingFilter ?? undefined,
           teamMemberId: teamMemberFilter ?? undefined,
           locationId: locationFilter ?? undefined,
+          startDate: startDate ?? undefined,
+          endDate: endDate ?? undefined,
+          withCommentsOnly: withCommentsOnly || undefined,
+          sortBy,
           sortOrder,
         }),
       );
     }
-  }, [dispatch, subTab, ratingFilter, teamMemberFilter, locationFilter, sortOrder]);
+  }, [
+    dispatch,
+    subTab,
+    ratingFilter,
+    teamMemberFilter,
+    locationFilter,
+    startDate,
+    endDate,
+    withCommentsOnly,
+    sortBy,
+    sortOrder,
+  ]);
+
+  const handleRetry = useCallback(() => {
+    dispatch(fetchReviewStatsAction.request());
+    if (subTab === "business") {
+      dispatch(
+        fetchBusinessReviewsAction.request({
+          offset: 0,
+          limit: PAGE_SIZE,
+          rating: ratingFilter ?? undefined,
+          locationId: locationFilter ?? undefined,
+          startDate: startDate ?? undefined,
+          endDate: endDate ?? undefined,
+          withCommentsOnly: withCommentsOnly || undefined,
+          sortBy,
+          sortOrder,
+        }),
+      );
+    } else {
+      dispatch(
+        fetchTeamMemberReviewsAction.request({
+          offset: 0,
+          limit: PAGE_SIZE,
+          rating: ratingFilter ?? undefined,
+          teamMemberId: teamMemberFilter ?? undefined,
+          locationId: locationFilter ?? undefined,
+          startDate: startDate ?? undefined,
+          endDate: endDate ?? undefined,
+          withCommentsOnly: withCommentsOnly || undefined,
+          sortBy,
+          sortOrder,
+        }),
+      );
+    }
+  }, [
+    dispatch,
+    subTab,
+    ratingFilter,
+    teamMemberFilter,
+    locationFilter,
+    startDate,
+    endDate,
+    withCommentsOnly,
+    sortBy,
+    sortOrder,
+  ]);
 
   const handleLoadMore = useCallback(() => {
     if (subTab === "business") {
@@ -100,6 +303,10 @@ export function ReviewsTab() {
           limit: PAGE_SIZE,
           rating: ratingFilter ?? undefined,
           locationId: locationFilter ?? undefined,
+          startDate: startDate ?? undefined,
+          endDate: endDate ?? undefined,
+          withCommentsOnly: withCommentsOnly || undefined,
+          sortBy,
           sortOrder,
         }),
       );
@@ -111,6 +318,10 @@ export function ReviewsTab() {
           rating: ratingFilter ?? undefined,
           teamMemberId: teamMemberFilter ?? undefined,
           locationId: locationFilter ?? undefined,
+          startDate: startDate ?? undefined,
+          endDate: endDate ?? undefined,
+          withCommentsOnly: withCommentsOnly || undefined,
+          sortBy,
           sortOrder,
         }),
       );
@@ -123,347 +334,407 @@ export function ReviewsTab() {
     ratingFilter,
     teamMemberFilter,
     locationFilter,
+    startDate,
+    endDate,
+    withCommentsOnly,
+    sortBy,
     sortOrder,
   ]);
-
-  const handleRatingFilter = (star: number) => {
-    setRatingFilter((prev) => (prev === star ? null : star));
-  };
-
-  const handleSubTabChange = (tab: ReviewSubTab) => {
-    setSubTab(tab);
-    setRatingFilter(null);
-    setTeamMemberFilter(null);
-    setLocationFilter(null);
-  };
-
-  const selectedLocation = stats?.locations?.find(
-    (l) => l.locationId === locationFilter,
-  );
-
-  const clearAllFilters = () => {
-    setRatingFilter(null);
-    setTeamMemberFilter(null);
-    setLocationFilter(null);
-  };
 
   const reviews = subTab === "business" ? businessReviews : teamMemberReviews;
   const total =
     subTab === "business" ? businessReviewsTotal : teamMemberReviewsTotal;
   const loading =
     subTab === "business" ? businessReviewsLoading : teamMemberReviewsLoading;
+  const moreLoading =
+    subTab === "business"
+      ? businessReviewsMoreLoading
+      : teamMemberReviewsMoreLoading;
   const hasMore = reviews.length < total;
+  const activeFilterCount =
+    (ratingFilter !== null ? 1 : 0) +
+    (locationFilter !== null ? 1 : 0) +
+    (teamMemberFilter !== null ? 1 : 0) +
+    (datePreset !== "any" ? 1 : 0) +
+    (withCommentsOnly ? 1 : 0);
+  const hasFilters = activeFilterCount > 0;
 
-  const selectedTeamMember = stats?.teamMembers.find(
-    (tm) => tm.teamMemberId === teamMemberFilter,
-  );
+  const overall = stats?.overall ?? { averageRating: null, totalReviews: 0 };
+  const locations = stats?.locations ?? [];
+  const teamMembersData = stats?.teamMembers ?? [];
+
+  // True zero-state: stats loaded, no reviews exist anywhere, no error.
+  // Skip the toolbar + grid layout entirely — there's nothing to filter,
+  // sort, or scope. Show only the hero and the [FirstReviewState] panel.
+  const isTrulyEmpty =
+    !statsLoading &&
+    stats !== null &&
+    overall.totalReviews === 0 &&
+    error === null;
+
+  if (isTrulyEmpty) {
+    return (
+      <div className="w-full max-w-7xl mb-0 md:mb-8 space-y-5">
+        <ReviewsHero
+          rating={overall.averageRating}
+          totalReviews={overall.totalReviews}
+          locationCount={locations.length}
+          teamMemberCount={teamMembersData.length}
+          loading={statsLoading}
+        />
+        <FirstReviewState />
+      </div>
+    );
+  }
+
+  // Hoisted so both the desktop toolbar trigger and the mobile band trigger
+  // share one source of truth — only the `compact` flag differs between
+  // the two renders.
+  const sortGroups: SortGroup[] = [
+    {
+      label: t("filter.sortGroupDate"),
+      options: [
+        {
+          value: encodeSort("createdAt", "DESC"),
+          label: t("filter.sortNewest"),
+          icon: CalendarArrowDown,
+        },
+        {
+          value: encodeSort("createdAt", "ASC"),
+          label: t("filter.sortOldest"),
+          icon: CalendarArrowUp,
+        },
+      ],
+    },
+    {
+      label: t("filter.sortGroupRating"),
+      options: [
+        {
+          value: encodeSort("rating", "DESC"),
+          label: t("filter.sortHighest"),
+          icon: ArrowDownWideNarrow,
+        },
+        {
+          value: encodeSort("rating", "ASC"),
+          label: t("filter.sortLowest"),
+          icon: ArrowUpNarrowWide,
+        },
+      ],
+    },
+  ];
+
+  const filterSheetProps = {
+    subTab,
+    ratingFilter,
+    locationFilter,
+    teamMemberFilter,
+    datePreset,
+    startDate,
+    endDate,
+    withCommentsOnly,
+    locations,
+    teamMembers: teamMembersData,
+    onRatingChange: (v: number | null) =>
+      dispatchFilter({ type: "setRating", value: v }),
+    onLocationChange: (v: number | null) =>
+      dispatchFilter({ type: "setLocation", value: v }),
+    onTeamMemberChange: (v: number | null) =>
+      dispatchFilter({ type: "setTeamMember", value: v }),
+    onDateRangeChange: (
+      preset: DatePreset,
+      start: string | null,
+      end: string | null,
+    ) =>
+      dispatchFilter({
+        type: "setDateRange",
+        preset,
+        startDate: start,
+        endDate: end,
+      }),
+    onWithCommentsChange: (v: boolean) =>
+      dispatchFilter({ type: "setWithCommentsOnly", value: v }),
+    onClearAll: () => dispatchFilter({ type: "clearAll" }),
+  };
 
   return (
-    <div className="max-w-5xl mb-0 md:mb-8 space-y-5">
-      {/* Stats Panel */}
-      <ReviewStatsPanel
-        stats={stats}
+    <div className="w-full max-w-7xl mb-0 md:mb-8 space-y-5">
+      <ReviewsHero
+        rating={overall.averageRating}
+        totalReviews={overall.totalReviews}
+        locationCount={locations.length}
+        teamMemberCount={teamMembersData.length}
         loading={statsLoading}
-        selectedLocationId={locationFilter}
-        selectedTeamMemberId={teamMemberFilter}
-        onLocationClick={(id) =>
-          setLocationFilter((prev) => (prev === id ? null : id))
+        expandableContent={
+          stats && overall.totalReviews > 0 ? (
+            <div className="flex flex-col gap-4">
+              <RatingBreakdown
+                distribution={stats.business.ratingDistribution}
+                total={stats.business.totalReviews}
+                selectedRating={ratingFilter}
+                onRatingClick={(star) =>
+                  dispatchFilter({
+                    type: "setRating",
+                    value: ratingFilter === star ? null : star,
+                  })
+                }
+              />
+
+              <div className="h-px bg-border/60" aria-hidden="true" />
+
+              <div className="flex flex-col gap-2.5">
+                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-foreground-3">
+                  {t("stats.aboutEyebrow")}
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Layers
+                    className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <p className="text-xs text-foreground-2 leading-relaxed">
+                    {t("stats.calculationNote")}
+                  </p>
+                </div>
+                <div className="flex items-start gap-2.5">
+                  <Eye
+                    className="h-3.5 w-3.5 text-primary mt-0.5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <p className="text-xs text-foreground-2 leading-relaxed">
+                    {t("stats.audienceNote")}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ) : undefined
         }
-        onTeamMemberClick={(id) => {
-          setTeamMemberFilter((prev) => (prev === id ? null : id));
-          // Clicking a team member from the panel implies the team-members sub-tab
-          if (subTab !== "team-members") setSubTab("team-members");
-        }}
       />
 
-      {/* Active filter chips */}
-      {(selectedLocation || selectedTeamMember || ratingFilter !== null) && (
-        <div className="flex flex-wrap items-center gap-2">
-          {selectedLocation && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-primary/30 bg-primary/10 text-primary">
-              <MapPin className="h-3 w-3" />
-              {selectedLocation.name}
-              <button
-                type="button"
-                onClick={() => setLocationFilter(null)}
-                className="hover:bg-primary/20 rounded-full p-0.5"
-                aria-label={t("filters.clearLocation")}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          {selectedTeamMember && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-primary/30 bg-primary/10 text-primary">
-              {selectedTeamMember.firstName} {selectedTeamMember.lastName}
-              <button
-                type="button"
-                onClick={() => setTeamMemberFilter(null)}
-                className="hover:bg-primary/20 rounded-full p-0.5"
-                aria-label={t("filters.clearTeamMember")}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          {ratingFilter !== null && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-amber-300 bg-amber-50 text-amber-700">
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              {ratingFilter}
-              <button
-                type="button"
-                onClick={() => setRatingFilter(null)}
-                className="hover:bg-amber-100 rounded-full p-0.5"
-                aria-label={t("filters.clearRating")}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={clearAllFilters}
-            className="text-xs font-medium text-foreground-3 hover:text-foreground-2 underline underline-offset-2"
-          >
-            {t("filters.clearAll")}
-          </button>
-        </div>
-      )}
-
-      {/* Sub-tabs: Business Reviews / Team Member Reviews */}
-      <div className="flex items-center gap-2">
-        <button
-          onClick={() => handleSubTabChange("business")}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            subTab === "business"
-              ? "bg-primary text-primary-foreground"
-              : "bg-surface-hover text-foreground-2 hover:text-foreground"
-          }`}
-        >
-          {t("subTabs.business")}
-        </button>
-        <button
-          onClick={() => handleSubTabChange("team-members")}
-          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-            subTab === "team-members"
-              ? "bg-primary text-primary-foreground"
-              : "bg-surface-hover text-foreground-2 hover:text-foreground"
-          }`}
-        >
-          {t("subTabs.teamMembers")}
-        </button>
-      </div>
-
-      {/* Filters row */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Star filter */}
-        {[5, 4, 3, 2, 1].map((star) => (
-          <button
-            key={star}
-            onClick={() => handleRatingFilter(star)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-              ratingFilter === star
-                ? "border-amber-400 bg-amber-50 text-amber-700"
-                : "border-border bg-surface text-foreground-2 hover:bg-surface-hover"
-            }`}
-          >
-            <Star
-              className={`h-3 w-3 ${
-                ratingFilter === star
-                  ? "text-amber-400 fill-amber-400"
-                  : "text-foreground-3"
-              }`}
+      <section className="rounded-xl border border-border bg-surface px-3 py-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] gap-6 lg:gap-8 items-start">
+        {/* Reviews column */}
+        <section className="space-y-4 min-w-0">
+          {/* Single toolbar row across all viewports.
+              Mobile + tablet (<lg): toggle grows via `flex-1` to dominate
+              the row, with compact icon-only sort + filter sitting on the
+              right. Distribution + about live inside the hero above (see
+              `expandableContent`) so this row stays minimal.
+              Desktop (lg+): toggle keeps intrinsic width on the left, sort +
+              filter render as labeled pills pushed to the right via
+              `ml-auto`. */}
+          <div className="flex items-center gap-1">
+            <SubTabToggle
+              value={subTab}
+              onChange={(v) => dispatchFilter({ type: "setSubTab", value: v })}
             />
-            {star}
-          </button>
-        ))}
 
-        {/* Team member filter (only on team members tab) */}
-        {subTab === "team-members" &&
-          stats?.teamMembers &&
-          stats.teamMembers.length > 0 && (
-            <div className="relative ml-auto">
-              <button
-                onClick={() => setTeamMemberDropdownOpen((o) => !o)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-border bg-surface text-foreground-2 hover:bg-surface-hover transition-colors"
-              >
-                {selectedTeamMember ? (
-                  <>
-                    <Avatar className="h-4 w-4">
-                      {selectedTeamMember.profileImage && (
-                        <AvatarImage
-                          src={selectedTeamMember.profileImage}
-                          alt={selectedTeamMember.firstName}
-                        />
-                      )}
-                      <AvatarFallback className="text-[8px] font-medium">
-                        {selectedTeamMember.firstName[0]}
-                      </AvatarFallback>
-                    </Avatar>
-                    {selectedTeamMember.firstName}{" "}
-                    {selectedTeamMember.lastName}
-                  </>
-                ) : (
-                  t("filters.allTeamMembers")
-                )}
-                <ChevronDown className="h-3 w-3" />
-              </button>
-
-              {teamMemberDropdownOpen && (
-                <>
-                  <div
-                    className="fixed inset-0 z-40"
-                    onClick={() => setTeamMemberDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-1 z-50 w-56 rounded-lg border border-border bg-surface shadow-lg overflow-hidden">
-                    <button
-                      onClick={() => {
-                        setTeamMemberFilter(null);
-                        setTeamMemberDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                        teamMemberFilter === null
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-foreground-2 hover:bg-surface-hover"
-                      }`}
-                    >
-                      {t("filters.allTeamMembers")}
-                    </button>
-                    {stats.teamMembers.map((tm) => (
-                      <button
-                        key={tm.teamMemberId}
-                        onClick={() => {
-                          setTeamMemberFilter(tm.teamMemberId);
-                          setTeamMemberDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 transition-colors ${
-                          teamMemberFilter === tm.teamMemberId
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-foreground-2 hover:bg-surface-hover"
-                        }`}
-                      >
-                        <Avatar className="h-5 w-5">
-                          {tm.profileImage && (
-                            <AvatarImage
-                              src={tm.profileImage}
-                              alt={tm.firstName}
-                            />
-                          )}
-                          <AvatarFallback className="text-[9px] font-medium">
-                            {tm.firstName[0]}
-                            {tm.lastName[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="flex-1 truncate">
-                          {tm.firstName} {tm.lastName}
-                        </span>
-                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-foreground-2">
-                          <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                          {tm.averageRating.toFixed(1)}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+            {/* Mobile + tablet: sort + filter as a single segmented pill —
+                no gap, each half square on its inner edge so they form one
+                continuous control surface with a 1px shared divider. Frees
+                ~9px for the toggle and reads as a unified "controls" group. */}
+            <div className="flex items-center lg:hidden shrink-0">
+              <SortSelect
+                compact
+                value={encodeSort(sortBy, sortOrder)}
+                onValueChange={(v) => {
+                  const decoded = decodeSort(v);
+                  dispatchFilter({ type: "setSort", ...decoded });
+                }}
+                placeholder={t("filter.sortLabel")}
+                groups={sortGroups}
+                className="!rounded-r-none !border-r-0 !min-h-0 !h-10"
+              />
+              <ReviewsFiltersSheet
+                compact
+                {...filterSheetProps}
+                className="!rounded-l-none !min-h-0 !h-10"
+              />
             </div>
-          )}
 
-        {/* Sort toggle */}
-        <button
-          onClick={() =>
-            setSortOrder((o) => (o === "DESC" ? "ASC" : "DESC"))
-          }
-          className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium border border-border bg-surface text-foreground-2 hover:bg-surface-hover transition-colors ${subTab === "team-members" && stats?.teamMembers && stats.teamMembers.length > 0 ? "" : "ml-auto"}`}
-        >
-          <ArrowUpDown className="h-3 w-3" />
-          {sortOrder === "DESC" ? t("filters.newest") : t("filters.oldest")}
-        </button>
-      </div>
-
-      {/* Reviews list */}
-      <div className="space-y-3">
-        {loading && reviews.length === 0 ? (
-          <ReviewListSkeleton />
-        ) : reviews.length === 0 ? (
-          <EmptyReviews />
-        ) : (
-          <>
-            {subTab === "business"
-              ? businessReviews.map((review) => (
-                  <BusinessReviewCard key={review.id} review={review} />
-                ))
-              : teamMemberReviews.map((review) => (
-                  <TeamMemberReviewCard key={review.id} review={review} />
-                ))}
-
-            {/* Load more */}
-            {hasMore && (
-              <div className="flex justify-center pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLoadMore}
-                  disabled={loading}
-                  className="rounded-full px-6"
-                >
-                  {loading ? (
-                    <div className="rounded-full border-2 border-foreground-3/30 border-t-foreground-3 animate-spin h-3.5 w-3.5" />
-                  ) : (
-                    t("loadMore")
-                  )}
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EmptyReviews() {
-  const { t } = useTranslation("reviews");
-
-  return (
-    <div className="flex flex-col items-center justify-center py-16 text-center gap-4">
-      <div className="h-12 w-12 rounded-full bg-surface-hover flex items-center justify-center">
-        <MessageSquareText className="h-6 w-6 text-foreground-3" />
-      </div>
-      <div className="space-y-1">
-        <p className="text-sm font-medium text-foreground-2">
-          {t("empty.title")}
-        </p>
-        <p className="text-xs text-foreground-3 max-w-xs">
-          {t("empty.description")}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function ReviewListSkeleton() {
-  return (
-    <div className="space-y-3 animate-pulse">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="flex gap-3 p-4 rounded-xl bg-surface border border-border"
-        >
-          <Skeleton className="h-9 w-9 rounded-full shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Skeleton className="h-4 w-28" />
-                <Skeleton className="h-3.5 w-20" />
-              </div>
-              <Skeleton className="h-3 w-16" />
+            <div className="hidden lg:flex items-center gap-2 lg:ml-auto shrink-0">
+              <SortSelect
+                value={encodeSort(sortBy, sortOrder)}
+                onValueChange={(v) => {
+                  const decoded = decodeSort(v);
+                  dispatchFilter({ type: "setSort", ...decoded });
+                }}
+                placeholder={t("filter.sortLabel")}
+                groups={sortGroups}
+              />
+              <ReviewsFiltersSheet {...filterSheetProps} />
             </div>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-3/4" />
           </div>
+
+          {/* Reviews list — keyed on subTab so the wrapper remounts and
+              triggers the auth-card-style fade+settle animation when the
+              user switches between Business and Team. */}
+          <div key={subTab} className="reviews-content-enter space-y-3">
+            {error ? (
+              <EmptyReviewsState kind="error" onRetry={handleRetry} />
+            ) : loading ? (
+              // Refetch (initial load, filter apply, sort change) — show
+              // skeleton over any existing rows so the user gets clear
+              // "something is loading" feedback. Load more uses a separate
+              // *MoreLoading flag so it never trips this branch.
+              <ReviewListSkeleton />
+            ) : reviews.length === 0 ? (
+              <EmptyReviewsState
+                kind={hasFilters ? "filtered" : "none"}
+                onClearFilters={() => dispatchFilter({ type: "clearAll" })}
+              />
+            ) : (
+              <>
+                <ul className="reviews-list-stagger divide-y divide-border/60">
+                  {subTab === "business"
+                    ? businessReviews.map((review) => (
+                        <BusinessReviewCard
+                          key={review.id}
+                          review={review}
+                          selectedLocationId={locationFilter}
+                          onLocationClick={(id) =>
+                            dispatchFilter({
+                              type: "setLocation",
+                              value: locationFilter === id ? null : id,
+                            })
+                          }
+                        />
+                      ))
+                    : teamMemberReviews.map((review) => (
+                        <TeamMemberReviewCard
+                          key={review.id}
+                          review={review}
+                          selectedLocationId={locationFilter}
+                          selectedTeamMemberId={teamMemberFilter}
+                          onLocationClick={(id) =>
+                            dispatchFilter({
+                              type: "setLocation",
+                              value: locationFilter === id ? null : id,
+                            })
+                          }
+                          onTeamMemberClick={(id) =>
+                            dispatchFilter({
+                              type: "setTeamMember",
+                              value:
+                                teamMemberFilter === id ? null : id,
+                            })
+                          }
+                        />
+                      ))}
+                </ul>
+
+                {hasMore && (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      rounded="full"
+                      onClick={handleLoadMore}
+                      disabled={moreLoading}
+                      className="px-6"
+                    >
+                      {moreLoading ? (
+                        <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-foreground-3/30 border-t-foreground-3 animate-spin" />
+                      ) : (
+                        t("loadMore")
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </section>
+
+        {/* Insights sidebar (lg+) — vertical hairline separates it from the
+            reviews column inside the shared card. */}
+        <aside className="hidden lg:block lg:sticky lg:top-18 min-w-0 lg:border-l lg:border-border lg:pl-8">
+          <ReviewsInsightsPanel
+            stats={stats}
+            loading={statsLoading}
+            selectedRating={ratingFilter}
+            onRatingClick={(star) =>
+              dispatchFilter({
+                type: "setRating",
+                value: ratingFilter === star ? null : star,
+              })
+            }
+            activeFilterCount={activeFilterCount}
+            onClearAll={() => dispatchFilter({ type: "clearAll" })}
+          />
+        </aside>
         </div>
-      ))}
+      </section>
+
+      {/* Mobile-only floating Clear pill — kept outside the section card so
+          it floats over the page chrome instead of being clipped by the card
+          surface. Renders only when filters are active. */}
+      <MobileClearFiltersFab
+        activeFilterCount={activeFilterCount}
+        onClearAll={() => dispatchFilter({ type: "clearAll" })}
+      />
     </div>
   );
 }
+
+/**
+ * Sub-tab toggle, lifted verbatim from the Sign in / Create account toggle
+ * in [AuthCard.tsx]: `bg-base` pill container, surface-white sliding card,
+ * iOS-style cubic-bezier(0.32, 0.72, 0, 1) curve over 500ms. Equal-width
+ * buttons via `flex-1` + `min-w-[140px]` so the sliding pill aligns.
+ */
+function SubTabToggle({
+  value,
+  onChange,
+}: {
+  value: ReviewSubTab;
+  onChange: (v: ReviewSubTab) => void;
+}) {
+  const { t } = useTranslation("reviews");
+  return (
+    <div
+      role="tablist"
+      aria-label={t("section.reviewsTitle")}
+      className="bg-base rounded-full p-1 flex !min-h-0 !h-10 relative flex-1 min-w-0 lg:flex-none lg:w-auto"
+    >
+      <div
+        aria-hidden="true"
+        className="absolute top-1 bottom-1 left-1 w-[calc(50%-0.25rem)] rounded-full bg-card shadow-sm dark:bg-[var(--surface-active)] dark:shadow-none dark:ring-1 dark:ring-border-default transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]"
+        style={{
+          transform:
+            value === "team-members" ? "translateX(100%)" : "translateX(0)",
+        }}
+      />
+      <button
+        role="tab"
+        type="button"
+        aria-selected={value === "business"}
+        onClick={() => onChange("business")}
+        className={cn(
+          "flex-1 min-w-0 lg:min-w-[140px] rounded-full py-2.5 px-4 pt-0 text-sm font-medium text-center",
+          "flex items-center justify-center relative z-10 whitespace-nowrap cursor-pointer",
+          "transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          "text-foreground-2 hover:text-foreground-1",
+          "aria-selected:text-foreground-1",
+        )}
+      >
+        {t("subTabs.business")}
+      </button>
+      <button
+        role="tab"
+        type="button"
+        aria-selected={value === "team-members"}
+        onClick={() => onChange("team-members")}
+        className={cn(
+          "flex-1 min-w-0 lg:min-w-[140px] rounded-full py-2.5 px-4 pt-0 text-sm font-medium text-center",
+          "flex items-center justify-center relative z-10 whitespace-nowrap cursor-pointer",
+          "transition-colors duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]",
+          value === "team-members"
+            ? "text-foreground-1"
+            : "text-foreground-2 hover:text-foreground-1",
+        )}
+      >
+        {t("subTabs.teamMembers")}
+      </button>
+    </div>
+  );
+}
+

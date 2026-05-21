@@ -60,7 +60,7 @@ import type { CollisionDetection, DragEndEvent } from "@dnd-kit/core";
 import { restrictToVerticalAxis, snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { AppointmentDragData, TimeSlotDropData, StaffColumnDropData } from "../CalendarDnD.tsx";
 import { DROP_ANIMATION } from "../calendarDndAnimations.ts";
-import { Avatar, AvatarFallback, AvatarImage } from "../../../../shared/components/ui/avatar.tsx";
+import { PersonAvatar, getPersonColorKey } from "../../../../shared/components/common/PersonAvatar.tsx";
 import { getStaffAvatarColor } from "../../colors.ts";
 import { ShieldAlert, SlidersHorizontal, X } from "lucide-react";
 import { EmptyState } from "../../../../shared/components/common/EmptyState.tsx";
@@ -962,25 +962,21 @@ export const DayGrid: FC = () => {
                   } ${
                     clickable ? "cursor-pointer hover:bg-muted/30 transition-colors" : "cursor-default"
                   }`;
-                  const avatarNode = s ? (() => {
-                    const initials = ((s.firstName?.trim()?.[0] ?? "") + (s.lastName?.trim()?.[0] ?? "")).toUpperCase() || "?";
-                    const avatarBg = getStaffAvatarColor(
-                      s.id,
-                      `${s.id}-${s.firstName ?? ""}-${s.lastName ?? ""}`,
-                      colorCoding === 'staff' ? dayColorMap : null,
-                    );
-                    return (
-                      <Avatar className="size-6.5 shrink-0 border border-border transition-none">
-                        {s.profileImage ? <AvatarImage src={s.profileImage} alt="" /> : null}
-                        <AvatarFallback
-                          className="text-[11px] font-semibold leading-none text-foreground-1"
-                          style={{ backgroundColor: avatarBg }}
-                        >
-                          {initials}
-                        </AvatarFallback>
-                      </Avatar>
-                    );
-                  })() : null;
+                  const avatarNode = s ? (
+                    <PersonAvatar
+                      id={s.id}
+                      firstName={s.firstName}
+                      lastName={s.lastName}
+                      profileImage={s.profileImage}
+                      colorOverride={getStaffAvatarColor(
+                        s.id,
+                        getPersonColorKey(s.id, s.firstName, s.lastName),
+                        colorCoding === 'staff' ? dayColorMap : null,
+                      )}
+                      className="size-6.5 transition-none"
+                      initialsClassName="text-[11px] font-semibold"
+                    />
+                  ) : null;
                   const content = (
                     <>
                       {avatarNode}

@@ -6,12 +6,10 @@ import type { Customer } from "../../../shared/types/customer";
 import { SearchInput } from "../../../shared/components/common/SearchInput";
 import { Popover, PopoverAnchor, PopoverContent } from "../../../shared/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "../../../shared/components/ui/command";
-import { Avatar, AvatarFallback } from "../../../shared/components/ui/avatar";
+import { PersonAvatar } from "../../../shared/components/common/PersonAvatar";
 import { Skeleton } from "../../../shared/components/ui/skeleton";
 import { cn } from "../../../shared/lib/utils";
 import { searchCustomersForPickerApi } from "../../customers/api";
-import { getCustomerInitials } from "./addAppointmentSliderHelpers";
-import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
 import { highlightMatches } from "../../../shared/utils/highlight";
 import "./addAppointmentSliderPopover.css";
 
@@ -336,9 +334,6 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
             {!customerLoading && customerResults.length > 0 && (
               <CommandGroup>
                 {customerResults.map((customer, index) => {
-                  const avatarColorKey =
-                    customer.email?.trim() ||
-                    `${customer.firstName ?? ""}-${customer.lastName ?? ""}-${customer.phone ?? ""}-${customer.id}`;
                   return (
                     <CommandItem
                       key={customer.id}
@@ -350,22 +345,13 @@ export function CustomerSearchPopover({ onSelectCustomer, resetTrigger, rightSlo
                         index === customerResults.length - 1 && "rounded-b-[18px]",
                       )}
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback
-                          className="text-sm font-medium"
-                          style={{ backgroundColor: getAvatarBgColor(avatarColorKey) }}
-                        >
-                          {getCustomerInitials(
-                            {
-                              firstName: customer.firstName,
-                              lastName: customer.lastName,
-                              email: customer.email,
-                              phone: customer.phone,
-                            },
-                            "C",
-                          )}
-                        </AvatarFallback>
-                      </Avatar>
+                      <PersonAvatar
+                        id={customer.id}
+                        firstName={customer.firstName}
+                        lastName={customer.lastName}
+                        className="h-8 w-8"
+                        initialsClassName="text-sm font-medium"
+                      />
                       <div className="flex-1">
                         <div className="font-medium text-foreground-1">
                           {highlightMatches(`${customer.firstName} ${customer.lastName}`, highlightedCustomerSearch)}

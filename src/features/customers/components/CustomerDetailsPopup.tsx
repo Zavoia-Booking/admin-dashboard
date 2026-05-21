@@ -16,7 +16,7 @@ import {
 import { useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../shared/components/ui/button';
-import { Avatar, AvatarFallback } from '../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { Badge } from '../../../shared/components/ui/badge';
 import { cn } from '../../../shared/lib/utils';
 import {
@@ -36,7 +36,6 @@ import {
 } from '../../../shared/components/ui/alert-dialog';
 import { DashedDivider } from '../../../shared/components/common/DashedDivider';
 import { CollapsibleFormSection } from '../../../shared/components/forms/CollapsibleFormSection';
-import { getAvatarBgColor } from '../../setupWizard/components/StepTeam';
 import { getStatusBadge } from '../../calendar/components/utils';
 import { formatActivityTimelineDateTime } from '../../calendar/timezone';
 import { getCalendarTimezone } from '../../calendar/selectors';
@@ -123,12 +122,6 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
   const displayName = customer
     ? `${customer.firstName} ${customer.lastName}`.trim()
     : '';
-
-  const initials = customer
-    ? customer.firstName && customer.lastName
-      ? `${customer.firstName[0]}${customer.lastName[0]}`.toUpperCase()
-      : (customer.email?.[0] || '?').toUpperCase()
-    : '?';
 
   const isMerged = customer?.status === 'merged';
   const canEdit = customer?.source === 'manual' && !isMerged;
@@ -301,14 +294,14 @@ const CustomerDetailsPopup: React.FC<CustomerDetailsPopupProps> = ({
                         </div>
                       )}
                       <div className="flex items-center gap-4">
-                        <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border-subtle">
-                          <AvatarFallback
-                            className="bg-neutral-200 text-sm font-semibold text-neutral-700"
-                            style={{ backgroundColor: getAvatarBgColor(customer.email) }}
-                          >
-                            {initials}
-                          </AvatarFallback>
-                        </Avatar>
+                        <PersonAvatar
+                          id={customer.id ?? customer.email ?? ''}
+                          firstName={customer.firstName}
+                          lastName={customer.lastName}
+                          profileImage={customer.profileImage}
+                          className="h-11 w-11 ring-1 ring-border-subtle"
+                          initialsClassName="text-sm font-semibold"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-base font-semibold capitalize leading-tight text-foreground-1">
                             {displayName}

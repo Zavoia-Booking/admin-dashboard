@@ -14,6 +14,8 @@ import { getNoCustomerDisplayLabel } from './utils.tsx';
 // ─────────────────────────────────────────────────────────────
 
 export interface CustomerDisplay {
+  /** Stable customer id. Optional — falls back to email-based avatar hashing when missing. */
+  id?: number;
   firstName: string;
   lastName: string;
   email: string;

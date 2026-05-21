@@ -10,6 +10,9 @@ export interface Bundle {
 }
 
 export interface CurrencyDisplay {
+  /** ISO 4217 code carried alongside icon/symbol so children can format
+   *  numbers via the shared currency util without re-deriving it. */
+  currency: string;
   icon?: React.ComponentType<{ className?: string }>;
   symbol?: string;
 }

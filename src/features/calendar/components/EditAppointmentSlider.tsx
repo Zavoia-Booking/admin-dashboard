@@ -28,11 +28,7 @@ import { toast } from "sonner";
 import { Button } from "../../../shared/components/ui/button";
 import { Label } from "../../../shared/components/ui/label";
 import { Textarea } from "../../../shared/components/ui/textarea";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "../../../shared/components/ui/avatar";
+import { PersonAvatar } from "../../../shared/components/common/PersonAvatar";
 import { Badge } from "../../../shared/components/ui/badge";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import {
@@ -98,7 +94,7 @@ import {
 } from "./utils";
 import type { Appointment } from "../../../shared/types/calendar";
 import { selectIsTeamMember, selectCurrentUser } from "../../auth/selectors";
-import { getCurrencyDisplay } from "../../../shared/utils/currency";
+import { PriceDisplay } from "../../../shared/components/common/PriceDisplay";
 import {
   buildZonedDateFromDateKey,
   formatDateInTimezone,
@@ -106,7 +102,6 @@ import {
   formatDetailOverviewDate,
   isAppointmentEndInPast,
 } from "../timezone";
-import { getAvatarBgColor } from "../../setupWizard/components/StepTeam";
 
 /** Default arrow on copy; pointer on controls; I-beam in fields */
 const APPOINTMENT_DIALOG_CURSOR =
@@ -256,10 +251,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   const currentUser = useSelector(selectCurrentUser);
   const addFormOpen = useSelector(getAddFormSelector);
   const businessCurrency = currentUser?.business?.businessCurrency ?? "eur";
-  const currencyDisplay = useMemo(
-    () => getCurrencyDisplay(businessCurrency),
-    [businessCurrency],
-  );
   const auditTimezone =
     (calendarTimezone && String(calendarTimezone).trim()) || "UTC";
 
@@ -453,6 +444,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   const clientDisplay = useMemo(() => {
     if (!displayAppointment) {
       return {
+        firstName: "",
+        lastName: "",
         displayName: "",
         email: "",
         phone: "",
@@ -474,6 +467,8 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     const displayName = name || getNoCustomerDisplayLabel(t);
     const snapshotOnly = !cust && !!(snap && hasContact);
     return {
+      firstName: first,
+      lastName: last,
       displayName,
       email,
       phone,
@@ -712,6 +707,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     const snap = displayAppointment.customerSnapshot;
     const customer = cust
       ? {
+          id: cust.id,
           firstName: cust.firstName ?? "",
           lastName: cust.lastName ?? "",
           email: cust.email ?? "",
@@ -719,6 +715,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
         }
       : snap && (snap.firstName || snap.lastName || snap.email || snap.phone)
         ? {
+            id: undefined,
             firstName: snap.firstName ?? "",
             lastName: snap.lastName ?? "",
             email: snap.email ?? "",
@@ -1176,23 +1173,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                           </div>
                         ) : null}
                         <div className="flex gap-4">
-                          <Avatar className="h-11 w-11 shrink-0 ring-1 ring-border-subtle">
-                            {clientDisplay.profileImage ? (
-                              <AvatarImage
-                                src={clientDisplay.profileImage}
-                                alt=""
-                                className="object-cover"
-                              />
-                            ) : null}
-                            <AvatarFallback className="bg-neutral-200 text-sm font-semibold text-neutral-700">
-                              {clientDisplay.displayName
-                                .split(/\s+/)
-                                .map((n) => n[0])
-                                .join("")
-                                .slice(0, 2)
-                                .toUpperCase() || "?"}
-                            </AvatarFallback>
-                          </Avatar>
+                          <PersonAvatar
+                            id={clientDisplay.linkedCustomerId ?? clientDisplay.email ?? clientDisplay.phone ?? ""}
+                            firstName={clientDisplay.firstName}
+                            lastName={clientDisplay.lastName}
+                            profileImage={clientDisplay.profileImage}
+                            className="h-11 w-11 ring-1 ring-border-subtle"
+                            initialsClassName="text-sm font-semibold"
+                          />
                           <div className={cn("min-w-0 flex-1 space-y-1")}>
                             <p className="truncate text-base font-semibold capitalize leading-tight text-foreground-1">
                               {clientDisplay.displayName}
@@ -1393,31 +1381,14 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                               <div className="flex flex-wrap items-center gap-2.5">
                                 {assignedStaffMembers.length === 1 ? (
                                   <>
-                                    <Avatar
-                                      className="h-9 w-9 shrink-0 ring-1 ring-border-subtle"
-                                      title={`${assignedStaffMembers[0].firstName} ${assignedStaffMembers[0].lastName}`}
-                                    >
-                                      {assignedStaffMembers[0].profileImage ? (
-                                        <AvatarImage
-                                          src={
-                                            assignedStaffMembers[0].profileImage
-                                          }
-                                          alt=""
-                                          className="object-cover"
-                                        />
-                                      ) : null}
-                                      <AvatarFallback
-                                        className="text-[10px] font-semibold text-foreground-1"
-                                        style={{
-                                          backgroundColor: getAvatarBgColor(
-                                            `${assignedStaffMembers[0].id}-${assignedStaffMembers[0].firstName ?? ""}-${assignedStaffMembers[0].lastName ?? ""}`,
-                                          ),
-                                        }}
-                                      >
-                                        {`${assignedStaffMembers[0].firstName?.[0] ?? ""}${assignedStaffMembers[0].lastName?.[0] ?? ""}`.toUpperCase() ||
-                                          "?"}
-                                      </AvatarFallback>
-                                    </Avatar>
+                                    <PersonAvatar
+                                      id={assignedStaffMembers[0].id}
+                                      firstName={assignedStaffMembers[0].firstName}
+                                      lastName={assignedStaffMembers[0].lastName}
+                                      profileImage={assignedStaffMembers[0].profileImage}
+                                      className="h-9 w-9 ring-1 ring-border-subtle"
+                                      initialsClassName="text-[10px] font-semibold"
+                                    />
                                     <span className="font-semibold text-foreground-1">
                                       {staffNames}
                                     </span>
@@ -1428,31 +1399,15 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                       {assignedStaffMembers
                                         .slice(0, 4)
                                         .map((m) => (
-                                          <Avatar
+                                          <PersonAvatar
                                             key={m.id}
+                                            id={m.id}
+                                            firstName={m.firstName}
+                                            lastName={m.lastName}
+                                            profileImage={m.profileImage}
                                             className="h-9 w-9 border-2 border-white dark:border-card"
-                                            title={`${m.firstName} ${m.lastName}`}
-                                          >
-                                            {m.profileImage ? (
-                                              <AvatarImage
-                                                src={m.profileImage}
-                                                alt=""
-                                                className="object-cover"
-                                              />
-                                            ) : null}
-                                            <AvatarFallback
-                                              className="text-[10px] font-semibold text-foreground-1"
-                                              style={{
-                                                backgroundColor:
-                                                  getAvatarBgColor(
-                                                    `${m.id}-${m.firstName ?? ""}-${m.lastName ?? ""}`,
-                                                  ),
-                                              }}
-                                            >
-                                              {`${m.firstName?.[0] ?? ""}${m.lastName?.[0] ?? ""}`.toUpperCase() ||
-                                                "?"}
-                                            </AvatarFallback>
-                                          </Avatar>
+                                            initialsClassName="text-[10px] font-semibold"
+                                          />
                                         ))}
                                       {assignedStaffMembers.length > 4 ? (
                                         <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-white bg-muted text-[10px] font-medium dark:border-card">
@@ -1600,16 +1555,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                       <span className="text-foreground-2">
                                         {t("page.appointments.edit.free")}
                                       </span>
-                                    ) : currencyDisplay.icon ? (
-                                      <span className="inline-flex items-center gap-0.5">
-                                        <currencyDisplay.icon className="h-3.5 w-3.5" />
-                                        {item.priceMajor.toFixed(2)}
-                                      </span>
                                     ) : (
-                                      <>
-                                        <span>{currencyDisplay.symbol}</span>
-                                        {item.priceMajor.toFixed(2)}
-                                      </>
+                                      <PriceDisplay
+                                        amountDecimal={item.priceMajor}
+                                        currency={businessCurrency}
+                                        iconClassName="h-3.5 w-3.5"
+                                      />
                                     )}
                                   </div>
                                 </div>
@@ -1633,16 +1584,12 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                     <span className="text-foreground-2">
                                       {t("page.appointments.edit.free")}
                                     </span>
-                                  ) : currencyDisplay.icon ? (
-                                    <span className="inline-flex items-center gap-0.5">
-                                      <currencyDisplay.icon className="h-4 w-4" />
-                                      {serviceDetailTotalPrice.toFixed(2)}
-                                    </span>
                                   ) : (
-                                    <>
-                                      {currencyDisplay.symbol}
-                                      {serviceDetailTotalPrice.toFixed(2)}
-                                    </>
+                                    <PriceDisplay
+                                      amountDecimal={serviceDetailTotalPrice}
+                                      currency={businessCurrency}
+                                      iconClassName="h-4 w-4"
+                                    />
                                   )}
                                 </div>
                               </div>

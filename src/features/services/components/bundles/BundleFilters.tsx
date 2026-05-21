@@ -223,7 +223,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
     <>
       {/* By Price */}
       <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
           {text("bundles.filters.byPrice")}
         </div>
         <div className="grid grid-cols-2 gap-3 max-h-17">
@@ -274,7 +274,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
 
       {/* By Service Count */}
       <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
           {text("bundles.filters.byServiceCount")}
         </div>
         <div className="grid grid-cols-2 gap-3">
@@ -340,7 +340,7 @@ export const BundleFilters: FC<BundleFiltersProps> = ({
 
       {/* By Price Type */}
       <div className="space-y-2">
-        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-700 dark:text-primary-500">
           {text("bundles.filters.byPriceType")}
         </div>
         <div className="flex flex-wrap gap-2">

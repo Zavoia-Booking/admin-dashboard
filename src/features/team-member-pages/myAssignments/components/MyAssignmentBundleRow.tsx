@@ -1,7 +1,7 @@
 import { PlusCircle, Tag, Percent, Layers2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '../../../../shared/components/ui/badge';
-import { getCurrencyDisplay } from '../../../../shared/utils/currency';
+import { PriceDisplay } from '../../../../shared/components/common/PriceDisplay';
 import type { AssignedBundle } from '../types';
 
 interface MyAssignmentBundleRowProps {
@@ -14,8 +14,6 @@ export function MyAssignmentBundleRow({
   currency = 'eur',
 }: MyAssignmentBundleRowProps) {
   const { t } = useTranslation('myAssignments');
-  const currencyDisplay = getCurrencyDisplay(currency);
-  const CurrencyIcon = currencyDisplay.icon;
 
   // Get price type badge info
   const getPriceTypeBadge = () => {
@@ -99,18 +97,13 @@ export function MyAssignmentBundleRow({
           </div>
 
           {/* Price - Big, bold, easy to read */}
-          <div className="flex items-center justify-start gap-0.5 min-w-18 shrink-0">
-            {CurrencyIcon ? (
-              <CurrencyIcon className="h-3 w-3 text-foreground-1" />
-            ) : (
-              <span className="text-sm text-foreground-1">
-                {currencyDisplay.symbol}
-              </span>
-            )}
-            <span className="text-sm font-semibold text-foreground-1">
-              {bundle.calculatedDisplayPrice.toFixed(2)}
-            </span>
-          </div>
+          <PriceDisplay
+            amountDecimal={bundle.calculatedDisplayPrice}
+            currency={currency}
+            className="justify-start gap-1 min-w-18 shrink-0"
+            iconClassName="h-3 w-3 text-foreground-1"
+            numberClassName="text-sm font-semibold text-foreground-1"
+          />
         </div>
       </div>
     </div>

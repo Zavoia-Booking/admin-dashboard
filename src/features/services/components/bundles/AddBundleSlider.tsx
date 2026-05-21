@@ -37,6 +37,8 @@ import {
   priceFromStorage,
   getCurrencyDisplay,
 } from "../../../../shared/utils/currency";
+import { useFormatPrice } from "../../../../shared/hooks/useFormatPrice";
+import { PriceDisplay } from "../../../../shared/components/common/PriceDisplay";
 
 interface AddBundleSliderProps {
   isOpen: boolean;
@@ -108,17 +110,7 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
   // Note: This will be updated after fixedPriceField is declared to use real-time values
 
   const currencyDisplay = getCurrencyDisplay(businessCurrency);
-  // Helper to get currency symbol for text display
-  const getCurrencySymbol = (): string => {
-    if (currencyDisplay.symbol) return currencyDisplay.symbol;
-    // If we have an icon, we'll use a generic symbol based on currency
-    const code = businessCurrency.toUpperCase();
-    if (code === "EUR") return "€";
-    if (code === "USD") return "$";
-    if (code === "GBP") return "£";
-    return code;
-  };
-  const currencySymbol = getCurrencySymbol();
+  const { formatDecimalPrice } = useFormatPrice();
 
   // Fetch services when slider opens
   useEffect(() => {
@@ -815,18 +807,13 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                           <span className="text-sm font-medium text-foreground-2">
                             {text("bundles.addBundle.pricing.sumOfServices")}
                           </span>
-                          <div className="flex items-center gap-2">
-                            {currencyDisplay.icon ? (
-                              <currencyDisplay.icon className="h-4 w-4 text-foreground-3" />
-                            ) : (
-                              <span className="text-sm text-foreground-3">
-                                {currencyDisplay.symbol}
-                              </span>
-                            )}
-                            <span className="text-lg font-semibold text-foreground-1">
-                              {sumOfServicesDisplay.toFixed(2)}
-                            </span>
-                          </div>
+                          <PriceDisplay
+                            amountDecimal={sumOfServicesDisplay}
+                            currency={businessCurrency}
+                            className="gap-2"
+                            iconClassName="h-4 w-4 text-foreground-3"
+                            numberClassName="text-lg font-semibold text-foreground-1"
+                          />
                         </div>
                         <p className="text-xs bg-secondary w-fit rounded-full px-3 py-1 text-foreground-1 dark:text-foreground-2">
                           {selectedServices.length}{" "}
@@ -843,18 +830,13 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                             <span className="text-sm font-semibold text-foreground-1">
                               {text("bundles.addBundle.pricing.finalPrice")}
                             </span>
-                            <div className="flex items-center gap-2">
-                              {currencyDisplay.icon ? (
-                                <currencyDisplay.icon className="h-5 w-5 text-primary" />
-                              ) : (
-                                <span className="text-base text-primary font-medium">
-                                  {currencyDisplay.symbol}
-                                </span>
-                              )}
-                              <span className="text-2xl font-bold text-primary">
-                                {finalPrice.toFixed(2)}
-                              </span>
-                            </div>
+                            <PriceDisplay
+                              amountDecimal={finalPrice}
+                              currency={businessCurrency}
+                              className="gap-2"
+                              iconClassName="h-5 w-5 text-primary"
+                              numberClassName="text-2xl font-bold text-primary"
+                            />
                           </div>
                         </div>
                       )}
@@ -896,18 +878,13 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                                       "bundles.addBundle.pricing.finalPrice",
                                     )}
                                   </span>
-                                  <div className="flex items-center gap-2">
-                                    {currencyDisplay.icon ? (
-                                      <currencyDisplay.icon className="h-5 w-5 text-primary" />
-                                    ) : (
-                                      <span className="text-base text-primary font-medium">
-                                        {currencyDisplay.symbol}
-                                      </span>
-                                    )}
-                                    <span className="text-2xl font-bold text-primary">
-                                      {finalPrice.toFixed(2)}
-                                    </span>
-                                  </div>
+                                  <PriceDisplay
+                                    amountDecimal={finalPrice}
+                                    currency={businessCurrency}
+                                    className="gap-2"
+                                    iconClassName="h-5 w-5 text-primary"
+                                    numberClassName="text-2xl font-bold text-primary"
+                                  />
                                 </div>
 
                                 {hasPriceDifference && (
@@ -932,8 +909,7 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                                       className={`text-sm font-semibold ${priceDifference < 0 ? "text-green-500 dark:text-green-400" : "text-primary"}`}
                                     >
                                       {priceDifference < 0 ? "" : "+"}
-                                      {currencySymbol}
-                                      {Math.abs(priceDifference).toFixed(2)}
+                                      {formatDecimalPrice(Math.abs(priceDifference), businessCurrency)}
                                     </span>
                                   </div>
                                 )}
@@ -988,18 +964,13 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                                       "bundles.addBundle.pricing.finalPrice",
                                     )}
                                   </span>
-                                  <div className="flex items-center gap-2">
-                                    {currencyDisplay.icon ? (
-                                      <currencyDisplay.icon className="h-5 w-5 text-primary" />
-                                    ) : (
-                                      <span className="text-base text-primary font-medium">
-                                        {currencyDisplay.symbol}
-                                      </span>
-                                    )}
-                                    <span className="text-2xl font-bold text-primary">
-                                      {finalPrice.toFixed(2)}
-                                    </span>
-                                  </div>
+                                  <PriceDisplay
+                                    amountDecimal={finalPrice}
+                                    currency={businessCurrency}
+                                    className="gap-2"
+                                    iconClassName="h-5 w-5 text-primary"
+                                    numberClassName="text-2xl font-bold text-primary"
+                                  />
                                 </div>
 
                                 {hasPriceDifference && (
@@ -1013,8 +984,7 @@ const AddBundleSlider: React.FC<AddBundleSliderProps> = ({
                                       </span>
                                     </div>
                                     <span className="text-sm font-semibold text-green-500 dark:text-green-400">
-                                      -{currencySymbol}
-                                      {Math.abs(priceDifference).toFixed(2)} (
+                                      -{formatDecimalPrice(Math.abs(priceDifference), businessCurrency)} (
                                       {discountPercentage}%)
                                     </span>
                                   </div>

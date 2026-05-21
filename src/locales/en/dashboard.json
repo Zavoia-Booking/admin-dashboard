@@ -66,7 +66,6 @@
     "booked": "booked"
   },
   "locationCapacity": {
-    "subtitle": "Location · ID {{id}}",
     "potential": "Potential",
     "revenueToday": "revenue today",
     "period": "Period",
@@ -76,7 +75,15 @@
     "apptsShort": "appts",
     "noBookingsYet": "No bookings yet",
     "noRevenueYet": "No revenue yet",
-    "fullyOpen": "Fully open"
+    "fullyOpen": "Fully open",
+    "appointmentsCount_zero": "No appointments",
+    "appointmentsCount_one": "{{count}} appointment",
+    "appointmentsCount_other": "{{count}} appointments",
+    "potentialLine": "Potential {{value}}",
+    "noPotentialLine": "No revenue scheduled yet",
+    "nextAppointmentLabel": "Next",
+    "staffEmptyTitle": "No team members yet",
+    "staffEmptyHelper": "Invite your first member to start scheduling."
   },
   "appointmentBreakdown": {
     "title": "Appointment Breakdown",
@@ -91,9 +98,9 @@
     "empty": "Empty",
     "appts": "appts",
     "insightNoAppointments": "No appointments recorded for this period.",
-    "insightAllConfirmed": "All bookings are confirmed — none completed or cancelled yet.",
+    "insightAllConfirmed": "All bookings are confirmed. None completed or cancelled yet.",
     "insightAllCompleted": "All appointments have been completed.",
-    "insightHighCancel": "High cancellation rate — {{pct}}% of appointments cancelled.",
+    "insightHighCancel": "High cancellation rate: {{pct}}% of appointments cancelled.",
     "insightMajorityCompleted": "Majority of appointments completed ({{pct}}%).",
     "insightSummary": "{{confirmed}} confirmed, {{completed}} completed out of {{total}} total."
   },
@@ -167,6 +174,8 @@
     "apply": "Apply",
     "noFilterResults": "No appointments match your filters.",
     "yesterday": "Yesterday",
+    "today": "Today",
+    "daysAgo": "{{count}}d ago",
     "close": "Close",
     "updateFailed": "Failed to update appointment status",
     "bulkUpdateFailed": "{{count}} failed to update"

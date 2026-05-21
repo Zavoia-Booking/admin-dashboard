@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '../../../shared/components/ui/button';
 import { Badge } from '../../../shared/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '../../../shared/components/ui/avatar';
+import { PersonAvatar } from '../../../shared/components/common/PersonAvatar';
 import { BaseSlider } from '../../../shared/components/common/BaseSlider';
 import type { TeamMember, TeamMemberAppointment } from '../../../shared/types/team-member';
 import { UserRole } from '../../../shared/types/auth';
@@ -214,12 +214,14 @@ const TeamMemberProfileSlider: React.FC<TeamMemberProfileSliderProps> = ({
                 <div className="flex items-start gap-4">
                   {/* Avatar with verification badge */}
                   <div className="relative">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={displayTeamMember.profileImage || undefined} />
-                      <AvatarFallback className="text-lg font-semibold bg-primary/10 text-primary">
-                        {displayTeamMember.firstName?.[0] || '?'}{displayTeamMember.lastName?.[0] || '?'}
-                      </AvatarFallback>
-                    </Avatar>
+                    <PersonAvatar
+                      id={displayTeamMember.id}
+                      firstName={displayTeamMember.firstName}
+                      lastName={displayTeamMember.lastName}
+                      profileImage={displayTeamMember.profileImage}
+                      className="h-16 w-16"
+                      initialsClassName="text-lg font-semibold"
+                    />
                     <div className="absolute -bottom-1 -right-1 bg-green-500 rounded-full p-1">
                       <Check className="h-3 w-3 text-white" />
                     </div>

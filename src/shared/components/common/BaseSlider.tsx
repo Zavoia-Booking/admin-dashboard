@@ -70,6 +70,12 @@ export const BaseSlider: React.FC<BaseSliderProps> = ({
         if (!open) onClose();
       }}
       direction="right"
+      // Move focus into the slider on open. Without it, Vaul leaves focus on
+      // the trigger button — Radix then marks the page root with
+      // `aria-hidden` and the browser blocks the still-focused trigger that
+      // now sits inside a hidden subtree. Same fix already applied to
+      // [ReviewsFiltersSheet], [SortSelect], and [ManageServicesSheet].
+      autoFocus
       // Keep the backdrop dismissible; the rest of the a11y/escape handling is Vaul's default.
       dismissible
       // Disable Vaul's built-in keyboard repositioning — it applies inline

@@ -4,12 +4,7 @@ import { Users, Info, Settings2, ChevronRight } from "lucide-react";
 import { Button } from "../../../../shared/components/ui/button";
 import { Badge } from "../../../../shared/components/ui/badge";
 import { Switch } from "../../../../shared/components/ui/switch";
-import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "../../../../shared/components/ui/avatar";
-import { getAvatarBgColor } from "../../../setupWizard/components/StepTeam";
+import { PersonAvatar } from "../../../../shared/components/common/PersonAvatar";
 import { useIsMobile } from "../../../../shared/hooks/use-mobile";
 import { cn } from "../../../../shared/lib/utils";
 import type { LocationTeamMember, LocationFullAssignment } from "../../types";
@@ -73,8 +68,6 @@ export function LocationTeamMembersSection({
   // Desktop row for team member management
   const renderDesktopRow = useCallback(
     (member: LocationTeamMember) => {
-      const initials =
-        `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
       const isEnabled = enabledMemberIds.includes(member.userId);
       const isAnySaving = savingMemberIds.size > 0 || isSaving;
 
@@ -128,18 +121,14 @@ export function LocationTeamMembersSection({
             />
           </div>
 
-          <Avatar className="h-10 w-10 flex-shrink-0">
-            <AvatarImage
-              src={member.profileImage || undefined}
-              alt={`${member.firstName} ${member.lastName}`}
-            />
-            <AvatarFallback
-              className="text-sm font-medium"
-              style={{ backgroundColor: getAvatarBgColor(member.email) }}
-            >
-              {initials}
-            </AvatarFallback>
-          </Avatar>
+          <PersonAvatar
+            id={member.userId}
+            firstName={member.firstName}
+            lastName={member.lastName}
+            profileImage={member.profileImage}
+            className="h-10 w-10"
+            initialsClassName="text-sm font-medium"
+          />
 
           <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
             <div className="flex flex-col min-w-0 flex-1 pt-4">
@@ -210,8 +199,6 @@ export function LocationTeamMembersSection({
   // Mobile row for team member management
   const renderMobileRow = useCallback(
     (member: LocationTeamMember) => {
-      const initials =
-        `${member.firstName[0]}${member.lastName[0]}`.toUpperCase();
       const isEnabled = enabledMemberIds.includes(member.userId);
       const isAnySaving = savingMemberIds.size > 0 || isSaving;
 
@@ -267,18 +254,14 @@ export function LocationTeamMembersSection({
               />
             </div>
 
-            <Avatar className="h-10 w-10 flex-shrink-0">
-              <AvatarImage
-                src={member.profileImage || undefined}
-                alt={`${member.firstName} ${member.lastName}`}
-              />
-              <AvatarFallback
-                className="text-sm font-medium"
-                style={{ backgroundColor: getAvatarBgColor(member.email) }}
-              >
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <PersonAvatar
+              id={member.userId}
+              firstName={member.firstName}
+              lastName={member.lastName}
+              profileImage={member.profileImage}
+              className="h-10 w-10"
+              initialsClassName="text-sm font-medium"
+            />
 
             <div className="flex flex-col min-w-0 flex-1">
               <div className="font-medium text-sm text-foreground-1 truncate">
