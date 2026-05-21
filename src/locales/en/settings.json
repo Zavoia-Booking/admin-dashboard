@@ -107,6 +107,28 @@
       "legal_privacy": "Privacy Policy",
       "legal_cookies": "Cookie Policy"
     },
+    "mobilePush": {
+      "title": "Mobile push notifications",
+      "description": "Choose which notifications you receive as push alerts on the Zavoia mobile app. This setting only affects mobile push notifications.",
+      "loading": "Loading your preference…",
+      "loadFailed": "Couldn't load your mobile push notification preference.",
+      "saved": "Mobile push notification preference updated.",
+      "saveFailed": "Couldn't update your mobile push notification preference.",
+      "options": {
+        "my_notifications": {
+          "title": "My notifications",
+          "description": "Get mobile push notifications only for appointments and activity assigned to you."
+        },
+        "all_notifications": {
+          "title": "All notifications",
+          "description": "Get mobile push notifications for your activity and for all of your team members."
+        },
+        "no_notifications": {
+          "title": "No notifications",
+          "description": "Turn off all mobile push notifications. You'll still see updates inside the app."
+        }
+      }
+    },
     "advancedSettings": {
       "title": "Delete account",
       "description": "Permanently delete your business and account data."

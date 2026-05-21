@@ -107,6 +107,28 @@
       "legal_privacy": "Politica de confidențialitate",
       "legal_cookies": "Politica privind cookie-urile"
     },
+    "mobilePush": {
+      "title": "Notificări push pe mobil",
+      "description": "Alege ce notificări primești ca alerte push în aplicația mobilă Zavoia. Această setare afectează doar notificările push de pe mobil.",
+      "loading": "Se încarcă preferința ta…",
+      "loadFailed": "Preferința pentru notificările push pe mobil nu a putut fi încărcată.",
+      "saved": "Preferința pentru notificările push pe mobil a fost actualizată.",
+      "saveFailed": "Preferința pentru notificările push pe mobil nu a putut fi actualizată.",
+      "options": {
+        "my_notifications": {
+          "title": "Notificările mele",
+          "description": "Primești notificări push pe mobil doar pentru programările și activitatea atribuite ție."
+        },
+        "all_notifications": {
+          "title": "Toate notificările",
+          "description": "Primești notificări push pe mobil pentru activitatea ta și a tuturor membrilor echipei."
+        },
+        "no_notifications": {
+          "title": "Fără notificări",
+          "description": "Dezactivează toate notificările push pe mobil. Vei vedea în continuare actualizările în aplicație."
+        }
+      }
+    },
     "advancedSettings": {
       "title": "Șterge contul",
       "description": "Șterge definitiv afacerea și datele contului."

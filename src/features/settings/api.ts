@@ -127,3 +127,20 @@ export const getBusinessInvoices = async (params?: { limit?: number; cursor?: nu
   const response = await apiClient().get<BusinessInvoicesResponse>(url);
   return response.data;
 };
+
+// ── Mobile push notification preference (business owner) ──
+// Governs which appointment push notifications the owner receives on the
+// Zavoia mobile app. Stored per-user in the API and read when sending pushes.
+export type MobilePushPreference = 'my_notifications' | 'all_notifications' | 'no_notifications';
+
+export const getMobilePushPreference = async (): Promise<{ preference: MobilePushPreference }> => {
+  const response = await apiClient().get<{ preference: MobilePushPreference }>('/business-push/preference');
+  return response.data;
+};
+
+export const updateMobilePushPreference = async (
+  preference: MobilePushPreference,
+): Promise<{ preference: MobilePushPreference }> => {
+  const response = await apiClient().put<{ preference: MobilePushPreference }>('/business-push/preference', { preference });
+  return response.data;
+};

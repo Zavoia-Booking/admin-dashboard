@@ -13,6 +13,7 @@ import OptionSelect from '../../../shared/components/common/OptionSelect';
 import { uploadBusinessLogo } from '../api';
 import GoogleAccountManager from './GoogleAccountManager';
 import AdvancedSettings from './AdvancedSettings';
+import MobilePushNotifications from './MobilePushNotifications';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector } from '../../business/selectors';
@@ -967,6 +968,17 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 </>
               )}
             </div>
+          </section>
+
+          {/* Section: Mobile push notifications */}
+          <section className="profile-section" aria-labelledby="profile-section-mobile-push">
+            <header className="profile-section-header">
+              <div>
+                <h3 id="profile-section-mobile-push" className="profile-section-title">{t('profile.mobilePush.title')}</h3>
+                <p className="profile-section-sub">{t('profile.mobilePush.description')}</p>
+              </div>
+            </header>
+            <MobilePushNotifications />
           </section>
 
           {/* Section: Advanced Settings */}

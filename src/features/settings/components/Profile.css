@@ -578,3 +578,58 @@
   font-size: 12.5px;
   font-weight: 500;
 }
+
+/* ── Radio option list (e.g. mobile push notification preference) ── */
+.profile-radio-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.profile-radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.profile-radio-option:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+.profile-radio-option-selected,
+.profile-radio-option-selected:hover {
+  border-color: var(--primary);
+  background: color-mix(in oklab, var(--primary) 6%, var(--surface));
+}
+.profile-radio-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.profile-radio-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+.profile-radio-desc {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.profile-radio-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
