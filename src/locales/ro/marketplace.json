@@ -195,8 +195,12 @@
         "description": "Stabilește dacă și când clienții pot anula sau reprograma programările."
       },
       "cancellationWindow": {
-        "label": "Fereastră de notificare",
-        "helpText": "Timpul minim necesar înainte ca o programare să poată fi anulată sau reprogramată."
+        "label": "Fereastră de anulare",
+        "helpText": "Timpul minim necesar înainte ca o programare să poată fi anulată."
+      },
+      "rescheduleWindow": {
+        "label": "Fereastră de reprogramare",
+        "helpText": "Timpul minim necesar înainte ca o programare să poată fi reprogramată."
       },
       "allowCancellation": {
         "label": "Permite anularea",

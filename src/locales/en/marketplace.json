@@ -196,7 +196,11 @@
       },
       "cancellationWindow": {
         "label": "Cancellation window",
-        "helpText": "Minimum notice required for cancellations or rescheduling."
+        "helpText": "Minimum notice required before clients can cancel."
+      },
+      "rescheduleWindow": {
+        "label": "Reschedule window",
+        "helpText": "Minimum notice required before clients can reschedule."
       },
       "allowCancellation": {
         "label": "Allow cancellation",

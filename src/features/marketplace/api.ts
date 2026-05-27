@@ -78,6 +78,7 @@ const BOOKING_SETTINGS_UPDATE_KEYS = [
   'slotIntervalMinutes',
   'bufferTimeMinutes',
   'cancellationWindowMinutes',
+  'rescheduleWindowMinutes',
   'allowCustomerCancellation',
   'allowCustomerReschedule',
   'autoConfirmBookings',

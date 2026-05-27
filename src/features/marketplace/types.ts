@@ -154,6 +154,7 @@ export interface BookingSettings {
   slotIntervalMinutes: number;
   bufferTimeMinutes: number;
   cancellationWindowMinutes: number;
+  rescheduleWindowMinutes: number;
   allowCustomerCancellation: boolean;
   allowCustomerReschedule: boolean;
   autoConfirmBookings: boolean;

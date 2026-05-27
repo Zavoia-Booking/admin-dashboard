@@ -22,6 +22,7 @@ const MIN_ADVANCE_QUICK_ACTIONS: (number | "other")[] = [0, 15, 30, 60, "other"]
 const MAX_ADVANCE_QUICK_ACTIONS: (number | "other")[] = [0, 10080, 43200, 86400, "other"];
 const BUFFER_QUICK_ACTIONS: (number | "other")[] = [0, 5, 15, 30, "other"];
 const CANCELLATION_WINDOW_QUICK_ACTIONS: (number | "other")[] = [0, 60, 1440, 10080, "other"];
+const RESCHEDULE_WINDOW_QUICK_ACTIONS: (number | "other")[] = [0, 60, 1440, 10080, "other"];
 const STAFF_BLOCK_CALENDAR_TYPES = ["holidays", "timeOff", "sickDays"];
 /** Hour options when reminders are enabled (0 = disabled is handled by switch). */
 const REMINDER_HOURS_OPTIONS = [1, 2, 4, 12, 24, 48] as const;
@@ -32,6 +33,7 @@ const DEFAULT_SETTINGS: UpdateBookingSettingsPayload = {
   slotIntervalMinutes: 15,
   bufferTimeMinutes: 0,
   cancellationWindowMinutes: 1440,
+  rescheduleWindowMinutes: 1440,
   allowCustomerCancellation: true,
   allowCustomerReschedule: true,
   autoConfirmBookings: true,
@@ -202,6 +204,7 @@ export const AdvancedSettingsSection = forwardRef<
   );
   const handleBufferTimeChange = useCallback((val: number) => updateField("bufferTimeMinutes", val), [updateField]);
   const handleCancellationWindowChange = useCallback((val: number) => updateField("cancellationWindowMinutes", val), [updateField]);
+  const handleRescheduleWindowChange = useCallback((val: number) => updateField("rescheduleWindowMinutes", val), [updateField]);
   const handleAllowCustomerCancellation = useCallback((checked: boolean) => updateField("allowCustomerCancellation", checked), [updateField]);
   const handleAllowCustomerReschedule = useCallback((checked: boolean) => updateField("allowCustomerReschedule", checked), [updateField]);
   const handleAutoConfirmBookings = useCallback((checked: boolean) => updateField("autoConfirmBookings", checked), [updateField]);
@@ -350,6 +353,22 @@ export const AdvancedSettingsSection = forwardRef<
                   getChipLabel={formatMinutes}
                   unit="hours"
                   disabled={!formData.allowCustomerCancellation}
+                />
+
+                <DurationInput
+                  id="rescheduleWindow"
+                  label={t(
+                    "policy.rescheduleWindow.label"
+                  )}
+                  helpText={t(
+                    "policy.rescheduleWindow.helpText"
+                  )}
+                  value={formData.rescheduleWindowMinutes}
+                  onChange={handleRescheduleWindowChange}
+                  quickActions={RESCHEDULE_WINDOW_QUICK_ACTIONS}
+                  getChipLabel={formatMinutes}
+                  unit="hours"
+                  disabled={!formData.allowCustomerReschedule}
                 />
 
                 <div className="grid grid-cols-1 gap-4">
