@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ArrowUpRight, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -10,6 +10,7 @@ import type { LocationWithAssignments } from "../../types";
 import { useTranslation, Trans } from "react-i18next";
 import { updateLocationMarketplaceFlagsAction } from "../../actions";
 import { selectUpdatingLocationFlags } from "../../selectors";
+import { EditLocationMarketplaceDetailsSlider } from "../EditLocationMarketplaceDetailsSlider";
 
 interface LocationVisibilitySectionProps {
   locations: LocationWithAssignments[];
@@ -21,7 +22,12 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { t } = useTranslation("marketplace");
+  const { t: tDetails } = useTranslation("locationMarketplaceDetails");
   const updatingIds = useSelector(selectUpdatingLocationFlags);
+  const [editingLocation, setEditingLocation] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
 
   const handleManageAssignments = (locationId: number) => {
     navigate(`/assignments?locationId=${locationId}`);
@@ -95,8 +101,8 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                     </p>
                   </div>
 
-                  {/* Mobile: Both buttons in a row with active styling */}
-                  <div className="flex md:hidden items-center gap-2">
+                  {/* Mobile: action buttons in a wrapping row */}
+                  <div className="flex md:hidden items-center flex-wrap gap-2">
                     <Button
                       variant="ghost"
                       rounded="full"
@@ -154,7 +160,7 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                   </Button>
                 </div>
 
-                {/* Desktop: Manage assignments button (separate column) */}
+                {/* Desktop: Manage assignments (top-right) */}
                 <div className="hidden md:flex items-center gap-2 shrink-0">
                   <Button
                     variant="ghost"
@@ -217,8 +223,9 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                 </div>
               </div>
 
-              {/* Bottom Section: Stats / Capabilities */}
-              <div className="flex flex-wrap items-center gap-2 pt-4">
+              {/* Bottom Section: Stats / Capabilities + Edit amenities & details */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
+                <div className="flex flex-wrap items-center gap-2">
                 <Badge
                   variant="secondary"
                   className={cn(
@@ -311,11 +318,34 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                     </span>
                   </Badge>
                 )}
+                </div>
+
+                <Button
+                  variant="ghost"
+                  rounded="full"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingLocation({ id: location.id, name: location.name });
+                  }}
+                  className="w-full md:w-auto md:shrink-0 !min-h-0 h-7 !px-4 !py-4 mt-2 md:mt-0 border border-border group-hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10 dark:group-hover:bg-muted-foreground/10 flex items-center justify-center md:justify-start gap-1 md:ml-auto"
+                >
+                  <span className="text-xs text-foreground-3 group-hover:text-foreground-1">
+                    {tDetails("card.editButton")}
+                  </span>
+                  <ChevronRight className="h-3 w-3 pt-0.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+                </Button>
               </div>
             </div>
           );
         })}
       </div>
+
+      <EditLocationMarketplaceDetailsSlider
+        isOpen={editingLocation !== null}
+        onClose={() => setEditingLocation(null)}
+        location={editingLocation}
+      />
     </div>
   );
 };
