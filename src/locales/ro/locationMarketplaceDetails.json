@@ -1,0 +1,135 @@
+{
+  "slider": {
+    "title": "Profil marketplace",
+    "subtitle": "Aceste detalii ajută clienții să filtreze, să compare și să aleagă locația ta. Toate sunt opționale.",
+    "intro": "Selectează tot ce se aplică. Clienții văd aceste informații pe pagina locației tale și le folosesc pentru a filtra rezultatele.",
+    "save": "Salvează",
+    "saving": "Se salvează…",
+    "cancel": "Anulează",
+    "savedToast": "Profilul marketplace a fost salvat",
+    "loadError": "Nu am putut încărca profilul marketplace. Încearcă din nou.",
+    "saveError": "Nu am putut salva modificările. Încearcă din nou.",
+    "selectedCount": "{{count}} selectate"
+  },
+  "sections": {
+    "amenities": {
+      "title": "Facilități",
+      "helper": "Alege facilitățile disponibile la această locație."
+    },
+    "audience": {
+      "title": "Acces și incluziune",
+      "helper": "Alege doar ce se aplică cu adevărat.",
+      "subgroups": {
+        "accessRules": "Reguli de acces",
+        "inclusivity": "Incluziune"
+      }
+    },
+    "values": {
+      "title": "Identitatea afacerii",
+      "helper": "Alege ce descrie cu adevărat afacerea ta.",
+      "subgroups": {
+        "ownership": "Proprietate",
+        "sustainability": "Sustenabilitate"
+      }
+    },
+    "accessibility": {
+      "title": "Accesibilitate",
+      "helper": "Dotări care fac locația mai ușor de accesat."
+    },
+    "paymentMethods": {
+      "title": "Metode de plată",
+      "helper": "Ce accepți la locație."
+    },
+    "languages": {
+      "title": "Limbi vorbite",
+      "helper": "Limbile în care echipa poate servi clienții.",
+      "moreLabel": "Mai multe limbi",
+      "lessLabel": "Mai puține"
+    }
+  },
+  "card": {
+    "editButton": "Editează facilități și detalii"
+  },
+  "tags": {
+    "amenities": {
+      "wifi": "Wi-Fi gratuit",
+      "parking-onsite": "Parcare la fața locului",
+      "parking-street": "Parcare pe stradă în apropiere",
+      "air-conditioning": "Aer condiționat",
+      "pet-friendly": "Acceptă animale de companie",
+      "kid-friendly": "Copii bineveniți",
+      "bike-parking": "Parcare biciclete",
+      "outdoor-seating": "Locuri în aer liber",
+      "private-treatment-room": "Cabină privată",
+      "showers": "Dușuri",
+      "lockers": "Vestiare"
+    },
+    "audience": {
+      "adults-only": "Doar adulți",
+      "women-only": "Doar femei",
+      "men-only": "Doar bărbați",
+      "lgbtq-friendly": "Prietenos LGBTQ+"
+    },
+    "values": {
+      "women-owned": "Deținut de femei",
+      "lgbtq-owned": "Deținut LGBTQ+",
+      "disability-owned": "Deținut de persoane cu dizabilități",
+      "family-business": "Afacere de familie",
+      "independent-business": "Afacere independentă",
+      "eco-conscious": "Practici sustenabile",
+      "zero-waste": "Zero deșeuri",
+      "plastic-free": "Fără plastic",
+      "vegan": "Vegan-friendly",
+      "cruelty-free": "Fără testare pe animale",
+      "locally-sourced": "Produse locale"
+    },
+    "accessibility": {
+      "step-free-entrance": "Intrare fără trepte",
+      "accessible-parking": "Parcare accesibilă",
+      "accessible-restroom": "Toaletă accesibilă",
+      "hearing-loop": "Buclă auditivă",
+      "sign-language-available": "Limbaj semne disponibil",
+      "large-print-materials": "Materiale tipărite mărite",
+      "service-animals-welcome": "Câini de asistență acceptați",
+      "sensory-friendly": "Mediu prietenos senzorial",
+      "mobility-aids-available": "Echipamente de mobilitate disponibile"
+    },
+    "paymentMethods": {
+      "cash": "Numerar",
+      "card": "Plată cu cardul",
+      "apple-pay": "Apple Pay",
+      "google-pay": "Google Pay",
+      "bank-transfer": "Transfer bancar (IBAN)",
+      "corporate-invoice": "Facturare pe firmă"
+    },
+    "languages": {
+      "en": "Engleză",
+      "ro": "Română",
+      "de": "Germană",
+      "fr": "Franceză",
+      "it": "Italiană",
+      "es": "Spaniolă",
+      "pt": "Portugheză",
+      "nl": "Olandeză",
+      "sv": "Suedeză",
+      "da": "Daneză",
+      "no": "Norvegiană",
+      "fi": "Finlandeză",
+      "pl": "Poloneză",
+      "hu": "Maghiară",
+      "cs": "Cehă",
+      "sk": "Slovacă",
+      "el": "Greacă",
+      "bg": "Bulgară",
+      "hr": "Croată",
+      "sl": "Slovenă",
+      "sr": "Sârbă",
+      "et": "Estonă",
+      "lv": "Letonă",
+      "lt": "Lituaniană",
+      "tr": "Turcă",
+      "ru": "Rusă",
+      "uk": "Ucraineană"
+    }
+  }
+}

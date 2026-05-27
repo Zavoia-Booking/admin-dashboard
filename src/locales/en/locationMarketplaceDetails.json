@@ -1,0 +1,135 @@
+{
+  "slider": {
+    "title": "Marketplace profile",
+    "subtitle": "These details help customers filter, compare, and choose your location. All optional.",
+    "intro": "Pick everything that applies. Customers see these on your location page and use them to filter results.",
+    "save": "Save changes",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "savedToast": "Marketplace profile saved",
+    "loadError": "Couldn't load your marketplace profile. Please try again.",
+    "saveError": "Couldn't save your changes. Please try again.",
+    "selectedCount": "{{count}} selected"
+  },
+  "sections": {
+    "amenities": {
+      "title": "Amenities",
+      "helper": "Select the features available at this location."
+    },
+    "audience": {
+      "title": "Access & inclusivity",
+      "helper": "Only pick what genuinely applies.",
+      "subgroups": {
+        "accessRules": "Access rules",
+        "inclusivity": "Inclusivity"
+      }
+    },
+    "values": {
+      "title": "Business identity",
+      "helper": "Pick what genuinely describes your business.",
+      "subgroups": {
+        "ownership": "Ownership",
+        "sustainability": "Sustainability"
+      }
+    },
+    "accessibility": {
+      "title": "Accessibility",
+      "helper": "Features that make this location easier to access."
+    },
+    "paymentMethods": {
+      "title": "Payment methods",
+      "helper": "What you accept at the venue."
+    },
+    "languages": {
+      "title": "Languages",
+      "helper": "Languages your team can serve customers in.",
+      "moreLabel": "More languages",
+      "lessLabel": "Show less"
+    }
+  },
+  "card": {
+    "editButton": "Edit amenities & details"
+  },
+  "tags": {
+    "amenities": {
+      "wifi": "Free Wi-Fi",
+      "parking-onsite": "On-site parking",
+      "parking-street": "Street parking nearby",
+      "air-conditioning": "Air conditioning",
+      "pet-friendly": "Pets allowed",
+      "kid-friendly": "Kids welcome",
+      "bike-parking": "Bike parking",
+      "outdoor-seating": "Outdoor seating",
+      "private-treatment-room": "Private treatment room",
+      "showers": "Showers",
+      "lockers": "Lockers"
+    },
+    "audience": {
+      "adults-only": "Adults only",
+      "women-only": "Women only",
+      "men-only": "Men only",
+      "lgbtq-friendly": "LGBTQ+ friendly"
+    },
+    "values": {
+      "women-owned": "Women-owned",
+      "lgbtq-owned": "LGBTQ+ owned",
+      "disability-owned": "Disability-owned",
+      "family-business": "Family business",
+      "independent-business": "Independent business",
+      "eco-conscious": "Sustainable practices",
+      "zero-waste": "Zero-waste",
+      "plastic-free": "Plastic-free",
+      "vegan": "Vegan-friendly",
+      "cruelty-free": "Cruelty-free",
+      "locally-sourced": "Locally sourced"
+    },
+    "accessibility": {
+      "step-free-entrance": "Step-free entrance",
+      "accessible-parking": "Accessible parking",
+      "accessible-restroom": "Accessible restroom",
+      "hearing-loop": "Hearing loop",
+      "sign-language-available": "Sign language available",
+      "large-print-materials": "Large-print materials",
+      "service-animals-welcome": "Service animals welcome",
+      "sensory-friendly": "Sensory-friendly environment",
+      "mobility-aids-available": "Mobility aids available"
+    },
+    "paymentMethods": {
+      "cash": "Cash",
+      "card": "Cards accepted",
+      "apple-pay": "Apple Pay",
+      "google-pay": "Google Pay",
+      "bank-transfer": "Bank transfer",
+      "corporate-invoice": "Corporate invoice"
+    },
+    "languages": {
+      "en": "English",
+      "ro": "Romanian",
+      "de": "German",
+      "fr": "French",
+      "it": "Italian",
+      "es": "Spanish",
+      "pt": "Portuguese",
+      "nl": "Dutch",
+      "sv": "Swedish",
+      "da": "Danish",
+      "no": "Norwegian",
+      "fi": "Finnish",
+      "pl": "Polish",
+      "hu": "Hungarian",
+      "cs": "Czech",
+      "sk": "Slovak",
+      "el": "Greek",
+      "bg": "Bulgarian",
+      "hr": "Croatian",
+      "sl": "Slovenian",
+      "sr": "Serbian",
+      "et": "Estonian",
+      "lv": "Latvian",
+      "lt": "Lithuanian",
+      "tr": "Turkish",
+      "ru": "Russian",
+      "uk": "Ukrainian"
+    }
+  }
+}
