@@ -579,57 +579,181 @@
   font-weight: 500;
 }
 
-/* ── Radio option list (e.g. mobile push notification preference) ── */
-.profile-radio-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+/* ── Mobile push notifications (integrated header + scope cards) ──
+   Pure block layout — no flex/grid on the outer containers (those caused
+   phantom-scroll bugs where cards stretched vertically). Flex only used
+   on horizontal-layout rows (head, master-control, card-head). */
+.profile-mobile-push {
+  position: relative;
 }
-.profile-radio-option {
+
+/* Header row: title + description on left, spinner + switch on right */
+.profile-mobile-push-head {
   display: flex;
+  justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
-  padding: 13px 15px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  gap: 16px;
+}
+.profile-mobile-push-head-text {
+  min-width: 0;
+  flex: 1;
+}
+.profile-mobile-push-head-text > .profile-section-sub {
+  margin-top: 4px;
+}
+
+.profile-mobile-push-master-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  padding-top: 2px; /* optical: align switch thumb with title cap-height */
+}
+.profile-mobile-push-master-spinner {
+  width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+}
+
+/* Scope section — only rendered in the DOM when the master toggle is on
+   (conditional render in MobilePushNotifications.tsx). */
+.profile-mobile-push-scope {
+  margin-top: 16px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+/* Scope card list — plain block stacking with margin between cards.
+   On desktop ≥720px, use float-based two-column without flex/grid. */
+.profile-mobile-push-scope-grid > .profile-mobile-push-scope-card + .profile-mobile-push-scope-card {
+  margin-top: 10px;
+}
+
+.profile-mobile-push-scope-card {
+  display: block;
+  position: relative;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
   background: var(--surface);
   cursor: pointer;
-  transition: border-color 0.12s, background 0.12s;
+  transition:
+    border-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 180ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 120ms ease-out;
 }
-.profile-radio-option:hover {
+.profile-mobile-push-scope-card.selected {
   border-color: var(--border-strong);
   background: var(--surface-hover);
 }
-.profile-radio-option-selected,
-.profile-radio-option-selected:hover {
-  border-color: var(--primary);
-  background: color-mix(in oklab, var(--primary) 6%, var(--surface));
+@media (hover: hover) and (pointer: fine) {
+  .profile-mobile-push-scope-card:hover:not(.selected) {
+    border-color: var(--border-strong);
+    background: var(--surface-hover);
+  }
+  .profile-mobile-push-scope-card.selected:hover {
+    border-color: var(--text-tertiary);
+  }
 }
-.profile-radio-text {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+/* outline-offset: -2px keeps focus ring inside the card and prevents
+   clipping by overflow:hidden on the scope-inner wrapper */
+.profile-mobile-push-scope-card:focus-within {
+  outline: 2px solid color-mix(in oklab, var(--primary) 35%, transparent);
+  outline-offset: -2px;
 }
-.profile-radio-title {
+.profile-mobile-push-scope-card:active {
+  transform: scale(0.98);
+}
+
+/* Title + radio indicator row */
+.profile-mobile-push-scope-card-head {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.profile-mobile-push-scope-card-title {
   font-size: 13.5px;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.4;
+  line-height: 1.35;
+  letter-spacing: -0.005em;
 }
-.profile-radio-desc {
-  font-size: 12.5px;
+
+/* Radio indicator — the only element that uses primary on selection */
+.profile-mobile-push-scope-card-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  transition:
+    border-color 160ms cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.profile-mobile-push-scope-card-radio::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: transparent;
+  transition: background-color 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.profile-mobile-push-scope-card.selected .profile-mobile-push-scope-card-radio {
+  border-color: var(--primary);
+  background: var(--primary);
+}
+.profile-mobile-push-scope-card.selected .profile-mobile-push-scope-card-radio::after {
+  background: var(--surface);
+}
+
+.profile-mobile-push-scope-card-desc {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  font-weight: 400;
   color: var(--text-secondary);
   line-height: 1.5;
 }
-.profile-radio-loading {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 13px;
-  color: var(--text-secondary);
+
+/* Loading skeleton */
+.profile-mobile-push-skeleton-line {
+  display: inline-block;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--surface-hover);
+  animation: profile-mobile-push-pulse 1.4s ease-in-out infinite;
+}
+.profile-mobile-push-skeleton-line + .profile-mobile-push-skeleton-line {
+  margin-top: 8px;
+}
+.profile-mobile-push-skeleton-pill {
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--surface-hover);
+  animation: profile-mobile-push-pulse 1.4s ease-in-out infinite;
+}
+@keyframes profile-mobile-push-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile-mobile-push-scope-card,
+  .profile-mobile-push-scope-card-radio {
+    transition: none;
+  }
+  .profile-mobile-push-skeleton-line,
+  .profile-mobile-push-skeleton-pill {
+    animation: none;
+    opacity: 0.7;
+  }
 }

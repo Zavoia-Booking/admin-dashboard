@@ -108,24 +108,26 @@
       "legal_cookies": "Cookie Policy"
     },
     "mobilePush": {
-      "title": "Mobile push notifications",
-      "description": "Choose which notifications you receive as push alerts on the Zavoia mobile app. This setting only affects mobile push notifications.",
-      "loading": "Loading your preference…",
-      "loadFailed": "Couldn't load your mobile push notification preference.",
-      "saved": "Mobile push notification preference updated.",
-      "saveFailed": "Couldn't update your mobile push notification preference.",
-      "options": {
-        "my_notifications": {
-          "title": "My notifications",
-          "description": "Get mobile push notifications only for appointments and activity assigned to you."
+      "title": "Push notifications",
+      "description": "Choose which updates you receive on your phone.",
+      "loadFailed": "Couldn't load your notification preferences.",
+      "saved": "Notification preference saved.",
+      "saveFailed": "Couldn't save your notification preferences.",
+      "master": {
+        "label": "Receive push notifications",
+        "statusOnMine": "Active · Your activity only",
+        "statusOnTeam": "Active · You and your team",
+        "statusOff": "Silent · Nothing reaches your phone"
+      },
+      "scope": {
+        "label": "Send notifications for",
+        "mine": {
+          "title": "My activity only",
+          "description": "Appointments and tasks assigned to you."
         },
-        "all_notifications": {
-          "title": "All notifications",
-          "description": "Get mobile push notifications for your activity and for all of your team members."
-        },
-        "no_notifications": {
-          "title": "No notifications",
-          "description": "Turn off all mobile push notifications. You'll still see updates inside the app."
+        "team": {
+          "title": "Team activity",
+          "description": "Appointments and tasks across your whole team."
         }
       }
     },

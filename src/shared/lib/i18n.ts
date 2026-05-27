@@ -58,6 +58,8 @@ import setupWizardEn from '../../locales/en/setupWizard.json';
 import setupWizardRo from '../../locales/ro/setupWizard.json';
 import enBusiness from '../../locales/en/business.json';
 import roBusiness from '../../locales/ro/business.json';
+import enLocationMarketplaceDetails from '../../locales/en/locationMarketplaceDetails.json';
+import roLocationMarketplaceDetails from '../../locales/ro/locationMarketplaceDetails.json';
 
 const resources = {
   en: {
@@ -83,6 +85,7 @@ const resources = {
     calendar: enCalendar,
     setupWizard: setupWizardEn,
     business: enBusiness,
+    locationMarketplaceDetails: enLocationMarketplaceDetails,
   },
   ro: {
     services: roServices,
@@ -107,6 +110,7 @@ const resources = {
     calendar: roCalendar,
     setupWizard: setupWizardRo,
     business: roBusiness,
+    locationMarketplaceDetails: roLocationMarketplaceDetails,
   },
 };
 

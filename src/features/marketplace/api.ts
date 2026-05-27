@@ -103,3 +103,74 @@ export const updateBookingSettingsApi = async (payload: Partial<UpdateBookingSet
   return (data as { settings?: BookingSettings }).settings ?? (data as BookingSettings);
 }
 
+
+// ---------------------------------------------------------------------------
+// Location marketplace tags — dictionaries + per-location load/save.
+// ---------------------------------------------------------------------------
+
+/**
+ * Raw dictionary entry returned by the backend.
+ *   - `slug` is the stable identifier shared with every consumer.
+ *   - `name` is the canonical English display label served from the DB.
+ * Frontends use `name` as the default chip label and may override per locale
+ * via the `locationMarketplaceDetails` i18n namespace.
+ */
+export type TagDictionaryEntry = {
+  id: number;
+  slug: string;
+  name: string;
+};
+
+export type LocationTagDictionaries = {
+  amenities: TagDictionaryEntry[];
+  audience: TagDictionaryEntry[];
+  values: TagDictionaryEntry[];
+  accessibility: TagDictionaryEntry[];
+  paymentMethods: TagDictionaryEntry[];
+  languages: TagDictionaryEntry[];
+};
+
+export type LocationMarketplaceTags = {
+  amenityTagIds: number[];
+  audienceTagIds: number[];
+  valueTagIds: number[];
+  accessibilityTagIds: number[];
+  paymentMethodTagIds: number[];
+  languageTagIds: number[];
+};
+
+export const EMPTY_LOCATION_MARKETPLACE_TAGS: LocationMarketplaceTags = {
+  amenityTagIds: [],
+  audienceTagIds: [],
+  valueTagIds: [],
+  accessibilityTagIds: [],
+  paymentMethodTagIds: [],
+  languageTagIds: [],
+};
+
+export const getLocationTagDictionariesApi = async (): Promise<LocationTagDictionaries> => {
+  const { data } = await apiClient().get<{ dictionaries: LocationTagDictionaries }>(
+    "/tags/location-marketplace",
+  );
+  return data.dictionaries;
+};
+
+export const getLocationMarketplaceTagsApi = async (
+  locationId: number,
+): Promise<LocationMarketplaceTags> => {
+  const { data } = await apiClient().get<{ tags: LocationMarketplaceTags }>(
+    `/locations/${locationId}/marketplace-tags`,
+  );
+  return data.tags;
+};
+
+export const updateLocationMarketplaceTagsApi = async (
+  locationId: number,
+  payload: Partial<LocationMarketplaceTags>,
+): Promise<LocationMarketplaceTags> => {
+  const { data } = await apiClient().patch<{
+    message: string;
+    tags: LocationMarketplaceTags;
+  }>(`/locations/${locationId}/marketplace-tags`, payload);
+  return data.tags;
+};

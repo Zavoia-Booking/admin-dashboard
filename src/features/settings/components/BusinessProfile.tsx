@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useTranslation } from 'react-i18next';
-import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, LogOut, FileText, ChevronRight } from 'lucide-react';
+import { Building2, Mail, Phone, Globe, Instagram, Facebook, Camera, Loader2, Lock, Info, FileText, ChevronRight } from 'lucide-react';
 import { Button } from '../../../shared/components/ui/button';
 import { Label } from '../../../shared/components/ui/label';
 import { toast } from 'sonner';
@@ -17,13 +17,12 @@ import MobilePushNotifications from './MobilePushNotifications';
 import { fetchCurrentBusinessAction, updateBusinessAction } from '../../business/actions';
 import type { UpdateBusinessDTO } from '../../business/types';
 import { getCurrentBusinessSelector } from '../../business/selectors';
-import { fetchCurrentUserAction, logoutRequestAction } from '../../auth/actions';
+import { fetchCurrentUserAction } from '../../auth/actions';
 import { setPasswordApi, changeOwnerPasswordApi, changeAccountEmailApi } from '../../auth/api';
 import { translateMessageCode } from '../../../shared/utils/error';
 import type { RootState } from '../../../app/providers/store';
 import { industryApi } from '../../../shared/api/industry.api';
 import type { Industry } from '../../../shared/types/industry';
-import { useIsMobile } from '../../../shared/hooks/use-mobile';
 import { PasswordStrength } from '../../auth/components/PasswordStrength';
 import {
   validatePasswordPolicy,
@@ -104,7 +103,6 @@ interface BusinessProfileProps {
 const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const { t } = useTranslation('settings');
   const dispatch = useDispatch();
-  const isMobile = useIsMobile();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
   const user = useSelector((state: RootState) => state.auth.user);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -952,32 +950,11 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                 </div>
               </div>
 
-              {/* Mobile-only logout */}
-              {isMobile && (
-                <>
-                  <div className="profile-divider" />
-                  <button
-                    type="button"
-                    onClick={() => dispatch(logoutRequestAction.request())}
-                    className="profile-btn-ghost profile-tone-danger"
-                    style={{ width: '100%' }}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    {t('profile.security.logOut')}
-                  </button>
-                </>
-              )}
             </div>
           </section>
 
           {/* Section: Mobile push notifications */}
           <section className="profile-section" aria-labelledby="profile-section-mobile-push">
-            <header className="profile-section-header">
-              <div>
-                <h3 id="profile-section-mobile-push" className="profile-section-title">{t('profile.mobilePush.title')}</h3>
-                <p className="profile-section-sub">{t('profile.mobilePush.description')}</p>
-              </div>
-            </header>
             <MobilePushNotifications />
           </section>
 

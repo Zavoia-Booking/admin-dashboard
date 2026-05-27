@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { RadioGroup, RadioGroupItem } from '../../../shared/components/ui/radio-group';
+import { Switch } from '../../../shared/components/ui/switch';
 import { translateMessageCode } from '../../../shared/utils/error';
 import {
   getMobilePushPreference,
@@ -10,22 +10,35 @@ import {
   type MobilePushPreference,
 } from '../api';
 
-const OPTIONS: MobilePushPreference[] = [
-  'my_notifications',
-  'all_notifications',
-  'no_notifications',
+type Scope = 'mine' | 'team';
+
+const SCOPE_OPTIONS: { value: Scope; titleKey: string; descKey: string }[] = [
+  {
+    value: 'mine',
+    titleKey: 'profile.mobilePush.scope.mine.title',
+    descKey: 'profile.mobilePush.scope.mine.description',
+  },
+  {
+    value: 'team',
+    titleKey: 'profile.mobilePush.scope.team.title',
+    descKey: 'profile.mobilePush.scope.team.description',
+  },
 ];
 
-/**
- * Lets the business owner choose which mobile push notifications they receive on
- * the Zavoia mobile app. The preference is persisted via the API and selecting an
- * option saves it immediately.
- */
+function preferenceToScope(pref: MobilePushPreference): Scope {
+  return pref === 'all_notifications' ? 'team' : 'mine';
+}
+
+function toPreference(on: boolean, scope: Scope): MobilePushPreference {
+  if (!on) return 'no_notifications';
+  return scope === 'team' ? 'all_notifications' : 'my_notifications';
+}
+
 const MobilePushNotifications: React.FC = () => {
   const { t } = useTranslation('settings');
   const [preference, setPreference] = useState<MobilePushPreference | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [savingValue, setSavingValue] = useState<MobilePushPreference | null>(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -44,15 +57,13 @@ const MobilePushNotifications: React.FC = () => {
     };
   }, [t]);
 
-  const handleChange = async (next: string) => {
-    const value = next as MobilePushPreference;
-    if (value === preference || savingValue) return;
-
+  const save = async (next: MobilePushPreference) => {
+    if (next === preference || saving) return;
     const previous = preference;
-    setPreference(value);
-    setSavingValue(value);
+    setPreference(next);
+    setSaving(true);
     try {
-      await updateMobilePushPreference(value);
+      await updateMobilePushPreference(next);
       toast.success(t('profile.mobilePush.saved'));
     } catch (error: any) {
       setPreference(previous);
@@ -63,50 +74,93 @@ const MobilePushNotifications: React.FC = () => {
           : t('profile.mobilePush.saveFailed'),
       );
     } finally {
-      setSavingValue(null);
+      setSaving(false);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="profile-radio-loading">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>{t('profile.mobilePush.loading')}</span>
+      <div className="profile-mobile-push" aria-busy="true">
+        <div className="profile-mobile-push-head">
+          <div className="profile-mobile-push-head-text">
+            <span className="profile-mobile-push-skeleton-line" style={{ width: '52%', height: 15 }} />
+            <span className="profile-mobile-push-skeleton-line" style={{ width: '68%' }} />
+          </div>
+          <span className="profile-mobile-push-skeleton-pill" aria-hidden />
+        </div>
       </div>
     );
   }
 
+  const isOn = preference !== null && preference !== 'no_notifications';
+  const scope: Scope = preference ? preferenceToScope(preference) : 'mine';
+
   return (
-    <RadioGroup
-      className="profile-radio-list"
-      value={preference ?? undefined}
-      onValueChange={handleChange}
-    >
-      {OPTIONS.map((option) => {
-        const id = `mobile-push-${option}`;
-        const selected = preference === option;
-        return (
-          <label
-            key={option}
-            htmlFor={id}
-            className={`profile-radio-option${selected ? ' profile-radio-option-selected' : ''}`}
+    <div className="profile-mobile-push">
+      {/* ── Integrated header: title + description + toggle ── */}
+      <div className="profile-mobile-push-head">
+        <div className="profile-mobile-push-head-text">
+          <h3 id="profile-section-mobile-push" className="profile-section-title">
+            {t('profile.mobilePush.title')}
+          </h3>
+          <p className="profile-section-sub">{t('profile.mobilePush.description')}</p>
+        </div>
+
+        <div className="profile-mobile-push-master-control">
+          {saving && (
+            <span className="profile-mobile-push-master-spinner" aria-hidden>
+              <Loader2 className="size-3.5 animate-spin" />
+            </span>
+          )}
+          <Switch
+            id="mobile-push-master"
+            aria-labelledby="profile-section-mobile-push"
+            checked={isOn}
+            onCheckedChange={(checked) => save(toPreference(checked, scope))}
+            disabled={saving}
+          />
+        </div>
+      </div>
+
+      {/* Scope cards — only rendered when the master toggle is on */}
+      {isOn && (
+        <div className="profile-mobile-push-scope">
+          <div
+            className="profile-mobile-push-scope-grid"
+            role="radiogroup"
+            aria-label={t('profile.mobilePush.scope.label')}
           >
-            <RadioGroupItem value={option} id={id} className="mt-0.5 shrink-0" />
-            <div className="profile-radio-text">
-              <div className="profile-radio-title">
-                {t(`profile.mobilePush.options.${option}.title`)}
-                {savingValue === option && (
-                  <Loader2 className="h-3 w-3 animate-spin text-foreground-3" />
-                )}
-              </div>
-              <div className="profile-radio-desc">
-                {t(`profile.mobilePush.options.${option}.description`)}
-              </div>
-            </div>
-          </label>
-        );
-      })}
-    </RadioGroup>
+            {SCOPE_OPTIONS.map(({ value, titleKey, descKey }) => {
+              const id = `mobile-push-scope-${value}`;
+              const selected = scope === value;
+              return (
+                <label
+                  key={value}
+                  htmlFor={id}
+                  className={`profile-mobile-push-scope-card${selected ? ' selected' : ''}`}
+                >
+                  <input
+                    type="radio"
+                    id={id}
+                    name="mobile-push-scope"
+                    value={value}
+                    checked={selected}
+                    onChange={() => save(toPreference(true, value))}
+                    disabled={saving}
+                    className="sr-only"
+                  />
+                  <span className="profile-mobile-push-scope-card-head">
+                    <span className="profile-mobile-push-scope-card-title">{t(titleKey)}</span>
+                    <span className="profile-mobile-push-scope-card-radio" aria-hidden="true" />
+                  </span>
+                  <span className="profile-mobile-push-scope-card-desc">{t(descKey)}</span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
