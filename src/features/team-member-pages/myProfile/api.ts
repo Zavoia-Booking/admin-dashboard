@@ -12,6 +12,7 @@ export interface MarketplaceProfile {
   displayName: string | null;
   professionalTitle: string | null;
   aboutMe: string | null;
+  yearsOfExperience: number | null;
   interests: string[] | null;
   languages: string[] | null;
   socialLinks: SocialLinks | null;
@@ -27,6 +28,7 @@ export interface UpdateMarketplaceProfilePayload {
   displayName?: string;
   professionalTitle?: string;
   aboutMe?: string;
+  yearsOfExperience?: number;
   interests?: string[];
   languages?: string[];
   socialLinks?: SocialLinks;

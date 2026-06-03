@@ -1,6 +1,6 @@
 import React, { useState, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { User, Briefcase, Instagram, Facebook, Link2, X } from 'lucide-react';
+import { User, Briefcase, Instagram, Facebook, Link2, Award, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Label } from '../../../../shared/components/ui/label';
 import { Card, CardContent } from '../../../../shared/components/ui/card';
@@ -8,6 +8,7 @@ import { Badge } from '../../../../shared/components/ui/badge';
 import { SectionDivider } from '../../../../shared/components/common/SectionDivider';
 import TextField from '../../../../shared/components/forms/fields/TextField';
 import TextareaField from '../../../../shared/components/forms/fields/TextareaField';
+import NumberField from '../../../../shared/components/forms/fields/NumberField';
 import { MultiSelect, type MultiSelectOption } from '../../../../shared/components/common/MultiSelect';
 import { 
   updateMarketplaceProfile,
@@ -22,6 +23,7 @@ interface ProfileFormData {
   displayName: string;
   professionalTitle: string;
   aboutMe: string;
+  yearsOfExperience: number | '';
   languages: string[];
   interests: string[];
   socialLinks: SocialLinks;
@@ -31,6 +33,7 @@ const initialFormData: ProfileFormData = {
   displayName: '',
   professionalTitle: '',
   aboutMe: '',
+  yearsOfExperience: '',
   languages: [],
   interests: [],
   socialLinks: {
@@ -74,6 +77,7 @@ function ProfileTabInner(
       displayName: profile.displayName || '',
       professionalTitle: profile.professionalTitle || '',
       aboutMe: profile.aboutMe || '',
+      yearsOfExperience: profile.yearsOfExperience ?? '',
       languages: profile.languages || [],
       interests: profile.interests || [],
       socialLinks: {
@@ -103,6 +107,7 @@ function ProfileTabInner(
         displayName: formData.displayName || undefined,
         professionalTitle: formData.professionalTitle || undefined,
         aboutMe: formData.aboutMe || undefined,
+        yearsOfExperience: formData.yearsOfExperience === '' ? undefined : formData.yearsOfExperience,
         languages: formData.languages.length > 0 ? formData.languages : undefined,
         interests: formData.interests.length > 0 ? formData.interests : undefined,
         socialLinks: {
@@ -185,6 +190,20 @@ function ProfileTabInner(
                 icon={Briefcase}
                 disabled={isSaving}
                 maxLength={100}
+              />
+              <NumberField
+                label={t('profileTab.yearsOfExperience')}
+                placeholder={t('profileTab.yearsOfExperiencePlaceholder')}
+                value={formData.yearsOfExperience}
+                onChange={(value) => setFormData(prev => ({
+                  ...prev,
+                  yearsOfExperience: value === '' ? '' : Number(value),
+                }))}
+                icon={Award}
+                min={0}
+                max={70}
+                step={1}
+                helpText={t('profileTab.yearsOfExperienceHelp')}
               />
             </div>
           </div>
