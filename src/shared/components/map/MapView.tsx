@@ -82,7 +82,7 @@ export const MapView: React.FC<MapViewProps> = ({
   accessToken,
   center = [0, 0],
   zoom = 9,
-  style = 'streets-v12',
+  style = 'mapbox://styles/zavoia/cmphvlj8p002c01sgdl3q3kpb',
   height = '280px',
   width = '100%',
   marker,
