@@ -48,6 +48,20 @@ export const setLocationPortfolioAction = createAction(
   'marketplace/SET_LOCATION_PORTFOLIO',
 )<SetLocationPortfolioPayload>();
 
+/**
+ * Local Redux sync after a successful business-page hero upload/delete. The API
+ * returns the new hero URL/key; we mirror it into the listing so the Business
+ * Page tab reflects the change immediately without re-fetching.
+ */
+export interface SetListingHeroPayload {
+  heroImageUrl: string | null;
+  heroImageKey: string | null;
+}
+
+export const setListingHeroAction = createAction(
+  'marketplace/SET_LISTING_HERO',
+)<SetListingHeroPayload>();
+
 // Booking Settings Actions
 export const updateBookingSettingsAction = createAsyncAction(
   'marketplace/UPDATE_BOOKING_SETTINGS_REQUEST',

@@ -67,6 +67,10 @@ export default function MarketplacePage() {
     useBusinessPhone: boolean;
     useBusinessDescription: boolean;
     industryTagIds?: number[];
+    tagline?: string;
+    aboutContent?: string;
+    brandColorHex?: string;
+    businessSlug?: string;
   }) => {
     // Note: portfolioImages AND featured image are saved immediately on upload/delete/select,
     // not in the save payload anymore
@@ -84,6 +88,10 @@ export default function MarketplacePage() {
       showServices: true,
       showLocations: true,
       industryTagIds: data.industryTagIds,
+      tagline: data.tagline,
+      aboutContent: data.aboutContent,
+      brandColorHex: data.brandColorHex,
+      businessSlug: data.businessSlug,
     };
 
     dispatch(publishMarketplaceListingAction.request(payload));
@@ -117,6 +125,7 @@ export default function MarketplacePage() {
             locationsWithAssignments={locationCatalog}
             isPublishing={isPublishing}
             isListed={listing.isListed}
+            hiddenBySystem={listing.hiddenBySystem}
             marketplaceName={listing.marketplaceName}
             marketplaceEmail={listing.marketplaceEmail}
             marketplacePhone={listing.marketplacePhone}
@@ -125,6 +134,10 @@ export default function MarketplacePage() {
             useBusinessEmail={listing.useBusinessEmail}
             useBusinessPhone={listing.useBusinessPhone}
             useBusinessDescription={listing.useBusinessDescription}
+            heroImageUrl={listing.heroImageUrl}
+            tagline={listing.tagline}
+            aboutContent={listing.aboutContent}
+            brandColorHex={listing.brandColorHex}
             industries={industries}
             industryTags={industryTags}
             selectedIndustryTags={selectedIndustryTags}

@@ -87,6 +87,18 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         ),
       };
 
+    case getType(actions.setListingHeroAction):
+      return {
+        ...state,
+        listing: state.listing
+          ? {
+              ...state.listing,
+              heroImageUrl: action.payload.heroImageUrl,
+              heroImageKey: action.payload.heroImageKey,
+            }
+          : state.listing,
+      };
+
     case getType(actions.updateLocationMarketplaceFlagsAction.failure):
       return {
         ...state,

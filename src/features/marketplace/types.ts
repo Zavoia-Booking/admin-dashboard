@@ -15,6 +15,7 @@ export interface PortfolioImageData {
 export interface MarketplaceListing {
   businessId: number;
   isListed: boolean;
+  hiddenBySystem?: boolean; // System-driven hide (billing/industry change); listing stays published
   showTeamMembers: boolean;
   showServices: boolean;
   showLocations: boolean;
@@ -26,6 +27,12 @@ export interface MarketplaceListing {
   useBusinessEmail?: boolean; // Use business email or custom
   useBusinessPhone?: boolean; // Use business phone or custom
   useBusinessDescription?: boolean; // Use business description or custom
+  // Business-page (microsite) content
+  heroImageUrl?: string | null; // Hero/cover image URL
+  heroImageKey?: string | null; // R2 storage key for hero deletion
+  tagline?: string | null; // Short business-page tagline
+  aboutContent?: string | null; // Long-form about content
+  brandColorHex?: string | null; // Accent color, hex e.g. #1B9C85
   // Effective values calculated by backend
   effectiveName?: string;
   effectiveEmail?: string;
@@ -114,6 +121,9 @@ export interface LocationWithAssignments extends Location {
   teamMembers: TeamMember[];
   portfolioImages: PortfolioImageData[];
   featuredImage: string | null;
+  // Cached per-location review stats (denormalized on the backend)
+  averageRating?: number | null;
+  totalReviews?: number;
 }
 
 export interface MarketplaceListingResponse {
@@ -141,6 +151,12 @@ export interface PublishMarketplaceListingPayload {
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
   industryTagIds?: number[];
+  // Business-page (microsite) content. tagline/aboutContent/brandColorHex persist on the listing;
+  // businessSlug persists on the business (vanity URL) and is uniqueness-checked server-side.
+  tagline?: string;
+  aboutContent?: string;
+  brandColorHex?: string;
+  businessSlug?: string;
   // Note: Per-location publicity and online-booking flags are toggled inline per location, not in this payload.
   // Note: Assignments are managed in the Assignments flow.
   // Note: Portfolio images AND featured image are saved immediately on change, not on Save.

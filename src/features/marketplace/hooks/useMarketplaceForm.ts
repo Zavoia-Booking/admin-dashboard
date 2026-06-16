@@ -1,7 +1,6 @@
-import { useCallback, useMemo } from 'react';
-import type { Business, LocationWithAssignments } from '../types';
+import { useCallback } from 'react';
+import type { Business } from '../types';
 import { useProfileDetails } from './useProfileDetails';
-import { usePortfolioManagement } from './usePortfolioManagement';
 
 interface UseMarketplaceFormProps {
   business: Business | null;
@@ -9,12 +8,15 @@ interface UseMarketplaceFormProps {
   marketplaceEmail?: string | null;
   marketplacePhone?: string | null;
   marketplaceDescription?: string | null;
+  // Business-page (microsite) content
+  tagline?: string | null;
+  aboutContent?: string | null;
+  brandColorHex?: string | null;
+  businessSlug?: string | null;
   useBusinessName: boolean;
   useBusinessEmail: boolean;
   useBusinessPhone: boolean;
   useBusinessDescription: boolean;
-  selectedLocationId: number | null;
-  locationsWithAssignments: LocationWithAssignments[];
   selectedIndustryTags: { id: number; name: string }[];
   onSave: (data: any) => void;
 }
@@ -25,12 +27,14 @@ export function useMarketplaceForm({
   marketplaceEmail,
   marketplacePhone,
   marketplaceDescription,
+  tagline: initialTagline,
+  aboutContent: initialAboutContent,
+  brandColorHex: initialBrandColorHex,
+  businessSlug: initialBusinessSlug,
   useBusinessName: initialUseBusinessName,
   useBusinessEmail: initialUseBusinessEmail,
   useBusinessPhone: initialUseBusinessPhone,
   useBusinessDescription: initialUseBusinessDescription,
-  selectedLocationId,
-  locationsWithAssignments,
   selectedIndustryTags: initialSelectedIndustryTags,
   onSave,
 }: UseMarketplaceFormProps) {
@@ -41,6 +45,10 @@ export function useMarketplaceForm({
     marketplaceEmail,
     marketplacePhone,
     marketplaceDescription,
+    tagline: initialTagline,
+    aboutContent: initialAboutContent,
+    brandColorHex: initialBrandColorHex,
+    businessSlug: initialBusinessSlug,
     useBusinessName: initialUseBusinessName,
     useBusinessEmail: initialUseBusinessEmail,
     useBusinessPhone: initialUseBusinessPhone,
@@ -48,20 +56,9 @@ export function useMarketplaceForm({
     selectedIndustryTags: initialSelectedIndustryTags,
   });
 
-  const portfolio = usePortfolioManagement({
-    locationId: selectedLocationId,
-    locationsWithAssignments,
-  });
-
-  // True if at least one location has any portfolio image — required for publish.
-  const hasAnyPortfolioImage = useMemo(
-    () => locationsWithAssignments.some((l) => (l.portfolioImages || []).length > 0),
-    [locationsWithAssignments],
-  );
-
-  const isDirty = useMemo(() => {
-    return profile.isDirty || portfolio.isDirty;
-  }, [profile.isDirty, portfolio.isDirty]);
+  // Per-location portfolio is owned by each LocationPanel (its own usePortfolioManagement),
+  // so this form only tracks the business-level profile/branding fields.
+  const isDirty = profile.isDirty;
 
   const handleSave = useCallback(() => {
     const isProfileValid = profile.validateBeforeSave();
@@ -77,6 +74,14 @@ export function useMarketplaceForm({
       useBusinessPhone: profile.useBusinessPhone,
       useBusinessDescription: profile.useBusinessDescription,
       industryTagIds: profile.selectedIndustryTags.map((tag) => tag.id),
+      // tagline/aboutContent have no format validator → send the raw value (incl. "") so a
+      // saved value can be cleared, matching the clearable marketplaceDescription pattern.
+      tagline: profile.tagline,
+      aboutContent: profile.aboutContent,
+      // brandColorHex/businessSlug have @Matches validators that reject "" (and an empty slug
+      // would collide on the partial-unique index), so send undefined when empty.
+      brandColorHex: profile.brandColorHex.trim() || undefined,
+      businessSlug: profile.businessSlug.trim() || undefined,
     });
   }, [profile, business, onSave]);
 
@@ -90,18 +95,20 @@ export function useMarketplaceForm({
     email: profile.email,
     phone: profile.phone,
     description: profile.description,
+    tagline: profile.tagline,
+    aboutContent: profile.aboutContent,
+    brandColorHex: profile.brandColorHex,
+    businessSlug: profile.businessSlug,
     selectedIndustryTags: profile.selectedIndustryTags,
     nameError: profile.nameError,
     emailError: profile.emailError,
     phoneError: profile.phoneError,
     descriptionError: profile.descriptionError,
     industryTagsError: profile.industryTagsError,
+    taglineError: profile.taglineError,
+    brandColorError: profile.brandColorError,
+    slugError: profile.slugError,
     hasValidationErrors: profile.hasValidationErrors,
-
-    // Portfolio (per active location)
-    featuredImageId: portfolio.featuredImageId,
-    portfolio: portfolio.portfolio,
-    hasAnyPortfolioImage,
 
     isDirty,
 
@@ -113,10 +120,11 @@ export function useMarketplaceForm({
     setEmail: profile.setEmail,
     setPhone: profile.setPhone,
     setDescription: profile.setDescription,
+    setTagline: profile.setTagline,
+    setAboutContent: profile.setAboutContent,
+    setBrandColorHex: profile.setBrandColorHex,
+    setBusinessSlug: profile.setBusinessSlug,
     setSelectedIndustryTags: profile.setSelectedIndustryTags,
-
-    setFeaturedImageId: portfolio.setFeaturedImageId,
-    setPortfolio: portfolio.setPortfolio,
 
     handleSave,
   };

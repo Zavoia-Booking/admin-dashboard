@@ -51,6 +51,8 @@
         "billing": "Billing & Subscription"
       },
       "marketplace": {
+        "business": "Business page",
+        "locations": "Locations",
         "profile": "Profile",
         "portfolio": "Portfolio",
         "promotions": "Promotions",

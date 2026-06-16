@@ -45,7 +45,9 @@
   "configuration": {
     "tabs": {
       "profile": "Profil",
-      "portfolio": "Portofoliu"
+      "portfolio": "Portofoliu",
+      "business": "Pagina afacerii",
+      "locations": "Locații"
     },
     "sections": {
       "visibilityAndAppointments": "Vizibilitate și programări online"
@@ -102,6 +104,79 @@
       "label": "Etichete marketplace",
       "description": "Etichetele îi ajută pe clienți să te găsească mai ușor. Alege-le pe cele care descriu cel mai bine serviciile tale.",
       "addAtLeastOne": "Adaugă cel puțin o etichetă înainte de publicare."
+    }
+  },
+  "businessPage": {
+    "errors": {
+      "taglineTooLong": "Sloganul trebuie să aibă cel mult 200 de caractere.",
+      "brandColorInvalid": "Introdu o culoare hex din 6 cifre, ex. #1B9C85.",
+      "slugInvalid": "Folosește 3–100 de litere mici, cifre sau cratime."
+    },
+    "branding": {
+      "title": "Identitate vizuală",
+      "logo": {
+        "label": "Logo",
+        "alt": "Logoul afacerii",
+        "edit": "Schimbă logoul",
+        "uploading": "Se încarcă logoul…",
+        "uploadFailed": "Logoul nu a putut fi încărcat. Încearcă din nou."
+      },
+      "tagline": {
+        "label": "Slogan",
+        "placeholder": "ex. Tunsori și vopsit moderne în centrul orașului"
+      },
+      "hero": {
+        "label": "Imagine de copertă",
+        "description": "Un banner lat afișat în partea de sus a paginii tale publice.",
+        "alt": "Imaginea de copertă a paginii afacerii",
+        "uploadCta": "Adaugă o imagine de copertă",
+        "uploading": "Se încarcă…",
+        "hint": "JPG, PNG, WEBP sau AVIF · până la 10 MB",
+        "replace": "Înlocuiește",
+        "remove": "Elimină imaginea de copertă"
+      },
+      "slug": {
+        "label": "Adresa paginii",
+        "placeholder": "afacerea-ta",
+        "helper": "Aceasta devine linkul paginii tale publice. Doar litere mici, cifre și cratime.",
+        "checking": "Se verifică…",
+        "available": "Disponibilă",
+        "taken": "Indisponibilă"
+      },
+      "brandColor": {
+        "label": "Culoare de accent",
+        "description": "Folosită pentru a evidenția butoanele și linkurile de pe pagina ta publică."
+      }
+    },
+    "about": {
+      "title": "Despre",
+      "label": "Despre afacerea ta",
+      "description": "Spune-le clienților povestea ta, ce te diferențiază și la ce să se aștepte.",
+      "placeholder": "Împărtășește povestea ta, specializările și la ce se pot aștepta clienții…"
+    }
+  },
+  "statusStrip": {
+    "live": "Activ pe marketplace",
+    "hiddenBySystem": "Ascuns — verifică abonamentul sau facturarea pentru a reveni online.",
+    "toGoLive": "Pentru a publica:",
+    "checklist": {
+      "industryTag": "Cel puțin o etichetă de industrie",
+      "detailsValid": "Detaliile afacerii sunt valide"
+    },
+    "locationsVisible": "{{visible}} din {{total}} locații vizibile",
+    "noLocationLive": "Nicio locație nu este activă încă",
+    "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina afacerii."
+  },
+  "locations": {
+    "managePage": "Gestionează pagina",
+    "backToAll": "Toate locațiile",
+    "reviews": {
+      "title": "Recenzii",
+      "count_one": "{{count}} recenzie",
+      "count_few": "{{count}} recenzii",
+      "count_other": "{{count}} de recenzii",
+      "empty": "Nicio recenzie încă",
+      "view": "Vezi recenziile"
     }
   },
   "locationVisibility": {

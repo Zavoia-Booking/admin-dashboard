@@ -45,7 +45,9 @@
   "configuration": {
     "tabs": {
       "profile": "Profile",
-      "portfolio": "Portfolio"
+      "portfolio": "Portfolio",
+      "business": "Business page",
+      "locations": "Locations"
     },
     "sections": {
       "visibilityAndAppointments": "Visibility & online booking"
@@ -102,6 +104,78 @@
       "label": "Marketplace tags",
       "description": "Tags help the right customers find you. Pick those that best describe your services.",
       "addAtLeastOne": "Add at least one tag before publishing."
+    }
+  },
+  "businessPage": {
+    "errors": {
+      "taglineTooLong": "Tagline must be 200 characters or fewer.",
+      "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85.",
+      "slugInvalid": "Use 3–100 lowercase letters, numbers, or hyphens."
+    },
+    "branding": {
+      "title": "Branding",
+      "logo": {
+        "label": "Logo",
+        "alt": "Business logo",
+        "edit": "Change logo",
+        "uploading": "Uploading logo…",
+        "uploadFailed": "Could not upload logo. Please try again."
+      },
+      "tagline": {
+        "label": "Tagline",
+        "placeholder": "e.g. Modern cuts & color in the heart of the city"
+      },
+      "hero": {
+        "label": "Cover image",
+        "description": "A wide banner shown at the top of your public page.",
+        "alt": "Business page cover image",
+        "uploadCta": "Add a cover image",
+        "uploading": "Uploading…",
+        "hint": "JPG, PNG, WEBP or AVIF · up to 10 MB",
+        "replace": "Replace",
+        "remove": "Remove cover image"
+      },
+      "slug": {
+        "label": "Page address",
+        "placeholder": "your-business",
+        "helper": "This becomes your public page link. Lowercase letters, numbers, and hyphens only.",
+        "checking": "Checking…",
+        "available": "Available",
+        "taken": "Taken"
+      },
+      "brandColor": {
+        "label": "Accent color",
+        "description": "Used to highlight buttons and links on your public page."
+      }
+    },
+    "about": {
+      "title": "About",
+      "label": "About your business",
+      "description": "Tell clients your story, what makes you different, and what to expect.",
+      "placeholder": "Share your story, specialties, and what clients can expect…"
+    }
+  },
+  "statusStrip": {
+    "live": "Live on marketplace",
+    "hiddenBySystem": "Hidden — check your subscription or billing to go live again.",
+    "toGoLive": "To go live:",
+    "checklist": {
+      "industryTag": "At least one industry tag",
+      "detailsValid": "Business details valid"
+    },
+    "locationsVisible": "{{visible}} of {{total}} locations visible",
+    "noLocationLive": "No location is live yet",
+    "locationsWaitingPublish": "Public locations will appear once you publish your business page."
+  },
+  "locations": {
+    "managePage": "Manage page",
+    "backToAll": "All locations",
+    "reviews": {
+      "title": "Reviews",
+      "count_one": "{{count}} review",
+      "count_other": "{{count}} reviews",
+      "empty": "No reviews yet",
+      "view": "View reviews"
     }
   },
   "locationVisibility": {

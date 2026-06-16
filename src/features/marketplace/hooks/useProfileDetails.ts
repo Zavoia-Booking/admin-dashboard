@@ -9,6 +9,11 @@ interface UseProfileDetailsProps {
   marketplaceEmail?: string | null;
   marketplacePhone?: string | null;
   marketplaceDescription?: string | null;
+  // Business-page (microsite) content
+  tagline?: string | null;
+  aboutContent?: string | null;
+  brandColorHex?: string | null;
+  businessSlug?: string | null;
   useBusinessName: boolean;
   useBusinessEmail: boolean;
   useBusinessPhone: boolean;
@@ -22,6 +27,10 @@ export function useProfileDetails({
   marketplaceEmail,
   marketplacePhone,
   marketplaceDescription,
+  tagline: initialTagline,
+  aboutContent: initialAboutContent,
+  brandColorHex: initialBrandColorHex,
+  businessSlug: initialBusinessSlug,
   useBusinessName: initialUseBusinessName,
   useBusinessEmail: initialUseBusinessEmail,
   useBusinessPhone: initialUseBusinessPhone,
@@ -39,6 +48,12 @@ export function useProfileDetails({
   const [phone, setPhone] = useState<string>(marketplacePhone || business?.phone || '');
   const [description, setDescription] = useState<string>(marketplaceDescription || business?.description || '');
 
+  // Business-page (microsite) content
+  const [tagline, setTagline] = useState<string>(initialTagline || '');
+  const [aboutContent, setAboutContent] = useState<string>(initialAboutContent || '');
+  const [brandColorHex, setBrandColorHex] = useState<string>(initialBrandColorHex || '');
+  const [businessSlug, setBusinessSlug] = useState<string>(initialBusinessSlug || '');
+
   const [selectedIndustryTags, setSelectedIndustryTags] = useState<{ id: number; name: string }[]>(initialSelectedIndustryTags);
 
   // Validation state
@@ -47,6 +62,10 @@ export function useProfileDetails({
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [industryTagsError, setIndustryTagsError] = useState<string | null>(null);
+  // Business-page field errors (format only; slug uniqueness is checked separately + on publish)
+  const [taglineError, setTaglineError] = useState<string | null>(null);
+  const [brandColorError, setBrandColorError] = useState<string | null>(null);
+  const [slugError, setSlugError] = useState<string | null>(null);
 
   // Clear/validate errors when toggle changes
   useEffect(() => {
@@ -94,6 +113,27 @@ export function useProfileDetails({
     }
   }, [useBusinessDescription, description, t]);
 
+  // Business-page field validation (all optional; only flag malformed non-empty values)
+  useEffect(() => {
+    setTaglineError(tagline.length > 200 ? t('businessPage.errors.taglineTooLong') : null);
+  }, [tagline, t]);
+
+  useEffect(() => {
+    setBrandColorError(
+      brandColorHex && !/^#[0-9a-fA-F]{6}$/.test(brandColorHex)
+        ? t('businessPage.errors.brandColorInvalid')
+        : null,
+    );
+  }, [brandColorHex, t]);
+
+  useEffect(() => {
+    setSlugError(
+      businessSlug && !/^[a-z0-9-]{3,100}$/.test(businessSlug)
+        ? t('businessPage.errors.slugInvalid')
+        : null,
+    );
+  }, [businessSlug, t]);
+
   const handleNameChange = (value: string) => {
     setName(value);
   };
@@ -117,6 +157,10 @@ export function useProfileDetails({
     setEmail(marketplaceEmail || business?.email || '');
     setPhone(marketplacePhone || business?.phone || '');
     setDescription(marketplaceDescription || business?.description || '');
+    setTagline(initialTagline || '');
+    setAboutContent(initialAboutContent || '');
+    setBrandColorHex(initialBrandColorHex || '');
+    setBusinessSlug(initialBusinessSlug || '');
     setSelectedIndustryTags(initialSelectedIndustryTags);
   }, [
     initialUseBusinessName,
@@ -127,6 +171,10 @@ export function useProfileDetails({
     marketplaceEmail,
     marketplacePhone,
     marketplaceDescription,
+    initialTagline,
+    initialAboutContent,
+    initialBrandColorHex,
+    initialBusinessSlug,
     business?.name,
     business?.email,
     business?.phone,
@@ -145,6 +193,10 @@ export function useProfileDetails({
       email !== (marketplaceEmail || business?.email || '') ||
       phone !== (marketplacePhone || business?.phone || '') ||
       description !== (marketplaceDescription || business?.description || '') ||
+      tagline !== (initialTagline || '') ||
+      aboutContent !== (initialAboutContent || '') ||
+      brandColorHex !== (initialBrandColorHex || '') ||
+      businessSlug !== (initialBusinessSlug || '') ||
       JSON.stringify(selectedIndustryTags.map(t => t.id).sort()) !== JSON.stringify(initialSelectedIndustryTags.map(t => t.id).sort())
     );
   }, [
@@ -156,6 +208,10 @@ export function useProfileDetails({
     email, marketplaceEmail, business?.email,
     phone, marketplacePhone, business?.phone,
     description, marketplaceDescription, business?.description,
+    tagline, initialTagline,
+    aboutContent, initialAboutContent,
+    brandColorHex, initialBrandColorHex,
+    businessSlug, initialBusinessSlug,
     selectedIndustryTags, initialSelectedIndustryTags
   ]);
 
@@ -184,9 +240,14 @@ export function useProfileDetails({
     if (selectedIndustryTags.length === 0) {
       return true;
     }
-    
+
+    // Malformed business-page fields block publish.
+    if (taglineError || brandColorError || slugError) {
+      return true;
+    }
+
     return false;
-  }, [useBusinessName, nameError, useBusinessEmail, useBusinessPhone, emailError, phoneError, useBusinessDescription, descriptionError, selectedIndustryTags]);
+  }, [useBusinessName, nameError, useBusinessEmail, useBusinessPhone, emailError, phoneError, useBusinessDescription, descriptionError, selectedIndustryTags, taglineError, brandColorError, slugError]);
 
   // Validate before save
   const validateBeforeSave = () => {
@@ -231,6 +292,20 @@ export function useProfileDetails({
       setIndustryTagsError(null);
     }
 
+    // Validate business-page fields (optional, but reject malformed non-empty values)
+    if (tagline.length > 200) {
+      setTaglineError(t('businessPage.errors.taglineTooLong'));
+      isValid = false;
+    }
+    if (brandColorHex && !/^#[0-9a-fA-F]{6}$/.test(brandColorHex)) {
+      setBrandColorError(t('businessPage.errors.brandColorInvalid'));
+      isValid = false;
+    }
+    if (businessSlug && !/^[a-z0-9-]{3,100}$/.test(businessSlug)) {
+      setSlugError(t('businessPage.errors.slugInvalid'));
+      isValid = false;
+    }
+
     return isValid;
   };
 
@@ -244,6 +319,10 @@ export function useProfileDetails({
     email,
     phone,
     description,
+    tagline,
+    aboutContent,
+    brandColorHex,
+    businessSlug,
     selectedIndustryTags,
     isDirty,
     nameError,
@@ -251,6 +330,9 @@ export function useProfileDetails({
     phoneError,
     descriptionError,
     industryTagsError,
+    taglineError,
+    brandColorError,
+    slugError,
     hasValidationErrors,
     // Setters
     setUseBusinessName,
@@ -261,6 +343,10 @@ export function useProfileDetails({
     setEmail: handleEmailChange,
     setPhone: handlePhoneChange,
     setDescription,
+    setTagline,
+    setAboutContent,
+    setBrandColorHex,
+    setBusinessSlug,
     setSelectedIndustryTags,
     validateBeforeSave,
   };
