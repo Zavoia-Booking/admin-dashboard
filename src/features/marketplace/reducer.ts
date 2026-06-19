@@ -47,7 +47,15 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       return { ...state, isPublishing: true, error: null };
 
     case getType(actions.publishMarketplaceListingAction.success):
-      return { ...state, isPublishing: false, error: null };
+      // The POST resolved 200, so the server set isListed=true. Reflect it immediately (the saga
+      // also refetches) so the status strip doesn't flash back to the "to go live" checklist with a
+      // re-enabled Publish button during the window between success and the refetch landing.
+      return {
+        ...state,
+        isPublishing: false,
+        error: null,
+        listing: state.listing ? { ...state.listing, isListed: true } : state.listing,
+      };
 
     case getType(actions.publishMarketplaceListingAction.failure):
       return { ...state, isPublishing: false, error: action.payload.message };
@@ -97,6 +105,14 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
               heroImageKey: action.payload.heroImageKey,
             }
           : state.listing,
+      };
+
+    case getType(actions.setBusinessLogoAction):
+      return {
+        ...state,
+        business: state.business
+          ? { ...state.business, logo: action.payload.logo, logoKey: action.payload.logoKey }
+          : state.business,
       };
 
     case getType(actions.updateLocationMarketplaceFlagsAction.failure):

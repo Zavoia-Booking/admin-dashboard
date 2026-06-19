@@ -141,5 +141,9 @@ export interface ReviewsState {
   teamMemberReviewsTotal: number;
   teamMemberReviewsLoading: boolean;
   teamMemberReviewsMoreLoading: boolean;
+  /** Curated 5★ reviews-with-comments for the business-page preview. Separate from `businessReviews`
+   *  so the Reviews tab's own filtered fetch never clobbers the preview's highlight quotes. */
+  highlightReviews: BusinessReview[];
+  highlightReviewsLoading: boolean;
   error: string | null;
 }

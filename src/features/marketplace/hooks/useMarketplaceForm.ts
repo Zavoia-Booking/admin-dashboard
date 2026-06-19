@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
-import type { Business } from '../types';
+import type { Business, SectionEntry, PageTheme, FaqItem, AnnouncementContent, PublishMarketplaceListingPayload } from '../types';
 import { useProfileDetails } from './useProfileDetails';
+import { useBusinessPageBuilder } from './useBusinessPageBuilder';
 
 interface UseMarketplaceFormProps {
   business: Business | null;
@@ -12,13 +13,17 @@ interface UseMarketplaceFormProps {
   tagline?: string | null;
   aboutContent?: string | null;
   brandColorHex?: string | null;
-  businessSlug?: string | null;
+  // Section builder (v1)
+  pageLayout?: SectionEntry[] | null;
+  pageTheme?: PageTheme | null;
+  faq?: FaqItem[] | null;
+  announcement?: AnnouncementContent | null;
   useBusinessName: boolean;
   useBusinessEmail: boolean;
   useBusinessPhone: boolean;
   useBusinessDescription: boolean;
   selectedIndustryTags: { id: number; name: string }[];
-  onSave: (data: any) => void;
+  onSave: (data: PublishMarketplaceListingPayload) => void;
 }
 
 export function useMarketplaceForm({
@@ -30,7 +35,10 @@ export function useMarketplaceForm({
   tagline: initialTagline,
   aboutContent: initialAboutContent,
   brandColorHex: initialBrandColorHex,
-  businessSlug: initialBusinessSlug,
+  pageLayout,
+  pageTheme,
+  faq,
+  announcement,
   useBusinessName: initialUseBusinessName,
   useBusinessEmail: initialUseBusinessEmail,
   useBusinessPhone: initialUseBusinessPhone,
@@ -48,7 +56,6 @@ export function useMarketplaceForm({
     tagline: initialTagline,
     aboutContent: initialAboutContent,
     brandColorHex: initialBrandColorHex,
-    businessSlug: initialBusinessSlug,
     useBusinessName: initialUseBusinessName,
     useBusinessEmail: initialUseBusinessEmail,
     useBusinessPhone: initialUseBusinessPhone,
@@ -56,17 +63,23 @@ export function useMarketplaceForm({
     selectedIndustryTags: initialSelectedIndustryTags,
   });
 
-  // Per-location portfolio is owned by each LocationPanel (its own usePortfolioManagement),
-  // so this form only tracks the business-level profile/branding fields.
-  const isDirty = profile.isDirty;
+  const builder = useBusinessPageBuilder({ pageLayout, pageTheme, faq, announcement });
+
+  // Save is dirty if either the profile/branding fields or the section builder changed.
+  const isDirty = profile.isDirty || builder.isDirty;
 
   const handleSave = useCallback(() => {
     const isProfileValid = profile.validateBeforeSave();
     if (!isProfileValid) return;
 
+    // Brand colour lives in the profile form (single source); merged into pageTheme by the builder.
+    const brandColor = profile.brandColorHex.trim() || null;
+
     onSave({
       marketplaceName: profile.useBusinessName ? (business?.name || '') : profile.name,
-      marketplaceEmail: profile.useBusinessEmail ? (business?.email || '') : profile.email,
+      // A1: when inheriting the business email, send undefined (not "") — an empty string fails the
+      // backend @IsEmail and would 400 a publish for a business that has no contact email on file.
+      marketplaceEmail: profile.useBusinessEmail ? undefined : profile.email,
       marketplacePhone: profile.useBusinessPhone ? (business?.phone || '') : profile.phone,
       marketplaceDescription: profile.useBusinessDescription ? (business?.description || '') : profile.description,
       useBusinessName: profile.useBusinessName,
@@ -78,12 +91,13 @@ export function useMarketplaceForm({
       // saved value can be cleared, matching the clearable marketplaceDescription pattern.
       tagline: profile.tagline,
       aboutContent: profile.aboutContent,
-      // brandColorHex/businessSlug have @Matches validators that reject "" (and an empty slug
-      // would collide on the partial-unique index), so send undefined when empty.
-      brandColorHex: profile.brandColorHex.trim() || undefined,
-      businessSlug: profile.businessSlug.trim() || undefined,
+      // brandColorHex has a @Matches validator that rejects "" → send undefined when empty.
+      brandColorHex: brandColor ?? undefined,
+      // businessSlug is system-generated on the backend (V1, non-editable) — not sent.
+      // Section builder slice: ordered layout + theme (brand colour + font) + net-new content.
+      ...builder.getBuilderPayload(brandColor),
     });
-  }, [profile, business, onSave]);
+  }, [profile, builder, business, onSave]);
 
   return {
     // Profile state
@@ -98,7 +112,8 @@ export function useMarketplaceForm({
     tagline: profile.tagline,
     aboutContent: profile.aboutContent,
     brandColorHex: profile.brandColorHex,
-    businessSlug: profile.businessSlug,
+    // Effective public name → the read-only page-address slug is derived from this in the UI.
+    pageName: profile.useBusinessName ? (business?.name ?? '') : profile.name,
     selectedIndustryTags: profile.selectedIndustryTags,
     nameError: profile.nameError,
     emailError: profile.emailError,
@@ -107,7 +122,6 @@ export function useMarketplaceForm({
     industryTagsError: profile.industryTagsError,
     taglineError: profile.taglineError,
     brandColorError: profile.brandColorError,
-    slugError: profile.slugError,
     hasValidationErrors: profile.hasValidationErrors,
 
     isDirty,
@@ -123,8 +137,20 @@ export function useMarketplaceForm({
     setTagline: profile.setTagline,
     setAboutContent: profile.setAboutContent,
     setBrandColorHex: profile.setBrandColorHex,
-    setBusinessSlug: profile.setBusinessSlug,
     setSelectedIndustryTags: profile.setSelectedIndustryTags,
+
+    // Section builder state + operations (consumed by the builder UI)
+    layout: builder.layout,
+    fontKey: builder.fontKey,
+    faqItems: builder.faqItems,
+    announcementContent: builder.announcementContent,
+    reorderSections: builder.reorder,
+    toggleSectionVisible: builder.toggleVisible,
+    setSectionVariant: builder.setVariant,
+    setSectionConfig: builder.setSectionConfig,
+    setFontKey: builder.setFontKey,
+    setFaqItems: builder.setFaqItems,
+    setAnnouncementContent: builder.setAnnouncementContent,
 
     handleSave,
   };

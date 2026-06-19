@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
@@ -10,12 +11,20 @@ import { AlertTriangle } from "lucide-react";
 import type {
   Business,
   LocationWithAssignments,
+  SectionEntry,
+  PageTheme,
+  FaqItem,
+  AnnouncementContent,
+  PublishMarketplaceListingPayload,
 } from "../types";
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
+import { fetchReviewStatsAction, fetchHighlightReviewsAction } from "../../reviews/actions";
+import { selectReviewStats, selectHighlightReviews } from "../../reviews/selectors";
 
 import { BusinessPageTab } from "./business/BusinessPageTab";
+import type { PreviewReview } from "./business/builder/LivePreview";
 import { LocationsTab } from "./locations/LocationsTab";
 import { MarketplacePublishStatusStrip } from "./MarketplacePublishStatusStrip";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
@@ -27,7 +36,6 @@ interface ListingConfigurationViewProps {
   locationsWithAssignments: LocationWithAssignments[];
   isPublishing: boolean;
   isListed: boolean;
-  hiddenBySystem?: boolean;
   marketplaceName?: string | null;
   marketplaceEmail?: string | null;
   marketplacePhone?: string | null;
@@ -41,10 +49,15 @@ interface ListingConfigurationViewProps {
   tagline?: string | null;
   aboutContent?: string | null;
   brandColorHex?: string | null;
+  // Section builder (v1)
+  pageLayout?: SectionEntry[] | null;
+  pageTheme?: PageTheme | null;
+  faq?: FaqItem[] | null;
+  announcement?: AnnouncementContent | null;
   industries: any[];
   industryTags: any[];
   selectedIndustryTags: any[];
-  onSave: (data: any) => void;
+  onSave: (data: PublishMarketplaceListingPayload) => void;
 }
 
 export function ListingConfigurationView(props: ListingConfigurationViewProps) {
@@ -74,6 +87,49 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
   const canWrite = useCanWrite();
 
+  // Business-page preview data sourced from the reviews store: real 5★ quotes (their own slice, so the
+  // Reviews tab's filtered fetch never clobbers them) + per-member ratings from the filter-independent
+  // stats. Fetched once on mount; the preview degrades gracefully to aggregate-only if either is empty.
+  const dispatch = useDispatch();
+  const reviewStats = useSelector(selectReviewStats);
+  const highlightReviews = useSelector(selectHighlightReviews);
+
+  useEffect(() => {
+    dispatch(fetchReviewStatsAction.request());
+    dispatch(
+      fetchHighlightReviewsAction.request({
+        rating: 5,
+        withCommentsOnly: true,
+        sortBy: "rating",
+        sortOrder: "DESC",
+        limit: 12,
+      }),
+    );
+  }, [dispatch]);
+
+  const teamRatings = useMemo(() => {
+    const map: Record<number, { rating: number; count: number }> = {};
+    (reviewStats?.teamMembers ?? []).forEach((tm) => {
+      if (tm.totalReviews > 0) map[tm.teamMemberId] = { rating: tm.averageRating, count: tm.totalReviews };
+    });
+    return map;
+  }, [reviewStats]);
+
+  const previewReviews = useMemo<PreviewReview[]>(
+    () =>
+      highlightReviews
+        .filter((r) => (r.comment ?? "").trim())
+        .map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          comment: (r.comment ?? "").trim(),
+          customerName: [r.customer.firstName, r.customer.lastName].filter(Boolean).join(" ").trim(),
+          locationName: r.location?.name ?? null,
+          createdAt: r.createdAt,
+        })),
+    [highlightReviews],
+  );
+
   // Sync with URL changes (map legacy tab names: profile/booking-settings → business, portfolio → locations)
   useEffect(() => {
     const rawTab = searchParams.get("tab");
@@ -99,7 +155,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     tagline: props.tagline,
     aboutContent: props.aboutContent,
     brandColorHex: props.brandColorHex,
-    businessSlug: props.business?.businessSlug,
+    pageLayout: props.pageLayout,
+    pageTheme: props.pageTheme,
+    faq: props.faq,
+    announcement: props.announcement,
     useBusinessName: props.useBusinessName ?? true,
     useBusinessEmail: props.useBusinessEmail ?? true,
     useBusinessPhone: props.useBusinessPhone ?? true,
@@ -281,7 +340,17 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   })();
 
   const industryTagOk = form.selectedIndustryTags.length > 0;
-  const detailsOk = !form.hasValidationErrors;
+  // "Details valid" is about the profile/branding fields only — the industry tag has its own
+  // checklist row, so exclude it here (hasValidationErrors folds the tag check in, which would make
+  // both rows fail for a single missing tag).
+  const detailsOk = !(
+    form.nameError ||
+    form.emailError ||
+    form.phoneError ||
+    form.descriptionError ||
+    form.taglineError ||
+    form.brandColorError
+  );
 
   // Persistent business-level go-live status strip. Rendered at the top of every
   // tab panel (ResponsiveTabs keeps panels mounted but only shows the active one,
@@ -297,7 +366,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         industryTagOk={industryTagOk}
         detailsOk={detailsOk}
         locations={locationsWithAssignments}
-        hiddenBySystem={props.hiddenBySystem}
         onPublish={handleCombinedSave}
       />
     </div>
@@ -317,7 +385,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             heroImageUrl={props.heroImageUrl ?? null}
             industries={props.industries}
             industryTags={props.industryTags}
+            locations={locationsWithAssignments}
             form={form}
+            reviews={previewReviews}
+            teamRatings={teamRatings}
           />
         </>
       ),

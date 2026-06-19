@@ -44,8 +44,6 @@
   },
   "configuration": {
     "tabs": {
-      "profile": "Profile",
-      "portfolio": "Portfolio",
       "business": "Business page",
       "locations": "Locations"
     },
@@ -86,8 +84,9 @@
     },
     "description": {
       "label": "Description",
-      "useBusinessDescription": "Showcase your business overview to marketplace users. This info is pulled from your global profile settings automatically.",
-      "customDescription": "Tell clients what you offer, who you help, and why they should choose your business. Keep it simple, clear, and focused on what makes you great.",
+      "placement": "Shown on your marketplace card when people search or browse.",
+      "useBusinessDescription": "Pulled automatically from your global profile and shown on your marketplace card.",
+      "customDescription": "A short pitch for your marketplace card — what you offer and why clients should choose you. Keep it to a sentence or two.",
       "placeholder": "What do you offer, and why should people choose you?",
       "noDescription": "No profile description found. To keep your branding consistent, update your business settings—or switch to custom mode to write a tailored version for the marketplace.",
       "custom": "Custom"
@@ -109,8 +108,7 @@
   "businessPage": {
     "errors": {
       "taglineTooLong": "Tagline must be 200 characters or fewer.",
-      "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85.",
-      "slugInvalid": "Use 3–100 lowercase letters, numbers, or hyphens."
+      "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85."
     },
     "branding": {
       "title": "Branding",
@@ -137,27 +135,212 @@
       },
       "slug": {
         "label": "Page address",
-        "placeholder": "your-business",
-        "helper": "This becomes your public page link. Lowercase letters, numbers, and hyphens only.",
-        "checking": "Checking…",
-        "available": "Available",
-        "taken": "Taken"
+        "autoHint": "We create this automatically from your business name."
       },
       "brandColor": {
         "label": "Accent color",
+        "pickerLabel": "Pick accent color",
         "description": "Used to highlight buttons and links on your public page."
       }
     },
     "about": {
-      "title": "About",
       "label": "About your business",
       "description": "Tell clients your story, what makes you different, and what to expect.",
       "placeholder": "Share your story, specialties, and what clients can expect…"
+    },
+    "sections": {
+      "announcement": {
+        "label": "Announcement",
+        "description": "A short promotional message, shown as a top bar or an inline banner."
+      },
+      "hero": {
+        "label": "Hero",
+        "description": "Your cover image, name and tagline. The top of your page."
+      },
+      "marquee": {
+        "label": "Marquee",
+        "description": "A moving strip of your service categories, shown between sections."
+      },
+      "about": {
+        "label": "About",
+        "description": "Write your story — shown on your business page."
+      },
+      "locations": {
+        "label": "Locations",
+        "description": "Cards for your locations that link to each booking page. Choose which to show."
+      },
+      "gallery": {
+        "label": "Gallery",
+        "description": "A gallery built from your locations' portfolio photos."
+      },
+      "team": {
+        "label": "Team",
+        "description": "Your team members, gathered from your locations."
+      },
+      "interlude": {
+        "label": "Interlude",
+        "description": "A full-width photo break with a short line, for rhythm between sections."
+      },
+      "testimonials": {
+        "label": "Reviews",
+        "description": "Your overall rating and review count."
+      },
+      "faq": {
+        "label": "FAQ",
+        "description": "Answer common questions up front. Add questions and answers in this section's settings."
+      },
+      "contact": {
+        "label": "Contact",
+        "description": "Your public email, phone and social links."
+      },
+      "variants": {
+        "default": "Default",
+        "bar": "Top bar",
+        "inline": "Inline",
+        "centered": "Centered",
+        "split": "Split",
+        "minimal": "Minimal",
+        "simple": "Simple",
+        "imageLeft": "Image left",
+        "cards": "Cards",
+        "list": "List",
+        "grid": "Grid",
+        "carousel": "Carousel",
+        "accordion": "Accordion",
+        "quote": "Quote"
+      }
+    },
+    "theme": {
+      "fontLabel": "Font style",
+      "fonts": {
+        "modern": "Modern",
+        "classic": "Classic",
+        "elegant": "Elegant",
+        "friendly": "Friendly"
+      }
+    },
+    "builder": {
+      "eyebrow": "Website",
+      "studioTitle": "Your public page",
+      "studioHelper": "Arrange the sections, set the brand, see it live.",
+      "openPreview": "Open preview",
+      "sectionsShown": "{{shown}} of {{total}} shown",
+      "sectionPreview": "Preview · this section",
+      "moveUp": "Move section up",
+      "moveDown": "Move section down",
+      "title": "Page sections",
+      "description": "Drag to reorder, show or hide sections, and open one to edit it. The preview below updates as you go.",
+      "sectionsLabel": "Sections",
+      "previewLabel": "Live preview",
+      "previewExpand": "Open fullscreen preview",
+      "previewCta": "Preview my page",
+      "variantLabel": "Layout",
+      "contentLanguage": "Content language",
+      "langGroup": "Preview language",
+      "deviceGroup": "Preview device",
+      "deviceDesktop": "Desktop",
+      "deviceMobile": "Mobile",
+      "card": {
+        "drag": "Reorder",
+        "hidden": "Hidden",
+        "hide": "Hide section",
+        "show": "Show section",
+        "edit": "Edit",
+        "editing": "Editing"
+      },
+      "settings": {
+        "locationsHint": "Choose which locations appear on your page.",
+        "locationsNone": "You don't have any locations yet.",
+        "noSettings": "This section has no extra settings."
+      },
+      "faq": {
+        "add": "Add question",
+        "remove": "Remove",
+        "empty": "No questions yet. Add your first one.",
+        "questionPlaceholder": "Question",
+        "answerPlaceholder": "Answer"
+      },
+      "announcement": {
+        "messageLabel": "Message",
+        "messagePlaceholder": "e.g. 20% off your first visit",
+        "linkLabel": "Link (optional)",
+        "linkPlaceholder": "https://…"
+      },
+      "preview": {
+        "allHidden": "All sections are hidden. Show at least one to preview your page.",
+        "book": "Book",
+        "getStarted": "Get started",
+        "businessNamePlaceholder": "Your business",
+        "aboutTitle": "About us",
+        "aboutEmpty": "Your About text will appear here.",
+        "locationsTitle": "Locations",
+        "locationsEmpty": "Your locations will appear here.",
+        "noAddress": "Address not set",
+        "galleryTitle": "Gallery",
+        "galleryEmpty": "Add portfolio photos to your locations to fill this gallery.",
+        "teamTitle": "Our team",
+        "teamEmpty": "Your team members will appear here.",
+        "teamMember": "Team member",
+        "teamRoleOwner": "Owner",
+        "testimonialsTitle": "What clients say",
+        "testimonialsEmpty": "Your reviews will appear here once you have some.",
+        "reviewsCount": "{{count}} reviews",
+        "faqTitle": "FAQ",
+        "faqEmpty": "Add questions in the FAQ section settings.",
+        "contactTitle": "Get in touch",
+        "contactEmpty": "Add contact details and social links.",
+        "galleryHeading": "A look inside.",
+        "reviewsHeading": "Loved by our clients.",
+        "contactHeading": "Come say hello.",
+        "statRating": "Rating",
+        "contactAddress": "Address",
+        "contactReach": "Get in touch",
+        "contactFollow": "Follow",
+        "contactHours": "Opening hours",
+        "contactClosed": "Closed",
+        "contactOpen247": "Open 24h",
+        "days": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
+        },
+        "locationCount_one": "{{count}} location",
+        "locationCount_other": "{{count}} locations",
+        "footer": {
+          "nowViewing": "Now viewing",
+          "poweredBy": "Powered by Zavoia",
+          "rights": "© {{year}} {{name}}"
+        },
+        "hero": {
+          "scrollCue": "Scroll"
+        },
+        "subhead": {
+          "locations": "Where to find us.",
+          "team": "Meet the team.",
+          "faq": "Questions, answered."
+        },
+        "sublede": {
+          "locations": "Each location keeps its own team and hours. Choose where you'd like to visit.",
+          "team": "The people who'll look after you."
+        },
+        "kicker": {
+          "about": "About",
+          "locations": "Locations",
+          "gallery": "Gallery",
+          "team": "Team",
+          "reviews": "Reviews",
+          "faq": "FAQ",
+          "contact": "Visit"
+        }
+      }
     }
   },
   "statusStrip": {
     "live": "Live on marketplace",
-    "hiddenBySystem": "Hidden — check your subscription or billing to go live again.",
     "toGoLive": "To go live:",
     "checklist": {
       "industryTag": "At least one industry tag",
@@ -399,6 +582,8 @@
       "onlineBookingUpdateFailed": "Could not update online booking settings. Please try again.",
       "bookingSettingsSaveFailed": "Could not save booking settings. Please try again.",
       "listingDataLoadFailed": "Could not load marketplace listing data. Please try again."
-    }
+    },
+    "loadError": "We couldn't load your marketplace data.",
+    "retry": "Try again"
   }
 }

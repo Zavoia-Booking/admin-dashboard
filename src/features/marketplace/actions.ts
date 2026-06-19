@@ -62,6 +62,21 @@ export const setListingHeroAction = createAction(
   'marketplace/SET_LISTING_HERO',
 )<SetListingHeroPayload>();
 
+/**
+ * Local Redux sync after a successful business logo upload. The logo is saved
+ * immediately via the settings API and lives on the BUSINESS entity; mirror it
+ * into marketplace state so the Business Page preview (which reads business.logo)
+ * reflects the new logo without waiting for a full listing refetch.
+ */
+export interface SetBusinessLogoPayload {
+  logo: string;
+  logoKey: string;
+}
+
+export const setBusinessLogoAction = createAction(
+  'marketplace/SET_BUSINESS_LOGO',
+)<SetBusinessLogoPayload>();
+
 // Booking Settings Actions
 export const updateBookingSettingsAction = createAsyncAction(
   'marketplace/UPDATE_BOOKING_SETTINGS_REQUEST',

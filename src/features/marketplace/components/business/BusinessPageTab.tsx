@@ -1,11 +1,12 @@
-import { Card, CardContent } from "../../../../shared/components/ui/card";
 import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
-import type { Business, Industry, IndustryTag } from "../../types";
+import type { Business, Industry, IndustryTag, LocationWithAssignments } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { MarketplaceDetailsSection } from "../profile/MarketplaceDetailsSection";
 import IndustrySection from "../profile/IndustrySection";
 import { BrandingSection } from "./BrandingSection";
-import { AboutSection } from "./AboutSection";
+import { SectionBuilder } from "./builder/SectionBuilder";
+import { ThemePanel } from "./builder/ThemePanel";
+import type { PreviewReview } from "./builder/LivePreview";
 
 interface BusinessPageTabProps {
   business: Business | null;
@@ -13,13 +14,23 @@ interface BusinessPageTabProps {
   heroImageUrl: string | null;
   industries: Industry[];
   industryTags: IndustryTag[];
+  locations: LocationWithAssignments[];
   form: ReturnType<typeof useMarketplaceForm>;
+  /** Real 5★ quotes + per-member ratings for the live preview (from the reviews store). */
+  reviews?: PreviewReview[];
+  teamRatings?: Record<number, { rating: number; count: number }>;
 }
 
 /**
- * Business-level "page" tab: branding (logo / hero / tagline / slug / accent
- * color), public contact details, about content, and industry tags. All
- * business-scoped data the owner fills in for their public microsite.
+ * Business-level "page" tab — a single scrolling form, top to bottom:
+ *  1. Page details   → public contact details (incl. the marketplace-card description) and the
+ *     mandatory industry tags.
+ *  2. Branding & theme → logo / slug / brand colour + font personality (global identity, reused across
+ *     the marketplace).
+ *  3. Page sections  → arrange the public page (reorder / show-hide / variant) and edit each section's
+ *     own content inline — Hero (tagline + cover) / About / FAQ / Announcement — with the live preview
+ *     opened on demand. The remaining sections are a themed *view* over the data above; nothing is
+ *     duplicated.
  */
 export function BusinessPageTab({
   business,
@@ -27,32 +38,21 @@ export function BusinessPageTab({
   heroImageUrl,
   industries,
   industryTags,
+  locations,
   form,
+  reviews,
+  teamRatings,
 }: BusinessPageTabProps) {
   return (
-    <div className="max-w-5xl mb-0 md:mb-8">
+    <div className="max-w-7xl mb-0 md:mb-8">
       <LimitedAccessBanner className="!px-0 !pt-0" />
       <div
         className={!canWrite ? "pointer-events-none opacity-60" : ""}
         aria-disabled={!canWrite}
       >
-        <Card className="border-none pt-0 pb-2 sm:border shadow-none sm:shadow-sm bg-transparent sm:bg-white dark:sm:bg-surface overflow-hidden">
-          <CardContent className="p-0 sm:p-4 space-y-10">
-            <BrandingSection
-              business={business}
-              canWrite={canWrite}
-              heroImageUrl={heroImageUrl}
-              tagline={form.tagline}
-              setTagline={form.setTagline}
-              taglineError={form.taglineError || undefined}
-              businessSlug={form.businessSlug}
-              setBusinessSlug={form.setBusinessSlug}
-              slugError={form.slugError || undefined}
-              brandColorHex={form.brandColorHex}
-              setBrandColorHex={form.setBrandColorHex}
-              brandColorError={form.brandColorError || undefined}
-            />
-
+        <div className="space-y-12">
+          {/* 1. Page details */}
+          <div className="space-y-8">
             <MarketplaceDetailsSection
               business={business}
               useBusinessName={form.useBusinessName}
@@ -76,9 +76,6 @@ export function BusinessPageTab({
               phoneError={form.phoneError || undefined}
               descriptionError={form.descriptionError || undefined}
             />
-
-            <AboutSection value={form.aboutContent} onChange={form.setAboutContent} />
-
             <IndustrySection
               industries={industries}
               industryTags={industryTags}
@@ -86,8 +83,53 @@ export function BusinessPageTab({
               onTagsChange={form.setSelectedIndustryTags}
               error={form.industryTagsError || undefined}
             />
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* 2. Studio — section list + brand controls + live preview, in one module */}
+          <SectionBuilder
+            layout={form.layout}
+            reorderSections={form.reorderSections}
+            toggleSectionVisible={form.toggleSectionVisible}
+            setSectionVariant={form.setSectionVariant}
+            setSectionConfig={form.setSectionConfig}
+            fontKey={form.fontKey}
+            faqItems={form.faqItems}
+            setFaqItems={form.setFaqItems}
+            announcementContent={form.announcementContent}
+            setAnnouncementContent={form.setAnnouncementContent}
+            aboutContent={form.aboutContent}
+            setAboutContent={form.setAboutContent}
+            brandPanel={
+              <div className="flex flex-col gap-7">
+                <BrandingSection
+                  business={business}
+                  canWrite={canWrite}
+                  pageName={form.pageName}
+                  brandColorHex={form.brandColorHex}
+                  setBrandColorHex={form.setBrandColorHex}
+                  brandColorError={form.brandColorError || undefined}
+                />
+                <div className="border-t border-border pt-6">
+                  <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+                </div>
+              </div>
+            }
+            business={business}
+            locations={locations}
+            heroImageUrl={heroImageUrl}
+            tagline={form.tagline}
+            setTagline={form.setTagline}
+            taglineError={form.taglineError || undefined}
+            canWrite={canWrite}
+            brandColorHex={form.brandColorHex}
+            useBusinessEmail={form.useBusinessEmail}
+            email={form.email}
+            useBusinessPhone={form.useBusinessPhone}
+            phone={form.phone}
+            reviews={reviews}
+            teamRatings={teamRatings}
+          />
+        </div>
       </div>
     </div>
   );

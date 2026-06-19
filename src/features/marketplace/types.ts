@@ -11,6 +11,60 @@ export interface PortfolioImageData {
   size?: number;
 }
 
+// --- Business-page section builder (v1) ---
+// The business page is a themed *arrangement* (a "view") over existing business data. The layout
+// stores only order/visibility/variant + small per-section config refs — never duplicated content.
+// Content for each section is read from its existing model (locations, team, reviews, …); only the
+// FAQ and Announcement sections carry their own (bilingual) content.
+
+/** Bilingual text for the two net-new content sections (FAQ + Announcement). */
+export interface LocaleText {
+  en: string;
+  ro: string;
+}
+
+export type SectionType =
+  | 'announcement'
+  | 'hero'
+  | 'marquee'
+  | 'about'
+  | 'locations'
+  | 'gallery'
+  | 'team'
+  | 'interlude'
+  | 'testimonials'
+  | 'faq'
+  | 'contact';
+
+/** One section in the ordered page layout. `config` holds small refs/toggles only — no content. */
+export interface SectionEntry {
+  type: SectionType | string; // string tolerates an unrecognized stored type (skip-unknown fallback)
+  variant: string;
+  visible: boolean;
+  config?: Record<string, unknown>;
+}
+
+export type PageLayout = SectionEntry[];
+
+/** Theme tokens: brand accent color + a curated font "personality" key (mapped to a stack on render). */
+export interface PageTheme {
+  // Mirrors the listing-level `brandColorHex`. Intentionally named `brandColor` here to match the
+  // backend `pageTheme` JSON column shape ({ brandColor, fontKey }) — this is the renderer contract,
+  // so do NOT rename it to brandColorHex.
+  brandColor?: string | null;
+  fontKey?: string | null;
+}
+
+export interface FaqItem {
+  q: LocaleText;
+  a: LocaleText;
+}
+
+export interface AnnouncementContent {
+  message: LocaleText;
+  link?: string | null;
+}
+
 // Marketplace listing model with customizable details
 export interface MarketplaceListing {
   businessId: number;
@@ -33,6 +87,12 @@ export interface MarketplaceListing {
   tagline?: string | null; // Short business-page tagline
   aboutContent?: string | null; // Long-form about content
   brandColorHex?: string | null; // Accent color, hex e.g. #1B9C85
+  // Section builder (v1): arrangement + theme + the two net-new content blocks
+  pageLayout?: SectionEntry[] | null;
+  pageTheme?: PageTheme | null;
+  faq?: FaqItem[] | null;
+  announcement?: AnnouncementContent | null;
+  layoutVersion?: number;
   // Effective values calculated by backend
   effectiveName?: string;
   effectiveEmail?: string;
@@ -151,12 +211,17 @@ export interface PublishMarketplaceListingPayload {
   useBusinessPhone?: boolean;
   useBusinessDescription?: boolean;
   industryTagIds?: number[];
-  // Business-page (microsite) content. tagline/aboutContent/brandColorHex persist on the listing;
-  // businessSlug persists on the business (vanity URL) and is uniqueness-checked server-side.
+  // Business-page (microsite) content. tagline/aboutContent/brandColorHex persist on the listing.
+  // (The vanity slug is system-generated server-side from the name; it is not part of this payload.)
   tagline?: string;
   aboutContent?: string;
   brandColorHex?: string;
-  businessSlug?: string;
+  // Section builder (v1): arrangement + theme + net-new content. Sent on the same Save as the rest.
+  pageLayout?: SectionEntry[];
+  pageTheme?: PageTheme;
+  faq?: FaqItem[];
+  announcement?: AnnouncementContent;
+  layoutVersion?: number;
   // Note: Per-location publicity and online-booking flags are toggled inline per location, not in this payload.
   // Note: Assignments are managed in the Assignments flow.
   // Note: Portfolio images AND featured image are saved immediately on change, not on Save.

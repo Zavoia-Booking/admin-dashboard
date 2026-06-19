@@ -16,6 +16,8 @@ const initialState: ReviewsState = {
   teamMemberReviewsTotal: 0,
   teamMemberReviewsLoading: false,
   teamMemberReviewsMoreLoading: false,
+  highlightReviews: [],
+  highlightReviewsLoading: false,
   error: null,
 };
 
@@ -103,6 +105,19 @@ export const ReviewsReducer: Reducer<ReviewsState, any> = (
         teamMemberReviewsMoreLoading: false,
         error: action.payload.message,
       };
+
+    // Highlight reviews (business-page preview). Failure is intentionally silent — it must not surface
+    // an error in the Reviews tab (which reads `error`); the preview just degrades to no quotes.
+    case getType(actions.fetchHighlightReviewsAction.request):
+      return { ...state, highlightReviewsLoading: true };
+    case getType(actions.fetchHighlightReviewsAction.success):
+      return {
+        ...state,
+        highlightReviewsLoading: false,
+        highlightReviews: action.payload.data,
+      };
+    case getType(actions.fetchHighlightReviewsAction.failure):
+      return { ...state, highlightReviewsLoading: false };
 
     default:
       return state;

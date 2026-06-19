@@ -22,4 +22,9 @@ export const selectTeamMemberReviewsLoading = (state: RootState) =>
 export const selectTeamMemberReviewsMoreLoading = (state: RootState) =>
   state.reviews.teamMemberReviewsMoreLoading;
 
+export const selectHighlightReviews = (state: RootState) =>
+  state.reviews.highlightReviews;
+export const selectHighlightReviewsLoading = (state: RootState) =>
+  state.reviews.highlightReviewsLoading;
+
 export const selectReviewsError = (state: RootState) => state.reviews.error;

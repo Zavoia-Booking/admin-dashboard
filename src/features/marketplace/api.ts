@@ -55,7 +55,7 @@ export const publishMarketplaceListingApi = async (payload: PublishMarketplaceLi
 }
 
 // ---------------------------------------------------------------------------
-// Business-page hero image + vanity slug.
+// Business-page hero image.
 // ---------------------------------------------------------------------------
 
 export interface HeroImageResponse {
@@ -76,14 +76,6 @@ export const uploadHeroImageApi = async (file: File): Promise<HeroImageResponse>
 
 export const deleteHeroImageApi = async (): Promise<HeroImageResponse> => {
   const { data } = await apiClient().delete<HeroImageResponse>('/marketplace-listing/hero');
-  return data;
-};
-
-export const checkSlugAvailabilityApi = async (slug: string): Promise<{ available: boolean }> => {
-  const { data } = await apiClient().get<{ available: boolean }>(
-    '/marketplace-listing/slug-available',
-    { params: { slug } },
-  );
   return data;
 };
 

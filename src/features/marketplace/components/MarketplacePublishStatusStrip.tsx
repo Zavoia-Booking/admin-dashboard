@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Check, Circle, AlertTriangle, BadgeCheck, ArrowRight, Save, MapPin } from "lucide-react";
+import { Check, Circle, BadgeCheck, ArrowRight, Save, MapPin } from "lucide-react";
 import { Button } from "../../../shared/components/ui/button";
 import { cn } from "../../../shared/lib/utils";
 import type { LocationWithAssignments } from "../types";
@@ -13,7 +13,6 @@ interface MarketplacePublishStatusStripProps {
   industryTagOk: boolean;
   detailsOk: boolean;
   locations: LocationWithAssignments[];
-  hiddenBySystem?: boolean;
   onPublish: () => void;
 }
 
@@ -49,7 +48,6 @@ export function MarketplacePublishStatusStrip({
   industryTagOk,
   detailsOk,
   locations,
-  hiddenBySystem,
   onPublish,
 }: MarketplacePublishStatusStripProps) {
   const { t } = useTranslation("marketplace");
@@ -73,12 +71,7 @@ export function MarketplacePublishStatusStrip({
       <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         {/* Status / checklist */}
         <div className="min-w-0 space-y-2">
-          {hiddenBySystem ? (
-            <div className="flex items-center gap-2 text-sm font-medium text-amber-600 dark:text-amber-500">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{t("statusStrip.hiddenBySystem")}</span>
-            </div>
-          ) : isListed ? (
+          {isListed ? (
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground-1">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60 animate-ping" style={{ animationDuration: "3s" }} />

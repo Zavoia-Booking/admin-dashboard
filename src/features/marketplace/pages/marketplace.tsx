@@ -12,6 +12,7 @@ import {
   selectMarketplaceBusiness,
   selectMarketplaceListing,
   selectMarketplaceLoading,
+  selectMarketplaceError,
   selectLocationCatalog,
   selectMarketplacePublishing,
   selectMarketplaceIndustries,
@@ -20,9 +21,10 @@ import {
 } from "../selectors";
 import { NotListedYetView } from "../components/NotListedYetView";
 import { ListingConfigurationView } from "../components/ListingConfigurationView";
-import { MarketplaceSkeleton } from "../components/MarketplaceSkeleton";
 import { ListingConfigurationSkeleton } from "../components/ListingConfigurationSkeleton";
 import BusinessSetupGate from "../../../shared/components/guards/BusinessSetupGate";
+import { Button } from "../../../shared/components/ui/button";
+import { AlertTriangle, RotateCcw } from "lucide-react";
 
 export default function MarketplacePage() {
   const dispatch = useDispatch();
@@ -31,6 +33,7 @@ export default function MarketplacePage() {
   const business = useSelector(selectMarketplaceBusiness);
   const listing = useSelector(selectMarketplaceListing);
   const isLoading = useSelector(selectMarketplaceLoading);
+  const error = useSelector(selectMarketplaceError);
   const locationCatalog = useSelector(selectLocationCatalog);
   const isPublishing = useSelector(selectMarketplacePublishing);
   const industries = useSelector(selectMarketplaceIndustries);
@@ -46,70 +49,59 @@ export default function MarketplacePage() {
     dispatch(fetchMarketplaceListingAction.request());
   }, [dispatch, location.pathname]); // Refetch when pathname changes
 
-  // Close configuration view when listing is successfully published
-  useEffect(() => {
-    if (!isPublishing && listing?.isListed && showConfiguration) {
-      setShowConfiguration(false);
-    }
-  }, [isPublishing, listing?.isListed, showConfiguration]);
-
   const handleStartListing = () => {
     setShowConfiguration(true);
   };
 
-  const handleSaveConfiguration = (data: {
-    marketplaceName?: string;
-    marketplaceEmail?: string;
-    marketplacePhone?: string;
-    marketplaceDescription?: string;
-    useBusinessName: boolean;
-    useBusinessEmail: boolean;
-    useBusinessPhone: boolean;
-    useBusinessDescription: boolean;
-    industryTagIds?: number[];
-    tagline?: string;
-    aboutContent?: string;
-    brandColorHex?: string;
-    businessSlug?: string;
-  }) => {
-    // Note: portfolioImages AND featured image are saved immediately on upload/delete/select,
-    // not in the save payload anymore
-    // Note: per-location publicity / online-booking flags are toggled inline per location
+  const handleSaveConfiguration = (data: PublishMarketplaceListingPayload) => {
+    // The form (useMarketplaceForm) already produces the full publish payload — profile/branding
+    // fields plus the section-builder slice (pageLayout / pageTheme / faq / announcement). Spread it
+    // so new fields never get silently dropped here; we only stamp the always-on visibility flags.
+    // Note: portfolioImages + featured image are saved immediately on upload/delete/select, and
+    // per-location publicity / online-booking flags are toggled inline per location — not here.
     const payload: PublishMarketplaceListingPayload = {
-      marketplaceName: data.marketplaceName,
-      marketplaceEmail: data.marketplaceEmail,
-      marketplacePhone: data.marketplacePhone,
-      marketplaceDescription: data.marketplaceDescription,
-      useBusinessName: data.useBusinessName,
-      useBusinessEmail: data.useBusinessEmail,
-      useBusinessPhone: data.useBusinessPhone,
-      useBusinessDescription: data.useBusinessDescription,
+      ...data,
       showTeamMembers: true,
       showServices: true,
       showLocations: true,
-      industryTagIds: data.industryTagIds,
-      tagline: data.tagline,
-      aboutContent: data.aboutContent,
-      brandColorHex: data.brandColorHex,
-      businessSlug: data.businessSlug,
     };
 
     dispatch(publishMarketplaceListingAction.request(payload));
   };
 
-  // Show loading state
-  if (isLoading) {
+  // Show loading state — A7: only the initial load shows the skeleton. A refetch (e.g. the
+  // post-publish reload) keeps `listing` in state, so we keep the current view mounted instead of
+  // flashing the full skeleton over it.
+  if (isLoading && !listing) {
     // ListingConfigurationSkeleton mirrors the real tabs and uses the same
     // `-mt-8` breakout, so treat it as a tabbed page too.
-    const isTabbedSkeleton = !(listing && !listing.isListed);
     return (
-      <AppLayout tabbedPage={isTabbedSkeleton}>
+      <AppLayout tabbedPage>
         <BusinessSetupGate>
-          {listing && !listing.isListed ? (
-            <MarketplaceSkeleton />
-          ) : (
-            <ListingConfigurationSkeleton />
-          )}
+          <ListingConfigurationSkeleton />
+        </BusinessSetupGate>
+      </AppLayout>
+    );
+  }
+
+  // A5: fetch failed and we have nothing to show — surface the error with a retry instead of
+  // silently falling through to the generic "no listing data" message.
+  if (error && !listing) {
+    return (
+      <AppLayout>
+        <BusinessSetupGate>
+          <div className="flex h-[calc(100vh-200px)] flex-col items-center justify-center gap-4 px-4 text-center">
+            <AlertTriangle className="h-8 w-8 text-amber-500" aria-hidden />
+            <p className="text-sm text-muted-foreground">{t("page.loadError")}</p>
+            <Button
+              variant="outline"
+              onClick={() => dispatch(fetchMarketplaceListingAction.request())}
+              className="gap-1.5"
+            >
+              <RotateCcw className="h-4 w-4" />
+              {t("page.retry")}
+            </Button>
+          </div>
         </BusinessSetupGate>
       </AppLayout>
     );
@@ -125,7 +117,6 @@ export default function MarketplacePage() {
             locationsWithAssignments={locationCatalog}
             isPublishing={isPublishing}
             isListed={listing.isListed}
-            hiddenBySystem={listing.hiddenBySystem}
             marketplaceName={listing.marketplaceName}
             marketplaceEmail={listing.marketplaceEmail}
             marketplacePhone={listing.marketplacePhone}
@@ -138,6 +129,10 @@ export default function MarketplacePage() {
             tagline={listing.tagline}
             aboutContent={listing.aboutContent}
             brandColorHex={listing.brandColorHex}
+            pageLayout={listing.pageLayout}
+            pageTheme={listing.pageTheme}
+            faq={listing.faq}
+            announcement={listing.announcement}
             industries={industries}
             industryTags={industryTags}
             selectedIndustryTags={selectedIndustryTags}
