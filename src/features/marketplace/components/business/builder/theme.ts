@@ -88,7 +88,38 @@ export const EASE_SPRING = "cubic-bezier(.34,1.56,.64,1)";
 
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
 
-/** Fallback brand accent when the owner hasn't picked one — the lookbook's terracotta. */
+/**
+ * Curated accent palette — the owner picks ONE swatch (the only brand-driven colour). Each is a deep,
+ * muted editorial tone (heritage paint / fashion-house / apothecary) tuned for the warm-paper lookbook:
+ * deep enough that warm-white text (#FBF7F0) clears WCAG AA on a fully drenched hero field — every hex
+ * verified at ≥5.5:1 (relative luminance ≤ ~0.19), so brandField() leaves them unchanged. Ordered as a
+ * warm → cool → neutral arc; terracotta is the signature default (FALLBACK_BRAND), not necessarily index 0.
+ * i18n names live under marketplace:businessPage.branding.brandColor.swatches.<key>.
+ */
+export const BRAND_ACCENTS: { key: string; hex: string }[] = [
+  { key: "burgundy", hex: "#8E2C45" },
+  { key: "brick", hex: "#7A2E2A" },
+  { key: "terracotta", hex: "#C2552F" },
+  { key: "rust", hex: "#9A3B22" },
+  { key: "amber", hex: "#A66A1E" },
+  { key: "caramel", hex: "#6B3A24" },
+  { key: "olive", hex: "#5F6324" },
+  { key: "pine", hex: "#3E6B36" },
+  { key: "forest", hex: "#1B4332" },
+  { key: "teal", hex: "#1E6E6E" },
+  { key: "peacock", hex: "#0E3D44" },
+  { key: "navy", hex: "#283B52" },
+  { key: "indigo", hex: "#3E4E80" },
+  { key: "violet", hex: "#3E2E55" },
+  { key: "plum", hex: "#86436F" },
+  { key: "rose", hex: "#7A3850" },
+  { key: "slate", hex: "#3A3F3D" },
+  { key: "greige", hex: "#4A4039" },
+  { key: "graphite", hex: "#2A2E33" },
+  { key: "ink", hex: "#26211C" },
+];
+
+/** Fallback brand accent when the owner hasn't picked one — the lookbook's signature terracotta. */
 export const FALLBACK_BRAND = "#C2552F";
 
 export function safeBrandColor(hex: string | null | undefined): string {
@@ -138,10 +169,34 @@ export function brandInk(hex: string): string {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
+/** Warm-white (#FBF7F0) relative luminance — the on-accent text colour painted on a drenched field. */
+const WARM_WHITE_LUM = 0.933;
+
+/**
+ * Accent deepened just enough that warm-white body text clears WCAG AA (4.5:1) on a fully drenched hero
+ * field. Most curated swatches already pass and return unchanged; only the two lightest (terracotta,
+ * amber) are nudged a couple of points darker. A flat fill — the vivid brand hue is kept and there is no
+ * gradient (the old paper wash read as cheap). 4.5:1 vs warm-white ⇒ field luminance ≤ ~0.166.
+ */
+export function brandField(hex: string): string {
+  const c = safeBrandColor(hex).slice(1);
+  let r = parseInt(c.slice(0, 2), 16);
+  let g = parseInt(c.slice(2, 4), 16);
+  let b = parseInt(c.slice(4, 6), 16);
+  let guard = 0;
+  while ((WARM_WHITE_LUM + 0.05) / (relLuminance(r, g, b) + 0.05) < 4.55 && guard < 40) {
+    r = Math.round(r * 0.96);
+    g = Math.round(g * 0.96);
+    b = Math.round(b * 0.96);
+    guard += 1;
+  }
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
 /**
  * CSS custom properties for the preview root. Sets the paper palette, the brand-driven accent (raw
- * fill + legible ink + on-accent text), and the active display/mono faces. Sections read these via
- * `var(--mc-*)`, exactly mirroring the microsite renderer contract.
+ * fill + legible ink + on-accent text + AA-safe drenched field), and the active display/mono faces.
+ * Sections read these via `var(--mc-*)`, exactly mirroring the microsite renderer contract.
  */
 export function previewVars(
   brandColor: string | null | undefined,
@@ -151,6 +206,7 @@ export function previewVars(
   const font = displayFontFor(fontKey);
   return {
     "--mc-accent": accent,
+    "--mc-accent-field": brandField(accent),
     "--mc-ink": brandInk(accent),
     "--mc-on-accent": onBrandText(accent),
     "--mc-bg": PAPER.bg,

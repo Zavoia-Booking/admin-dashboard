@@ -107,8 +107,9 @@
   },
   "businessPage": {
     "errors": {
-      "taglineTooLong": "Tagline must be 200 characters or fewer.",
-      "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85."
+      "taglineTooLong": "Subtitle must be 200 characters or fewer.",
+      "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85.",
+      "aboutHeadlineRequired": "Add a headline to your About section, or hide it."
     },
     "branding": {
       "title": "Branding",
@@ -120,7 +121,7 @@
         "uploadFailed": "Could not upload logo. Please try again."
       },
       "tagline": {
-        "label": "Tagline",
+        "label": "Subtitle",
         "placeholder": "e.g. Modern cuts & color in the heart of the city"
       },
       "hero": {
@@ -139,14 +140,38 @@
       },
       "brandColor": {
         "label": "Accent color",
-        "pickerLabel": "Pick accent color",
-        "description": "Used to highlight buttons and links on your public page."
+        "description": "Used to highlight buttons and links on your public page.",
+        "swatches": {
+          "burgundy": "Burgundy",
+          "brick": "Brick",
+          "terracotta": "Terracotta",
+          "rust": "Rust",
+          "amber": "Amber",
+          "caramel": "Caramel",
+          "olive": "Olive",
+          "pine": "Pine",
+          "forest": "Forest",
+          "teal": "Teal",
+          "peacock": "Peacock",
+          "navy": "Navy",
+          "indigo": "Indigo",
+          "violet": "Violet",
+          "plum": "Plum",
+          "rose": "Rose",
+          "slate": "Slate",
+          "greige": "Greige",
+          "graphite": "Graphite",
+          "ink": "Ink"
+        }
       }
     },
     "about": {
-      "label": "About your business",
-      "description": "Tell clients your story, what makes you different, and what to expect.",
-      "placeholder": "Share your story, specialties, and what clients can expect…"
+      "titleLabel": "Headline",
+      "titlePlaceholder": "A short, bold line that sums up what you're about.",
+      "titleHelp": "Shown large at the top — it wraps on its own, no line breaks needed.",
+      "bodyLabel": "Story",
+      "bodyPlaceholder": "The rest of your story — your approach, your specialties, and what clients can expect when they visit.",
+      "headlineRequired": "A headline is required while About is shown — add one, or hide the section."
     },
     "sections": {
       "announcement": {
@@ -155,11 +180,11 @@
       },
       "hero": {
         "label": "Hero",
-        "description": "Your cover image, name and tagline. The top of your page."
+        "description": "Your cover image, name and subtitle. The top of your page."
       },
       "marquee": {
         "label": "Marquee",
-        "description": "A moving strip of your service categories, shown between sections."
+        "description": "A moving strip of the services you offer, shown between sections."
       },
       "about": {
         "label": "About",
@@ -167,7 +192,7 @@
       },
       "locations": {
         "label": "Locations",
-        "description": "Cards for your locations that link to each booking page. Choose which to show."
+        "description": "Your locations with hours, contact, and a booking link. Choose which to show."
       },
       "gallery": {
         "label": "Gallery",
@@ -195,13 +220,12 @@
       },
       "variants": {
         "default": "Default",
+        "scroll": "On scroll",
+        "loop": "Loop",
         "bar": "Top bar",
         "inline": "Inline",
-        "centered": "Centered",
         "split": "Split",
-        "minimal": "Minimal",
         "simple": "Simple",
-        "imageLeft": "Image left",
         "cards": "Cards",
         "list": "List",
         "grid": "Grid",
@@ -225,16 +249,20 @@
       "studioHelper": "Arrange the sections, set the brand, see it live.",
       "openPreview": "Open preview",
       "sectionsShown": "{{shown}} of {{total}} shown",
+      "sectionsVisible": "visible",
+      "sectionsHelper": "Drag to set the order. Open a section to edit its layout and content.",
       "sectionPreview": "Preview · this section",
       "moveUp": "Move section up",
       "moveDown": "Move section down",
       "title": "Page sections",
       "description": "Drag to reorder, show or hide sections, and open one to edit it. The preview below updates as you go.",
       "sectionsLabel": "Sections",
+      "sectionLabel": "Section",
       "previewLabel": "Live preview",
       "previewExpand": "Open fullscreen preview",
       "previewCta": "Preview my page",
       "variantLabel": "Layout",
+      "visibilityLabel": "Visible",
       "contentLanguage": "Content language",
       "langGroup": "Preview language",
       "deviceGroup": "Preview device",
@@ -242,6 +270,7 @@
       "deviceMobile": "Mobile",
       "card": {
         "drag": "Reorder",
+        "pinned": "Pinned in place",
         "hidden": "Hidden",
         "hide": "Hide section",
         "show": "Show section",
@@ -251,7 +280,11 @@
       "settings": {
         "locationsHint": "Choose which locations appear on your page.",
         "locationsNone": "You don't have any locations yet.",
-        "noSettings": "This section has no extra settings."
+        "locationsHeadingLabel": "Heading",
+        "locationsSubledeLabel": "Subtitle",
+        "locationsCustomize": "Customize {{field}}",
+        "noSettings": "This section has no extra settings.",
+        "viewOnlyHint": "Generated automatically from your existing data."
       },
       "faq": {
         "add": "Add question",
@@ -263,16 +296,54 @@
       "announcement": {
         "messageLabel": "Message",
         "messagePlaceholder": "e.g. 20% off your first visit",
-        "linkLabel": "Link (optional)",
-        "linkPlaceholder": "https://…"
+        "messageRequiredHint": "A message is required while the announcement is shown — add one, or hide the section.",
+        "sampleMessage": "20% off your first visit",
+        "sampleCta": "Book now",
+        "cta": {
+          "title": "Call to action",
+          "enableLabel": "Show a button",
+          "enableHint": "Add a button that links wherever you choose.",
+          "labelLabel": "Button text",
+          "labelPlaceholder": "e.g. Book now, See offers",
+          "labelHint": "The button appears once you add text.",
+          "urlLabel": "Link URL",
+          "newTab": "Open in a new tab",
+          "showArrow": "Show arrow",
+          "urlRequiredHint": "Add a link so the button works on your page."
+        },
+        "schedule": {
+          "title": "Scheduling",
+          "enableLabel": "Schedule the bar",
+          "hint": "Show the bar only during a set period.",
+          "start": "Show from",
+          "end": "Hide after",
+          "datePlaceholder": "Select a date",
+          "tz": "Dates use the {{tz}} time zone."
+        }
+      },
+      "hero": {
+        "eyebrowTitle": "Intro line",
+        "eyebrowToggle": "Show the intro line",
+        "eyebrowHint": "The small line above your name.",
+        "ratingTitle": "Rating & reviews",
+        "ratingToggle": "Show rating & reviews",
+        "ratingHint": "Shows once your business has reviews.",
+        "coverLayoutTitle": "Cover layout",
+        "coverLayoutHint": "How your cover photo fills the hero.",
+        "coverLayout_full": "Full-bleed",
+        "coverLayout_plate": "Cover plate"
       },
       "preview": {
         "allHidden": "All sections are hidden. Show at least one to preview your page.",
         "book": "Book",
+        "bookNow": "Book now",
         "getStarted": "Get started",
+        "menu": "Menu",
+        "closeMenu": "Close menu",
         "businessNamePlaceholder": "Your business",
         "aboutTitle": "About us",
-        "aboutEmpty": "Your About text will appear here.",
+        "aboutGhostLede": "A short, bold line about what makes your business different.",
+        "aboutGhostBody": "A sentence or two on your approach, your specialties, and what clients can expect when they visit.",
         "locationsTitle": "Locations",
         "locationsEmpty": "Your locations will appear here.",
         "noAddress": "Address not set",
@@ -285,6 +356,13 @@
         "testimonialsTitle": "What clients say",
         "testimonialsEmpty": "Your reviews will appear here once you have some.",
         "reviewsCount": "{{count}} reviews",
+        "inTheTeam": "in the team",
+        "bookAt": "Book at {{name}}",
+        "callLabel": "Call {{name}}",
+        "emailLabel": "Email {{name}}",
+        "mapLabel": "View {{name}} on the map",
+        "tagsShowAll": "Show all",
+        "tagsShowLess": "Show less",
         "faqTitle": "FAQ",
         "faqEmpty": "Add questions in the FAQ section settings.",
         "contactTitle": "Get in touch",
@@ -292,7 +370,6 @@
         "galleryHeading": "A look inside.",
         "reviewsHeading": "Loved by our clients.",
         "contactHeading": "Come say hello.",
-        "statRating": "Rating",
         "contactAddress": "Address",
         "contactReach": "Get in touch",
         "contactFollow": "Follow",
@@ -308,6 +385,15 @@
           "saturday": "Sat",
           "sunday": "Sun"
         },
+        "daysFull": {
+          "monday": "Monday",
+          "tuesday": "Tuesday",
+          "wednesday": "Wednesday",
+          "thursday": "Thursday",
+          "friday": "Friday",
+          "saturday": "Saturday",
+          "sunday": "Sunday"
+        },
         "locationCount_one": "{{count}} location",
         "locationCount_other": "{{count}} locations",
         "footer": {
@@ -316,15 +402,18 @@
           "rights": "© {{year}} {{name}}"
         },
         "hero": {
-          "scrollCue": "Scroll"
+          "scrollCue": "Scroll",
+          "locationsAcross": "{{num}} locations across {{place}}"
         },
         "subhead": {
-          "locations": "Where to find us.",
+          "locations_one": "Where to find us.",
+          "locations_other": "{{count}} locations, one team.",
           "team": "Meet the team.",
           "faq": "Questions, answered."
         },
         "sublede": {
-          "locations": "Each location keeps its own team and hours. Choose where you'd like to visit.",
+          "locations_one": "Come see us in person, we'd love to welcome you.",
+          "locations_other": "Each location has its own team and hours. Choose where you'd like to visit — everything below updates to match.",
           "team": "The people who'll look after you."
         },
         "kicker": {

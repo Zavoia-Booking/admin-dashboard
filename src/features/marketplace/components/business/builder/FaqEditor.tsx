@@ -3,9 +3,11 @@ import { Plus, Trash2 } from "lucide-react";
 import { Button } from "../../../../../shared/components/ui/button";
 import { Input } from "../../../../../shared/components/ui/input";
 import { Textarea } from "../../../../../shared/components/ui/textarea";
+import { cn } from "../../../../../shared/lib/utils";
 import type { FaqItem } from "../../../types";
 
 const MAX_ITEMS = 12;
+const MAX_ANSWER = 600;
 const emptyItem = (): FaqItem => ({ q: { en: "", ro: "" }, a: { en: "", ro: "" } });
 
 interface FaqEditorProps {
@@ -31,36 +33,48 @@ export function FaqEditor({ items, onChange, locale }: FaqEditorProps) {
 
   return (
     <div className="space-y-3">
-      {items.map((item, i) => (
-        <div key={i} className="rounded-xl border border-border bg-white dark:bg-surface p-3 space-y-2">
-          <div className="flex items-start gap-2">
-            <Input
-              value={item.q[locale]}
-              onChange={(e) => update(i, "q", e.target.value)}
-              placeholder={t("businessPage.builder.faq.questionPlaceholder")}
-              maxLength={160}
-              className="font-medium"
+      {items.map((item, i) => {
+        const answerLen = item.a[locale].length;
+        const near = answerLen >= MAX_ANSWER * 0.9;
+        return (
+          <div
+            key={i}
+            className="space-y-2 rounded-xl border border-border bg-surface p-3 transition-colors duration-150 hover:border-border-strong"
+          >
+            <div className="flex items-start gap-2">
+              <Input
+                value={item.q[locale]}
+                onChange={(e) => update(i, "q", e.target.value)}
+                placeholder={t("businessPage.builder.faq.questionPlaceholder")}
+                maxLength={160}
+                className="rounded-lg font-medium"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+                aria-label={t("businessPage.builder.faq.remove")}
+                className="shrink-0 text-foreground-3 hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+            <Textarea
+              value={item.a[locale]}
+              onChange={(e) => update(i, "a", e.target.value)}
+              placeholder={t("businessPage.builder.faq.answerPlaceholder")}
+              maxLength={MAX_ANSWER}
+              rows={2}
+              className="rounded-lg"
             />
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
-              aria-label={t("businessPage.builder.faq.remove")}
-              className="shrink-0 text-foreground-3 hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <p className="text-right text-[11px] tabular-nums text-foreground-3">
+              <span className={cn(near && "text-amber-700 dark:text-amber-400")}>{answerLen}</span>
+              <span className="text-foreground-3/70">/{MAX_ANSWER}</span>
+            </p>
           </div>
-          <Textarea
-            value={item.a[locale]}
-            onChange={(e) => update(i, "a", e.target.value)}
-            placeholder={t("businessPage.builder.faq.answerPlaceholder")}
-            maxLength={600}
-            rows={2}
-          />
-        </div>
-      ))}
+        );
+      })}
 
       {items.length === 0 && (
         <p className="px-1 text-sm text-foreground-3">{t("businessPage.builder.faq.empty")}</p>

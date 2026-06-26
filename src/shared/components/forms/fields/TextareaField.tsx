@@ -17,6 +17,8 @@ export interface TextareaFieldProps {
   error?: string;
   autoFocus?: boolean;
   helperText?: string;
+  /** Rich helper rendered under the label (above the textarea), e.g. a required/info cue. Mirrors TextField. */
+  hint?: React.ReactNode;
   disabled?: boolean;
   textareaClassName?: string;
 }
@@ -35,6 +37,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
   error,
   autoFocus = false,
   helperText,
+  hint,
   disabled = false,
   textareaClassName = "",
 }) => {
@@ -65,6 +68,7 @@ export const TextareaField: React.FC<TextareaFieldProps> = ({
             {helperText}
           </p>
         )}
+        {hint}
       </div>
       <Textarea
         id={id}

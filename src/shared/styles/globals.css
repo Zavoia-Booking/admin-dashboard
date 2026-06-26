@@ -1090,6 +1090,133 @@ button.sidebar-menu-button-compact {
   animation: dnd-lift 180ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
+/* Warm, double-layer elevation for a lifted-out card (section builder open surface).
+   Lighter than the modal shadow — it sits inline, not over a scrim. */
+.shadow-elevated-card {
+  box-shadow: 0 18px 44px oklch(15% 0.004 70 / 0.16), 0 2px 6px oklch(15% 0.004 70 / 0.08);
+}
+.dark .shadow-elevated-card {
+  box-shadow: 0 18px 44px oklch(0% 0 0 / 0.45), 0 2px 6px oklch(0% 0 0 / 0.32);
+}
+
+/* Microsite builder preview — hero entrance + scroll cue (mirrors Web app/microsite.css).
+   Classes are mc-* scoped to the LivePreview hero; delay/stagger is set inline per element. */
+@keyframes mcScrollCue { 0% { transform: scaleY(0); opacity: 0; } 40% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1) translateY(32px); opacity: 0; } }
+@keyframes mcHeroFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mcHeroUp { from { opacity: 0; transform: translateY(38px); } to { opacity: 1; transform: none; } }
+@keyframes mcHeroWord { from { transform: translateY(118%); } to { transform: translateY(0); } }
+/* Layout-toggle transition — the scoped preview re-keys on the hero mode, so switching full-bleed ⇄ cover
+   plate scale-fades the new render in (heights are matched, so there's no jump to fight). */
+@keyframes mcHeroSwap { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: none; } }
+
+.mc-cue-line { transform-origin: top; animation: mcScrollCue 1.9s var(--ease-out-strong) infinite; }
+.mc-rev-fade { animation: mcHeroFade 900ms var(--ease-out-strong) both; }
+.mc-rev-up { animation: mcHeroUp 900ms var(--ease-out-strong) both; }
+.mc-rev-word { display: inline-block; overflow: hidden; vertical-align: top; padding: 0.06em 0.04em 0.26em; margin: -0.06em -0.04em -0.26em; }
+.mc-rev-word > span { display: inline-block; animation: mcHeroWord 920ms var(--ease-out-strong) both; }
+.mc-hero-swap { animation: mcHeroSwap 440ms var(--ease-out-strong) both; }
+
+/* Marquee band — continuous editorial drift (mirrors the scroll-driven band in Web app/microsite.css; the
+   contained preview has no page-scroll clock, so the always-on drift the source layers on is the faithful
+   representation). The track holds three copies of the item set; translating by exactly one set width
+   (-33.3333%) loops seamlessly. Duration is set inline per item count to hold a constant glide. */
+@keyframes mcBandScroll { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
+.mc-band-track { animation: mcBandScroll var(--mc-band-dur, 40s) linear infinite; }
+
+/* Locations switcher — featured-panel entrance on selection (mirrors Web app/microsite.css .lb-locx-*).
+   The stage's keyed blocks remount per selected location, replaying these; delay/stagger is set inline. */
+@keyframes mcLocxImg { from { opacity: 0; transform: scale(1.07); } to { opacity: 1; transform: scale(1); } }
+@keyframes mcLocxRise { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mcLocxFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mcLocxRowIn { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
+.mc-locx-img { animation: mcLocxImg 850ms var(--ease-out-strong) both; }
+.mc-locx-rise { animation: mcLocxRise 600ms var(--ease-out-strong) both; }
+.mc-locx-fade { animation: mcLocxFade 500ms var(--ease-out-strong) both; }
+.mc-locx-rowin { animation: mcLocxRowIn 500ms var(--ease-out-strong) both; }
+
+/* "Show all" chevron — gentle idle bob inviting expansion (applied while collapsed). The icon's own
+   rotate lives on the inner element so the two transforms don't collide. */
+@keyframes mcChevBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(3px); } }
+.mc-chev-bob { animation: mcChevBob 1.7s var(--ease-out-strong) infinite; }
+
+/* Locations switcher — selectable index rows (mirrors Web app/microsite.css .lb-locx-row). Colours resolve
+   the preview's --mc-* theme vars; the indent + colour shifts use the microsite spring curve. */
+.mc-locx-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: clamp(10px, 1.8cqw, 20px); width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--mc-line); padding: clamp(14px, 2.2cqw, 24px) 2px clamp(14px, 2.2cqw, 24px) 0; cursor: pointer; transition: padding-left 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mc-locx-row:last-child { border-bottom: 1px solid var(--mc-line); }
+.mc-locx-row[data-on="1"] { padding-left: 18px; }
+.mc-locx-row:not([data-on="1"]):hover { padding-left: 10px; }
+.mc-locx-no { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.1em; font-variant-numeric: tabular-nums; color: var(--mc-muted); transition: color 0.25s; }
+.mc-locx-row[data-on="1"] .mc-locx-no { color: var(--mc-accent); }
+.mc-locx-nm { display: block; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(19px, 3cqw, 30px); line-height: 1.05; color: color-mix(in oklch, var(--mc-fg) 55%, var(--mc-bg)); transition: color 0.3s; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-locx-row[data-on="1"] .mc-locx-nm, .mc-locx-row:hover .mc-locx-nm { color: var(--mc-fg); }
+.mc-locx-area { display: block; margin-top: 2px; font-size: 12.5px; color: var(--mc-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mc-locx-rate { display: inline-flex; align-items: center; gap: 4px; font-family: var(--mc-mono); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--mc-fg); transition: color 0.25s; }
+.mc-locx-row:hover .mc-locx-rate, .mc-locx-row[data-on="1"] .mc-locx-rate { color: var(--mc-accent); }
+.mc-locx-mark { display: inline-flex; color: var(--mc-accent); opacity: 0; transform: translateX(-6px); transition: opacity 0.3s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mc-locx-row:hover .mc-locx-mark, .mc-locx-row[data-on="1"] .mc-locx-mark { opacity: 1; transform: translateX(0); }
+
+/* Cover-plate hero — three layers: a drenched accent FIELD on the left (the same treatment as the
+   no-cover hero: accent flood + ghost monogram + a masthead hairline), the cover PHOTO bleeding
+   full-height on the right (a warm editorial wash + a clip-path reveal + a scroll parallax track), and a
+   white CARD straddling the seam (the signature overlap). It runs near full-height like the cinematic
+   cover; the card sits optically centred, framed by the masthead above and the scroll cue below. Below a
+   narrow container width it stacks: photo, then the card pulled up over the seam. Sizes key off the
+   preview's own width via container-query units (the root sets container-type). */
+.mc-plate { position: relative; display: flex; align-items: center; overflow: hidden; min-height: clamp(560px, 80cqw, 800px); padding-top: clamp(20px, 3cqw, 40px); background: var(--mc-bg); }
+.mc-plate-field { position: absolute; inset: 0 auto 0 0; width: 46%; z-index: 0; overflow: hidden; background: var(--mc-accent-field); }
+/* Photo column: clip-path reveal wipes the whole column (scrim included) in from the top. */
+.mc-plate-photo { position: absolute; inset: 0 0 0 auto; width: 56%; z-index: 0; overflow: hidden;
+  clip-path: inset(0 0 0 0); animation: mcPlateReveal 920ms var(--ease-out-strong) 80ms both; }
+/* Inner track holds the scroll parallax (JS translates it); the img carries the ken-burns scale settle. */
+.mc-plate-track { position: absolute; left: 0; right: 0; top: -14%; height: 128%; will-change: transform; }
+.mc-plate-track img { display: block; width: 100%; height: 100%; object-fit: cover;
+  animation: mcPlateZoom 1200ms var(--ease-out-strong) 80ms both; }
+/* Cover scrim — the same cinematic gradient the full-bleed hero uses (warm charcoal, heavier top + bottom):
+   keeps the floating white nav + scroll cue legible and gives the cover its moody depth behind the card. */
+.mc-plate-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none; background:
+  linear-gradient(180deg, rgba(20, 16, 14, 0.62) 0%, rgba(20, 16, 14, 0.42) 18%, rgba(20, 16, 14, 0.34) 42%, rgba(20, 16, 14, 0.38) 62%, rgba(20, 16, 14, 0.84) 100%); }
+.mc-plate-card { position: relative; z-index: 3; margin-left: clamp(20px, 5cqw, 56px); width: min(520px, 53%);
+  padding: clamp(28px, 4cqw, 48px); border-radius: 6px; background: var(--mc-bg);
+  box-shadow: 0 40px 84px -46px rgba(20, 16, 14, 0.55), 0 6px 18px -10px rgba(20, 16, 14, 0.22); }
+@keyframes mcPlateReveal { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0 0 0 0); } }
+@keyframes mcPlateZoom { from { transform: scale(1.06); } to { transform: scale(1); } }
+/* Scoped one-section preview (narrow): the field/photo split collapses to the photo with the card
+   overlapping its lower edge. It matches the cinematic cover's height envelope (same clamp) so toggling
+   layouts never jumps — the photo flexes to fill, the card sits at the bottom. The scrim still applies;
+   the full-bleed reveal/parallax are wide-layout devices, so here the entrance is the unified swap
+   scale-fade (.mc-hero-swap) instead. */
+.mc-hero-cine { min-height: clamp(420px, 82cqw, 760px); }
+.mc-hero-drench { min-height: clamp(360px, 60cqw, 600px); }
+/* Drenched-hero ghost monogram. Width-driven so on desktop it's a giant letterpress ghost bled off the
+   top-right corner; the phone tier below enlarges + vertically-centres it so it fills the tall narrow
+   field instead of sitting stuck at the top edge. */
+.mc-hero-mono { top: -9cqw; font-size: 52cqw; }
+
+@container (max-width: 720px) {
+  .mc-plate { display: block; min-height: 0; overflow: visible; padding-top: 0; }
+  .mc-plate-field { display: none; }
+  /* Photo gets a deliberate editorial ratio (not a flex sliver squeezed by the card's height), then the
+     card overlaps its lower edge — mirrors the cover-plate mockup's stacked rule. This 720px tier keeps a
+     modest ratio for the in-editor scoped card; the ≤430px phone tier below makes it a tall, immersive cover. */
+  .mc-plate-photo { position: relative; inset: auto; width: 100%; aspect-ratio: 16 / 11; animation: none; }
+  .mc-plate-track { top: 0; bottom: auto; height: 100%; }
+  .mc-plate-track img { animation: none; }
+  .mc-plate-card { position: relative; width: auto; margin: -56px clamp(16px, 5cqw, 28px) 0; }
+  /* Stacked: the card sits at the bottom, so the absolute scroll cue would land on top of it — drop it. */
+  .mc-plate-cue { display: none; }
+}
+
+/* Phone tier — at real device widths the heroes go near full-height so they read as immersive as the
+   desktop cover (the editorial source is a full-svh hero); the wider in-editor scoped card keeps the
+   modest heights above. svh can't be used here (the preview is a contained, width-driven surface), so
+   these are deliberate fixed/ratio heights tuned for 360–430px phones. */
+@container (max-width: 430px) {
+  .mc-hero-cine { min-height: 620px; }
+  .mc-hero-drench { min-height: 560px; }
+  .mc-plate-photo { aspect-ratio: 4 / 5; }
+  .mc-hero-mono { top: 50%; font-size: 78cqw; transform: translateY(-50%); }
+}
+
 /* Splash screen styles live in src/shared/components/splash/splash.css —
  * imported from SplashGate.tsx so they travel with the component. That
  * file owns everything: .splash-* selectors, all keyframes, per-phase
@@ -1099,4 +1226,7 @@ button.sidebar-menu-button-compact {
 @media (prefers-reduced-motion: reduce) {
   .animate-tab-icon { animation: none; }
   .animate-dnd-lift { animation: none; }
+  .mc-cue-line, .mc-rev-fade, .mc-rev-up, .mc-rev-word > span,
+  .mc-plate-photo, .mc-plate-track img, .mc-hero-swap, .mc-band-track,
+  .mc-locx-img, .mc-locx-rise, .mc-locx-fade, .mc-locx-rowin, .mc-chev-bob { animation: none !important; }
 }

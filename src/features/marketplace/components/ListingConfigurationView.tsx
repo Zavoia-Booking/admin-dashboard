@@ -349,7 +349,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     form.phoneError ||
     form.descriptionError ||
     form.taglineError ||
-    form.brandColorError
+    form.brandColorError ||
+    form.announcementError ||
+    form.aboutError
   );
 
   // Persistent business-level go-live status strip. Rendered at the top of every
@@ -375,7 +377,10 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "business",
       label: t("configuration.tabs.business"),
-      showBadge: form.selectedIndustryTags.length === 0,
+      // Pulse the tab whenever anything on it blocks publish. hasValidationErrors is the single aggregate
+      // (industry tag, contact, tagline/brand colour, announcement, About headline…), so a new section's
+      // required field lights the tab automatically once it folds into that gate — no per-section wiring.
+      showBadge: form.hasValidationErrors,
       content: (
         <>
           {statusStrip}

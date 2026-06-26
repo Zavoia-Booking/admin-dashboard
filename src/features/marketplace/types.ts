@@ -46,6 +46,29 @@ export interface SectionEntry {
 
 export type PageLayout = SectionEntry[];
 
+/** Typed view of a hero section's `config` — small display toggles + optional copy; all optional. */
+export interface HeroConfig {
+  showRating?: boolean; // rating + reviews block (still needs real reviews); default on
+  showEyebrow?: boolean; // intro line above the name (auto-built from locations); default on
+  // How a cover photo fills the hero (only meaningful once a cover exists; no cover ⇒ drenched field).
+  // "full" = full-bleed cinematic cover (default); "plate" = tall photo bleed with a paper card over it.
+  coverLayout?: "full" | "plate";
+}
+
+/**
+ * Typed view of a locations section's `config`: which locations to hide, plus optional bilingual copy
+ * overrides for the section heading + sub-lede. Blank/absent copy falls back to the default editorial
+ * strings (the public page renders per visitor locale, so each language overrides independently).
+ */
+export interface LocationsConfig {
+  /** Owner-hidden location IDs; empty/absent = show all. */
+  hiddenLocationIds?: number[];
+  /** Heading override per locale; a blank/missing locale uses the default copy. */
+  heading?: LocaleText;
+  /** Sub-lede override per locale; a blank/missing locale uses the default copy. */
+  sublede?: LocaleText;
+}
+
 /** Theme tokens: brand accent color + a curated font "personality" key (mapped to a stack on render). */
 export interface PageTheme {
   // Mirrors the listing-level `brandColorHex`. Intentionally named `brandColor` here to match the
@@ -60,8 +83,35 @@ export interface FaqItem {
   a: LocaleText;
 }
 
+export interface AnnouncementCta {
+  /** Opt-in: the call-to-action is off by default; the bar shows a button only when enabled. */
+  enabled: boolean;
+  /** Button copy, per locale. The button shows once enabled and the active locale has text. */
+  label: LocaleText;
+  /** Destination link — any URL the owner chooses. */
+  url: string;
+  /** Open the link in a new tab. */
+  newTab: boolean;
+  /** Trailing arrow glyph after the label. */
+  showArrow: boolean;
+}
+
+/**
+ * Auto show/hide window. `start`/`end` are date-only keys (`YYYY-MM-DD`) interpreted as calendar days
+ * in `timezone` (IANA). Captured here; the public page enforces it — the dashboard preview always
+ * shows the bar so it stays editable.
+ */
+export interface AnnouncementSchedule {
+  start?: string | null;
+  end?: string | null;
+  timezone?: string | null;
+}
+
 export interface AnnouncementContent {
   message: LocaleText;
+  cta: AnnouncementCta;
+  schedule?: AnnouncementSchedule | null;
+  /** @deprecated legacy single link — migrated into `cta.url` on read; no longer written. */
   link?: string | null;
 }
 
@@ -184,6 +234,13 @@ export interface LocationWithAssignments extends Location {
   // Cached per-location review stats (denormalized on the backend)
   averageRating?: number | null;
   totalReviews?: number;
+  // Per-location marketplace tag IDs, one array per group (resolved to labels via useLocationTagDictionaries).
+  amenityTagIds?: number[];
+  audienceTagIds?: number[];
+  valueTagIds?: number[];
+  accessibilityTagIds?: number[];
+  paymentMethodTagIds?: number[];
+  languageTagIds?: number[];
 }
 
 export interface MarketplaceListingResponse {

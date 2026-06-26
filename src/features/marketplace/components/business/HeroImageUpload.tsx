@@ -124,7 +124,7 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
   };
 
   return (
-    <div className="space-y-2">
+    <div>
       <input
         ref={inputRef}
         type="file"
@@ -135,45 +135,56 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
       />
 
       {heroImageUrl ? (
-        <div className="relative w-full h-48 md:h-64 overflow-hidden rounded-2xl border border-border bg-surface shadow-sm group/hero">
-          <img
-            src={heroImageUrl}
-            alt={t("businessPage.branding.hero.alt")}
-            draggable={false}
-            className="w-full h-full object-cover"
-          />
-          {isRemoving && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-              <Spinner size="sm" color="white" />
-            </div>
-          )}
-          {/* Hover scrim for action affordance (desktop) */}
-          <div className="absolute inset-0 bg-black/40 hidden md:block md:opacity-0 md:group-hover/hero:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        // Asset row — thumbnail + purpose + actions in one grouped surface. The full-size cover
+        // already renders in the live preview below, so this stays a compact management control.
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-surface p-2 shadow-sm">
+          <div className="relative h-12 w-[4.5rem] shrink-0 overflow-hidden rounded-lg border border-border bg-muted/40">
+            <img
+              src={heroImageUrl}
+              alt={t("businessPage.branding.hero.alt")}
+              draggable={false}
+              className="h-full w-full object-cover"
+            />
+            {busy && (
+              <div className="absolute inset-0 z-10 grid place-items-center bg-black/40 backdrop-blur-sm">
+                <Spinner size="sm" color="white" />
+              </div>
+            )}
+          </div>
 
-          {canWrite && !busy && (
-            <div className="absolute top-3 right-3 z-20 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[13px] font-medium text-foreground-1">
+              {t("businessPage.branding.hero.label")}
+            </p>
+            <p className="truncate text-xs text-foreground-3">
+              {t("businessPage.branding.hero.description")}
+            </p>
+          </div>
+
+          {canWrite && (
+            <div className="flex shrink-0 items-center gap-0.5">
               <Button
                 type="button"
                 size="sm"
-                variant="secondary"
-                rounded="full"
+                variant="ghost"
                 onClick={() => inputRef.current?.click()}
-                className="!min-h-0 !h-8 px-3 backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white shadow-xl active:scale-95 transition-all duration-200 opacity-100 md:opacity-0 md:group-hover/hero:opacity-100"
+                disabled={busy}
+                className="text-foreground-2"
               >
                 <UploadCloud className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-semibold">{t("businessPage.branding.hero.replace")}</span>
+                {t("businessPage.branding.hero.replace")}
               </Button>
               <Button
                 type="button"
                 size="icon"
-                variant="secondary"
-                rounded="full"
+                variant="ghost"
                 onClick={handleRemove}
+                disabled={busy}
                 aria-label={t("businessPage.branding.hero.remove")}
                 title={t("businessPage.branding.hero.remove")}
-                className="!min-h-8 !min-w-8 backdrop-blur-md bg-black/60 hover:bg-black/70 border border-white/15 text-white shadow-xl active:scale-95 transition-all duration-200 opacity-100 md:opacity-0 md:group-hover/hero:opacity-100"
+                className="size-8 text-foreground-3 hover:bg-destructive/10 hover:text-destructive"
               >
-                <X className="!h-3.5 !w-3.5" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
           )}
@@ -199,31 +210,31 @@ export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           className={cn(
-            "relative w-full h-48 md:h-64 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-3 text-center px-6 transition-all duration-300 cursor-pointer outline-none",
+            "flex w-full items-center gap-3 rounded-xl border border-dashed px-3.5 py-3 text-left outline-none cursor-pointer transition-[border-color,background-color,box-shadow] duration-200",
             dragActive
-              ? "border-primary bg-primary/10 ring-2 ring-primary/20 scale-[0.99]"
+              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
               : "border-border-strong/40 bg-muted/10 hover:border-primary/50 hover:bg-surface-hover focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-focus",
           )}
         >
           <div
             className={cn(
-              "flex items-center justify-center rounded-full bg-background border shadow-sm transition-all duration-300 h-14 w-14",
+              "grid h-10 w-10 shrink-0 place-items-center rounded-lg border bg-background shadow-sm transition-[color,border-color,transform] duration-200",
               dragActive
-                ? "border-primary text-primary scale-110"
-                : "text-primary border-primary/40",
+                ? "border-primary text-primary scale-105"
+                : "border-primary/40 text-primary",
             )}
           >
-            {isUploading ? <Spinner size="sm" /> : <ImagePlus className="h-6 w-6" />}
+            {isUploading ? <Spinner size="sm" /> : <ImagePlus className="h-5 w-5" />}
           </div>
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-foreground-1">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-foreground-1">
               {isUploading
                 ? t("businessPage.branding.hero.uploading")
                 : dragActive
                   ? t("portfolio.dropToUpload")
                   : t("businessPage.branding.hero.uploadCta")}
             </p>
-            <p className="text-xs text-foreground-3 dark:text-foreground-2">
+            <p className="truncate text-xs text-foreground-3 dark:text-foreground-2">
               {t("businessPage.branding.hero.hint")}
             </p>
           </div>

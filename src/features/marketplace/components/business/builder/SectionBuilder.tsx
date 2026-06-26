@@ -16,14 +16,23 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Monitor, Smartphone, ChevronUp, ChevronDown, ArrowUpRight } from "lucide-react";
+import { Monitor, Smartphone, ArrowUpRight } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
+import {
+  modalEyebrow,
+  modalTitleCompact,
+  modalHelperSmall,
+} from "../../../../../shared/components/ui/modal-tokens";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "../../../../../shared/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "../../../../../shared/components/ui/collapsible";
 import type {
   Business,
   SectionEntry,
@@ -31,10 +40,11 @@ import type {
   FaqItem,
   AnnouncementContent,
 } from "../../../types";
-import { SECTION_META, isKnownSectionType } from "./sectionCatalog";
+import { SECTION_META, isKnownSectionType, PINNED_TYPES } from "./sectionCatalog";
 import { SectionCard } from "./SectionCard";
 import { SettingsPanel } from "./SettingsPanel";
-import { LivePreview, type PreviewData, type PreviewReview } from "./LivePreview";
+import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview } from "./LivePreview";
+import { AutoHeight } from "./AutoHeight";
 
 /** House ease-out (mirrors --ease-out-strong in globals.css). */
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
@@ -81,6 +91,9 @@ interface SectionBuilderProps {
   tagline: string;
   setTagline: (value: string) => void;
   taglineError?: string;
+  /** Publish-blocking errors surfaced as a pulsing cue on the matching section card. */
+  aboutError?: string | null;
+  announcementError?: string | null;
   canWrite: boolean;
   brandColorHex: string;
   useBusinessEmail: boolean;
@@ -103,9 +116,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const { t, i18n } = useTranslation("marketplace");
   const [openType, setOpenType] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [locale, setLocale] = useState<"en" | "ro">(() =>
-    i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en",
-  );
+  // Sections are edited and previewed in the owner's app language (no language toggle).
+  const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
 
   const sensors = useSensors(
@@ -170,68 +182,60 @@ export function SectionBuilder(props: SectionBuilderProps) {
     ],
   );
 
-  const items = props.layout.map((s) => s.type);
-  const shown = props.layout.filter((s) => s.visible).length;
+  // The marquee only reads as an intentional band with enough services to scroll; below the threshold it's
+  // pointless, so drop the section from the builder entirely (it also self-hides on render). Both gate on the
+  // same helper so the card and the rendered band never disagree. Indices into props.layout are preserved so
+  // visibility/variant handlers stay correct; the displayed ordinal counts the shown cards.
+  const marqueeReady = marqueeItems(props.locations).length >= MARQUEE_MIN_ITEMS;
+  const displaySections = props.layout
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry }) => entry.type !== "marquee" || marqueeReady);
+
+  const items = displaySections.map(({ entry }) => entry.type);
+  const shown = displaySections.filter(({ entry }) => entry.visible).length;
 
   const renderSettings = (entry: SectionEntry, index: number) => {
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
-    const needsLocale = entry.type === "faq" || entry.type === "announcement";
-    const canUp = index > 0;
-    const canDown = index < props.layout.length - 1;
-    const moveBtn =
-      "rounded-md p-1 text-foreground-3 outline-none transition-colors duration-150 hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-30";
+    const hasVariants = !!meta && meta.variants.length > 1;
+    // The section's real "0N —" ordinal in the full page, so the scoped preview stays in sync with the rest.
+    const previewNumber =
+      props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1;
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-5">
-            {meta &&
-              meta.variants.length > 1 &&
-              meta.variants.map((v) => {
+        <fieldset
+          disabled={!entry.visible}
+          className={cn(
+            "m-0 min-w-0 space-y-4 border-0 p-0",
+            !entry.visible && "pointer-events-none opacity-60 transition-opacity duration-200",
+          )}
+        >
+        {hasVariants && (
+          <div className="flex flex-col items-start gap-1.5">
+            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3">
+              {t("businessPage.builder.variantLabel")}
+            </span>
+            <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
+              {meta!.variants.map((v) => {
                 const active = entry.variant === v.id;
                 return (
                   <button
                     key={v.id}
                     type="button"
                     onClick={() => props.setSectionVariant(index, v.id)}
+                    aria-pressed={active}
                     className={cn(
-                      "relative pb-1 text-[12.5px] font-medium outline-none transition-colors duration-200",
+                      "rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
                       EASE,
-                      active ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
+                      active
+                        ? "bg-surface text-primary-700 shadow-sm dark:text-primary-400"
+                        : "text-foreground-3 hover:text-foreground-2",
                     )}
                   >
                     {t(v.labelKey)}
-                    {active && <span className="absolute -bottom-px left-0 h-[2px] w-full bg-foreground-1" />}
                   </button>
                 );
               })}
-          </div>
-          <div className="flex items-center gap-0.5">
-            <button
-              type="button"
-              disabled={!canUp}
-              onClick={() => props.reorderSections(index, index - 1)}
-              aria-label={t("businessPage.builder.moveUp")}
-              className={moveBtn}
-            >
-              <ChevronUp className="h-4 w-4" strokeWidth={1.6} />
-            </button>
-            <button
-              type="button"
-              disabled={!canDown}
-              onClick={() => props.reorderSections(index, index + 1)}
-              aria-label={t("businessPage.builder.moveDown")}
-              className={moveBtn}
-            >
-              <ChevronDown className="h-4 w-4" strokeWidth={1.6} />
-            </button>
-          </div>
-        </div>
-        {needsLocale && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3">
-              {t("businessPage.builder.contentLanguage")}
-            </span>
-            <LangToggle locale={locale} setLocale={setLocale} />
+            </div>
           </div>
         )}
         <SettingsPanel
@@ -247,20 +251,25 @@ export function SectionBuilder(props: SectionBuilderProps) {
           canWrite={props.canWrite}
           locale={locale}
           onConfigChange={props.setSectionConfig}
+          onTurnOffSection={() => {
+            if (entry.visible) props.toggleSectionVisible(index);
+            setOpenType(null);
+          }}
           onFaqChange={props.setFaqItems}
           onAnnouncementChange={props.setAnnouncementContent}
           onAboutChange={props.setAboutContent}
           onTaglineChange={props.setTagline}
         />
-        <div className="pt-1">
-          <div className="mb-2 flex items-center gap-2">
+        </fieldset>
+        <div className="border-t border-border pt-5">
+          <div className="mb-3 flex items-center gap-2">
             <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3">
+            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground-3">
               {t("businessPage.builder.sectionPreview")}
             </span>
           </div>
-          <div className="overflow-hidden rounded-xl border border-border">
-            <LivePreview layout={[{ ...entry, visible: true }]} data={previewData} chrome={false} />
+          <div className="overflow-hidden rounded-2xl border border-border bg-background">
+            <LivePreview layout={[{ ...entry, visible: true }]} data={previewData} chrome={false} startNumber={previewNumber} />
           </div>
         </div>
       </div>
@@ -273,13 +282,13 @@ export function SectionBuilder(props: SectionBuilderProps) {
         {/* header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5">
           <div>
-            <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-foreground-3">
+            <span className={cn(modalEyebrow, "mb-0 block")}>
               {t("businessPage.builder.eyebrow")}
             </span>
-            <h2 className="mt-1.5 text-[20px] font-semibold tracking-[-0.02em] text-foreground-1">
+            <h2 className={cn(modalTitleCompact, "mt-2")}>
               {t("businessPage.builder.studioTitle")}
             </h2>
-            <p className="mt-1 text-[13.5px] leading-relaxed text-foreground-3">
+            <p className={cn(modalHelperSmall, "mt-1.5")}>
               {t("businessPage.builder.studioHelper")}
             </p>
           </div>
@@ -287,72 +296,116 @@ export function SectionBuilder(props: SectionBuilderProps) {
             type="button"
             onClick={() => setPreviewOpen(true)}
             className={cn(
-              "group mt-1 inline-flex shrink-0 items-center gap-1.5 text-[13px] font-medium text-foreground-2",
-              "transition-colors duration-150 hover:text-foreground-1",
+              "group mt-1 inline-flex shrink-0 items-center gap-2 text-[13px] font-medium text-foreground-2",
+              "transition-colors duration-200 hover:text-foreground-1",
               EASE,
             )}
           >
             {t("businessPage.builder.openPreview")}
-            <ArrowUpRight
-              className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
-              strokeWidth={1.7}
-            />
+            <span
+              className={cn(
+                "grid h-6 w-6 place-items-center rounded-full bg-foreground-1/[0.06] text-foreground-2",
+                "transition-all duration-200 group-hover:bg-foreground-1/10 group-hover:text-foreground-1",
+                "group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:scale-95",
+                EASE,
+              )}
+            >
+              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden />
+            </span>
           </button>
         </div>
 
         {/* sections | brand */}
         <div className="grid border-t border-border md:grid-cols-[1fr_320px]">
-          {/* sections */}
-          <div className="px-6 py-5 md:border-r md:border-border">
-            <div className="mb-1 flex items-baseline justify-between">
-              <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-foreground-3">
-                {t("businessPage.builder.sectionsLabel")}
-              </span>
-              <span className="text-[12px] text-foreground-3">
-                {t("businessPage.builder.sectionsShown", { shown, total: props.layout.length })}
-              </span>
+          {/* sections — the page contents, set as a ruled editorial index */}
+          <div className="px-5 py-5 sm:px-6 md:border-r md:border-border">
+            {/* folio: how many of the sections are live */}
+            <div className="mb-4 flex items-start justify-end">
+              <div className="text-right leading-none">
+                <span className="text-[12px] tabular-nums text-foreground-3">
+                  <span className="font-semibold text-foreground-1">
+                    {String(shown).padStart(2, "0")}
+                  </span>
+                  {" / "}
+                  {String(displaySections.length).padStart(2, "0")}{" "}
+                  {t("businessPage.builder.sectionsVisible")}
+                </span>
+                <span className="mt-[7px] block font-mono text-[9px] uppercase tracking-[0.18em] text-foreground-3">
+                  {t("businessPage.builder.sectionsLabel")}
+                </span>
+              </div>
             </div>
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              modifiers={modifiers}
-              onDragStart={() => setOpenType(null)}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext items={items} strategy={verticalListSortingStrategy}>
-                <div ref={listRef} className="divide-y divide-border">
-                  {props.layout.map((entry, index) => {
-                    const open = openType === entry.type;
-                    const card = (
-                      <SectionCard
-                        entry={entry}
-                        meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
-                        index={index + 1}
-                        selected={open}
-                        expanded={open}
-                        onSelect={() => setOpenType(open ? null : entry.type)}
-                        onToggleVisible={() => props.toggleSectionVisible(index)}
-                      />
-                    );
-                    if (!open) return <div key={entry.type}>{card}</div>;
-                    return (
-                      <div key={entry.type} className="-mx-3 rounded-lg bg-surface-hover px-3">
-                        {card}
-                        <div
+
+            {/* bracketed sheet with a hairline spine in the left margin */}
+            <div className="relative border-y border-border">
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-[72px] z-0 w-px bg-border-subtle"
+              />
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={modifiers}
+                onDragStart={() => setOpenType(null)}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext items={items} strategy={verticalListSortingStrategy}>
+                  <div ref={listRef} className="relative">
+                    {displaySections.map(({ entry, index }, pos) => {
+                      const open = openType === entry.type;
+                      return (
+                        <Collapsible
+                          key={entry.type}
+                          open={open}
+                          onOpenChange={(next) => setOpenType(next ? entry.type : null)}
                           className={cn(
-                            "border-t border-border/60 pb-5 pl-12 pt-4",
-                            "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-1 duration-200",
-                            EASE,
+                            "relative",
+                            open && "z-10",
+                            pos > 0 &&
+                              "before:pointer-events-none before:absolute before:left-[72px] before:right-[18px] before:top-0 before:z-0 before:h-px before:bg-border-subtle before:content-['']",
                           )}
                         >
-                          {renderSettings(entry, index)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </SortableContext>
-            </DndContext>
+                          <SectionCard
+                            entry={entry}
+                            meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
+                            index={pos + 1}
+                            expanded={open}
+                            locked={PINNED_TYPES.has(entry.type)}
+                            needsAttention={
+                              (entry.type === "about" && !!props.aboutError) ||
+                              (entry.type === "announcement" && !!props.announcementError)
+                            }
+                            onSelect={() => setOpenType(open ? null : entry.type)}
+                            onToggleVisible={() => {
+                              const turningOn = !entry.visible;
+                              // Re-enabling a locations section that has everything hidden restores all
+                              // locations, so it can never be on with nothing to show.
+                              if (turningOn && entry.type === "locations") {
+                                const hiddenIds = (entry.config?.hiddenLocationIds as number[] | undefined) ?? [];
+                                if (props.locations.length > 0 && props.locations.every((l) => hiddenIds.includes(l.id))) {
+                                  props.setSectionConfig(index, { hiddenLocationIds: [] });
+                                }
+                              }
+                              props.toggleSectionVisible(index);
+                              // Expand a section when it's switched on; collapse it when switched off.
+                              if (turningOn) setOpenType(entry.type);
+                              else if (open) setOpenType(null);
+                            }}
+                          />
+                          <CollapsibleContent>
+                            <AutoHeight className="relative pb-6 pl-[72px] pr-4 pt-3 sm:pl-[87px]">
+                              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-300 motion-safe:delay-75">
+                                {renderSettings(entry, index)}
+                              </div>
+                            </AutoHeight>
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            </div>
           </div>
 
           {/* brand */}
@@ -370,13 +423,12 @@ export function SectionBuilder(props: SectionBuilderProps) {
               {t("businessPage.builder.previewLabel")}
             </DialogTitle>
             <div className="flex items-center gap-4 text-[12px]">
-              <LangToggle locale={locale} setLocale={setLocale} />
               <DeviceToggle device={device} setDevice={setDevice} t={t} />
             </div>
           </DialogHeader>
           <div className="overflow-y-auto bg-surface-hover dark:bg-neutral-900/40">
             <div className={cn("mx-auto", device === "mobile" ? "max-w-[390px] p-3" : "max-w-none")}>
-              <LivePreview layout={props.layout} data={previewData} selectedType={openType} />
+              <LivePreview layout={props.layout} data={previewData} />
             </div>
           </div>
         </DialogContent>
@@ -386,42 +438,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
 }
 
 // ---------------------------------------------------------------------------
-
-function LangToggle({
-  locale,
-  setLocale,
-}: {
-  locale: "en" | "ro";
-  setLocale: (v: "en" | "ro") => void;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1.5">
-      <button
-        type="button"
-        onClick={() => setLocale("en")}
-        className={cn(
-          "transition-colors duration-150",
-          locale === "en" ? "font-medium text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
-        )}
-      >
-        EN
-      </button>
-      <span className="text-border-strong" aria-hidden>
-        ·
-      </span>
-      <button
-        type="button"
-        onClick={() => setLocale("ro")}
-        className={cn(
-          "transition-colors duration-150",
-          locale === "ro" ? "font-medium text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
-        )}
-      >
-        RO
-      </button>
-    </span>
-  );
-}
 
 function DeviceToggle({
   device,

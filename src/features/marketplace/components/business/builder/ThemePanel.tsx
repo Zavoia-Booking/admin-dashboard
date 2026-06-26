@@ -16,7 +16,7 @@ export function ThemePanel({ fontKey, onFontChange }: ThemePanelProps) {
       <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3">
         {t("businessPage.theme.fontLabel")}
       </span>
-      <div className="mt-3 flex flex-wrap items-end gap-7">
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
         {FONT_OPTIONS.map((f) => {
           const active = fontKey === f.key;
           return (
@@ -26,19 +26,23 @@ export function ThemePanel({ fontKey, onFontChange }: ThemePanelProps) {
               onClick={() => onFontChange(f.key)}
               aria-pressed={active}
               className={cn(
-                "group/font text-left outline-none transition-opacity duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:opacity-100",
-                active ? "opacity-100" : "opacity-50 hover:opacity-90",
+                "group/font flex flex-col items-start gap-2 rounded-xl border px-3 py-2.5 text-left outline-none transition-[border-color,background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/50",
+                active
+                  ? "border-primary/40 bg-primary/[0.06] shadow-sm dark:bg-primary/[0.10]"
+                  : "border-border bg-surface hover:border-border-strong hover:bg-surface-hover/60",
               )}
             >
-              <span className="relative inline-block leading-none">
-                <span className="block text-[27px] text-foreground-1" style={{ fontFamily: f.stack }}>
-                  Aa
-                </span>
-                {active && (
-                  <span className="absolute -bottom-1.5 left-0 h-[2px] w-full bg-foreground-1" />
-                )}
+              <span className="text-[26px] leading-none text-foreground-1" style={{ fontFamily: f.stack }}>
+                Aa
               </span>
-              <span className="mt-2.5 block text-[10.5px] text-foreground-3">{t(f.labelKey)}</span>
+              <span
+                className={cn(
+                  "text-[11px] transition-colors duration-200",
+                  active ? "font-medium text-primary-700 dark:text-primary-400" : "text-foreground-3",
+                )}
+              >
+                {t(f.labelKey)}
+              </span>
             </button>
           );
         })}

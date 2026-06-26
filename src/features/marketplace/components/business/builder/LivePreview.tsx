@@ -1,10 +1,12 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type Ref } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Star,
-  MapPin,
   ArrowRight,
-  ArrowUpRight,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
   Instagram,
   Facebook,
   Globe,
@@ -13,6 +15,8 @@ import {
   ImageOff,
   Plus,
   Sparkles,
+  ChevronDown,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import type {
@@ -20,9 +24,14 @@ import type {
   LocationWithAssignments,
   FaqItem,
   AnnouncementContent,
+  HeroConfig,
+  LocationsConfig,
 } from "../../../types";
 import { previewVars, displayFontFor } from "./theme";
 import { isKnownSectionType } from "./sectionCatalog";
+import { splitAboutContent } from "./aboutContent";
+import { useLocationTagDictionaries, type ChipOption, type ResolvedTagDictionaries } from "../../../hooks/useLocationTagDictionaries";
+import { tagIcon } from "../../../utils/tagIcons";
 import { cn } from "../../../../../shared/lib/utils";
 import { UserRole } from "../../../../../shared/types/auth";
 
@@ -66,13 +75,16 @@ export interface PreviewData {
 interface LivePreviewProps {
   layout: SectionEntry[];
   data: PreviewData;
-  /** Section currently open in the inspector — gets a calm highlight so the owner sees what they edit. */
-  selectedType?: string | null;
   /**
    * Render the site chrome (fixed nav + editorial footer) around the sections — true for the full-page
    * preview, false for the per-section scoped card (where a single section is shown on its own).
    */
   chrome?: boolean;
+  /**
+   * Ordinal the first numbered section should carry (default 1). The per-section preview passes the
+   * section's real number in the full page so its "0N —" kicker stays in sync with the others.
+   */
+  startNumber?: number;
 }
 
 type T = (k: string, o?: Record<string, unknown>) => string;
@@ -86,7 +98,12 @@ const DISPLAY: CSSProperties = {
 const MONO: CSSProperties = { fontFamily: "var(--mc-mono)" };
 
 /** Section types that don't get a numbered "0N —" kicker (full-bleed hero/announcement + decorative bands). */
-const UNNUMBERED = new Set<string>(["hero", "announcement", "marquee", "interlude"]);
+export const UNNUMBERED = new Set<string>(["hero", "announcement", "marquee", "interlude"]);
+
+// Nav frosting over the hero: scroll distance to full blur, and the fraction of it by which the warm
+// paper tint + dark text have fully arrived (kept short so it never dwells in a muddy, unreadable state).
+const FROST_DIST = 240;
+const FROST_TINT_AT = 0.32;
 
 /**
  * Faithful, scaled-down render of the public "lookbook" microsite — a warm paper canvas, editorial
@@ -95,31 +112,31 @@ const UNNUMBERED = new Set<string>(["hero", "announcement", "marquee", "interlud
  * calm placeholders. Fluid type keys off the preview's own width via container-query units, so the
  * same component reads well in the small per-section card and the full-page dialog alike.
  */
-function LivePreviewImpl({ layout, data, selectedType, chrome = true }: LivePreviewProps) {
+function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1 }: LivePreviewProps) {
   const { t } = useTranslation("marketplace");
   const visible = layout.filter((s) => s.visible);
 
-  const bar = visible.find((s) => s.type === "announcement" && s.variant === "bar");
-  const stacked = visible.filter((s) => !(s.type === "announcement" && s.variant === "bar"));
+  // The announcement is always the sticky ribbon above the nav (pinned first, single "bar" variant).
+  const bar = visible.find((s) => s.type === "announcement");
+  const stacked = visible.filter((s) => s.type !== "announcement");
 
-  // The nav floats transparently over a cinematic (full-bleed, dark cover) hero, exactly as the microsite
-  // does. Only legible over that dark cover, so any other lead section (split/minimal hero, a non-hero, or
-  // an announcement bar above the nav) falls back to the solid paper bar.
+  // The nav floats transparently and frosts on scroll over every photo/accent hero — the cinematic cover,
+  // the drenched accent field, and the cover plate (whose photo + accent field fill the strip behind the
+  // bar). Only an announcement bar above the nav forces the solid paper bar from the top. Over the drenched
+  // field the CTA also frosts (white→accent), since a static accent pill would blend into the same-hue field.
   const first = stacked[0];
+  const firstHeroMode =
+    !bar && first?.type === "hero" ? heroMode((first.config ?? {}) as HeroConfig, !!data.heroImageUrl) : null;
   const overHero =
-    !bar &&
-    first?.type === "hero" &&
-    !!data.heroImageUrl &&
-    first.variant !== "split" &&
-    first.variant !== "minimal";
+    firstHeroMode === "cinematic" || firstHeroMode === "drenched" || firstHeroMode === "coverPlate";
+  const ctaFrost = firstHeroMode === "drenched";
 
-  // Scroll chrome: the nav sticks to the dialog's scroll container and cross-fades to a blurred paper bar
-  // once the hero has scrolled past. `navH` lets the nav give back its flow height (negative margin) so it
-  // overlays the hero instead of sitting above it.
+  // Scroll chrome: the nav sticks to the dialog's scroll container and frosts gradually as the hero scrolls
+  // up behind it. `navH` lets the nav give back its flow height (negative margin) so it overlays the hero.
   const navRef = useRef<HTMLElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [navH, setNavH] = useState(0);
-  const [past, setPast] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useLayoutEffect(() => {
     const nav = navRef.current;
@@ -133,12 +150,17 @@ function LivePreviewImpl({ layout, data, selectedType, chrome = true }: LivePrev
 
   useEffect(() => {
     if (!chrome || !overHero) {
-      setPast(false);
+      setProgress(0);
+      return;
+    }
+    // Reduced motion: skip the scroll-driven frost and land the settled (paper) bar, which stays legible
+    // over both the hero and the paper sections — mirrors how the parallax + CSS reveals bail.
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setProgress(1);
       return;
     }
     const nav = navRef.current;
-    const hero = heroRef.current;
-    if (!nav || !hero) return;
+    if (!nav || !heroRef.current) return;
     let scroller: HTMLElement | null = nav.parentElement;
     while (scroller) {
       const oy = getComputedStyle(scroller).overflowY;
@@ -150,10 +172,8 @@ function LivePreviewImpl({ layout, data, selectedType, chrome = true }: LivePrev
     let raf = 0;
     const update = () => {
       raf = 0;
-      // Flip to the blurred paper bar only once the hero has fully scrolled up behind the nav. Compare
-      // live rects (not cached offsetHeight) so it can't trip early on a stale/zero height measurement —
-      // the nav stays transparent over the whole hero, then switches at its bottom edge.
-      setPast(hero.getBoundingClientRect().bottom <= nav.getBoundingClientRect().bottom);
+      // Drive off absolute scroll distance so the frost arrives quickly and consistently regardless of hero height.
+      setProgress(Math.round(Math.min(1, sc.scrollTop / FROST_DIST) * 100) / 100);
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(update);
@@ -167,48 +187,69 @@ function LivePreviewImpl({ layout, data, selectedType, chrome = true }: LivePrev
   }, [chrome, overHero, stacked.length]);
 
   // Section numbers (mono kicker) follow the visible non-bar order, mirroring the microsite's "0N —".
-  let n = 0;
+  // `startNumber` lets the scoped one-section preview carry its real page ordinal instead of restarting at 1.
+  let n = startNumber - 1;
 
   return (
     <div
       className={chrome ? "" : "overflow-hidden rounded-xl ring-1 ring-black/5"}
       style={{ ...previewVars(data.brandColor, data.fontKey), backgroundColor: "var(--mc-bg)", containerType: "inline-size" } as CSSProperties}
     >
-      {bar && <AnnouncementBar data={data} />}
-      {chrome && stacked.length > 0 && (
-        <Nav
-          data={data}
-          layout={layout}
-          t={t}
-          overHero={overHero}
-          past={past}
-          navRef={navRef}
-          marginBottom={overHero ? -navH : 0}
-        />
+      {bar ? (
+        // Announcement ribbon + nav travel together, pinned to the top of the scroll container.
+        <div className="sticky top-0 z-30">
+          <AnnouncementBar data={data} t={t} sample={!chrome} />
+          {chrome && stacked.length > 0 && (
+            <Nav
+              data={data}
+              layout={layout}
+              t={t}
+              overHero={false}
+              progress={0}
+              navRef={navRef}
+              marginBottom={0}
+              sticky={false}
+            />
+          )}
+        </div>
+      ) : (
+        chrome &&
+        stacked.length > 0 && (
+          <Nav
+            data={data}
+            layout={layout}
+            t={t}
+            overHero={overHero}
+            ctaFrost={ctaFrost}
+            progress={progress}
+            navRef={navRef}
+            marginBottom={overHero ? -navH : 0}
+          />
+        )
       )}
       {stacked.length === 0 ? (
-        <div className="px-6 py-16 text-center text-sm" style={{ color: "var(--mc-muted)" }}>
-          {t("businessPage.builder.preview.allHidden")}
-        </div>
+        bar ? null : (
+          <div className="px-6 py-16 text-center text-sm" style={{ color: "var(--mc-muted)" }}>
+            {t("businessPage.builder.preview.allHidden")}
+          </div>
+        )
       ) : (
         stacked.map((s, i) => {
           if (!UNNUMBERED.has(s.type)) n += 1;
           const no = UNNUMBERED.has(s.type) ? "" : String(n).padStart(2, "0");
+          // Re-key the hero on its effective layout (cover present + coverLayout) so toggling full-bleed ⇄
+          // cover plate remounts it; in the scoped preview that remount plays the swap scale-fade.
+          const heroKey =
+            s.type === "hero"
+              ? `hero-${data.heroImageUrl ? ((s.config as HeroConfig | undefined)?.coverLayout ?? "full") : "none"}`
+              : s.type;
           return (
             <div
-              key={s.type}
+              key={heroKey}
               ref={overHero && i === 0 ? heroRef : undefined}
-              className="relative"
-              style={
-                selectedType === s.type
-                  ? ({
-                      outline: "2px solid var(--mc-accent)",
-                      outlineOffset: "-2px",
-                    } as CSSProperties)
-                  : undefined
-              }
+              className={cn("relative", !chrome && s.type === "hero" && "mc-hero-swap")}
             >
-              <SectionView entry={s} data={data} t={t} no={no} />
+              <SectionView entry={s} data={data} t={t} no={no} chrome={chrome} />
             </div>
           );
         })
@@ -220,26 +261,26 @@ function LivePreviewImpl({ layout, data, selectedType, chrome = true }: LivePrev
 
 /**
  * Memoised so a keystroke in an inspector field (which re-renders SectionBuilder) only re-renders the
- * preview when its `data`/`layout`/`selectedType` props actually change. SectionBuilder memoises
- * `previewData` to keep that reference stable.
+ * preview when its `data`/`layout` props actually change. SectionBuilder memoises `previewData` to keep
+ * that reference stable.
  */
 export const LivePreview = memo(LivePreviewImpl);
 
 // ---------------------------------------------------------------------------
 
-function SectionView({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
+function SectionView({ entry, data, t, no, chrome }: { entry: SectionEntry; data: PreviewData; t: T; no: string; chrome: boolean }) {
   if (!isKnownSectionType(entry.type)) return null; // unknown stored type → skipped on the public side
   switch (entry.type) {
-    case "announcement":
-      return <AnnouncementInline data={data} />;
     case "hero":
-      return <Hero entry={entry} data={data} t={t} />;
+      // Parallax only in the full-page preview; the scoped one-section preview has no hero-scroll, so a
+      // page-scroll-driven shift would lift the cover off its buffer and bare the bottom edge.
+      return <Hero entry={entry} data={data} t={t} parallax={chrome} />;
     case "marquee":
-      return <Marquee data={data} />;
+      return <Marquee data={data} entry={entry} chrome={chrome} />;
     case "interlude":
       return <Interlude data={data} t={t} />;
     case "about":
-      return <About entry={entry} data={data} t={t} no={no} />;
+      return <About data={data} t={t} no={no} />;
     case "locations":
       return <Locations entry={entry} data={data} t={t} no={no} />;
     case "gallery":
@@ -272,160 +313,362 @@ function aggregateReviews(locations: LocationWithAssignments[]) {
   return { rating, count };
 }
 
-/** Split long About copy into a serif lede (opening line) + a muted body (the rest). */
+/** The serif lede (headline) + muted body for the About section, split on the first blank line via the
+ *  shared {@link splitAboutContent} contract and trimmed for display — so editor, preview and validation
+ *  all agree on where the break falls. No blank line ⇒ the whole text is the lede. */
 function splitLede(text: string): { lede: string; body: string } {
-  const clean = text.trim();
-  if (clean.length <= 180) return { lede: clean, body: "" };
-  const para = clean.indexOf("\n\n");
-  if (para > 40 && para < 260) return { lede: clean.slice(0, para).trim(), body: clean.slice(para).trim() };
-  const dot = clean.indexOf(". ", 80);
-  if (dot > 0 && dot < 220) return { lede: clean.slice(0, dot + 1).trim(), body: clean.slice(dot + 1).trim() };
-  return { lede: clean.slice(0, 170).trim() + "…", body: clean.slice(170).trim() };
+  const { title, body } = splitAboutContent(text);
+  return { lede: title.trim(), body: body.trim() };
 }
 
 // ---- Hero ----------------------------------------------------------------
-function Hero({ entry, data, t }: { entry: SectionEntry; data: PreviewData; t: T }) {
-  const { rating, count } = aggregateReviews(data.locations);
-  const city = data.locations.find((l) => l.addressComponents?.city)?.addressComponents?.city;
-  const name = data.businessName || t("businessPage.builder.preview.businessNamePlaceholder");
-  // Brand eyebrow — primary city, else the location count. No fabricated "Est. {year}": there is no
-  // establishment-date field, and the account-creation date would misrepresent it. The brand lockup
-  // (logo + wordmark) lives in the nav, mirroring the microsite hero, which is image + name only.
-  const eyebrow =
-    city || (data.locations.length > 0 ? t("businessPage.builder.preview.locationCount", { count: data.locations.length }) : "");
 
-  const Rating =
-    count > 0 ? (
-      <div className="flex items-center gap-2.5" style={{ color: "#fff" }}>
-        <span style={{ ...DISPLAY, fontSize: "clamp(28px,6cqw,40px)", lineHeight: 0.85 }}>
-          {rating.toFixed(1)}
-        </span>
-        <span className="flex flex-col gap-1">
-          <Stars value={rating} size={12} color="#fff" empty="rgba(255,255,255,0.34)" />
-          <span className="text-[10px] uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "rgba(255,255,255,0.82)" }}>
-            {t("businessPage.builder.preview.reviewsCount", { count })}
+// Entrance stagger (ms) + parallax depth — mirrors the microsite's reveal cascade and MicroImg speed.
+const HERO_DELAY = { eyebrow: 100, title: 170, titleStep: 70, tagline: 460, rating: 560, cta: 680 };
+const HERO_PARALLAX = 0.06;
+
+type HeroMode = "cinematic" | "coverPlate" | "drenched";
+/** Resolve the hero's render mode from its cover photo + the cover-layout toggle. No cover ⇒ the hero
+ *  floods with the brand accent (the drenched field). With a cover, the owner's `coverLayout` picks the
+ *  full-bleed cinematic cover or the "cover plate" (tall photo bleed + paper card). Shared with the nav:
+ *  every cover/accent hero floats the frosted bar; only an announcement ribbon forces the solid paper nav. */
+function heroMode(cfg: HeroConfig, hasImage: boolean): HeroMode {
+  if (!hasImage) return "drenched";
+  return cfg.coverLayout === "plate" ? "coverPlate" : "cinematic";
+}
+
+/** Headline split into per-word masks that rise into place (mirrors the design's SplitReveal). */
+function WordRise({ text, base, step, className, style }: { text: string; base: number; step: number; className?: string; style?: CSSProperties }) {
+  const words = text.split(/\s+/).filter(Boolean);
+  return (
+    <h1 className={className} style={style}>
+      {words.map((w, i) => (
+        <Fragment key={i}>
+          <span className="mc-rev-word">
+            <span style={{ animationDelay: `${base + i * step}ms` }}>{w}</span>
           </span>
-        </span>
-      </div>
-    ) : null;
+          {i < words.length - 1 ? " " : ""}
+        </Fragment>
+      ))}
+    </h1>
+  );
+}
 
-  // Cinematic full-bleed cover — the default "centered" treatment when a cover image exists.
-  if (data.heroImageUrl && entry.variant !== "split" && entry.variant !== "minimal") {
+/** Two-letter brand monogram from the business name (first + last word, or first two letters of one word). */
+function monogramOf(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (!words.length) return "";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+}
+
+function Hero({ entry, data, t, parallax }: { entry: SectionEntry; data: PreviewData; t: T; parallax: boolean }) {
+  const cfg = (entry.config ?? {}) as HeroConfig;
+  const { rating, count } = aggregateReviews(data.locations);
+  const locs = data.locations;
+  const name = data.businessName || t("businessPage.builder.preview.businessNamePlaceholder");
+  const monogram = monogramOf(name);
+  const mode = heroMode(cfg, !!data.heroImageUrl);
+  const showRating = count > 0 && cfg.showRating !== false;
+  // Booking button copy is fixed (not owner-editable); the button always opens the booking flow.
+  const ctaLabel = t("businessPage.builder.preview.bookNow");
+  // Eyebrow is auto-built from the locations (owner only toggles it on/off): a single location shows
+  // its city, multiple show "{n} locations across {place}" (shared city when all in one, else
+  // country), falling back to a count.
+  let derivedEyebrow = "";
+  if (locs.length === 1) {
+    derivedEyebrow = locs[0].addressComponents?.city || "";
+  } else if (locs.length > 1) {
+    const cities = new Set(locs.map((l) => l.addressComponents?.city).filter(Boolean));
+    const country = locs.map((l) => l.addressComponents?.country).find(Boolean);
+    const place = cities.size === 1 ? [...cities][0] : country;
+    derivedEyebrow = place
+      ? t("businessPage.builder.preview.hero.locationsAcross", { num: locs.length, place })
+      : t("businessPage.builder.preview.locationCount", { count: locs.length });
+  }
+  const eyebrow = cfg.showEyebrow === false ? "" : derivedEyebrow;
+
+  const headerRef = useRef<HTMLElement>(null);
+  const parallaxRef = useRef<HTMLDivElement>(null);
+
+  // Cover parallax tied to the preview's scroll container (full-page preview only; skipped under
+  // reduced-motion / no image / scoped one-section preview).
+  useEffect(() => {
+    const host = parallaxRef.current;
+    const header = headerRef.current;
+    if (!parallax || !host || !header || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    let scroller: HTMLElement | null = header.parentElement;
+    while (scroller) {
+      const oy = getComputedStyle(scroller).overflowY;
+      if (oy === "auto" || oy === "scroll") break;
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const sc = scroller;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      // Stacked cover-plate (narrow container, ≤720px) drops the image overscan — its photo fills an exact
+      // 16/10 box — so any parallax shift would bare an edge. Keep it static there (matches the mockup,
+      // which doesn't parallax when stacked); the cinematic cover keeps its overscan at every width.
+      if (mode === "coverPlate" && header.getBoundingClientRect().width <= 720) {
+        host.style.transform = "";
+        return;
+      }
+      const r = host.getBoundingClientRect();
+      const cr = sc.getBoundingClientRect();
+      const d = r.top + r.height / 2 - (cr.top + cr.height / 2);
+      // Clamp inside the image overscan (top:-14% / height:128%) so an edge can never enter the frame.
+      const buffer = header.getBoundingClientRect().height * 0.13;
+      const ty = Math.max(-buffer, Math.min(buffer, -d * HERO_PARALLAX));
+      host.style.transform = `translate3d(0, ${ty.toFixed(1)}px, 0)`;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    sc.addEventListener("scroll", onScroll, { passive: true });
+    // Recompute on resize too, so toggling the preview between desktop and mobile re-evaluates the stacked
+    // guard above (the component doesn't remount on toggle, so a scroll-only listener would go stale).
+    const ro = new ResizeObserver(() => {
+      if (!raf) raf = requestAnimationFrame(update);
+    });
+    ro.observe(header);
+    update();
+    return () => {
+      sc.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [data.heroImageUrl, parallax, mode]);
+
+  const eyebrowDot = <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-current" />;
+
+  // Cinematic full-bleed cover — the photo-forward hero (default when a cover image exists).
+  if (mode === "cinematic") {
     return (
-      <header className="relative isolate flex min-h-[clamp(360px,72cqw,620px)] flex-col justify-end overflow-hidden">
-        <img src={data.heroImageUrl} alt="" className="absolute inset-0 -z-10 h-full w-full object-cover" />
+      <header ref={headerRef} className="mc-hero-cine relative isolate flex flex-col justify-end overflow-hidden">
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div ref={parallaxRef} className="absolute left-0 right-0" style={{ top: "-14%", height: "128%", willChange: "transform" }}>
+            <img src={data.heroImageUrl ?? undefined} alt="" className="h-full w-full object-cover" />
+          </div>
+        </div>
         <div
           className="absolute inset-0 -z-10"
           style={{ background: "linear-gradient(180deg, rgba(20,16,14,0.62) 0%, rgba(20,16,14,0.42) 18%, rgba(20,16,14,0.34) 42%, rgba(20,16,14,0.38) 62%, rgba(20,16,14,0.84) 100%)" }}
         />
-        <div className="px-[clamp(20px,5cqw,48px)] pb-[clamp(28px,5cqw,52px)] pt-12 text-white">
+        <div className="mx-auto w-full max-w-[1320px] px-[clamp(20px,5cqw,48px)] pb-[clamp(40px,6cqw,72px)] pt-12 text-white">
           {eyebrow && (
-            <p className="text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.18em", color: "rgba(255,255,255,0.9)" }}>
+            <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "rgba(255,255,255,0.92)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
+              {eyebrowDot}
               {eyebrow}
             </p>
           )}
-          <h1 className="mt-2.5 max-w-[14ch] text-balance" style={{ ...DISPLAY, fontSize: "clamp(34px,9.5cqw,72px)", lineHeight: 0.96 }}>
-            {name}
-          </h1>
+          <WordRise
+            text={name}
+            base={HERO_DELAY.title}
+            step={HERO_DELAY.titleStep}
+            className="mt-3 max-w-[14ch] text-balance"
+            style={{ ...DISPLAY, fontSize: "clamp(38px,12cqw,96px)", lineHeight: 0.96 }}
+          />
           {data.tagline && (
-            <p className="mt-3 max-w-[42ch] text-[clamp(13px,1.9cqw,18px)] leading-snug" style={{ color: "rgba(255,255,255,0.9)" }}>
+            <p className="mc-rev-up mt-5 max-w-[540px] text-[clamp(14px,2.4cqw,21px)]" style={{ lineHeight: 1.45, color: "rgba(255,255,255,0.9)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
               {data.tagline}
             </p>
           )}
-          <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3">
-            {Rating}
-            <BookButton label={t("businessPage.builder.preview.book")} tone="paper" />
+          <div className="mt-7 flex flex-wrap items-center gap-x-[22px] gap-y-3.5">
+            {showRating && (
+              <div className="mc-rev-up flex items-center gap-2.5" style={{ color: "#fff", animationDelay: `${HERO_DELAY.rating}ms` }}>
+                <span style={{ ...DISPLAY, fontSize: "clamp(30px,6cqw,44px)", lineHeight: 0.85, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums", textShadow: "0 2px 14px rgba(0,0,0,0.4)" }}>
+                  {rating.toFixed(1)}
+                </span>
+                <span className="flex flex-col gap-1">
+                  <Stars value={rating} size={13} color="#fff" empty="rgba(255,255,255,0.34)" />
+                  <span className="text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "rgba(255,255,255,0.8)", textShadow: "0 1px 6px rgba(0,0,0,0.35)" }}>
+                    {t("businessPage.builder.preview.reviewsCount", { count })}
+                  </span>
+                </span>
+              </div>
+            )}
+            <div className="mc-rev-up" style={{ animationDelay: `${HERO_DELAY.cta}ms` }}>
+              <BookButton label={ctaLabel} tone="paper" />
+            </div>
           </div>
         </div>
         {/* Scroll cue — the full-page preview scrolls in the dialog, so this reads truthfully. */}
         <div
-          className="pointer-events-none absolute inset-x-0 bottom-2.5 z-10 flex flex-col items-center gap-1.5 text-[9px] uppercase"
-          style={{ ...MONO, letterSpacing: "0.2em", color: "rgba(255,255,255,0.78)" }}
+          className="pointer-events-none absolute inset-x-0 bottom-[26px] z-10 flex flex-col items-center gap-2 text-[10px] uppercase"
+          style={{ ...MONO, letterSpacing: "0.2em", color: "rgba(255,255,255,0.8)" }}
         >
           {t("businessPage.builder.preview.hero.scrollCue")}
-          <span className="h-6 w-px" style={{ background: "rgba(255,255,255,0.5)" }} />
+          <span className="mc-cue-line h-8 w-px" style={{ background: "rgba(255,255,255,0.5)" }} />
         </div>
       </header>
     );
   }
 
-  // Split — editorial paper column beside the cover image.
-  if (entry.variant === "split" && data.heroImageUrl) {
+  // Cover plate — three layers: the drenched accent FIELD on the left (accent flood + ghost monogram +
+  // masthead hairline, the same treatment as the no-cover hero), the cover PHOTO bleeding full-height on
+  // the right, and a white CARD straddling the seam (the signature overlap). The .mc-plate* layout
+  // (absolute field + photo + the overlapping card + the stack breakpoint) lives in globals.css.
+  if (mode === "coverPlate") {
     return (
-      <header className="grid [grid-template-columns:repeat(auto-fit,minmax(240px,1fr))]">
-        <div className="flex flex-col justify-center px-[clamp(20px,5cqw,44px)] py-[clamp(36px,6cqw,64px)]">
+      <header ref={headerRef} className="mc-plate">
+        <div className="mc-plate-field">
+          {/* Oversized brand monogram bled off the top-left as a ~7% letterpress ghost — texture, not decoration. */}
+          {monogram && (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute select-none whitespace-nowrap"
+              style={{ ...DISPLAY, top: "-13%", left: "-7%", fontSize: "50cqw", lineHeight: 0.8, color: "color-mix(in oklch, var(--mc-on-accent) 7%, transparent)", textShadow: "0 2px 0 rgba(255,255,255,0.04), 0 -2px 0 rgba(0,0,0,0.06)" }}
+            >
+              {monogram}
+            </span>
+          )}
+          {/* Masthead hairline under the floating nav — only in the full-page preview, where the nav sits
+              above it (the scoped card has no nav, and the field is hidden once stacked). */}
+          {parallax && (
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-[clamp(22px,3.4cqw,52px)] right-[clamp(16px,3cqw,40px)] top-[clamp(84px,13cqw,116px)] h-px"
+              style={{ background: "color-mix(in oklch, var(--mc-on-accent) 18%, transparent)" }}
+            />
+          )}
+        </div>
+        <div className="mc-plate-photo">
+          <div ref={parallaxRef} className="mc-plate-track">
+            <img src={data.heroImageUrl ?? undefined} alt="" />
+          </div>
+        </div>
+        <div className="mc-plate-card">
           {eyebrow && (
-            <p className="text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.18em", color: "var(--mc-ink)" }}>
+            <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-muted)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
+              {eyebrowDot}
               {eyebrow}
             </p>
           )}
-          <h1 className="mt-3 text-balance" style={{ ...DISPLAY, fontSize: "clamp(26px,6cqw,46px)", lineHeight: 0.98 }}>
-            {name}
-          </h1>
+          <WordRise
+            text={name}
+            base={HERO_DELAY.title}
+            step={HERO_DELAY.titleStep}
+            className="mt-4 max-w-[13ch] text-balance"
+            style={{ ...DISPLAY, fontSize: "clamp(30px,4.4cqw,52px)", lineHeight: 1 }}
+          />
           {data.tagline && (
-            <p className="mt-3 max-w-[40ch] text-[14.5px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
+            <p className="mc-rev-up mt-4 max-w-[38ch] text-[clamp(14px,1.7cqw,17px)]" style={{ lineHeight: 1.5, color: "var(--mc-muted)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
               {data.tagline}
             </p>
           )}
-          <div className="mt-5">
-            <BookButton label={t("businessPage.builder.preview.book")} tone="accent" />
+          {/* Baseline rule under the lockup. */}
+          <div aria-hidden className="mc-rev-up mt-7 h-px w-[60px]" style={{ background: "var(--mc-line)", animationDelay: `${HERO_DELAY.tagline}ms` }} />
+          <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3.5">
+            {showRating && (
+              <div className="mc-rev-up flex items-center gap-2.5" style={{ animationDelay: `${HERO_DELAY.rating}ms` }}>
+                <span style={{ ...DISPLAY, fontSize: "clamp(26px,3.8cqw,38px)", lineHeight: 0.85, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{rating.toFixed(1)}</span>
+                <span className="flex flex-col gap-1">
+                  <Stars value={rating} size={13} />
+                  <span className="text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
+                    {t("businessPage.builder.preview.reviewsCount", { count })}
+                  </span>
+                </span>
+              </div>
+            )}
+            <div className="mc-rev-up" style={{ animationDelay: `${HERO_DELAY.cta}ms` }}>
+              <BookButton label={ctaLabel} tone="accent" />
+            </div>
           </div>
         </div>
-        <div className="min-h-[240px] bg-cover bg-center" style={{ backgroundImage: `url(${data.heroImageUrl})` }} />
+        {/* Scroll cue — the full-page preview scrolls, so this reads truthfully (omitted in the scoped card). */}
+        {parallax && (
+          <div
+            className="mc-plate-cue pointer-events-none absolute inset-x-0 bottom-[26px] z-[4] flex flex-col items-center gap-2 text-[10px] uppercase"
+            style={{ ...MONO, letterSpacing: "0.2em", color: "rgba(255,255,255,0.82)" }}
+          >
+            {t("businessPage.builder.preview.hero.scrollCue")}
+            <span className="mc-cue-line h-8 w-px" style={{ background: "rgba(255,255,255,0.5)" }} />
+          </div>
+        )}
       </header>
     );
   }
 
-  // Minimal / no image — paper hero, editorial left-aligned lockup.
+  // Minimal / no cover — drenched accent field. With no photo the hero floods with the owner's brand
+  // accent (deepened just enough for AA-legible warm-white type) and the type carries the whole
+  // composition. Content sits bottom-left so a cover, once added, slots into the same hero frame.
   return (
     <header
-      className="px-[clamp(20px,5cqw,48px)] py-[clamp(44px,8cqw,80px)]"
-      style={{ background: "linear-gradient(180deg, color-mix(in oklch, var(--mc-accent) 6%, var(--mc-bg)), var(--mc-bg))" }}
+      ref={headerRef}
+      className="mc-hero-drench relative isolate flex flex-col justify-end overflow-hidden px-[clamp(20px,5cqw,48px)] pb-[clamp(36px,6cqw,68px)] pt-[clamp(56px,10cqw,104px)]"
+      style={{ background: "var(--mc-accent-field)", color: "var(--mc-on-accent)" }}
     >
-      {eyebrow && (
-        <p className="text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.18em", color: "var(--mc-ink)" }}>
-          {eyebrow}
-        </p>
+      {/* Oversized brand monogram as a ~6% letterpress ghost — texture, not decoration. Size + offset live
+          in .mc-hero-mono (globals): width-driven on desktop (a giant ghost bled off the top-right corner),
+          but on the tall, narrow phone hero it's enlarged and vertically centred so it fills the field
+          instead of sitting stuck at the top. */}
+      {monogram && (
+        <span
+          aria-hidden
+          className="mc-hero-mono pointer-events-none absolute z-0 select-none whitespace-nowrap"
+          style={{ ...DISPLAY, right: "-5%", lineHeight: 0.8, color: "color-mix(in oklch, var(--mc-on-accent) 6%, transparent)", textShadow: "0 2px 0 rgba(255,255,255,0.04), 0 -2px 0 rgba(0,0,0,0.06)" }}
+        >
+          {monogram}
+        </span>
       )}
-      <h1 className="mt-2.5 max-w-[16ch] text-balance" style={{ ...DISPLAY, fontSize: "clamp(30px,8cqw,58px)", lineHeight: 0.98 }}>
-        {name}
-      </h1>
-      {data.tagline && (
-        <p className="mt-4 max-w-[46ch] text-[clamp(14px,2cqw,18px)] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
-          {data.tagline}
-        </p>
+      {/* Editorial hairline under the masthead zone — only in the full-page preview, where the floating nav
+          sits above it. In the scoped one-section card (no nav) it would float orphaned, so it's omitted. */}
+      {parallax && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-[clamp(20px,5cqw,48px)] right-[clamp(20px,5cqw,48px)] top-[clamp(88px,15cqw,124px)] z-[1] h-px"
+          style={{ background: "color-mix(in oklch, var(--mc-on-accent) 16%, transparent)" }}
+        />
       )}
-      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-        {count > 0 && (
-          <div className="flex items-center gap-2.5">
-            <span style={{ ...DISPLAY, fontSize: "clamp(24px,5cqw,38px)", lineHeight: 0.85 }}>{rating.toFixed(1)}</span>
-            <span className="flex flex-col gap-1">
-              <Stars value={rating} size={12} />
-              <span className="text-[10px] uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
-                {t("businessPage.builder.preview.reviewsCount", { count })}
-              </span>
-            </span>
-          </div>
+      <div className="relative z-[2] mx-auto w-full max-w-[1320px]">
+        {eyebrow && (
+          <p className="mc-rev-fade inline-flex items-center gap-[9px] text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-on-accent)", animationDelay: `${HERO_DELAY.eyebrow}ms` }}>
+            {eyebrowDot}
+            {eyebrow}
+          </p>
         )}
-        <BookButton label={t("businessPage.builder.preview.book")} tone="accent" />
+        <WordRise
+          text={name}
+          base={HERO_DELAY.title}
+          step={HERO_DELAY.titleStep}
+          className="mt-4 max-w-[15ch] text-balance"
+          style={{ ...DISPLAY, fontSize: "clamp(40px,11cqw,84px)", lineHeight: 0.96 }}
+        />
+        {data.tagline && (
+          <p className="mc-rev-up mt-5 max-w-[540px] text-[clamp(14px,2.4cqw,21px)]" style={{ lineHeight: 1.45, color: "var(--mc-on-accent)", animationDelay: `${HERO_DELAY.tagline}ms` }}>
+            {data.tagline}
+          </p>
+        )}
+        {/* Baseline rule under the lockup — the second editorial hairline. */}
+        <div aria-hidden className="mc-rev-up mt-7 h-px w-16" style={{ background: "color-mix(in oklch, var(--mc-on-accent) 36%, transparent)", animationDelay: `${HERO_DELAY.tagline}ms` }} />
+        <div className="mt-6 flex flex-wrap items-center gap-x-[22px] gap-y-3.5">
+          {showRating && (
+            <div className="mc-rev-up flex items-center gap-2.5" style={{ animationDelay: `${HERO_DELAY.rating}ms` }}>
+              <span style={{ ...DISPLAY, fontSize: "clamp(28px,6cqw,42px)", lineHeight: 0.85, letterSpacing: "-0.03em", fontVariantNumeric: "tabular-nums" }}>{rating.toFixed(1)}</span>
+              <span className="flex flex-col gap-1">
+                <Stars value={rating} size={13} color="var(--mc-on-accent)" empty="color-mix(in oklch, var(--mc-on-accent) 32%, transparent)" />
+                <span className="text-[11px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-on-accent)" }}>
+                  {t("businessPage.builder.preview.reviewsCount", { count })}
+                </span>
+              </span>
+            </div>
+          )}
+          <div className="mc-rev-up" style={{ animationDelay: `${HERO_DELAY.cta}ms` }}>
+            <BookButton label={ctaLabel} tone="paper" />
+          </div>
+        </div>
       </div>
     </header>
   );
 }
 
 // ---- About ---------------------------------------------------------------
-function About({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  const { rating, count } = aggregateReviews(data.locations);
-  const teamCount = dedupeTeam(data.locations.flatMap((l) => l.teamMembers ?? [])).length;
+
+function About({ data, t, no }: { data: PreviewData; t: T; no: string }) {
   const body = data.aboutContent?.trim() ?? "";
   const { lede, body: rest } = body ? splitLede(body) : { lede: "", body: "" };
-
-  const stats = [
-    data.locations.length > 0 && { n: String(data.locations.length), label: t("businessPage.builder.preview.kicker.locations") },
-    teamCount > 0 && { n: String(teamCount), label: t("businessPage.builder.preview.kicker.team") },
-    count > 0 && { n: count >= 1000 ? `${Math.round(count / 100) / 10}k` : String(count), label: t("businessPage.builder.preview.kicker.reviews") },
-    count > 0 && { n: rating.toFixed(1), label: t("businessPage.builder.preview.statRating") },
-  ].filter(Boolean) as { n: string; label: string }[];
 
   const Copy = body ? (
     <>
@@ -439,118 +682,576 @@ function About({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData;
       )}
     </>
   ) : (
-    <Placeholder>{t("businessPage.builder.preview.aboutEmpty")}</Placeholder>
+    // Empty: render the real editorial layout with sample copy, desaturated, so the owner sees the shape
+    // they'll fill rather than a dashed placeholder box. aria-hidden — it's a ghost, not real content.
+    <div className="select-none opacity-35" aria-hidden>
+      <p className="text-balance" style={{ ...DISPLAY, fontSize: "clamp(21px,4cqw,40px)", lineHeight: 1.26 }}>
+        {t("businessPage.builder.preview.aboutGhostLede")}
+      </p>
+      <p className="mt-6 max-w-[62ch] text-[15px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
+        {t("businessPage.builder.preview.aboutGhostBody")}
+      </p>
+    </div>
   );
 
   return (
     <Section>
-      {entry.variant === "imageLeft" && data.heroImageUrl ? (
-        <>
-          <Kicker no={no}>{t("businessPage.builder.preview.kicker.about")}</Kicker>
-          <div className="grid items-start gap-[clamp(18px,3cqw,44px)] [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
-            <img src={data.heroImageUrl} alt="" className="w-full rounded-md object-cover [aspect-ratio:4/5]" />
-            <div>{Copy}</div>
-          </div>
-        </>
+      {/* Editorial split — the numbered kicker in a slim left rail, lede + body in the wide column. On a
+          narrow preview (mobile) it stacks to one column (mirrors the microsite's `.lb-about-grid` collapse). */}
+      <div className="grid items-start gap-[clamp(18px,3.5cqw,56px)] grid-cols-1 @2xl:[grid-template-columns:minmax(0,0.7fr)_minmax(0,2.3fr)]">
+        <Kicker no={no}>{t("businessPage.builder.preview.kicker.about")}</Kicker>
+        <div>{Copy}</div>
+      </div>
+    </Section>
+  );
+}
+
+// ---- Locations -----------------------------------------------------------
+/** City/area line for a location — prefers the structured city, falls back to the address head. */
+const locationArea = (l: LocationWithAssignments): string =>
+  l.addressComponents?.city?.trim() || l.address?.split(",")[0]?.trim() || "";
+
+/** Pretty caption address — structured "street, city" (no postal code / country), falling back to the
+ *  raw formatted address only when components are absent. */
+const prettyAddress = (l: LocationWithAssignments): string => {
+  const c = l.addressComponents;
+  const street = c?.street?.trim()
+    ? `${c.streetNumber?.trim() ? `${c.streetNumber.trim()} ` : ""}${c.street.trim()}`
+    : "";
+  return [street, c?.city?.trim()].filter(Boolean).join(", ") || l.address?.trim() || "";
+};
+
+/** Whether a location has any opening hours worth showing (mirrors the Contact hours gate). */
+const hasOpeningHours = (l: LocationWithAssignments): boolean => {
+  const wh = (l.workingHours ?? {}) as Partial<Record<DayKey, { isOpen?: boolean }>>;
+  return !!l.open247 || DAY_KEYS.some((d) => wh[d]?.isOpen);
+};
+
+/** Dialable tel: href — keeps a leading + (E.164) and drops visual separators. */
+const telHref = (phone: string): string => `tel:${phone.trim().startsWith("+") ? "+" : ""}${phone.replace(/\D/g, "")}`;
+
+/** Platform-aware "show this place on the map" link. Uses the SEARCH endpoint (a pinned place card), never
+ *  directions — a directions link has to invent an `origin`, which defaults to the device location and is
+ *  unreliable on desktop (IP geolocation), so the route's start point comes out wrong. With search, the user
+ *  taps Directions from the card where Maps uses their real location. On Apple devices `ll`+`q` pins the exact
+ *  coords AND labels them with the business name; Google can't label bare coords without a Place ID (and
+ *  discourages coordinate queries), so it gets the address string. Null when remote or no usable location.
+ *  https://developers.google.com/maps/documentation/urls/get-started */
+const isApplePlatform = (): boolean =>
+  typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
+
+const mapHref = (l: LocationWithAssignments): string | null => {
+  if (l.isRemote) return null;
+  const c = l.addressComponents;
+  const coords = typeof c?.latitude === "number" && typeof c?.longitude === "number" ? `${c.latitude},${c.longitude}` : "";
+  const addr = l.address?.trim();
+  if (isApplePlatform()) {
+    if (coords) return `https://maps.apple.com/?ll=${coords}&q=${encodeURIComponent(l.name)}`;
+    if (addr) return `https://maps.apple.com/?q=${encodeURIComponent(addr)}`;
+    return null;
+  }
+  if (addr) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`;
+  if (coords) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords)}`;
+  return null;
+};
+
+/** Count-up that re-runs on mount — eases 0→value with a cubic ease-out (mirrors the microsite RollNum). */
+function CountUp({ value, decimals = 0, durationMs = 760, delayMs = 0 }: { value: number; decimals?: number; durationMs?: number; delayMs?: number }) {
+  const reduce =
+    typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const [shown, setShown] = useState(reduce ? value : 0);
+  useEffect(() => {
+    if (reduce) return;
+    let raf = 0;
+    let start = 0;
+    const begin = performance.now() + delayMs;
+    const ease = (p: number) => 1 - Math.pow(1 - p, 3);
+    const step = (now: number) => {
+      if (now < begin) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
+      if (!start) start = now;
+      const p = Math.min(1, (now - start) / durationMs);
+      setShown(value * ease(p));
+      if (p < 1) raf = requestAnimationFrame(step);
+      else setShown(value);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+    // Runs once per mount; the parent re-keys per selected location so it replays.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return <>{shown.toFixed(decimals)}</>;
+}
+
+/** Crossfading featured photo — the outgoing image stays beneath while the new one fades/zooms in over it. */
+function StagePhoto({ src, alt }: { src: string; alt: string }) {
+  const keyRef = useRef(0);
+  const [stack, setStack] = useState<{ src: string; k: number }[]>(() => [{ src, k: 0 }]);
+  useEffect(() => {
+    setStack((s) => {
+      if (s[s.length - 1].src === src) return s;
+      keyRef.current += 1;
+      return [...s.slice(-1), { src, k: keyRef.current }]; // keep prev (under) + new (over)
+    });
+  }, [src]);
+  useEffect(() => {
+    if (stack.length < 2) return;
+    const id = setTimeout(() => setStack((s) => s.slice(-1)), 900);
+    return () => clearTimeout(id);
+  }, [stack]);
+  return (
+    <div className="absolute inset-0">
+      {stack.map((it, i) => (
+        <img
+          key={it.k}
+          src={it.src}
+          alt={i === stack.length - 1 ? alt : ""}
+          className={cn("absolute inset-0 h-full w-full object-cover", i === stack.length - 1 && "mc-locx-img")}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Locations — the editorial "switcher": a numbered index of places stacked over a compact data card on
+ * the left (opening hours, stats, contact, tags, Book CTA), and the selected location's photo as a
+ * full-height editorial plate on the right that stretches to match the left column. A single location
+ * just drops the index. Sliding indicator, count-up stats, crossfading photo, staggered reveals on switch.
+ */
+function Locations({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
+  const hidden = new Set((entry.config?.hiddenLocationIds as number[] | undefined) ?? []);
+  const shown = data.locations.filter((l) => !hidden.has(l.id));
+  // Resolve each tag group's IDs → {label, slug} via the shared (cached) dictionary, exactly as the edit slider does.
+  const { dictionaries } = useLocationTagDictionaries();
+  const [active, setActive] = useState(0);
+  const idx = Math.min(active, Math.max(0, shown.length - 1));
+  const loc = shown[idx];
+
+  // Heading + sub-lede are editable per locale; a blank override falls back to the default editorial copy.
+  const cfg = entry.config as LocationsConfig | undefined;
+  const heading =
+    cfg?.heading?.[data.locale]?.trim() ||
+    t("businessPage.builder.preview.subhead.locations", { count: shown.length });
+  const sublede =
+    cfg?.sublede?.[data.locale]?.trim() ||
+    t("businessPage.builder.preview.sublede.locations", { count: shown.length });
+
+  return (
+    <Section soft>
+      <SectionHead
+        no={no}
+        stacked
+        kicker={t("businessPage.builder.preview.kicker.locations")}
+        heading={heading}
+        sublede={sublede}
+      />
+      {shown.length === 0 ? (
+        <Placeholder>{t("businessPage.builder.preview.locationsEmpty")}</Placeholder>
       ) : (
-        // Editorial split — the numbered kicker in a slim left rail, lede + body in the wide column.
-        <div className="grid items-start gap-[clamp(18px,3.5cqw,56px)] [grid-template-columns:minmax(0,0.7fr)_minmax(0,2.3fr)]">
-          <Kicker no={no}>{t("businessPage.builder.preview.kicker.about")}</Kicker>
-          <div>{Copy}</div>
-        </div>
-      )}
-      {stats.length > 0 && (
-        <div
-          className="mt-[clamp(28px,5cqw,56px)] grid gap-5 border-t pt-7 [grid-template-columns:repeat(auto-fit,minmax(110px,1fr))]"
-          style={{ borderColor: "var(--mc-line)" }}
-        >
-          {stats.map((s) => (
-            <div key={s.label}>
-              <div style={{ ...DISPLAY, fontSize: "clamp(24px,4.6cqw,42px)", lineHeight: 1 }}>{s.n}</div>
-              <div className="mt-1.5 text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.1em", color: "var(--mc-muted)" }}>
-                {s.label}
-              </div>
-            </div>
-          ))}
+        <div className="grid grid-cols-1 items-stretch gap-[clamp(18px,3cqw,40px)] @3xl:[grid-template-columns:1.12fr_0.88fr]">
+          <div className="flex min-w-0 flex-col gap-[clamp(20px,3cqw,28px)]">
+            {shown.length > 1 && <LocationIndex shown={shown} active={idx} onSelect={setActive} />}
+            <LocationPanel loc={loc} dict={dictionaries} t={t} />
+          </div>
+          <LocationPhoto loc={loc} t={t} />
         </div>
       )}
     </Section>
   );
 }
 
-// ---- Locations -----------------------------------------------------------
-function Locations({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  const hidden = new Set((entry.config?.hiddenLocationIds as number[] | undefined) ?? []);
-  const shown = data.locations.filter((l) => !hidden.has(l.id));
-  const list = entry.variant === "list";
+/** Left index: selectable rows + a sliding accent indicator that springs to the active row. */
+function LocationIndex({ shown, active, onSelect }: { shown: LocationWithAssignments[]; active: number; onSelect: (i: number) => void }) {
+  const listRef = useRef<HTMLDivElement>(null);
+  const [ind, setInd] = useState<{ y: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+    const row = list.querySelectorAll<HTMLElement>(".mc-locx-row")[active];
+    if (row) setInd({ y: row.offsetTop + 14, h: Math.max(0, row.offsetHeight - 28) });
+  }, [active, shown.length]);
 
   return (
-    <Section soft>
-      <SectionHead
-        no={no}
-        kicker={t("businessPage.builder.preview.kicker.locations")}
-        heading={t("businessPage.builder.preview.subhead.locations")}
-        sublede={t("businessPage.builder.preview.sublede.locations")}
+    <div ref={listRef} className="relative flex flex-col">
+      {ind && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-0 top-0 w-[2px] rounded-full"
+          style={{
+            transform: `translateY(${ind.y}px)`,
+            height: ind.h,
+            background: "var(--mc-accent)",
+            transition: "transform 0.5s cubic-bezier(0.34,1.56,0.64,1), height 0.5s cubic-bezier(0.34,1.56,0.64,1)",
+          }}
+        />
+      )}
+      {shown.map((l, i) => {
+        const on = i === active;
+        const rating = (l.totalReviews ?? 0) > 0 ? (l.averageRating ?? 0) : null;
+        const area = locationArea(l);
+        return (
+          <button key={l.id} type="button" className="mc-locx-row" data-on={on ? "1" : "0"} onClick={() => onSelect(i)} aria-pressed={on}>
+            <span className="mc-locx-no">{String(i + 1).padStart(2, "0")}</span>
+            <span className="min-w-0">
+              <span className="mc-locx-nm">{l.name}</span>
+              {area && <span className="mc-locx-area">{area}</span>}
+            </span>
+            <span className="flex items-center gap-2.5">
+              {rating !== null && (
+                <span className="mc-locx-rate">
+                  <Star className="h-3 w-3" style={{ color: "var(--mc-accent)" }} fill="var(--mc-accent)" />
+                  {rating.toFixed(1)}
+                </span>
+              )}
+              <span className="mc-locx-mark">
+                <ArrowRight className="h-4 w-4" strokeWidth={1.8} />
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** A location's selected marketplace tags resolved + grouped by category, in reading order — mirrors the
+ *  owner-facing amenities slider so the page is scannable. Each group has its own id space (separate
+ *  dictionary tables), so IDs are resolved against their own dictionary group. */
+const TAG_GROUP_ORDER: { ids: keyof LocationWithAssignments; dict: keyof ResolvedTagDictionaries }[] = [
+  { ids: "amenityTagIds", dict: "amenities" },
+  { ids: "accessibilityTagIds", dict: "accessibility" },
+  { ids: "paymentMethodTagIds", dict: "paymentMethods" },
+  { ids: "valueTagIds", dict: "values" },
+  { ids: "audienceTagIds", dict: "audience" },
+  { ids: "languageTagIds", dict: "languages" },
+];
+type LocationTagGroup = { key: keyof ResolvedTagDictionaries; items: ChipOption[] };
+function buildLocationTagGroups(loc: LocationWithAssignments, dict: ResolvedTagDictionaries | null): LocationTagGroup[] {
+  if (!dict) return [];
+  const out: LocationTagGroup[] = [];
+  for (const g of TAG_GROUP_ORDER) {
+    const ids = (loc[g.ids] as number[] | undefined) ?? [];
+    if (ids.length === 0) continue;
+    const byId = new Map(dict[g.dict].map((o) => [o.id, o]));
+    const items = ids.map((id) => byId.get(id)).filter((x): x is ChipOption => !!x);
+    if (items.length > 0) out.push({ key: g.dict, items });
+  }
+  return out;
+}
+
+/** Right plate: the selected location's photo as a full-height editorial panel with the caption overlay
+ *  (name, blurb, address). Stretches to match the left column; falls back to an accent field with no photo. */
+function LocationPhoto({ loc, t }: { loc: LocationWithAssignments; t: T }) {
+  const photo = locationPhoto(loc);
+  const onPhoto = !!photo;
+  const blurb = loc.description?.trim();
+  return (
+    <div
+      className="relative h-full min-h-[clamp(300px,42cqw,520px)] overflow-hidden rounded-xl border"
+      style={{ borderColor: "var(--mc-line)", background: onPhoto ? undefined : "var(--mc-accent-field)" }}
+    >
+      {onPhoto && <StagePhoto src={photo} alt={loc.name} />}
+      {onPhoto && (
+        <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(12,10,9,0.82) 0%, rgba(12,10,9,0.32) 42%, rgba(12,10,9,0) 72%)" }} />
+      )}
+      <div key={`cap-${loc.id}`} className="absolute inset-x-0 bottom-0 p-[clamp(18px,3cqw,36px)]" style={{ color: onPhoto ? "#fff" : "var(--mc-on-accent)" }}>
+        <div className="mc-locx-rise text-balance" style={{ ...DISPLAY, fontSize: "clamp(28px,5.4cqw,52px)", lineHeight: 0.98, animationDelay: "60ms" }}>{loc.name}</div>
+        {blurb && (
+          <p className="mc-locx-rise mt-2.5 max-w-[42ch] text-[clamp(13px,1.7cqw,15px)] leading-relaxed" style={{ color: onPhoto ? "rgba(255,255,255,0.9)" : "var(--mc-on-accent)", animationDelay: "140ms" }}>
+            {blurb}
+          </p>
+        )}
+        <p className="mc-locx-rise mt-3 line-clamp-2 text-[12.5px]" style={{ color: onPhoto ? "rgba(255,255,255,0.78)" : "var(--mc-on-accent)", animationDelay: "220ms" }}>
+          {prettyAddress(loc) || t("businessPage.builder.preview.noAddress")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** One contact row: a full-row link with a muted icon that warms to accent on hover; the raw value stays
+ *  selectable text. External (maps) links open a new tab; tel/mailto hand off in place. */
+function ContactRow({
+  href,
+  icon: Icon,
+  label,
+  external,
+  alignTop,
+  children,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  external?: boolean;
+  alignTop?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      aria-label={label}
+      {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+      className={cn(
+        "group/c flex gap-2.5 text-[13px] transition-colors [color:var(--mc-fg)] hover:[color:var(--mc-accent)]",
+        alignTop ? "items-start" : "items-center",
+      )}
+    >
+      <Icon
+        className={cn(
+          "h-3.5 w-3.5 shrink-0 transition-colors [color:var(--mc-muted)] group-hover/c:[color:var(--mc-accent)]",
+          alignTop && "mt-0.5",
+        )}
+        strokeWidth={1.6}
+        aria-hidden
       />
-      {shown.length === 0 ? (
-        <Placeholder>{t("businessPage.builder.preview.locationsEmpty")}</Placeholder>
-      ) : (
-        <div
-          className={cn(
-            "grid gap-[clamp(12px,2cqw,22px)]",
-            list ? "grid-cols-1" : "[grid-template-columns:repeat(auto-fit,minmax(230px,1fr))]",
-          )}
-        >
-          {shown.map((l) => {
-            const photo = locationPhoto(l);
-            return (
-              <div
-                key={l.id}
-                className={cn(
-                  "group/loc overflow-hidden rounded-lg border transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(.2,.7,.3,1)] hover:-translate-y-0.5",
-                  list && "flex items-stretch",
-                )}
-                style={{ borderColor: "var(--mc-line)", background: "var(--mc-card)" }}
-              >
-                {photo && (
-                  <div className={cn("overflow-hidden", list ? "w-28 shrink-0" : "[aspect-ratio:4/3]")}>
-                    <img
-                      src={photo}
-                      alt=""
-                      className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(.2,.7,.3,1)] group-hover/loc:scale-[1.04]"
-                    />
-                  </div>
-                )}
-                <div className="flex-1 px-4 pb-4 pt-3.5">
-                  <div className="flex items-baseline gap-2" style={{ ...DISPLAY, fontSize: "clamp(17px,2.8cqw,23px)" }}>
-                    <span className="truncate">{l.name}</span>
-                  </div>
-                  <p className="mt-1 flex items-start gap-1 text-[12.5px] leading-snug" style={{ color: "var(--mc-muted)" }}>
-                    <MapPin className="mt-0.5 h-3 w-3 shrink-0" strokeWidth={1.6} />
-                    <span className="line-clamp-2">{l.address || t("businessPage.builder.preview.noAddress")}</span>
-                  </p>
-                  <div className="mt-3.5 flex items-center justify-between gap-2 border-t pt-3" style={{ borderColor: "var(--mc-line)" }}>
-                    {(l.totalReviews ?? 0) > 0 ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold">
-                        <Star className="h-3.5 w-3.5" style={{ color: "var(--mc-accent)" }} fill="var(--mc-accent)" />
-                        {(l.averageRating ?? 0).toFixed(1)}
-                        <span style={{ color: "var(--mc-muted)", fontWeight: 400 }}>· {l.totalReviews}</span>
-                      </span>
-                    ) : (
-                      <span />
-                    )}
-                    <span className="inline-flex items-center gap-1 text-[12px] font-bold" style={{ color: "var(--mc-ink)" }}>
-                      {t("businessPage.builder.preview.book")}
-                      <ArrowRight className="h-3 w-3" strokeWidth={2} />
+      <span className="min-w-0">{children}</span>
+    </a>
+  );
+}
+
+/** Left data card (under the picker): opening hours + rating/team stats + contact in a compact split that
+ *  stacks when the card is narrow (its own `@container/panel`), then the collapsible tag band, then a
+ *  full-width Book CTA footer. Keyed blocks re-key per location so their entrance animations replay. */
+function LocationPanel({ loc, dict, t }: { loc: LocationWithAssignments; dict: ResolvedTagDictionaries | null; t: T }) {
+  const rating = (loc.totalReviews ?? 0) > 0 ? (loc.averageRating ?? 0) : null;
+  const teamN = (loc.teamMembers ?? []).length;
+  const hasStats = rating !== null || teamN > 1;
+  const showHours = hasOpeningHours(loc);
+  const mapLink = mapHref(loc);
+  const hasContact = !!loc.phone || !!loc.email || !!mapLink;
+  const tagGroups = useMemo(() => buildLocationTagGroups(loc, dict), [loc, dict]);
+
+  return (
+    <div className="@container/panel overflow-hidden rounded-xl border" style={{ borderColor: "var(--mc-line)", background: "var(--mc-card)" }}>
+      <div key={`info-${loc.id}`} className="mc-locx-fade p-[clamp(18px,3cqw,30px)]" style={{ animationDelay: "100ms" }}>
+        <div className={cn("grid gap-[clamp(18px,3cqw,36px)]", showHours && "@md/panel:[grid-template-columns:1fr_1fr]")}>
+          {showHours && <StageHours loc={loc} t={t} />}
+          <div
+            className={cn(
+              "mc-locx-rise flex min-w-0 flex-col gap-5",
+              showHours &&
+                "border-t pt-[clamp(18px,3cqw,36px)] @md/panel:border-t-0 @md/panel:pt-0 @md/panel:border-l @md/panel:pl-[clamp(18px,3cqw,36px)]",
+            )}
+            style={{ borderColor: "var(--mc-line)", animationDelay: "240ms" }}
+          >
+            {hasStats && (
+              <div className="flex gap-[clamp(18px,3cqw,32px)]">
+                {rating !== null && (
+                  <div className="flex flex-col gap-1">
+                    <span style={{ ...DISPLAY, fontSize: "clamp(26px,3.4cqw,38px)", lineHeight: 1 }}><CountUp value={rating} decimals={1} delayMs={220} /></span>
+                    <span className="text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.06em", color: "var(--mc-muted)" }}>
+                      {t("businessPage.builder.preview.reviewsCount", { count: loc.totalReviews ?? 0 })}
                     </span>
                   </div>
-                </div>
+                )}
+                {teamN > 1 && (
+                  <div className="flex flex-col gap-1">
+                    <span style={{ ...DISPLAY, fontSize: "clamp(26px,3.4cqw,38px)", lineHeight: 1 }}><CountUp value={teamN} delayMs={260} /></span>
+                    <span className="text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.06em", color: "var(--mc-muted)" }}>
+                      {t("businessPage.builder.preview.inTheTeam")}
+                    </span>
+                  </div>
+                )}
               </div>
-            );
-          })}
+            )}
+            {hasContact && (
+              <div className={cn("flex flex-col gap-3", hasStats && "border-t pt-4")} style={{ borderColor: "var(--mc-line)" }}>
+                {loc.phone && (
+                  <ContactRow href={telHref(loc.phone)} icon={Phone} label={t("businessPage.builder.preview.callLabel", { name: loc.name })}>
+                    {loc.phone}
+                  </ContactRow>
+                )}
+                {loc.email && (
+                  <ContactRow href={`mailto:${loc.email.trim()}`} icon={Mail} label={t("businessPage.builder.preview.emailLabel", { name: loc.name })}>
+                    <span className="block truncate">{loc.email}</span>
+                  </ContactRow>
+                )}
+                {mapLink && (
+                  <ContactRow
+                    href={mapLink}
+                    icon={MapPin}
+                    label={t("businessPage.builder.preview.mapLabel", { name: loc.name })}
+                    external
+                    alignTop
+                  >
+                    <span className="block leading-snug">{loc.address?.trim() || prettyAddress(loc)}</span>
+                  </ContactRow>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {tagGroups.length > 0 && <LocationTags key={`amen-${loc.id}`} groups={tagGroups} />}
+
+      {loc.allowOnlineBooking && (
+        <div className="mc-locx-fade border-t p-[clamp(18px,3cqw,30px)]" style={{ borderColor: "var(--mc-line)", animationDelay: "320ms" }}>
+          <BookButton
+            label={t("businessPage.builder.preview.bookAt", { name: loc.name })}
+            tone="accent"
+            size="lg"
+            styleOverride={{ width: "100%", justifyContent: "center" }}
+          />
         </div>
       )}
-    </Section>
+    </div>
+  );
+}
+
+/** Tag band: category groups of pills. Past ~4 rows it clamps with a frosted bottom fade and a chevron
+ *  toggle that springs the band open/closed (max-height tween). Re-mounts per location via key, so it
+ *  resets to collapsed and re-measures on switch. */
+function LocationTags({ groups }: { groups: LocationTagGroup[] }) {
+  const { t } = useTranslation("marketplace");
+  // Category labels reuse the owner-facing slider's namespace so copy stays in lockstep (en + ro).
+  const { t: tTags } = useTranslation("locationMarketplaceDetails");
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [full, setFull] = useState(0);
+  const [open, setOpen] = useState(false);
+  const COLLAPSED = 184; // ~4 pill rows incl. a category label
+
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const measure = () => setFull(el.scrollHeight);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [groups]);
+
+  const overflows = full > COLLAPSED + 12;
+  const clamped = overflows && !open;
+
+  return (
+    <div className="mc-locx-fade border-t p-[clamp(18px,3cqw,32px)]" style={{ borderColor: "var(--mc-line)", animationDelay: "300ms" }}>
+      <div className="relative">
+        <div
+          ref={innerRef}
+          className="flex flex-col gap-[clamp(16px,2.4cqw,26px)]"
+          style={{
+            maxHeight: overflows ? (open ? full : COLLAPSED) : undefined,
+            overflow: overflows ? "hidden" : undefined,
+            transition: "max-height 0.55s var(--ease-out-strong)",
+          }}
+        >
+          {groups.map((grp) => (
+            <div key={grp.key}>
+              <div className="mb-3 text-[10.5px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
+                {tTags(`sections.${grp.key}.title`)}
+              </div>
+              <div className="flex flex-wrap gap-2.5">
+                {grp.items.map(({ label, slug }, i) => {
+                  const Icon = tagIcon(slug);
+                  return (
+                    <span
+                      key={slug}
+                      className={cn(
+                        "mc-locx-rowin inline-flex h-8 items-center gap-2 rounded-full border pr-4 text-[13px] font-semibold",
+                        Icon ? "pl-3" : "pl-4",
+                      )}
+                      style={{ borderColor: "var(--mc-line)", background: "color-mix(in oklch, var(--mc-fg) 3%, transparent)", color: "var(--mc-fg)", animationDelay: `${200 + i * 36}ms` }}
+                    >
+                      {Icon && <Icon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.6} />}
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Frosted fade over the clipped rows — gradient to the card colour + a masked blur for depth. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-20 backdrop-blur-[1.5px] transition-opacity duration-300"
+          style={{
+            background: "linear-gradient(to bottom, transparent, var(--mc-card))",
+            WebkitMaskImage: "linear-gradient(to bottom, transparent, #000 78%)",
+            maskImage: "linear-gradient(to bottom, transparent, #000 78%)",
+            opacity: clamped ? 1 : 0,
+          }}
+        />
+      </div>
+      {overflows && (
+        <div className="mt-2 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            aria-label={open ? t("businessPage.builder.preview.tagsShowLess") : t("businessPage.builder.preview.tagsShowAll")}
+            className={cn("inline-flex h-9 w-9 cursor-pointer items-center justify-center transition-opacity hover:opacity-70", !open && "mc-chev-bob")}
+            style={{ color: "var(--mc-fg)" }}
+          >
+            <ChevronDown className={cn("h-[26px] w-[26px] transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)]", open && "rotate-180")} strokeWidth={1.75} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Opening-hours list for the stage — consecutive days with identical hours collapse into ranges
+ *  (Mon–Wed), today highlighted, closed days in accent (mirrors the design .lb-locx-hours). */
+function StageHours({ loc, t }: { loc: LocationWithAssignments; t: T }) {
+  const wh = (loc.workingHours ?? {}) as Partial<Record<DayKey, { open?: string; close?: string; isOpen?: boolean }>>;
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const closedLabel = t("businessPage.builder.preview.contactClosed");
+
+  const dayValue = (d: DayKey): string => {
+    if (loc.open247) return t("businessPage.builder.preview.contactOpen247");
+    const day = wh[d];
+    return day && day.isOpen && day.open && day.close ? `${day.open} – ${day.close}` : closedLabel;
+  };
+  // Collapse consecutive days with identical hours into ranges, in week order.
+  const rows: { start: number; end: number; value: string }[] = [];
+  DAY_KEYS.forEach((d, i) => {
+    const v = dayValue(d);
+    const last = rows[rows.length - 1];
+    if (last && last.value === v) last.end = i;
+    else rows.push({ start: i, end: i, value: v });
+  });
+  const rowLabel = (r: { start: number; end: number }): string =>
+    r.start === r.end
+      ? t(`businessPage.builder.preview.daysFull.${DAY_KEYS[r.start]}`)
+      : `${t(`businessPage.builder.preview.days.${DAY_KEYS[r.start]}`)}–${t(`businessPage.builder.preview.days.${DAY_KEYS[r.end]}`)}`;
+
+  return (
+    <div>
+      <div className="mb-3.5 inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
+        <Clock className="h-3.5 w-3.5" strokeWidth={1.6} />
+        {t("businessPage.builder.preview.contactHours")}
+      </div>
+      <div>
+        {rows.map((r, i) => {
+          const today = todayIdx >= r.start && todayIdx <= r.end;
+          const closed = r.value === closedLabel;
+          const isLast = i === rows.length - 1;
+          return (
+            <div
+              key={r.start}
+              className="mc-locx-rowin flex items-center justify-between gap-6 text-[13.5px]"
+              style={{
+                padding: today ? "7px 12px" : "7px 0",
+                margin: today ? "0 -12px" : undefined,
+                borderRadius: today ? 6 : undefined,
+                borderBottom: today || isLast ? "1px solid transparent" : "1px solid var(--mc-line)",
+                background: today ? "color-mix(in oklch, var(--mc-accent) 7%, transparent)" : undefined,
+                animationDelay: `${160 + i * 55}ms`,
+              }}
+            >
+              <span style={{ color: "var(--mc-fg)", fontWeight: today ? 600 : 400 }}>{rowLabel(r)}</span>
+              <span style={{ fontVariantNumeric: "tabular-nums", fontWeight: today ? 600 : 400, color: closed ? "var(--mc-accent)" : today ? "var(--mc-fg)" : "var(--mc-muted)" }}>
+                {r.value}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -910,67 +1611,170 @@ function Contact({ entry, data, t, no }: { entry: SectionEntry; data: PreviewDat
 }
 
 // ---- Announcement --------------------------------------------------------
-function AnnouncementBar({ data }: { data: PreviewData }) {
-  const msg = localized(data.announcement.message, data.locale);
-  if (!msg.trim()) return null;
-  return (
-    <div className="flex items-center justify-center gap-3 px-5 py-2.5 text-center text-[12.5px]" style={{ background: "var(--mc-fg)", color: "var(--mc-bg)" }}>
-      <span>{msg}</span>
-      {data.announcement.link && <ArrowRight className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />}
-    </div>
-  );
-}
+/** Full-bleed ribbon above the nav: accent dot · message · mono CTA, with a dismiss affordance
+ *  pinned to the trailing edge (decorative in the preview; the live page wires it to dismissal). */
+function AnnouncementBar({ data, t, sample = false }: { data: PreviewData; t: T; sample?: boolean }) {
+  const realMsg = localized(data.announcement.message, data.locale);
+  const cta = data.announcement.cta;
+  const realCtaLabel = localized(cta.label, data.locale);
+  const isEmpty = !realMsg.trim();
 
-function AnnouncementInline({ data }: { data: PreviewData }) {
-  const msg = localized(data.announcement.message, data.locale);
-  if (!msg.trim()) return null;
+  // Live behaviour: an empty bar isn't shown. In the per-section editor preview we instead render a
+  // muted SAMPLE so the owner can see how the bar will look — a suggestion, not their real content.
+  if (isEmpty && !sample) return null;
+
+  const msg = isEmpty ? t("businessPage.builder.announcement.sampleMessage") : realMsg;
+  const ctaLabel = isEmpty ? t("businessPage.builder.announcement.sampleCta") : realCtaLabel;
+  const showCta = isEmpty || (cta.enabled && realCtaLabel.trim().length > 0);
+  const showArrow = isEmpty ? true : cta.showArrow;
+
   return (
-    <Section>
-      <div
-        className="flex items-center justify-center gap-3 rounded-lg px-5 py-4 text-center text-[15px] font-semibold"
-        style={{ background: "color-mix(in oklch, var(--mc-accent) 10%, var(--mc-bg))", color: "var(--mc-ink)" } as CSSProperties}
-      >
-        <span>{msg}</span>
-        {data.announcement.link && <ArrowUpRight className="h-4 w-4 shrink-0" strokeWidth={2} />}
-      </div>
-    </Section>
+    <div
+      className={cn(
+        "relative flex flex-wrap items-center justify-center gap-x-3.5 gap-y-1 px-10 py-2.5 text-center text-[12.5px] leading-snug",
+        isEmpty && "opacity-60",
+      )}
+      style={{ background: "var(--mc-fg)", color: "var(--mc-bg)" }}
+    >
+      <span className="inline-flex items-center gap-2.5">
+        <span
+          className="h-[5px] w-[5px] shrink-0 rounded-full"
+          style={{ background: "var(--mc-accent)" }}
+          aria-hidden
+        />
+        <span className="opacity-90">{msg}</span>
+      </span>
+      {showCta && (
+        <span className="inline-flex items-center gap-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em]">
+          {ctaLabel}
+          {showArrow && (
+            <ArrowRight className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
+          )}
+        </span>
+      )}
+      <X
+        className="absolute right-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 opacity-45"
+        strokeWidth={1.75}
+        aria-hidden
+      />
+    </div>
   );
 }
 
 // ---- Marquee + Interlude (decorative bands, default-hidden) --------------
 
-/** Kinetic-looking strip of service categories. Rendered static (the contained preview has no scroll
- *  clock); self-hides when there are too few categories to read as an intentional band. */
-function Marquee({ data }: { data: PreviewData }) {
-  const seen = new Set<string>();
-  const items: string[] = [];
-  for (const l of data.locations) {
+/** Fewest items the marquee needs to read as an intentional band rather than a stray label or two. Below
+ *  this the section is pointless, so the builder hides it entirely (see SectionBuilder) and it self-hides on
+ *  render — both gate on `marqueeItems` so they can never disagree. */
+export const MARQUEE_MIN_ITEMS = 3;
+
+/** The strip's content for a business: the specific offerings (deduped service names), falling back to the
+ *  broader categories when only a couple of services are listed, capped so a service-heavy menu stays calm. */
+export function marqueeItems(locations: LocationWithAssignments[]): string[] {
+  const svcSeen = new Set<string>();
+  const services: string[] = [];
+  const catSeen = new Set<string>();
+  const categories: string[] = [];
+  for (const l of locations) {
     for (const s of l.services ?? []) {
-      const name = s.category?.name?.trim();
-      if (name && !seen.has(name.toLowerCase())) {
-        seen.add(name.toLowerCase());
-        items.push(name);
+      const name = s.name?.trim();
+      if (name && !svcSeen.has(name.toLowerCase())) {
+        svcSeen.add(name.toLowerCase());
+        services.push(name);
+      }
+      const cat = s.category?.name?.trim();
+      if (cat && !catSeen.has(cat.toLowerCase())) {
+        catSeen.add(cat.toLowerCase());
+        categories.push(cat);
       }
     }
   }
-  if (items.length < 3) return null;
+  return (services.length >= MARQUEE_MIN_ITEMS ? services : categories).slice(0, 16);
+}
+
+/** Pixels the scroll-driven band glides per pixel of page scroll (matches the editorial source's coupling). */
+const MARQUEE_SCROLL_SPEED = 0.35;
+
+/** Kinetic strip of the services a business offers, in one of two motion modes (the section's variant):
+ *  "scroll" (default) glides the band with page scroll — the editorial source's behaviour — and "loop" runs
+ *  an always-on auto drift. Loop animates everywhere (CSS). Scroll coupling needs a page to scroll, so it
+ *  only applies in the full-page preview; in the scoped one-section card (which can't scroll) the scroll mode
+ *  simply sits still — the loop variant is what moves on its own. The track holds three copies of the
+ *  (identical) item set, so any translation reads as a seamless periodic loop. */
+function Marquee({ data, entry, chrome }: { data: PreviewData; entry: SectionEntry; chrome: boolean }) {
+  const items = marqueeItems(data.locations);
+  const loopMode = entry.variant === "loop";
+  const scrollDriven = chrome && !loopMode;
+  const trackRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!scrollDriven) return;
+    const track = trackRef.current;
+    if (!track) return;
+    // Reduced motion: leave the band still rather than tie movement to scroll (mirrors the hero parallax bail).
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    // Ride the same scroll container the nav-frost does (the dialog's scroller) — walk up to the first
+    // scrollable ancestor.
+    let scroller: HTMLElement | null = track.parentElement;
+    while (scroller) {
+      const oy = getComputedStyle(scroller).overflowY;
+      if (oy === "auto" || oy === "scroll") break;
+      scroller = scroller.parentElement;
+    }
+    if (!scroller) return;
+    const sc = scroller;
+    let setWidth = track.scrollWidth / 3 || 1;
+    const ro = new ResizeObserver(() => {
+      setWidth = track.scrollWidth / 3 || 1;
+    });
+    ro.observe(track);
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      // Modulo one set width keeps the offset bounded; the three identical copies make the wrap invisible.
+      const off = -((sc.scrollTop * MARQUEE_SCROLL_SPEED) % setWidth);
+      track.style.transform = `translateX(${off.toFixed(1)}px)`;
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    sc.addEventListener("scroll", onScroll, { passive: true });
+    update();
+    return () => {
+      sc.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+      track.style.transform = "";
+    };
+  }, [scrollDriven, items.length]);
+
+  if (items.length < MARQUEE_MIN_ITEMS) return null;
+
   const italic = displayFontFor(data.fontKey).italicOk;
+  // Three copies so translating by exactly one set width loops seamlessly. In loop mode the glide pace is
+  // held constant by scaling the CSS duration with the count (~3s to cross per item — a calm editorial pace).
+  const loop = [...items, ...items, ...items];
 
   return (
     <div className="overflow-hidden" style={{ background: "var(--mc-fg)", color: "var(--mc-bg)" }}>
-      <div className="flex items-center whitespace-nowrap py-[clamp(12px,1.7cqw,20px)]">
-        {items.map((it, i) => (
+      <div
+        ref={trackRef}
+        className={cn(
+          "flex w-max items-center whitespace-nowrap py-[clamp(12px,1.7cqw,20px)] [will-change:transform]",
+          loopMode && "mc-band-track",
+        )}
+        style={{ "--mc-band-dur": `${items.length * 3}s` } as CSSProperties}
+      >
+        {loop.map((it, i) => (
           <span
-            key={it}
+            key={i}
             className={cn("inline-flex items-center gap-[0.6em] px-[0.45em]", italic && "italic")}
             style={{ ...DISPLAY, fontSize: "clamp(18px,2.6cqw,34px)" }}
           >
             {it}
-            {i < items.length - 1 && (
-              <span className="not-italic" style={{ color: "var(--mc-accent)" }} aria-hidden>
-                ·
-              </span>
-            )}
+            <span className="not-italic" style={{ color: "var(--mc-accent)" }} aria-hidden>
+              ·
+            </span>
           </span>
         ))}
       </div>
@@ -1022,99 +1826,124 @@ const NAV_LABELS: Record<string, string> = {
 };
 
 /**
- * Brand lockup (logo + wordmark + city/locations subtitle) · section links · "Get started" CTA. Mirrors
- * the microsite nav: it sticks to the preview's scroll container and lives in one of two skins —
- * transparent with white text while it floats over the cinematic hero (`onHero`), then a translucent
- * blurred paper bar once the hero scrolls past (`past`). With no dark hero to sit over it is the solid
- * paper bar from the top. Only colour/background cross-fade; padding (and so the overlay offset) is fixed.
- * Center links hide on a narrow (mobile) preview width.
+ * Brand lockup · section links · "Get started" CTA. Over the cinematic hero the nav frosts gradually with
+ * `progress` (0 = transparent/white over the hero, 1 = translucent blurred paper bar once the hero clears).
+ * With no dark hero it is the solid paper bar from the top. Center links hide on a narrow preview width.
  */
 function Nav({
   data,
   layout,
   t,
   overHero,
-  past,
+  ctaFrost = false,
+  progress,
   navRef,
   marginBottom,
+  sticky = true,
 }: {
   data: PreviewData;
   layout: SectionEntry[];
   t: T;
   overHero: boolean;
-  past: boolean;
+  /** Over a drenched (accent-coloured) hero, frost the CTA white→accent so it doesn't blend into the field. */
+  ctaFrost?: boolean;
+  progress: number;
   navRef: Ref<HTMLElement>;
   marginBottom: number;
+  /** False when wrapped in the announcement+nav sticky group (the wrapper owns the sticky). */
+  sticky?: boolean;
 }) {
   const name = data.businessName || t("businessPage.builder.preview.businessNamePlaceholder");
   const mark = name.trim().charAt(0).toUpperCase() || "•";
-  const city = data.locations.find((l) => l.addressComponents?.city)?.addressComponents?.city;
-  const sub =
-    city ||
-    (data.locations.length > 0
-      ? t("businessPage.builder.preview.locationCount", { count: data.locations.length })
-      : "");
   const links = layout
     .filter((s) => s.visible && NAV_LABELS[s.type])
     .map((s) => ({ type: s.type, label: t(NAV_LABELS[s.type]) }));
 
-  const onHero = overHero && !past;
+  // Floats transparently over every photo/accent hero and frosts on scroll. Below the @xl link breakpoint
+  // the center links drop away and the bar carries just the brand + the booking CTA (the editorial source
+  // has no mobile menu — it stays a single scroll), so nothing here needs an open/closed state.
+  const asFloating = overHero;
+
   const EASE = "cubic-bezier(0.22, 1, 0.36, 1)";
+  const pc = (x: number) => `${(x * 100).toFixed(1)}%`;
+  // Warm paper tint + dark text arrive fast (front-loaded, done within FROST_TINT_AT) so the bar is legible
+  // the moment it frosts — no muddy half-lit dwell. Blur depth ramps gradually over the full scroll.
+  const tint = overHero ? 1 - Math.pow(1 - Math.min(1, progress / FROST_TINT_AT), 3) : 1;
+  const blurP = overHero ? 1 - (1 - progress) * (1 - progress) : 1;
+  const blur = blurP > 0.001 ? `blur(${(18 * blurP).toFixed(2)}px) saturate(${(100 + 50 * blurP).toFixed(0)}%)` : undefined;
 
-  const skin: CSSProperties = onHero
-    ? { background: "transparent" }
-    : past
+  const skin: CSSProperties = asFloating
+    ? {
+        backgroundColor: `color-mix(in oklch, var(--mc-bg) ${(82 * tint).toFixed(1)}%, transparent)`,
+        backdropFilter: blur,
+        WebkitBackdropFilter: blur,
+        boxShadow: `0 1px 0 color-mix(in oklch, var(--mc-line), transparent ${pc(1 - tint)})`,
+      }
+    : { backgroundColor: "var(--mc-bg)", borderBottom: "1px solid var(--mc-line)" };
+
+  const fg = asFloating ? `color-mix(in oklch, #fff, var(--mc-fg) ${pc(tint)})` : "var(--mc-fg)";
+  const txShadow = asFloating && tint < 1 ? `0 1px 14px rgba(0,0,0,${(0.35 * (1 - tint)).toFixed(3)})` : undefined;
+  const markColor = asFloating ? `color-mix(in oklch, #fff, var(--mc-accent) ${pc(tint)})` : "var(--mc-accent)";
+  const markBorder = asFloating
+    ? `color-mix(in oklch, rgba(255,255,255,0.6), color-mix(in oklch, var(--mc-accent) 48%, var(--mc-line)) ${pc(tint)})`
+    : "color-mix(in oklch, var(--mc-accent) 48%, var(--mc-line))";
+  const ringColor = asFloating ? `color-mix(in oklch, rgba(255,255,255,0.4), rgba(0,0,0,0.1) ${pc(tint)})` : "rgba(0,0,0,0.1)";
+  // Over the drenched field the CTA frosts with everything else: a white pill / ink text at rest (legible
+  // on the accent), resolving to the accent pill / warm-white once the bar settles onto paper.
+  const ctaStyle: CSSProperties | undefined =
+    overHero && ctaFrost
       ? {
-          background: "color-mix(in oklch, var(--mc-bg) 82%, transparent)",
-          backdropFilter: "blur(18px) saturate(150%)",
-          WebkitBackdropFilter: "blur(18px) saturate(150%)",
-          boxShadow: "0 1px 0 var(--mc-line)",
+          // Settle on the AA-safe deepened accent (warm-white clears ~4.8:1 vs ~4.2:1 on the raw hue).
+          background: `color-mix(in oklch, #fff, var(--mc-accent-field) ${pc(tint)})`,
+          // Snap the label across the bg's light→dark crossover (≈0.6) rather than crossfading through it,
+          // so it never collapses to ~1:1 mid-scroll; the 140ms transition keeps the flip smooth.
+          color: tint < 0.6 ? "var(--mc-ink)" : "var(--mc-on-accent)",
+          transition: `background-color 140ms ${EASE}, color 140ms ${EASE}`,
         }
-      : { background: "var(--mc-bg)", borderBottom: "1px solid var(--mc-line)" };
-
-  const fg = onHero ? "#fff" : "var(--mc-fg)";
-  const subColor = onHero ? "rgba(255,255,255,0.82)" : "var(--mc-muted)";
-  const txShadow = onHero ? "0 1px 14px rgba(0,0,0,0.35)" : undefined;
-  const txt = `color 360ms ${EASE}, text-shadow 360ms ${EASE}, border-color 360ms ${EASE}`;
+      : undefined;
+  // Over a hero the links sit at full opacity (so white clears AA on the drenched field / dark cover) and
+  // only soften once the bar settles onto paper. The solid paper bar keeps the calm 0.7.
+  const linkOpacity = overHero ? 1 - 0.3 * tint : 0.7;
+  // Short transition only smooths the per-frame quantization — short enough to still track the scroll.
+  const txt = overHero ? `color 140ms ${EASE}, text-shadow 140ms ${EASE}, border-color 140ms ${EASE}, box-shadow 140ms ${EASE}` : undefined;
+  const chromeTrans = overHero
+    ? `background-color 140ms ${EASE}, backdrop-filter 140ms ${EASE}, -webkit-backdrop-filter 140ms ${EASE}, box-shadow 140ms ${EASE}`
+    : undefined;
 
   return (
     <nav
       ref={navRef}
-      className="sticky top-0 z-30 grid grid-cols-[1fr_auto_1fr] items-center gap-[clamp(16px,4.5cqw,40px)] px-[clamp(18px,6cqw,56px)] py-4"
-      style={{ marginBottom, transition: `background-color 360ms ${EASE}, box-shadow 360ms ${EASE}`, ...skin }}
+      className={cn(
+        sticky ? "sticky top-0" : "relative",
+        // Below the @xl link breakpoint the center links drop away, so the grid loses its center track:
+        // brand (1fr) keeps the row and the CTA sits flush right; the third track returns with the links.
+        "z-30 grid grid-cols-[1fr_auto] items-center gap-[clamp(16px,4.5cqw,40px)] px-[clamp(18px,6cqw,56px)] py-4 @xl:grid-cols-[1fr_auto_1fr]",
+      )}
+      style={{ marginBottom, transition: chromeTrans, ...skin }}
     >
-      <span className="inline-flex min-w-0 items-center gap-3 justify-self-start">
+      <span className="flex min-w-0 items-center gap-3">
         {data.logo ? (
           <img
             src={data.logo}
             alt=""
-            className={cn("h-[38px] w-[38px] shrink-0 rounded-full object-cover ring-1", onHero ? "ring-white/40" : "ring-black/10")}
+            className="h-[44px] w-[44px] shrink-0 rounded-full object-cover"
+            style={{ boxShadow: `0 0 0 1px ${ringColor}`, transition: txt }}
           />
         ) : (
           <span
-            className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full text-[19px] leading-none"
+            className="grid h-[44px] w-[44px] shrink-0 place-items-center rounded-full text-[22px] leading-none"
             style={{
               ...DISPLAY,
-              color: onHero ? "#fff" : "var(--mc-accent)",
-              border: onHero ? "1px solid rgba(255,255,255,0.6)" : "1px solid color-mix(in oklch, var(--mc-accent) 48%, var(--mc-line))",
+              color: markColor,
+              border: `1px solid ${markBorder}`,
               transition: txt,
             } as CSSProperties}
           >
             {mark}
           </span>
         )}
-        <span className="flex min-w-0 flex-col gap-[3px]">
-          <span className="truncate leading-none" style={{ ...DISPLAY, fontSize: "clamp(19px,3cqw,24px)", color: fg, textShadow: txShadow, transition: txt }}>
-            {name}
-          </span>
-          {sub && (
-            <span
-              className="truncate text-[9.5px] font-semibold uppercase leading-none"
-              style={{ ...MONO, letterSpacing: "0.24em", color: subColor, textShadow: onHero ? "0 1px 10px rgba(0,0,0,0.4)" : undefined, transition: txt }}
-            >
-              {sub}
-            </span>
-          )}
+        <span className="min-w-0 truncate leading-none" style={{ ...DISPLAY, fontSize: "clamp(21px,3.4cqw,27px)", color: fg, textShadow: txShadow, transition: txt }}>
+          {name}
         </span>
       </span>
 
@@ -1123,15 +1952,15 @@ function Nav({
           <span
             key={l.type}
             className="whitespace-nowrap text-[11.5px] font-semibold uppercase"
-            style={{ letterSpacing: "0.13em", color: fg, opacity: 0.7, textShadow: txShadow, transition: txt }}
+            style={{ letterSpacing: "0.13em", color: fg, opacity: linkOpacity, textShadow: txShadow, transition: txt }}
           >
             {l.label}
           </span>
         ))}
       </div>
 
-      <div className="justify-self-end">
-        <BookButton label={t("businessPage.builder.preview.getStarted")} tone="accent" size="nav" />
+      <div className="flex items-center justify-self-end">
+        <BookButton label={t("businessPage.builder.preview.getStarted")} tone="accent" size="nav" styleOverride={ctaStyle} />
       </div>
     </nav>
   );
@@ -1223,7 +2052,7 @@ function Section({ children, soft, narrow }: { children: React.ReactNode; soft?:
       className="px-[clamp(20px,5cqw,48px)] py-[clamp(40px,7cqw,76px)]"
       style={soft ? { background: "var(--mc-soft)" } : undefined}
     >
-      <div className={cn("mx-auto w-full", narrow ? "max-w-[620px]" : "max-w-[860px]")}>{children}</div>
+      <div className={cn("mx-auto w-full", narrow ? "max-w-[940px]" : "max-w-[1320px]")}>{children}</div>
     </section>
   );
 }
@@ -1231,6 +2060,7 @@ function Section({ children, soft, narrow }: { children: React.ReactNode; soft?:
 function Kicker({ no, children }: { no?: string; children: React.ReactNode }) {
   return (
     <div className="mb-4 inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-ink)" }}>
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full" style={{ background: "currentColor" }} />
       {no && <span>{no}</span>}
       {no && <span aria-hidden>—</span>}
       <span>{children}</span>
@@ -1241,8 +2071,25 @@ function Kicker({ no, children }: { no?: string; children: React.ReactNode }) {
 /**
  * Section header — numbered kicker + display heading on the left, an optional muted sublede on the
  * right. Mirrors the microsite's `.mc-shead`; shared by Locations, Gallery, Team, FAQ, Reviews, Contact.
+ * `stacked` switches to the design's single-column variant (kicker → large heading → sublede below),
+ * used by Locations (`#locations .mc-shead` / `.lb-locx-sublede`).
  */
-function SectionHead({ no, kicker, heading, sublede }: { no?: string; kicker: string; heading: string; sublede?: string }) {
+function SectionHead({ no, kicker, heading, sublede, stacked }: { no?: string; kicker: string; heading: string; sublede?: string; stacked?: boolean }) {
+  if (stacked) {
+    return (
+      <div className="mb-[clamp(24px,4.5cqw,52px)]">
+        <Kicker no={no}>{kicker}</Kicker>
+        <h2 className="text-balance" style={{ ...DISPLAY, fontSize: "clamp(34px,7cqw,68px)", lineHeight: 0.98 }}>
+          {heading}
+        </h2>
+        {sublede && (
+          <p className="mt-[clamp(14px,2.2cqw,20px)] max-w-[540px] text-[clamp(14px,1.7cqw,16px)] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
+            {sublede}
+          </p>
+        )}
+      </div>
+    );
+  }
   return (
     <div className="mb-[clamp(20px,4cqw,44px)] flex flex-wrap items-end justify-between gap-x-[clamp(16px,3cqw,40px)] gap-y-3">
       <div className="max-w-[22ch]">
@@ -1289,11 +2136,15 @@ function Placeholder({ children, icon }: { children: React.ReactNode; icon?: Rea
   );
 }
 
-function BookButton({ label, tone, size = "md" }: { label: string; tone: "accent" | "paper"; size?: "sm" | "md" | "lg" | "nav" }) {
-  const style: CSSProperties =
-    tone === "paper"
+function BookButton({ label, tone, size = "md", styleOverride }: { label: string; tone: "accent" | "paper"; size?: "sm" | "md" | "lg" | "nav"; styleOverride?: CSSProperties }) {
+  const style: CSSProperties = {
+    // Accent fills use the AA-safe deepened accent (--mc-accent-field) so warm-white labels clear 4.5:1 even
+    // on the lightest swatches (raw terracotta/amber sit at ~4.2:1). Identical to --mc-accent for the other 6.
+    ...(tone === "paper"
       ? { background: "#fff", color: "var(--mc-ink)" }
-      : { background: "var(--mc-accent)", color: "var(--mc-on-accent)" };
+      : { background: "var(--mc-accent-field)", color: "var(--mc-on-accent)" }),
+    ...styleOverride,
+  };
   const sizing =
     size === "sm"
       ? "px-4 py-2 text-[12.5px]"

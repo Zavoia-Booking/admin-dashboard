@@ -1,41 +1,46 @@
 import { useTranslation } from "react-i18next";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { AlertTriangle, GripVertical } from "lucide-react";
+import { GripVertical, ChevronRight, Pin } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { Switch } from "../../../../../shared/components/ui/switch";
 import type { SectionEntry } from "../../../types";
 import type { SectionMeta } from "./sectionCatalog";
+import { InfoPulse } from "./InfoHint";
 
 interface SectionCardProps {
   entry: SectionEntry;
   meta: SectionMeta | null;
-  /** 1-based position, shown as the editorial index (01, 02, …) and a drag affordance. */
+  /** 1-based position, set as the editorial index (01, 02, …) in the left margin. */
   index: number;
-  selected: boolean;
   expanded?: boolean;
+  /** Pinned to the top (announcement): not draggable; the grip becomes a static pin indicator. */
+  locked?: boolean;
+  /** A pulsing Info cue beside the name — set when this section has a mandatory field still empty. */
+  needsAttention?: boolean;
   onSelect: () => void;
   onToggleVisible: () => void;
 }
 
 /**
- * One editorial row in the section list: a drag handle, a position index + thin type icon, the name and
- * a quiet meta on the right, and a monochrome visibility toggle. Borderless — the list's hairlines and
- * the selected shade (owned by SectionBuilder) carry the structure. Reorder by dragging the handle or
- * with the ↑/↓ buttons in the open inspector.
+ * One row of the page contents — a mono index in the left margin, the section name across the spine,
+ * and the show/hide switch at the trailing edge. Reorder grip and chevron stay receded until the row
+ * is hovered or opened. The whole row is the expand target; the grip and switch opt back in on top.
  */
 export function SectionCard({
   entry,
   meta,
   index,
-  selected,
   expanded,
+  locked,
+  needsAttention,
   onSelect,
   onToggleVisible,
 }: SectionCardProps) {
   const { t } = useTranslation("marketplace");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.type,
+    disabled: locked,
   });
 
   const style = {
@@ -44,85 +49,125 @@ export function SectionCard({
     zIndex: isDragging ? 20 : undefined,
   };
 
-  const Icon = meta?.icon ?? AlertTriangle;
   const label = meta ? t(meta.labelKey) : entry.type;
-  const variantLabel =
-    meta && meta.variants.length > 1
-      ? t(meta.variants.find((v) => v.id === entry.variant)?.labelKey ?? "")
-      : "";
-  const meta_right = selected
-    ? t("businessPage.builder.card.editing")
-    : !entry.visible
-      ? t("businessPage.builder.card.hidden")
-      : variantLabel || t("businessPage.builder.card.edit");
+  const live = entry.visible;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={cn("group flex items-center gap-2.5 px-3 py-3", isDragging && "opacity-90")}
+      className={cn(
+        "group/row relative",
+        isDragging && "z-20 rounded-md bg-surface shadow-elevated-card",
+      )}
     >
-      {/* drag handle */}
-      <button
-        type="button"
-        aria-label={t("businessPage.builder.card.drag")}
-        className={cn(
-          "shrink-0 cursor-grab touch-none rounded-md p-0.5 text-foreground-3/60 outline-none",
-          "transition-colors duration-150 hover:text-foreground-1 focus-visible:ring-2 focus-visible:ring-ring/50 active:cursor-grabbing",
-        )}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-[18px] w-[18px]" strokeWidth={1.5} aria-hidden />
-      </button>
-
-      {/* index + icon + name + meta = open settings */}
+      {/* The whole row is the expand target (peer); content sits above it and scales subtly on press. */}
       <button
         type="button"
         onClick={onSelect}
         aria-expanded={!!expanded}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-md text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        aria-label={label}
+        className="peer absolute inset-0 z-0 rounded-[2px] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60"
+      />
+
+      <div
+        className={cn(
+          "pointer-events-none relative z-[1] grid min-h-[54px] grid-cols-[30px_42px_minmax(0,1fr)_auto] items-center",
+          "origin-center transition-transform duration-150 ease-out motion-safe:peer-active:scale-[0.997]",
+        )}
       >
+        {/* reorder grip (or static pin when locked) — far left, ahead of the index */}
+        {locked ? (
+          <span
+            className="col-start-1 grid h-11 w-[26px] place-items-center justify-self-center text-foreground-3 opacity-40"
+            role="img"
+            aria-label={t("businessPage.builder.card.pinned")}
+            title={t("businessPage.builder.card.pinned")}
+          >
+            <Pin className="size-[14px]" strokeWidth={1.6} aria-hidden />
+          </span>
+        ) : (
+          <button
+            type="button"
+            aria-label={t("businessPage.builder.card.drag")}
+            className={cn(
+              "pointer-events-auto col-start-1 grid h-11 w-[26px] cursor-grab touch-none place-items-center justify-self-center rounded-md text-foreground-3 outline-none",
+              "opacity-50 transition-[opacity,color] duration-200",
+              "hover:text-foreground-1 hover:opacity-100 active:cursor-grabbing",
+              "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60",
+              "sm:opacity-0 sm:group-hover/row:opacity-[0.85]",
+            )}
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="size-[18px]" strokeWidth={1.6} aria-hidden />
+          </button>
+        )}
+
+        {/* index — sits left of the spine */}
         <span
           className={cn(
-            "w-5 text-right text-[12px] font-medium tabular-nums transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            selected ? "text-primary" : "text-foreground-3",
+            "col-start-2 justify-self-end pr-[11px] font-mono text-[13px] tabular-nums transition-colors duration-200",
+            expanded
+              ? "text-primary-700 dark:text-primary-400"
+              : live
+                ? "text-foreground-3"
+                : "text-foreground-disabled",
           )}
+          aria-hidden
         >
           {String(index).padStart(2, "0")}
         </span>
-        <span
-          className={cn(
-            "shrink-0 transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            selected ? "text-foreground-1" : "text-foreground-3",
-            !entry.visible && !selected && "opacity-60",
-          )}
-        >
-          <Icon className="h-4 w-4" strokeWidth={1.5} aria-hidden />
-        </span>
-        <span
-          className={cn(
-            "truncate text-[14px] transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
-            selected
-              ? "font-semibold text-foreground-1"
-              : entry.visible
-                ? "font-medium text-foreground-1"
-                : "font-medium text-foreground-3",
-          )}
-        >
-          {label}
-        </span>
-        <span className="ml-auto shrink-0 text-[12px] text-foreground-3">{meta_right}</span>
-      </button>
 
-      {/* visibility — monochrome (ink), not the app's accent switch */}
-      <Switch
-        checked={entry.visible}
-        onCheckedChange={onToggleVisible}
-        aria-label={
-          entry.visible ? t("businessPage.builder.card.hide") : t("businessPage.builder.card.show")
-        }
-        className="data-[state=checked]:!bg-foreground-1"
+        {/* name — right of the spine */}
+        <span className="col-start-3 flex min-w-0 items-center py-2.5 pl-[15px]">
+          <span
+            className={cn(
+              "min-w-0 truncate text-[16px] font-[450] tracking-[-0.008em] transition-colors duration-200",
+              live ? "text-foreground-1" : "text-foreground-disabled",
+            )}
+          >
+            {label}
+          </span>
+          {needsAttention && (
+            <span className="ml-2 shrink-0">
+              <InfoPulse />
+            </span>
+          )}
+        </span>
+
+        {/* trailing cluster: chevron · switch */}
+        <div className="col-start-4 flex items-center gap-0.5 pr-4">
+          <ChevronRight
+            className={cn(
+              "size-[18px] text-foreground-3 transition-[transform,opacity,color] duration-200",
+              expanded
+                ? "rotate-90 text-primary opacity-100"
+                : "opacity-50 sm:-translate-x-[3px] sm:opacity-0 sm:group-hover/row:translate-x-0 sm:group-hover/row:opacity-100",
+            )}
+            strokeWidth={1.6}
+            aria-hidden
+          />
+          <span className="pointer-events-auto ml-1.5">
+            <Switch
+              checked={entry.visible}
+              onCheckedChange={onToggleVisible}
+              aria-label={
+                live ? t("businessPage.builder.card.hide") : t("businessPage.builder.card.show")
+              }
+            />
+          </span>
+        </div>
+      </div>
+
+      {/* open — accent baseline rule, drawn from the spine to the trailing edge */}
+      <span
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute bottom-0 left-[72px] right-4 z-[1] h-[1.5px] origin-left rounded-full bg-primary",
+          "transition-transform duration-[340ms] ease-[var(--ease-out-strong)]",
+          expanded ? "scale-x-100" : "scale-x-0",
+        )}
       />
     </div>
   );

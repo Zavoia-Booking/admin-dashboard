@@ -100,14 +100,13 @@ export function BusinessPageTab({
             aboutContent={form.aboutContent}
             setAboutContent={form.setAboutContent}
             brandPanel={
-              <div className="flex flex-col gap-7">
+              <div className="flex flex-col gap-6">
                 <BrandingSection
                   business={business}
                   canWrite={canWrite}
                   pageName={form.pageName}
                   brandColorHex={form.brandColorHex}
                   setBrandColorHex={form.setBrandColorHex}
-                  brandColorError={form.brandColorError || undefined}
                 />
                 <div className="border-t border-border pt-6">
                   <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
@@ -120,6 +119,8 @@ export function BusinessPageTab({
             tagline={form.tagline}
             setTagline={form.setTagline}
             taglineError={form.taglineError || undefined}
+            aboutError={form.aboutError}
+            announcementError={form.announcementError}
             canWrite={canWrite}
             brandColorHex={form.brandColorHex}
             useBusinessEmail={form.useBusinessEmail}

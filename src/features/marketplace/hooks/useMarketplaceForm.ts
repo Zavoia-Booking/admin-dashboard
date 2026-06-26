@@ -1,7 +1,9 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Business, SectionEntry, PageTheme, FaqItem, AnnouncementContent, PublishMarketplaceListingPayload } from '../types';
 import { useProfileDetails } from './useProfileDetails';
 import { useBusinessPageBuilder } from './useBusinessPageBuilder';
+import { aboutHeadline } from '../components/business/builder/aboutContent';
 
 interface UseMarketplaceFormProps {
   business: Business | null;
@@ -64,13 +66,26 @@ export function useMarketplaceForm({
   });
 
   const builder = useBusinessPageBuilder({ pageLayout, pageTheme, faq, announcement });
+  const { t } = useTranslation('marketplace');
+
+  // A shown About section needs a headline — an empty one would publish a blank section. Gate it like the
+  // announcement CTA link: required only while the section is visible (off-page sections can't be reached).
+  const aboutVisible = builder.layout.some((s) => s.type === 'about' && s.visible);
+  const aboutError =
+    aboutVisible && aboutHeadline(profile.aboutContent) === ''
+      ? t('businessPage.errors.aboutHeadlineRequired')
+      : null;
+
+  // Any announcement problem that blocks publish: a missing/invalid CTA link, or — while the section is
+  // shown — a missing message (an empty bar renders nothing). Drives both the publish gate and the card cue.
+  const announcementError = builder.announcementUrlError || builder.announcementMessageError;
 
   // Save is dirty if either the profile/branding fields or the section builder changed.
   const isDirty = profile.isDirty || builder.isDirty;
 
   const handleSave = useCallback(() => {
     const isProfileValid = profile.validateBeforeSave();
-    if (!isProfileValid) return;
+    if (!isProfileValid || !!announcementError || !!aboutError) return;
 
     // Brand colour lives in the profile form (single source); merged into pageTheme by the builder.
     const brandColor = profile.brandColorHex.trim() || null;
@@ -97,7 +112,7 @@ export function useMarketplaceForm({
       // Section builder slice: ordered layout + theme (brand colour + font) + net-new content.
       ...builder.getBuilderPayload(brandColor),
     });
-  }, [profile, builder, business, onSave]);
+  }, [profile, builder, aboutError, announcementError, business, onSave]);
 
   return {
     // Profile state
@@ -122,7 +137,9 @@ export function useMarketplaceForm({
     industryTagsError: profile.industryTagsError,
     taglineError: profile.taglineError,
     brandColorError: profile.brandColorError,
-    hasValidationErrors: profile.hasValidationErrors,
+    announcementError,
+    aboutError,
+    hasValidationErrors: profile.hasValidationErrors || !!announcementError || !!aboutError,
 
     isDirty,
 

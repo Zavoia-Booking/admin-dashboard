@@ -1,16 +1,20 @@
 import { useTranslation } from "react-i18next";
-import { Switch } from "../../../../../shared/components/ui/switch";
+import { cn } from "../../../../../shared/lib/utils";
+import { modalBody, modalHelperSmall } from "../../../../../shared/components/ui/modal-tokens";
 import type {
   SectionEntry,
   LocationWithAssignments,
   FaqItem,
   AnnouncementContent,
+  HeroConfig,
+  LocationsConfig,
 } from "../../../types";
 import { isKnownSectionType, SECTION_META } from "./sectionCatalog";
 import { FaqEditor } from "./FaqEditor";
 import { AnnouncementEditor } from "./AnnouncementEditor";
 import { AboutEditor } from "./AboutEditor";
 import { HeroEditor } from "./HeroEditor";
+import { LocationsEditor } from "./LocationsEditor";
 
 interface SettingsPanelProps {
   entry: SectionEntry;
@@ -25,6 +29,7 @@ interface SettingsPanelProps {
   canWrite: boolean;
   locale: "en" | "ro";
   onConfigChange: (index: number, config: Record<string, unknown>) => void;
+  onTurnOffSection: () => void;
   onFaqChange: (items: FaqItem[]) => void;
   onAnnouncementChange: (value: AnnouncementContent) => void;
   onAboutChange: (value: string) => void;
@@ -47,6 +52,7 @@ export function SettingsPanel({
   canWrite,
   locale,
   onConfigChange,
+  onTurnOffSection,
   onFaqChange,
   onAnnouncementChange,
   onAboutChange,
@@ -55,6 +61,8 @@ export function SettingsPanel({
   const { t } = useTranslation("marketplace");
 
   if (entry.type === "hero") {
+    // Mirrors the hero rating gate in LivePreview (aggregateReviews → count > 0).
+    const hasReviews = locations.some((l) => (l.totalReviews ?? 0) > 0);
     return (
       <HeroEditor
         tagline={tagline}
@@ -62,12 +70,22 @@ export function SettingsPanel({
         taglineError={taglineError}
         heroImageUrl={heroImageUrl}
         canWrite={canWrite}
+        config={(entry.config ?? {}) as HeroConfig}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+        hasReviews={hasReviews}
       />
     );
   }
 
   if (entry.type === "about") {
-    return <AboutEditor value={aboutContent} onChange={onAboutChange} />;
+    // A shown About needs a headline → require it here, mirroring the publish gate in useMarketplaceForm.
+    return (
+      <AboutEditor
+        value={aboutContent}
+        onChange={onAboutChange}
+        required={entry.visible}
+      />
+    );
   }
 
   if (entry.type === "faq") {
@@ -75,44 +93,41 @@ export function SettingsPanel({
   }
 
   if (entry.type === "announcement") {
+    // A shown announcement needs a message → require it here, mirroring the publish gate in useMarketplaceForm.
     return (
-      <AnnouncementEditor value={announcementContent} onChange={onAnnouncementChange} locale={locale} />
+      <AnnouncementEditor
+        value={announcementContent}
+        onChange={onAnnouncementChange}
+        locale={locale}
+        required={entry.visible}
+      />
     );
   }
 
   if (entry.type === "locations") {
-    const hidden = new Set((entry.config?.hiddenLocationIds as number[] | undefined) ?? []);
-    const toggle = (id: number, show: boolean) => {
-      const next = new Set(hidden);
-      if (show) next.delete(id);
-      else next.add(id);
-      onConfigChange(index, { hiddenLocationIds: Array.from(next) });
-    };
     return (
-      <div className="space-y-2">
-        <p className="text-xs text-foreground-3">{t("businessPage.builder.settings.locationsHint")}</p>
-        {locations.length === 0 ? (
-          <p className="text-sm text-foreground-3">{t("businessPage.builder.settings.locationsNone")}</p>
-        ) : (
-          locations.map((l) => (
-            <div key={l.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-              <span className="min-w-0 truncate text-sm text-foreground-1">{l.name}</span>
-              <Switch checked={!hidden.has(l.id)} onCheckedChange={(v) => toggle(l.id, v)} />
-            </div>
-          ))
-        )}
-      </div>
+      <LocationsEditor
+        config={(entry.config ?? {}) as LocationsConfig}
+        locations={locations}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+        onTurnOffSection={onTurnOffSection}
+      />
     );
   }
 
-  // Sections that are pure views over existing data: explain what they show.
-  const descKey = isKnownSectionType(entry.type)
-    ? SECTION_META[entry.type].descriptionKey
-    : null;
+  // Sections that are pure views over existing data: an editorial note explaining what they show. No icon
+  // tile — a brand-tinted left rule reads as an informational aside without the boxy chrome.
+  const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
   return (
-    <p className="text-sm text-foreground-3 leading-relaxed">
-      {descKey ? t(descKey) : t("businessPage.builder.settings.noSettings")}
-    </p>
+    <div className="border-l-2 border-primary/30 py-0.5 pl-4">
+      <p className={cn(modalBody, "mt-0 text-foreground-1")}>
+        {meta ? t(meta.descriptionKey) : t("businessPage.builder.settings.noSettings")}
+      </p>
+      <p className={cn(modalHelperSmall, "mt-1.5 text-foreground-3")}>
+        {t("businessPage.builder.settings.viewOnlyHint")}
+      </p>
+    </div>
   );
 }
 
