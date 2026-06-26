@@ -48,7 +48,6 @@ const initialState: CalendarViewState = {
     editForm: {
         open: false,
         item: null,
-        groupAppointments: undefined as Appointment[] | undefined,
     },
     blockFormOpen: false,
     blockFormEditingBlock: null,
@@ -110,14 +109,13 @@ export const handleOpenAddForm = (state: CalendarViewState, payload: { open: boo
     }
 }
 
-export const handleToggleEditForm = (state: CalendarViewState, payload: { open: boolean; item: Appointment | null; groupAppointments?: Appointment[] }): CalendarViewState => {
-    const { open, item, groupAppointments } = payload;
+export const handleToggleEditForm = (state: CalendarViewState, payload: { open: boolean; item: Appointment | null }): CalendarViewState => {
+    const { open, item } = payload;
     return {
         ...state,
         editForm: {
             open,
             item,
-            groupAppointments: open ? (groupAppointments ?? undefined) : undefined,
         },
     }
 }
@@ -296,7 +294,7 @@ const handleSetStaffFilter = (state: CalendarViewState, payload: number[]): Cale
     }
 }
 
-const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block'; bookingGroupId?: string } | null): CalendarViewState => {
+const handleSetUpdateConflictOffer = (state: CalendarViewState, payload: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null): CalendarViewState => {
     return { ...state, updateConflictOffer: payload };
 }
 
@@ -446,18 +444,6 @@ export const CalendarReducer: Reducer<CalendarViewState, any> = (state: Calendar
             return decrementAddFormCloseAfterMutations(cleared);
         }
         case getType(actions.updateAppointment.failure):
-            return clearAddFormMutationWait(state);
-        case getType(actions.updateGroupItemsStaff.request):
-            return clearUpdateConflictOffer(state);
-        case getType(actions.updateGroupItemsStaff.success): {
-            const cleared = clearUpdateConflictOffer(state);
-            return decrementAddFormCloseAfterMutations(cleared);
-        }
-        case getType(actions.updateGroupItemsStaff.failure):
-            return clearAddFormMutationWait(state);
-        case getType(actions.rescheduleAppointmentGroup.success):
-            return decrementAddFormCloseAfterMutations(state);
-        case getType(actions.rescheduleAppointmentGroup.failure):
             return clearAddFormMutationWait(state);
 
         // --- CRUD result handling ---

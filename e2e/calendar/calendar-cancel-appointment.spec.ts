@@ -19,18 +19,15 @@ test.describe('Calendar — cancel appointment (UI surface)', () => {
     page,
     request,
   }) => {
-    const today = new Date()
-    today.setHours(13, 0, 0, 0)
-    const at = (h: number, m: number) => {
-      const d = new Date(today)
-      d.setHours(h, m, 0, 0)
-      return d.toISOString()
-    }
+    // Schedule a couple of hours into the future (still "today") so the booking is
+    // not in the past — the Cancel CTA is gated on `!isBookingInPast`.
+    const start = new Date(Date.now() + 2 * 60 * 60_000)
+    const end = new Date(start.getTime() + 30 * 60_000)
 
     const appt = sampleAppointment({
       id: 5001,
-      scheduledAt: at(13, 0),
-      endsAt: at(13, 30),
+      scheduledAt: start.toISOString(),
+      endsAt: end.toISOString(),
       bookedItemName: 'Haircut',
       customerName: 'Andrei Sandu',
       staffUserIds: [201],

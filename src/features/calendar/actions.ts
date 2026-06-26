@@ -7,7 +7,6 @@ import type {
     CalendarWeekResponse,
     CalendarDayFilters,
     AdminCreateGroupAppointmentPayload,
-    RescheduleGroupPayload,
     CalendarBlockCreatePayload,
     CalendarBlockUpdatePayload,
     CalendarBlockDto,
@@ -19,7 +18,6 @@ export const toggleAddForm = createAction('CALENDAR/CREATE/TOGGLE')<{ open: bool
 export const toggleEditFormAction = createAction('CALENDAR/EDIT/TOGGLE')<{
     open: boolean,
     item: Appointment | null,
-    groupAppointments?: Appointment[],
 }>()
 
 export const setViewTypeAction = createAction('CALENDAR/VIEW_TYPE/SET')<AppointmentViewType>()
@@ -153,22 +151,16 @@ export const adminCreateAppointmentGroup = createAsyncAction(
     'CALENDAR/ADMIN_CREATE_GROUP/FAILURE',
 )<AdminCreateGroupAppointmentPayload, any, any>()
 
-export const rescheduleAppointmentGroup = createAsyncAction(
-    'CALENDAR/RESCHEDULE_GROUP/REQUEST',
-    'CALENDAR/RESCHEDULE_GROUP/SUCCESS',
-    'CALENDAR/RESCHEDULE_GROUP/FAILURE',
-)<{ bookingGroupId: string; payload: RescheduleGroupPayload }, any, any>()
-
 export const updateAppointmentStatus = createAsyncAction(
     'CALENDAR/UPDATE_STATUS/REQUEST',
     'CALENDAR/UPDATE_STATUS/SUCCESS',
     'CALENDAR/UPDATE_STATUS/FAILURE',
 )<{ appointmentId: number; status: string }, any, any>()
 
-/** Offer to retry an update with override after 409 Conflict (set to null to clear). conflictType 'staff_appointment' = do not show override; 'block' or missing = show override. bookingGroupId: when set, confirm override should call reschedule group API. */
+/** Offer to retry an update with override after 409 Conflict (set to null to clear). conflictType 'staff_appointment' = do not show override; 'block' or missing = show override. */
 export const setUpdateConflictOffer = createAction(
     'CALENDAR/UPDATE_CONFLICT_OFFER/SET',
-)<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block'; bookingGroupId?: string } | null>()
+)<{ appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null>()
 
 /** Set/clear pending drag-drop (card preview). Cleared on update success or cancel. */
 export const setCalendarPendingDrop = createAction(
@@ -180,27 +172,12 @@ export const beginAddFormCloseAfterMutations = createAction(
     'CALENDAR/ADD_FORM/BEGIN_CLOSE_AFTER_MUTATIONS',
 )<number>()
 
-/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). When rescheduling a group, pass bookingGroupId so conflict offer can use group reschedule. chainReschedule: saga will dispatch rescheduleAppointmentGroup after this update succeeds (avoids race condition when staff + time both change). */
+/** Update appointment (PUT /appointments/:id — reschedule, reassign, etc.). */
 export const updateAppointment = createAsyncAction(
     'CALENDAR/UPDATE_APPOINTMENT/REQUEST',
     'CALENDAR/UPDATE_APPOINTMENT/SUCCESS',
     'CALENDAR/UPDATE_APPOINTMENT/FAILURE',
-)<{ appointmentId: number; data: Record<string, any>; bookingGroupId?: string; chainReschedule?: { bookingGroupId: string; payload: RescheduleGroupPayload } }, any, any>()
-
-/**
- * Sequential PUTs for per-segment staff in a booking group (avoids takeLatest cancelling multiple updateAppointment requests).
- * Optionally applies primary row notes/service/location, then group reschedule — all in one saga success for the add-form mutation counter.
- */
-export const updateGroupItemsStaff = createAsyncAction(
-    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/REQUEST',
-    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/SUCCESS',
-    'CALENDAR/UPDATE_GROUP_ITEMS_STAFF/FAILURE',
-)<{
-    updates: Array<{ appointmentId: number; staffUserIds: number[] }>;
-    bookingGroupId?: string;
-    primaryNonSchedulePatch?: { appointmentId: number; data: Record<string, unknown> };
-    chainReschedule?: { bookingGroupId: string; payload: RescheduleGroupPayload };
-}, any, any>()
+)<{ appointmentId: number; data: Record<string, any> }, any, any>()
 
 /** Cancel appointment with reason and notification preferences (POST /appointments/:id/cancel) */
 export const cancelAppointment = createAsyncAction(

@@ -13,16 +13,44 @@ export interface AppointmentCustomerSnapshot {
   profileImage?: string | null;
 }
 
+/** One item inside a composite (merged same-staff run) appointment. Mirrors backend. */
+export interface BookingItemSnapshot {
+  type: "service" | "bundle";
+  serviceId?: number;
+  serviceUuid?: string;
+  bundleId?: number;
+  bundleUuid?: string;
+  name: string;
+  description?: string | null;
+  duration: number;
+  price: number;
+  startOffsetMinutes: number;
+  bundleServices?: Array<{
+    serviceId: number;
+    serviceUuid: string;
+    serviceName: string;
+    duration: number;
+    price: number;
+  }>;
+}
+
 export interface Appointment {
   id: number,
   /** Linked user when present; null for some walk-ins / manual bookings. */
   customer: Customer | null,
   customerSnapshot?: AppointmentCustomerSnapshot | null,
   teamMembers: Array<any>,
-  /** Service when appointment is for a single service; null for bundle-only. */
+  /** Service when appointment is for a single service; null for bundle/composite. */
   service?: Service | null,
   /** Bundle when appointment is for a bundle (service may be null). */
   bundle?: { id: number; name?: string } | null;
+  /** 'service' | 'bundle' | 'composite'. Composite = merged same-staff run of items. */
+  bookingType?: string | null;
+  /**
+   * For composite appointments (a merged same-staff run): the ordered items in the
+   * run. Null for single-item service/bundle appointments (use service/bundle).
+   */
+  bookingItemsSnapshot?: BookingItemSnapshot[] | null;
   /** Display name from booking (e.g. service or bundle name at book time). */
   bookedItemName?: string | null;
   location: {
@@ -44,10 +72,6 @@ export interface Appointment {
   /** Set when admin overrode working hours or conflict. */
   overrideReason?: string;
   overrideUsedAt?: Date | string;
-  /** When set, this appointment is part of a multi-item booking group. */
-  bookingGroupId?: string | null;
-  /** 1-based position of this appointment within its booking group. */
-  bookingGroupOrder?: number | null;
   /** How the appointment was booked (admin, phone, walk_in, marketplace). */
   bookingSource?: string | null;
 }
@@ -216,11 +240,6 @@ export interface SlimAppointment {
   isUnassigned: boolean;
   /** Set when admin overrode working hours or conflict (for grid badge). */
   overrideReason?: string;
-  /** When set, this appointment is part of a multi-item booking group; UI may show as one combined block. */
-  bookingGroupId?: string | null;
-  bookingGroupOrder?: number | null;
-  /** Total number of segments in the booking group (only set when coming from a display block). */
-  groupSize?: number;
   /** From POST /calendar/day and /week when backend includes it. */
   notes?: string | null;
   /** Customer contact info — included when backend sends it. */
@@ -228,12 +247,12 @@ export interface SlimAppointment {
   customerEmail?: string | null;
 }
 
-/** One display block: single appointment, merged group (legacy), or one segment of a group (group_segment). */
+/** One display block for a single standalone appointment. */
 export interface CalendarDisplayBlock {
-  type: 'single' | 'group' | 'group_segment';
-  /** For single/group_segment: this appointment id; for group: first appointment id (legacy). */
+  type: 'single';
+  /** This appointment id. */
   id: number;
-  /** For single/group_segment: [id]; for group: all segment ids (legacy). */
+  /** [id]. */
   appointmentIds: number[];
   start: string;
   end: string;
@@ -246,11 +265,6 @@ export interface CalendarDisplayBlock {
   bookingSource: string;
   isUnassigned: boolean;
   overrideReason?: string;
-  bookingGroupId?: string | null;
-  /** 1-based order within the group (for group_segment). */
-  bookingGroupOrder?: number;
-  /** Number of segments in the group (for group_segment). */
-  groupSize?: number;
   /** Carried from {@link SlimAppointment}. */
   notes?: string | null;
 }
@@ -341,15 +355,6 @@ export interface AdminCreateGroupAppointmentPayload {
   overrideReason?: string;
 }
 
-// --- PUT /appointments/group/:bookingGroupId/reschedule ---
-
-export interface RescheduleGroupPayload {
-  scheduledAt: string;
-  overrideConflicts?: boolean;
-  allowOutOfHours?: boolean;
-  overrideReason?: string;
-}
-
 // --- POST /calendar/available-slots ---
 
 export interface AvailableSlotsRequest {
@@ -383,7 +388,7 @@ export interface CalendarDayFilters {
   /** Appointments involving any of these staff. Omit or empty = all staff at location. */
   staffUserIds?: number[];
   /**
-   * Product filters; API expands `bookingGroupId` groups in the requested date window.
+   * Product filters.
    * Prefer `serviceIds` / `bundleIds` (OR within each dimension; AND across dimensions when both non-empty).
    * Legacy `serviceId` / `bundleId` are still accepted by the API and merged server-side.
    */

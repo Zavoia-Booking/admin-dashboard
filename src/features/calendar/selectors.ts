@@ -143,67 +143,26 @@ export const getDayAppointments = createSelector(getDayData, (dayData) => {
 })
 
 /**
- * Convert raw appointments to display blocks.
- * Single appointments (or group of size 1): one block type 'single'.
- * Groups (same bookingGroupId, length > 1): one block per segment type 'group_segment', each in correct staff column and time window.
+ * Convert raw appointments to display blocks. Each appointment is its own standalone block.
  */
 export function appointmentsToDisplayBlocks(appointments: SlimAppointment[]): CalendarDisplayBlock[] {
     if (!appointments?.length) return [];
-    const byGroup = new Map<string | null, SlimAppointment[]>();
-    for (const a of appointments) {
-        const key = a.bookingGroupId ?? null;
-        if (!byGroup.has(key)) byGroup.set(key, []);
-        byGroup.get(key)!.push(a);
-    }
-    const blocks: CalendarDisplayBlock[] = [];
-    for (const [, group] of byGroup) {
-        if (group.length === 0) continue;
-        if (group.length === 1) {
-            const a = group[0];
-            blocks.push({
-                type: 'single',
-                id: a.id,
-                appointmentIds: [a.id],
-                start: a.scheduledAt,
-                end: a.endsAt,
-                status: a.status,
-                label: a.bookedItemName,
-                duration: a.duration,
-                staffUserIds: a.staffUserIds || [],
-                customerName: a.customerName,
-                bookingSource: a.bookingSource,
-                isUnassigned: a.isUnassigned,
-                overrideReason: a.overrideReason,
-                bookingGroupId: a.bookingGroupId ?? undefined,
-                notes: a.notes ?? undefined,
-            });
-        } else {
-            const sorted = [...group].sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-            const groupSize = sorted[0]?.groupSize ?? sorted.length;
-            for (let i = 0; i < sorted.length; i++) {
-                const a = sorted[i];
-                blocks.push({
-                    type: 'group_segment',
-                    id: a.id,
-                    appointmentIds: [a.id],
-                    start: a.scheduledAt,
-                    end: a.endsAt,
-                    status: a.status,
-                    label: a.bookedItemName,
-                    duration: a.duration,
-                    staffUserIds: a.staffUserIds || [],
-                    customerName: a.customerName,
-                    bookingSource: a.bookingSource,
-                    isUnassigned: a.isUnassigned,
-                    overrideReason: a.overrideReason,
-                    bookingGroupId: a.bookingGroupId ?? undefined,
-                    bookingGroupOrder: a.bookingGroupOrder ?? i + 1,
-                    groupSize,
-                    notes: a.notes ?? undefined,
-                });
-            }
-        }
-    }
+    const blocks: CalendarDisplayBlock[] = appointments.map((a) => ({
+        type: 'single',
+        id: a.id,
+        appointmentIds: [a.id],
+        start: a.scheduledAt,
+        end: a.endsAt,
+        status: a.status,
+        label: a.bookedItemName,
+        duration: a.duration,
+        staffUserIds: a.staffUserIds || [],
+        customerName: a.customerName,
+        bookingSource: a.bookingSource,
+        isUnassigned: a.isUnassigned,
+        overrideReason: a.overrideReason,
+        notes: a.notes ?? undefined,
+    }));
     return blocks.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime());
 }
 

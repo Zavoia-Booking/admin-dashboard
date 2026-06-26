@@ -34,7 +34,6 @@ export interface PendingReschedulePayload {
   newScheduledAt: Date;
   newEndsAt: Date;
   staffUserIds?: number[];
-  bookingGroupId?: string;
 }
 
 // ─────────────────────────────────────────────────────────────

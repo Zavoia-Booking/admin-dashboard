@@ -15,7 +15,7 @@ import { buildCalendarColorMap } from "../colors";
 import { calendarPreferences } from "../calendarPreferences";
 
 export type DayListItem =
-  | { type: "appointment"; data: SlimAppointment; groupSize?: number }
+  | { type: "appointment"; data: SlimAppointment }
   | { type: "block"; data: CalendarBlockDto };
 
 export interface UseDayAppointmentListResult {
@@ -49,17 +49,6 @@ export function useDayListFromRaw(
   const hasActiveFilters = useSelector(getHasActiveCalendarFilters);
   const timezone = useSelector(getCalendarTimezone);
 
-  /** Fallback when API omits groupSize (legacy). Prefer `SlimAppointment.groupSize` from POST /calendar/day. */
-  const groupSizeMap = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const a of rawAppointments) {
-      if (a.bookingGroupId) {
-        map.set(a.bookingGroupId, (map.get(a.bookingGroupId) ?? 0) + 1);
-      }
-    }
-    return map;
-  }, [rawAppointments]);
-
   const visibleDayAppointments = useMemo(
     () =>
       staffFilter.length > 0
@@ -89,9 +78,6 @@ export function useDayListFromRaw(
     const apptItems: DayListItem[] = visibleDayAppointments.map((a) => ({
       type: "appointment",
       data: a,
-      groupSize: a.bookingGroupId
-        ? (a.groupSize ?? groupSizeMap.get(a.bookingGroupId))
-        : undefined,
     }));
 
     const blockItems: DayListItem[] = rawBlocks.map((b) => ({ type: "block", data: b }));
@@ -101,7 +87,7 @@ export function useDayListFromRaw(
       const yStart = y.type === "appointment" ? y.data.scheduledAt : y.data.startsAt;
       return new Date(xStart).getTime() - new Date(yStart).getTime();
     });
-  }, [visibleDayAppointments, rawBlocks, groupSizeMap]);
+  }, [visibleDayAppointments, rawBlocks]);
 
   const apptCount = sortedItems.filter((i) => i.type === "appointment").length;
   const blockCount = sortedItems.filter((i) => i.type === "block").length;

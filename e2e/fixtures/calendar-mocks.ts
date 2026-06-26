@@ -46,9 +46,8 @@ export interface SampleAppointment {
   customerName: string | null
   bookingSource: string
   isUnassigned: boolean
-  bookingGroupId?: string | null
-  bookingGroupOrder?: number | null
-  groupSize?: number
+  /** 'service' | 'bundle' | 'composite'. Composite = merged same-staff run of items. */
+  bookingType?: string
   notes?: string | null
   customerPhone?: string | null
   customerEmail?: string | null
@@ -217,9 +216,7 @@ export function sampleAppointment(o: Partial<SampleAppointment> = {}): SampleApp
     customerName: o.customerName ?? 'Maria Popescu',
     bookingSource: o.bookingSource ?? 'admin',
     isUnassigned: o.isUnassigned ?? false,
-    bookingGroupId: o.bookingGroupId ?? null,
-    bookingGroupOrder: o.bookingGroupOrder ?? null,
-    groupSize: o.groupSize,
+    bookingType: o.bookingType ?? 'service',
     notes: o.notes ?? null,
     customerPhone: o.customerPhone ?? null,
     customerEmail: o.customerEmail ?? null,
@@ -446,19 +443,17 @@ export async function mockCalendarDefaults(
 
 export async function mockCreateAppointment(
   page: Page,
-  options: { id?: number; bookingGroupId?: string; status?: number } = {},
+  options: { id?: number; status?: number } = {},
 ): Promise<RouteCapture> {
   const cap: RouteCapture = { requests: [] }
   const id = options.id ?? 9001
-  const bookingGroupId = options.bookingGroupId ?? `grp-${id}`
+  // A multi-item booking creates one or more STANDALONE appointment rows (a
+  // same-staff run is one composite row); they are no longer linked by a group id.
   await page.route('**/api/appointments/admin-create-group', (route) => {
     cap.requests.push(route.request())
     return json(route, options.status ?? 201, {
-      id,
-      bookingGroupId,
-      bookingGroupOrder: 1,
-      groupSize: 1,
-      status: 'confirmed',
+      message: 'Booking created successfully.',
+      appointments: [{ id, status: 'confirmed' }],
     })
   })
   return cap
@@ -473,18 +468,6 @@ export async function mockUpdateAppointment(
     if (route.request().method() !== 'PUT') return route.continue()
     cap.requests.push(route.request())
     return json(route, options.status ?? 200, options.body ?? { ok: true })
-  })
-  return cap
-}
-
-export async function mockRescheduleGroup(
-  page: Page,
-  options: { status?: number } = {},
-): Promise<RouteCapture> {
-  const cap: RouteCapture = { requests: [] }
-  await page.route('**/api/appointments/group/*/reschedule', (route) => {
-    cap.requests.push(route.request())
-    return json(route, options.status ?? 200, { ok: true })
   })
   return cap
 }

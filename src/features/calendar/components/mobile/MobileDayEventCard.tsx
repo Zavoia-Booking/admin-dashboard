@@ -4,7 +4,6 @@ import { ShieldAlert, User } from "lucide-react";
 import type { SlimAppointment, CalendarStaffMember } from "../../../../shared/types/calendar";
 import {
   getAppointmentBlockColors,
-  getGroupDotColor,
   type AppointmentBlockColorPair,
 } from "../../colors";
 import { calendarPreferences } from "../../calendarPreferences";
@@ -27,7 +26,6 @@ import { cn } from "../../../../shared/lib/utils";
 interface MobileDayEventCardProps {
   appointment: SlimAppointment;
   locationStaff: CalendarStaffMember[];
-  groupSize?: number;
   colorMap?: Map<string, AppointmentBlockColorPair> | null;
   timezone?: string;
   onClick: () => void;
@@ -36,7 +34,6 @@ interface MobileDayEventCardProps {
 export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
   appointment,
   locationStaff,
-  groupSize,
   colorMap,
   timezone,
   onClick,
@@ -48,9 +45,6 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
   const { clock, meridiem } = formatClockAndMeridiem(appointment.scheduledAt, timezone);
   const durationCompact = formatDurationCompact(appointment.duration, t);
   const metaLabel = meridiem ? `${meridiem} · ${durationCompact}` : durationCompact;
-
-  const isGroupSegment = !!appointment.bookingGroupId && (groupSize ?? 1) > 1;
-  const order = appointment.bookingGroupOrder ?? 1;
 
   const viaLabel = getBookedViaLabel(appointment.bookingSource, t);
   const statusLabel = getStatusLabelText(appointment.status, t);
@@ -108,21 +102,8 @@ export const MobileDayEventCard: FC<MobileDayEventCardProps> = ({
             </span>
           </div>
 
-          {/* Service name (with optional group pill) */}
+          {/* Service name */}
           <div className="flex items-center gap-2 min-w-0">
-            {isGroupSegment && (
-              <span
-                className="inline-flex items-center gap-1 shrink-0 rounded-full border border-border bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-foreground-3"
-                title={t('page.appointmentCard.groupBookingTooltip', { order, groupSize })}
-              >
-                <span
-                  className="h-1.5 w-1.5 rounded-full shrink-0 ring-1 ring-background"
-                  style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-                  aria-hidden
-                />
-                {order}/{groupSize}
-              </span>
-            )}
             <span className="flex-1 min-w-0 text-sm font-semibold text-foreground-1 truncate leading-tight">
               {appointment.bookedItemName}
             </span>

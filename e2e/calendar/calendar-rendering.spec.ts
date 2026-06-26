@@ -79,6 +79,53 @@ test.describe('Calendar — rendering', () => {
     await expect(page.getByText('Andrei Sandu', { exact: false }).first()).toBeVisible()
   })
 
+  test('a composite (merged same-staff run) appointment renders as a single card with its combined name', async ({
+    page,
+    request,
+  }) => {
+    const today = new Date()
+    today.setHours(10, 0, 0, 0)
+    const at = (h: number, m: number) => {
+      const d = new Date(today)
+      d.setHours(h, m, 0, 0)
+      return d.toISOString()
+    }
+
+    await mockCalendarDefaults(page, {
+      day: {
+        appointments: [
+          // One standalone row: a bundle + a service served by the same staff
+          // member, merged into a single composite appointment (no booking group).
+          sampleAppointment({
+            id: 2001,
+            scheduledAt: at(10, 0),
+            endsAt: at(11, 0),
+            duration: 60,
+            bookingType: 'composite',
+            bookedItemName: 'Hair Bundle + Beard Trim',
+            customerName: 'Vlad Georgescu',
+            staffUserIds: [201],
+          }),
+        ],
+      },
+    })
+
+    await setupAuthenticatedOwner(page, request, {
+      authMe: { entitlements: { status: 'active', paidTeamSeats: 2, usedSeats: 1 } },
+    })
+
+    const calendar = new CalendarPage(page)
+    await calendar.goto()
+    await calendar.selectViewMode('Day')
+
+    // The merged run surfaces its combined name on one card — it is not split
+    // into per-item segments (that was the old booking-group behaviour).
+    await expect(
+      page.getByText('Hair Bundle + Beard Trim', { exact: false }).first(),
+    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.getByText('Vlad Georgescu', { exact: false }).first()).toBeVisible()
+  })
+
   test('empty Day shows the "Nothing scheduled" placeholder (default = List view)', async ({
     page,
     request,

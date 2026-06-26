@@ -28,8 +28,4 @@ test.describe('Calendar — drag-reschedule', () => {
   test.skip('drag onto a blocked slot opens the override dialog and re-submits with overrideConflicts', async () => {
     // Same blockers as above.
   })
-
-  test.skip('dragging a group segment opens the group dialog and uses /appointments/group/:id/reschedule', async () => {
-    // Same blockers as above.
-  })
 })

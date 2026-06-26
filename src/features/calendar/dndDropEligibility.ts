@@ -4,7 +4,7 @@ import type {
   LocationContextService,
   LocationContextBundle,
 } from "../../shared/types/calendar.ts";
-import { buildZonedDateFromDateKey, formatDateInTimezone } from "./timezone.ts";
+import { buildZonedDateFromDateKey } from "./timezone.ts";
 import i18n from "../../shared/lib/i18n";
 
 /** True if two time ranges overlap (startA < endB && endA > startB). */
@@ -60,25 +60,6 @@ function aggregateStaffIntervalConflict(
   return acc;
 }
 
-/** Count appointments sharing this booking group id (same calendar payload / day slice). */
-export function countSegmentsSameBookingGroup(
-  appointments: SlimAppointment[],
-  bookingGroupId: string | null | undefined,
-): number {
-  const gid = bookingGroupId?.trim();
-  if (!gid) return 0;
-  return appointments.filter((a) => (a.bookingGroupId?.trim() ?? "") === gid).length;
-}
-
-/**
- * True for multi-item booking groups only (matches grid group-dot: groupSize > 1 or multiple segments visible).
- */
-export function isMultiSegmentGroupDrag(appointment: SlimAppointment, siblingSegmentCount: number): boolean {
-  const gid = appointment.bookingGroupId?.trim();
-  if (!gid) return false;
-  return Math.max(appointment.groupSize ?? 1, siblingSegmentCount) > 1;
-}
-
 /**
  * Whether target staff may perform this appointment's booked item at the location.
  */
@@ -115,13 +96,6 @@ export function canStaffPerformBookedItem(
 /** `toastMessage` omitted = silent reject (same as current handleDragEnd early return). */
 export type DropEligibilityResult = { allowed: true } | { allowed: false; toastMessage?: string };
 
-export type DayGroupSegmentPreview = {
-  id: number;
-  startIso: string;
-  endIso: string;
-  staffUserIds: number[];
-};
-
 export type DayTimeSlotDropResult =
   | { ok: false; toastMessage?: string }
   | { ok: true; action: "noop" }
@@ -132,17 +106,6 @@ export type DayTimeSlotDropResult =
       hour: number;
       minute: number;
       columnId: number;
-    }
-  | {
-      ok: true;
-      action: "reschedule_group";
-      dateKey: string;
-      hour: number;
-      minute: number;
-      columnId: number;
-      bookingGroupId: string;
-      newGroupStartIso: string;
-      segmentsPreview: DayGroupSegmentPreview[];
     };
 
 const MSG_UNASSIGNED = () => i18n.t("calendar:page.dnd.unassigned");
@@ -152,7 +115,6 @@ function msgStaffBufferConflict(bufferMinutes: number): string {
 }
 const MSG_BLOCK = () => i18n.t("calendar:page.dnd.blockOverlap");
 const MSG_PAST = () => i18n.t("calendar:page.dnd.pastTime");
-const MSG_GROUP_REASSIGN = () => i18n.t("calendar:page.dnd.groupReassign");
 
 function ineligibleStaffMessage(staffLabel: string): string {
   return i18n.t("calendar:page.dnd.ineligibleStaff", { staffLabel });
@@ -194,7 +156,6 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     targetMinute,
     nowMs,
     calendarTimezone,
-    dayAppointments,
     appointmentsByColumn,
     blocksByColumn,
     locationServices,
@@ -229,87 +190,8 @@ export function evaluateDayTimeSlotDrop(ctx: DayTimeSlotDropContext): DayTimeSlo
     }
   }
 
-  const groupSegCountOnDay = countSegmentsSameBookingGroup(dayAppointments, appointment.bookingGroupId);
-  const isGroupDragRestricted = isMultiSegmentGroupDrag(appointment, groupSegCountOnDay);
-  const groupId = appointment.bookingGroupId?.trim();
-
-  if (isGroupDragRestricted && sourceColumnId !== targetColumnId) {
-    return { ok: false, toastMessage: MSG_GROUP_REASSIGN() };
-  }
-
   if (droppedSlotStartMs < nowMs) {
     return { ok: false, toastMessage: MSG_PAST() };
-  }
-
-  if (isGroupDragRestricted && groupId) {
-    const groupSegments = dayAppointments
-      .filter((a) => (a.bookingGroupId?.trim() ?? "") === groupId)
-      .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-    if (groupSegments.length === 0) {
-      return { ok: true, action: "noop" };
-    }
-    const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-    const draggedStartMs = new Date(appointment.scheduledAt).getTime();
-    const draggedOffsetMs = draggedStartMs - groupFirstStartMs;
-    const newGroupStartMs = droppedSlotStartMs - draggedOffsetMs;
-
-    if (newGroupStartMs < nowMs) {
-      return { ok: false, toastMessage: MSG_PAST() };
-    }
-
-    const segmentsPreview: DayGroupSegmentPreview[] = groupSegments.map((seg) => {
-      const segStartMs = new Date(seg.scheduledAt).getTime();
-      const segOffsetMs = segStartMs - groupFirstStartMs;
-      const previewStartMs = newGroupStartMs + segOffsetMs;
-      const durationMs =
-        (seg.endsAt ? new Date(seg.endsAt).getTime() : new Date(seg.scheduledAt).getTime() + seg.duration * 60 * 1000) -
-        new Date(seg.scheduledAt).getTime();
-      return {
-        id: seg.id,
-        startIso: new Date(previewStartMs).toISOString(),
-        endIso: new Date(previewStartMs + durationMs).toISOString(),
-        staffUserIds: seg.staffUserIds || [],
-      };
-    });
-
-    if (newGroupStartMs !== groupFirstStartMs) {
-      for (const seg of segmentsPreview) {
-        const colId = seg.staffUserIds?.[0] ?? 0;
-        const colBlocks = blocksByColumn.get(colId) ?? [];
-        const segStart = new Date(seg.startIso).getTime();
-        const segEnd = new Date(seg.endIso).getTime();
-        for (const b of colBlocks) {
-          const bs = new Date(b.startsAt).getTime();
-          const be = new Date(b.endsAt).getTime();
-          if (timeRangesOverlap(segStart, segEnd, bs, be)) {
-            return { ok: false, toastMessage: MSG_BLOCK() };
-          }
-        }
-      }
-    }
-
-    const groupMemberIds = new Set(groupSegments.map((s) => s.id));
-    for (const seg of segmentsPreview) {
-      const staffCol = seg.staffUserIds?.[0] ?? 0;
-      const peers = (appointmentsByColumn.get(staffCol) ?? []).filter((a) => !groupMemberIds.has(a.id));
-      const segStart = new Date(seg.startIso).getTime();
-      const segEnd = new Date(seg.endIso).getTime();
-      const conflict = aggregateStaffIntervalConflict(segStart, segEnd, peers, bufferTimeMinutes);
-      if (conflict === "overlap") return { ok: false, toastMessage: MSG_STAFF_CONFLICT() };
-      if (conflict === "buffer") return { ok: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
-    }
-
-    return {
-      ok: true,
-      action: "reschedule_group",
-      dateKey: targetDateKey,
-      hour: targetHour,
-      minute: targetMinute,
-      columnId: targetColumnId,
-      bookingGroupId: groupId,
-      newGroupStartIso: new Date(newGroupStartMs).toISOString(),
-      segmentsPreview,
-    };
   }
 
   const columnApps = (appointmentsByColumn.get(targetColumnId) ?? []).filter((a) => a.id !== appointment.id);
@@ -362,7 +244,6 @@ export type DayStaffColumnDropContext = {
   appointment: SlimAppointment;
   staffId: number;
   staffLabel: string;
-  isGroupDragRestricted: boolean;
   appointmentsByColumn: ReadonlyMap<number, SlimAppointment[]>;
   locationServices: LocationContextService[];
   locationBundles: LocationContextBundle[];
@@ -374,7 +255,6 @@ export function evaluateDayStaffColumnDrop(ctx: DayStaffColumnDropContext): Drop
     appointment,
     staffId,
     staffLabel,
-    isGroupDragRestricted,
     appointmentsByColumn,
     locationServices,
     locationBundles,
@@ -383,9 +263,6 @@ export function evaluateDayStaffColumnDrop(ctx: DayStaffColumnDropContext): Drop
 
   if (staffId === 0) {
     return { allowed: false, toastMessage: MSG_UNASSIGNED() };
-  }
-  if (isGroupDragRestricted) {
-    return { allowed: false }; // silent ignore (staff-column drop)
   }
   if (appointment.staffUserIds.length > 0 && appointment.staffUserIds[0] === staffId) {
     return { allowed: true };
@@ -421,17 +298,6 @@ export type WeekTimeSlotDropResult =
       hour: number;
       minute: number;
       columnId: number;
-    }
-  | {
-      ok: true;
-      action: "reschedule_group";
-      dateKey: string;
-      hour: number;
-      minute: number;
-      columnId: number;
-      bookingGroupId: string;
-      newGroupStartIso: string;
-      segmentsPreview: DayGroupSegmentPreview[];
     };
 
 export type WeekTimeSlotDropContext = {
@@ -444,10 +310,8 @@ export type WeekTimeSlotDropContext = {
   targetMinute: number;
   nowMs: number;
   calendarTimezone: string;
-  /** Raw per-day data (group listing, blocks); matches week `handleDragEnd`. */
+  /** Raw per-day data (blocks); matches week `handleDragEnd`. */
   columnData: readonly WeekColumnDaySlice[];
-  /** Raw per-day data keyed by dateKey (YYYY-MM-DD); used for per-segment block validation on group reschedule. */
-  columnDataByDateKey: Record<string, WeekColumnDaySlice>;
   /** Preview-merged appointments per day for conflict detection. */
   columnDataWithPreview: readonly WeekColumnDaySlice[];
   bufferTimeMinutes?: number;
@@ -468,7 +332,6 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
     nowMs,
     calendarTimezone,
     columnData,
-    columnDataByDateKey,
     columnDataWithPreview,
     bufferTimeMinutes = 0,
   } = ctx;
@@ -496,80 +359,6 @@ export function evaluateWeekTimeSlotDrop(ctx: WeekTimeSlotDropContext): WeekTime
     if (dropEndMs > dayStart.getTime() + 24 * 60 * 60 * 1000) {
       return { ok: false, toastMessage: i18n.t("calendar:page.dnd.pastMidnight") };
     }
-  }
-
-  const allWeekAppointments = columnData.flatMap((col) => col.appointments);
-  const groupSegCountWeek = countSegmentsSameBookingGroup(allWeekAppointments, appointment.bookingGroupId);
-  const isGroupDragRestricted = isMultiSegmentGroupDrag(appointment, groupSegCountWeek);
-  const groupId = appointment.bookingGroupId?.trim();
-
-  if (isGroupDragRestricted && groupId) {
-    const groupSegments = allWeekAppointments
-      .filter((a) => (a.bookingGroupId?.trim() ?? "") === groupId)
-      .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-    if (groupSegments.length === 0) {
-      return { ok: true, action: "noop" };
-    }
-    const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-    const draggedOffsetMs = apptStartMs - groupFirstStartMs;
-    const newGroupStartMs = droppedSlotStartMs - draggedOffsetMs;
-
-    if (newGroupStartMs < nowMs) {
-      return { ok: false, toastMessage: MSG_PAST() };
-    }
-
-    const segmentsPreview: DayGroupSegmentPreview[] = groupSegments.map((seg) => {
-      const segStartMs = new Date(seg.scheduledAt).getTime();
-      const segOffsetMs = segStartMs - groupFirstStartMs;
-      const previewStartMs = newGroupStartMs + segOffsetMs;
-      const durationMs =
-        (seg.endsAt ? new Date(seg.endsAt).getTime() : new Date(seg.scheduledAt).getTime() + seg.duration * 60 * 1000) -
-        new Date(seg.scheduledAt).getTime();
-      return {
-        id: seg.id,
-        startIso: new Date(previewStartMs).toISOString(),
-        endIso: new Date(previewStartMs + durationMs).toISOString(),
-        staffUserIds: seg.staffUserIds || [],
-      };
-    });
-
-    if (newGroupStartMs !== groupFirstStartMs) {
-      for (const seg of segmentsPreview) {
-        const segDateKey = formatDateInTimezone(new Date(seg.startIso), calendarTimezone);
-        const segBlocks = columnDataByDateKey[segDateKey]?.blocks ?? [];
-        const segStart = new Date(seg.startIso).getTime();
-        const segEnd = new Date(seg.endIso).getTime();
-        for (const b of segBlocks) {
-          const bs = new Date(b.startsAt).getTime();
-          const be = new Date(b.endsAt).getTime();
-          if (timeRangesOverlap(segStart, segEnd, bs, be)) {
-            return { ok: false, toastMessage: MSG_BLOCK() };
-          }
-        }
-      }
-    }
-
-    const groupMemberIds = new Set(groupSegments.map((s) => s.id));
-    const dayPeers = (columnDataWithPreview[targetColumnId]?.appointments ?? []).filter((a) => !groupMemberIds.has(a.id));
-    for (const seg of segmentsPreview) {
-      const segStart = new Date(seg.startIso).getTime();
-      const segEnd = new Date(seg.endIso).getTime();
-      const conflict = aggregateStaffIntervalConflict(segStart, segEnd, dayPeers, bufferTimeMinutes);
-      if (conflict === "overlap") return { ok: false, toastMessage: MSG_STAFF_CONFLICT() };
-      if (conflict === "buffer") return { ok: false, toastMessage: msgStaffBufferConflict(bufferTimeMinutes) };
-    }
-
-    return {
-      ok: true,
-      action: "reschedule_group",
-      dateKey: targetDateKey,
-      hour: targetHour,
-      minute: targetMinute,
-      columnId: targetColumnId,
-      bookingGroupId: groupId,
-      newGroupStartIso: new Date(newGroupStartMs).toISOString(),
-      segmentsPreview,
-    };
   }
 
   const columnApps = (columnDataWithPreview[targetColumnId]?.appointments ?? []).filter((a) => a.id !== appointment.id);
@@ -612,10 +401,9 @@ export function isDayTimeSlotForbiddenForPreview(ctx: DayTimeSlotDropContext): b
   return !evaluateDayTimeSlotDrop(ctx).ok;
 }
 
-/** Staff column: also disable when drop would be a silent no-op (same staff, group restricted). */
+/** Staff column: also disable when drop would be a silent no-op (same staff). */
 export function isDayStaffColumnDropDisabled(ctx: DayStaffColumnDropContext): boolean {
   if (ctx.staffId === 0) return true;
-  if (ctx.isGroupDragRestricted) return true;
   if (ctx.appointment.staffUserIds.length > 0 && ctx.appointment.staffUserIds[0] === ctx.staffId) {
     return true;
   }

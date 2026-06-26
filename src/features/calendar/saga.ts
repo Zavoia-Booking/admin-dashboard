@@ -14,10 +14,8 @@ import {
     setViewModeAction,
     setSidebarMiniCalendarMonthAction,
     adminCreateAppointmentGroup,
-    rescheduleAppointmentGroup,
     updateAppointmentStatus,
     updateAppointment,
-    updateGroupItemsStaff,
     setUpdateConflictOffer,
     cancelAppointment,
     createCalendarBlock,
@@ -31,7 +29,6 @@ import {
     getDayDataRequest,
     getWeekDataRequest,
     adminCreateAppointmentGroupRequest,
-    rescheduleGroupRequest,
     updateAppointmentRequest,
     cancelAppointmentRequest,
     createCalendarBlockRequest,
@@ -376,40 +373,6 @@ function* handleAdminCreateAppointmentGroup(action: ActionType<typeof adminCreat
     }
 }
 
-function* handleRescheduleAppointmentGroup(action: ActionType<typeof rescheduleAppointmentGroup.request>): Generator<any, void, any> {
-    const { bookingGroupId, payload } = action.payload;
-    try {
-        const result: any = yield call(rescheduleGroupRequest, bookingGroupId, payload);
-        yield put(rescheduleAppointmentGroup.success(result));
-        dropSuccessHaptic();
-        yield call(refetchCalendarForCurrentView);
-        toast.success(i18n.t("calendar:page.toasts.bookingGroupRescheduled"));
-    } catch (error: any) {
-        yield put(rescheduleAppointmentGroup.failure(error));
-        const status = error?.response?.status;
-        if (status === 409) {
-            const raw = error?.response?.data?.message;
-            const firstRaw = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? '') : (raw ?? '');
-            const message = translateMessageCode(firstRaw) || i18n.t("calendar:page.toasts.timeSlotNotAvailable");
-            const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
-            yield put(setUpdateConflictOffer({
-                appointmentId: 0,
-                data: { scheduledAt: payload.scheduledAt, allowOutOfHours: payload.allowOutOfHours },
-                message,
-                conflictType,
-                bookingGroupId,
-            }));
-            if (conflictType === 'staff_appointment') {
-                toast.error(i18n.t("calendar:page.toasts.staffConflict"));
-            } else {
-                toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
-            }
-        } else {
-            toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.rescheduleGroupFailed"));
-        }
-    }
-}
-
 function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointmentStatus.request>): Generator<any, void, any> {
     const { appointmentId, status } = action.payload;
 
@@ -430,7 +393,7 @@ function* handleUpdateAppointmentStatus(action: ActionType<typeof updateAppointm
 }
 
 function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.request>): Generator<any, void, any> {
-    const { appointmentId, data, chainReschedule } = action.payload;
+    const { appointmentId, data } = action.payload;
 
     try {
         const result: any = yield call(updateAppointmentRequest, appointmentId, data);
@@ -438,12 +401,6 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
         dropSuccessHaptic();
         yield call(refetchCalendarForCurrentView);
         toast.success(i18n.t("calendar:page.toasts.appointmentUpdated"));
-        if (chainReschedule) {
-            yield put(rescheduleAppointmentGroup.request({
-                bookingGroupId: chainReschedule.bookingGroupId,
-                payload: chainReschedule.payload,
-            }));
-        }
     } catch (error: any) {
         yield put(updateAppointment.failure(error));
         const status = error?.response?.status;
@@ -452,98 +409,9 @@ function* handleUpdateAppointment(action: ActionType<typeof updateAppointment.re
             const firstRaw = Array.isArray(raw) ? (raw[0] ?? raw?.join?.(' ') ?? '') : (raw ?? '');
             const message = translateMessageCode(firstRaw) || i18n.t("calendar:page.toasts.timeSlotNotAvailable");
             const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
-            yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType, bookingGroupId: action.payload.bookingGroupId }));
+            yield put(setUpdateConflictOffer({ appointmentId, data, message, conflictType }));
             if (conflictType === 'staff_appointment') {
                 toast.error(i18n.t("calendar:page.toasts.staffConflict"));
-            } else {
-                toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
-            }
-        } else {
-            toast.error(calendarErrorMessage(error) || i18n.t("calendar:page.toasts.appointmentUpdateFailed"));
-        }
-    }
-}
-
-/** Per-segment staff PUTs (+ optional primary patch + group reschedule) in one flow; single success for add-form close counter. */
-function* handleUpdateGroupItemsStaff(action: ActionType<typeof updateGroupItemsStaff.request>): Generator<any, void, any> {
-    const { updates, primaryNonSchedulePatch, chainReschedule, bookingGroupId } = action.payload;
-
-    try {
-        if (primaryNonSchedulePatch) {
-            yield call(updateAppointmentRequest, primaryNonSchedulePatch.appointmentId, primaryNonSchedulePatch.data);
-        }
-        for (const u of updates) {
-            yield call(updateAppointmentRequest, u.appointmentId, { staffUserIds: u.staffUserIds });
-        }
-        if (chainReschedule) {
-            try {
-                yield call(rescheduleGroupRequest, chainReschedule.bookingGroupId, chainReschedule.payload);
-            } catch (rescheduleErr: any) {
-                const status = rescheduleErr?.response?.status;
-                if (status === 409) {
-                    yield put(updateGroupItemsStaff.failure(rescheduleErr));
-                    const raw = rescheduleErr?.response?.data?.message;
-                    const message = Array.isArray(raw)
-                        ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable"))
-                        : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
-                    const conflictType = rescheduleErr?.response?.data?.details?.conflictType as
-                        | 'staff_appointment'
-                        | 'block'
-                        | undefined;
-                    const fallbackAppointmentId =
-                        primaryNonSchedulePatch?.appointmentId ?? updates[0]?.appointmentId ?? 0;
-                    yield put(
-                        setUpdateConflictOffer({
-                            appointmentId: fallbackAppointmentId,
-                            data: {
-                                scheduledAt: chainReschedule.payload.scheduledAt,
-                                allowOutOfHours: chainReschedule.payload.allowOutOfHours,
-                                overrideConflicts: chainReschedule.payload.overrideConflicts,
-                            },
-                            message,
-                            conflictType,
-                            bookingGroupId: chainReschedule.bookingGroupId,
-                        }),
-                    );
-                    if (conflictType === 'staff_appointment') {
-                        toast.error(
-                            'This team member already has an appointment at this time. Choose another time or team member.',
-                        );
-                    } else {
-                        toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
-                    }
-                    return;
-                }
-                throw rescheduleErr;
-            }
-        }
-        yield put(updateGroupItemsStaff.success({}));
-        yield call(refetchCalendarForCurrentView);
-        toast.success(i18n.t("calendar:page.toasts.appointmentUpdated"));
-    } catch (error: any) {
-        yield put(updateGroupItemsStaff.failure(error));
-        const status = error?.response?.status;
-        if (status === 409) {
-            const raw = error?.response?.data?.message;
-            const message = Array.isArray(raw)
-                ? (raw[0] ?? raw?.join?.(' ') ?? i18n.t("calendar:page.toasts.timeSlotNotAvailable"))
-                : (raw || i18n.t("calendar:page.toasts.timeSlotNotAvailable"));
-            const conflictType = error?.response?.data?.details?.conflictType as 'staff_appointment' | 'block' | undefined;
-            const appointmentIdForOffer =
-                primaryNonSchedulePatch?.appointmentId ?? updates[0]?.appointmentId ?? 0;
-            yield put(
-                setUpdateConflictOffer({
-                    appointmentId: appointmentIdForOffer,
-                    data: error?.response?.data ?? {},
-                    message,
-                    conflictType,
-                    bookingGroupId,
-                }),
-            );
-            if (conflictType === 'staff_appointment') {
-                toast.error(
-                    'This team member already has an appointment at this time. Choose another time or team member.',
-                );
             } else {
                 toast.info(i18n.t("calendar:page.toasts.slotUnavailable"), { description: i18n.t("calendar:page.toasts.slotUnavailableDesc") });
             }
@@ -645,10 +513,8 @@ export function* calendarSaga(): Generator<any, void, any> {
 
         // Admin appointment CRUD
         takeLatest(adminCreateAppointmentGroup.request, handleAdminCreateAppointmentGroup),
-        takeLatest(rescheduleAppointmentGroup.request, handleRescheduleAppointmentGroup),
         takeLatest(updateAppointmentStatus.request, handleUpdateAppointmentStatus),
         takeLatest(updateAppointment.request, handleUpdateAppointment),
-        takeLatest(updateGroupItemsStaff.request, handleUpdateGroupItemsStaff),
         takeLatest(cancelAppointment.request, handleCancelAppointment),
 
         // Calendar block CRUD

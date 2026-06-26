@@ -112,8 +112,7 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
         scheduledAt: new Date(appt.scheduledAt), endsAt: new Date(appt.endsAt),
         status: appt.status, notes: '', price: 0, cancellationReason: '',
         createdAt: new Date(), updatedAt: new Date(),
-        bookedItemName: appt.bookedItemName, bookingGroupId: appt.bookingGroupId,
-        bookingGroupOrder: appt.bookingGroupOrder, bookingSource: appt.bookingSource,
+        bookedItemName: appt.bookedItemName, bookingSource: appt.bookingSource,
         overrideReason: appt.overrideReason,
       };
       dispatch(toggleEditFormAction({ open: true, item: placeholder }));
@@ -187,7 +186,6 @@ export const AppointmentGroupDialog: FC<AppointmentGroupDialogProps> = ({
               key={appt.id}
               appointment={appt}
               locationStaff={locationStaff}
-              groupSize={appt.groupSize}
               timezone={timezone}
               onClick={() => handleAppointmentClick(appt)}
             />

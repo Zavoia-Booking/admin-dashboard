@@ -20,7 +20,6 @@ import {
   getScrollToNow,
 } from "../../selectors.ts";
 import {
-  rescheduleAppointmentGroup,
   updateAppointment,
   setCalendarPendingDrop,
   toggleAddForm,
@@ -42,8 +41,6 @@ import {
 import { getMinutesInTimezone, formatDateInTimezone, buildZonedDateFromDateKey } from "../../timezone.ts";
 import { isSlimAppointmentSchedulingLocked } from "../../calendarScheduling.ts";
 import {
-  countSegmentsSameBookingGroup,
-  isMultiSegmentGroupDrag,
   evaluateWeekTimeSlotDrop,
   isWeekTimeSlotForbiddenForPreview,
 } from "../../dndDropEligibility.ts";
@@ -54,7 +51,7 @@ import { AppointmentBlock } from "../AppointmentBlock.tsx";
 import { WeekDayStrip } from "../WeekDayStrip.tsx";
 import { DndContext, DragOverlay, MeasuringStrategy, pointerWithin } from "@dnd-kit/core";
 import type { CollisionDetection, DragEndEvent } from "@dnd-kit/core";
-import { restrictToVerticalAxis, snapCenterToCursor } from "@dnd-kit/modifiers";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import type { AppointmentDragData, TimeSlotDropData } from "../CalendarDnD.tsx";
 import { DROP_ANIMATION } from "../calendarDndAnimations.ts";
 import { toast } from "sonner";
@@ -217,15 +214,6 @@ export const WeekGrid: FC = () => {
     });
   }, [weekDays, weekData, staffFilter, optimisticBlocks, calendarTimezone]);
 
-  const columnDataByDateKey = useMemo(() => {
-    const map: Record<string, typeof columnData[number]> = {};
-    weekDays.forEach((day, i) => {
-      const dateKey = formatDateInTimezone(day, calendarTimezone);
-      map[dateKey] = columnData[i];
-    });
-    return map;
-  }, [weekDays, columnData, calendarTimezone]);
-
   // Convert to display blocks then to SlimAppointment for rendering
   const columnDisplayData = useMemo(() => {
     return columnData.map((col) => ({
@@ -242,7 +230,6 @@ export const WeekGrid: FC = () => {
         bookingSource: block.bookingSource,
         isUnassigned: block.isUnassigned,
         overrideReason: block.overrideReason,
-        bookingGroupId: block.bookingGroupId ?? undefined,
         notes: block.notes ?? undefined,
       })),
     }));
@@ -254,39 +241,6 @@ export const WeekGrid: FC = () => {
     const pd = pendingDrop;
     const appointment = pd.appointment;
     const appointmentId = appointment.id;
-    const allDisplayAppointments = columnDisplayData.flatMap((col) => col.appointments);
-    // Group drop
-    if (pd.isGroupDrop && pd.segmentsPreview?.length) {
-      const segmentsPreview = pd.segmentsPreview ?? [];
-      const segmentIds = new Set(segmentsPreview.map((s) => s.id));
-      return columnDisplayData.map((col, i) => {
-        const dateKey = formatDateInTimezone(weekDays[i], calendarTimezone);
-        const withoutSegments = col.appointments.filter((a) => !segmentIds.has(a.id));
-        if (dateKey !== pd.dateKey) {
-          return { ...col, appointments: withoutSegments };
-        }
-        const previewAppointments: SlimAppointment[] = segmentsPreview.map((seg) => {
-          const full = allDisplayAppointments.find((a) => a.id === seg.id);
-          return full
-            ? { ...full, scheduledAt: seg.startIso, endsAt: seg.endIso }
-            : {
-              id: seg.id,
-              scheduledAt: seg.startIso,
-              endsAt: seg.endIso,
-              status: appointment.status,
-              bookedItemName: appointment.bookedItemName,
-              duration: Math.round((new Date(seg.endIso).getTime() - new Date(seg.startIso).getTime()) / 60000),
-              staffUserIds: seg.staffUserIds,
-              customerName: appointment.customerName,
-              bookingSource: appointment.bookingSource,
-              isUnassigned: false,
-              bookingGroupId: pd.bookingGroupId ?? undefined,
-              notes: appointment.notes ?? undefined,
-            };
-        });
-        return { ...col, appointments: [...withoutSegments, ...previewAppointments] };
-      });
-    }
     const sourceIndex = columnDisplayData.findIndex((col) => col.appointments.some((a) => a.id === appointmentId));
     const minute = pd.minute ?? 0;
     const previewStartsAt = buildZonedDateFromDateKey(
@@ -342,13 +296,6 @@ export const WeekGrid: FC = () => {
     return null;
   }, [activeId, columnDataWithPreview]);
 
-  const activeDragIsGroupRestricted = useMemo(() => {
-    if (!activeAppointment) return false;
-    const flat = columnData.flatMap((c) => c.appointments);
-    const n = countSegmentsSameBookingGroup(flat, activeAppointment.bookingGroupId);
-    return isMultiSegmentGroupDrag(activeAppointment, n);
-  }, [activeAppointment, columnData]);
-
   const prevWeekDurationRef = useRef<ReadonlySet<string>>(EMPTY_FORBIDDEN_SLOT_SET);
   const weekDurationHighlightSlotIds = useMemo(() => {
     if (!overId || !activeAppointment || weekSlotIntervalMinutes <= 0) return EMPTY_FORBIDDEN_SLOT_SET;
@@ -357,39 +304,6 @@ export const WeekGrid: FC = () => {
     if (!match) return EMPTY_FORBIDDEN_SLOT_SET;
     const [, colId, dk, hourStr, minStr] = match;
     const dropSlotMin = parseInt(hourStr, 10) * 60 + parseInt(minStr, 10);
-
-    const groupId = activeAppointment.bookingGroupId?.trim();
-    const allAppts = columnData.flatMap((c) => c.appointments);
-    const groupSegments = groupId
-      ? allAppts
-          .filter((a) => (a.bookingGroupId?.trim() ?? "") === groupId)
-          .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0))
-      : [];
-    const isGroup = groupSegments.length > 1;
-
-    if (isGroup) {
-      // Highlight each segment's individual time range (not the full group span)
-      const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-      const draggedStartMs = new Date(activeAppointment.scheduledAt).getTime();
-      const draggedOffsetMin = (draggedStartMs - groupFirstStartMs) / 60000;
-      const newGroupStartMin = dropSlotMin - draggedOffsetMin;
-
-      const ids = new Set<string>();
-      for (const seg of groupSegments) {
-        const segStartMs = new Date(seg.scheduledAt).getTime();
-        const segEndMs = new Date(seg.endsAt).getTime();
-        const segOffsetMin = (segStartMs - groupFirstStartMs) / 60000;
-        const segDurationMin = (segEndMs - segStartMs) / 60000;
-        const segPreviewStartMin = Math.round(newGroupStartMin + segOffsetMin);
-        const segSlotsNeeded = Math.ceil(segDurationMin / weekSlotIntervalMinutes);
-        for (let i = 0; i < segSlotsNeeded; i++) {
-          const m = segPreviewStartMin + i * weekSlotIntervalMinutes;
-          if (m < 0 || m >= 24 * 60) continue;
-          ids.add(`slot-${colId}-${dk}-${Math.floor(m / 60)}-${m % 60}`);
-        }
-      }
-      return ids;
-    }
 
     const slotsNeeded = Math.ceil(activeAppointment.duration / weekSlotIntervalMinutes);
     const ids = new Set<string>();
@@ -402,7 +316,7 @@ export const WeekGrid: FC = () => {
     if (ids.size === prev.size && [...ids].every(id => prev.has(id))) return prev;
     prevWeekDurationRef.current = ids;
     return ids;
-  }, [overId, activeAppointment, weekSlotIntervalMinutes, columnData]);
+  }, [overId, activeAppointment, weekSlotIntervalMinutes]);
 
   const weekSchedulingLockedIds = useMemo(() => {
     const flat = columnData.flatMap((c) => c.appointments);
@@ -456,7 +370,6 @@ export const WeekGrid: FC = () => {
             nowMs,
             calendarTimezone,
             columnData,
-            columnDataByDateKey,
             columnDataWithPreview,
             bufferTimeMinutes,
           })
@@ -478,7 +391,6 @@ export const WeekGrid: FC = () => {
     weekGridSlotStarts.length,
     calendarTimezone,
     columnData,
-    columnDataByDateKey,
     columnDataWithPreview,
     bufferTimeMinutes,
     dndSessionRef,
@@ -508,7 +420,6 @@ export const WeekGrid: FC = () => {
       nowMs,
       calendarTimezone,
       columnData,
-      columnDataByDateKey,
       columnDataWithPreview,
       bufferTimeMinutes,
     });
@@ -520,19 +431,6 @@ export const WeekGrid: FC = () => {
       return;
     }
     if (slotResult.action === "noop") return;
-    if (slotResult.action === "reschedule_single") {
-      dispatch(
-        setCalendarPendingDrop({
-          type: "reschedule",
-          appointment,
-          dateKey: slotResult.dateKey,
-          hour: slotResult.hour,
-          minute: slotResult.minute,
-          columnId: slotResult.columnId,
-        }),
-      );
-      return;
-    }
     dispatch(
       setCalendarPendingDrop({
         type: "reschedule",
@@ -541,52 +439,15 @@ export const WeekGrid: FC = () => {
         hour: slotResult.hour,
         minute: slotResult.minute,
         columnId: slotResult.columnId,
-        isGroupDrop: true,
-        bookingGroupId: slotResult.bookingGroupId,
-        newGroupStartIso: slotResult.newGroupStartIso,
-        segmentsPreview: slotResult.segmentsPreview,
       }),
     );
-  }, [dispatch, columnDataWithPreview, columnData, calendarTimezone, bufferTimeMinutes, columnDataByDateKey, dndSessionRef, setActiveId, setOverId]);
+  }, [dispatch, columnDataWithPreview, columnData, calendarTimezone, bufferTimeMinutes, dndSessionRef, setActiveId, setOverId]);
 
   const handleConfirmDrop = useCallback(() => {
     if (!pendingDrop || pendingDrop.type !== "reschedule") return;
     const toConfirm = pendingDrop;
     const { appointment, dateKey: dKey, hour } = toConfirm;
     const minute = toConfirm.minute ?? 0;
-    // Week view group drop
-    if (toConfirm.isGroupDrop && toConfirm.newGroupStartIso && toConfirm.bookingGroupId) {
-      const newScheduledAt = new Date(toConfirm.newGroupStartIso);
-      const segments = toConfirm.segmentsPreview ?? [];
-      const lastPreview = segments[segments.length - 1];
-      const groupEndMs = lastPreview
-        ? new Date(lastPreview.endIso).getTime()
-        : newScheduledAt.getTime() + appointment.duration * 60 * 1000;
-      const totalGroupDurationMinutes = Math.round((groupEndMs - newScheduledAt.getTime()) / 60000);
-      const newEndsAt = new Date(groupEndMs);
-      const dayIndex = weekDays.findIndex((d) => formatDateInTimezone(d, calendarTimezone) === dKey);
-      const targetDayWorkingHours = dayIndex >= 0 ? getWorkingHoursForDate(weekDays[dayIndex], workingHours, open247) : null;
-      const isOutOfHours = !open247 && targetDayWorkingHours && isTimeRangeOutsideWorkingHours(newScheduledAt, totalGroupDurationMinutes, targetDayWorkingHours, open247, calendarTimezone);
-      if (isOutOfHours) {
-        setPendingReschedulePayload({
-          appointmentId: appointment.id,
-          newScheduledAt,
-          newEndsAt,
-          staffUserIds: undefined,
-          bookingGroupId: toConfirm.bookingGroupId,
-        });
-        setOverrideDialogOpen(true);
-        return;
-      }
-      setDropConfirmInProgress(true);
-      dispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: toConfirm.bookingGroupId,
-          payload: { scheduledAt: toConfirm.newGroupStartIso },
-        }),
-      );
-      return;
-    }
     const dayIndex = weekDays.findIndex((d) => formatDateInTimezone(d, calendarTimezone) === dKey);
     const targetDayWorkingHours = dayIndex >= 0 ? getWorkingHoursForDate(weekDays[dayIndex], workingHours, open247) : null;
     const newScheduledAt = buildZonedDateFromDateKey(
@@ -602,29 +463,18 @@ export const WeekGrid: FC = () => {
         appointmentId: appointment.id,
         newScheduledAt,
         newEndsAt,
-        bookingGroupId: appointment.bookingGroupId ?? undefined,
       });
       setOverrideDialogOpen(true);
       return;
     }
     payload.scheduledAt = newScheduledAt.toISOString();
     setDropConfirmInProgress(true);
-    if (appointment.bookingGroupId) {
-      dispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: appointment.bookingGroupId,
-          payload: { scheduledAt: payload.scheduledAt! },
-        }),
-      );
-    } else {
-      dispatch(
-        updateAppointment.request({
-          appointmentId: appointment.id,
-          data: payload,
-          bookingGroupId: undefined,
-        }),
-      );
-    }
+    dispatch(
+      updateAppointment.request({
+        appointmentId: appointment.id,
+        data: payload,
+      }),
+    );
   }, [pendingDrop, dispatch, open247, workingHours, weekDays, calendarTimezone, setDropConfirmInProgress, setPendingReschedulePayload, setOverrideDialogOpen]);
 
   // Loading state is handled as an overlay below to preserve scroll position.
@@ -634,18 +484,6 @@ export const WeekGrid: FC = () => {
     if (!pendingDrop || pendingDrop.type !== "reschedule") return null;
     const min = pendingDrop.minute ?? 0;
     const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
-    const isGroup =
-      !!pendingDrop.appointment.bookingGroupId?.trim() &&
-      isMultiSegmentGroupDrag(
-        pendingDrop.appointment,
-        countSegmentsSameBookingGroup(
-          columnData.flatMap((c) => c.appointments),
-          pendingDrop.appointment.bookingGroupId,
-        ),
-      );
-    if (isGroup) {
-      return <>Move this booking (all items) to {pendingDrop.dateKey} at {timeStr}. Staff assignment will not change.</>;
-    }
     return <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>;
   })();
 
@@ -734,7 +572,6 @@ export const WeekGrid: FC = () => {
                     forbiddenSlotIds={activeId ? weekForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
                     dndActive={!!activeId}
                     durationHighlightSlotIds={weekDurationHighlightSlotIds}
-                    draggingGroupId={activeDragIsGroupRestricted ? activeAppointment?.bookingGroupId?.trim() : null}
                     onSlotClick={handleWeekSlotClick}
                     day={day}
                     calendarViewMode={AppointmentViewMode.WEEK}
@@ -810,11 +647,7 @@ export const WeekGrid: FC = () => {
           {createPortal(
             <DragOverlay
               dropAnimation={DROP_ANIMATION}
-              modifiers={
-                activeDragIsGroupRestricted
-                  ? [snapCenterToCursor, restrictToVerticalAxis]
-                  : [snapCenterToCursor]
-              }
+              modifiers={[snapCenterToCursor]}
             >
               {activeAppointment ? (() => {
                 const pos = getTimePositionForGrid(

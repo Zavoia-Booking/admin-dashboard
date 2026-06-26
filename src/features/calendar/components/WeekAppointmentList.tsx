@@ -37,7 +37,7 @@ import { calendarPreferences } from "../calendarPreferences.ts";
 // ─────────────────────────────────────────────────────────────
 
 type ListItem =
-  | { type: 'appointment'; data: SlimAppointment; groupSize?: number }
+  | { type: 'appointment'; data: SlimAppointment }
   | { type: 'block'; data: CalendarBlockDto };
 
 // ─────────────────────────────────────────────────────────────
@@ -109,8 +109,7 @@ export const WeekAppointmentList: FC = () => {
         scheduledAt: new Date(appt.scheduledAt), endsAt: new Date(appt.endsAt),
         status: appt.status, notes: '', price: 0, cancellationReason: '',
         createdAt: new Date(), updatedAt: new Date(),
-        bookedItemName: appt.bookedItemName, bookingGroupId: appt.bookingGroupId,
-        bookingGroupOrder: appt.bookingGroupOrder, bookingSource: appt.bookingSource,
+        bookedItemName: appt.bookedItemName, bookingSource: appt.bookingSource,
         overrideReason: appt.overrideReason,
       };
       dispatch(toggleEditFormAction({ open: true, item: placeholder }));
@@ -179,13 +178,6 @@ export const WeekAppointmentList: FC = () => {
           ...optimisticBlocks.filter((b) => blockOverlapsDate(b, dateKey, timezone)),
         ];
 
-        const groupSizeMap = new Map<string, number>();
-        for (const a of rawAppointments) {
-          if (a.bookingGroupId) {
-            groupSizeMap.set(a.bookingGroupId, (groupSizeMap.get(a.bookingGroupId) ?? 0) + 1);
-          }
-        }
-
         // Filter by staff
         const visibleAppointments = staffFilter.length > 0
           ? rawAppointments.filter((a) => {
@@ -198,9 +190,6 @@ export const WeekAppointmentList: FC = () => {
         const apptItems: ListItem[] = visibleAppointments.map((a) => ({
           type: 'appointment',
           data: a,
-          groupSize: a.bookingGroupId
-            ? (a.groupSize ?? groupSizeMap.get(a.bookingGroupId))
-            : undefined,
         }));
         const blockItems: ListItem[] = dayBlocks.map((b) => ({ type: 'block', data: b }));
         const sortedItems: ListItem[] = [...apptItems, ...blockItems].sort((x, y) => {
@@ -255,7 +244,6 @@ export const WeekAppointmentList: FC = () => {
                       key={`appt-${item.data.id}`}
                       appointment={item.data}
                       locationStaff={locationStaff}
-                      groupSize={item.groupSize}
                       colorMap={weekAppointmentColorMap}
                       onClick={() => handleAppointmentClick(item.data)}
                     />

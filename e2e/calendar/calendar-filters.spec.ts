@@ -121,12 +121,12 @@ test.describe('Calendar — filters', () => {
       })
       .toEqual([DEFAULTS.STAFF[0].id])
 
-    // Re-open the popover and click "Clear all" to drop the filter.
+    // Re-open the popover and click "Clear filters" to drop the filter.
     await page.getByRole('button', { name: 'Open calendar filters' }).first().click()
     staffGroup = page.getByRole('group', { name: 'Filter by staff member' })
     await expect(staffGroup).toBeVisible({ timeout: 10_000 })
-    await page.getByRole('button', { name: 'Clear all' }).click()
-    // Clear all also dispatches immediately (handleClearAll calls dispatch directly).
+    await page.getByRole('button', { name: 'Clear filters', exact: true }).click()
+    // Clear filters also dispatches immediately (handleClearAll calls dispatch directly).
 
     await expect
       .poll(

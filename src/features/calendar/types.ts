@@ -10,14 +10,6 @@ import type {
 } from "../../shared/types/calendar.ts";
 import type { LocationService, LocationTeamMember } from "../assignments/types.ts";
 
-/** One segment in a group drop preview (ghost position per segment). */
-export type PendingDropSegmentPreview = {
-    id: number;
-    startIso: string;
-    endIso: string;
-    staffUserIds: number[];
-};
-
 /** Pending drag-drop: show appointment at drop position until user confirms or update succeeds. */
 export type PendingDrop =
     | {
@@ -27,11 +19,6 @@ export type PendingDrop =
         hour: number;
         minute?: number;
         columnId: number;
-        /** When true: moving a group; scheduledAt for API = newGroupStartIso (first segment start). */
-        isGroupDrop?: boolean;
-        bookingGroupId?: string;
-        newGroupStartIso?: string;
-        segmentsPreview?: PendingDropSegmentPreview[];
     }
     | { type: "reassign"; appointment: SlimAppointment; staffId: number; staffLabel: string }
     | null;
@@ -57,20 +44,11 @@ export enum AppointmentViewType {
 
 export type AddFormPrefill = {
     appointmentId?: number;
-    bookingGroupId?: string;
     date?: Date;
     time?: string; // "HH:mm"
     staffUserId?: number;
     serviceId?: number;
     bundleId?: number;
-    /** Full group items when rescheduling a multi-segment booking group; order preserved. */
-    groupItems?: Array<{
-        appointmentId?: number;
-        serviceId?: number;
-        bundleId?: number;
-        staffUserId?: number;
-        itemName?: string;
-    }>;
     customerId?: number;
     customerDisplay?: {
         firstName: string;
@@ -126,7 +104,6 @@ export type CalendarViewState = {
     editForm: {
         open: boolean;
         item: Appointment | null;
-        groupAppointments?: Appointment[] | null;
     };
     blockFormOpen: boolean;
     /** When set, block drawer opens in edit mode for this block (create flow clears this). */
@@ -155,7 +132,7 @@ export type CalendarViewState = {
     sidebarMiniCalendarMonthStart: Date | null;
 
     /** When an update returns 409 Conflict, offer the user to retry with override (overrideConflicts + reason). Only for non–staff conflicts; staff_appointment must not show override. */
-    updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block'; bookingGroupId?: string } | null;
+    updateConflictOffer: { appointmentId: number; data: Record<string, unknown>; message: string; conflictType?: 'staff_appointment' | 'block' } | null;
 
     /** Pending drag-drop: card stays at drop position until confirm/cancel or update success. */
     pendingDrop: PendingDrop;

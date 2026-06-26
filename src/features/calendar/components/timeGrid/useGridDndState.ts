@@ -10,7 +10,6 @@ import {
 } from "@dnd-kit/core";
 import {
   updateAppointment,
-  rescheduleAppointmentGroup,
   setUpdateConflictOffer,
   setCalendarPendingDrop,
 } from "../../actions.ts";
@@ -129,51 +128,21 @@ export function useGridDndState() {
   const handleConfirmOverride = useCallback(() => {
     if (!pendingReschedulePayload) return;
     const reason = overrideReasonText.trim() || undefined;
-    const overrideGroupPayload = {
+    const data: Record<string, unknown> = {
       scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
-      allowOutOfHours: true as const,
-      overrideConflicts: true as const,
+      allowOutOfHours: true,
+      overrideConflicts: true,
       overrideReason: reason,
     };
-    if (pendingReschedulePayload.bookingGroupId) {
-      const sid = pendingReschedulePayload.staffUserIds;
-      if (sid != null && sid.length > 0) {
-        dispatch(
-          updateAppointment.request({
-            appointmentId: pendingReschedulePayload.appointmentId,
-            data: { staffUserIds: sid },
-            bookingGroupId: pendingReschedulePayload.bookingGroupId,
-            chainReschedule: {
-              bookingGroupId: pendingReschedulePayload.bookingGroupId,
-              payload: overrideGroupPayload,
-            },
-          }),
-        );
-      } else {
-        dispatch(
-          rescheduleAppointmentGroup.request({
-            bookingGroupId: pendingReschedulePayload.bookingGroupId,
-            payload: overrideGroupPayload,
-          }),
-        );
-      }
-    } else {
-      const data: Record<string, unknown> = {
-        scheduledAt: pendingReschedulePayload.newScheduledAt.toISOString(),
-        allowOutOfHours: true,
-        overrideConflicts: true,
-        overrideReason: reason,
-      };
-      if (pendingReschedulePayload.staffUserIds !== undefined) {
-        data.staffUserIds = pendingReschedulePayload.staffUserIds;
-      }
-      dispatch(
-        updateAppointment.request({
-          appointmentId: pendingReschedulePayload.appointmentId,
-          data,
-        }),
-      );
+    if (pendingReschedulePayload.staffUserIds !== undefined) {
+      data.staffUserIds = pendingReschedulePayload.staffUserIds;
     }
+    dispatch(
+      updateAppointment.request({
+        appointmentId: pendingReschedulePayload.appointmentId,
+        data,
+      }),
+    );
     dispatch(setCalendarPendingDrop(null));
     setPendingReschedulePayload(null);
     setOverrideDialogOpen(false);
@@ -195,26 +164,12 @@ export function useGridDndState() {
       overrideConflicts: true,
       overrideReason: reason,
     };
-    if (updateConflictOffer.bookingGroupId && updateConflictOffer.data?.scheduledAt) {
-      dispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: updateConflictOffer.bookingGroupId,
-          payload: {
-            scheduledAt: String(updateConflictOffer.data.scheduledAt),
-            overrideConflicts: true,
-            allowOutOfHours: !!updateConflictOffer.data.allowOutOfHours,
-            overrideReason: reason,
-          },
-        }),
-      );
-    } else {
-      dispatch(
-        updateAppointment.request({
-          appointmentId: updateConflictOffer.appointmentId,
-          data: dataWithOverride,
-        }),
-      );
-    }
+    dispatch(
+      updateAppointment.request({
+        appointmentId: updateConflictOffer.appointmentId,
+        data: dataWithOverride,
+      }),
+    );
     dispatch(setCalendarPendingDrop(null));
     dispatch(setUpdateConflictOffer(null));
     setOverrideReasonText("");

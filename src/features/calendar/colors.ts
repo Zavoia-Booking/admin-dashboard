@@ -179,18 +179,6 @@ export function getStatusFilterIndicatorDotClass(status: string): string {
 }
 
 /**
- * Returns a deterministic, saturated HSL color for a booking group dot indicator.
- * Reuses the same hue as getAvatarBgColor (so same groupId → same family of color)
- * but at higher saturation + medium lightness so it's clearly visible as a small dot.
- */
-export function getGroupDotColor(bookingGroupId: string): string {
-    const hsl = getAvatarBgColor(bookingGroupId);
-    const match = hsl.match(/hsl\((\d+)/);
-    if (!match) return 'hsl(220 65% 55%)';
-    return `hsl(${match[1]} 65% 52%)`;
-}
-
-/**
  * Avatar background color for a staff member.
  * When color coding is "staff" and a colorMap is provided, returns the same color
  * used on appointment cards so avatars and cards visually match.

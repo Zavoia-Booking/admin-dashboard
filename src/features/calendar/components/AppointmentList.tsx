@@ -42,8 +42,7 @@ export const AppointmentList: FC = () => {
       scheduledAt: new Date(appt.scheduledAt), endsAt: new Date(appt.endsAt),
       status: appt.status, notes: '', price: 0, cancellationReason: '',
       createdAt: new Date(), updatedAt: new Date(),
-      bookedItemName: appt.bookedItemName, bookingGroupId: appt.bookingGroupId,
-      bookingGroupOrder: appt.bookingGroupOrder, bookingSource: appt.bookingSource,
+      bookedItemName: appt.bookedItemName, bookingSource: appt.bookingSource,
       overrideReason: appt.overrideReason,
     };
     dispatch(toggleEditFormAction({ open: true, item: placeholder }));
@@ -103,7 +102,6 @@ export const AppointmentList: FC = () => {
             key={`appt-${item.data.id}`}
             appointment={item.data}
             locationStaff={locationStaff}
-            groupSize={item.groupSize}
             colorMap={appointmentColorMap}
             onClick={() => handleAppointmentClick(item.data)}
           />

@@ -50,8 +50,6 @@ interface MobileDayColumnProps {
   forbiddenSlotIds?: ReadonlySet<string>;
   durationHighlightSlotIds?: ReadonlySet<string>;
   schedulingLockedAppointmentIds?: ReadonlySet<number>;
-  /** bookingGroupId of the group currently being dragged — sibling segments get ghost treatment. */
-  draggingGroupId?: string | null;
   /** Working hours + today context for slot styling (past / outside-hours tint). */
   openHour?: number;
   closeHour?: number;
@@ -88,7 +86,6 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
   forbiddenSlotIds,
   durationHighlightSlotIds,
   schedulingLockedAppointmentIds,
-  draggingGroupId,
   openHour,
   closeHour,
   open247 = false,
@@ -184,10 +181,6 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
               timezone,
             );
             const isLocked = schedulingLockedAppointmentIds?.has(appt.id) ?? false;
-            const isGroupDragging =
-              !!draggingGroupId &&
-              !!appt.bookingGroupId &&
-              appt.bookingGroupId.trim() === draggingGroupId;
             return (
               <MobileTimelineApptCard
                 key={`${staff?.id ?? 0}-${appt.id}`}
@@ -200,7 +193,6 @@ export const MobileDayColumn: FC<MobileDayColumnProps> = memo(({
                 columnId={enableDnd ? columnId : undefined}
                 dateKey={enableDnd ? dateKey : undefined}
                 disableDrag={isLocked}
-                isGroupDragging={isGroupDragging}
               />
             );
           }

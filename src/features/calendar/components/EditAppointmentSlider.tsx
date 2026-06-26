@@ -21,8 +21,6 @@ import {
   ExternalLink,
   ArrowUpRight,
   CalendarCheck,
-  ChevronRight,
-  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../../shared/components/ui/button";
@@ -75,11 +73,7 @@ import {
   getCalendarTimezone,
   getAddFormSelector,
 } from "../selectors";
-import {
-  getAppointmentGroupRequest,
-  getAppointmentDetailRequest,
-} from "../api";
-import { getGroupDotColor } from "../colors";
+import { getAppointmentDetailRequest } from "../api";
 import {
   formatTimeKey,
   formatTimeRange,
@@ -209,8 +203,6 @@ interface EditAppointmentSliderProps {
   isOpen: boolean;
   onClose: () => void;
   appointment: Appointment | null;
-  /** When provided (e.g. from grid group fetch), use instead of fetching group in useEffect. */
-  groupAppointments?: Appointment[] | null;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -221,7 +213,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   isOpen,
   onClose,
   appointment: appointmentProp,
-  groupAppointments: groupAppointmentsProp,
 }) => {
   const { t } = useTranslation("calendar");
 
@@ -296,12 +287,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   // Loading state for actions
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Group appointments (when this appointment is part of a booking group)
-  const [groupAppointments, setGroupAppointments] = useState<
-    Appointment[] | null
-  >(null);
-  const [groupLoading, setGroupLoading] = useState(false);
-
   const [accServicesOpen, setAccServicesOpen] = useState(true);
   const [accHistoryOpen, setAccHistoryOpen] = useState(false);
   const [accLocationOpen, setAccLocationOpen] = useState(false);
@@ -338,27 +323,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       return;
     }
     setDetailLoading(true);
-    const bookingGroupId = appointment.bookingGroupId;
-    if (bookingGroupId) {
-      getAppointmentGroupRequest(bookingGroupId)
-        .then((list) => {
-          const arr = Array.isArray(list) ? list : [];
-          const item =
-            arr.find((a: { id: number }) => a.id === appointment.id) ?? arr[0];
-          if (item) setFullAppointment(item);
-          setGroupAppointments(arr);
-        })
-        .catch(() => {})
-        .finally(() => {
-          setDetailLoading(false);
-          setGroupLoading(false);
-        });
-    } else {
-      getAppointmentDetailRequest(appointment.id)
-        .then((full) => setFullAppointment(full))
-        .catch(() => {})
-        .finally(() => setDetailLoading(false));
-    }
+    getAppointmentDetailRequest(appointment.id)
+      .then((full) => setFullAppointment(full))
+      .catch(() => {})
+      .finally(() => setDetailLoading(false));
   }, [isOpen, appointment?.id, isPlaceholder]);
 
   // Use full data when available, fall back to placeholder
@@ -374,7 +342,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       setPendingConfirm(null);
       setExitingConfirm(false);
       setActionLoading(null);
-      setGroupAppointments(null);
       setFullAppointment(null);
       setDetailLoading(false);
       setAccServicesOpen(true);
@@ -401,40 +368,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       setAccServicesOpen(true);
     }
   }, [fullAppointment, detailLoading]);
-
-  // When parent passes preloaded group (e.g. from grid), use it and skip fetch
-  useEffect(() => {
-    if (
-      isOpen &&
-      groupAppointmentsProp != null &&
-      Array.isArray(groupAppointmentsProp) &&
-      groupAppointmentsProp.length > 0
-    ) {
-      setGroupAppointments(groupAppointmentsProp);
-      setGroupLoading(false);
-      return;
-    }
-  }, [isOpen, groupAppointmentsProp]);
-
-  // Fetch full group when opening with full data (e.g. from URL deep link) that already has appointment but needs group
-  useEffect(() => {
-    if (!isOpen || !appointment || isPlaceholder) return;
-    const bookingGroupId = (appointment as { bookingGroupId?: string | null })
-      ?.bookingGroupId;
-    if (!bookingGroupId) return;
-    if (
-      groupAppointmentsProp != null &&
-      Array.isArray(groupAppointmentsProp) &&
-      groupAppointmentsProp.length > 0
-    )
-      return;
-    if (groupAppointments != null) return;
-    setGroupLoading(true);
-    getAppointmentGroupRequest(bookingGroupId)
-      .then((list) => setGroupAppointments(Array.isArray(list) ? list : []))
-      .catch(() => setGroupAppointments([]))
-      .finally(() => setGroupLoading(false));
-  }, [isOpen, appointment?.id, isPlaceholder, groupAppointmentsProp]);
 
   // ─────────────────────────────────────────────────────────────
   // Derived data from appointment
@@ -544,15 +477,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   }, [displayAppointment, auditTimezone, t]);
 
   const bookingLastEndMs = useMemo(() => {
-    const list =
-      groupAppointments && groupAppointments.length > 0
-        ? groupAppointments
-        : displayAppointment
-          ? [displayAppointment]
-          : [];
-    if (list.length === 0) return null;
-    return Math.max(...list.map((a) => new Date(a.endsAt).getTime()));
-  }, [displayAppointment, groupAppointments]);
+    if (!displayAppointment) return null;
+    return new Date(displayAppointment.endsAt).getTime();
+  }, [displayAppointment]);
 
   const isBookingInPast =
     bookingLastEndMs != null &&
@@ -564,14 +491,9 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
   const canReschedule =
     !isTeamMember || !!bookingSettings?.allowStaffRescheduleWithoutConfirmation;
 
-  /** Items to show in Services section: all segments (group or single) with name, duration, price, type. */
+  /** Items to show in Services section: the appointment with name, duration, price, type. */
   const serviceDetailItems = useMemo(() => {
-    const list =
-      groupAppointments && groupAppointments.length > 1
-        ? groupAppointments
-        : displayAppointment
-          ? [displayAppointment]
-          : [];
+    const list = displayAppointment ? [displayAppointment] : [];
     return list.map((a) => {
       const start = new Date(a.scheduledAt).getTime();
       const end = new Date(a.endsAt).getTime();
@@ -582,14 +504,10 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
       const priceMajor = (a.price ?? 0) / 100;
       return { name, durationMinutes, priceMajor, isBundle };
     });
-  }, [displayAppointment, groupAppointments, t]);
+  }, [displayAppointment, t]);
 
   const serviceDetailTotalPrice = useMemo(
     () => serviceDetailItems.reduce((sum, i) => sum + i.priceMajor, 0),
-    [serviceDetailItems],
-  );
-  const serviceDetailTotalDuration = useMemo(
-    () => serviceDetailItems.reduce((sum, i) => sum + i.durationMinutes, 0),
     [serviceDetailItems],
   );
 
@@ -601,41 +519,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     return Math.max(0, Math.round(ms / 60000));
   }, [appointment]);
 
-  const isGroupBooking = serviceDetailItems.length > 1;
-
-  /** Wall-clock span from earliest segment start to latest segment end (group bookings only). */
-  const groupBookingWallTimeRange = useMemo(() => {
-    if (!groupAppointments || groupAppointments.length < 2) return null;
-    const starts = groupAppointments.map((a) =>
-      new Date(a.scheduledAt).getTime(),
-    );
-    const ends = groupAppointments.map((a) => new Date(a.endsAt).getTime());
-    const minStart = Math.min(...starts);
-    const maxEnd = Math.max(...ends);
-    return formatTimeRange(
-      new Date(minStart).toISOString(),
-      new Date(maxEnd).toISOString(),
-      auditTimezone,
-    );
-  }, [groupAppointments, auditTimezone]);
-
   /**
    * Inline link: AddServiceSlider-style hover + arrow; explicit regular weight (not bold) for this modal.
    */
   const sliderInlineLinkClass =
     "inline-flex min-w-0 max-w-full items-center gap-0.5 !font-normal text-foreground-2 transition-colors duration-200 hover:text-primary dark:text-foreground-2 dark:hover:text-primary";
-
-  const scrollToServicesSection = useCallback(() => {
-    setAccServicesOpen(true);
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        servicesSectionRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      });
-    });
-  }, []);
 
   // ─────────────────────────────────────────────────────────────
   // Status Actions
@@ -722,55 +610,11 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
             phone: snap.phone ?? "",
           }
         : null;
-    const bookingGroupId = displayAppointment.bookingGroupId ?? undefined;
-
-    // Build groupItems for multi-segment groups (same order as API / bookingGroupOrder)
-    let groupItems:
-      | Array<{
-          appointmentId?: number;
-          serviceId?: number;
-          bundleId?: number;
-          staffUserId?: number;
-          itemName?: string;
-        }>
-      | undefined;
-    if (groupAppointments && groupAppointments.length > 1) {
-      groupItems = groupAppointments.map((row) => {
-        const staffUserId = (() => {
-          const first = row.teamMembers?.[0];
-          if (first == null) return undefined;
-          return typeof first === "object"
-            ? (first as { id?: number }).id
-            : first;
-        })();
-        const itemName =
-          row.bookedItemName ??
-          row.bundle?.name ??
-          row.service?.name ??
-          t("page.appointments.edit.service");
-        if (row.bundle?.id != null) {
-          return {
-            appointmentId: row.id,
-            bundleId: row.bundle.id,
-            staffUserId,
-            itemName,
-          };
-        }
-        return {
-          appointmentId: row.id,
-          serviceId: row.service?.id,
-          staffUserId,
-          itemName,
-        };
-      });
-    }
-
     dispatch(
       toggleAddForm({
         open: true,
         prefill: {
           appointmentId: displayAppointment.id,
-          bookingGroupId,
           date: buildZonedDateFromDateKey(
             formatDateInTimezone(
               new Date(displayAppointment.scheduledAt),
@@ -795,7 +639,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
           customerId: displayAppointment.customer?.id,
           customerDisplay: customer,
           notes: displayAppointment.notes ?? "",
-          ...(groupItems != null ? { groupItems } : {}),
         },
       }),
     );
@@ -807,7 +650,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
     if (isMobile) {
       handleDialogClose();
     }
-  }, [displayAppointment, calendarTimezone, dispatch, groupAppointments, isMobile, handleDialogClose]);
+  }, [displayAppointment, calendarTimezone, dispatch, isMobile, handleDialogClose]);
 
   // ─────────────────────────────────────────────────────────────
   // Render
@@ -888,11 +731,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     size="sm"
                     rounded="full"
                     onClick={handleReschedule}
-                    disabled={
-                      actionLoading !== null ||
-                      (!!appointment?.bookingGroupId &&
-                        (groupLoading || groupAppointments === null))
-                    }
+                    disabled={actionLoading !== null}
                     className="group h-8 px-3 text-foreground-3 hover:text-foreground-1"
                   >
                     <Pencil
@@ -1278,43 +1117,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                         ) : null}
                       </div>
 
-                      {/* Group booking indicator — pill matches assignments "Customized for N team members" */}
-                      {isGroupBooking && (
-                        <div className="group mt-0 border-b border-border-subtle py-3">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            rounded="full"
-                            size="sm"
-                            onClick={scrollToServicesSection}
-                            className={cn(
-                              "h-auto bg-info-100 text-xs !min-h-0 h-6 py-3.5 text-primary hover:text-primary md:text-foreground-1 md:text-foreground-3 md:dark:text-foreground-2 md:hover:bg-info-100 dark:border dark:bg-surface dark:hover:bg-surface group-hover:bg-info-100 dark:group-hover:border-border-strong dark:group-hover:bg-surface dark:group-hover:text-primary group-hover:text-primary max-w-full justify-start text-left",
-                            )}
-                            aria-label={t('page.aria.scrollToGroupServices')}
-                          >
-                            <span
-                              className="h-2.5 w-2.5 shrink-0 rounded-full"
-                              style={{
-                                backgroundColor: appointment.bookingGroupId
-                                  ? getGroupDotColor(appointment.bookingGroupId)
-                                  : "var(--muted-foreground)",
-                              }}
-                              aria-hidden
-                            />
-                            <span className="min-w-0 text-xs text-foreground-1 group-hover:text-foreground-1 md:text-foreground-3 md:dark:text-foreground-2 dark:group-hover:text-foreground-1">
-                              {appointment.bookingGroupOrder != null
-                                ? t("page.appointments.edit.appointmentOf", { order: appointment.bookingGroupOrder, total: serviceDetailItems.length })
-                                : t("page.appointments.edit.multiServiceBooking", { count: serviceDetailItems.length })
-                              }
-                            </span>
-                            <ChevronRight
-                              className="h-3 w-3 shrink-0 pt-0.5"
-                              aria-hidden
-                            />
-                          </Button>
-                        </div>
-                      )}
-
                       {/* Key–value rows: label column + bold value column (screenshot-style rhythm) */}
                       <dl className="divide-y divide-border-subtle text-sm">
                         <div className="grid grid-cols-1 gap-1 py-3.5 sm:grid-cols-[minmax(7.5rem,9.5rem)_minmax(0,1fr)] sm:items-start sm:gap-x-6">
@@ -1462,52 +1264,7 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                     <CollapsibleFormSection
                       title={t("page.appointments.edit.services", { count: serviceDetailItems.length })}
                       compact
-                      description={
-                        isGroupBooking ? (
-                          isMobile ? (
-                            <>
-                              {groupBookingWallTimeRange ? (
-                                <span className="flex w-full min-w-0 items-center gap-1.5">
-                                  <span
-                                    className="h-2 w-2 shrink-0 rounded-full"
-                                    style={{
-                                      backgroundColor: appointment.bookingGroupId
-                                        ? getGroupDotColor(appointment.bookingGroupId)
-                                        : "var(--muted-foreground)",
-                                    }}
-                                    aria-hidden
-                                  />
-                                  <span className="min-w-0 truncate">
-                                    {groupBookingWallTimeRange}
-                                  </span>
-                                </span>
-                              ) : null}
-                              <span className="w-full min-w-0 truncate">
-                                {formatDurationHuman(serviceDetailTotalDuration, t)} - {t("page.appointments.edit.acrossGroup")}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <span
-                                className="h-2 w-2 shrink-0 rounded-full"
-                                style={{
-                                  backgroundColor: appointment.bookingGroupId
-                                    ? getGroupDotColor(appointment.bookingGroupId)
-                                    : "var(--muted-foreground)",
-                                }}
-                                aria-hidden
-                              />
-                              <span className="min-w-0">
-                                {groupBookingWallTimeRange
-                                  ? `${groupBookingWallTimeRange} | ${formatDurationHuman(serviceDetailTotalDuration, t)} - ${t("page.appointments.edit.acrossGroup")}`
-                                  : `${formatDurationHuman(serviceDetailTotalDuration, t)} - ${t("page.appointments.edit.acrossGroup")}`}
-                              </span>
-                            </>
-                          )
-                        ) : (
-                          t("page.appointments.edit.bookedServiceDescription")
-                        )
-                      }
+                      description={t("page.appointments.edit.bookedServiceDescription")}
                       open={accServicesOpen}
                       onOpenChange={setAccServicesOpen}
                       className={ADVANCED_SETTINGS_COLLAPSIBLE_OUTER_CLASS}
@@ -1593,12 +1350,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                                   )}
                                 </div>
                               </div>
-                              {isGroupBooking &&
-                              serviceDetailTotalDuration > 0 ? (
-                                <p className="text-xs leading-relaxed text-foreground-3 dark:text-foreground-2">
-                                  {t("page.appointments.edit.includesAllServices")}
-                                </p>
-                              ) : null}
                             </div>
                           </>
                         )}
@@ -1862,15 +1613,6 @@ const EditAppointmentSlider: React.FC<EditAppointmentSliderProps> = ({
                   <p className={modalBody}>
                     {t("page.appointments.edit.cancelIntro")}
                   </p>
-
-                  {appointment.bookingGroupId && (
-                    <div className="flex items-start gap-2.5 rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/30 p-3.5">
-                      <AlertTriangle className="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300 mt-0.5" />
-                      <p className="text-[14px] font-medium leading-[1.5] text-amber-900 dark:text-amber-100">
-                        {t("page.appointments.edit.cancelEntireGroup")}
-                      </p>
-                    </div>
-                  )}
 
                   <div className="space-y-2">
                     <div className="flex items-baseline justify-between gap-2">

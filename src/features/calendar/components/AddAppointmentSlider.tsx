@@ -27,8 +27,6 @@ import {
   adminCreateAppointmentGroup,
   beginAddFormCloseAfterMutations,
   updateAppointment,
-  updateGroupItemsStaff,
-  rescheduleAppointmentGroup,
 } from '../actions';
 import {
   getSelectedLocationId,
@@ -68,14 +66,11 @@ import {
   getGroupTotalPriceMajor,
   buildEditSnapshotFromPrefill,
   buildMinimalEditAppointmentPayload,
-  buildPerItemStaffUpdates,
   getEditMutationDispatchCount,
-  pickPrimaryNonSchedulePatch,
   pickUpdateAppointmentRequestBody,
   hasItemStaffChanged,
   type EditFormSnapshot,
   type EditAppointmentPayload,
-  type PerItemStaffUpdate,
 } from './addAppointmentSliderHelpers';
 import CustomerSearchPicker from './CustomerSearchPicker';
 import type { Service as ManageSheetService } from '../../../shared/components/common/ManageServicesSheet/types';
@@ -450,7 +445,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
   const pendingUpdateRef = useRef<{
     appointmentId: number;
     data: Record<string, unknown>;
-    perItemStaffUpdates: PerItemStaffUpdate[];
   } | null>(null);
   const rescheduleAppointmentIdRef = useRef<number | null>(null);
   const userChangedTimeRef = useRef(false);
@@ -522,17 +516,7 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const prefillServiceId = prefill?.serviceId ?? null;
       const prefillStaffId = prefill?.staffUserId ?? null;
       const prefillBundleId = prefill?.bundleId ?? null;
-      if (prefill?.groupItems != null && prefill.groupItems.length > 1) {
-        setAppointmentItems(
-          prefill.groupItems.map((x) => ({
-            appointmentId: x.appointmentId ?? null,
-            serviceId: x.serviceId ?? null,
-            bundleId: x.bundleId ?? null,
-            staffUserId: x.staffUserId ?? null,
-            itemName: x.itemName,
-          })),
-        );
-      } else if (prefillServiceId != null || prefillBundleId != null) {
+      if (prefillServiceId != null || prefillBundleId != null) {
         setAppointmentItems([
           {
             serviceId: prefillServiceId ?? null,
@@ -1013,92 +997,21 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     (
       appointmentId: number,
       rawPayload: EditAppointmentPayload & Record<string, unknown>,
-      perItemStaffUpdates: PerItemStaffUpdate[],
     ) => {
-      const count = getEditMutationDispatchCount(
-        prefill?.bookingGroupId,
-        rawPayload,
-        perItemStaffUpdates.length,
-      );
+      const count = getEditMutationDispatchCount(rawPayload);
       if (count <= 0) return false;
       dispatch(beginAddFormCloseAfterMutations(count));
-      const bookingGroupId = prefill?.bookingGroupId;
 
-      if (perItemStaffUpdates.length > 0) {
-        const primaryPatch = pickPrimaryNonSchedulePatch(rawPayload);
-        const primaryNonSchedulePatch =
-          Object.keys(primaryPatch).length > 0
-            ? { appointmentId, data: primaryPatch }
-            : undefined;
-        const chainReschedule =
-          bookingGroupId && rawPayload.scheduledAt
-            ? {
-                bookingGroupId,
-                payload: {
-                  scheduledAt: rawPayload.scheduledAt,
-                  overrideConflicts: !!rawPayload.overrideConflicts,
-                  allowOutOfHours: !!rawPayload.allowOutOfHours,
-                  overrideReason:
-                    typeof rawPayload.overrideReason === 'string'
-                      ? rawPayload.overrideReason
-                      : undefined,
-                },
-              }
-            : undefined;
-        dispatch(
-          updateGroupItemsStaff.request({
-            updates: perItemStaffUpdates,
-            bookingGroupId,
-            primaryNonSchedulePatch,
-            chainReschedule,
-          }),
-        );
-        return true;
-      }
-
-      if (bookingGroupId && rawPayload.scheduledAt) {
-        const reschedulePayload = {
-          scheduledAt: rawPayload.scheduledAt,
-          overrideConflicts: !!rawPayload.overrideConflicts,
-          allowOutOfHours: !!rawPayload.allowOutOfHours,
-          overrideReason:
-            typeof rawPayload.overrideReason === 'string' ? rawPayload.overrideReason : undefined,
-        };
-        const nonScheduleFields: Record<string, unknown> = {};
-        if (rawPayload.notes !== undefined) nonScheduleFields.notes = rawPayload.notes;
-        if (rawPayload.serviceId !== undefined) nonScheduleFields.serviceId = rawPayload.serviceId;
-        if (rawPayload.locationId !== undefined) nonScheduleFields.locationId = rawPayload.locationId;
-        if (rawPayload.staffUserIds !== undefined) nonScheduleFields.staffUserIds = rawPayload.staffUserIds;
-        if (Object.keys(nonScheduleFields).length > 0) {
-          dispatch(
-            updateAppointment.request({
-              appointmentId,
-              data: nonScheduleFields,
-              bookingGroupId,
-              chainReschedule: { bookingGroupId, payload: reschedulePayload },
-            }),
-          );
-        } else {
-          dispatch(
-            rescheduleAppointmentGroup.request({
-              bookingGroupId,
-              payload: reschedulePayload,
-            }),
-          );
-        }
-      } else {
-        const updateData = pickUpdateAppointmentRequestBody(rawPayload);
-        dispatch(
-          updateAppointment.request({
-            appointmentId,
-            data: updateData,
-            bookingGroupId,
-          }),
-        );
-      }
+      const updateData = pickUpdateAppointmentRequestBody(rawPayload);
+      dispatch(
+        updateAppointment.request({
+          appointmentId,
+          data: updateData,
+        }),
+      );
       return true;
     },
-    [dispatch, prefill?.bookingGroupId],
+    [dispatch],
   );
 
   const doUpdateAppointment = useCallback(() => {
@@ -1112,7 +1025,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
       const ran = runEditAppointmentMutations(
         pending.appointmentId,
         dataWithOverride,
-        pending.perItemStaffUpdates,
       );
       if (!ran) {
         setError(t('page.appointments.add.nothingToUpdate'));
@@ -1179,7 +1091,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
     (
       scheduledDate: Date | null,
       payload: EditAppointmentPayload,
-      perItemStaffUpdates: PerItemStaffUpdate[],
     ) => {
       const hasScheduledAt = payload.scheduledAt != null;
       const isOutOfHours =
@@ -1193,14 +1104,13 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             ...payload,
             allowOutOfHours: true,
           },
-          perItemStaffUpdates,
         };
         openConfirmDialog('out_of_hours');
         return;
       }
       setSubmitting(true);
       try {
-        const ran = runEditAppointmentMutations(editingAppointmentId!, payload, perItemStaffUpdates);
+        const ran = runEditAppointmentMutations(editingAppointmentId!, payload);
         if (!ran) {
           setError(t('page.appointments.add.nothingToUpdate'));
         }
@@ -1308,11 +1218,6 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         setError(t('page.appointments.add.couldNotLoadData'));
         return;
       }
-      const perItemStaffUpdates = buildPerItemStaffUpdates(
-        appointmentItems,
-        editSnapshot,
-        hasTeamMembersAtLocation,
-      );
       const payload = buildMinimalEditAppointmentPayload({
         snapshot: editSnapshot,
         form,
@@ -1321,12 +1226,12 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
         hasTeamMembersAtLocation,
         scheduledDate,
       });
-      if (Object.keys(payload).length === 0 && perItemStaffUpdates.length === 0) {
+      if (Object.keys(payload).length === 0) {
         return;
       }
       const scheduledForOoh =
         payload.scheduledAt != null ? scheduledDate : null;
-      submitEdit(scheduledForOoh, payload, perItemStaffUpdates);
+      submitEdit(scheduledForOoh, payload);
       return;
     }
 
@@ -1402,41 +1307,17 @@ const AddAppointmentSlider: React.FC<AddAppointmentSliderProps> = ({ isOpen, onC
             <div className="space-y-5">
               <SliderSectionHeader
                 title={
-                  isEditMode && appointmentItems.length > 1
-                    ? t('page.appointments.add.reschedulingGroup')
-                    : isEditMode
-                      ? t('page.appointments.add.service')
-                      : t('page.appointments.add.servicesAndBundles')
+                  isEditMode
+                    ? t('page.appointments.add.service')
+                    : t('page.appointments.add.servicesAndBundles')
                 }
                 description={
-                  isEditMode && appointmentItems.length > 1
-                    ? t('page.appointments.add.reschedulingGroupDesc', { count: appointmentItems.length })
-                    : isEditMode
-                      ? t('page.appointments.add.serviceDesc')
-                      : t('page.appointments.add.servicesAndBundlesDesc')
+                  isEditMode
+                    ? t('page.appointments.add.serviceDesc')
+                    : t('page.appointments.add.servicesAndBundlesDesc')
                 }
               />
-              {isEditMode && appointmentItems.length > 1 ? (
-                <div className="rounded-lg border border-border bg-muted/30 dark:bg-muted/20 px-4 py-3 space-y-2">
-                  <p className="text-sm font-medium text-foreground-1">
-                    {t('page.appointments.add.reschedulingGroupDesc', { count: appointmentItems.length })}
-                  </p>
-                  <ul className="text-sm text-foreground-2 list-disc list-inside space-y-0.5">
-                    {appointmentItems.map((item, idx) => {
-                      const svc = locationServices.find((s) => s.serviceId === item.serviceId);
-                      const bundle = locationBundles.find((b) => b.bundleId === item.bundleId);
-                      const label = svc ? svc.serviceName : bundle ? bundle.bundleName : item.itemName ?? '—';
-                      return <li key={`${item.serviceId ?? 0}-${item.bundleId ?? 0}-${idx}`}>{label}</li>;
-                    })}
-                  </ul>
-                  {durationMinutes > 0 && (
-                    <p className="text-sm text-foreground-2 flex items-center gap-1.5 pt-1">
-                      <Clock className="h-3.5 w-3.5 shrink-0" />
-                      Total duration: {durationMinutes} min
-                    </p>
-                  )}
-                </div>
-              ) : !isEditMode && locationBundles.length > 0 ? (
+              {!isEditMode && locationBundles.length > 0 ? (
                 <div className="w-full flex items-center gap-3">
                   <Button
                     type="button"

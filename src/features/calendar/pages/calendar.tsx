@@ -366,7 +366,6 @@ const Calendar = () => {
           <EditAppointmentSlider
             isOpen={editForm.open}
             appointment={editForm.item}
-            groupAppointments={editForm.groupAppointments ?? undefined}
             onClose={handleCloseEditForm}
           />
           <CreateBlockDrawer />

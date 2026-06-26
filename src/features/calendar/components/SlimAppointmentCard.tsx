@@ -14,7 +14,6 @@ import { cn } from "../../../shared/lib/utils";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import {
   getAppointmentBlockColors,
-  getGroupDotColor,
   type AppointmentBlockColorPair,
   getStaffAvatarColor,
 } from "../colors.ts";
@@ -74,7 +73,6 @@ interface SlimAppointmentCardProps {
   appointment: SlimAppointment;
   /** From calendar location context (`getLocationStaff`); staff user ids match `id`. */
   locationStaff: CalendarStaffMember[];
-  groupSize?: number;
   onClick: () => void;
   /** Built from visible appointments for this list (service/staff coding). */
   colorMap?: Map<string, AppointmentBlockColorPair> | null;
@@ -83,7 +81,6 @@ interface SlimAppointmentCardProps {
 export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
   appointment,
   locationStaff,
-  groupSize,
   onClick,
   colorMap,
 }) => {
@@ -92,8 +89,6 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
   const colorCoding = calendarPreferences.getColorCoding();
   const { backgroundColor } = getAppointmentBlockColors(appointment, colorCoding, colorMap);
 
-  const isGroupSegment = !!appointment.bookingGroupId && (groupSize ?? 1) > 1;
-  const order = appointment.bookingGroupOrder ?? 1;
   const duration = formatDurationHuman(appointment.duration, t);
 
   const viaLabel = getBookedViaLabel(appointment.bookingSource, t);
@@ -124,24 +119,9 @@ export const SlimAppointmentCard: FC<SlimAppointmentCardProps> = ({
       }}
       onClick={onClick}
     >
-      {/* ── Group pill + customer (title) + optional notes below ── */}
+      {/* ── Customer (title) + optional notes below ── */}
       <div className="flex min-w-0 flex-col justify-center gap-0.5">
         <div className="flex min-w-0 items-center gap-1.5">
-          {isGroupSegment && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 shrink-0 rounded-full border border-border",
-                "bg-muted/60 px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-foreground-3",
-              )}
-              title={t('page.appointmentCard.groupBookingTooltip', { order, groupSize })}
-            >
-              <span
-                className="h-2 w-2 rounded-full shrink-0 ring-1 ring-background"
-                style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-              />
-              {order}/{groupSize}
-            </span>
-          )}
           <span
             className={cn(
               "min-w-0 text-sm font-semibold truncate leading-tight",

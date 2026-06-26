@@ -20,7 +20,8 @@ import { setupAuthenticatedOwner } from '../fixtures/test-helpers'
 // What they DO NOT cover yet (gated on real-DB Class B seeding):
 //   - Filling customer + service + staff + time and submitting → POST payload.
 //   - Out-of-hours override flow (confirm dialog → re-submit with overrideConflicts).
-//   - Bundle / multi-service group creation.
+//   - Bundle / multi-item creation (consecutive same-staff items merge into one
+//     standalone composite appointment; a staff change makes a separate row).
 
 test.describe('Calendar — create appointment (UI surface)', () => {
   test('Add Event button opens the New Appointment slider', async ({
@@ -37,8 +38,8 @@ test.describe('Calendar — create appointment (UI surface)', () => {
     await calendar.openAddForm()
 
     // Slider header text — copy from en/calendar.json:
-    //   page.appointments.add.newAppointment = "New Appointment"
-    await expect(page.getByText('New Appointment', { exact: true }).first()).toBeVisible({
+    //   page.appointments.add.newAppointment = "New appointment"
+    await expect(page.getByText('New appointment', { exact: true }).first()).toBeVisible({
       timeout: 10_000,
     })
   })
@@ -81,9 +82,9 @@ test.describe('Calendar — create appointment (UI surface)', () => {
     await calendar.openAddForm()
 
     // Section headings (these come from en/calendar.json — page.appointments.add.*):
-    await expect(page.getByText('Services & Bundles', { exact: false }).first()).toBeVisible()
-    await expect(page.getByText('Date & Time', { exact: true }).first()).toBeVisible()
-    await expect(page.getByText('Booking Source', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Services & bundles', { exact: false }).first()).toBeVisible()
+    await expect(page.getByText('Date & time', { exact: true }).first()).toBeVisible()
+    await expect(page.getByText('Booking source', { exact: true }).first()).toBeVisible()
     await expect(page.getByText(/^Notes/i).first()).toBeVisible()
   })
 })

@@ -53,8 +53,6 @@ interface TimeColumnProps {
   dndActive?: boolean;
   /** Slot ids that fall within the dragged appointment's duration range (multi-slot highlight). */
   durationHighlightSlotIds?: ReadonlySet<string>;
-  /** When a group is being dragged, the bookingGroupId of the active group (sibling segments show ghost). */
-  draggingGroupId?: string | null;
   /** The day this column represents — passed to AppointmentGroupDialog when
    *  overlapping appointments collapse into a summary card. */
   day: Date;
@@ -84,7 +82,6 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
   forbiddenSlotIds,
   dndActive = false,
   durationHighlightSlotIds,
-  draggingGroupId,
   day,
   calendarViewMode,
 }) => {
@@ -369,8 +366,8 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
       })()}
 
       {(() => {
-        // Group overlapping appointments into a single summary card (mirrors week-view behavior).
-        // Single-appointment groups render as a normal draggable card; multi-item groups collapse
+        // Group time-overlapping appointments into a single summary card (mirrors week-view behavior).
+        // A single appointment renders as a normal draggable card; 2+ overlapping appointments collapse
         // into one "N appointments" card that opens AppointmentGroupDialog on click.
         const overlapGroups = getOverlapGroups(appointments);
         return overlapGroups.map((group, groupIdx) => {
@@ -389,7 +386,6 @@ export const TimeColumn: FC<TimeColumnProps> = memo(({
                   timezone={timezone}
                   colorMap={appointmentColorMap}
                   disableDrag={schedulingLockedAppointmentIds?.has(appt.id) ?? false}
-                  isGroupDragging={!!draggingGroupId && !!appt.bookingGroupId && appt.bookingGroupId.trim() === draggingGroupId}
                 />
               );
             }

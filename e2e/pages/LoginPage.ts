@@ -14,7 +14,7 @@ export class LoginPage {
     this.page = page
     this.email = page.locator('#cred-email')
     this.password = page.locator('#cred-password')
-    this.submit = page.getByRole('button', { name: 'Login', exact: true })
+    this.submit = page.getByRole('button', { name: 'Log in', exact: true })
     this.forgotPasswordTrigger = page.getByRole('button', {
       name: 'Forgot your password?',
     })

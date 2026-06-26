@@ -278,15 +278,6 @@ export function getPrefillAppointmentItems(prefill: AddFormPrefill | null | unde
   const prefillServiceId = prefill.serviceId ?? null;
   const prefillStaffId = prefill.staffUserId ?? null;
   const prefillBundleId = prefill.bundleId ?? null;
-  if (prefill.groupItems != null && prefill.groupItems.length > 1) {
-    return prefill.groupItems.map((x) => ({
-      appointmentId: x.appointmentId ?? null,
-      serviceId: x.serviceId ?? null,
-      bundleId: x.bundleId ?? null,
-      staffUserId: x.staffUserId ?? null,
-      itemName: x.itemName,
-    }));
-  }
   if (prefillServiceId != null || prefillBundleId != null) {
     return [
       {
@@ -332,60 +323,6 @@ export function hasItemStaffChanged(
   return appointmentItems.some((item, i) => (item.staffUserId ?? null) !== (snapMap[i]?.staffUserId ?? null));
 }
 
-/** Multi-segment group edit: each row has a backing appointment id (from GET group / prefill). */
-export function usePerItemGroupStaff(appointmentItems: AppointmentItem[]): boolean {
-  return (
-    appointmentItems.length > 1 &&
-    appointmentItems.every((i) => i.appointmentId != null && i.appointmentId !== undefined)
-  );
-}
-
-export type PerItemStaffUpdate = { appointmentId: number; staffUserIds: number[] };
-
-/**
- * Staff PUT payloads per segment — only items whose staff changed and have a known appointment id.
- */
-export function buildPerItemStaffUpdates(
-  appointmentItems: AppointmentItem[],
-  snapshot: EditFormSnapshot,
-  hasTeamMembersAtLocation: boolean,
-): PerItemStaffUpdate[] {
-  const snapMap = snapshot.itemStaffMap;
-  if (appointmentItems.length !== snapMap.length) return [];
-
-  const out: PerItemStaffUpdate[] = [];
-  for (let i = 0; i < appointmentItems.length; i++) {
-    const item = appointmentItems[i];
-    const snap = snapMap[i];
-    const appointmentId = item.appointmentId;
-    if (appointmentId == null) continue;
-
-    const cur = item.staffUserId ?? null;
-    const prev = snap?.staffUserId ?? null;
-    if (cur === prev) continue;
-
-    if (hasTeamMembersAtLocation) {
-      if (item.staffUserId != null) {
-        out.push({ appointmentId, staffUserIds: [item.staffUserId] });
-      }
-    } else {
-      out.push({ appointmentId, staffUserIds: [] });
-    }
-  }
-  return out;
-}
-
-/** Notes / service / location for the primary appointment row (excludes staff; group staff uses {@link buildPerItemStaffUpdates}). */
-export function pickPrimaryNonSchedulePatch(
-  payload: EditAppointmentPayload & Record<string, unknown>,
-): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  if (payload.notes !== undefined) out.notes = payload.notes;
-  if (payload.serviceId !== undefined) out.serviceId = payload.serviceId;
-  if (payload.locationId !== undefined) out.locationId = payload.locationId;
-  return out;
-}
-
 export function buildMinimalEditAppointmentPayload(params: {
   snapshot: EditFormSnapshot;
   form: FormState;
@@ -399,8 +336,6 @@ export function buildMinimalEditAppointmentPayload(params: {
   const editItem = appointmentItems.find((item) => item.serviceId != null);
   if (!editItem?.serviceId) return payload;
 
-  const perItemStaffMode = usePerItemGroupStaff(appointmentItems);
-
   const notesTrim = form.notes.trim();
   const snapNotesTrim = snapshot.notes.trim();
   if (notesTrim !== snapNotesTrim) {
@@ -413,12 +348,9 @@ export function buildMinimalEditAppointmentPayload(params: {
     payload.locationId = selectedLocationId;
   }
   if (hasItemStaffChanged(appointmentItems, snapshot)) {
-    if (!perItemStaffMode) {
-      payload.staffUserIds = hasTeamMembersAtLocation
-        ? appointmentItems.filter((i) => i.staffUserId != null).map((i) => i.staffUserId as number)
-        : [];
-    }
-    // Group with per-row ids: staff is applied via updateGroupItemsStaff + buildPerItemStaffUpdates.
+    payload.staffUserIds = hasTeamMembersAtLocation
+      ? appointmentItems.filter((i) => i.staffUserId != null).map((i) => i.staffUserId as number)
+      : [];
   }
   const dateChanged =
     form.date != null &&
@@ -433,23 +365,8 @@ export function buildMinimalEditAppointmentPayload(params: {
 
 /** How many successful API mutations the add-form close counter should expect. */
 export function getEditMutationDispatchCount(
-  bookingGroupId: string | undefined,
   payload: EditAppointmentPayload,
-  perItemStaffUpdatesCount: number,
 ): number {
-  if (perItemStaffUpdatesCount > 0) {
-    // Saga runs primary patch (optional) + per-appointment staff PUTs + group reschedule (optional) then one success.
-    return 1;
-  }
-  const hasScheduled = payload.scheduledAt != null;
-  const hasNonScheduleChanges =
-    payload.notes !== undefined ||
-    payload.serviceId !== undefined ||
-    payload.locationId !== undefined ||
-    payload.staffUserIds !== undefined;
-  if (bookingGroupId && hasScheduled) {
-    return hasNonScheduleChanges ? 2 : 1;
-  }
   if (
     payload.scheduledAt !== undefined ||
     payload.notes !== undefined ||

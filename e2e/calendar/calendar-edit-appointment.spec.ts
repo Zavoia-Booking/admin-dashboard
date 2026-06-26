@@ -65,18 +65,15 @@ test.describe('Calendar — edit appointment (UI surface)', () => {
     page,
     request,
   }) => {
-    const today = new Date()
-    today.setHours(11, 0, 0, 0)
-    const at = (h: number, m: number) => {
-      const d = new Date(today)
-      d.setHours(h, m, 0, 0)
-      return d.toISOString()
-    }
+    // Schedule into the future (still "today") so the booking is not in the past —
+    // the edit/reschedule affordances are gated on the appointment not having ended.
+    const start = new Date(Date.now() + 2 * 60 * 60_000)
+    const end = new Date(start.getTime() + 30 * 60_000)
 
     const appt = sampleAppointment({
       id: 4002,
-      scheduledAt: at(11, 0),
-      endsAt: at(11, 30),
+      scheduledAt: start.toISOString(),
+      endsAt: end.toISOString(),
       bookedItemName: 'Color',
       customerName: 'Ion Marin',
       staffUserIds: [202],
@@ -102,13 +99,13 @@ test.describe('Calendar — edit appointment (UI surface)', () => {
     // The Edit affordance in the details slider is an icon-button labeled "Edit".
     await page.getByRole('button', { name: 'Edit', exact: true }).first().click()
 
-    await expect(page.getByText('Edit Appointment', { exact: true }).first()).toBeVisible({
+    await expect(page.getByText('Edit appointment', { exact: true }).first()).toBeVisible({
       timeout: 10_000,
     })
 
     // Closing the edit form via Cancel — no PUT should fire.
     await page.getByRole('button', { name: 'Cancel', exact: true }).first().click()
-    await expect(page.getByText('Edit Appointment', { exact: true })).toHaveCount(0, {
+    await expect(page.getByText('Edit appointment', { exact: true })).toHaveCount(0, {
       timeout: 5_000,
     })
     expect(updates.requests.length).toBe(0)

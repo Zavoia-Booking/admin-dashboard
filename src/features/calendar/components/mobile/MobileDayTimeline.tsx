@@ -11,7 +11,7 @@ import {
   type CollisionDetection,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { snapCenterToCursor, restrictToVerticalAxis } from "@dnd-kit/modifiers";
+import { snapCenterToCursor } from "@dnd-kit/modifiers";
 import { toast } from "sonner";
 import type {
   SlimAppointment,
@@ -38,7 +38,6 @@ import {
   setStaffFilter,
   setCalendarPendingDrop,
   updateAppointment,
-  rescheduleAppointmentGroup,
 } from "../../actions";
 import { useDayAppointmentList } from "../../hooks/useDayAppointmentList";
 import {
@@ -53,8 +52,6 @@ import {
 import { buildZonedDateFromDateKey, formatDateInTimezone, getMinutesInTimezone } from "../../timezone";
 import { isSlimAppointmentSchedulingLocked } from "../../calendarScheduling";
 import {
-  countSegmentsSameBookingGroup,
-  isMultiSegmentGroupDrag,
   evaluateDayTimeSlotDrop,
   isDayTimeSlotForbiddenForPreview,
 } from "../../dndDropEligibility";
@@ -217,8 +214,6 @@ export const MobileDayTimeline: FC = () => {
         createdAt: new Date(),
         updatedAt: new Date(),
         bookedItemName: appt.bookedItemName,
-        bookingGroupId: appt.bookingGroupId,
-        bookingGroupOrder: appt.bookingGroupOrder,
         bookingSource: appt.bookingSource,
         overrideReason: appt.overrideReason,
       };
@@ -310,12 +305,6 @@ export const MobileDayTimeline: FC = () => {
     return dayAppointments.find((a) => a.id === id) ?? null;
   }, [activeId, dayAppointments, parseActiveApptId]);
 
-  const activeDragIsGroupRestricted = useMemo(() => {
-    if (!activeAppointment) return false;
-    const n = countSegmentsSameBookingGroup(dayAppointments, activeAppointment.bookingGroupId);
-    return isMultiSegmentGroupDrag(activeAppointment, n);
-  }, [activeAppointment, dayAppointments]);
-
   // While a drag is active, only the source column needs live drop targets —
   // mobile is reschedule-only, same-column. Non-source columns skip mounting
   // `DroppableSlot` entirely so dnd-kit's pointerWithin collision loop shrinks
@@ -346,47 +335,18 @@ export const MobileDayTimeline: FC = () => {
     const [, colId, dk, hourStr, minStr] = match;
     const dropSlotMin = parseInt(hourStr, 10) * 60 + parseInt(minStr, 10);
 
-    const groupId = activeAppointment.bookingGroupId?.trim();
-    const groupSegments = groupId
-      ? dayAppointments
-          .filter((a) => (a.bookingGroupId?.trim() ?? "") === groupId)
-          .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0))
-      : [];
-    const isGroup = groupSegments.length > 1;
-
     const ids = new Set<string>();
-    if (isGroup) {
-      const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-      const draggedStartMs = new Date(activeAppointment.scheduledAt).getTime();
-      const draggedOffsetMin = (draggedStartMs - groupFirstStartMs) / 60000;
-      const newGroupStartMin = dropSlotMin - draggedOffsetMin;
-      for (const seg of groupSegments) {
-        const segStartMs = new Date(seg.scheduledAt).getTime();
-        const segEndMs = new Date(seg.endsAt).getTime();
-        const segOffsetMin = (segStartMs - groupFirstStartMs) / 60000;
-        const segDurationMin = (segEndMs - segStartMs) / 60000;
-        const segPreviewStartMin = Math.round(newGroupStartMin + segOffsetMin);
-        const segColId = seg.staffUserIds?.[0] ?? 0;
-        const segSlotsNeeded = Math.ceil(segDurationMin / slotIntervalMinutes);
-        for (let i = 0; i < segSlotsNeeded; i++) {
-          const m = segPreviewStartMin + i * slotIntervalMinutes;
-          if (m < 0 || m >= 24 * 60) continue;
-          ids.add(`slot-${segColId}-${dk}-${Math.floor(m / 60)}-${m % 60}`);
-        }
-      }
-    } else {
-      const slotsNeeded = Math.ceil(activeAppointment.duration / slotIntervalMinutes);
-      for (let i = 0; i < slotsNeeded; i++) {
-        const m = Math.round(dropSlotMin) + i * slotIntervalMinutes;
-        if (m < 0 || m >= 24 * 60) continue;
-        ids.add(`slot-${colId}-${dk}-${Math.floor(m / 60)}-${m % 60}`);
-      }
+    const slotsNeeded = Math.ceil(activeAppointment.duration / slotIntervalMinutes);
+    for (let i = 0; i < slotsNeeded; i++) {
+      const m = Math.round(dropSlotMin) + i * slotIntervalMinutes;
+      if (m < 0 || m >= 24 * 60) continue;
+      ids.add(`slot-${colId}-${dk}-${Math.floor(m / 60)}-${m % 60}`);
     }
     const prev = prevDurationHighlightRef.current;
     if (ids.size === prev.size && [...ids].every((id) => prev.has(id))) return prev;
     prevDurationHighlightRef.current = ids;
     return ids;
-  }, [overId, activeAppointment, slotIntervalMinutes, dayAppointments]);
+  }, [overId, activeAppointment, slotIntervalMinutes]);
 
   const prevForbiddenRef = useRef<ReadonlySet<string>>(EMPTY_FORBIDDEN_SLOT_SET);
   const dayForbiddenSlotIds = useMemo(() => {
@@ -533,19 +493,6 @@ export const MobileDayTimeline: FC = () => {
         return;
       }
       if (slotResult.action === "noop") return;
-      if (slotResult.action === "reschedule_single") {
-        dndDispatch(
-          setCalendarPendingDrop({
-            type: "reschedule",
-            appointment,
-            dateKey: slotResult.dateKey,
-            hour: slotResult.hour,
-            minute: slotResult.minute,
-            columnId: slotResult.columnId,
-          }),
-        );
-        return;
-      }
       dndDispatch(
         setCalendarPendingDrop({
           type: "reschedule",
@@ -554,10 +501,6 @@ export const MobileDayTimeline: FC = () => {
           hour: slotResult.hour,
           minute: slotResult.minute,
           columnId: slotResult.columnId,
-          isGroupDrop: true,
-          bookingGroupId: slotResult.bookingGroupId,
-          newGroupStartIso: slotResult.newGroupStartIso,
-          segmentsPreview: slotResult.segmentsPreview,
         }),
       );
     },
@@ -587,41 +530,6 @@ export const MobileDayTimeline: FC = () => {
     const toConfirm = pendingDrop;
     if (toConfirm.type !== "reschedule") return; // mobile has no reassign drop
 
-    // Group drop
-    if (toConfirm.isGroupDrop && toConfirm.newGroupStartIso && toConfirm.bookingGroupId) {
-      const newScheduledAt = new Date(toConfirm.newGroupStartIso);
-      const segments = toConfirm.segmentsPreview ?? [];
-      const lastPreview = segments[segments.length - 1];
-      const groupEndMs = lastPreview
-        ? new Date(lastPreview.endIso).getTime()
-        : newScheduledAt.getTime() + toConfirm.appointment.duration * 60 * 1000;
-      const totalGroupDurationMinutes = Math.round((groupEndMs - newScheduledAt.getTime()) / 60000);
-      const newEndsAt = new Date(groupEndMs);
-      const isOutOfHours =
-        !open247 &&
-        dayWorkingHours &&
-        isTimeRangeOutsideWorkingHours(newScheduledAt, totalGroupDurationMinutes, dayWorkingHours, open247, calendarTimezone);
-      if (isOutOfHours) {
-        setPendingReschedulePayload({
-          appointmentId: toConfirm.appointment.id,
-          newScheduledAt,
-          newEndsAt,
-          staffUserIds: undefined,
-          bookingGroupId: toConfirm.bookingGroupId,
-        });
-        setOverrideDialogOpen(true);
-        return;
-      }
-      setDropConfirmInProgress(true);
-      dndDispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: toConfirm.bookingGroupId,
-          payload: { scheduledAt: toConfirm.newGroupStartIso },
-        }),
-      );
-      return;
-    }
-
     const { appointment, dateKey: dKey, hour } = toConfirm;
     const minute = toConfirm.minute ?? 0;
     const newScheduledAt = buildZonedDateFromDateKey(
@@ -640,30 +548,18 @@ export const MobileDayTimeline: FC = () => {
         newScheduledAt,
         newEndsAt,
         staffUserIds: undefined,
-        bookingGroupId: appointment.bookingGroupId ?? undefined,
       });
       setOverrideDialogOpen(true);
       return;
     }
     const scheduledAt = newScheduledAt.toISOString();
-    const gid = appointment.bookingGroupId;
     setDropConfirmInProgress(true);
-    if (gid) {
-      dndDispatch(
-        rescheduleAppointmentGroup.request({
-          bookingGroupId: gid,
-          payload: { scheduledAt },
-        }),
-      );
-    } else {
-      dndDispatch(
-        updateAppointment.request({
-          appointmentId: appointment.id,
-          data: { scheduledAt },
-          bookingGroupId: undefined,
-        }),
-      );
-    }
+    dndDispatch(
+      updateAppointment.request({
+        appointmentId: appointment.id,
+        data: { scheduledAt },
+      }),
+    );
   }, [
     pendingDrop,
     dndDispatch,
@@ -715,63 +611,6 @@ export const MobileDayTimeline: FC = () => {
       }
     }
 
-    // Live group-drag preview: relocate siblings to their preview positions so
-    // the whole group visually slides together. Only active while a group drag
-    // is in flight; the dragged segment stays put (its DragOverlay follows).
-    if (overId && activeAppointment && activeDragIsGroupRestricted) {
-      const m = overId.match(/^slot-(-?\d+)-(.+)-(\d+)-(\d+)$/);
-      const groupId = activeAppointment.bookingGroupId?.trim();
-      if (m && groupId) {
-        const [, , , hourStr, minStr] = m;
-        const dropSlotMin = parseInt(hourStr, 10) * 60 + parseInt(minStr, 10);
-        const groupSegments = dayAppointments
-          .filter((a) => (a.bookingGroupId?.trim() ?? "") === groupId)
-          .sort((a, b) => (a.bookingGroupOrder ?? 0) - (b.bookingGroupOrder ?? 0));
-        if (groupSegments.length > 1) {
-          const groupFirstStartMs = new Date(groupSegments[0].scheduledAt).getTime();
-          const draggedStartMs = new Date(activeAppointment.scheduledAt).getTime();
-          const draggedOffsetMin = (draggedStartMs - groupFirstStartMs) / 60000;
-          const newGroupStartMin = dropSlotMin - draggedOffsetMin;
-
-          const siblingIds = new Set(
-            groupSegments.filter((s) => s.id !== activeAppointment.id).map((s) => s.id),
-          );
-          for (const [key, listForCol] of appointmentsByColumn) {
-            appointmentsByColumn.set(key, listForCol.filter((a) => !siblingIds.has(a.id)));
-          }
-          for (const seg of groupSegments) {
-            if (seg.id === activeAppointment.id) continue;
-            const segStartMs = new Date(seg.scheduledAt).getTime();
-            const segOffsetMin = (segStartMs - groupFirstStartMs) / 60000;
-            const previewStartMin = Math.round(newGroupStartMin + segOffsetMin);
-            if (previewStartMin < 0 || previewStartMin >= 24 * 60) continue;
-            const durationMin = (new Date(seg.endsAt).getTime() - segStartMs) / 60000;
-            const hh = String(Math.floor(previewStartMin / 60)).padStart(2, "0");
-            const mm = String(previewStartMin % 60).padStart(2, "0");
-            const previewStart = buildZonedDateFromDateKey(
-              dateKey,
-              `${hh}:${mm}`,
-              calendarTimezone,
-            );
-            const previewEnd = new Date(previewStart.getTime() + durationMin * 60000);
-            const segStaffId = seg.staffUserIds?.[0];
-            const colKey =
-              segStaffId != null && segStaffId !== 0 ? `staff-${segStaffId}` : "unassigned";
-            const existing = appointmentsByColumn.get(colKey);
-            if (!existing) continue;
-            appointmentsByColumn.set(colKey, [
-              ...existing,
-              {
-                ...seg,
-                scheduledAt: previewStart.toISOString(),
-                endsAt: previewEnd.toISOString(),
-              },
-            ]);
-          }
-        }
-      }
-    }
-
     // Post-drop optimistic preview: the moment the user releases the drag
     // (pendingDrop set, dialog about to open), visually relocate the dragged
     // appointment to the drop position so the card lands where the finger
@@ -781,15 +620,10 @@ export const MobileDayTimeline: FC = () => {
     // POSITION_TRANSITION eases the card back to its original slot.
     if (pendingDrop && pendingDrop.type === "reschedule") {
       const pd = pendingDrop;
-      // Remove the dragged appointment (+ any group siblings) from every column
-      // so we can re-insert at preview positions without duplicates.
-      const previewIds = new Set<number>();
-      previewIds.add(pd.appointment.id);
-      if (pd.isGroupDrop && pd.segmentsPreview?.length) {
-        for (const s of pd.segmentsPreview) previewIds.add(s.id);
-      }
+      // Remove the dragged appointment from every column so we can re-insert at
+      // the preview position without duplicates.
       for (const [key, listForCol] of appointmentsByColumn) {
-        appointmentsByColumn.set(key, listForCol.filter((a) => !previewIds.has(a.id)));
+        appointmentsByColumn.set(key, listForCol.filter((a) => a.id !== pd.appointment.id));
       }
 
       const resolveColKey = (staffId: number | undefined): string => {
@@ -797,56 +631,28 @@ export const MobileDayTimeline: FC = () => {
         return "unassigned";
       };
 
-      if (pd.isGroupDrop && pd.segmentsPreview?.length) {
-        for (const seg of pd.segmentsPreview) {
-          const colKey = resolveColKey(seg.staffUserIds?.[0]);
-          const existing = appointmentsByColumn.get(colKey);
-          if (!existing) continue;
-          const full = dayAppointments.find((a) => a.id === seg.id);
-          const previewAppt: SlimAppointment = full
-            ? { ...full, scheduledAt: seg.startIso, endsAt: seg.endIso }
-            : {
-                id: seg.id,
-                scheduledAt: seg.startIso,
-                endsAt: seg.endIso,
-                status: pd.appointment.status,
-                bookedItemName: pd.appointment.bookedItemName,
-                duration: Math.round(
-                  (new Date(seg.endIso).getTime() - new Date(seg.startIso).getTime()) / 60000,
-                ),
-                staffUserIds: seg.staffUserIds,
-                customerName: pd.appointment.customerName,
-                bookingSource: pd.appointment.bookingSource,
-                isUnassigned: false,
-                bookingGroupId: pd.bookingGroupId ?? undefined,
-                notes: pd.appointment.notes ?? undefined,
-              };
-          appointmentsByColumn.set(colKey, [...existing, previewAppt]);
-        }
-      } else {
-        const minute = pd.minute ?? 0;
-        const previewStart = buildZonedDateFromDateKey(
-          pd.dateKey,
-          `${String(pd.hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
-          calendarTimezone,
-        );
-        const previewEnd = new Date(
-          previewStart.getTime() + pd.appointment.duration * 60 * 1000,
-        );
-        // Re-insert in the original column (mobile is reschedule-only; staff
-        // doesn't change during a drop).
-        const colKey = resolveColKey(pd.appointment.staffUserIds?.[0]);
-        const existing = appointmentsByColumn.get(colKey);
-        if (existing) {
-          appointmentsByColumn.set(colKey, [
-            ...existing,
-            {
-              ...pd.appointment,
-              scheduledAt: previewStart.toISOString(),
-              endsAt: previewEnd.toISOString(),
-            },
-          ]);
-        }
+      const minute = pd.minute ?? 0;
+      const previewStart = buildZonedDateFromDateKey(
+        pd.dateKey,
+        `${String(pd.hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+        calendarTimezone,
+      );
+      const previewEnd = new Date(
+        previewStart.getTime() + pd.appointment.duration * 60 * 1000,
+      );
+      // Re-insert in the original column (mobile is reschedule-only; staff
+      // doesn't change during a drop).
+      const colKey = resolveColKey(pd.appointment.staffUserIds?.[0]);
+      const existing = appointmentsByColumn.get(colKey);
+      if (existing) {
+        appointmentsByColumn.set(colKey, [
+          ...existing,
+          {
+            ...pd.appointment,
+            scheduledAt: previewStart.toISOString(),
+            endsAt: previewEnd.toISOString(),
+          },
+        ]);
       }
     }
 
@@ -874,11 +680,7 @@ export const MobileDayTimeline: FC = () => {
     list.sortedItems,
     staffFilterIds,
     locationStaff,
-    overId,
-    activeAppointment,
-    activeDragIsGroupRestricted,
     pendingDrop,
-    dayAppointments,
     dateKey,
     calendarTimezone,
   ]);
@@ -930,17 +732,6 @@ export const MobileDayTimeline: FC = () => {
     if (!pendingDrop || pendingDrop.type !== "reschedule") return null;
     const min = pendingDrop.minute ?? 0;
     const timeStr = `${pendingDrop.hour}:${String(min).padStart(2, "0")}`;
-    const isGroup =
-      !!pendingDrop.appointment.bookingGroupId?.trim() &&
-      isMultiSegmentGroupDrag(
-        pendingDrop.appointment,
-        countSegmentsSameBookingGroup(dayAppointments, pendingDrop.appointment.bookingGroupId),
-      );
-    if (isGroup) {
-      return (
-        <>Move this booking (all items) to {pendingDrop.dateKey} at {timeStr}.</>
-      );
-    }
     return (
       <>Move &quot;{pendingDrop.appointment.bookedItemName}&quot; to {pendingDrop.dateKey} at {timeStr}?</>
     );
@@ -1083,7 +874,6 @@ export const MobileDayTimeline: FC = () => {
                     forbiddenSlotIds={activeId ? dayForbiddenSlotIds : EMPTY_FORBIDDEN_SLOT_SET}
                     durationHighlightSlotIds={dayDurationHighlightSlotIds}
                     schedulingLockedAppointmentIds={schedulingLockedAppointmentIds}
-                    draggingGroupId={activeDragIsGroupRestricted ? activeAppointment?.bookingGroupId?.trim() : null}
                     openHour={timeline.openHour}
                     closeHour={timeline.closeHour}
                     open247={open247}
@@ -1114,11 +904,7 @@ export const MobileDayTimeline: FC = () => {
           // overlay, then POSITION_TRANSITION slides it to the new slot after
           // the saga commits the reschedule.
           dropAnimation={DROP_ANIMATION}
-          modifiers={
-            activeDragIsGroupRestricted
-              ? [snapCenterToCursor, restrictToVerticalAxis]
-              : [snapCenterToCursor]
-          }
+          modifiers={[snapCenterToCursor]}
         >
           {activeAppointment ? (
             <MobileDragOverlayCard

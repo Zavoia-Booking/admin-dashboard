@@ -8,7 +8,6 @@ import { ShieldAlert } from "lucide-react";
 import { calendarPreferences } from "../calendarPreferences.ts";
 import {
   getAppointmentBlockColors,
-  getGroupDotColor,
   type AppointmentBlockColorPair,
 } from "../colors.ts";
 
@@ -74,8 +73,6 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
       createdAt: new Date(),
       updatedAt: new Date(),
       bookedItemName: slim.bookedItemName,
-      bookingGroupId: slim.bookingGroupId,
-      bookingGroupOrder: slim.bookingGroupOrder,
       bookingSource: slim.bookingSource,
       overrideReason: slim.overrideReason,
     };
@@ -84,7 +81,6 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
 
   const compact = height <= 36;
   const inset = compact ? 2 : 3;
-  const isGroup = !!appointment.bookingGroupId && (appointment.groupSize ?? 1) > 1;
   const isCancelled = appointment.status === "cancelled";
   const style: React.CSSProperties = { top: top + inset, height: height - inset * 2, backgroundColor, color };
   if (leftPercent != null && widthPercent != null) {
@@ -108,12 +104,6 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
       {compact ? (
         /* Compact single-line layout for short appointments */
         <div className="flex items-center gap-1.5 h-full min-w-0">
-          {isGroup && (
-            <span
-              className="h-2 w-2 rounded-full shrink-0 opacity-90"
-              style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-            />
-          )}
           <span className={`font-semibold text-[11px] leading-none truncate min-w-0 ${serviceNameClass}`}>
             {appointment.bookedItemName}
           </span>
@@ -127,14 +117,8 @@ export const AppointmentBlock: FC<AppointmentBlockProps> = memo(({
               </span>
             </div>
           )}
-          {/* Row: Group dot + Service name */}
+          {/* Row: Service name */}
           <div className="flex items-center gap-1.5 min-w-0">
-            {isGroup && (
-              <span
-                className="h-2 w-2 rounded-full shrink-0 opacity-90"
-                style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-              />
-            )}
             <span className={`font-bold text-xs leading-tight truncate min-w-0 ${serviceNameClass}`}>
               {appointment.bookedItemName}
             </span>

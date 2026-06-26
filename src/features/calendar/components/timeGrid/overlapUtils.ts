@@ -198,9 +198,6 @@ export function displayBlockToSlim(block: CalendarDisplayBlock): SlimAppointment
     bookingSource: block.bookingSource,
     isUnassigned: block.isUnassigned,
     overrideReason: block.overrideReason,
-    bookingGroupId: block.bookingGroupId ?? undefined,
-    bookingGroupOrder: block.bookingGroupOrder ?? undefined,
-    groupSize: block.groupSize,
     notes: block.notes ?? undefined,
   };
 }

@@ -115,8 +115,6 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
         createdAt: new Date(),
         updatedAt: new Date(),
         bookedItemName: appt.bookedItemName,
-        bookingGroupId: appt.bookingGroupId,
-        bookingGroupOrder: appt.bookingGroupOrder,
         bookingSource: appt.bookingSource,
         overrideReason: appt.overrideReason,
       };
@@ -162,7 +160,6 @@ export const MobileDayListView: FC<MobileDayListViewProps> = ({ data }) => {
             key={`appt-${item.data.id}`}
             appointment={item.data}
             locationStaff={locationStaff}
-            groupSize={item.groupSize}
             colorMap={appointmentColorMap}
             timezone={timezone ?? undefined}
             onClick={() => handleAppointmentClick(item.data)}

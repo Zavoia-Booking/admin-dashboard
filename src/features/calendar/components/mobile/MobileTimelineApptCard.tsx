@@ -4,7 +4,6 @@ import { useDraggable } from "@dnd-kit/core";
 import type { SlimAppointment } from "../../../../shared/types/calendar";
 import {
   getAppointmentBlockColors,
-  getGroupDotColor,
   type AppointmentBlockColorPair,
 } from "../../colors";
 import { calendarPreferences } from "../../calendarPreferences";
@@ -27,8 +26,6 @@ interface MobileTimelineApptCardProps {
   dateKey?: string;
   /** Past / ended / cancelled — drag disabled; tap still opens details. */
   disableDrag?: boolean;
-  /** This card belongs to a booking group currently being dragged (ghost sibling). */
-  isGroupDragging?: boolean;
 }
 
 // Stable module-level constant so the inline style object's `transition` slot
@@ -64,7 +61,6 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
   columnId,
   dateKey,
   disableDrag = false,
-  isGroupDragging = false,
 }) => {
   const { t } = useTranslation("calendar");
   const colorCoding = calendarPreferences.getColorCoding();
@@ -75,7 +71,6 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
 
   const compact = height <= 28;
   const inset = compact ? 1 : 2;
-  const isGroup = !!appointment.bookingGroupId && (appointment.groupSize ?? 1) > 1;
   const isCancelled = appointment.status === "cancelled";
   const serviceNameClass = isCancelled ? "line-through decoration-[1.5px]" : "";
 
@@ -108,11 +103,9 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
   // transforms and making the overlay visually "grow out of the viewport."
   const dragStateClass = isDragging
     ? "opacity-30 pointer-events-none"
-    : isGroupDragging
-      ? "opacity-30"
-      : dndEnabled
-        ? "active:scale-[1.02]"
-        : "";
+    : dndEnabled
+      ? "active:scale-[1.02]"
+      : "";
 
   return (
     <button
@@ -134,7 +127,7 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
         backgroundColor,
         color,
         opacity: isCancelled ? 0.6 : undefined,
-        transition: isDragging || isGroupDragging ? "none" : POSITION_TRANSITION,
+        transition: isDragging ? "none" : POSITION_TRANSITION,
         // Suppress native long-press behaviors (text selection, callout popup,
         // drag-image). On MIUI/Android WebView the 88x44 selection popup was
         // stealing the touch stream after dnd-kit activated, freezing the drag.
@@ -159,13 +152,6 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
       />
       {compact ? (
         <div className="flex items-center gap-1 h-full min-w-0">
-          {isGroup && (
-            <span
-              aria-hidden
-              className="h-1.5 w-1.5 rounded-full shrink-0 opacity-90"
-              style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-            />
-          )}
           <span className={`font-semibold text-[10px] leading-none truncate min-w-0 ${serviceNameClass}`}>
             {appointment.bookedItemName}
           </span>
@@ -180,13 +166,6 @@ export const MobileTimelineApptCard: FC<MobileTimelineApptCardProps> = memo(({
             </div>
           )}
           <div className="flex items-center gap-1 min-w-0">
-            {isGroup && (
-              <span
-                aria-hidden
-                className="h-1.5 w-1.5 rounded-full shrink-0 opacity-90"
-                style={{ backgroundColor: getGroupDotColor(appointment.bookingGroupId!) }}
-              />
-            )}
             <span className={`font-bold text-[11px] leading-tight truncate min-w-0 ${serviceNameClass}`}>
               {appointment.bookedItemName}
             </span>

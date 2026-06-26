@@ -64,8 +64,6 @@ interface DraggableAppointmentBlockProps {
   colorMap?: Map<string, AppointmentBlockColorPair> | null;
   /** Past booking (or group fully ended): no drag; click still opens detail like Edit slider without Edit. */
   disableDrag?: boolean;
-  /** When set, this appointment's booking group is currently being dragged (sibling ghost effect). */
-  isGroupDragging?: boolean;
 }
 
 export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = memo(({
@@ -80,7 +78,6 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = mem
   timezone,
   colorMap,
   disableDrag = false,
-  isGroupDragging = false,
 }) => {
   const dispatch = useDispatch();
   const dragDisabled = appointment.status === "cancelled" || disableDrag;
@@ -111,8 +108,6 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = mem
       createdAt: new Date(),
       updatedAt: new Date(),
       bookedItemName: slim.bookedItemName,
-      bookingGroupId: slim.bookingGroupId,
-      bookingGroupOrder: slim.bookingGroupOrder,
       bookingSource: slim.bookingSource,
       overrideReason: slim.overrideReason,
     };
@@ -144,7 +139,7 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = mem
     position: "absolute",
     top: pos.top,
     height: pos.height,
-    transition: isDragging || isGroupDragging ? "none" : POSITION_TRANSITION,
+    transition: isDragging ? "none" : POSITION_TRANSITION,
   };
   if (leftPercent != null && widthPercent != null) {
     wrapperStyle.left = `${leftPercent}%`;
@@ -193,7 +188,7 @@ export const DraggableAppointmentBlock: FC<DraggableAppointmentBlockProps> = mem
       {...listeners}
       {...attributes}
       style={{ ...wrapperStyle, touchAction: "manipulation" }}
-      className={`outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 rounded-xl transition-transform duration-[240ms] ease-out ${isDragging ? "opacity-30 pointer-events-none" : isGroupDragging ? "opacity-30 cursor-grabbing" : "cursor-grab active:scale-[1.02]"}`}
+      className={`outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-offset-0 rounded-xl transition-transform duration-[240ms] ease-out ${isDragging ? "opacity-30 pointer-events-none" : "cursor-grab active:scale-[1.02]"}`}
     >
       <AppointmentBlock
         appointment={appointment}

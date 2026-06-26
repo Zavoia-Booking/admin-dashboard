@@ -75,7 +75,7 @@ export class CalendarPage {
       .getByRole('button', { name: 'Block', exact: true })
       .first()
     this.addEventButton = page
-      .getByRole('button', { name: 'Add Event', exact: true })
+      .getByRole('button', { name: 'New appointment', exact: true })
       .first()
     this.todayButton = page
       .getByRole('button', { name: 'Today', exact: true })
