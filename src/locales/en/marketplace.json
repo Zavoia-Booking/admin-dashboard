@@ -214,10 +214,6 @@
         "label": "FAQ",
         "description": "Answer common questions up front. Add questions and answers in this section's settings."
       },
-      "contact": {
-        "label": "Contact",
-        "description": "Your public email, phone and social links."
-      },
       "variants": {
         "default": "Default",
         "scroll": "On scroll",
@@ -231,7 +227,12 @@
         "grid": "Grid",
         "carousel": "Carousel",
         "accordion": "Accordion",
-        "quote": "Quote"
+        "quote": "Quote",
+        "portraits": "Portraits",
+        "roster": "Roster",
+        "editorial": "Editorial",
+        "bento": "Bento",
+        "masonry": "Masonry"
       }
     },
     "theme": {
@@ -283,6 +284,13 @@
         "locationsHeadingLabel": "Heading",
         "locationsSubledeLabel": "Subtitle",
         "locationsCustomize": "Customize {{field}}",
+        "headingLabel": "Heading",
+        "subledeLabel": "Subtitle",
+        "customize": "Customize {{field}}",
+        "teamHint": "Customize the heading. Your team is pulled from your locations.",
+        "galleryHint": "Customize the heading. Photos come from your locations' portfolios.",
+        "reviewsHint": "Customize the heading. Reviews come from your customers.",
+        "reviewsDistributionLabel": "Show rating breakdown",
         "noSettings": "This section has no extra settings.",
         "viewOnlyHint": "Generated automatically from your existing data."
       },
@@ -353,9 +361,11 @@
         "teamEmpty": "Your team members will appear here.",
         "teamMember": "Team member",
         "teamRoleOwner": "Owner",
+        "teamFind": "Find at {{location}}",
         "testimonialsTitle": "What clients say",
         "testimonialsEmpty": "Your reviews will appear here once you have some.",
-        "reviewsCount": "{{count}} reviews",
+        "reviewsCount_one": "{{count}} review",
+        "reviewsCount_other": "{{count}} reviews",
         "inTheTeam": "in the team",
         "bookAt": "Book at {{name}}",
         "callLabel": "Call {{name}}",
@@ -366,13 +376,19 @@
         "faqTitle": "FAQ",
         "faqEmpty": "Add questions in the FAQ section settings.",
         "contactTitle": "Get in touch",
-        "contactEmpty": "Add contact details and social links.",
         "galleryHeading": "A look inside.",
+        "galleryViewFull": "View full",
         "reviewsHeading": "Loved by our clients.",
-        "contactHeading": "Come say hello.",
-        "contactAddress": "Address",
+        "reviewsSublede": "Every review comes from a verified booking — unedited.",
+        "reviewsVerifiedCount_one": "{{count}} verified review",
+        "reviewsVerifiedCount_other": "{{count}} verified reviews",
+        "reviewsOutOf": "Average rating · out of 5.0",
+        "reviewsVerified": "Verified",
+        "contactHeadingLoc": "Come to {{name}}.",
         "contactReach": "Get in touch",
-        "contactFollow": "Follow",
+        "footerComeFind": "Come find us.",
+        "footerWhere": "Where",
+        "footerMore": "more locations",
         "contactHours": "Opening hours",
         "contactClosed": "Closed",
         "contactOpen247": "Open 24h",
@@ -397,7 +413,6 @@
         "locationCount_one": "{{count}} location",
         "locationCount_other": "{{count}} locations",
         "footer": {
-          "nowViewing": "Now viewing",
           "poweredBy": "Powered by Zavoia",
           "rights": "© {{year}} {{name}}"
         },
@@ -422,8 +437,7 @@
           "gallery": "Gallery",
           "team": "Team",
           "reviews": "Reviews",
-          "faq": "FAQ",
-          "contact": "Visit"
+          "faq": "FAQ"
         }
       }
     }

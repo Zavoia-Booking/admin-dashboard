@@ -33,8 +33,7 @@ export type SectionType =
   | 'team'
   | 'interlude'
   | 'testimonials'
-  | 'faq'
-  | 'contact';
+  | 'faq';
 
 /** One section in the ordered page layout. `config` holds small refs/toggles only — no content. */
 export interface SectionEntry {
@@ -67,6 +66,25 @@ export interface LocationsConfig {
   heading?: LocaleText;
   /** Sub-lede override per locale; a blank/missing locale uses the default copy. */
   sublede?: LocaleText;
+}
+
+/**
+ * Optional bilingual heading + sub-lede overrides shared by the view sections (Team / Gallery / Reviews /
+ * Contact). Blank/absent copy falls back to the default editorial string; stored per locale so the public
+ * page renders in the visitor's language. Mirrors `LocationsConfig`'s copy fields.
+ */
+export interface SectionCopyConfig {
+  heading?: LocaleText;
+  sublede?: LocaleText;
+}
+
+export type TeamConfig = SectionCopyConfig;
+export type GalleryConfig = SectionCopyConfig;
+
+/** Reviews section config: copy overrides + a toggle for the synthetic rating-distribution block. */
+export interface ReviewsConfig extends SectionCopyConfig {
+  /** Hide the 5-star rating-distribution bars (shown by default when there are reviews). */
+  hideDistribution?: boolean;
 }
 
 /** Theme tokens: brand accent color + a curated font "personality" key (mapped to a stack on render). */

@@ -6,7 +6,7 @@ import IndustrySection from "../profile/IndustrySection";
 import { BrandingSection } from "./BrandingSection";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { ThemePanel } from "./builder/ThemePanel";
-import type { PreviewReview } from "./builder/LivePreview";
+import type { PreviewReview, RatingBars } from "./builder/LivePreview";
 
 interface BusinessPageTabProps {
   business: Business | null;
@@ -19,6 +19,7 @@ interface BusinessPageTabProps {
   /** Real 5★ quotes + per-member ratings for the live preview (from the reviews store). */
   reviews?: PreviewReview[];
   teamRatings?: Record<number, { rating: number; count: number }>;
+  ratingDistribution?: RatingBars;
 }
 
 /**
@@ -42,6 +43,7 @@ export function BusinessPageTab({
   form,
   reviews,
   teamRatings,
+  ratingDistribution,
 }: BusinessPageTabProps) {
   return (
     <div className="max-w-7xl mb-0 md:mb-8">
@@ -129,6 +131,7 @@ export function BusinessPageTab({
             phone={form.phone}
             reviews={reviews}
             teamRatings={teamRatings}
+            ratingDistribution={ratingDistribution}
           />
         </div>
       </div>

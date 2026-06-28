@@ -43,7 +43,7 @@ import type {
 import { SECTION_META, isKnownSectionType, PINNED_TYPES } from "./sectionCatalog";
 import { SectionCard } from "./SectionCard";
 import { SettingsPanel } from "./SettingsPanel";
-import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview } from "./LivePreview";
+import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
 
 /** House ease-out (mirrors --ease-out-strong in globals.css). */
@@ -104,6 +104,8 @@ interface SectionBuilderProps {
   reviews?: PreviewReview[];
   /** Per team-member rating keyed by member id (from the reviews stats endpoint). */
   teamRatings?: Record<number, { rating: number; count: number }>;
+  /** Business-wide per-star review counts (from the reviews stats endpoint) for the distribution bars. */
+  ratingDistribution?: RatingBars;
 }
 
 /**
@@ -161,6 +163,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       locale,
       reviews: props.reviews,
       teamRatings: props.teamRatings,
+      ratingDistribution: props.ratingDistribution,
     }),
     [
       props.business,
@@ -179,6 +182,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       locale,
       props.reviews,
       props.teamRatings,
+      props.ratingDistribution,
     ],
   );
 

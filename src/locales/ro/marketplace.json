@@ -214,10 +214,6 @@
         "label": "Întrebări frecvente",
         "description": "Răspunde din start la întrebările uzuale. Adaugă întrebări și răspunsuri din setările acestei secțiuni."
       },
-      "contact": {
-        "label": "Contact",
-        "description": "Emailul public, telefonul și rețelele sociale."
-      },
       "variants": {
         "default": "Implicit",
         "scroll": "La derulare",
@@ -231,7 +227,12 @@
         "grid": "Grilă",
         "carousel": "Carusel",
         "accordion": "Acordeon",
-        "quote": "Citat"
+        "quote": "Citat",
+        "portraits": "Portrete",
+        "roster": "Listă",
+        "editorial": "Editorial",
+        "bento": "Bento",
+        "masonry": "Mozaic"
       }
     },
     "theme": {
@@ -283,6 +284,13 @@
         "locationsHeadingLabel": "Titlu",
         "locationsSubledeLabel": "Subtitlu",
         "locationsCustomize": "Personalizează {{field}}",
+        "headingLabel": "Titlu",
+        "subledeLabel": "Subtitlu",
+        "customize": "Personalizează {{field}}",
+        "teamHint": "Personalizează titlul. Echipa este preluată din locațiile tale.",
+        "galleryHint": "Personalizează titlul. Fotografiile provin din portofoliile locațiilor tale.",
+        "reviewsHint": "Personalizează titlul. Recenziile provin de la clienții tăi.",
+        "reviewsDistributionLabel": "Arată distribuția evaluărilor",
         "noSettings": "Această secțiune nu are setări suplimentare.",
         "viewOnlyHint": "Generat automat din datele tale existente."
       },
@@ -353,9 +361,12 @@
         "teamEmpty": "Membrii echipei vor apărea aici.",
         "teamMember": "Membru echipă",
         "teamRoleOwner": "Proprietar",
+        "teamFind": "Găsești la {{location}}",
         "testimonialsTitle": "Ce spun clienții",
         "testimonialsEmpty": "Recenziile tale vor apărea aici după ce primești câteva.",
-        "reviewsCount": "{{count}} recenzii",
+        "reviewsCount_one": "{{count}} recenzie",
+        "reviewsCount_few": "{{count}} recenzii",
+        "reviewsCount_other": "{{count}} de recenzii",
         "inTheTeam": "în echipă",
         "bookAt": "Programează la {{name}}",
         "callLabel": "Apelează {{name}}",
@@ -366,13 +377,20 @@
         "faqTitle": "Întrebări frecvente",
         "faqEmpty": "Adaugă întrebări din setările secțiunii Întrebări frecvente.",
         "contactTitle": "Contactează-ne",
-        "contactEmpty": "Adaugă date de contact și rețele sociale.",
         "galleryHeading": "O privire în interior.",
+        "galleryViewFull": "Vezi complet",
         "reviewsHeading": "Apreciați de clienții noștri.",
-        "contactHeading": "Treci pe la noi.",
-        "contactAddress": "Adresă",
+        "reviewsSublede": "Fiecare recenzie provine dintr-o programare verificată — needitată.",
+        "reviewsVerifiedCount_one": "{{count}} recenzie verificată",
+        "reviewsVerifiedCount_few": "{{count}} recenzii verificate",
+        "reviewsVerifiedCount_other": "{{count}} de recenzii verificate",
+        "reviewsOutOf": "Rating mediu · din 5.0",
+        "reviewsVerified": "Verificat",
+        "contactHeadingLoc": "Vino la {{name}}.",
         "contactReach": "Contact",
-        "contactFollow": "Urmărește",
+        "footerComeFind": "Treci pe la noi.",
+        "footerWhere": "Unde",
+        "footerMore": "mai multe locații",
         "contactHours": "Program",
         "contactClosed": "Închis",
         "contactOpen247": "Non-stop",
@@ -395,9 +413,9 @@
           "sunday": "Duminică"
         },
         "locationCount_one": "{{count}} locație",
-        "locationCount_other": "{{count}} locații",
+        "locationCount_few": "{{count}} locații",
+        "locationCount_other": "{{count}} de locații",
         "footer": {
-          "nowViewing": "Vizualizezi acum",
           "poweredBy": "Creat cu Zavoia",
           "rights": "© {{year}} {{name}}"
         },
@@ -407,7 +425,8 @@
         },
         "subhead": {
           "locations_one": "Unde ne găsești.",
-          "locations_other": "{{count}} locații, o singură echipă.",
+          "locations_few": "{{count}} locații, o singură echipă.",
+          "locations_other": "{{count}} de locații, o singură echipă.",
           "team": "Cunoaște echipa.",
           "faq": "Întrebări, cu răspunsuri."
         },
@@ -422,8 +441,7 @@
           "gallery": "Galerie",
           "team": "Echipă",
           "reviews": "Recenzii",
-          "faq": "Întrebări",
-          "contact": "Vizită"
+          "faq": "Întrebări"
         }
       }
     }

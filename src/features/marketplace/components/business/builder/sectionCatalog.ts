@@ -7,7 +7,6 @@ import {
   Users,
   Quote,
   HelpCircle,
-  Mail,
   Type,
   Film,
   type LucideIcon,
@@ -119,7 +118,9 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: Images,
     labelKey: "businessPage.sections.gallery.label",
     descriptionKey: "businessPage.sections.gallery.description",
-    variants: [v("grid"), v("carousel")],
+    // Four layouts from the source: editorial essay (default), bento, masonry, and a centre-weighted
+    // drag carousel. Legacy "grid" saves migrate to "editorial" on read.
+    variants: [v("editorial"), v("bento"), v("masonry"), v("carousel")],
     netNew: false,
     defaultConfig: {},
   },
@@ -128,7 +129,9 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: Users,
     labelKey: "businessPage.sections.team.label",
     descriptionKey: "businessPage.sections.team.description",
-    variants: [v("grid"), v("list")],
+    // "portraits" = tall photo cards with a location pin + hover "find at" CTA (default, the source's
+    // lookbook grid); "roster" = a numbered editorial list. Legacy grid/list saves migrate on read.
+    variants: [v("portraits"), v("roster")],
     netNew: false,
     defaultConfig: {},
   },
@@ -146,9 +149,11 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   testimonials: {
     type: "testimonials",
     icon: Quote,
+    // Single editorial layout (mirrors the source): rating summary + per-star distribution + an
+    // auto-playing quote showcase. Legacy cards/quote saves collapse on read.
     labelKey: "businessPage.sections.testimonials.label",
     descriptionKey: "businessPage.sections.testimonials.description",
-    variants: [v("cards"), v("quote")],
+    variants: [v("default")],
     netNew: false,
     defaultConfig: {},
   },
@@ -159,15 +164,6 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     descriptionKey: "businessPage.sections.faq.description",
     variants: [v("accordion"), v("list")],
     netNew: true,
-    defaultConfig: {},
-  },
-  contact: {
-    type: "contact",
-    icon: Mail,
-    labelKey: "businessPage.sections.contact.label",
-    descriptionKey: "businessPage.sections.contact.description",
-    variants: [v("simple"), v("split")],
-    netNew: false,
     defaultConfig: {},
   },
 };
@@ -189,7 +185,6 @@ export const SECTION_TYPES: SectionType[] = [
   "interlude",
   "testimonials",
   "faq",
-  "contact",
 ];
 
 const makeEntry = (type: SectionType): SectionEntry => {
@@ -228,7 +223,10 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
       typeof s === "object" &&
       !Array.isArray(s) &&
       typeof (s as { type?: unknown }).type === "string" &&
-      (s as { type: string }).type.length > 0,
+      (s as { type: string }).type.length > 0 &&
+      // The standalone Contact ("Visit") section was removed — its content now lives in the footer. Drop any
+      // saved contact entries (a deliberate deprecation, unlike the forward-compat preservation of unknown types).
+      (s as { type: string }).type !== "contact",
   );
   if (valid.length === 0) {
     return DEFAULT_LAYOUT.map((s) => ({ ...s, config: { ...s.config } }));
@@ -275,6 +273,22 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
   const li = result.findIndex((s) => s.type === "locations");
   if (li !== -1 && !SECTION_META.locations.variants.some((variant) => variant.id === result[li].variant)) {
     result[li] = { ...result[li], variant: SECTION_META.locations.variants[0].id };
+  }
+  // Team renamed its layout choice (grid/list → portraits/roster); gallery expanded to four named layouts
+  // (legacy "grid" was the editorial essay). Map legacy ids, then collapse anything still unrecognised to
+  // the section's default variant so its pill reads as selected.
+  const LEGACY_VARIANTS: Partial<Record<SectionType, Record<string, string>>> = {
+    team: { grid: "portraits", list: "roster" },
+    gallery: { grid: "editorial" },
+    testimonials: {}, // cards/quote collapsed to the single "default" layout
+  };
+  for (const [type, remap] of Object.entries(LEGACY_VARIANTS)) {
+    const idx = result.findIndex((s) => s.type === type);
+    if (idx === -1) continue;
+    const meta = SECTION_META[type as SectionType];
+    let variant = remap[result[idx].variant] ?? result[idx].variant;
+    if (!meta.variants.some((vr) => vr.id === variant)) variant = meta.variants[0].id;
+    if (variant !== result[idx].variant) result[idx] = { ...result[idx], variant };
   }
   return result;
 }

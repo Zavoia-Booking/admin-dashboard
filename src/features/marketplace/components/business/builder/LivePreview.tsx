@@ -1,4 +1,5 @@
-import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { Fragment, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode, type Ref } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   Star,
@@ -17,11 +18,17 @@ import {
   Sparkles,
   ChevronDown,
   X,
+  Maximize2,
+  ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
 import type {
   SectionEntry,
   LocationWithAssignments,
+  TeamMember,
+  TeamConfig,
+  GalleryConfig,
+  ReviewsConfig,
   FaqItem,
   AnnouncementContent,
   HeroConfig,
@@ -70,7 +77,12 @@ export interface PreviewData {
   reviews?: PreviewReview[];
   /** Per team-member rating keyed by member id (from the reviews stats endpoint; absent → no stars). */
   teamRatings?: Record<number, { rating: number; count: number }>;
+  /** Business-wide per-star review counts (from the reviews stats endpoint) for the distribution bars. */
+  ratingDistribution?: RatingBars;
 }
+
+/** Per-star review counts (5 → 1), as returned by the reviews stats endpoint. */
+export type RatingBars = { "1": number; "2": number; "3": number; "4": number; "5": number };
 
 interface LivePreviewProps {
   layout: SectionEntry[];
@@ -135,8 +147,13 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1 }: LiveP
   // up behind it. `navH` lets the nav give back its flow height (negative margin) so it overlays the hero.
   const navRef = useRef<HTMLElement>(null);
   const heroRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const footerRef = useRef<HTMLElement>(null);
   const [navH, setNavH] = useState(0);
   const [progress, setProgress] = useState(0);
+
+  // The footer is pinned behind the page and uncovered on scroll — drive its reveal off the scroll container.
+  useFooterReveal(rootRef, footerRef, chrome && stacked.length > 0);
 
   useLayoutEffect(() => {
     const nav = navRef.current;
@@ -193,8 +210,10 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1 }: LiveP
   return (
     <div
       className={chrome ? "" : "overflow-hidden rounded-xl ring-1 ring-black/5"}
+      ref={rootRef}
       style={{ ...previewVars(data.brandColor, data.fontKey), backgroundColor: "var(--mc-bg)", containerType: "inline-size" } as CSSProperties}
     >
+      <div className={chrome ? "mc-content" : undefined}>
       {bar ? (
         // Announcement ribbon + nav travel together, pinned to the top of the scroll container.
         <div className="sticky top-0 z-30">
@@ -254,7 +273,8 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1 }: LiveP
           );
         })
       )}
-      {chrome && stacked.length > 0 && <Footer data={data} t={t} />}
+      </div>
+      {chrome && stacked.length > 0 && <Footer data={data} t={t} footerRef={footerRef} />}
     </div>
   );
 }
@@ -291,8 +311,6 @@ function SectionView({ entry, data, t, no, chrome }: { entry: SectionEntry; data
       return <Reviews entry={entry} data={data} t={t} no={no} />;
     case "faq":
       return <Faq entry={entry} data={data} t={t} no={no} />;
-    case "contact":
-      return <Contact entry={entry} data={data} t={t} no={no} />;
     default:
       return null;
   }
@@ -1256,41 +1274,458 @@ function StageHours({ loc, t }: { loc: LocationWithAssignments; t: T }) {
 }
 
 // ---- Gallery -------------------------------------------------------------
+// Four layouts mirroring the source: editorial essay, bento, masonry, and a centre-weighted drag carousel,
+// plus a fullscreen lightbox with a shared-element morph. Photos are flattened across the locations'
+// portfolios; `originalName` (if any) is the alt text only — the source carries no visible captions.
+const GALLERY_MAX = 16;
+type GalleryImage = { src: string; alt: string };
+const ESSAY_SPANS = [7, 5, 4, 8, 6, 6];
+const ESSAY_AR = ["7/5", "4/5", "4/5", "16/9", "3/2", "3/2"];
+const ESSAY_TOPS = ["0", "0", "clamp(14px,3cqw,48px)", "clamp(14px,3cqw,48px)", "0", "0"];
+const BENTO_CELLS = ["mc-c2 mc-r2", "mc-c2", "mc-c1", "mc-c1", "mc-c2", "mc-c2"];
+const MASONRY_AR = ["3/4", "5/4", "4/5", "3/4", "2/3", "1/1", "4/5", "3/4", "5/4", "4/5", "2/3", "5/6"];
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+function ZoomBadge() {
+  return (
+    <span className="mc-zoom-badge">
+      <Maximize2 className="h-[15px] w-[15px]" strokeWidth={1.8} />
+    </span>
+  );
+}
+
+function GalleryEditorial({ images, onOpen }: { images: GalleryImage[]; onOpen: (i: number) => void }) {
+  return (
+    <div className="mc-essay">
+      {images.map((g, i) => (
+        <figure key={i} style={{ gridColumn: `span ${ESSAY_SPANS[i % 6]}`, marginTop: ESSAY_TOPS[i % 6] }}>
+          <button
+            type="button"
+            className="mc-zoomable mc-mask-in block w-full"
+            data-gimg={i}
+            onClick={() => onOpen(i)}
+            style={{ aspectRatio: ESSAY_AR[i % 6], animationDelay: `${(i % 2) * 100}ms` }}
+          >
+            <img src={g.src} alt={g.alt} />
+            <ZoomBadge />
+          </button>
+        </figure>
+      ))}
+    </div>
+  );
+}
+
+function GalleryBento({ images, onOpen }: { images: GalleryImage[]; onOpen: (i: number) => void }) {
+  return (
+    <div className="mc-bento">
+      {images.map((g, i) => (
+        <div key={i} className={cn("mc-bento-tile mc-mask-in", BENTO_CELLS[i % 6])} style={{ animationDelay: `${(i % 3) * 80}ms` }}>
+          <button type="button" className="mc-zoomable block h-full w-full" data-gimg={i} onClick={() => onOpen(i)}>
+            <img src={g.src} alt={g.alt} />
+            <ZoomBadge />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function masonryColCount(width: number, count: number): number {
+  const cap = width <= 480 ? 2 : width <= 820 ? 3 : 4;
+  return Math.min(cap, count <= 3 ? 2 : count <= 7 ? 3 : 4);
+}
+
+function GalleryMasonry({ images, onOpen }: { images: GalleryImage[]; onOpen: (i: number) => void }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [cols, setCols] = useState(3);
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const measure = () => setCols(masonryColCount(el.clientWidth, images.length));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [images.length]);
+
+  // Shortest-column packing: push each tile into the column with the least accumulated aspect-height.
+  const columns: { g: GalleryImage; i: number; ar: string }[][] = Array.from({ length: cols }, () => []);
+  const heights = new Array(cols).fill(0);
+  images.forEach((g, i) => {
+    const ar = MASONRY_AR[i % MASONRY_AR.length];
+    const [w, h] = ar.split("/").map(Number);
+    let c = 0;
+    for (let k = 1; k < cols; k++) if (heights[k] < heights[c]) c = k;
+    columns[c].push({ g, i, ar });
+    heights[c] += h / w;
+  });
+
+  return (
+    <div ref={rootRef} className="mc-masonry" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      {columns.map((col, ci) => (
+        <div className="mc-masonry-col" key={ci}>
+          {col.map(({ g, i, ar }) => (
+            <figure className="mc-masonry-tile" key={i}>
+              <button
+                type="button"
+                className="mc-zoomable mc-mask-in block w-full"
+                data-gimg={i}
+                onClick={() => onOpen(i)}
+                style={{ aspectRatio: ar, animationDelay: `${(ci % 3) * 70}ms` }}
+              >
+                <img src={g.src} alt={g.alt} />
+                <ZoomBadge />
+              </button>
+            </figure>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function GalleryCarousel({ images, onOpen, t }: { images: GalleryImage[]; onOpen: (i: number) => void; t: T }) {
+  const n = images.length;
+  const [active, setActive] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const viewRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const drag = useRef({ on: false, x: 0, lastX: 0, moved: false });
+
+  const recalc = useCallback((idx: number) => {
+    const view = viewRef.current;
+    const track = trackRef.current;
+    const slide = track?.children[idx] as HTMLElement | undefined;
+    if (!view || !slide) return;
+    setOffset(view.clientWidth / 2 - (slide.offsetLeft + slide.offsetWidth / 2));
+  }, []);
+  useLayoutEffect(() => recalc(active), [active, n, recalc]);
+  useEffect(() => {
+    const onResize = () => recalc(active);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [active, recalc]);
+
+  const go = (i: number) => setActive(Math.max(0, Math.min(n - 1, i)));
+  const begin = (x: number) => (drag.current = { on: true, x, lastX: x, moved: false });
+  const move = (x: number) => {
+    const d = drag.current;
+    if (!d.on) return;
+    d.lastX = x;
+    if (Math.abs(x - d.x) > 6) d.moved = true;
+  };
+  const end = () => {
+    const d = drag.current;
+    if (!d.on) return;
+    d.on = false;
+    const dx = d.lastX - d.x;
+    if (Math.abs(dx) > 48) go(active + (dx < 0 ? 1 : -1));
+  };
+
+  const num = (x: number) => String(x).padStart(2, "0");
+  const progress = n > 1 ? active / (n - 1) : 1;
+
+  return (
+    <div className="mc-galcar">
+      <div className="mc-galcar-head">
+        <div className="mc-galcar-count">
+          <span className="mc-galcar-count-n">{num(active + 1)}</span>
+          <span className="mc-galcar-count-d">/ {num(n)}</span>
+        </div>
+        <div className="mc-galcar-rail">
+          <span className="mc-galcar-rail-fill" style={{ transform: `scaleX(${Math.max(0.04, progress)})` }} />
+        </div>
+      </div>
+      <div
+        className="mc-galcar-view"
+        ref={viewRef}
+        onMouseDown={(e) => begin(e.clientX)}
+        onMouseMove={(e) => move(e.clientX)}
+        onMouseUp={end}
+        onMouseLeave={end}
+        onTouchStart={(e) => begin(e.touches[0].clientX)}
+        onTouchMove={(e) => move(e.touches[0].clientX)}
+        onTouchEnd={end}
+      >
+        <div className="mc-galcar-track" ref={trackRef} style={{ transform: `translate3d(${offset}px,0,0)` }}>
+          {images.map((g, i) => (
+            <figure
+              key={i}
+              className="mc-galcar-slide"
+              data-active={i === active ? "1" : "0"}
+              onClick={() => {
+                if (drag.current.moved) return;
+                if (i !== active) go(i);
+                else onOpen(i);
+              }}
+            >
+              <div className="mc-galcar-img" data-gimg={i}>
+                <img src={g.src} alt={g.alt} draggable={false} onLoad={() => i === active && recalc(active)} />
+                {i === active && (
+                  <span className="mc-galcar-expand">
+                    <Maximize2 className="h-3.5 w-3.5" strokeWidth={1.8} /> {t("businessPage.builder.preview.galleryViewFull")}
+                  </span>
+                )}
+              </div>
+            </figure>
+          ))}
+        </div>
+      </div>
+      <div className="mc-galcar-ctrl">
+        <div className="mc-galcar-dots">
+          {images.map((_, i) => (
+            <button key={i} type="button" className="mc-galcar-dot" data-on={i === active ? "1" : "0"} onClick={() => go(i)} aria-label={`${i + 1}`}>
+              <span />
+            </button>
+          ))}
+        </div>
+        <div className="mc-galcar-arrows">
+          <button type="button" className="mc-galcar-arr" disabled={active === 0} onClick={() => go(active - 1)} aria-label="Previous">
+            <ArrowRight className="h-[18px] w-[18px]" style={{ transform: "rotate(180deg)" }} strokeWidth={1.8} />
+          </button>
+          <button type="button" className="mc-galcar-arr" disabled={active === n - 1} onClick={() => go(active + 1)} aria-label="Next">
+            <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** WAAPI shared-element morph between a thumbnail rect and the centered lightbox rect. */
+function lightboxMorph(
+  src: string,
+  from: DOMRect,
+  to: { left: number; top: number; width: number; height: number },
+  dur: number,
+  onDone: () => void,
+) {
+  const el = document.createElement("div");
+  el.className = "mc-lbox-morph";
+  el.style.cssText = `left:${from.left}px;top:${from.top}px;width:${from.width}px;height:${from.height}px;background-image:url("${src}")`;
+  document.body.appendChild(el);
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    el.remove();
+    onDone();
+  };
+  const anim = el.animate(
+    [
+      { left: `${from.left}px`, top: `${from.top}px`, width: `${from.width}px`, height: `${from.height}px` },
+      { left: `${to.left}px`, top: `${to.top}px`, width: `${to.width}px`, height: `${to.height}px` },
+    ],
+    { duration: dur, easing: "cubic-bezier(.19,1,.22,1)", fill: "forwards" },
+  );
+  anim.onfinish = finish;
+  // Safety net in case onfinish never fires (e.g. tab backgrounded).
+  setTimeout(finish, dur + 120);
+}
+
+/** Contain-fit natural dims into 88vw × 80vh, centered (mirrors the source's targetRect). */
+function lightboxRect(natW: number, natH: number) {
+  const w0 = natW || 4;
+  const h0 = natH || 3;
+  const maxW = window.innerWidth * 0.88;
+  const maxH = window.innerHeight * 0.8;
+  const scale = Math.min(maxW / w0, maxH / h0);
+  const width = w0 * scale;
+  const height = h0 * scale;
+  return { left: (window.innerWidth - width) / 2, top: (window.innerHeight - height) / 2, width, height };
+}
+
+function GalleryLightbox({
+  images,
+  index,
+  setIndex,
+  rootRef,
+  brandColor,
+  fontKey,
+}: {
+  images: GalleryImage[];
+  index: number;
+  setIndex: (i: number) => void;
+  rootRef: React.RefObject<HTMLElement | null>;
+  brandColor: string;
+  fontKey: string;
+}) {
+  const [dir, setDir] = useState(0);
+  const [figVisible, setFigVisible] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const figRef = useRef<HTMLImageElement>(null);
+  // Synchronous re-entry guard for close(): a double backdrop-click / double-Escape during the 440ms close
+  // window would otherwise spawn a second morph clone (mirrors the source's closingRef).
+  const closingRef = useRef(false);
+
+  const thumbFor = useCallback(
+    (i: number): HTMLImageElement | null => rootRef.current?.querySelector(`[data-gimg="${i}"] img`) ?? null,
+    [rootRef],
+  );
+
+  // Open: morph the source thumbnail up to the centered frame, then reveal the real image.
+  useLayoutEffect(() => {
+    const thumb = thumbFor(index);
+    const cur = images[index];
+    if (prefersReducedMotion() || !thumb || !cur) {
+      setFigVisible(true);
+      return;
+    }
+    setFigVisible(false);
+    const from = thumb.getBoundingClientRect();
+    const to = lightboxRect(thumb.naturalWidth, thumb.naturalHeight);
+    lightboxMorph(cur.src, from, to, 540, () => setFigVisible(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const close = useCallback(() => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    const thumb = thumbFor(index);
+    const fig = figRef.current;
+    const cur = images[index];
+    if (prefersReducedMotion() || !thumb || !fig || !cur) {
+      setIndex(-1);
+      return;
+    }
+    setClosing(true);
+    setFigVisible(false);
+    lightboxMorph(cur.src, fig.getBoundingClientRect(), thumb.getBoundingClientRect(), 440, () => setIndex(-1));
+  }, [index, images, setIndex, thumbFor]);
+
+  const nav = useCallback(
+    (d: number) => {
+      const next = index + d;
+      if (next < 0 || next >= images.length) return;
+      setDir(d);
+      setFigVisible(true);
+      setIndex(next);
+    },
+    [index, images.length, setIndex],
+  );
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") close();
+      else if (e.key === "ArrowRight") nav(1);
+      else if (e.key === "ArrowLeft") nav(-1);
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [close, nav]);
+
+  const num = (x: number) => String(x).padStart(2, "0");
+
+  // Owner data is live: if the portfolio shrinks while the lightbox is open (e.g. a cross-tab in-flight
+  // image delete lands), index can fall out of range. Bail rather than deref undefined; the parent's
+  // clamp effect then resets the index and unmounts.
+  const cur = images[index];
+  if (!cur) return null;
+
+  return createPortal(
+    <div
+      className={cn("mc-lbox", closing && "is-closing")}
+      style={{ ...previewVars(brandColor, fontKey) }}
+      onClick={close}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="mc-lbox-bar" onClick={(e) => e.stopPropagation()}>
+        <span className="mc-lbox-count">
+          <span className="mc-lbox-n" key={index}>
+            {num(index + 1)}
+          </span>{" "}
+          <span>/ {num(images.length)}</span>
+        </span>
+        <button type="button" className="mc-lbox-close" onClick={close} aria-label="Close">
+          <X className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+      </div>
+      <button
+        type="button"
+        className="mc-lbox-nav mc-lbox-prev"
+        disabled={index === 0}
+        onClick={(e) => {
+          e.stopPropagation();
+          nav(-1);
+        }}
+        aria-label="Previous"
+      >
+        <ArrowRight className="h-[22px] w-[22px]" style={{ transform: "rotate(180deg)" }} strokeWidth={1.8} />
+      </button>
+      <figure className="mc-lbox-fig" onClick={(e) => e.stopPropagation()} style={{ opacity: figVisible ? 1 : 0 }}>
+        <span className="mc-lbox-swap" key={index} data-dir={dir}>
+          <img ref={figRef} src={cur.src} alt={cur.alt} />
+        </span>
+      </figure>
+      <button
+        type="button"
+        className="mc-lbox-nav mc-lbox-next"
+        disabled={index === images.length - 1}
+        onClick={(e) => {
+          e.stopPropagation();
+          nav(1);
+        }}
+        aria-label="Next"
+      >
+        <ArrowRight className="h-[22px] w-[22px]" strokeWidth={1.8} />
+      </button>
+    </div>,
+    document.body,
+  );
+}
+
 function Gallery({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  const images = data.locations.flatMap((l) => l.portfolioImages?.map((p) => p.url) ?? []).slice(0, 6);
-  // Asymmetric "lookbook" spans / ratios / offsets, mirroring the microsite essay grid.
-  const spans = [7, 5, 4, 8, 6, 6];
-  const ratios = ["7/5", "4/5", "4/5", "16/9", "3/2", "3/2"];
-  const tops = ["0", "0", "clamp(14px,3cqw,48px)", "clamp(14px,3cqw,48px)", "0", "0"];
+  const cfg = (entry.config ?? {}) as GalleryConfig;
+  const heading = cfg.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.galleryHeading");
+  const images: GalleryImage[] = data.locations
+    .flatMap((l) => (l.portfolioImages ?? []).map((p) => ({ src: p.url, alt: p.originalName ?? "" })))
+    .slice(0, GALLERY_MAX);
+  const layout = entry.variant;
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [lbIndex, setLbIndex] = useState(-1);
+  const onOpen = (i: number) => setLbIndex(i);
+
+  // Photos are live owner data; if they shrink out from under an open lightbox, snap it shut so the
+  // child never renders an out-of-range index.
+  useEffect(() => {
+    if (lbIndex >= 0 && lbIndex >= images.length) setLbIndex(-1);
+  }, [images.length, lbIndex]);
 
   return (
     <Section>
-      <SectionHead
-        no={no}
-        kicker={t("businessPage.builder.preview.kicker.gallery")}
-        heading={t("businessPage.builder.preview.galleryHeading")}
-      />
+      <SectionHead no={no} kicker={t("businessPage.builder.preview.kicker.gallery")} heading={heading} />
       {images.length === 0 ? (
         <Placeholder icon={<ImageOff className="h-4 w-4" strokeWidth={1.6} />}>
           {t("businessPage.builder.preview.galleryEmpty")}
         </Placeholder>
-      ) : entry.variant === "carousel" ? (
-        <div className="flex gap-[clamp(8px,1.6cqw,16px)] overflow-x-auto pb-1">
-          {images.map((url, i) => (
-            <figure key={url} className="shrink-0">
-              <img src={url} alt="" className="h-40 w-56 rounded-md object-cover" />
-              <Caption index={i + 1} />
-            </figure>
-          ))}
-        </div>
       ) : (
-        <div className="grid grid-cols-12 gap-[clamp(8px,1.6cqw,18px)]">
-          {images.map((url, i) => (
-            <figure key={url} style={{ gridColumn: `span ${spans[i % spans.length]}`, marginTop: tops[i % tops.length] }}>
-              <img src={url} alt="" className="w-full rounded-md object-cover" style={{ aspectRatio: ratios[i % ratios.length] }} />
-              <Caption index={i + 1} />
-            </figure>
-          ))}
+        <div ref={rootRef}>
+          {layout === "carousel" ? (
+            <GalleryCarousel images={images} onOpen={onOpen} t={t} />
+          ) : layout === "bento" ? (
+            <GalleryBento images={images} onOpen={onOpen} />
+          ) : layout === "masonry" ? (
+            <GalleryMasonry images={images} onOpen={onOpen} />
+          ) : (
+            <GalleryEditorial images={images} onOpen={onOpen} />
+          )}
+          {lbIndex >= 0 && (
+            <GalleryLightbox
+              images={images}
+              index={lbIndex}
+              setIndex={setLbIndex}
+              rootRef={rootRef}
+              brandColor={data.brandColor}
+              fontKey={data.fontKey}
+            />
+          )}
         </div>
       )}
     </Section>
@@ -1298,66 +1733,119 @@ function Gallery({ entry, data, t, no }: { entry: SectionEntry; data: PreviewDat
 }
 
 // ---- Team ----------------------------------------------------------------
+// Portraits (default) or roster, mirroring the source `SecTeam`. Members are flattened per location so
+// every card/row carries its own location pin (a member working at several locations appears once per
+// location, like the source's `all = flatMap`). Job titles aren't in the data model, so only the owner
+// gets a label; per-member ratings come from the reviews-stats feed. Booking/scroll is inert in the
+// preview, so the portrait "Find at" CTA and the roster arrow are decorative affordances.
+const TEAM_MAX = 12;
 function Team({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  const members = dedupeTeam(data.locations.flatMap((l) => l.teamMembers ?? [])).slice(0, 8);
-  const list = entry.variant === "list";
+  const roster = entry.variant === "roster";
+  const cfg = (entry.config ?? {}) as TeamConfig;
+  const heading = cfg.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.subhead.team");
+  const sublede = cfg.sublede?.[data.locale]?.trim() || t("businessPage.builder.preview.sublede.team");
+  const members = data.locations
+    .flatMap((l) => (l.teamMembers ?? []).map((m) => ({ m, locName: l.name, locId: l.id })))
+    .slice(0, TEAM_MAX);
   const ratings = data.teamRatings;
+
+  const nameOf = (m: TeamMember) =>
+    [m.firstName, m.lastName].filter(Boolean).join(" ") || t("businessPage.builder.preview.teamMember");
+  const initialsOf = (m: TeamMember) => `${m.firstName?.[0] ?? ""}${m.lastName?.[0] ?? ""}`.toUpperCase() || "•";
+  // The role enum carries no job titles and there's no specialty field — label the owner, omit the rest.
+  const roleOf = (m: TeamMember) => (m.role === UserRole.OWNER ? t("businessPage.builder.preview.teamRoleOwner") : "");
 
   return (
     <Section>
-      <SectionHead
-        no={no}
-        kicker={t("businessPage.builder.preview.kicker.team")}
-        heading={t("businessPage.builder.preview.subhead.team")}
-        sublede={t("businessPage.builder.preview.sublede.team")}
-      />
+      <SectionHead no={no} kicker={t("businessPage.builder.preview.kicker.team")} heading={heading} sublede={sublede} />
       {members.length === 0 ? (
         <Placeholder>{t("businessPage.builder.preview.teamEmpty")}</Placeholder>
-      ) : (
-        <div
-          className={cn(
-            "grid gap-[clamp(14px,2.4cqw,28px)]",
-            list ? "grid-cols-1" : "[grid-template-columns:repeat(auto-fit,minmax(140px,1fr))]",
-          )}
-        >
-          {members.map((m) => {
-            const name = [m.firstName, m.lastName].filter(Boolean).join(" ") || t("businessPage.builder.preview.teamMember");
-            const initials = `${m.firstName?.[0] ?? ""}${m.lastName?.[0] ?? ""}`.toUpperCase() || "•";
-            // Only the owner has a meaningful public title (the role enum carries no job titles, and
-            // there is no specialty field) — show "Owner", omit for everyone else rather than fabricate.
-            const role = m.role === UserRole.OWNER ? t("businessPage.builder.preview.teamRoleOwner") : "";
-            const rating = ratings?.[m.id];
-            const meta = (
-              <>
-                <div style={{ ...DISPLAY, fontSize: "clamp(15px,2.6cqw,21px)", color: "var(--mc-fg)" }}>{name}</div>
-                {role && (
-                  <div className="mt-0.5 text-[12.5px]" style={{ color: "var(--mc-muted)" }}>
-                    {role}
-                  </div>
-                )}
-                {rating && rating.count > 0 && (
-                  <div className="mt-1.5 inline-flex items-center gap-1.5 text-[11px]" style={{ ...MONO, color: "var(--mc-muted)" }}>
-                    <Stars value={rating.rating} size={11} />
-                    {rating.rating.toFixed(1)} · {t("businessPage.builder.preview.reviewsCount", { count: rating.count })}
-                  </div>
-                )}
-              </>
-            );
+      ) : roster ? (
+        <div className="mc-roster">
+          {members.map(({ m, locName, locId }, i) => {
+            const r = ratings?.[m.id];
+            const role = roleOf(m);
             return (
-              <div key={m.id} className={cn(list && "flex items-center gap-3.5")}>
-                <div className={cn("overflow-hidden rounded-md", list ? "h-16 w-14 shrink-0" : "[aspect-ratio:3/4]")}>
+              <div
+                key={`${locId}-${m.id}`}
+                className="mc-rrow mc-locx-rowin"
+                style={{ animationDelay: `${Math.min(i, 8) * 45}ms` }}
+              >
+                <div className="mc-rrow-btn">
+                  <span className="mc-rrow-no">{String(i + 1).padStart(2, "0")}</span>
+                  <span className="mc-rrow-ava">
+                    {m.profileImage ? (
+                      <img src={m.profileImage} alt={nameOf(m)} />
+                    ) : (
+                      <span
+                        className="flex h-full w-full items-center justify-center text-base"
+                        style={{ ...DISPLAY, background: "color-mix(in oklch, var(--mc-accent) 12%, var(--mc-soft))", color: "var(--mc-ink)" } as CSSProperties}
+                      >
+                        {initialsOf(m)}
+                      </span>
+                    )}
+                  </span>
+                  <span className="mc-rrow-main">
+                    <span className="mc-rrow-name">{nameOf(m)}</span>
+                    {role && <span className="mc-rrow-role">{role}</span>}
+                    <span className="mc-rrow-where">{locName}</span>
+                    {r && r.count > 0 && (
+                      <span className="mc-rrow-meta">
+                        <span className="mc-rrow-rate">
+                          <Stars value={r.rating} size={13} /> {r.rating.toFixed(1)}
+                        </span>
+                        <span className="mc-rrow-rev">{t("businessPage.builder.preview.reviewsCount", { count: r.count })}</span>
+                      </span>
+                    )}
+                  </span>
+                  <span className="mc-rrow-cta" aria-hidden>
+                    <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.8} />
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="mc-team">
+          {members.map(({ m, locName, locId }, i) => {
+            const r = ratings?.[m.id];
+            const role = roleOf(m);
+            return (
+              <div
+                key={`${locId}-${m.id}`}
+                className="mc-portrait mc-mask-in"
+                style={{ animationDelay: `${Math.min(i, 7) * 70}ms` }}
+              >
+                <div className="mc-pfig">
                   {m.profileImage ? (
-                    <img src={m.profileImage} alt="" className="h-full w-full object-cover" />
+                    <img src={m.profileImage} alt={nameOf(m)} />
                   ) : (
                     <div
-                      className="flex h-full w-full items-center justify-center text-xl"
-                      style={{ ...DISPLAY, background: "color-mix(in oklch, var(--mc-accent) 12%, var(--mc-soft))", color: "var(--mc-ink)" } as CSSProperties}
+                      className="flex h-full w-full items-center justify-center"
+                      style={{ ...DISPLAY, fontSize: "clamp(34px,6cqw,56px)", background: "color-mix(in oklch, var(--mc-accent) 14%, var(--mc-soft))", color: "var(--mc-ink)" } as CSSProperties}
                     >
-                      {initials}
+                      {initialsOf(m)}
                     </div>
                   )}
+                  <div className="mc-pscrim" />
+                  <span className="mc-pbadge">
+                    <MapPin className="h-[11px] w-[11px]" strokeWidth={2} /> {locName}
+                  </span>
+                  {r && r.count > 0 && (
+                    <span className="mc-prate">
+                      <Star className="h-3 w-3" fill="currentColor" strokeWidth={0} /> {r.rating.toFixed(1)}
+                    </span>
+                  )}
+                  <div className="mc-pcap">
+                    <div className="mc-pname">{nameOf(m)}</div>
+                    {role && <div className="mc-prole">{role}</div>}
+                    <span className="mc-pfind">
+                      {t("businessPage.builder.preview.teamFind", { location: locName })}
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={2} />
+                    </span>
+                  </div>
                 </div>
-                <div className={cn(!list && "mt-3")}>{meta}</div>
               </div>
             );
           })}
@@ -1368,13 +1856,187 @@ function Team({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; 
 }
 
 // ---- Reviews -------------------------------------------------------------
-// Aggregate score + heading on top (variant-dependent), then a multi-column grid of real 5★ customer
-// quotes when present. Falls back to an aggregate-only render when no quote text has loaded.
+// Rating summary + real per-star distribution bars, then an auto-playing quote showcase, mirroring the
+// source `SecReviews`. Score + bars are real stats (aggregate rating/count + ratingDistribution); the
+// showcase auto-advances with a per-word rise, pausing on hover / off-screen / reduced motion.
+function formatReviewDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
+function RvDistRow({ stars, pct }: { stars: number; pct: number }) {
+  const reduced = prefersReducedMotion();
+  const [w, setW] = useState(reduced ? pct : 0);
+  useEffect(() => {
+    if (reduced) {
+      setW(pct);
+      return;
+    }
+    const id = setTimeout(() => setW(pct), 60);
+    return () => clearTimeout(id);
+  }, [pct, reduced]);
+  return (
+    <div className="mc-rv-drow">
+      <span className="mc-rv-dlabel">
+        {stars}
+        <Star className="h-2.5 w-2.5" fill="currentColor" strokeWidth={0} />
+      </span>
+      <span className="mc-rv-dtrack">
+        <span className="mc-rv-dfill" style={{ transform: `scaleX(${pct > 0 ? Math.max(0.02, w) : 0})` }} />
+      </span>
+      <span className="mc-rv-dpct">{Math.round(pct * 100)}%</span>
+    </div>
+  );
+}
+
+function RvSlide({ item, animateIn, italic, t }: { item: PreviewReview; animateIn: boolean; italic: boolean; t: T }) {
+  // Resting state is visible; only hide-then-rise when actually animating in, so a frozen first paint
+  // never traps the words off-screen.
+  const [shown, setShown] = useState(!animateIn);
+  useEffect(() => {
+    if (!animateIn) {
+      setShown(true);
+      return;
+    }
+    const id = setTimeout(() => setShown(true), 30);
+    return () => clearTimeout(id);
+  }, [animateIn]);
+  const initial = (item.customerName || "?").trim().charAt(0).toUpperCase() || "?";
+  const sub = [item.locationName, formatReviewDate(item.createdAt)].filter(Boolean).join(" · ");
+  const words = item.comment.split(" ");
+  return (
+    <>
+      <blockquote className="mc-rv-q" data-shown={shown ? "1" : "0"} style={{ fontStyle: italic ? "italic" : "normal" }}>
+        {words.map((wd, i) => (
+          <Fragment key={i}>
+            <span className="mc-rv-w">
+              <span style={{ "--i": i } as CSSProperties}>{wd}</span>
+            </span>
+            {i < words.length - 1 ? " " : ""}
+          </Fragment>
+        ))}
+      </blockquote>
+      <figcaption className="mc-rv-meta" data-shown={shown ? "1" : "0"}>
+        <span className="mc-rv-meta-mono" aria-hidden>
+          {initial}
+        </span>
+        <span className="mc-rv-meta-tx">
+          <span className="mc-rv-meta-nm">{item.customerName}</span>
+          {sub && <span className="mc-rv-meta-sub">{sub}</span>}
+        </span>
+        <span className="mc-rv-meta-end">
+          <Stars value={item.rating} size={14} />
+          <span className="mc-rv-vrow">
+            <ShieldCheck className="h-[11px] w-[11px]" strokeWidth={2} /> {t("businessPage.builder.preview.reviewsVerified")}
+          </span>
+        </span>
+      </figcaption>
+    </>
+  );
+}
+
+function RvShowcase({ items, italic, t }: { items: PreviewReview[]; italic: boolean; t: T }) {
+  const n = items.length;
+  const reduced = prefersReducedMotion();
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [inView, setInView] = useState(reduced);
+  const [ind, setInd] = useState<{ y: number; h: number } | null>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const progRef = useRef<HTMLSpanElement>(null);
+  const elapsedRef = useRef(0);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver((es) => es.forEach((e) => setInView(e.isIntersecting)), { threshold: 0.3 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  // Slide the accent indicator to the active reviewer row.
+  useLayoutEffect(() => {
+    const row = listRef.current?.querySelectorAll(".mc-rv-li")[active] as HTMLElement | undefined;
+    if (row) setInd({ y: row.offsetTop + 12, h: Math.max(8, row.offsetHeight - 24) });
+  }, [active, n]);
+
+  // Auto-advance + progress, driven by setInterval + performance.now so it survives the preview's idled
+  // animation clock. Pause keeps elapsed; a manual pick resets it.
+  useEffect(() => {
+    const fill = progRef.current;
+    const DUR = 5600;
+    if (fill) fill.style.transform = `scaleX(${Math.min(1, elapsedRef.current / DUR)})`;
+    if (reduced || n <= 1 || paused || !inView) return;
+    const start = performance.now() - elapsedRef.current;
+    const id = setInterval(() => {
+      const e = performance.now() - start;
+      elapsedRef.current = e;
+      const p = Math.min(1, e / DUR);
+      if (fill) fill.style.transform = `scaleX(${p})`;
+      if (p >= 1) {
+        clearInterval(id);
+        elapsedRef.current = 0;
+        setActive((a) => (a + 1) % n);
+      }
+    }, 1000 / 60);
+    return () => clearInterval(id);
+  }, [active, paused, inView, n, reduced]);
+
+  const select = (i: number) => {
+    elapsedRef.current = 0;
+    setActive(i);
+  };
+  const cur = items[active] ?? items[0];
+  const num = (i: number) => String(i + 1).padStart(2, "0");
+
+  return (
+    <div className="mc-rv-show" ref={rootRef} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div className="mc-rv-list" ref={listRef}>
+        {ind && <span className="mc-rv-ind" aria-hidden style={{ transform: `translateY(${ind.y}px)`, height: ind.h }} />}
+        {items.map((r, i) => (
+          <button
+            key={r.id}
+            type="button"
+            className="mc-rv-li"
+            data-on={i === active ? "1" : "0"}
+            aria-pressed={i === active}
+            onClick={() => select(i)}
+          >
+            <span className="mc-rv-li-no">{num(i)}</span>
+            <span className="mc-rv-li-nm">{r.customerName}</span>
+            {r.locationName && <span className="mc-rv-li-loc">{r.locationName}</span>}
+          </button>
+        ))}
+      </div>
+      <div className="mc-rv-stage">
+        <span className="mc-rv-stage-no" aria-hidden>
+          {num(active)}
+        </span>
+        <RvSlide key={active} item={cur} animateIn={inView && !reduced} italic={italic} t={t} />
+        <span className="mc-rv-prog" aria-hidden>
+          <span className="mc-rv-prog-fill" ref={progRef} />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function Reviews({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
+  const cfg = (entry.config ?? {}) as ReviewsConfig;
   const { rating, count } = aggregateReviews(data.locations);
-  const quotes = (data.reviews ?? []).filter((q) => q.comment.trim()).slice(0, 6);
+  const quotes = (data.reviews ?? []).filter((q) => q.comment.trim()).slice(0, 8);
   const italic = displayFontFor(data.fontKey).italicOk;
-  const heading = t("businessPage.builder.preview.reviewsHeading");
+  const heading = cfg.heading?.[data.locale]?.trim() || t("businessPage.builder.preview.reviewsHeading");
+  const sublede = cfg.sublede?.[data.locale]?.trim() || t("businessPage.builder.preview.reviewsSublede");
 
   if (count === 0 && quotes.length === 0) {
     return (
@@ -1385,74 +2047,66 @@ function Reviews({ entry, data, t, no }: { entry: SectionEntry; data: PreviewDat
     );
   }
 
+  // Real per-star distribution → pct per row (5 → 1). Hidden when absent / empty / toggled off.
+  const dist = data.ratingDistribution;
+  const distTotal = dist ? dist["5"] + dist["4"] + dist["3"] + dist["2"] + dist["1"] : 0;
+  const showDist = !cfg.hideDistribution && !!dist && distTotal > 0;
+
   return (
     <Section soft>
-      <Kicker no={no}>{t("businessPage.builder.preview.kicker.reviews")}</Kicker>
-      {entry.variant === "quote" ? (
-        <div className="mx-auto max-w-[42ch] text-center">
-          <div className="leading-none" style={{ ...DISPLAY, fontSize: "clamp(40px,9cqw,72px)", color: "color-mix(in oklch, var(--mc-accent) 45%, transparent)" } as CSSProperties} aria-hidden>
-            &ldquo;
+      <SectionHead no={no} kicker={t("businessPage.builder.preview.kicker.reviews")} heading={heading} sublede={sublede} stacked />
+      {count > 0 && (
+        <div className={cn("mc-rv-sum", !showDist && "mc-rv-sum--solo")}>
+          <div className="mc-rv-score">
+            <span className="mc-rv-score-n">
+              <CountUp value={rating} decimals={1} />
+            </span>
+            <span className="mc-rv-score-meta">
+              <Stars value={rating} size={17} />
+              <span className="mc-rv-score-cnt">{t("businessPage.builder.preview.reviewsVerifiedCount", { count })}</span>
+              <span className="mc-rv-score-out">{t("businessPage.builder.preview.reviewsOutOf")}</span>
+            </span>
           </div>
-          {count > 0 && (
-            <div className="mt-1 flex justify-center">
-              <Stars value={rating} size={18} />
-            </div>
-          )}
-          <h2 className="mt-4 text-balance" style={{ ...DISPLAY, fontSize: "clamp(22px,5cqw,38px)", lineHeight: 1.04 }}>
-            {heading}
-          </h2>
-          {count > 0 && (
-            <p className="mt-3 text-[11px] uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
-              {t("businessPage.builder.preview.reviewsCount", { count })}
-            </p>
-          )}
-        </div>
-      ) : (
-        <div className="flex flex-wrap items-center gap-x-[clamp(20px,5cqw,56px)] gap-y-5">
-          {count > 0 && (
-            <div className="flex items-baseline gap-3">
-              <span style={{ ...DISPLAY, fontSize: "clamp(46px,12cqw,100px)", lineHeight: 0.86 }}>{rating.toFixed(1)}</span>
-              <div>
-                <Stars value={rating} size={16} />
-                <div className="mt-1.5 text-[11px] uppercase" style={{ ...MONO, letterSpacing: "0.12em", color: "var(--mc-muted)" }}>
-                  {t("businessPage.builder.preview.reviewsCount", { count })}
-                </div>
+          {showDist && dist && (
+            <>
+              <span className="mc-rv-sum-div" aria-hidden />
+              <div className="mc-rv-dist">
+                {([5, 4, 3, 2, 1] as const).map((s) => (
+                  <RvDistRow key={s} stars={s} pct={dist[String(s) as keyof RatingBars] / distTotal} />
+                ))}
               </div>
-            </div>
+            </>
           )}
-          <h2 className="max-w-[14ch] text-balance" style={{ ...DISPLAY, fontSize: "clamp(22px,4.6cqw,38px)", lineHeight: 1.02 }}>
-            {heading}
-          </h2>
         </div>
       )}
-      {quotes.length > 0 && (
-        <div className="mt-[clamp(28px,5cqw,52px)] columns-1 @2xl:columns-2" style={{ columnGap: "clamp(24px,4cqw,56px)" }}>
-          {quotes.map((q) => (
-            <figure key={q.id} className="mb-[clamp(20px,3cqw,36px)] break-inside-avoid">
-              <Stars value={q.rating} size={14} />
-              <blockquote
-                className="mt-3"
-                style={{ ...DISPLAY, fontSize: "clamp(17px,2.4cqw,24px)", lineHeight: 1.34, color: "var(--mc-fg)", fontStyle: italic ? "italic" : "normal" }}
-              >
-                &ldquo;{q.comment}&rdquo;
-              </blockquote>
-              <figcaption className="mt-3.5 text-[11.5px]" style={{ ...MONO, color: "var(--mc-muted)" }}>
-                — {q.customerName}
-                {q.locationName ? ` · ${q.locationName}` : ""}
-              </figcaption>
-            </figure>
-          ))}
-        </div>
-      )}
+      {quotes.length > 0 && <RvShowcase items={quotes} italic={italic} t={t} />}
     </Section>
   );
 }
 
 // ---- FAQ -----------------------------------------------------------------
+// Interactive single-open accordion (mirrors the source `SecFAQ`): item 0 open by default, clicking the
+// open one closes it, the "+" rotates 45° into an × and fills accent, and the answer height tweens via a
+// measured max-height. The `list` variant renders every answer expanded (no toggle).
 function Faq({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
   const items = data.faq.filter((f) => localized(f.q, data.locale).trim());
-  // Accordion preview is non-interactive: the first item reads open, the rest collapsed.
   const list = entry.variant === "list";
+  const [open, setOpen] = useState(0);
+  const answerRefs = useRef<Array<HTMLDivElement | null>>([]);
+
+  // Items are live owner data; if the open question is deleted (or the list shrinks past it), snap the open
+  // index back in range so a stale index never points past the end (mirrors the Gallery lightbox clamp).
+  useEffect(() => {
+    if (!list && open >= 0 && open >= items.length) setOpen(items.length ? 0 : -1);
+  }, [items.length, open, list]);
+
+  // Drive each panel's max-height to its content height when open, 0 when closed. useLayoutEffect so the
+  // default-open item paints already expanded (no open-on-mount flash); subsequent toggles tween via CSS.
+  useLayoutEffect(() => {
+    answerRefs.current.forEach((el, i) => {
+      if (el) el.style.maxHeight = list || open === i ? `${el.scrollHeight}px` : "0px";
+    });
+  }, [open, list, items, data.locale]);
 
   return (
     <Section narrow>
@@ -1466,30 +2120,51 @@ function Faq({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t
       ) : (
         <div className="border-t" style={{ borderColor: "var(--mc-line)" }}>
           {items.map((f, i) => {
-            const open = list || i === 0;
+            const isOpen = list || open === i;
             return (
               <div key={i} className="border-b" style={{ borderColor: "var(--mc-line)" }}>
-                <div className="flex items-center justify-between gap-4 py-[clamp(14px,2.4cqw,24px)] text-left">
+                <button
+                  type="button"
+                  onClick={() => !list && setOpen(open === i ? -1 : i)}
+                  aria-expanded={isOpen}
+                  className={cn(
+                    "flex w-full items-center justify-between gap-4 py-[clamp(14px,2.4cqw,24px)] text-left",
+                    list && "cursor-default",
+                  )}
+                >
                   <span style={{ ...DISPLAY, fontSize: "clamp(16px,2.7cqw,24px)" }}>{localized(f.q, data.locale)}</span>
                   {!list && (
                     <span
-                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition-transform duration-300"
+                      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border"
                       style={{
-                        borderColor: open ? "var(--mc-accent)" : "var(--mc-line)",
-                        background: open ? "var(--mc-accent)" : "transparent",
-                        color: open ? "var(--mc-on-accent)" : "var(--mc-fg)",
-                        transform: open ? "rotate(45deg)" : "none",
+                        borderColor: isOpen ? "var(--mc-accent)" : "var(--mc-line)",
+                        background: isOpen ? "var(--mc-accent)" : "transparent",
+                        color: isOpen ? "var(--mc-on-accent)" : "var(--mc-fg)",
+                        transform: isOpen ? "rotate(45deg)" : "none",
+                        transition:
+                          "transform 0.35s cubic-bezier(0.34,1.56,0.64,1), background-color 0.25s, color 0.25s, border-color 0.25s",
                       }}
                     >
                       <Plus className="h-3.5 w-3.5" strokeWidth={2} />
                     </span>
                   )}
+                </button>
+                <div
+                  ref={(el) => {
+                    answerRefs.current[i] = el;
+                  }}
+                  className="overflow-hidden"
+                  style={{ maxHeight: 0, transition: "max-height 0.4s var(--ease-out-strong)" }}
+                >
+                  {localized(f.a, data.locale) && (
+                    <p
+                      className="-mt-1 max-w-[68ch] pb-[clamp(14px,2.4cqw,24px)] text-[14.5px] leading-relaxed"
+                      style={{ color: "var(--mc-muted)" }}
+                    >
+                      {localized(f.a, data.locale)}
+                    </p>
+                  )}
                 </div>
-                {open && localized(f.a, data.locale) && (
-                  <p className="-mt-1 max-w-[68ch] pb-[clamp(14px,2.4cqw,24px)] text-[14.5px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
-                    {localized(f.a, data.locale)}
-                  </p>
-                )}
               </div>
             );
           })}
@@ -1499,116 +2174,9 @@ function Faq({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t
   );
 }
 
-// ---- Contact -------------------------------------------------------------
+// ---- Footer day keys (the footer's opening-hours rows reuse these) -------
 type DayKey = "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday" | "sunday";
 const DAY_KEYS: DayKey[] = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
-
-/** Opening-hours list for the contact section's first location. `workingHours` is loosely typed upstream. */
-function Hours({ loc, t }: { loc: LocationWithAssignments; t: T }) {
-  const wh = (loc.workingHours ?? {}) as Partial<Record<DayKey, { open?: string; close?: string; isOpen?: boolean }>>;
-  return (
-    <div>
-      <ContactLabel>{t("businessPage.builder.preview.contactHours")}</ContactLabel>
-      {DAY_KEYS.map((d) => {
-        const day = wh[d];
-        const isOpen = !!loc.open247 || !!(day && day.isOpen && day.open && day.close);
-        const value = loc.open247
-          ? t("businessPage.builder.preview.contactOpen247")
-          : day && day.isOpen && day.open && day.close
-            ? `${day.open}–${day.close}`
-            : t("businessPage.builder.preview.contactClosed");
-        return (
-          <div key={d} className="flex justify-between gap-[18px] py-1 text-[14px]" style={{ color: "var(--mc-fg)" }}>
-            <span>{t(`businessPage.builder.preview.days.${d}`)}</span>
-            <span style={{ ...MONO, fontSize: "12.5px", color: "var(--mc-muted)", opacity: isOpen ? 1 : 0.5 }}>{value}</span>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-function Contact({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {
-  const loc = data.locations[0];
-  const socials = buildSocials(data.social);
-  const wh = (loc?.workingHours ?? null) as Partial<Record<DayKey, { isOpen?: boolean }>> | null;
-  const hasHours = !!loc && (!!loc.open247 || (wh ? DAY_KEYS.some((d) => wh[d]?.isOpen) : false));
-  const hasContact = !!data.email || !!data.phone || socials.length > 0 || !!loc?.address || hasHours;
-  const split = entry.variant === "split";
-
-  const heading = (
-    <>
-      <Kicker no={no}>{t("businessPage.builder.preview.kicker.contact")}</Kicker>
-      <h2 className="max-w-[16ch] text-balance" style={{ ...DISPLAY, fontSize: "clamp(26px,6cqw,52px)", lineHeight: 0.98 }}>
-        {t("businessPage.builder.preview.contactHeading")}
-      </h2>
-    </>
-  );
-
-  const details = !hasContact ? (
-    <Placeholder>{t("businessPage.builder.preview.contactEmpty")}</Placeholder>
-  ) : (
-    <div className={cn("grid gap-[clamp(18px,3cqw,40px)]", split ? "grid-cols-1" : "[grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]")}>
-      {loc?.address && (
-        <div>
-          <ContactLabel>{t("businessPage.builder.preview.contactAddress")}</ContactLabel>
-          <p className="text-[14.5px] leading-relaxed">{loc.address}</p>
-        </div>
-      )}
-      {(data.email || data.phone) && (
-        <div>
-          <ContactLabel>{t("businessPage.builder.preview.contactReach")}</ContactLabel>
-          {data.phone && <p className="text-[14.5px] leading-relaxed">{data.phone}</p>}
-          {data.email && <p className="text-[14.5px] leading-relaxed">{data.email}</p>}
-        </div>
-      )}
-      {socials.length > 0 && (
-        <div>
-          <ContactLabel>{t("businessPage.builder.preview.contactFollow")}</ContactLabel>
-          <div className="flex flex-wrap gap-2">
-            {socials.map(({ Icon, key }) => (
-              <span
-                key={key}
-                className="flex h-8 w-8 items-center justify-center rounded-full border"
-                style={{ borderColor: "var(--mc-line)", color: "var(--mc-ink)" }}
-              >
-                <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-      {hasHours && loc && <Hours loc={loc} t={t} />}
-    </div>
-  );
-
-  // Split — heading/CTA column beside the details column. Simple — heading row, CTA right, details below.
-  if (split) {
-    return (
-      <Section soft>
-        <div className="grid items-start gap-[clamp(22px,4cqw,52px)] [grid-template-columns:repeat(auto-fit,minmax(220px,1fr))]">
-          <div>
-            {heading}
-            <div className="mt-5">
-              <BookButton label={t("businessPage.builder.preview.book")} tone="accent" />
-            </div>
-          </div>
-          {details}
-        </div>
-      </Section>
-    );
-  }
-
-  return (
-    <Section soft>
-      <div className="mb-[clamp(20px,4cqw,40px)] flex flex-wrap items-end justify-between gap-4">
-        <div>{heading}</div>
-        <BookButton label={t("businessPage.builder.preview.book")} tone="accent" />
-      </div>
-      {details}
-    </Section>
-  );
-}
 
 // ---- Announcement --------------------------------------------------------
 /** Full-bleed ribbon above the nav: accent dot · message · mono CTA, with a dismiss affordance
@@ -1822,7 +2390,6 @@ const NAV_LABELS: Record<string, string> = {
   gallery: "businessPage.builder.preview.kicker.gallery",
   team: "businessPage.builder.preview.kicker.team",
   testimonials: "businessPage.builder.preview.kicker.reviews",
-  contact: "businessPage.builder.preview.kicker.contact",
 };
 
 /**
@@ -1966,64 +2533,270 @@ function Nav({
   );
 }
 
-/** Big closing wordmark + Book CTA, then locations / now-viewing / follow columns, and a Zavoia credit. */
-function Footer({ data, t }: { data: PreviewData; t: T }) {
+/** Fit a single-line wordmark edge-to-edge: measure its natural width at a reference size and scale the
+ *  font so the text spans its padded column (mirrors the source footer's fit-to-width closing name). */
+function useFitText(ref: React.RefObject<HTMLElement | null>, dep: string) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const parent = el?.parentElement;
+    if (!el || !parent) return;
+    const fit = () => {
+      el.style.fontSize = "100px";
+      const avail = parent.clientWidth;
+      const textW = el.scrollWidth;
+      if (!avail || !textW) return;
+      el.style.fontSize = `${Math.max(34, Math.min((100 * avail) / textW, 240)).toFixed(1)}px`;
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(parent);
+    return () => ro.disconnect();
+  }, [ref, dep]);
+}
+
+/** Footer reveal: drive `--mc-reveal` (0 hidden → 1 fully shown) off the preview's scroll container so the
+ *  pinned footer dims while covered and lightens to paper as the lifting page uncovers it. Mirrors the
+ *  source `useMicroEngine` footer block; the sticky positioning itself is pure CSS, this only adds polish.
+ *  Reduced motion (or no scroll container) lands the settled, fully-revealed state. */
+function useFooterReveal(
+  rootRef: React.RefObject<HTMLElement | null>,
+  footerRef: React.RefObject<HTMLElement | null>,
+  active: boolean,
+) {
+  useEffect(() => {
+    const root = rootRef.current;
+    const footer = footerRef.current;
+    if (!active || !root || !footer) return;
+    const settle = () => root.style.setProperty("--mc-reveal", "1");
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      settle();
+      return;
+    }
+    let sc: HTMLElement | null = root.parentElement;
+    while (sc) {
+      const oy = getComputedStyle(sc).overflowY;
+      if (oy === "auto" || oy === "scroll") break;
+      sc = sc.parentElement;
+    }
+    const win = !sc;
+    const target: HTMLElement | Window = sc ?? window;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const fh = footer.offsetHeight;
+      const top = win ? window.scrollY || document.documentElement.scrollTop : sc!.scrollTop;
+      const max = win
+        ? document.documentElement.scrollHeight - window.innerHeight
+        : sc!.scrollHeight - sc!.clientHeight;
+      const r = fh > 0 ? Math.max(0, Math.min(1, (top - (max - fh)) / fh)) : 1;
+      root.style.setProperty("--mc-reveal", `${Math.round(r * 1000) / 1000}`);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    target.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    update();
+    return () => {
+      target.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [active, rootRef, footerRef]);
+}
+
+/** Selected-location detail in the footer — name, address (map link), phone (tel), opening hours; re-keyed
+ *  per location so its entrance replays. Mirrors the source `FootDetail`. */
+function FootDetail({ loc, t }: { loc: LocationWithAssignments; t: T }) {
+  const addr = loc.address?.trim() || prettyAddress(loc);
+  const map = mapHref(loc);
+  const phone = loc.phone?.trim();
+  const wh = (loc.workingHours ?? {}) as Partial<Record<DayKey, { open?: string; close?: string; isOpen?: boolean }>>;
+  return (
+    <div className="mc-foot-col mc-foot-detail mc-locx-fade">
+      <ContactLabel>{loc.name}</ContactLabel>
+      {addr &&
+        (map ? (
+          <a className="mc-foot-row mc-foot-link" href={map} target="_blank" rel="noreferrer">
+            {addr}
+          </a>
+        ) : (
+          <span className="mc-foot-row">{addr}</span>
+        ))}
+      {phone && (
+        <a className="mc-foot-row mc-foot-link" href={telHref(phone)}>
+          {phone}
+        </a>
+      )}
+      {hasOpeningHours(loc) && (
+        <div className="mc-foot-hours-wrap">
+          {DAY_KEYS.map((d) => {
+            const day = wh[d];
+            const open = !!loc.open247 || !!(day && day.isOpen && day.open && day.close);
+            const value = loc.open247
+              ? t("businessPage.builder.preview.contactOpen247")
+              : day && day.isOpen && day.open && day.close
+                ? `${day.open}–${day.close}`
+                : t("businessPage.builder.preview.contactClosed");
+            return (
+              <div key={d} className="mc-foot-hours">
+                <span>{t(`businessPage.builder.preview.days.${d}`)}</span>
+                <span style={{ opacity: open ? 1 : 0.5 }}>{value}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Editorial closing footer (mirrors the source `MicroFooter`): a "come visit" headline + Book CTA, then a
+ *  brand lockup with socials, a selectable locations list with a sliding indicator, the selected location's
+ *  address + hours, and get-in-touch — closed by a giant fit-to-width wordmark. The whole panel is pinned
+ *  behind the page and uncovered on scroll (see `.mc-footer` / `useFooterReveal`). */
+function Footer({ data, t, footerRef }: { data: PreviewData; t: T; footerRef: React.RefObject<HTMLElement | null> }) {
   const name = data.businessName || t("businessPage.builder.preview.businessNamePlaceholder");
-  const loc = data.locations[0];
+  const locs = data.locations;
+  const multi = locs.length > 1;
   const socials = buildSocials(data.social);
   const year = new Date().getFullYear();
 
+  const [sel, setSel] = useState(0);
+  useEffect(() => {
+    if (sel >= locs.length) setSel(0);
+  }, [locs.length, sel]);
+  const here = locs[sel] ?? locs[0] ?? null;
+
+  // Sliding accent indicator glides to the active location row.
+  const listRef = useRef<HTMLDivElement>(null);
+  const [ind, setInd] = useState<{ y: number; h: number } | null>(null);
+  useLayoutEffect(() => {
+    const row = listRef.current?.querySelectorAll(".mc-foot-loc")[sel] as HTMLElement | undefined;
+    if (row) setInd({ y: row.offsetTop + 7, h: Math.max(0, row.offsetHeight - 14) });
+    else setInd(null);
+  }, [sel, locs.length, name]);
+
+  const nameRef = useRef<HTMLDivElement>(null);
+  useFitText(nameRef, name);
+
+  // Cap the footer list so it never collides with the giant wordmark; the rest roll into a "+N more" line.
+  const LOC_CAP = 4;
+  const shown = locs.length > LOC_CAP + 1 ? locs.slice(0, LOC_CAP) : locs;
+  const more = locs.length - shown.length;
+
+  const website = data.social.website?.trim();
+  const websiteHref = website ? (/^https?:\/\//.test(website) ? website : `https://${website}`) : null;
+  const websiteText = website ? website.replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
+
+  const headline =
+    multi || !here
+      ? t("businessPage.builder.preview.footerComeFind")
+      : t("businessPage.builder.preview.contactHeadingLoc", { name: here.name });
+
   return (
-    <footer className="border-t px-[clamp(20px,5cqw,48px)] pb-9 pt-[clamp(40px,7cqw,80px)]" style={{ borderColor: "var(--mc-line)" }}>
-      <div className="mx-auto w-full max-w-[860px]">
-        <div className="flex flex-wrap items-end justify-between gap-5 border-b pb-[clamp(28px,5cqw,52px)]" style={{ borderColor: "var(--mc-line)" }}>
-          <div className="leading-[0.9]" style={{ ...DISPLAY, fontSize: "clamp(34px,11cqw,88px)", color: "var(--mc-fg)" }}>
-            {name}
-          </div>
-          <BookButton label={t("businessPage.builder.preview.book")} tone="accent" size="lg" />
+    <footer className="mc-footer" ref={footerRef as React.RefObject<HTMLElement>}>
+      <div className="mc-foot-pad">
+        <div className="mc-foot-top">
+          <div className="mc-foot-headline">{headline}</div>
+          <BookButton
+            label={here ? t("businessPage.builder.preview.bookAt", { name: here.name }) : t("businessPage.builder.preview.book")}
+            tone="accent"
+            size="lg"
+          />
         </div>
 
-        <div className="mt-[clamp(26px,4cqw,46px)] grid gap-[clamp(18px,3cqw,28px)] [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
-          {data.locations.length > 0 && (
-            <div>
-              <ContactLabel>{t("businessPage.builder.preview.kicker.locations")}</ContactLabel>
-              {data.locations.map((l) => {
-                const lc = l.addressComponents?.city;
-                return (
-                  <p key={l.id} className="text-[13.5px] leading-relaxed">
-                    {l.name}
-                    {lc ? ` — ${lc}` : ""}
-                  </p>
-                );
-              })}
+        <div className="mc-foot-cols">
+          {/* Brand — logo when provided, else wordmark lockup; tagline; socials */}
+          <div className="mc-foot-col mc-foot-brand">
+            {data.logo ? (
+              <img className="mc-foot-logo" src={data.logo} alt={name} />
+            ) : (
+              <div className="mc-foot-lockup">
+                <span className="mc-foot-mark" aria-hidden>
+                  {name.trim().charAt(0) || "•"}
+                </span>
+                <span className="mc-foot-wordmark">{name}</span>
+              </div>
+            )}
+            {data.tagline?.trim() && <p className="mc-foot-tag">{data.tagline}</p>}
+            {socials.length > 0 && (
+              <div className="mc-foot-social">
+                {socials.map((s) => (
+                  <span key={s.key} className="mc-foot-soc" title={s.label} aria-hidden>
+                    <s.Icon className="h-[17px] w-[17px]" strokeWidth={1.7} />
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Locations — selectable list with sliding indicator + capped "+N more" line */}
+          {locs.length > 0 && (
+            <div className="mc-foot-col">
+              <ContactLabel>
+                {multi ? t("businessPage.builder.preview.kicker.locations") : t("businessPage.builder.preview.footerWhere")}
+              </ContactLabel>
+              <div className="mc-foot-locs" ref={listRef}>
+                {ind && <span className="mc-foot-loc-ind" aria-hidden style={{ transform: `translateY(${ind.y}px)`, height: ind.h }} />}
+                {shown.map((l, i) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    className="mc-foot-loc"
+                    data-on={i === sel ? "1" : "0"}
+                    aria-pressed={i === sel}
+                    onClick={() => setSel(i)}
+                  >
+                    <span className="mc-foot-loc-no">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="mc-foot-loc-name">{l.name}</span>
+                    <span className="mc-foot-loc-mark" aria-hidden>
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </span>
+                  </button>
+                ))}
+                {more > 0 && (
+                  <span className="mc-foot-more">
+                    <span className="mc-foot-more-no">+{more}</span>
+                    <span className="mc-foot-more-tx">{t("businessPage.builder.preview.footerMore")}</span>
+                    <span className="mc-foot-more-mark" aria-hidden>
+                      <ArrowRight className="h-3.5 w-3.5" strokeWidth={1.8} />
+                    </span>
+                  </span>
+                )}
+              </div>
             </div>
           )}
-          {loc && (
-            <div>
-              <ContactLabel>{t("businessPage.builder.preview.footer.nowViewing")}</ContactLabel>
-              {loc.address && <p className="text-[13.5px] leading-relaxed">{loc.address}</p>}
-              {(data.phone || loc.phone) && (
-                <p className="text-[13.5px] leading-relaxed" style={{ color: "var(--mc-muted)" }}>
-                  {data.phone || loc.phone}
-                </p>
+
+          {/* Selected location — address + hours */}
+          {here && <FootDetail key={here.id} loc={here} t={t} />}
+
+          {/* Get in touch — shared business contact */}
+          {(data.email || websiteHref) && (
+            <div className="mc-foot-col">
+              <ContactLabel>{t("businessPage.builder.preview.contactReach")}</ContactLabel>
+              {data.email && (
+                <a className="mc-foot-row mc-foot-link" href={`mailto:${data.email.trim()}`}>
+                  {data.email}
+                </a>
+              )}
+              {websiteHref && websiteText && (
+                <a className="mc-foot-row mc-foot-link" href={websiteHref} target="_blank" rel="noreferrer">
+                  {websiteText}
+                </a>
               )}
             </div>
           )}
-          {socials.length > 0 && (
-            <div>
-              <ContactLabel>{t("businessPage.builder.preview.contactFollow")}</ContactLabel>
-              {socials.map((s) => (
-                <p key={s.key} className="text-[13.5px] leading-relaxed">
-                  {s.label}
-                </p>
-              ))}
-            </div>
-          )}
         </div>
+      </div>
 
-        <div className="mt-7 flex flex-wrap items-center justify-between gap-3 text-[11.5px]" style={{ ...MONO, color: "var(--mc-muted)" }}>
+      <div className="mc-foot-pad mc-foot-bottom">
+        <div ref={nameRef} className="mc-foot-name">
+          {name}
+        </div>
+        <div className="mc-foot-base">
           <span>{t("businessPage.builder.preview.footer.rights", { year, name })}</span>
-          <span className="inline-flex items-center gap-1.5">
+          <span className="mc-foot-zav">
             <Sparkles className="h-3 w-3" strokeWidth={1.6} style={{ color: "var(--mc-accent)" }} />
             {t("businessPage.builder.preview.footer.poweredBy")}
           </span>
@@ -2107,15 +2880,6 @@ function SectionHead({ no, kicker, heading, sublede, stacked }: { no?: string; k
   );
 }
 
-function Caption({ index }: { index: number }) {
-  return (
-    <figcaption className="mt-2.5 flex items-center justify-between gap-3 text-[10.5px]" style={{ ...MONO, color: "var(--mc-muted)", letterSpacing: "0.04em" }}>
-      <span />
-      <span>{String(index).padStart(2, "0")}</span>
-    </figcaption>
-  );
-}
-
 function ContactLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-2.5 text-[10.5px] uppercase" style={{ ...MONO, letterSpacing: "0.16em", color: "var(--mc-muted)" }}>
@@ -2176,11 +2940,6 @@ function Stars({ value, size = 14, color, empty }: { value: number; size?: numbe
       ))}
     </span>
   );
-}
-
-function dedupeTeam<TMember extends { id: number }>(members: TMember[]): TMember[] {
-  const seen = new Set<number>();
-  return members.filter((m) => (seen.has(m.id) ? false : (seen.add(m.id), true)));
 }
 
 export default LivePreview;

@@ -8,6 +8,9 @@ import type {
   AnnouncementContent,
   HeroConfig,
   LocationsConfig,
+  TeamConfig,
+  GalleryConfig,
+  ReviewsConfig,
 } from "../../../types";
 import { isKnownSectionType, SECTION_META } from "./sectionCatalog";
 import { FaqEditor } from "./FaqEditor";
@@ -15,6 +18,9 @@ import { AnnouncementEditor } from "./AnnouncementEditor";
 import { AboutEditor } from "./AboutEditor";
 import { HeroEditor } from "./HeroEditor";
 import { LocationsEditor } from "./LocationsEditor";
+import { TeamEditor } from "./TeamEditor";
+import { GalleryEditor } from "./GalleryEditor";
+import { ReviewsEditor } from "./ReviewsEditor";
 
 interface SettingsPanelProps {
   entry: SectionEntry;
@@ -112,6 +118,36 @@ export function SettingsPanel({
         locale={locale}
         onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
         onTurnOffSection={onTurnOffSection}
+      />
+    );
+  }
+
+  if (entry.type === "team") {
+    return (
+      <TeamEditor
+        config={(entry.config ?? {}) as TeamConfig}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />
+    );
+  }
+
+  if (entry.type === "gallery") {
+    return (
+      <GalleryEditor
+        config={(entry.config ?? {}) as GalleryConfig}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
+      />
+    );
+  }
+
+  if (entry.type === "testimonials") {
+    return (
+      <ReviewsEditor
+        config={(entry.config ?? {}) as ReviewsConfig}
+        locale={locale}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
       />
     );
   }

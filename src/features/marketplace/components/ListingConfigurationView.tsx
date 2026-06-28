@@ -115,6 +115,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     return map;
   }, [reviewStats]);
 
+  // Business-wide per-star counts → the Reviews section's distribution bars (real data, not synthetic).
+  const ratingDistribution = reviewStats?.business?.ratingDistribution;
+
   const previewReviews = useMemo<PreviewReview[]>(
     () =>
       highlightReviews
@@ -394,6 +397,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
             form={form}
             reviews={previewReviews}
             teamRatings={teamRatings}
+            ratingDistribution={ratingDistribution}
           />
         </>
       ),
