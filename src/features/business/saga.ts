@@ -30,7 +30,7 @@ function* handleUpdateBusiness(action: ActionType<typeof updateBusinessAction.re
     yield put(fetchCurrentBusinessAction.request());
     yield put(fetchCurrentUserAction.request());
     if (response.shouldRedirectToMarketplace) {
-      window.location.href = '/marketplace?tab=profile#industry';
+      window.location.href = '/marketplace?tab=business#industry';
     }
   } catch (error: unknown) {
     const message = getErrorMessage(error);

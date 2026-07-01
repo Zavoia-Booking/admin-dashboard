@@ -44,8 +44,8 @@
   },
   "configuration": {
     "tabs": {
-      "profile": "Profil",
-      "portfolio": "Portofoliu"
+      "business": "Pagina afacerii",
+      "locations": "Locații"
     },
     "sections": {
       "visibilityAndAppointments": "Vizibilitate și programări online"
@@ -84,8 +84,9 @@
     },
     "description": {
       "label": "Descriere",
-      "useBusinessDescription": "Prezintă o privire de ansamblu a afacerii pentru utilizatorii marketplace. Această informație este preluată automat din setările profilului tău global.",
-      "customDescription": "Spune-le clienților ce oferi, cui te adresezi și de ce ar trebui să aleagă businessul tău. Păstrează totul simplu, clar și concentrat pe ceea ce te face grozav.",
+      "placement": "Apare pe cardul tău din marketplace, când oamenii caută sau explorează.",
+      "useBusinessDescription": "Preluat automat din profilul tău global și afișat pe cardul din marketplace.",
+      "customDescription": "Un pitch scurt pentru cardul tău din marketplace — ce oferi și de ce ar trebui să te aleagă clienții. Păstrează-l la una–două propoziții.",
       "placeholder": "Ce oferi și de ce ar trebui oamenii să te aleagă?",
       "noDescription": "Nicio descriere de profil găsită. Pentru a păstra brandul tău consistent, actualizează setările afacerii — sau schimbă pe modul personalizat pentru a scrie o versiune adaptată pentru marketplace.",
       "custom": "Personalizat"
@@ -102,6 +103,392 @@
       "label": "Etichete marketplace",
       "description": "Etichetele îi ajută pe clienți să te găsească mai ușor. Alege-le pe cele care descriu cel mai bine serviciile tale.",
       "addAtLeastOne": "Adaugă cel puțin o etichetă înainte de publicare."
+    }
+  },
+  "businessPage": {
+    "errors": {
+      "taglineTooLong": "Subtitlul trebuie să aibă cel mult 200 de caractere.",
+      "brandColorInvalid": "Introdu o culoare hex din 6 cifre, ex. #1B9C85.",
+      "aboutHeadlineRequired": "Adaugă un titlu la secțiunea Despre sau ascunde-o."
+    },
+    "pro": {
+      "badge": "Pro",
+      "previewingColor": "Previzualizezi o culoare Pro",
+      "previewingFont": "Previzualizezi un font Pro",
+      "previewingStyles": "Previzualizezi stiluri Pro",
+      "saveHint": "Treci la Pro ca să îți salvezi alegerea.",
+      "upgrade": "Treci la Pro",
+      "upgradeToast": "Opțiunea de upgrade va fi disponibilă în curând."
+    },
+    "branding": {
+      "title": "Identitate vizuală",
+      "namePlaceholder": "Afacerea ta",
+      "logo": {
+        "label": "Logo",
+        "alt": "Logoul afacerii",
+        "edit": "Schimbă logoul",
+        "uploading": "Se încarcă logoul…",
+        "uploadFailed": "Logoul nu a putut fi încărcat. Încearcă din nou."
+      },
+      "tagline": {
+        "label": "Subtitlu",
+        "placeholder": "ex. Tunsori și vopsit moderne în centrul orașului"
+      },
+      "hero": {
+        "label": "Imagine de copertă",
+        "description": "Un banner lat afișat în partea de sus a paginii tale publice.",
+        "alt": "Imaginea de copertă a paginii afacerii",
+        "uploadCta": "Adaugă o imagine de copertă",
+        "uploading": "Se încarcă…",
+        "hint": "JPG, PNG, WEBP sau AVIF · până la 10 MB",
+        "replace": "Înlocuiește",
+        "remove": "Elimină imaginea de copertă"
+      },
+      "slug": {
+        "label": "Adresa paginii",
+        "autoHint": "O creăm automat din numele afacerii tale."
+      },
+      "brandColor": {
+        "label": "Culoare de accent",
+        "description": "Folosită pentru a evidenția butoanele și linkurile de pe pagina ta publică.",
+        "included": "Incluse",
+        "proGroup": "Pro",
+        "previewHint": "Previzualizează orice culoare. Treci la Pro ca să salvezi o variantă Pro.",
+        "swatches": {
+          "burgundy": "Bordo",
+          "brick": "Cărămiziu",
+          "terracotta": "Teracotă",
+          "rust": "Ruginiu",
+          "amber": "Chihlimbar",
+          "caramel": "Caramel",
+          "olive": "Măsliniu",
+          "pine": "Verde pin",
+          "forest": "Verde pădure",
+          "teal": "Verde-petrol",
+          "peacock": "Albastru-păun",
+          "navy": "Bleumarin",
+          "indigo": "Indigo",
+          "violet": "Violet",
+          "plum": "Prună",
+          "rose": "Roz prăfuit",
+          "slate": "Ardezie",
+          "greige": "Gri-bej",
+          "graphite": "Grafit",
+          "ink": "Cerneală"
+        }
+      }
+    },
+    "about": {
+      "titleLabel": "Titlu",
+      "titlePlaceholder": "Un rând scurt și expresiv care rezumă cine ești.",
+      "titleHelp": "Apare mare, sus — se așază pe rânduri singur, fără să adaugi tu întreruperi.",
+      "bodyLabel": "Poveste",
+      "bodyPlaceholder": "Restul poveștii — abordarea ta, specializările și la ce se pot aștepta clienții când te vizitează.",
+      "headlineRequired": "Titlul este obligatoriu cât timp secțiunea Despre este afișată — adaugă unul sau ascunde secțiunea."
+    },
+    "sections": {
+      "announcement": {
+        "label": "Anunț",
+        "description": "Un mesaj scurt promoțional, afișat ca bară sus sau ca banner în pagină."
+      },
+      "nav": {
+        "label": "Navigație",
+        "description": "Logoul, linkurile către secțiuni și un buton de programare, afișate în bara din partea de sus a paginii."
+      },
+      "hero": {
+        "label": "Antet",
+        "description": "Imaginea de copertă, numele și subtitlul. Partea de sus a paginii."
+      },
+      "marquee": {
+        "label": "Bandă",
+        "description": "O bandă în mișcare cu serviciile pe care le oferi, între secțiuni."
+      },
+      "about": {
+        "label": "Despre",
+        "description": "Scrie povestea ta — afișată pe pagina ta de business."
+      },
+      "locations": {
+        "label": "Locații",
+        "description": "Locațiile tale cu program, contact și link de programare. Alege care se afișează."
+      },
+      "gallery": {
+        "label": "Galerie",
+        "description": "O galerie construită din pozele de portofoliu ale locațiilor."
+      },
+      "team": {
+        "label": "Echipă",
+        "description": "Membrii echipei tale, preluați din locații."
+      },
+      "interlude": {
+        "label": "Interludiu",
+        "description": "O pauză vizuală pe toată lățimea, cu o imagine și o frază scurtă."
+      },
+      "testimonials": {
+        "label": "Recenzii",
+        "description": "Nota generală și numărul de recenzii."
+      },
+      "faq": {
+        "label": "Întrebări frecvente",
+        "description": "Răspunde din start la întrebările uzuale. Adaugă întrebări și răspunsuri din setările acestei secțiuni."
+      },
+      "footer": {
+        "label": "Subsol",
+        "description": "Brandul, locațiile, datele de contact și sigla de final, afișate în partea de jos a paginii."
+      },
+      "variants": {
+        "default": "Implicit",
+        "scroll": "La derulare",
+        "loop": "Continuu",
+        "bar": "Bară sus",
+        "inline": "În pagină",
+        "split": "Împărțit",
+        "simple": "Simplu",
+        "cards": "Carduri",
+        "list": "Listă",
+        "grid": "Grilă",
+        "carousel": "Carusel",
+        "accordion": "Acordeon",
+        "quote": "Citat",
+        "portraits": "Portrete",
+        "roster": "Listă",
+        "editorial": "Editorial",
+        "bento": "Bento",
+        "masonry": "Mozaic"
+      }
+    },
+    "theme": {
+      "fontLabel": "Stil font",
+      "fonts": {
+        "modern": "Modern",
+        "classic": "Clasic",
+        "elegant": "Elegant",
+        "friendly": "Prietenos"
+      }
+    },
+    "builder": {
+      "eyebrow": "Site web",
+      "studioTitle": "Pagina ta publică",
+      "studioHelper": "Aranjează secțiunile, setează brandul, vezi totul live.",
+      "openPreview": "Deschide previzualizarea",
+      "sectionsShown": "{{shown}} din {{total}} afișate",
+      "sectionsVisible": "vizibile",
+      "sectionsHelper": "Trage pentru a seta ordinea. Deschide o secțiune pentru a-i edita aspectul și conținutul.",
+      "sectionPreview": "Previzualizare · această secțiune",
+      "moveUp": "Mută secțiunea în sus",
+      "moveDown": "Mută secțiunea în jos",
+      "title": "Secțiuni pagină",
+      "description": "Trage pentru a reordona, afișează sau ascunde secțiuni și deschide una pentru a o edita. Previzualizarea de mai jos se actualizează pe măsură ce lucrezi.",
+      "sectionsLabel": "Secțiuni",
+      "sectionLabel": "Secțiune",
+      "previewLabel": "Previzualizare live",
+      "previewExpand": "Deschide previzualizarea pe tot ecranul",
+      "previewCta": "Previzualizează pagina",
+      "variantLabel": "Aspect",
+      "visibilityLabel": "Vizibil",
+      "contentLanguage": "Limba conținutului",
+      "langGroup": "Limba previzualizării",
+      "deviceGroup": "Dispozitiv de previzualizare",
+      "deviceDesktop": "Desktop",
+      "deviceMobile": "Mobil",
+      "card": {
+        "drag": "Reordonează",
+        "pinned": "Fixat pe loc",
+        "alwaysOn": "Mereu afișat",
+        "hidden": "Ascuns",
+        "hide": "Ascunde secțiunea",
+        "show": "Afișează secțiunea",
+        "edit": "Editează",
+        "editing": "Se editează"
+      },
+      "settings": {
+        "locationsHint": "Alege ce locații apar pe pagină.",
+        "locationsNone": "Nu ai încă nicio locație.",
+        "locationsHeadingLabel": "Titlu",
+        "locationsSubledeLabel": "Subtitlu",
+        "locationsCustomize": "Personalizează {{field}}",
+        "headingLabel": "Titlu",
+        "subledeLabel": "Subtitlu",
+        "customize": "Personalizează {{field}}",
+        "teamHint": "Personalizează titlul. Echipa este preluată din locațiile tale.",
+        "galleryHint": "Personalizează titlul. Fotografiile provin din portofoliile locațiilor tale.",
+        "reviewsHint": "Personalizează titlul. Recenziile provin de la clienții tăi.",
+        "reviewsDistributionLabel": "Arată distribuția evaluărilor",
+        "noSettings": "Această secțiune nu are setări suplimentare.",
+        "viewOnlyHint": "Generat automat din datele tale existente."
+      },
+      "faq": {
+        "add": "Adaugă întrebare",
+        "remove": "Șterge",
+        "empty": "Nicio întrebare încă. Adaugă-o pe prima.",
+        "questionPlaceholder": "Întrebare",
+        "answerPlaceholder": "Răspuns"
+      },
+      "announcement": {
+        "messageLabel": "Mesaj",
+        "messagePlaceholder": "ex. 20% reducere la prima vizită",
+        "messageRequiredHint": "Mesajul este obligatoriu cât timp anunțul este afișat — adaugă unul sau ascunde secțiunea.",
+        "sampleMessage": "20% reducere la prima vizită",
+        "sampleCta": "Programează",
+        "cta": {
+          "title": "Buton de acțiune",
+          "enableLabel": "Afișează un buton",
+          "enableHint": "Adaugă un buton care duce oriunde vrei.",
+          "labelLabel": "Textul butonului",
+          "labelPlaceholder": "ex. Programează, Vezi ofertele",
+          "labelHint": "Butonul apare după ce adaugi text.",
+          "urlLabel": "Adresă link",
+          "newTab": "Deschide într-o filă nouă",
+          "showArrow": "Afișează săgeata",
+          "urlRequiredHint": "Adaugă un link ca butonul să funcționeze pe pagină."
+        },
+        "schedule": {
+          "title": "Programare",
+          "enableLabel": "Programează bara",
+          "hint": "Afișează bara doar într-o anumită perioadă.",
+          "start": "Afișează de la",
+          "end": "Ascunde după",
+          "datePlaceholder": "Alege o dată",
+          "tz": "Datele folosesc fusul orar {{tz}}."
+        }
+      },
+      "hero": {
+        "eyebrowTitle": "Rând introductiv",
+        "eyebrowToggle": "Arată rândul introductiv",
+        "eyebrowHint": "Rândul mic de deasupra numelui.",
+        "ratingTitle": "Rating și recenzii",
+        "ratingToggle": "Arată ratingul și recenziile",
+        "ratingHint": "Apare după ce afacerea ta are recenzii.",
+        "coverLayoutTitle": "Aspect copertă",
+        "coverLayoutHint": "Cum umple poza de copertă secțiunea principală.",
+        "coverLayout_full": "Imagine completă",
+        "coverLayout_plate": "Card pe copertă"
+      },
+      "preview": {
+        "allHidden": "Toate secțiunile sunt ascunse. Afișează cel puțin una pentru previzualizare.",
+        "book": "Programează",
+        "bookNow": "Programează acum",
+        "getStarted": "Începe",
+        "menu": "Meniu",
+        "closeMenu": "Închide meniul",
+        "businessNamePlaceholder": "Afacerea ta",
+        "aboutTitle": "Despre noi",
+        "aboutGhostLede": "Un rând scurt și expresiv despre ce te face diferit.",
+        "aboutGhostBody": "O frază sau două despre abordarea ta, specializările și la ce se pot aștepta clienții când te vizitează.",
+        "locationsTitle": "Locații",
+        "locationsEmpty": "Locațiile tale vor apărea aici.",
+        "noAddress": "Adresă nesetată",
+        "galleryTitle": "Galerie",
+        "galleryEmpty": "Adaugă poze de portofoliu în locații pentru a umple galeria.",
+        "teamTitle": "Echipa noastră",
+        "teamEmpty": "Membrii echipei vor apărea aici.",
+        "teamMember": "Membru echipă",
+        "teamRoleOwner": "Proprietar",
+        "teamFind": "Găsești la {{location}}",
+        "testimonialsTitle": "Ce spun clienții",
+        "testimonialsEmpty": "Recenziile tale vor apărea aici după ce primești câteva.",
+        "reviewsCount_one": "{{count}} recenzie",
+        "reviewsCount_few": "{{count}} recenzii",
+        "reviewsCount_other": "{{count}} de recenzii",
+        "inTheTeam": "în echipă",
+        "bookAt": "Programează la {{name}}",
+        "callLabel": "Apelează {{name}}",
+        "emailLabel": "Trimite email către {{name}}",
+        "mapLabel": "Vezi {{name}} pe hartă",
+        "tagsShowAll": "Arată tot",
+        "tagsShowLess": "Arată mai puțin",
+        "faqTitle": "Întrebări frecvente",
+        "faqEmpty": "Adaugă întrebări din setările secțiunii Întrebări frecvente.",
+        "contactTitle": "Contactează-ne",
+        "galleryHeading": "O privire în interior.",
+        "galleryViewFull": "Vezi complet",
+        "reviewsHeading": "Apreciați de clienții noștri.",
+        "reviewsSublede": "Fiecare recenzie provine dintr-o programare verificată — needitată.",
+        "reviewsVerifiedCount_one": "{{count}} recenzie verificată",
+        "reviewsVerifiedCount_few": "{{count}} recenzii verificate",
+        "reviewsVerifiedCount_other": "{{count}} de recenzii verificate",
+        "reviewsOutOf": "Rating mediu · din 5.0",
+        "reviewsVerified": "Verificat",
+        "contactHeadingLoc": "Vino la {{name}}.",
+        "contactReach": "Contact",
+        "footerComeFind": "Treci pe la noi.",
+        "footerWhere": "Unde",
+        "footerMore": "mai multe locații",
+        "contactHours": "Program",
+        "contactClosed": "Închis",
+        "contactOpen247": "Non-stop",
+        "days": {
+          "monday": "Lun",
+          "tuesday": "Mar",
+          "wednesday": "Mie",
+          "thursday": "Joi",
+          "friday": "Vin",
+          "saturday": "Sâm",
+          "sunday": "Dum"
+        },
+        "daysFull": {
+          "monday": "Luni",
+          "tuesday": "Marți",
+          "wednesday": "Miercuri",
+          "thursday": "Joi",
+          "friday": "Vineri",
+          "saturday": "Sâmbătă",
+          "sunday": "Duminică"
+        },
+        "locationCount_one": "{{count}} locație",
+        "locationCount_few": "{{count}} locații",
+        "locationCount_other": "{{count}} de locații",
+        "footer": {
+          "poweredBy": "Creat cu Zavoia",
+          "rights": "© {{year}} {{name}}"
+        },
+        "hero": {
+          "scrollCue": "Derulează",
+          "locationsAcross": "{{num}} locații în {{place}}"
+        },
+        "subhead": {
+          "locations_one": "Unde ne găsești.",
+          "locations_few": "{{count}} locații, o singură echipă.",
+          "locations_other": "{{count}} de locații, o singură echipă.",
+          "team": "Cunoaște echipa.",
+          "faq": "Întrebări, cu răspunsuri."
+        },
+        "sublede": {
+          "locations_one": "Vino să ne cunoști, te așteptăm cu drag.",
+          "locations_other": "Fiecare locație are echipa și programul ei. Alege unde vrei să treci — totul de mai jos se actualizează.",
+          "team": "Oamenii care vor avea grijă de tine."
+        },
+        "kicker": {
+          "about": "Despre",
+          "locations": "Locații",
+          "gallery": "Galerie",
+          "team": "Echipă",
+          "reviews": "Recenzii",
+          "faq": "Întrebări"
+        }
+      }
+    }
+  },
+  "statusStrip": {
+    "live": "Activ pe marketplace",
+    "toGoLive": "Pentru a publica:",
+    "checklist": {
+      "industryTag": "Cel puțin o etichetă de industrie",
+      "detailsValid": "Detaliile afacerii sunt valide"
+    },
+    "locationsVisible": "{{visible}} din {{total}} locații vizibile",
+    "noLocationLive": "Nicio locație nu este activă încă",
+    "locationsWaitingPublish": "Locațiile publice vor apărea după ce publici pagina afacerii."
+  },
+  "locations": {
+    "managePage": "Gestionează pagina",
+    "backToAll": "Toate locațiile",
+    "reviews": {
+      "title": "Recenzii",
+      "count_one": "{{count}} recenzie",
+      "count_few": "{{count}} recenzii",
+      "count_other": "{{count}} de recenzii",
+      "empty": "Nicio recenzie încă",
+      "view": "Vezi recenziile"
     }
   },
   "locationVisibility": {
@@ -325,6 +712,8 @@
       "onlineBookingUpdateFailed": "Setările pentru programări online nu au putut fi actualizate. Te rugăm să încerci din nou.",
       "bookingSettingsSaveFailed": "Setările de programare nu au putut fi salvate. Te rugăm să încerci din nou.",
       "listingDataLoadFailed": "Datele listării nu au putut fi încărcate. Te rugăm să încerci din nou."
-    }
+    },
+    "loadError": "Nu am putut încărca datele de marketplace.",
+    "retry": "Încearcă din nou"
   }
 }

@@ -1090,6 +1090,15 @@ button.sidebar-menu-button-compact {
   animation: dnd-lift 180ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
+/* Warm, double-layer elevation for a lifted-out card (section builder open surface).
+   Lighter than the modal shadow — it sits inline, not over a scrim. */
+.shadow-elevated-card {
+  box-shadow: 0 18px 44px oklch(15% 0.004 70 / 0.16), 0 2px 6px oklch(15% 0.004 70 / 0.08);
+}
+.dark .shadow-elevated-card {
+  box-shadow: 0 18px 44px oklch(0% 0 0 / 0.45), 0 2px 6px oklch(0% 0 0 / 0.32);
+}
+
 /* Splash screen styles live in src/shared/components/splash/splash.css —
  * imported from SplashGate.tsx so they travel with the component. That
  * file owns everything: .splash-* selectors, all keyframes, per-phase

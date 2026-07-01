@@ -54,6 +54,31 @@ export const publishMarketplaceListingApi = async (payload: PublishMarketplaceLi
   await apiClient().post('/marketplace-listing/publish', payload);
 }
 
+// ---------------------------------------------------------------------------
+// Business-page hero image.
+// ---------------------------------------------------------------------------
+
+export interface HeroImageResponse {
+  heroImageUrl: string | null;
+  heroImageKey: string | null;
+}
+
+export const uploadHeroImageApi = async (file: File): Promise<HeroImageResponse> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  const { data } = await apiClient().post<HeroImageResponse>(
+    '/marketplace-listing/hero',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } },
+  );
+  return data;
+};
+
+export const deleteHeroImageApi = async (): Promise<HeroImageResponse> => {
+  const { data } = await apiClient().delete<HeroImageResponse>('/marketplace-listing/hero');
+  return data;
+};
+
 export interface LocationMarketplaceFlagsResponse {
   id: number;
   isPublic: boolean;

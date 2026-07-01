@@ -166,7 +166,7 @@ const decodeSort = (
   };
 };
 
-export function ReviewsTab() {
+export function ReviewsTab({ locationId }: { locationId?: number | null } = {}) {
   const dispatch = useDispatch();
   const { t } = useTranslation("reviews");
 
@@ -188,7 +188,15 @@ export function ReviewsTab() {
     selectTeamMemberReviewsMoreLoading,
   );
 
-  const [filters, dispatchFilter] = useReducer(filterReducer, INITIAL_FILTERS);
+  const [filters, dispatchFilter] = useReducer(
+    filterReducer,
+    INITIAL_FILTERS,
+    (init) => ({ ...init, locationFilter: locationId ?? null }),
+  );
+  // Re-scope to the location when navigated in from a location panel (or cleared).
+  useEffect(() => {
+    dispatchFilter({ type: "setLocation", value: locationId ?? null });
+  }, [locationId]);
   const {
     subTab,
     ratingFilter,
@@ -359,6 +367,15 @@ export function ReviewsTab() {
     (withCommentsOnly ? 1 : 0);
   const hasFilters = activeFilterCount > 0;
 
+  // When the feed is locked to a location (opened from a location panel), the card
+  // location chips must not re-scope the filter — pass undefined so FooterLocation
+  // renders them as static, non-interactive text.
+  const handleLocationClick =
+    locationId != null
+      ? undefined
+      : (id: number) =>
+          dispatchFilter({ type: "setLocation", value: locationFilter === id ? null : id });
+
   const overall = stats?.overall ?? { averageRating: null, totalReviews: 0 };
   const locations = stats?.locations ?? [];
   const teamMembersData = stats?.teamMembers ?? [];
@@ -427,6 +444,7 @@ export function ReviewsTab() {
     subTab,
     ratingFilter,
     locationFilter,
+    lockedLocationId: locationId ?? null,
     teamMemberFilter,
     datePreset,
     startDate,
@@ -590,12 +608,7 @@ export function ReviewsTab() {
                           key={review.id}
                           review={review}
                           selectedLocationId={locationFilter}
-                          onLocationClick={(id) =>
-                            dispatchFilter({
-                              type: "setLocation",
-                              value: locationFilter === id ? null : id,
-                            })
-                          }
+                          onLocationClick={handleLocationClick}
                         />
                       ))
                     : teamMemberReviews.map((review) => (
@@ -604,12 +617,7 @@ export function ReviewsTab() {
                           review={review}
                           selectedLocationId={locationFilter}
                           selectedTeamMemberId={teamMemberFilter}
-                          onLocationClick={(id) =>
-                            dispatchFilter({
-                              type: "setLocation",
-                              value: locationFilter === id ? null : id,
-                            })
-                          }
+                          onLocationClick={handleLocationClick}
                           onTeamMemberClick={(id) =>
                             dispatchFilter({
                               type: "setTeamMember",

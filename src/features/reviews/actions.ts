@@ -52,3 +52,13 @@ export const fetchMoreTeamMemberReviewsAction = createAsyncAction(
   TeamMemberReviewsResponse,
   { message: string }
 >();
+
+/**
+ * Curated highlight reviews for the business-page builder preview (top 5★ with comments). Kept in its
+ * own slice so the Reviews tab's filtered `businessReviews` list never overwrites the preview quotes.
+ */
+export const fetchHighlightReviewsAction = createAsyncAction(
+  "reviews/FETCH_HIGHLIGHT_REVIEWS_REQUEST",
+  "reviews/FETCH_HIGHLIGHT_REVIEWS_SUCCESS",
+  "reviews/FETCH_HIGHLIGHT_REVIEWS_FAILURE",
+)<FetchBusinessReviewsPayload, BusinessReviewsResponse, { message: string }>();

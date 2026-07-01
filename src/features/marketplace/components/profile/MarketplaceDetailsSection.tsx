@@ -218,6 +218,9 @@ export const MarketplaceDetailsSection: React.FC<
             ? t("details.description.useBusinessDescription")
             : t("details.description.customDescription")}
         </p>
+        <p className="text-xs text-foreground-3">
+          {t("details.description.placement")}
+        </p>
 
         <div className="relative">
           {useBusinessDescription ? (

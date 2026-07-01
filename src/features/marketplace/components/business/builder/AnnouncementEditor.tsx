@@ -1,0 +1,243 @@
+import { useMemo } from "react";
+import { useTranslation } from "react-i18next";
+import { useSelector } from "react-redux";
+import { Megaphone, MousePointerClick, Link2 } from "lucide-react";
+import TextField from "../../../../../shared/components/forms/fields/TextField";
+import DatePicker from "../../../../../shared/components/ui/date-picker";
+import { Label } from "../../../../../shared/components/ui/label";
+import { Switch } from "../../../../../shared/components/ui/switch";
+import {
+  Collapsible,
+  CollapsibleContent,
+} from "../../../../../shared/components/ui/collapsible";
+import { getCalendarTimezone } from "../../../../calendar/selectors";
+import {
+  localCalendarDateFromDateKey,
+  minSelectableCalendarDateForTimezone,
+  laterCalendarWallDate,
+} from "../../../../calendar/timezone";
+import { validateUrlField } from "../../../../../shared/utils/validation";
+import { AutoHeight } from "./AutoHeight";
+import { InfoHint } from "./InfoHint";
+import type { AnnouncementContent, AnnouncementCta } from "../../../types";
+
+const MAX_MESSAGE = 140;
+const MAX_CTA_LABEL = 40;
+const MAX_URL = 300;
+
+const GROUP_LABEL = "text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3";
+
+interface AnnouncementEditorProps {
+  value: AnnouncementContent;
+  onChange: (value: AnnouncementContent) => void;
+  locale: "en" | "ro";
+  /** True when the announcement section is visible → a message is required (an empty bar renders nothing). */
+  required?: boolean;
+}
+
+/** A picker `Date` (local midnight) → the stored `YYYY-MM-DD` calendar key. */
+const toDateKey = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+/**
+ * Bilingual message + a configurable call-to-action, plus the show/hide schedule the public page
+ * honours. Scheduling is captured here and enforced on the live page; this editor's preview always
+ * shows the bar so it stays editable. Reuses the app's validated TextField, DatePicker and a native
+ * radio list so it matches the rest of the dashboard.
+ */
+export function AnnouncementEditor({ value, onChange, locale, required }: AnnouncementEditorProps) {
+  const { t } = useTranslation("marketplace");
+
+  // A shown announcement needs a message in either language (mirrors the bar self-hiding when blank).
+  const messageMissing =
+    !!required && (value.message.en?.trim() ?? "") === "" && (value.message.ro?.trim() ?? "") === "";
+  const timezone = useSelector(getCalendarTimezone);
+  // Today in the business timezone — past days are disabled in both pickers (as on the calendar).
+  const today = useMemo(
+    () => minSelectableCalendarDateForTimezone(new Date(), timezone),
+    [timezone],
+  );
+
+  const cta = value.cta;
+  const patchCta = (patch: Partial<AnnouncementCta>) =>
+    onChange({ ...value, cta: { ...cta, ...patch } });
+
+  // The link only makes sense once the button has text — lock the URL until then, and only
+  // validate it while unlocked. Reuses the app's shared URL validator (as the settings links do).
+  const hasButtonText = cta.label[locale].trim() !== "";
+  const urlError = hasButtonText ? validateUrlField(cta.url, t) ?? undefined : undefined;
+  // A button with text but no link can't be published — flag the empty URL as required.
+  const urlMissing = hasButtonText && cta.url.trim() === "";
+
+  const startKey = value.schedule?.start ?? null;
+  const endKey = value.schedule?.end ?? null;
+  const startDate = startKey ? localCalendarDateFromDateKey(startKey) : null;
+  const endDate = endKey ? localCalendarDateFromDateKey(endKey) : null;
+
+  const updateSchedule = (field: "start" | "end", key: string) => {
+    onChange({
+      ...value,
+      schedule: {
+        start: field === "start" ? key : startKey,
+        end: field === "end" ? key : endKey,
+        timezone,
+      },
+    });
+  };
+
+  // Scheduling is opt-in: a present `schedule` object means the toggle is on (start/end stay optional).
+  const scheduleOn = value.schedule != null;
+  const setScheduleOn = (on: boolean) =>
+    onChange({
+      ...value,
+      schedule: on ? { start: startKey, end: endKey, timezone } : null,
+    });
+
+  return (
+    <div className="space-y-5">
+      {/* Message */}
+      <TextField
+        id="announcement-message"
+        label={t("businessPage.builder.announcement.messageLabel")}
+        placeholder={t("businessPage.builder.announcement.messagePlaceholder")}
+        value={value.message[locale]}
+        onChange={(v) => onChange({ ...value, message: { ...value.message, [locale]: v } })}
+        icon={Megaphone}
+        maxLength={MAX_MESSAGE}
+        className="!pt-0"
+        hint={
+          messageMissing ? (
+            <InfoHint>{t("businessPage.builder.announcement.messageRequiredHint")}</InfoHint>
+          ) : undefined
+        }
+      />
+
+      {/* Call to action — opt-in; the whole block expands when the owner turns the button on. */}
+      <div className="space-y-3 border-t border-border pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <span className={GROUP_LABEL}>{t("businessPage.builder.announcement.cta.title")}</span>
+            <p className="mt-1 text-[12px] leading-5 text-foreground-3">
+              {t("businessPage.builder.announcement.cta.enableHint")}
+            </p>
+          </div>
+          <Switch
+            aria-label={t("businessPage.builder.announcement.cta.enableLabel")}
+            checked={cta.enabled}
+            onCheckedChange={(v) => patchCta({ enabled: v })}
+          />
+        </div>
+
+        <Collapsible open={cta.enabled} onOpenChange={(v) => patchCta({ enabled: v })}>
+          <CollapsibleContent>
+            <AutoHeight className="space-y-3 pt-3">
+              <div>
+                <TextField
+                  id="announcement-cta-label"
+                  label={t("businessPage.builder.announcement.cta.labelLabel")}
+                  placeholder={t("businessPage.builder.announcement.cta.labelPlaceholder")}
+                  value={cta.label[locale]}
+                  onChange={(v) => patchCta({ label: { ...cta.label, [locale]: v } })}
+                  icon={MousePointerClick}
+                  maxLength={MAX_CTA_LABEL}
+                  className="!pt-0"
+                />
+                <p className="-mt-1 text-[11px] text-foreground-3">
+                  {t("businessPage.builder.announcement.cta.labelHint")}
+                </p>
+              </div>
+
+              {/* Link + button options reveal once the button has text — same accordion animation. */}
+              <Collapsible open={hasButtonText}>
+                <CollapsibleContent>
+                  <AutoHeight className="space-y-3">
+                    <TextField
+                      id="announcement-cta-url"
+                      label={t("businessPage.builder.announcement.cta.urlLabel")}
+                      placeholder="https://…"
+                      value={cta.url}
+                      onChange={(v) => patchCta({ url: v })}
+                      error={urlError}
+                      icon={Link2}
+                      maxLength={MAX_URL}
+                      className="!pt-0"
+                      // Required: a button with text but no link would publish a dead button.
+                      hint={
+                        urlMissing ? (
+                          <InfoHint>{t("businessPage.builder.announcement.cta.urlRequiredHint")}</InfoHint>
+                        ) : undefined
+                      }
+                    />
+
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-foreground-1">
+                        {t("businessPage.builder.announcement.cta.newTab")}
+                      </span>
+                      <Switch checked={cta.newTab} onCheckedChange={(v) => patchCta({ newTab: v })} />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-foreground-1">
+                        {t("businessPage.builder.announcement.cta.showArrow")}
+                      </span>
+                      <Switch checked={cta.showArrow} onCheckedChange={(v) => patchCta({ showArrow: v })} />
+                    </div>
+                  </AutoHeight>
+                </CollapsibleContent>
+              </Collapsible>
+            </AutoHeight>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
+      {/* Scheduling — opt-in; expands to the date window when turned on. */}
+      <div className="space-y-3 border-t border-border pt-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <span className={GROUP_LABEL}>{t("businessPage.builder.announcement.schedule.title")}</span>
+            <p className="mt-1 text-[12px] leading-5 text-foreground-3">
+              {t("businessPage.builder.announcement.schedule.hint")}
+            </p>
+          </div>
+          <Switch
+            aria-label={t("businessPage.builder.announcement.schedule.enableLabel")}
+            checked={scheduleOn}
+            onCheckedChange={setScheduleOn}
+          />
+        </div>
+
+        <Collapsible open={scheduleOn} onOpenChange={setScheduleOn}>
+          <CollapsibleContent>
+            <div className="space-y-3 pt-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>{t("businessPage.builder.announcement.schedule.start")}</Label>
+                  <DatePicker
+                    value={startDate}
+                    onChange={(d) => updateSchedule("start", toDateKey(d))}
+                    minDate={today}
+                    placeholder={t("businessPage.builder.announcement.schedule.datePlaceholder")}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>{t("businessPage.builder.announcement.schedule.end")}</Label>
+                  <DatePicker
+                    value={endDate}
+                    onChange={(d) => updateSchedule("end", toDateKey(d))}
+                    minDate={startDate ? laterCalendarWallDate(startDate, today) : today}
+                    placeholder={t("businessPage.builder.announcement.schedule.datePlaceholder")}
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-foreground-3">
+                {t("businessPage.builder.announcement.schedule.tz", { tz: timezone })}
+              </p>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+    </div>
+  );
+}
+
+export default AnnouncementEditor;

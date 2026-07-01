@@ -8,6 +8,7 @@ export interface TextFieldProps {
   onChange: (value: string) => void;
   error?: string;
   label?: string;
+  hint?: React.ReactNode; // optional helper rendered directly under the label
   placeholder?: string;
   isRemote?: boolean;
   required?: boolean;
@@ -31,6 +32,7 @@ export const TextField: React.FC<TextFieldProps> = ({
   onChange,
   error,
   label = "Location Name",
+  hint,
   placeholder = "Main Location",
   isRemote = false,
   required = false,
@@ -59,6 +61,7 @@ export const TextField: React.FC<TextFieldProps> = ({
       <Label htmlFor={id} className="text-base font-medium">
         {displayLabel} {required && "*"}
       </Label>
+      {hint}
       <div className="relative">
         <Input
           ref={inputRef}

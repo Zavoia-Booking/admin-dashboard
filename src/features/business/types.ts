@@ -23,6 +23,7 @@ export interface Business {
   tiktokUrl: string | null;
   websiteUrl: string | null;
   pinterestUrl: string | null;
+  businessSlug?: string | null; // Human-readable business-page slug (vanity URL)
   isActive: boolean;
   industry: Industry | null;
   trialEndsAt?: string | null;

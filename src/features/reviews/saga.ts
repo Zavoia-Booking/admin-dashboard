@@ -5,6 +5,7 @@ import {
   fetchMoreBusinessReviewsAction,
   fetchTeamMemberReviewsAction,
   fetchMoreTeamMemberReviewsAction,
+  fetchHighlightReviewsAction,
 } from "./actions";
 import {
   getReviewStatsApi,
@@ -89,10 +90,26 @@ function* handleFetchMoreTeamMemberReviews(
   }
 }
 
+function* handleFetchHighlightReviews(
+  action: ActionType<typeof fetchHighlightReviewsAction.request>,
+) {
+  try {
+    const response: BusinessReviewsResponse = yield call(
+      getBusinessReviewsApi,
+      action.payload,
+    );
+    yield put(fetchHighlightReviewsAction.success(response));
+  } catch (error: unknown) {
+    const message = getErrorMessage(error);
+    yield put(fetchHighlightReviewsAction.failure({ message }));
+  }
+}
+
 export function* reviewsSaga(): Generator<any, void, any> {
   yield all([
     takeLatest(fetchReviewStatsAction.request, handleFetchReviewStats),
     takeLatest(fetchBusinessReviewsAction.request, handleFetchBusinessReviews),
+    takeLatest(fetchHighlightReviewsAction.request, handleFetchHighlightReviews),
     takeLatest(
       fetchMoreBusinessReviewsAction.request,
       handleFetchMoreBusinessReviews,

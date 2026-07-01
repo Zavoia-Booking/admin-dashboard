@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowUpRight, ChevronRight, Loader2 } from "lucide-react";
+import { ArrowUpRight, ArrowRight, ChevronRight, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "../../../../shared/components/ui/button";
@@ -14,10 +14,17 @@ import { EditLocationMarketplaceDetailsSlider } from "../EditLocationMarketplace
 
 interface LocationVisibilitySectionProps {
   locations: LocationWithAssignments[];
+  /**
+   * When provided, each card shows a "Manage page" button that drills into the
+   * per-location panel (used by the Locations tab). Omitted everywhere else, so
+   * existing usages render unchanged.
+   */
+  onManageLocation?: (locationId: number) => void;
 }
 
 export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps> = ({
   locations,
+  onManageLocation,
 }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -320,21 +327,40 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                 )}
                 </div>
 
-                <Button
-                  variant="ghost"
-                  rounded="full"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingLocation({ id: location.id, name: location.name });
-                  }}
-                  className="w-full md:w-auto md:shrink-0 !min-h-0 h-7 !px-4 !py-4 mt-2 md:mt-0 border border-border group-hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10 dark:group-hover:bg-muted-foreground/10 flex items-center justify-center md:justify-start gap-1 md:ml-auto"
-                >
-                  <span className="text-xs text-foreground-3 group-hover:text-foreground-1">
-                    {tDetails("card.editButton")}
-                  </span>
-                  <ChevronRight className="h-3 w-3 pt-0.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
-                </Button>
+                <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto md:ml-auto mt-2 md:mt-0">
+                  {onManageLocation && (
+                    <Button
+                      variant="ghost"
+                      rounded="full"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onManageLocation(location.id);
+                      }}
+                      className="w-full md:w-auto !min-h-0 h-7 !px-4 !py-4 border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 dark:bg-primary/10 dark:hover:bg-primary/20 flex items-center justify-center md:justify-start gap-1"
+                    >
+                      <span className="text-xs font-medium">
+                        {t("locations.managePage")}
+                      </span>
+                      <ArrowRight className="h-3 w-3 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    rounded="full"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingLocation({ id: location.id, name: location.name });
+                    }}
+                    className="w-full md:w-auto md:shrink-0 !min-h-0 h-7 !px-4 !py-4 border border-border group-hover:border-border-strong text-foreground-3 dark:text-foreground-2 hover:text-primary dark:hover:text-primary dark:group-hover:text-primary group-hover:text-primary group-hover:bg-info-100/20 dark:hover:bg-muted-foreground/10 dark:group-hover:bg-muted-foreground/10 flex items-center justify-center md:justify-start gap-1"
+                  >
+                    <span className="text-xs text-foreground-3 group-hover:text-foreground-1">
+                      {tDetails("card.editButton")}
+                    </span>
+                    <ChevronRight className="h-3 w-3 pt-0.5 transition-transform duration-200 ease-out group-hover:translate-x-0.5" />
+                  </Button>
+                </div>
               </div>
             </div>
           );
