@@ -111,8 +111,18 @@
       "brandColorInvalid": "Introdu o culoare hex din 6 cifre, ex. #1B9C85.",
       "aboutHeadlineRequired": "Adaugă un titlu la secțiunea Despre sau ascunde-o."
     },
+    "pro": {
+      "badge": "Pro",
+      "previewingColor": "Previzualizezi o culoare Pro",
+      "previewingFont": "Previzualizezi un font Pro",
+      "previewingStyles": "Previzualizezi stiluri Pro",
+      "saveHint": "Treci la Pro ca să îți salvezi alegerea.",
+      "upgrade": "Treci la Pro",
+      "upgradeToast": "Opțiunea de upgrade va fi disponibilă în curând."
+    },
     "branding": {
       "title": "Identitate vizuală",
+      "namePlaceholder": "Afacerea ta",
       "logo": {
         "label": "Logo",
         "alt": "Logoul afacerii",
@@ -141,6 +151,9 @@
       "brandColor": {
         "label": "Culoare de accent",
         "description": "Folosită pentru a evidenția butoanele și linkurile de pe pagina ta publică.",
+        "included": "Incluse",
+        "proGroup": "Pro",
+        "previewHint": "Previzualizează orice culoare. Treci la Pro ca să salvezi o variantă Pro.",
         "swatches": {
           "burgundy": "Bordo",
           "brick": "Cărămiziu",
@@ -178,6 +191,10 @@
         "label": "Anunț",
         "description": "Un mesaj scurt promoțional, afișat ca bară sus sau ca banner în pagină."
       },
+      "nav": {
+        "label": "Navigație",
+        "description": "Logoul, linkurile către secțiuni și un buton de programare, afișate în bara din partea de sus a paginii."
+      },
       "hero": {
         "label": "Antet",
         "description": "Imaginea de copertă, numele și subtitlul. Partea de sus a paginii."
@@ -213,6 +230,10 @@
       "faq": {
         "label": "Întrebări frecvente",
         "description": "Răspunde din start la întrebările uzuale. Adaugă întrebări și răspunsuri din setările acestei secțiuni."
+      },
+      "footer": {
+        "label": "Subsol",
+        "description": "Brandul, locațiile, datele de contact și sigla de final, afișate în partea de jos a paginii."
       },
       "variants": {
         "default": "Implicit",
@@ -272,6 +293,7 @@
       "card": {
         "drag": "Reordonează",
         "pinned": "Fixat pe loc",
+        "alwaysOn": "Mereu afișat",
         "hidden": "Ascuns",
         "hide": "Ascunde secțiunea",
         "show": "Afișează secțiunea",

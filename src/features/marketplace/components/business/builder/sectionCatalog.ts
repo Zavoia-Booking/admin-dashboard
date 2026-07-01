@@ -9,6 +9,8 @@ import {
   HelpCircle,
   Type,
   Film,
+  PanelTop,
+  PanelBottom,
   type LucideIcon,
 } from "lucide-react";
 import type { SectionEntry, SectionType } from "../../../types";
@@ -32,6 +34,7 @@ export interface SectionVariant {
   id: string;
   /** i18n key under marketplace:businessPage.sections.variants.<id> */
   labelKey: string;
+  // Seam for future paid variants/skins: a `paid?: boolean` / `sku?: string` field belongs here (catalog is the single source).
 }
 
 export interface SectionMeta {
@@ -65,6 +68,16 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     netNew: true,
     defaultConfig: {},
     defaultHidden: true,
+  },
+  nav: {
+    type: "nav",
+    // Sticky brand + section links + CTA, pinned right below the announcement — not reorderable (PINNED_TYPES).
+    icon: PanelTop,
+    labelKey: "businessPage.sections.nav.label",
+    descriptionKey: "businessPage.sections.nav.description",
+    variants: [v("default")],
+    netNew: false,
+    defaultConfig: {},
   },
   hero: {
     type: "hero",
@@ -166,16 +179,31 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     netNew: true,
     defaultConfig: {},
   },
+  footer: {
+    type: "footer",
+    // Editorial closing panel — brand, locations, contact, wordmark. Pinned last, not reorderable (PINNED_TYPES).
+    icon: PanelBottom,
+    labelKey: "businessPage.sections.footer.label",
+    descriptionKey: "businessPage.sections.footer.description",
+    variants: [v("default")],
+    netNew: false,
+    defaultConfig: {},
+  },
 };
 
 /** Sections locked into fixed positions: non-reorderable (the drag grip becomes a pin). The announcement
  *  is the sticky ribbon (always first); the hero always sits second. The builder disables their drag and
  *  `buildInitialLayout` enforces their order on read. */
-export const PINNED_TYPES: ReadonlySet<string> = new Set<SectionType>(["announcement", "hero"]);
+export const PINNED_TYPES: ReadonlySet<string> = new Set<SectionType>(["announcement", "nav", "hero", "footer"]);
+
+/** Sections that are always shown — their visibility can't be toggled off (every page needs a header, a
+ *  hero, and a footer). A subset of PINNED_TYPES; the announcement is pinned but stays optional. */
+export const REQUIRED_TYPES: ReadonlySet<string> = new Set<SectionType>(["nav", "hero", "footer"]);
 
 /** Catalog order used for a fresh default layout. */
 export const SECTION_TYPES: SectionType[] = [
   "announcement",
+  "nav",
   "hero",
   "marquee",
   "about",
@@ -185,6 +213,7 @@ export const SECTION_TYPES: SectionType[] = [
   "interlude",
   "testimonials",
   "faq",
+  "footer",
 ];
 
 const makeEntry = (type: SectionType): SectionEntry => {
@@ -234,12 +263,15 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
   const present = new Set(valid.map((s) => s.type));
   const appended = SECTION_TYPES.filter((t) => !present.has(t)).map((t) => ({
     ...makeEntry(t),
-    visible: false,
+    // Newly-added catalog sections default hidden so they don't disturb an existing page — except the
+    // always-shown chrome (nav/hero/footer), which must stay visible so existing pages don't lose them.
+    visible: REQUIRED_TYPES.has(t),
   }));
   const normalizedSaved = valid.map((s) => ({
     type: s.type,
     variant: s.variant,
-    visible: s.visible,
+    // The header, hero, and footer are always shown — force them visible even if a legacy save hid one.
+    visible: REQUIRED_TYPES.has(s.type) ? true : s.visible,
     config: s.config ? { ...s.config } : {},
   }));
   const result = [...normalizedSaved, ...appended];
@@ -262,6 +294,19 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
         : h.config;
     const heroIndex = result[0]?.type === "announcement" ? 1 : 0;
     result.splice(heroIndex, 0, { ...h, variant: SECTION_META.hero.variants[0].id, config });
+  }
+  // Nav is pinned right after the announcement (above the hero) and not reorderable — enforce its slot on read.
+  const ni = result.findIndex((s) => s.type === "nav");
+  if (ni !== -1) {
+    const [nav] = result.splice(ni, 1);
+    const navIndex = result[0]?.type === "announcement" ? 1 : 0;
+    result.splice(navIndex, 0, nav);
+  }
+  // Footer is pinned to the very end and not reorderable — enforce its slot on read.
+  const fi = result.findIndex((s) => s.type === "footer");
+  if (fi !== -1) {
+    const [footer] = result.splice(fi, 1);
+    result.push(footer);
   }
   // Marquee gained a motion choice (scroll-driven default vs auto-loop); a legacy single-variant save
   // ("default") opens on the new default so its pill reads as selected.

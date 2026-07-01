@@ -1,0 +1,10 @@
+/* Marquee band — continuous editorial drift (mirrors the scroll-driven band in Web app/microsite.css; the
+   contained preview has no page-scroll clock, so the always-on drift the source layers on is the faithful
+   representation). The track holds three copies of the item set; translating by exactly one set width
+   (-33.3333%) loops seamlessly. Duration is set inline per item count to hold a constant glide. */
+@keyframes mcBandScroll { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
+.mc-band-track { animation: mcBandScroll var(--mc-band-dur, 40s) linear infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mc-band-track { animation: none !important; }
+}

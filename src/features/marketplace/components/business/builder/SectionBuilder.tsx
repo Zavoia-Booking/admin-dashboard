@@ -40,11 +40,12 @@ import type {
   FaqItem,
   AnnouncementContent,
 } from "../../../types";
-import { SECTION_META, isKnownSectionType, PINNED_TYPES } from "./sectionCatalog";
+import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
 import { SectionCard } from "./SectionCard";
 import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
+import { useLocationTagDictionaries } from "../../../hooks/useLocationTagDictionaries";
 
 /** House ease-out (mirrors --ease-out-strong in globals.css). */
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
@@ -122,6 +123,10 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
 
+  // Resolve the location-tag dictionaries once (session-cached fetch) and feed them into previewData so the
+  // Locations section renders tags without its own authenticated fetch.
+  const { dictionaries: tagDictionaries } = useLocationTagDictionaries();
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -164,6 +169,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       reviews: props.reviews,
       teamRatings: props.teamRatings,
       ratingDistribution: props.ratingDistribution,
+      tagDictionaries,
     }),
     [
       props.business,
@@ -183,6 +189,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       props.reviews,
       props.teamRatings,
       props.ratingDistribution,
+      tagDictionaries,
     ],
   );
 
@@ -219,6 +226,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
               {t("businessPage.builder.variantLabel")}
             </span>
             <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
+              {/* Editor seam for future paid variants/skins: gate each `v` here by entitlement (e.g. a lock pill + upgrade prompt). */}
               {meta!.variants.map((v) => {
                 const active = entry.variant === v.id;
                 return (
@@ -319,10 +327,14 @@ export function SectionBuilder(props: SectionBuilderProps) {
           </button>
         </div>
 
-        {/* sections | brand */}
-        <div className="grid border-t border-border md:grid-cols-[1fr_320px]">
+        {/* brand band + section list, stacked full-width — the brand controls moved above the list so the
+            list and each section's scoped preview get the whole module width */}
+        <div className="border-t border-border">
+          {/* brand band — above the list */}
+          <div className="px-5 py-5 sm:px-6">{props.brandPanel}</div>
+
           {/* sections — the page contents, set as a ruled editorial index */}
-          <div className="px-5 py-5 sm:px-6 md:border-r md:border-border">
+          <div className="border-t border-border px-5 py-5 sm:px-6">
             {/* folio: how many of the sections are live */}
             <div className="mb-4 flex items-start justify-end">
               <div className="text-right leading-none">
@@ -375,6 +387,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             index={pos + 1}
                             expanded={open}
                             locked={PINNED_TYPES.has(entry.type)}
+                            required={REQUIRED_TYPES.has(entry.type)}
                             needsAttention={
                               (entry.type === "about" && !!props.aboutError) ||
                               (entry.type === "announcement" && !!props.announcementError)
@@ -411,9 +424,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
               </DndContext>
             </div>
           </div>
-
-          {/* brand */}
-          <div className="px-6 py-5">{props.brandPanel}</div>
         </div>
 
       </div>

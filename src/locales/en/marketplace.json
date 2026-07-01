@@ -111,8 +111,18 @@
       "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85.",
       "aboutHeadlineRequired": "Add a headline to your About section, or hide it."
     },
+    "pro": {
+      "badge": "Pro",
+      "previewingColor": "Previewing a Pro color",
+      "previewingFont": "Previewing a Pro font",
+      "previewingStyles": "Previewing Pro styles",
+      "saveHint": "Upgrade to save your choice.",
+      "upgrade": "Upgrade",
+      "upgradeToast": "Upgrade flow coming soon."
+    },
     "branding": {
       "title": "Branding",
+      "namePlaceholder": "Your business",
       "logo": {
         "label": "Logo",
         "alt": "Business logo",
@@ -141,6 +151,9 @@
       "brandColor": {
         "label": "Accent color",
         "description": "Used to highlight buttons and links on your public page.",
+        "included": "Included",
+        "proGroup": "Pro",
+        "previewHint": "Preview any color. Upgrade to save a Pro pick.",
         "swatches": {
           "burgundy": "Burgundy",
           "brick": "Brick",
@@ -178,6 +191,10 @@
         "label": "Announcement",
         "description": "A short promotional message, shown as a top bar or an inline banner."
       },
+      "nav": {
+        "label": "Navigation",
+        "description": "Your logo, section links, and a booking button, shown in the bar at the top of every page."
+      },
       "hero": {
         "label": "Hero",
         "description": "Your cover image, name and subtitle. The top of your page."
@@ -213,6 +230,10 @@
       "faq": {
         "label": "FAQ",
         "description": "Answer common questions up front. Add questions and answers in this section's settings."
+      },
+      "footer": {
+        "label": "Footer",
+        "description": "Your brand, locations, contact, and a closing wordmark, shown at the bottom of every page."
       },
       "variants": {
         "default": "Default",
@@ -272,6 +293,7 @@
       "card": {
         "drag": "Reorder",
         "pinned": "Pinned in place",
+        "alwaysOn": "Always shown",
         "hidden": "Hidden",
         "hide": "Hide section",
         "show": "Show section",

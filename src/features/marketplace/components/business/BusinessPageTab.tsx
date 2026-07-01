@@ -3,9 +3,13 @@ import type { Business, Industry, IndustryTag, LocationWithAssignments } from ".
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { MarketplaceDetailsSection } from "../profile/MarketplaceDetailsSection";
 import IndustrySection from "../profile/IndustrySection";
+import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { Sparkles } from "lucide-react";
 import { BrandingSection } from "./BrandingSection";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { ThemePanel } from "./builder/ThemePanel";
+import { accentIsPro, fontIsPro } from "./builder/theme";
 import type { PreviewReview, RatingBars } from "./builder/LivePreview";
 
 interface BusinessPageTabProps {
@@ -45,6 +49,20 @@ export function BusinessPageTab({
   teamRatings,
   ratingDistribution,
 }: BusinessPageTabProps) {
+  const { t } = useTranslation("marketplace");
+  // Paywall: a Pro accent/font drives the live preview but can't be saved until the owner upgrades.
+  // Today nothing Pro is owned, so an applied Pro pick is always a preview (see theme.accentIsPro).
+  const accentPro = accentIsPro(form.brandColorHex);
+  const fontPro = fontIsPro(form.fontKey);
+  const previewingPro = accentPro || fontPro;
+  const previewingLabel =
+    accentPro && fontPro
+      ? t("businessPage.pro.previewingStyles")
+      : accentPro
+        ? t("businessPage.pro.previewingColor")
+        : t("businessPage.pro.previewingFont");
+  // Placeholder until the billing/upgrade flow exists; will route to the subscription page later.
+  const handleUpgrade = () => toast(t("businessPage.pro.upgradeToast"));
   return (
     <div className="max-w-7xl mb-0 md:mb-8">
       <LimitedAccessBanner className="!px-0 !pt-0" />
@@ -102,17 +120,38 @@ export function BusinessPageTab({
             aboutContent={form.aboutContent}
             setAboutContent={form.setAboutContent}
             brandPanel={
-              <div className="flex flex-col gap-6">
-                <BrandingSection
-                  business={business}
-                  canWrite={canWrite}
-                  pageName={form.pageName}
-                  brandColorHex={form.brandColorHex}
-                  setBrandColorHex={form.setBrandColorHex}
-                />
-                <div className="border-t border-border pt-6">
-                  <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+              // Brand band: three zones (identity lockup · accent · typeface) + a Pro-preview banner that
+              // shows when the applied accent/font is a Pro pick (previewable, but save needs an upgrade).
+              <div className="flex flex-col gap-5">
+                <div className="grid grid-cols-1 items-stretch gap-x-8 gap-y-7 sm:grid-cols-2 2xl:grid-cols-[minmax(260px,1.1fr)_auto_auto]">
+                  <BrandingSection
+                    business={business}
+                    canWrite={canWrite}
+                    pageName={form.pageName}
+                    brandColorHex={form.brandColorHex}
+                    setBrandColorHex={form.setBrandColorHex}
+                    fontKey={form.fontKey}
+                  />
+                  <div className="sm:col-span-2 2xl:col-span-1 2xl:border-l 2xl:border-border-subtle 2xl:pl-8">
+                    <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+                  </div>
                 </div>
+                {previewingPro && (
+                  <div className="flex items-center gap-3 rounded-xl border border-primary/25 bg-primary/[0.05] px-4 py-2.5 dark:bg-primary/[0.08]">
+                    <Sparkles className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
+                    <p className="min-w-0 flex-1 text-[13px] leading-snug text-foreground-2">
+                      <span className="font-medium text-foreground-1">{previewingLabel}</span>
+                      <span className="text-foreground-3"> · {t("businessPage.pro.saveHint")}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleUpgrade}
+                      className="shrink-0 rounded-full bg-primary px-3.5 py-1.5 text-[13px] font-medium text-primary-foreground outline-none transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] hover:opacity-90 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                    >
+                      {t("businessPage.pro.upgrade")}
+                    </button>
+                  </div>
+                )}
               </div>
             }
             business={business}

@@ -12,6 +12,7 @@ import {
   DEFAULT_FONT_KEY,
   LAYOUT_SCHEMA_VERSION,
   PINNED_TYPES,
+  REQUIRED_TYPES,
 } from "../components/business/builder/sectionCatalog";
 import { validateUrlField } from "../../../shared/utils/validation";
 
@@ -126,12 +127,16 @@ export function useBusinessPageBuilder({
       if (from === to || from < 0 || to < 0 || from >= prev.length || to >= prev.length) {
         return prev;
       }
-      // Pinned sections (announcement, then hero) hold the leading slots: they can't be moved, and
-      // nothing can land above them.
-      let pinned = 0;
-      while (pinned < prev.length && PINNED_TYPES.has(prev[pinned].type)) pinned += 1;
-      if (from < pinned) return prev;
-      const target = Math.max(to, pinned);
+      // Pinned sections hold fixed slots: the leading block (announcement, nav, hero) and the trailing
+      // block (footer). They can't be moved, and a movable section can't land above the leading block or
+      // below the trailing one.
+      let lead = 0;
+      while (lead < prev.length && PINNED_TYPES.has(prev[lead].type)) lead += 1;
+      let trailing = 0;
+      while (trailing < prev.length && PINNED_TYPES.has(prev[prev.length - 1 - trailing].type)) trailing += 1;
+      const lastMovable = prev.length - 1 - trailing;
+      if (from < lead || from > lastMovable) return prev;
+      const target = Math.min(Math.max(to, lead), lastMovable);
       if (from === target) return prev;
       const next = prev.slice();
       const [moved] = next.splice(from, 1);
@@ -141,9 +146,11 @@ export function useBusinessPageBuilder({
   }, []);
 
   const toggleVisible = useCallback((index: number) => {
-    setLayout((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, visible: !s.visible } : s)),
-    );
+    setLayout((prev) => {
+      // The header, hero, and footer are always shown — their visibility can't be toggled off.
+      if (REQUIRED_TYPES.has(prev[index]?.type)) return prev;
+      return prev.map((s, i) => (i === index ? { ...s, visible: !s.visible } : s));
+    });
   }, []);
 
   const setVariant = useCallback((index: number, variant: string) => {

@@ -16,6 +16,8 @@ interface SectionCardProps {
   expanded?: boolean;
   /** Pinned to the top (announcement): not draggable; the grip becomes a static pin indicator. */
   locked?: boolean;
+  /** Always shown (nav / hero / footer): visibility can't be toggled — the switch becomes a static label. */
+  required?: boolean;
   /** A pulsing Info cue beside the name — set when this section has a mandatory field still empty. */
   needsAttention?: boolean;
   onSelect: () => void;
@@ -33,6 +35,7 @@ export function SectionCard({
   index,
   expanded,
   locked,
+  required,
   needsAttention,
   onSelect,
   onToggleVisible,
@@ -149,11 +152,17 @@ export function SectionCard({
             aria-hidden
           />
           <span className="pointer-events-auto ml-1.5">
+            {/* Required sections (nav/hero/footer) show the toggle on but locked — no off-brand text tag. */}
             <Switch
               checked={entry.visible}
+              disabled={required}
               onCheckedChange={onToggleVisible}
               aria-label={
-                live ? t("businessPage.builder.card.hide") : t("businessPage.builder.card.show")
+                required
+                  ? t("businessPage.builder.card.alwaysOn")
+                  : live
+                    ? t("businessPage.builder.card.hide")
+                    : t("businessPage.builder.card.show")
               }
             />
           </span>

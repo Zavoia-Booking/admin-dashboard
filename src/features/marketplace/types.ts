@@ -25,6 +25,7 @@ export interface LocaleText {
 
 export type SectionType =
   | 'announcement'
+  | 'nav'
   | 'hero'
   | 'marquee'
   | 'about'
@@ -33,7 +34,8 @@ export type SectionType =
   | 'team'
   | 'interlude'
   | 'testimonials'
-  | 'faq';
+  | 'faq'
+  | 'footer';
 
 /** One section in the ordered page layout. `config` holds small refs/toggles only — no content. */
 export interface SectionEntry {
