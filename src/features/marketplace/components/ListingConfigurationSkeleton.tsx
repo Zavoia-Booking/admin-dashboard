@@ -15,11 +15,13 @@ export function ListingConfigurationSkeleton() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-0">
             {/* Tabs skeleton - mobile pill style, desktop underline style */}
             <div className="relative flex items-stretch w-full md:w-auto gap-1 md:gap-4 rounded-full md:rounded-none bg-sidebar md:bg-transparent p-1 md:p-0 h-10 md:h-auto">
-              {/* Mobile: 3 pill skeletons */}
+              {/* Mobile: 4 pill skeletons */}
               <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
               <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
               <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
-              {/* Desktop: 3 text skeletons */}
+              <Skeleton className="flex-1 md:hidden h-8 rounded-full" />
+              {/* Desktop: 4 text skeletons */}
+              <Skeleton className="hidden md:block h-5 w-24 my-2" />
               <Skeleton className="hidden md:block h-5 w-24 my-2" />
               <Skeleton className="hidden md:block h-5 w-24 my-2" />
               <Skeleton className="hidden md:block h-5 w-24 my-2" />
