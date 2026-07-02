@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
@@ -20,16 +19,14 @@ import type {
 import { useMarketplaceForm } from "../hooks/useMarketplaceForm";
 import ConfirmDialog from "../../../shared/components/common/ConfirmDialog";
 import { useTranslation } from "react-i18next";
-import { fetchReviewStatsAction, fetchHighlightReviewsAction } from "../../reviews/actions";
-import { selectReviewStats, selectHighlightReviews } from "../../reviews/selectors";
 
-import { BusinessPageTab } from "./business/BusinessPageTab";
-import type { PreviewReview } from "./business/builder/LivePreview";
+import { BusinessListingTab } from "./business/BusinessListingTab";
+import { WebsiteBuilderTab } from "./business/WebsiteBuilderTab";
 import { LocationsTab } from "./locations/LocationsTab";
 import { MarketplacePublishStatusStrip } from "./MarketplacePublishStatusStrip";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
-type MarketplaceTab = "business" | "locations" | "reviews";
+type MarketplaceTab = "business" | "website" | "locations" | "reviews";
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -74,7 +71,11 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const pendingNavigationPathRef = useRef<string | null>(null);
   const allowNavigationRef = useRef(false);
 
-  const validTabs: MarketplaceTab[] = ["business", "locations", "reviews"];
+  // Future tier hook: derive this from plan entitlements to hide/remove the Website builder tab.
+  const canShowWebsiteBuilderTab = true;
+  const validTabs: MarketplaceTab[] = canShowWebsiteBuilderTab
+    ? ["business", "website", "locations", "reviews"]
+    : ["business", "locations", "reviews"];
 
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get("tab") as MarketplaceTab | null;
@@ -86,52 +87,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
 
   const [activeTab, setActiveTab] = useState<MarketplaceTab>(getInitialTab());
   const canWrite = useCanWrite();
-
-  // Business-page preview data sourced from the reviews store: real 5★ quotes (their own slice, so the
-  // Reviews tab's filtered fetch never clobbers them) + per-member ratings from the filter-independent
-  // stats. Fetched once on mount; the preview degrades gracefully to aggregate-only if either is empty.
-  const dispatch = useDispatch();
-  const reviewStats = useSelector(selectReviewStats);
-  const highlightReviews = useSelector(selectHighlightReviews);
-
-  useEffect(() => {
-    dispatch(fetchReviewStatsAction.request());
-    dispatch(
-      fetchHighlightReviewsAction.request({
-        rating: 5,
-        withCommentsOnly: true,
-        sortBy: "rating",
-        sortOrder: "DESC",
-        limit: 12,
-      }),
-    );
-  }, [dispatch]);
-
-  const teamRatings = useMemo(() => {
-    const map: Record<number, { rating: number; count: number }> = {};
-    (reviewStats?.teamMembers ?? []).forEach((tm) => {
-      if (tm.totalReviews > 0) map[tm.teamMemberId] = { rating: tm.averageRating, count: tm.totalReviews };
-    });
-    return map;
-  }, [reviewStats]);
-
-  // Business-wide per-star counts → the Reviews section's distribution bars (real data, not synthetic).
-  const ratingDistribution = reviewStats?.business?.ratingDistribution;
-
-  const previewReviews = useMemo<PreviewReview[]>(
-    () =>
-      highlightReviews
-        .filter((r) => (r.comment ?? "").trim())
-        .map((r) => ({
-          id: r.id,
-          rating: r.rating,
-          comment: (r.comment ?? "").trim(),
-          customerName: [r.customer.firstName, r.customer.lastName].filter(Boolean).join(" ").trim(),
-          locationName: r.location?.name ?? null,
-          createdAt: r.createdAt,
-        })),
-    [highlightReviews],
-  );
 
   // Sync with URL changes (map legacy tab names: profile/booking-settings → business, portfolio → locations)
   useEffect(() => {
@@ -145,6 +100,9 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     } else if (rawTab === "portfolio") {
       setActiveTab("locations");
       navigate("/marketplace?tab=locations", { replace: true });
+    } else if (rawTab === "website" && !canShowWebsiteBuilderTab) {
+      setActiveTab("business");
+      navigate("/marketplace?tab=business", { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, navigate]);
@@ -343,14 +301,13 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   })();
 
   const industryTagOk = form.selectedIndustryTags.length > 0;
-  // "Details valid" is about the profile/branding fields only — the industry tag has its own
-  // checklist row, so exclude it here (hasValidationErrors folds the tag check in, which would make
-  // both rows fail for a single missing tag).
-  const detailsOk = !(
+  const businessDetailsOk = !(
     form.nameError ||
     form.emailError ||
     form.phoneError ||
-    form.descriptionError ||
+    form.descriptionError
+  );
+  const websiteBuilderOk = !(
     form.taglineError ||
     form.brandColorError ||
     form.announcementError ||
@@ -369,7 +326,8 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         isDirty={isCombinedDirty}
         hasValidationErrors={form.hasValidationErrors}
         industryTagOk={industryTagOk}
-        detailsOk={detailsOk}
+        businessDetailsOk={businessDetailsOk}
+        websiteBuilderOk={websiteBuilderOk}
         locations={locationsWithAssignments}
         onPublish={handleCombinedSave}
       />
@@ -380,28 +338,42 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     {
       id: "business",
       label: t("configuration.tabs.business"),
-      // Pulse the tab whenever anything on it blocks publish. hasValidationErrors is the single aggregate
-      // (industry tag, contact, tagline/brand colour, announcement, About headline…), so a new section's
-      // required field lights the tab automatically once it folds into that gate — no per-section wiring.
-      showBadge: form.hasValidationErrors,
+      showBadge: !businessDetailsOk || !industryTagOk,
       content: (
         <>
           {statusStrip}
-          <BusinessPageTab
+          <BusinessListingTab
             business={business}
             canWrite={canWrite}
-            heroImageUrl={props.heroImageUrl ?? null}
             industries={props.industries}
             industryTags={props.industryTags}
-            locations={locationsWithAssignments}
             form={form}
-            reviews={previewReviews}
-            teamRatings={teamRatings}
-            ratingDistribution={ratingDistribution}
           />
         </>
       ),
     },
+    ...(canShowWebsiteBuilderTab
+      ? [
+          {
+            id: "website",
+            label: t("configuration.tabs.website"),
+            showBadge: !websiteBuilderOk,
+            content:
+              activeTab === "website" ? (
+                <>
+                  {statusStrip}
+                  <WebsiteBuilderTab
+                    business={business}
+                    canWrite={canWrite}
+                    heroImageUrl={props.heroImageUrl ?? null}
+                    locations={locationsWithAssignments}
+                    form={form}
+                  />
+                </>
+              ) : null,
+          },
+        ]
+      : []),
     {
       id: "locations",
       label: t("configuration.tabs.locations"),

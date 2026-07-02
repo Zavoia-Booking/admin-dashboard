@@ -19,11 +19,6 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { Monitor, Smartphone, ArrowUpRight } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import {
-  modalEyebrow,
-  modalTitleCompact,
-  modalHelperSmall,
-} from "../../../../../shared/components/ui/modal-tokens";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -222,7 +217,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         >
         {hasVariants && (
           <div className="flex flex-col items-start gap-1.5">
-            <span className="text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3">
+            <span className="text-[11px] font-semibold uppercase text-foreground-3">
               {t("businessPage.builder.variantLabel")}
             </span>
             <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
@@ -276,7 +271,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         <div className="border-t border-border pt-5">
           <div className="mb-3 flex items-center gap-2">
             <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground-3">
+            <span className="text-[11px] font-semibold uppercase text-foreground-3">
               {t("businessPage.builder.sectionPreview")}
             </span>
           </div>
@@ -290,55 +285,17 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
   return (
     <>
-      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
-        {/* header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5">
-          <div>
-            <span className={cn(modalEyebrow, "mb-0 block")}>
-              {t("businessPage.builder.eyebrow")}
-            </span>
-            <h2 className={cn(modalTitleCompact, "mt-2")}>
-              {t("businessPage.builder.studioTitle")}
-            </h2>
-            <p className={cn(modalHelperSmall, "mt-1.5")}>
-              {t("businessPage.builder.studioHelper")}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPreviewOpen(true)}
-            className={cn(
-              "group mt-1 inline-flex shrink-0 items-center gap-2 text-[13px] font-medium text-foreground-2",
-              "transition-colors duration-200 hover:text-foreground-1",
-              EASE,
-            )}
-          >
-            {t("businessPage.builder.openPreview")}
-            <span
-              className={cn(
-                "grid h-6 w-6 place-items-center rounded-full bg-foreground-1/[0.06] text-foreground-2",
-                "transition-all duration-200 group-hover:bg-foreground-1/10 group-hover:text-foreground-1",
-                "group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:scale-95",
-                EASE,
-              )}
-            >
-              <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden />
-            </span>
-          </button>
-        </div>
-
-        {/* brand band + section list, stacked full-width — the brand controls moved above the list so the
-            list and each section's scoped preview get the whole module width */}
-        <div className="border-t border-border">
-          {/* brand band — above the list */}
-          <div className="px-5 py-5 sm:px-6">{props.brandPanel}</div>
-
-          {/* sections — the page contents, set as a ruled editorial index */}
-          <div className="border-t border-border px-5 py-5 sm:px-6">
-            {/* folio: how many of the sections are live */}
-            <div className="mb-4 flex items-start justify-end">
-              <div className="text-right leading-none">
-                <span className="text-[12px] tabular-nums text-foreground-3">
+      <div className="overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-xs">
+        <div className="px-5 py-5 sm:px-6 lg:px-7">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="mb-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] text-foreground-3">
+                <span className="inline-flex items-center gap-2 font-medium text-foreground-2">
+                  <span className="size-1.5 rounded-full bg-primary" aria-hidden />
+                  {t("businessPage.builder.eyebrow")}
+                </span>
+                <span className="h-1 w-1 rounded-full bg-border-subtle" aria-hidden />
+                <span className="tabular-nums">
                   <span className="font-semibold text-foreground-1">
                     {String(shown).padStart(2, "0")}
                   </span>
@@ -346,14 +303,59 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   {String(displaySections.length).padStart(2, "0")}{" "}
                   {t("businessPage.builder.sectionsVisible")}
                 </span>
-                <span className="mt-[7px] block font-mono text-[9px] uppercase tracking-[0.18em] text-foreground-3">
-                  {t("businessPage.builder.sectionsLabel")}
-                </span>
+              </div>
+              <h2 className="text-balance text-[23px] font-semibold leading-tight text-foreground-1 sm:text-[26px]">
+                {t("businessPage.builder.studioTitle")}
+              </h2>
+              <p className="mt-1.5 max-w-[58ch] text-pretty text-sm leading-6 text-foreground-3">
+                {t("businessPage.builder.studioHelper")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewOpen(true)}
+              className={cn(
+                "group inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border bg-surface-hover px-3.5 text-[13px] font-semibold text-foreground-2 outline-none",
+                "transition-[transform,border-color,background-color] duration-150 hover:border-border-strong hover:bg-surface-active active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus",
+                EASE,
+              )}
+            >
+              {t("businessPage.builder.openPreview")}
+              <span
+                className={cn(
+                  "grid size-6 place-items-center rounded-full bg-surface text-foreground-2 ring-1 ring-border-subtle",
+                  "transition-[transform,color] duration-150 group-hover:text-foreground-1",
+                  "group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:scale-95",
+                  EASE,
+                )}
+              >
+                <ArrowUpRight className="size-3.5" strokeWidth={1.7} aria-hidden />
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* brand band + section list, stacked full-width — the brand controls moved above the list so the
+            list and each section's scoped preview get the whole module width */}
+        <div className="border-t border-border">
+          {/* brand band — above the list */}
+          <div className="bg-surface px-5 py-4 sm:px-6 lg:px-7">{props.brandPanel}</div>
+
+          {/* sections — the page contents, set as a ruled editorial index */}
+          <div className="border-t border-border bg-surface-hover/35 px-5 py-5 sm:px-6 lg:px-7">
+            <div className="mb-4 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h3 className="text-[15px] font-semibold text-foreground-1">
+                  {t("businessPage.builder.title")}
+                </h3>
+                <p className="mt-1 max-w-[60ch] text-pretty text-[13px] leading-5 text-foreground-3">
+                  {t("businessPage.builder.sectionsHelper")}
+                </p>
               </div>
             </div>
 
             {/* bracketed sheet with a hairline spine in the left margin */}
-            <div className="relative border-y border-border">
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-surface">
               <span
                 aria-hidden
                 className="pointer-events-none absolute inset-y-0 left-[72px] z-0 w-px bg-border-subtle"
@@ -432,7 +434,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="flex max-h-[90vh] w-full max-w-[min(1280px,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(1280px,calc(100%-2rem))]">
           <DialogHeader className="flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border p-4 pr-12 text-left">
-            <DialogTitle className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.18em] text-foreground-2">
+            <DialogTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase text-foreground-2">
               <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
               {t("businessPage.builder.previewLabel")}
             </DialogTitle>
@@ -470,11 +472,11 @@ function DeviceToggle({
         aria-label={t("businessPage.builder.deviceDesktop")}
         aria-pressed={device === "desktop"}
         className={cn(
-          "transition-colors duration-150",
+          "transition-colors duration-150 ease-out",
           device === "desktop" ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
         )}
       >
-        <Monitor className="h-[15px] w-[15px]" strokeWidth={1.5} />
+        <Monitor className="size-[15px]" strokeWidth={1.5} />
       </button>
       <button
         type="button"
@@ -482,11 +484,11 @@ function DeviceToggle({
         aria-label={t("businessPage.builder.deviceMobile")}
         aria-pressed={device === "mobile"}
         className={cn(
-          "transition-colors duration-150",
+          "transition-colors duration-150 ease-out",
           device === "mobile" ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
         )}
       >
-        <Smartphone className="h-[15px] w-[15px]" strokeWidth={1.5} />
+        <Smartphone className="size-[15px]" strokeWidth={1.5} />
       </button>
     </span>
   );

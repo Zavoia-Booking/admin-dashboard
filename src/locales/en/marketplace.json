@@ -45,6 +45,7 @@
   "configuration": {
     "tabs": {
       "business": "Business page",
+      "website": "Website builder",
       "locations": "Locations"
     },
     "sections": {
@@ -266,9 +267,9 @@
       }
     },
     "builder": {
-      "eyebrow": "Website",
-      "studioTitle": "Your public page",
-      "studioHelper": "Arrange the sections, set the brand, see it live.",
+      "eyebrow": "Public site",
+      "studioTitle": "Website builder",
+      "studioHelper": "Shape the page your clients see: identity, sections, and preview.",
       "openPreview": "Open preview",
       "sectionsShown": "{{shown}} of {{total}} shown",
       "sectionsVisible": "visible",
@@ -469,7 +470,8 @@
     "toGoLive": "To go live:",
     "checklist": {
       "industryTag": "At least one industry tag",
-      "detailsValid": "Business details valid"
+      "detailsValid": "Business details valid",
+      "websiteBuilder": "Website builder valid"
     },
     "locationsVisible": "{{visible}} of {{total}} locations visible",
     "noLocationLive": "No location is live yet",
