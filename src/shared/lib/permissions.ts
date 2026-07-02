@@ -327,8 +327,9 @@ export const SUB_ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/account?tab=billing': Permission.ACCESS_SETTINGS_BILLING,
   '/account?tab=advanced': Permission.ACCESS_SETTINGS_ADVANCED,
   
-  // Marketplace tabs (business + locations are the current tab names; profile/portfolio kept for legacy deep-links)
+  // Marketplace tabs (profile/portfolio kept for legacy deep-links)
   '/marketplace?tab=business': Permission.ACCESS_MARKETPLACE_PROFILE,
+  '/marketplace?tab=website': Permission.ACCESS_MARKETPLACE_PROFILE,
   '/marketplace?tab=locations': Permission.ACCESS_MARKETPLACE_PORTFOLIO,
   '/marketplace?tab=profile': Permission.ACCESS_MARKETPLACE_PROFILE,
   '/marketplace?tab=portfolio': Permission.ACCESS_MARKETPLACE_PORTFOLIO,

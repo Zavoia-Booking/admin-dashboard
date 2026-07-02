@@ -11,7 +11,8 @@ interface MarketplacePublishStatusStripProps {
   isDirty: boolean;
   hasValidationErrors: boolean;
   industryTagOk: boolean;
-  detailsOk: boolean;
+  businessDetailsOk: boolean;
+  websiteBuilderOk: boolean;
   locations: LocationWithAssignments[];
   onPublish: () => void;
 }
@@ -20,14 +21,16 @@ function ChecklistItem({ ok, label }: { ok: boolean; label: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 text-xs font-medium",
-        ok ? "text-green-600 dark:text-green-500" : "text-foreground-3 dark:text-foreground-2",
+        "inline-flex items-center gap-1.5 text-[12px] font-medium leading-5",
+        ok
+          ? "text-green-700 dark:text-green-400"
+          : "text-foreground-3 dark:text-foreground-2",
       )}
     >
       {ok ? (
-        <Check className="h-3.5 w-3.5" />
+        <Check className="size-3.5" strokeWidth={2.2} />
       ) : (
-        <Circle className="h-3.5 w-3.5" />
+        <Circle className="size-3.5" strokeWidth={1.8} />
       )}
       {label}
     </span>
@@ -46,7 +49,8 @@ export function MarketplacePublishStatusStrip({
   isDirty,
   hasValidationErrors,
   industryTagOk,
-  detailsOk,
+  businessDetailsOk,
+  websiteBuilderOk,
   locations,
   onPublish,
 }: MarketplacePublishStatusStripProps) {
@@ -67,18 +71,28 @@ export function MarketplacePublishStatusStrip({
     isPublishing || !isDirty || hasValidationErrors || !industryTagOk;
 
   return (
-    <div className="rounded-2xl border border-border bg-white dark:bg-surface shadow-sm overflow-hidden">
-      <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        {/* Status / checklist */}
+    <div className="overflow-hidden rounded-[1.125rem] border border-border bg-surface shadow-xs">
+      <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div className="min-w-0 space-y-2">
           {isListed ? (
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground-1">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-60 animate-ping" style={{ animationDuration: "3s" }} />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="inline-flex items-center gap-2 text-[14px] font-semibold text-foreground-1">
+                <span className="grid size-5 place-items-center rounded-full bg-green-50 ring-1 ring-green-100 dark:bg-green-950/30 dark:ring-green-900/40">
+                  <span className="size-2 rounded-full bg-green-500" aria-hidden />
+                </span>
+                <BadgeCheck className="size-4 text-green-600 dark:text-green-500" strokeWidth={2} />
+                {t("statusStrip.live")}
               </span>
-              <BadgeCheck className="h-4 w-4 text-green-600 dark:text-green-500" />
-              {t("statusStrip.live")}
+              <span className="hidden h-4 w-px bg-border-subtle sm:block" aria-hidden />
+              <span className="inline-flex min-w-0 items-center gap-1.5 text-[12px] text-foreground-3 dark:text-foreground-2">
+                <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} />
+                <span>{t("statusStrip.locationsVisible", { visible: publicCount, total })}</span>
+              </span>
+              {publicCount === 0 && (
+                <span className="text-xs font-medium text-amber-600 dark:text-amber-500">
+                  {t("statusStrip.noLocationLive")}
+                </span>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -87,21 +101,18 @@ export function MarketplacePublishStatusStrip({
               </p>
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <ChecklistItem ok={industryTagOk} label={t("statusStrip.checklist.industryTag")} />
-                <ChecklistItem ok={detailsOk} label={t("statusStrip.checklist.detailsValid")} />
+                <ChecklistItem ok={businessDetailsOk} label={t("statusStrip.checklist.detailsValid")} />
+                <ChecklistItem ok={websiteBuilderOk} label={t("statusStrip.checklist.websiteBuilder")} />
               </div>
             </div>
           )}
 
-          {/* Locations visible count */}
-          <div className="flex items-center gap-1.5 text-xs text-foreground-3 dark:text-foreground-2">
-            <MapPin className="h-3.5 w-3.5 shrink-0" />
-            <span>{t("statusStrip.locationsVisible", { visible: publicCount, total })}</span>
-            {isListed && publicCount === 0 && (
-              <span className="text-amber-600 dark:text-amber-500 font-medium">
-                · {t("statusStrip.noLocationLive")}
-              </span>
-            )}
-          </div>
+          {!isListed && (
+            <div className="flex items-center gap-1.5 text-xs text-foreground-3 dark:text-foreground-2">
+              <MapPin className="size-3.5 shrink-0" strokeWidth={1.8} />
+              <span>{t("statusStrip.locationsVisible", { visible: publicCount, total })}</span>
+            </div>
+          )}
 
           {/* Public locations won't actually show until the business page is published. */}
           {!isListed && publicCount > 0 && (
@@ -111,26 +122,36 @@ export function MarketplacePublishStatusStrip({
           )}
         </div>
 
-        {/* Publish / Save */}
         {canWrite && (
           <Button
             onClick={onPublish}
             disabled={publishDisabled}
-            className="group btn-primary !min-h-0 rounded-full shadow-lg shadow-primary/20 active:scale-95 transition-all duration-300 font-bold flex items-center gap-2 !h-10 md:!h-11 !px-5 md:!px-6 text-xs md:text-sm w-full sm:w-auto shrink-0"
+            rounded="full"
+            className={cn(
+              "group !h-10 !min-h-0 w-full shrink-0 px-4 text-sm font-semibold shadow-xs",
+              "transition-[transform,box-shadow,background-color] duration-150 ease-out active:scale-[0.98]",
+              "sm:w-auto sm:px-5",
+              publishDisabled ? "shadow-none" : "shadow-primary/15",
+            )}
           >
             {isPublishing ? (
               <>
-                <div className="rounded-full border-2 border-white/30 border-t-white animate-spin h-3.5 w-3.5" />
+                <div className="size-3.5 rounded-full border-2 border-white/30 border-t-white animate-spin" />
                 <span>{buttonLabel}</span>
               </>
             ) : (
               <>
                 <span>{buttonLabel}</span>
-                {isListed ? (
-                  <Save className="hidden md:inline h-4 w-4" />
-                ) : (
-                  <ArrowRight className="inline h-4 w-4 transition-transform duration-300 ease-out group-hover:translate-x-1.5" />
-                )}
+                <span
+                  className="hidden size-6 place-items-center rounded-full bg-white/15 transition-transform duration-150 ease-out group-hover:translate-x-0.5 group-active:scale-95 md:grid"
+                  aria-hidden
+                >
+                  {isListed ? (
+                    <Save className="size-3.5" strokeWidth={1.9} />
+                  ) : (
+                    <ArrowRight className="size-3.5" strokeWidth={1.9} />
+                  )}
+                </span>
               </>
             )}
           </Button>

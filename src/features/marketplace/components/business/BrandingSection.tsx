@@ -17,7 +17,7 @@ const LOGO_ALLOWED = "image/jpeg,image/jpg,image/png,image/webp,image/svg+xml,im
 const PUBLIC_PAGE_BASE = "zavoia.com/b/";
 
 // Shared micro-label for each brand group (mirrors the section-list mono labels).
-const GROUP_LABEL = "text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3";
+const GROUP_LABEL = "text-[11px] font-semibold uppercase text-foreground-3";
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
 
 const freeAccents = BRAND_ACCENTS.filter((a) => !a.pro);
@@ -103,7 +103,7 @@ export function BrandingSection({
         onClick={() => setBrandColorHex(hex)}
         style={{ backgroundColor: hex }}
         className={cn(
-          "relative h-7 w-7 rounded-full outline-none transition-transform duration-150",
+          "relative size-7 rounded-full outline-none transition-transform duration-150",
           EASE,
           "focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-popover",
           canWrite ? "cursor-pointer hover:scale-110 active:scale-95" : "cursor-not-allowed opacity-60",
@@ -115,9 +115,9 @@ export function BrandingSection({
         {pro && (
           <span
             aria-hidden
-            className="absolute -right-1 -top-1 grid h-3.5 w-3.5 place-items-center rounded-full bg-popover ring-1 ring-black/10 dark:ring-white/15"
+            className="absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full bg-popover ring-1 ring-black/10 dark:ring-white/15"
           >
-            <Lock className="h-2 w-2 text-foreground-3" strokeWidth={2.5} />
+            <Lock className="size-2 text-foreground-3" strokeWidth={2.5} />
           </span>
         )}
       </button>
@@ -127,85 +127,88 @@ export function BrandingSection({
   return (
     <>
       {/* Identity — logo (hover to upload) + a live lockup of the page name in the chosen face + address */}
-      <div className="flex min-w-0 items-center gap-4">
-        <div className="relative h-16 w-16 shrink-0">
-          <button
-            type="button"
-            onClick={() => canWrite && !isUploadingLogo && logoInputRef.current?.click()}
-            disabled={!canWrite || isUploadingLogo}
-            aria-label={
-              isUploadingLogo
-                ? t("businessPage.branding.logo.uploading")
-                : t("businessPage.branding.logo.edit")
-            }
-            className={cn(
-              "group/logo relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface shadow-sm outline-none transition-shadow duration-200 hover:shadow-md focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed dark:bg-neutral-900",
-              EASE,
-            )}
-          >
-            {logoUrl ? (
-              <img src={logoUrl} alt={t("businessPage.branding.logo.alt")} className="h-full w-full object-cover" />
-            ) : (
-              <Building2 className="h-6 w-6 text-foreground-3" aria-hidden />
-            )}
-            {/* upload affordance — scrim + camera revealed on hover/focus; spinner while uploading */}
-            <span
-              className={cn(
-                "absolute inset-0 grid place-items-center bg-neutral-950/45 text-white transition-opacity duration-200",
-                EASE,
+      <div className="flex min-w-0 flex-col justify-center rounded-[1.25rem] bg-surface-hover/50 p-4 ring-1 ring-border-subtle">
+        <span className={GROUP_LABEL}>{t("businessPage.branding.title")}</span>
+        <div className="mt-3.5 flex min-w-0 items-center gap-4">
+          <div className="relative size-[72px] shrink-0">
+            <button
+              type="button"
+              onClick={() => canWrite && !isUploadingLogo && logoInputRef.current?.click()}
+              disabled={!canWrite || isUploadingLogo}
+              aria-label={
                 isUploadingLogo
-                  ? "opacity-100"
-                  : "opacity-0 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100",
+                  ? t("businessPage.branding.logo.uploading")
+                  : t("businessPage.branding.logo.edit")
+              }
+              className={cn(
+                "group/logo relative flex size-[72px] items-center justify-center overflow-hidden rounded-[1.1rem] border border-border bg-surface shadow-xs outline-none transition-[transform,border-color] duration-150 hover:border-border-strong active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed dark:bg-neutral-900",
+                EASE,
               )}
-              aria-hidden
             >
-              {isUploadingLogo ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={t("businessPage.branding.logo.alt")} className="h-full w-full object-cover" />
               ) : (
-                <Camera className="h-4 w-4" />
+                <Building2 className="h-6 w-6 text-foreground-3" aria-hidden />
               )}
-            </span>
-          </button>
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept={LOGO_ALLOWED}
-            className="hidden"
-            onChange={handleLogoSelect}
-            disabled={!canWrite || isUploadingLogo}
-          />
-        </div>
-
-        <div className="min-w-0">
-          {/* keyed by face so the name gently reblooms when the typeface changes */}
-          <div
-            key={font.key}
-            className="truncate text-[21px] leading-[1.15] text-foreground-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300 motion-safe:ease-out"
-            style={{ fontFamily: font.stack, fontWeight: font.weight, letterSpacing: font.tracking }}
-          >
-            {pageName || t("businessPage.branding.namePlaceholder")}
-          </div>
-          {derivedSlug && (
-            <div
-              className="mt-2 flex min-w-0 items-center gap-1.5"
-              title={t("businessPage.branding.slug.autoHint")}
-            >
+              {/* upload affordance — scrim + camera revealed on hover/focus; spinner while uploading */}
               <span
-                className="h-1.5 w-1.5 shrink-0 rounded-full"
-                style={{ backgroundColor: accentHex }}
+                className={cn(
+                  "absolute inset-0 grid place-items-center bg-neutral-950/45 text-white transition-opacity duration-150",
+                  EASE,
+                  isUploadingLogo
+                    ? "opacity-100"
+                    : "opacity-0 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100",
+                )}
                 aria-hidden
-              />
-              <span className="min-w-0 truncate font-mono text-[11px] leading-none">
-                <span className="text-foreground-3">{PUBLIC_PAGE_BASE}</span>
-                <span className="text-foreground-2">{derivedSlug}</span>
+              >
+                {isUploadingLogo ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Camera className="size-4" />
+                )}
               </span>
+            </button>
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept={LOGO_ALLOWED}
+              className="hidden"
+              onChange={handleLogoSelect}
+              disabled={!canWrite || isUploadingLogo}
+            />
+          </div>
+
+          <div className="min-w-0 space-y-2">
+            {/* keyed by face so the name gently reblooms when the typeface changes */}
+            <div
+              key={font.key}
+              className="truncate text-[24px] leading-[1.12] text-foreground-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 motion-safe:ease-out"
+              style={{ fontFamily: font.stack, fontWeight: font.weight, letterSpacing: font.tracking }}
+            >
+              {pageName || t("businessPage.branding.namePlaceholder")}
             </div>
-          )}
+            {derivedSlug && (
+              <div
+                className="flex min-w-0 items-center gap-1.5"
+                title={t("businessPage.branding.slug.autoHint")}
+              >
+                <span
+                  className="size-1.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: accentHex }}
+                  aria-hidden
+                />
+                <span className="min-w-0 truncate font-mono text-[11px] leading-none">
+                  <span className="text-foreground-3">{PUBLIC_PAGE_BASE}</span>
+                  <span className="text-foreground-2">{derivedSlug}</span>
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Accent — a compact current-colour chip that opens the full palette (Included / Pro) in a popover */}
-      <div className="flex min-w-0 flex-col gap-3 2xl:border-l 2xl:border-border-subtle 2xl:pl-8">
+      <div className="flex min-w-0 flex-col justify-center gap-3 rounded-[1.25rem] bg-surface-hover/35 p-4 ring-1 ring-border-subtle">
         <span className={GROUP_LABEL}>{t("businessPage.branding.brandColor.label")}</span>
         <Popover>
           <PopoverTrigger asChild>
@@ -214,19 +217,19 @@ export function BrandingSection({
               disabled={!canWrite}
               aria-label={t("businessPage.branding.brandColor.label")}
               className={cn(
-                "group/accent flex w-full max-w-[220px] items-center gap-2.5 rounded-xl border border-border bg-surface px-3 py-2 text-left outline-none transition-[border-color,box-shadow] duration-200",
+                "group/accent flex h-12 w-full items-center gap-3 rounded-[0.9rem] border border-border bg-surface px-3 text-left shadow-xs outline-none transition-[transform,border-color,background-color] duration-150",
                 EASE,
-                "hover:border-border-strong focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
+                "hover:border-border-strong hover:bg-surface-hover active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
               )}
             >
               <span
-                className="h-6 w-6 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/20"
+                className="size-7 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/20"
                 style={{ backgroundColor: accentHex }}
                 aria-hidden
               />
               <span className="min-w-0 flex-1 truncate text-sm text-foreground-1">{activeAccentName}</span>
               <ChevronDown
-                className="h-4 w-4 shrink-0 text-foreground-3 transition-transform duration-200 group-data-[state=open]/accent:rotate-180"
+                className="size-4 shrink-0 text-foreground-3 transition-transform duration-150 ease-out group-data-[state=open]/accent:rotate-180"
                 strokeWidth={1.8}
                 aria-hidden
               />
@@ -245,8 +248,8 @@ export function BrandingSection({
                 </div>
               </div>
               <div className="space-y-2 border-t border-border-subtle pt-3.5">
-                <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3">
-                  <Lock className="h-3 w-3" strokeWidth={2.2} aria-hidden />
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-foreground-3">
+                  <Lock className="size-3" strokeWidth={2.2} aria-hidden />
                   {t("businessPage.branding.brandColor.proGroup")}
                 </span>
                 <div

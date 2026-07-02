@@ -45,6 +45,7 @@
   "configuration": {
     "tabs": {
       "business": "Pagina afacerii",
+      "website": "Constructor site",
       "locations": "Locații"
     },
     "sections": {
@@ -280,9 +281,9 @@
       }
     },
     "builder": {
-      "eyebrow": "Site web",
-      "studioTitle": "Pagina ta publică",
-      "studioHelper": "Aranjează secțiunile, setează brandul, vezi totul live.",
+      "eyebrow": "Site public",
+      "studioTitle": "Constructor site",
+      "studioHelper": "Conturează pagina văzută de clienți: identitate, secțiuni și previzualizare.",
       "openPreview": "Deschide previzualizarea",
       "sectionsShown": "{{shown}} din {{total}} afișate",
       "sectionsVisible": "vizibile",
@@ -487,7 +488,8 @@
     "toGoLive": "Pentru a publica:",
     "checklist": {
       "industryTag": "Cel puțin o etichetă de industrie",
-      "detailsValid": "Detaliile afacerii sunt valide"
+      "detailsValid": "Detaliile afacerii sunt valide",
+      "websiteBuilder": "Constructorul site-ului este valid"
     },
     "locationsVisible": "{{visible}} din {{total}} locații vizibile",
     "noLocationLive": "Nicio locație nu este activă încă",
