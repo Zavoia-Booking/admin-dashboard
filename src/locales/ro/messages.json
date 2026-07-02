@@ -134,7 +134,17 @@
     "E14": "Nu am putut actualiza vizibilitatea. Încearcă din nou",
     "E15": "Nu am putut încărca setările de programare. Încearcă din nou",
     "E16": "Nu am putut actualiza setările de programare. Încearcă din nou",
-    "E17": "Ai nevoie de un abonament activ pentru a publica listarea în marketplace"
+    "E17": "Ai nevoie de un abonament activ pentru a publica listarea în marketplace",
+    "E18": "Pagina ta folosește aspecte premium pe care nu le-ai cumpărat încă"
+  },
+  "WEBSITE_VARIANTS": {
+    "E01": "Acest aspect premium nu mai este disponibil",
+    "E02": "Există deja un aspect cu această secțiune și cheie",
+    "E03": "Acest aspect este gratuit — nu este nimic de cumpărat",
+    "E04": "Deții deja acest aspect",
+    "E05": "Constructorul de site-uri necesită planul Plus. Fă upgrade din Cont → Facturare pentru a cumpăra aspecte premium",
+    "E06": "Ceva nu a mers bine la cumpărarea aspectului. Încearcă din nou",
+    "E07": "Secțiunea și cheia unui aspect cumpărat nu pot fi modificate"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Clientul nu a fost găsit",

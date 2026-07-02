@@ -134,7 +134,17 @@
     "E14": "Couldn’t update visibility settings. Try again",
     "E15": "Couldn’t load booking settings. Try again",
     "E16": "Couldn’t update booking settings. Try again",
-    "E17": "An active subscription is required to publish your marketplace listing"
+    "E17": "An active subscription is required to publish your marketplace listing",
+    "E18": "Your page uses premium layouts you haven’t purchased yet"
+  },
+  "WEBSITE_VARIANTS": {
+    "E01": "This premium layout isn’t available anymore",
+    "E02": "A layout with this section and key already exists",
+    "E03": "This layout is free — there’s nothing to purchase",
+    "E04": "You already own this layout",
+    "E05": "The website builder requires the Plus plan. Upgrade in Account → Billing to buy premium layouts",
+    "E06": "Something went wrong with the layout purchase. Try again",
+    "E07": "A purchased layout’s section and key can’t be changed"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Customer not found",

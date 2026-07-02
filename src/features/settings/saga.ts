@@ -1,6 +1,7 @@
 import { takeLatest, call, put, all } from "redux-saga/effects";
 import {
   getSubscriptionSummaryAction,
+  getPlansAction,
   createCheckoutSessionAction,
   getCustomerPortalUrlAction,
   modifySubscriptionAction,
@@ -13,6 +14,7 @@ import {
 } from "./actions";
 import {
   getSubscriptionSummary,
+  getPlansList,
   createCheckoutSession,
   getCustomerPortalUrl,
   modifySubscription,
@@ -25,6 +27,7 @@ import {
 } from "./api";
 import type {
   SubscriptionSummary,
+  PlansListResponse,
   CheckoutResponse,
   SmsBalanceResponse,
   SmsPackagesResponse,
@@ -51,6 +54,16 @@ function* handleGetSubscriptionSummary() {
   } catch (error: any) {
     const message = extractMessage(error, i18n.t('settings:page.errors.fetchPricingSummary'));
     yield put(getSubscriptionSummaryAction.failure({ message }));
+  }
+}
+
+function* handleGetPlans() {
+  try {
+    const response: PlansListResponse = yield call(getPlansList);
+    yield put(getPlansAction.success({ plans: response.plans }));
+  } catch (error: any) {
+    const message = extractMessage(error, i18n.t('settings:page.errors.fetchPlans'));
+    yield put(getPlansAction.failure({ message }));
   }
 }
 
@@ -190,6 +203,7 @@ function* handleGetBusinessInvoices(action: ReturnType<typeof getBusinessInvoice
 export function* settingsSaga() {
   yield all([
     takeLatest(getSubscriptionSummaryAction.request, handleGetSubscriptionSummary),
+    takeLatest(getPlansAction.request, handleGetPlans),
     takeLatest(createCheckoutSessionAction.request, handleCreateCheckoutSession),
     takeLatest(getCustomerPortalUrlAction.request, handleGetCustomerPortalUrl),
     takeLatest(modifySubscriptionAction.request, handleModifySubscription),

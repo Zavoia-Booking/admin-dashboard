@@ -19,6 +19,10 @@ const initialState: MarketplaceState = {
   // Booking settings
   bookingSettings: null,
   isSavingBookingSettings: false,
+  // Paid section variants (website builder)
+  variantCatalog: [],
+  isLoadingVariantCatalog: false,
+  isCreatingVariantCheckout: false,
 };
 
 export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: MarketplaceState = initialState, action: Actions) => {
@@ -131,6 +135,29 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
 
     case getType(actions.updateBookingSettingsAction.failure):
       return { ...state, isSavingBookingSettings: false, error: action.payload.message };
+
+    // Paid section variants (website builder). Note: catalog failures don't touch the global
+    // `error` — the catalog is an enhancement (locked/owned pills) and must never trip the
+    // page-level error view; ownership is enforced server-side at publish regardless.
+    case getType(actions.fetchWebsiteVariantCatalogAction.request):
+      return { ...state, isLoadingVariantCatalog: true };
+
+    case getType(actions.fetchWebsiteVariantCatalogAction.success):
+      return { ...state, isLoadingVariantCatalog: false, variantCatalog: action.payload };
+
+    case getType(actions.fetchWebsiteVariantCatalogAction.failure):
+      return { ...state, isLoadingVariantCatalog: false };
+
+    case getType(actions.createWebsiteVariantCheckoutAction.request):
+      return { ...state, isCreatingVariantCheckout: true };
+
+    // Stay "in flight" on success — the saga immediately redirects to Stripe, so the buy
+    // button keeps its busy state instead of flashing back to idle before navigation.
+    case getType(actions.createWebsiteVariantCheckoutAction.success):
+      return state;
+
+    case getType(actions.createWebsiteVariantCheckoutAction.failure):
+      return { ...state, isCreatingVariantCheckout: false };
 
     default:
       return state;

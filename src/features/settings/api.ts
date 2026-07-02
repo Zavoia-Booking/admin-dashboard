@@ -11,6 +11,9 @@ import type {
   SmsCheckoutPayload,
   SmsCheckoutResponse,
   BusinessInvoicesResponse,
+  PlansListResponse,
+  ChangePlanResponse,
+  CancelPlanChangeResponse,
 } from './types';
 
 export const getSubscriptionSummary = async (): Promise<SubscriptionSummary> => {
@@ -50,6 +53,26 @@ export const cancelRemoval = async (): Promise<{ success: boolean }> => {
 
 export const abortPendingPayment = async (): Promise<{ success: boolean }> => {
   const response = await apiClient().post<{ success: boolean }>('/billing/abort-pending-payment');
+  return response.data;
+};
+
+// Self-serve plans (STANDARD + PLUS) with pricing for the business's country
+export const getPlansList = async (): Promise<PlansListResponse> => {
+  const response = await apiClient().get<PlansListResponse>('/plans/list');
+  return response.data;
+};
+
+// Change plan on an active subscription: upgrades apply immediately (prorated,
+// SCA-capable), downgrades are scheduled at the end of the billing period.
+export const changePlan = async (payload: { planId: number }): Promise<ChangePlanResponse> => {
+  const response = await apiClient().post<ChangePlanResponse>('/billing/change-plan', payload);
+  return response.data;
+};
+
+// Cancel a scheduled plan change. Releases the shared Stripe schedule, so it
+// ALSO clears any scheduled seat change — the UI must surface this caveat.
+export const cancelPlanChange = async (): Promise<CancelPlanChangeResponse> => {
+  const response = await apiClient().post<CancelPlanChangeResponse>('/billing/cancel-plan-change');
   return response.data;
 };
 

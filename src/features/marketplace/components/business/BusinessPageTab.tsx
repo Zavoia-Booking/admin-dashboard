@@ -1,11 +1,17 @@
+import { useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
-import type { Business, Industry, IndustryTag, LocationWithAssignments } from "../../types";
+import type { Business, Industry, IndustryTag, LocationWithAssignments, WebsiteVariantCatalogEntry } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { MarketplaceDetailsSection } from "../profile/MarketplaceDetailsSection";
 import IndustrySection from "../profile/IndustrySection";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Sparkles } from "lucide-react";
+import { fetchWebsiteVariantCatalogAction, createWebsiteVariantCheckoutAction } from "../../actions";
+import { selectWebsiteVariantCatalog, selectVariantCheckoutCreating } from "../../selectors";
+import { selectCurrentUser } from "../../../auth/selectors";
 import { BrandingSection } from "./BrandingSection";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { ThemePanel } from "./builder/ThemePanel";
@@ -50,6 +56,45 @@ export function BusinessPageTab({
   ratingDistribution,
 }: BusinessPageTabProps) {
   const { t } = useTranslation("marketplace");
+  const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Paid section variants: catalog with per-business ownership + the checkout in-flight flag.
+  const variantCatalog = useSelector(selectWebsiteVariantCatalog);
+  const isVariantCheckoutLoading = useSelector(selectVariantCheckoutCreating);
+  const currentUser = useSelector(selectCurrentUser);
+  const hasWebsiteBuilder = currentUser?.entitlements?.features?.websiteBuilder ?? false;
+
+  // Fetch the paid-variant catalog whenever the builder loads (including the return from a
+  // Stripe purchase, which is a fresh page load) so locked/owned pills reflect ownership.
+  useEffect(() => {
+    dispatch(fetchWebsiteVariantCatalogAction.request());
+  }, [dispatch]);
+
+  // Return from Stripe checkout (successUrl = /marketplace?tab=business&variantPurchase=success):
+  // toast, strip the marker param, and refetch the catalog once more after a short delay —
+  // ownership lands via webhook, which can trail the redirect by a moment.
+  const purchaseReturnHandled = useRef(false);
+  useEffect(() => {
+    if (searchParams.get("variantPurchase") !== "success" || purchaseReturnHandled.current) return;
+    purchaseReturnHandled.current = true;
+    toast.success(t("businessPage.paidVariants.purchaseSuccessToast"));
+    setTimeout(() => dispatch(fetchWebsiteVariantCatalogAction.request()), 3000);
+    const next = new URLSearchParams(searchParams);
+    next.delete("variantPurchase");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, dispatch, t]);
+
+  const handleBuyVariant = (variant: WebsiteVariantCatalogEntry) => {
+    dispatch(
+      createWebsiteVariantCheckoutAction.request({
+        variantId: variant.id,
+        successUrl: `${window.location.origin}/marketplace?tab=business&variantPurchase=success`,
+        cancelUrl: `${window.location.origin}/marketplace?tab=business`,
+      }),
+    );
+  };
+
   // Paywall: a Pro accent/font drives the live preview but can't be saved until the owner upgrades.
   // Today nothing Pro is owned, so an applied Pro pick is always a preview (see theme.accentIsPro).
   const accentPro = accentIsPro(form.brandColorHex);
@@ -171,6 +216,10 @@ export function BusinessPageTab({
             reviews={reviews}
             teamRatings={teamRatings}
             ratingDistribution={ratingDistribution}
+            variantCatalog={variantCatalog}
+            hasWebsiteBuilder={hasWebsiteBuilder}
+            isVariantCheckoutLoading={isVariantCheckoutLoading}
+            onBuyVariant={handleBuyVariant}
           />
         </div>
       </div>

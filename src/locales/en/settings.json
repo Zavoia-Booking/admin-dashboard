@@ -10,7 +10,8 @@
       "fetchSmsPackages": "Failed to fetch SMS packages",
       "createSmsCheckout": "Failed to create SMS checkout",
       "fetchSmsPurchases": "Failed to fetch SMS purchases",
-      "fetchInvoices": "Failed to fetch invoices"
+      "fetchInvoices": "Failed to fetch invoices",
+      "fetchPlans": "Failed to fetch available plans"
     }
   },
   "tabs": {
@@ -317,7 +318,10 @@
         "canceledTitle": "Subscription ended",
         "canceledBody": "Your data is read-only and will be kept for 90 days. Renew anytime to restore full access.",
         "inactiveTitle": "Subscribe to get started",
-        "inactiveBody": "Full access will be granted once your subscription is activated."
+        "inactiveBody": "Full access will be granted once your subscription is activated.",
+        "planChangeTitle": "Switching to {{plan}} on {{date}}",
+        "planChangeBody": "Your current plan stays active until then. Cancelling this change releases the shared schedule, so it also clears any scheduled seat change.",
+        "keepCurrentPlanCta": "Keep current plan"
       },
       "usage": {
         "title": "Plan & usage",
@@ -388,6 +392,30 @@
       },
       "invoice": {
         "verified": "Verified"
+      },
+      "plans": {
+        "title": "Plans",
+        "subtitleCheckout": "Choose the plan you want to subscribe to",
+        "subtitleActive": "Switch between Standard and Plus anytime",
+        "currentPlan": "Current plan",
+        "selected": "Selected",
+        "selectedCta": "Selected",
+        "chooseCta": "Choose {{plan}}",
+        "upgradeCta": "Upgrade to {{plan}}",
+        "downgradeCta": "Switch to {{plan}}",
+        "perSeat": "+ {{amount}} {{currency}} per extra seat/month",
+        "unlimitedLocations": "Unlimited locations",
+        "maxLocations_one": "{{count}} location",
+        "maxLocations_other": "{{count}} locations",
+        "unlimitedTeamMembers": "Unlimited team members (billed per seat)",
+        "maxTeamMembers_one": "Up to {{count}} team member",
+        "maxTeamMembers_other": "Up to {{count}} team members",
+        "websiteBuilder": "Website builder",
+        "noWebsiteBuilder": "No website builder",
+        "lockedPendingPayment": "Plan changes are unavailable while a payment is pending.",
+        "lockedCancellation": "Plan changes are unavailable while your subscription is scheduled for cancellation. Keep the subscription first.",
+        "lockedScheduled": "A plan change is already scheduled for your next renewal.",
+        "noPlanSelected": "Choose a plan first."
       }
     },
     "confirm": {
@@ -425,7 +453,20 @@
       "addSeats": "Add seats",
       "payAmount": "Pay {{amount}} {{currency}}",
       "removeSeats": "Remove seats",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "planChangeEyebrow": "Billing · Plan change",
+      "upgradePlanTitle": "Upgrade to {{plan}}?",
+      "upgradePlanContent": "The upgrade applies immediately — you will be charged a prorated amount for the rest of the current billing period now. From your next renewal, your subscription will be {{amount}} {{currency}}/month.",
+      "upgradePlanContentNoPrice": "The upgrade applies immediately — you will be charged a prorated amount for the rest of the current billing period now.",
+      "upgradeNow": "Upgrade now",
+      "downgradePlanTitle": "Switch to {{plan}}?",
+      "downgradeWarnPeriodEnd": "The change takes effect at the end of your current billing period ({{date}}) — you keep your current plan until then.",
+      "downgradeWarnWebsiteBuilder": "Website builder access will be lost when the change takes effect. Website designs you have purchased remain yours.",
+      "downgradeWarnReplacesSeatChange": "Scheduling this change replaces any seat change already scheduled for your next renewal.",
+      "scheduleDowngrade": "Schedule downgrade",
+      "keepCurrentPlanTitle": "Keep current plan?",
+      "keepCurrentPlanContent": "This cancels the scheduled switch to {{plan}}. Scheduled changes share one schedule, so this also clears any scheduled seat change.",
+      "keepCurrentPlanCta": "Keep current plan"
     },
     "toast": {
       "alreadyScheduled": "You already have this change scheduled for the next billing period.",
@@ -435,7 +476,11 @@
       "paymentFailed": "Payment failed",
       "paymentConfirmed": "Payment confirmed! Seats updated successfully.",
       "seatsUpdated": "Seats updated successfully!",
-      "updateFailed": "Failed to update seats"
+      "updateFailed": "Failed to update seats",
+      "planUpgraded": "Plan upgraded to {{plan}}!",
+      "planDowngradeScheduled": "Plan change to {{plan}} scheduled for {{date}}.",
+      "planChangeCancelled": "Scheduled plan change cancelled.",
+      "planChangeFailed": "Failed to change plan"
     },
     "pendingPayment": {
       "title": "Payment Required",

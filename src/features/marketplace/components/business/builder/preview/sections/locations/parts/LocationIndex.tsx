@@ -33,7 +33,7 @@ export function LocationIndex({ shown, active, onSelect }: { shown: LocationWith
       )}
       {shown.map((l, i) => {
         const on = i === active;
-        const rating = (l.totalReviews ?? 0) > 0 ? (l.averageRating ?? 0) : null;
+        const rating = (l.totalReviews ?? 0) > 0 ? Number(l.averageRating ?? 0) : null;
         const area = locationArea(l);
         return (
           <button key={l.id} type="button" className="mc-locx-row" data-on={on ? "1" : "0"} onClick={() => onSelect(i)} aria-pressed={on}>

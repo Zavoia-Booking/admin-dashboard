@@ -5,9 +5,79 @@ export type PricingBreakdownItem = {
   totalPrice: number;
 };
 
+// Self-serve plan tiers (CUSTOM is assigned manually and never self-serve switchable)
+export type PlanTier = 'STANDARD' | 'PLUS' | 'CUSTOM';
+
+export type PlanFeatures = {
+  websiteBuilder: boolean;
+};
+
+// GET /plans/list — self-serve plans (STANDARD + PLUS) with pricing resolved
+// for the business's country. Prices are in MAJOR units (backend divides
+// Stripe unit_amount by 100). Null limits mean unlimited.
+export type AvailablePlan = {
+  id: number;
+  name: string;
+  tier: PlanTier;
+  maxLocations: number | null;
+  maxTeamMembers: number | null;
+  features: PlanFeatures;
+  pricing: {
+    basePlanPrice: number;
+    pricePerTeamMember: number;
+    currency: string;
+  } | null;
+  isCurrentPlan: boolean;
+};
+
+export type PlansListResponse = {
+  plans: AvailablePlan[];
+};
+
+// POST /billing/change-plan — upgrade applies immediately (with SCA support),
+// downgrade is scheduled at the end of the current billing period.
+export type ChangePlanResponse = {
+  success: boolean;
+  action: 'upgraded' | 'downgrade_scheduled';
+  message?: string;
+  // action === 'upgraded'
+  planId?: number;
+  planName?: string;
+  planTier?: string;
+  requiresAction?: boolean;
+  clientSecret?: string | null;
+  paymentIntentStatus?: string | null;
+  // action === 'downgrade_scheduled'
+  currentPlan?: { id: number; name: string; tier: string };
+  scheduledPlan?: { id: number; name: string; tier: string };
+  effectiveDate?: string | null;
+};
+
+// POST /billing/cancel-plan-change — releases the shared Stripe schedule,
+// which also clears any scheduled seat change.
+export type CancelPlanChangeResponse = {
+  success: boolean;
+  message?: string;
+  cancelled?: boolean;
+};
+
 export type SubscriptionSummary = {
   planTier: string;
   planName: string;
+  // Current plan details with tier-derived feature flags
+  currentPlan?: {
+    id: number;
+    name: string;
+    tier: string;
+    features: PlanFeatures;
+  } | null;
+  // Scheduled plan change (e.g. a downgrade applying at the end of the period)
+  scheduledPlanChange?: {
+    planId: number;
+    planName: string;
+    planTier: string;
+    effectiveDate: string | null;
+  } | null;
   basePlanPrice: number;
   currentTeamMembersCount: number;
   pricePerTeamMember: number;
@@ -20,8 +90,8 @@ export type SubscriptionSummary = {
   availableSeats: number;   // Can invite X more team members
   numberOfLocations: number;
   numberOfTeamMembers: number;
-  maxLocations: number;
-  maxTeamMembers: number;
+  maxLocations: number | null; // Null = unlimited
+  maxTeamMembers: number | null; // Null = unlimited
   scheduled?: {
     scheduledSeats: number | null;
     nextPeriodStart: string | null;
@@ -53,6 +123,9 @@ export type SubscriptionSummary = {
 };
 
 export type CheckoutPayload = {
+  // Plan to subscribe to. Required by the regular checkout flow;
+  // ignored by the LTD seats checkout.
+  planId?: number;
   seats?: number;
   successUrl: string;
   cancelUrl: string;
@@ -87,6 +160,7 @@ export type SettingsState = {
   subscriptionSummary: SubscriptionSummary | null;
   checkoutResponse: CheckoutResponse | null;
   customerPortalUrl: string | null;
+  plans: AvailablePlan[];
   error: string | null;
   isLoading: {
     subscriptionSummary: boolean;
@@ -95,6 +169,7 @@ export type SettingsState = {
     modifySubscription: boolean;
     cancelRemoval: boolean;
     invoices: boolean;
+    plans: boolean;
   };
   // SMS State
   smsBalance: BusinessSmsInfo | null;

@@ -217,7 +217,7 @@ export function ReviewsFilterBar({
                     </span>
                     <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-foreground-2 tabular-nums">
                       <Star className="h-3 w-3 text-amber-400 fill-amber-400" />
-                      {m.averageRating.toFixed(1)}
+                      {Number(m.averageRating).toFixed(1)}
                     </span>
                     {teamMemberFilter === m.teamMemberId && (
                       <Check className="h-3.5 w-3.5" />

@@ -9,6 +9,7 @@ import type {
   SmsCheckoutPayload,
   SmsCheckoutResponse,
   BusinessInvoice,
+  AvailablePlan,
 } from "./types";
 
 // Pricing Summary Actions
@@ -17,6 +18,13 @@ export const getSubscriptionSummaryAction = createAsyncAction(
   'settings/GET_SUBSCRIPTION_SUMMARY_SUCCESS',
   'settings/GET_SUBSCRIPTION_SUMMARY_FAILURE',
 )<void, { subscriptionSummary: SubscriptionSummary }, { message: string }>();
+
+// Available Plans Actions (STANDARD vs PLUS self-serve tiers)
+export const getPlansAction = createAsyncAction(
+  'settings/GET_PLANS_REQUEST',
+  'settings/GET_PLANS_SUCCESS',
+  'settings/GET_PLANS_FAILURE',
+)<void, { plans: AvailablePlan[] }, { message: string }>();
 
 // Checkout Session Actions
 export const createCheckoutSessionAction = createAsyncAction(

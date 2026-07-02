@@ -120,6 +120,20 @@
       "upgrade": "Treci la Pro",
       "upgradeToast": "Opțiunea de upgrade va fi disponibilă în curând."
     },
+    "paidVariants": {
+      "eyebrow": "Aspect premium",
+      "defaultDescription": "Un aspect premium pentru această secțiune a paginii tale publice.",
+      "oneTime": "plată unică",
+      "foreverNote": "Plătești o singură dată și rămâne al tău pentru totdeauna — rămâne deblocat chiar dacă schimbi planul.",
+      "plusHint": "Cumpărarea aspectelor premium necesită planul Plus. Poți face upgrade din Cont → Facturare.",
+      "buy": "Cumpără cu {{price}}",
+      "processing": "Pregătim plata…",
+      "cancel": "Renunță",
+      "lockedAria": "{{name}} — aspect premium, {{price}}",
+      "lockedTitle": "Aspect premium · {{price}}, plată unică",
+      "ownedTitle": "Aspect premium · deținut",
+      "purchaseSuccessToast": "Plata a reușit! Noul aspect se deblochează — poate dura câteva secunde până apare ca deținut."
+    },
     "branding": {
       "title": "Identitate vizuală",
       "namePlaceholder": "Afacerea ta",
@@ -711,7 +725,9 @@
       "locationVisibilityUpdateFailed": "Vizibilitatea locației nu a putut fi actualizată. Te rugăm să încerci din nou.",
       "onlineBookingUpdateFailed": "Setările pentru programări online nu au putut fi actualizate. Te rugăm să încerci din nou.",
       "bookingSettingsSaveFailed": "Setările de programare nu au putut fi salvate. Te rugăm să încerci din nou.",
-      "listingDataLoadFailed": "Datele listării nu au putut fi încărcate. Te rugăm să încerci din nou."
+      "listingDataLoadFailed": "Datele listării nu au putut fi încărcate. Te rugăm să încerci din nou.",
+      "publishUnownedVariants": "Pagina ta folosește aspecte premium pe care nu le deții încă: {{variants}}. Cumpără-le sau schimbă aspectul, apoi publică din nou.",
+      "variantCheckoutFailed": "Nu am putut porni plata. Te rugăm să încerci din nou."
     },
     "loadError": "Nu am putut încărca datele de marketplace.",
     "retry": "Încearcă din nou"

@@ -1,4 +1,4 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteVariantCatalogEntry, WebsiteVariantCheckoutPayload } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export interface LocationPortfolioMutationResponse {
@@ -128,6 +128,24 @@ export const updateBookingSettingsApi = async (payload: Partial<UpdateBookingSet
   return (data as { settings?: BookingSettings }).settings ?? (data as BookingSettings);
 }
 
+
+// ---------------------------------------------------------------------------
+// Paid section variants (website builder) — catalog + one-time Stripe checkout.
+// ---------------------------------------------------------------------------
+
+/** ACTIVE paid-variant catalog with a per-business `owned` flag (owner-guarded, readable on any plan). */
+export const getWebsiteVariantCatalogApi = async (): Promise<WebsiteVariantCatalogEntry[]> => {
+  const { data } = await apiClient().get<{ data: WebsiteVariantCatalogEntry[] }>('/website-variants/catalog');
+  return data.data;
+};
+
+/** Creates a one-time Stripe checkout session for a paid variant; returns the session URL to redirect to. */
+export const createWebsiteVariantCheckoutApi = async (
+  payload: WebsiteVariantCheckoutPayload,
+): Promise<{ url: string }> => {
+  const { data } = await apiClient().post<{ url: string }>('/website-variants/checkout', payload);
+  return data;
+};
 
 // ---------------------------------------------------------------------------
 // Location marketplace tags — dictionaries + per-location load/save.

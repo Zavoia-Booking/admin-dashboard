@@ -147,7 +147,7 @@ export function ReviewsWidget({
                 fontWeight="700"
                 fill="white"
               >
-                {averageRating.toFixed(1)}
+                {Number(averageRating).toFixed(1)}
               </text>
             </g>
           )}

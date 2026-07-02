@@ -53,8 +53,14 @@ export type AuthUser = {
     status: 'trial' | 'active' | 'expired' | 'no_subscription' | 'past_due' | 'ltd' | null;
     reason?: string;
     daysRemaining: number;
-    maxLocations: number;
-    maxTeamMembers: number;
+    /** Current plan tier ('STANDARD' | 'PLUS' | 'CUSTOM') or null when no plan. */
+    planTier?: string | null;
+    /** Tier-derived feature flags (display only — builder gating is deferred). */
+    features?: {
+      websiteBuilder: boolean;
+    };
+    maxLocations: number | null; // Null = unlimited
+    maxTeamMembers: number | null; // Null = unlimited
     paidTeamSeats: number;
     usedSeats: number;
   };

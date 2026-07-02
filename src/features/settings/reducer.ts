@@ -1,6 +1,7 @@
 import { getType } from "typesafe-actions";
 import {
   getSubscriptionSummaryAction,
+  getPlansAction,
   createCheckoutSessionAction,
   getCustomerPortalUrlAction,
   modifySubscriptionAction,
@@ -21,6 +22,7 @@ const initialState: SettingsState = {
   subscriptionSummary: null,
   checkoutResponse: null,
   customerPortalUrl: null,
+  plans: [],
   error: null,
   isLoading: {
     subscriptionSummary: false,
@@ -29,6 +31,7 @@ const initialState: SettingsState = {
     modifySubscription: false,
     cancelRemoval: false,
     invoices: false,
+    plans: false,
   },
   // SMS State
   smsBalance: null,
@@ -75,6 +78,29 @@ export default function settingsReducer(state: SettingsState = initialState, act
       return {
         ...state,
         isLoading: { ...state.isLoading, subscriptionSummary: false },
+        error: action.payload.message,
+      };
+
+    // Available Plans
+    case getType(getPlansAction.request):
+      return {
+        ...state,
+        isLoading: { ...state.isLoading, plans: true },
+        error: null,
+      };
+
+    case getType(getPlansAction.success):
+      return {
+        ...state,
+        plans: action.payload.plans,
+        isLoading: { ...state.isLoading, plans: false },
+        error: null,
+      };
+
+    case getType(getPlansAction.failure):
+      return {
+        ...state,
+        isLoading: { ...state.isLoading, plans: false },
         error: action.payload.message,
       };
 

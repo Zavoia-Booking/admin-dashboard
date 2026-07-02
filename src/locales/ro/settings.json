@@ -10,7 +10,8 @@
       "fetchSmsPackages": "Nu s-au putut obține pachetele SMS",
       "createSmsCheckout": "Crearea checkout-ului SMS a eșuat",
       "fetchSmsPurchases": "Nu s-au putut obține achizițiile SMS",
-      "fetchInvoices": "Nu s-au putut obține facturile"
+      "fetchInvoices": "Nu s-au putut obține facturile",
+      "fetchPlans": "Nu s-au putut încărca planurile disponibile"
     }
   },
   "tabs": {
@@ -317,7 +318,10 @@
         "canceledTitle": "Abonament încheiat",
         "canceledBody": "Datele sunt read-only și vor fi păstrate 90 de zile. Reînnoiește oricând pentru acces complet.",
         "inactiveTitle": "Abonează-te pentru a începe",
-        "inactiveBody": "Accesul complet va fi acordat după activarea abonamentului."
+        "inactiveBody": "Accesul complet va fi acordat după activarea abonamentului.",
+        "planChangeTitle": "Trecere la {{plan}} pe {{date}}",
+        "planChangeBody": "Planul curent rămâne activ până atunci. Anularea acestei schimbări eliberează programarea comună, deci șterge și orice schimbare programată de locuri.",
+        "keepCurrentPlanCta": "Păstrează planul curent"
       },
       "usage": {
         "title": "Plan și utilizare",
@@ -388,6 +392,32 @@
       },
       "invoice": {
         "verified": "Verificat"
+      },
+      "plans": {
+        "title": "Planuri",
+        "subtitleCheckout": "Alege planul la care vrei să te abonezi",
+        "subtitleActive": "Treci oricând între Standard și Plus",
+        "currentPlan": "Planul curent",
+        "selected": "Selectat",
+        "selectedCta": "Selectat",
+        "chooseCta": "Alege {{plan}}",
+        "upgradeCta": "Treci la {{plan}}",
+        "downgradeCta": "Schimbă pe {{plan}}",
+        "perSeat": "+ {{amount}} {{currency}} pentru fiecare loc suplimentar/lună",
+        "unlimitedLocations": "Locații nelimitate",
+        "maxLocations_one": "{{count}} locație",
+        "maxLocations_few": "{{count}} locații",
+        "maxLocations_other": "{{count}} de locații",
+        "unlimitedTeamMembers": "Membri de echipă nelimitați (facturați per loc)",
+        "maxTeamMembers_one": "Până la {{count}} membru de echipă",
+        "maxTeamMembers_few": "Până la {{count}} membri de echipă",
+        "maxTeamMembers_other": "Până la {{count}} de membri de echipă",
+        "websiteBuilder": "Constructor de site-uri",
+        "noWebsiteBuilder": "Fără constructor de site-uri",
+        "lockedPendingPayment": "Schimbarea planului nu este disponibilă cât timp există o plată în așteptare.",
+        "lockedCancellation": "Schimbarea planului nu este disponibilă cât timp abonamentul este programat pentru anulare. Păstrează mai întâi abonamentul.",
+        "lockedScheduled": "O schimbare de plan este deja programată pentru următoarea reînnoire.",
+        "noPlanSelected": "Alege mai întâi un plan."
       }
     },
     "confirm": {
@@ -425,7 +455,20 @@
       "addSeats": "Adaugă locuri",
       "payAmount": "Plătește {{amount}} {{currency}}",
       "removeSeats": "Elimină locuri",
-      "cancel": "Anulează"
+      "cancel": "Anulează",
+      "planChangeEyebrow": "Facturare · Schimbare plan",
+      "upgradePlanTitle": "Treci la {{plan}}?",
+      "upgradePlanContent": "Upgrade-ul se aplică imediat — vei fi taxat acum cu o sumă pro-rata pentru restul perioadei curente de facturare. De la următoarea reînnoire, abonamentul va fi {{amount}} {{currency}}/lună.",
+      "upgradePlanContentNoPrice": "Upgrade-ul se aplică imediat — vei fi taxat acum cu o sumă pro-rata pentru restul perioadei curente de facturare.",
+      "upgradeNow": "Treci acum",
+      "downgradePlanTitle": "Schimbi pe {{plan}}?",
+      "downgradeWarnPeriodEnd": "Schimbarea intră în vigoare la sfârșitul perioadei curente de facturare ({{date}}) — păstrezi planul curent până atunci.",
+      "downgradeWarnWebsiteBuilder": "Accesul la constructorul de site-uri se pierde când schimbarea intră în vigoare. Design-urile de site cumpărate rămân ale tale.",
+      "downgradeWarnReplacesSeatChange": "Programarea acestei schimbări înlocuiește orice schimbare de locuri deja programată pentru următoarea reînnoire.",
+      "scheduleDowngrade": "Programează downgrade-ul",
+      "keepCurrentPlanTitle": "Păstrezi planul curent?",
+      "keepCurrentPlanContent": "Se anulează trecerea programată la {{plan}}. Schimbările programate folosesc o singură programare, deci se șterge și orice schimbare programată de locuri.",
+      "keepCurrentPlanCta": "Păstrează planul curent"
     },
     "toast": {
       "alreadyScheduled": "Ai deja această modificare programată pentru perioada următoare de facturare.",
@@ -435,7 +478,11 @@
       "paymentFailed": "Plata a eșuat",
       "paymentConfirmed": "Plata confirmată! Locurile au fost actualizate cu succes.",
       "seatsUpdated": "Locurile au fost actualizate cu succes!",
-      "updateFailed": "Eșec la actualizarea locurilor"
+      "updateFailed": "Eșec la actualizarea locurilor",
+      "planUpgraded": "Plan actualizat la {{plan}}!",
+      "planDowngradeScheduled": "Schimbarea planului pe {{plan}} este programată pentru {{date}}.",
+      "planChangeCancelled": "Schimbarea programată a planului a fost anulată.",
+      "planChangeFailed": "Schimbarea planului a eșuat"
     },
     "pendingPayment": {
       "title": "Plată necesară",

@@ -120,6 +120,20 @@
       "upgrade": "Upgrade",
       "upgradeToast": "Upgrade flow coming soon."
     },
+    "paidVariants": {
+      "eyebrow": "Premium layout",
+      "defaultDescription": "A premium layout for this section of your public page.",
+      "oneTime": "one-time",
+      "foreverNote": "Pay once and it's yours forever — it stays unlocked even if you change plans.",
+      "plusHint": "Purchasing premium layouts requires the Plus plan. You can upgrade in Account → Billing.",
+      "buy": "Buy for {{price}}",
+      "processing": "Preparing checkout…",
+      "cancel": "Cancel",
+      "lockedAria": "{{name}} — premium layout, {{price}}",
+      "lockedTitle": "Premium layout · {{price}} one-time",
+      "ownedTitle": "Premium layout · owned",
+      "purchaseSuccessToast": "Payment successful! Your new layout is being unlocked — it can take a few seconds to show as owned."
+    },
     "branding": {
       "title": "Branding",
       "namePlaceholder": "Your business",
@@ -706,7 +720,9 @@
       "locationVisibilityUpdateFailed": "Could not update location visibility. Please try again.",
       "onlineBookingUpdateFailed": "Could not update online booking settings. Please try again.",
       "bookingSettingsSaveFailed": "Could not save booking settings. Please try again.",
-      "listingDataLoadFailed": "Could not load marketplace listing data. Please try again."
+      "listingDataLoadFailed": "Could not load marketplace listing data. Please try again.",
+      "publishUnownedVariants": "Your page uses premium layouts you don't own yet: {{variants}}. Buy them or switch layouts, then publish again.",
+      "variantCheckoutFailed": "Could not start the checkout. Please try again."
     },
     "loadError": "We couldn't load your marketplace data.",
     "retry": "Try again"

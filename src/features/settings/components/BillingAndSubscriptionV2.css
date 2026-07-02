@@ -1219,3 +1219,85 @@
     font-size: 11px;
   }
 }
+
+/* ── Plan picker (Standard vs Plus) ── */
+.bv2-plans {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (max-width: 560px) {
+  .bv2-plans { grid-template-columns: 1fr; }
+}
+.bv2-plan-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+.bv2-plan-card.bv2-selected {
+  border-color: color-mix(in oklab, var(--primary) 45%, transparent);
+  background: color-mix(in oklab, var(--primary) 5%, var(--surface));
+}
+.bv2-plan-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+.bv2-plan-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+.bv2-plan-name svg { color: var(--primary); }
+.bv2-plan-price {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.bv2-plan-price small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-left: 2px;
+}
+.bv2-plan-seat-price {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.bv2-plan-features {
+  list-style: none;
+  margin: 8px 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+.bv2-plan-features li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-primary);
+}
+.bv2-plan-features li svg {
+  flex-shrink: 0;
+  color: var(--success);
+}
+.bv2-plan-features li.bv2-plan-feature-muted {
+  color: var(--text-tertiary);
+}
+.bv2-plan-features li.bv2-plan-feature-muted svg {
+  color: var(--text-tertiary);
+}

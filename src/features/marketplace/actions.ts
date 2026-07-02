@@ -1,5 +1,5 @@
 import { createAction, createAsyncAction } from "typesafe-actions";
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteVariantCatalogEntry, WebsiteVariantCheckoutPayload } from "./types";
 
 export const fetchMarketplaceListingAction = createAsyncAction(
   'marketplace/FETCH_LISTING_REQUEST',
@@ -83,4 +83,20 @@ export const updateBookingSettingsAction = createAsyncAction(
   'marketplace/UPDATE_BOOKING_SETTINGS_SUCCESS',
   'marketplace/UPDATE_BOOKING_SETTINGS_FAILURE',
 )<UpdateBookingSettingsPayload, BookingSettings, { message: string }>();
+
+// Paid section variants (website builder): catalog with per-business ownership.
+// Fetched on builder load (and again after returning from Stripe) so locked/owned
+// states always reflect current ownership.
+export const fetchWebsiteVariantCatalogAction = createAsyncAction(
+  'marketplace/FETCH_VARIANT_CATALOG_REQUEST',
+  'marketplace/FETCH_VARIANT_CATALOG_SUCCESS',
+  'marketplace/FETCH_VARIANT_CATALOG_FAILURE',
+)<void, WebsiteVariantCatalogEntry[], { message: string }>();
+
+// One-time Stripe checkout for a paid variant; the saga redirects to the session URL.
+export const createWebsiteVariantCheckoutAction = createAsyncAction(
+  'marketplace/CREATE_VARIANT_CHECKOUT_REQUEST',
+  'marketplace/CREATE_VARIANT_CHECKOUT_SUCCESS',
+  'marketplace/CREATE_VARIANT_CHECKOUT_FAILURE',
+)<WebsiteVariantCheckoutPayload, { url: string }, { message: string }>();
 

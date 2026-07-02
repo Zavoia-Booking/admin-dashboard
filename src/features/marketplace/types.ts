@@ -331,6 +331,34 @@ export interface BookingSettings {
 // Payload for updating booking settings (omit businessId as it's not editable)
 export type UpdateBookingSettingsPayload = Omit<BookingSettings, 'businessId'>;
 
+// --- Paid section variants (website builder) ---
+
+/**
+ * One ACTIVE entry from the backend paid-variant catalog (GET /website-variants/catalog).
+ * Merged onto the static section catalog by (sectionType, variantKey): a `priceMinor > 0`
+ * entry that is not `owned` renders as a locked, purchasable layout pill. `owned` is
+ * per-business (a COMPLETED one-time purchase) and permanent — it survives downgrades.
+ */
+export interface WebsiteVariantCatalogEntry {
+  id: number;
+  uuid: string;
+  sectionType: string;
+  variantKey: string;
+  name: string;
+  description: string | null;
+  /** Integer minor units (cents); 0 = free. */
+  priceMinor: number;
+  currency: string;
+  owned: boolean;
+}
+
+/** Payload for POST /website-variants/checkout (one-time Stripe purchase). */
+export interface WebsiteVariantCheckoutPayload {
+  variantId: number;
+  successUrl: string;
+  cancelUrl: string;
+}
+
 // Redux state for marketplace feature
 export interface MarketplaceState {
   isLoading: boolean;
@@ -348,5 +376,9 @@ export interface MarketplaceState {
   // Booking settings
   bookingSettings: BookingSettings | null;
   isSavingBookingSettings: boolean;
+  // Paid section variants (website builder)
+  variantCatalog: WebsiteVariantCatalogEntry[];
+  isLoadingVariantCatalog: boolean;
+  isCreatingVariantCheckout: boolean;
 }
 

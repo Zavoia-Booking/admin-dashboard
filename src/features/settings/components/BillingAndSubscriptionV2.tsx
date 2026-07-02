@@ -49,6 +49,7 @@ import { selectCurrentUser } from '../../auth/selectors';
 import { fetchCurrentUserAction } from '../../auth/actions';
 import {
   getSubscriptionSummaryAction,
+  getPlansAction,
   getCustomerPortalUrlAction,
   createCheckoutSessionAction,
   modifySubscriptionAction,
@@ -62,11 +63,15 @@ import {
   updateSeats,
   createLtdSeatsCheckoutSession,
   abortPendingPayment,
+  changePlan as changePlanApi,
+  cancelPlanChange as cancelPlanChangeApi,
 } from '../api';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import {
   selectSubscriptionSummary,
+  selectAvailablePlans,
   selectIsLoadingSubscriptionSummary,
+  selectIsLoadingPlans,
   selectIsLoadingCustomerPortal,
   selectIsLoadingCheckoutSession,
   selectIsLoadingModifySubscription,
@@ -84,7 +89,7 @@ import {
   INVOICE_BILLING_DETAILS_SECTION_ID,
   useBillingDetailsContext,
 } from '../context/BillingDetailsContext';
-import type { BusinessInvoice, SmsPackage, SubscriptionSummary } from '../types';
+import type { AvailablePlan, BusinessInvoice, SmsPackage, SubscriptionSummary } from '../types';
 import { translateMessageCode } from '../../../shared/utils/error';
 
 function extractBillingError(err: unknown): string {
@@ -119,6 +124,10 @@ type ViewState =
   | 'inactive';
 
 type Tone = 'neutral' | 'good' | 'warn' | 'danger' | 'info' | 'accent';
+
+// Tier ordering for self-serve plan changes — mirrors the backend's
+// SELF_SERVE_TIER_ORDER (direction is derived from tier, never from price).
+const SELF_SERVE_TIER_ORDER: Record<string, number> = { STANDARD: 1, PLUS: 2 };
 
 const formatDate = (input: string | null | undefined): string => {
   if (!input) return '—';
@@ -247,22 +256,41 @@ const BillingAndSubscriptionV2Inner = () => {
   const smsBalance = useSelector(selectSmsBalance);
   const invoices = useSelector(selectBusinessInvoices);
   const invoicesLoading = useSelector(selectIsLoadingBusinessInvoices);
+  const plans = useSelector(selectAvailablePlans);
+  const plansLoading = useSelector(selectIsLoadingPlans);
 
   const [updatingSeats, setUpdatingSeats] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
   const [retryingPayment, setRetryingPayment] = useState(false);
   const [totalSeats, setTotalSeats] = useState<number>(0);
+  const [selectedPlanId, setSelectedPlanId] = useState<number | null>(null);
+  const [changingPlan, setChangingPlan] = useState(false);
+  const [cancellingPlanChange, setCancellingPlanChange] = useState(false);
 
   const hasFetched = useRef(false);
   useEffect(() => {
     if (!hasFetched.current) {
       hasFetched.current = true;
       dispatch(getSubscriptionSummaryAction.request());
+      dispatch(getPlansAction.request());
       dispatch(getSmsBalanceAction.request());
       dispatch(getSmsPackagesAction.request());
       dispatch(getBusinessInvoicesAction.request({ limit: 20 }));
     }
   }, [dispatch]);
+
+  // Default the plan selection to the business's assigned plan (fallback: STANDARD)
+  useEffect(() => {
+    if (plans.length === 0) return;
+    setSelectedPlanId((prev) => {
+      if (prev != null && plans.some((p) => p.id === prev)) return prev;
+      const fallback =
+        plans.find((p) => p.isCurrentPlan) ??
+        plans.find((p) => p.tier === 'STANDARD') ??
+        plans[0];
+      return fallback.id;
+    });
+  }, [plans]);
 
   // Sync seat input with summary
   useEffect(() => {
@@ -322,6 +350,31 @@ const BillingAndSubscriptionV2Inner = () => {
             ? 'neutral'
             : '';
 
+  // ────────── Plan selection (Standard vs Plus) ──────────
+
+  const scheduledPlanChange = subscriptionSummary?.scheduledPlanChange ?? null;
+  const currentPlanTier =
+    subscriptionSummary?.currentPlan?.tier ?? currentUser?.entitlements?.planTier ?? null;
+  // States where picking a plan feeds the checkout flow instead of change-plan
+  const isCheckoutState =
+    viewState === 'trial' || viewState === 'inactive' || viewState === 'canceled';
+  const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
+  // In checkout states the breakdown/CTA should price the plan being chosen
+  const checkoutPlanPricing = isCheckoutState ? (selectedPlan?.pricing ?? null) : null;
+  // LTD businesses get a 400 from change-plan; CUSTOM plans are handled manually —
+  // neither gets plan-change UI.
+  const showPlanPicker =
+    viewState !== 'ltd' && !subscriptionSummary?.isLtd && currentPlanTier !== 'CUSTOM';
+  // Plan switching is blocked while another billing change is in flight
+  const planChangeLockedReason =
+    viewState === 'past_due' || hasPendingPayment
+      ? t('billing.v2.plans.lockedPendingPayment')
+      : viewState === 'scheduled' || isSubscriptionScheduledForCancellation
+        ? t('billing.v2.plans.lockedCancellation')
+        : scheduledPlanChange
+          ? t('billing.v2.plans.lockedScheduled')
+          : null;
+
   // ────────── Handlers (kept aligned with v1 semantics) ──────────
 
   const handleManagePaymentMethodAndInvoices = () => {
@@ -331,8 +384,13 @@ const BillingAndSubscriptionV2Inner = () => {
 
   const handleRenewSubscription = async () => {
     if (!ensureConfigured()) return;
-    const base = subscriptionSummary?.basePlanPrice || 0;
-    const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
+    if (selectedPlanId == null) {
+      toast.error(t('billing.v2.plans.noPlanSelected'));
+      return;
+    }
+    const base = checkoutPlanPricing?.basePlanPrice ?? (subscriptionSummary?.basePlanPrice || 0);
+    const perSeat =
+      checkoutPlanPricing?.pricePerTeamMember ?? (subscriptionSummary?.pricePerTeamMember || 0);
     const estimated = base + perSeat * (Number(totalSeats) || 0);
     const confirmed = await confirm({
       eyebrow: t('billing.confirm.startSubscriptionEyebrow'),
@@ -355,6 +413,7 @@ const BillingAndSubscriptionV2Inner = () => {
     setUpdatingSeats(true);
     dispatch(
       createCheckoutSessionAction.request({
+        planId: selectedPlanId,
         seats: totalSeats,
         successUrl: `${window.location.origin}/info?type=subscription-success`,
         cancelUrl: `${window.location.origin}/account`,
@@ -442,8 +501,13 @@ const BillingAndSubscriptionV2Inner = () => {
 
     if (isTrial || isExpiredTrial) {
       if (!ensureConfigured()) return;
-      const base = subscriptionSummary?.basePlanPrice || 0;
-      const perSeat = subscriptionSummary?.pricePerTeamMember || 0;
+      if (selectedPlanId == null) {
+        toast.error(t('billing.v2.plans.noPlanSelected'));
+        return;
+      }
+      const base = checkoutPlanPricing?.basePlanPrice ?? (subscriptionSummary?.basePlanPrice || 0);
+      const perSeat =
+        checkoutPlanPricing?.pricePerTeamMember ?? (subscriptionSummary?.pricePerTeamMember || 0);
       const estimated = base + perSeat * (Number(totalSeats) || 0);
       const confirmed = await confirm({
         eyebrow: t('billing.confirm.startSubscriptionEyebrow'),
@@ -466,6 +530,7 @@ const BillingAndSubscriptionV2Inner = () => {
       setUpdatingSeats(true);
       dispatch(
         createCheckoutSessionAction.request({
+          planId: selectedPlanId,
           seats: totalSeats,
           successUrl: `${window.location.origin}/info?type=subscription-success`,
           cancelUrl: `${window.location.origin}/account`,
@@ -617,8 +682,12 @@ const BillingAndSubscriptionV2Inner = () => {
 
   // ────────── Derived values ──────────
 
-  const basePlanCost = viewState === 'ltd' ? 0 : subscriptionSummary?.basePlanPrice || 0;
-  const seatPrice = subscriptionSummary?.pricePerTeamMember || 0;
+  const basePlanCost =
+    viewState === 'ltd'
+      ? 0
+      : (checkoutPlanPricing?.basePlanPrice ?? (subscriptionSummary?.basePlanPrice || 0));
+  const seatPrice =
+    checkoutPlanPricing?.pricePerTeamMember ?? (subscriptionSummary?.pricePerTeamMember || 0);
   const seatsForBreakdown =
     viewState === 'trial' ||
     viewState === 'inactive' ||
@@ -647,9 +716,137 @@ const BillingAndSubscriptionV2Inner = () => {
 
   const planName =
     subscriptionSummary?.planName || currentUser?.subscription?.planName || t('billing.freePlan');
+  // In checkout states the hero/breakdown reflect the plan being chosen
+  const displayPlanName = isCheckoutState && selectedPlan ? selectedPlan.name : planName;
   const trialDaysLeft = currentUser?.entitlements?.daysRemaining ?? 0;
   const trialEndsAt = currentUser?.subscription?.trialEndsAt;
   const periodEnd = currentUser?.subscription?.currentPeriodEnd;
+
+  // ────────── Plan change (active subscription) ──────────
+
+  const handleChangePlan = async (plan: AvailablePlan) => {
+    if (changingPlan || plan.isCurrentPlan) return;
+    const currentOrder = SELF_SERVE_TIER_ORDER[currentPlanTier ?? ''] ?? 0;
+    const targetOrder = SELF_SERVE_TIER_ORDER[plan.tier] ?? 0;
+    const isUpgradeChange = targetOrder > currentOrder;
+
+    const paid = subscriptionSummary?.paidSeats || 0;
+    const newMonthly = plan.pricing
+      ? plan.pricing.basePlanPrice + plan.pricing.pricePerTeamMember * paid
+      : null;
+
+    if (isUpgradeChange) {
+      if (!ensureConfigured()) return;
+      const confirmed = await confirm({
+        eyebrow: t('billing.confirm.planChangeEyebrow'),
+        title: t('billing.confirm.upgradePlanTitle', { plan: plan.name }),
+        content:
+          newMonthly != null
+            ? t('billing.confirm.upgradePlanContent', {
+                plan: plan.name,
+                amount: fmtBilling(newMonthly),
+                currency: currencySymbol,
+              })
+            : t('billing.confirm.upgradePlanContentNoPrice', { plan: plan.name }),
+        confirmationText: t('billing.confirm.upgradeNow'),
+        cancellationText: t('billing.confirm.cancel'),
+      });
+      if (!confirmed) return;
+    } else {
+      const confirmed = await confirm({
+        eyebrow: t('billing.confirm.planChangeEyebrow'),
+        title: t('billing.confirm.downgradePlanTitle', { plan: plan.name }),
+        content: (
+          <ul className="list-disc space-y-1.5 pl-4 text-sm leading-relaxed">
+            <li>
+              {t('billing.confirm.downgradeWarnPeriodEnd', {
+                plan: plan.name,
+                date: formatDate(periodEnd),
+              })}
+            </li>
+            <li>{t('billing.confirm.downgradeWarnWebsiteBuilder')}</li>
+            <li>{t('billing.confirm.downgradeWarnReplacesSeatChange')}</li>
+          </ul>
+        ),
+        confirmationText: t('billing.confirm.scheduleDowngrade'),
+        cancellationText: t('billing.confirm.cancel'),
+        destructive: true,
+      });
+      if (!confirmed) return;
+    }
+
+    setChangingPlan(true);
+    try {
+      const response = await changePlanApi({ planId: plan.id });
+      if (response.action === 'upgraded' && response.requiresAction && response.clientSecret) {
+        const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+        if (!publishableKey) throw new Error('Stripe publishable key not configured');
+        const stripe = await loadStripe(publishableKey);
+        if (!stripe) throw new Error('Failed to load Stripe');
+        const { error } = await stripe.confirmCardPayment(response.clientSecret);
+        if (error) {
+          // pending_if_incomplete keeps the sub on its original plan until payment
+          // succeeds, so voiding the failed proration invoice cleanly discards the
+          // attempt (same recovery path as seat updates).
+          try {
+            await abortPendingPayment();
+          } catch {
+            // If abort fails, fall back to the past_due UI (handled on next refresh).
+          }
+          toast.error(error.message || t('billing.toast.paymentFailed'));
+        } else {
+          toast.success(t('billing.toast.planUpgraded', { plan: plan.name }));
+        }
+      } else if (response.action === 'upgraded') {
+        toast.success(t('billing.toast.planUpgraded', { plan: plan.name }));
+      } else if (response.action === 'downgrade_scheduled') {
+        toast.success(
+          t('billing.toast.planDowngradeScheduled', {
+            plan: response.scheduledPlan?.name ?? plan.name,
+            date: formatDate(response.effectiveDate),
+          }),
+        );
+      }
+      dispatch(getSubscriptionSummaryAction.request());
+      dispatch(fetchCurrentUserAction.request());
+      dispatch(getPlansAction.request());
+    } catch (err: unknown) {
+      toast.error(extractBillingError(err) || t('billing.toast.planChangeFailed'));
+      dispatch(getSubscriptionSummaryAction.request());
+      dispatch(fetchCurrentUserAction.request());
+    } finally {
+      setChangingPlan(false);
+    }
+  };
+
+  const handleCancelPlanChange = async () => {
+    if (cancellingPlanChange || !scheduledPlanChange) return;
+    const confirmed = await confirm({
+      eyebrow: t('billing.confirm.scheduledChangeEyebrow'),
+      title: t('billing.confirm.keepCurrentPlanTitle'),
+      content: t('billing.confirm.keepCurrentPlanContent', {
+        plan: scheduledPlanChange.planName,
+      }),
+      confirmationText: t('billing.confirm.keepCurrentPlanCta'),
+      cancellationText: t('billing.confirm.keepScheduled'),
+    });
+    if (!confirmed) return;
+    setCancellingPlanChange(true);
+    try {
+      const response = await cancelPlanChangeApi();
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to cancel plan change');
+      }
+      toast.success(t('billing.toast.planChangeCancelled'));
+      dispatch(getSubscriptionSummaryAction.request());
+      dispatch(fetchCurrentUserAction.request());
+      dispatch(getPlansAction.request());
+    } catch (err: unknown) {
+      toast.error(extractBillingError(err) || t('billing.toast.planChangeFailed'));
+    } finally {
+      setCancellingPlanChange(false);
+    }
+  };
 
   const renderHeroPrimaryAction = () => {
     switch (viewState) {
@@ -858,6 +1055,9 @@ const BillingAndSubscriptionV2Inner = () => {
 
   const seatsLocked =
     hasScheduledChange ||
+    // Seat changes share the Stripe schedule with a scheduled plan change —
+    // applying one would silently replace the other, so lock seats meanwhile.
+    !!scheduledPlanChange ||
     isSubscriptionScheduledForCancellation ||
     hasPendingPayment ||
     viewState === 'past_due' ||
@@ -937,7 +1137,7 @@ const BillingAndSubscriptionV2Inner = () => {
           </div>
           <div className="bv2-hero-meta">
             <h2>
-              <span>{t('billing.v2.hero.planName', { name: planName })}</span>
+              <span>{t('billing.v2.hero.planName', { name: displayPlanName })}</span>
               <StatusPill state={viewState} />
             </h2>
             <div className="bv2-row2">{renderHeroSecondaryRow()}</div>
@@ -1081,6 +1281,38 @@ const BillingAndSubscriptionV2Inner = () => {
                 </div>
               )}
 
+              {scheduledPlanChange && (
+                <div className="mb-4">
+                  <Bv2Banner
+                    tone="info"
+                    icon={<CalendarClock className="h-4 w-4" />}
+                    title={t('billing.v2.banners.planChangeTitle', {
+                      plan: scheduledPlanChange.planName,
+                      date: formatDate(scheduledPlanChange.effectiveDate),
+                    })}
+                  >
+                    {t('billing.v2.banners.planChangeBody')}
+                    <div className="mt-2 flex flex-wrap justify-end gap-2">
+                      <Button
+                        size="sm"
+                        rounded="full"
+                        variant="outline"
+                        onClick={handleCancelPlanChange}
+                        disabled={cancellingPlanChange}
+                        className="gap-1.5"
+                      >
+                        {cancellingPlanChange ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <RefreshCcw className="h-3.5 w-3.5" />
+                        )}
+                        {t('billing.v2.banners.keepCurrentPlanCta')}
+                      </Button>
+                    </div>
+                  </Bv2Banner>
+                </div>
+              )}
+
               {viewState === 'canceled' && (
                 <div className="mb-4">
                   <Bv2Banner
@@ -1110,11 +1342,13 @@ const BillingAndSubscriptionV2Inner = () => {
                 <>
                   <div className="bv2-line-row">
                     <div className="bv2-lbl">
-                      {t('billing.v2.subscription.planLine', { name: planName })}
+                      {t('billing.v2.subscription.planLine', { name: displayPlanName })}
                       {currentUser?.entitlements && (
                         <span className="bv2-sub">
                           {t('billing.v2.subscription.planLineSub', {
                             locations:
+                              // Null = unlimited (backend contract); -1 kept as legacy sentinel
+                              currentUser.entitlements.maxLocations == null ||
                               currentUser.entitlements.maxLocations === -1
                                 ? t('billing.unlimited')
                                 : currentUser.entitlements.maxLocations,
@@ -1418,6 +1652,24 @@ const BillingAndSubscriptionV2Inner = () => {
             </CardContent>
           </Card>
 
+          {showPlanPicker && (
+            <Bv2PlanPickerCard
+              plans={plans}
+              loading={plansLoading}
+              isCheckoutState={isCheckoutState}
+              selectedPlanId={selectedPlanId}
+              changingPlan={changingPlan}
+              lockedReason={planChangeLockedReason}
+              onSelect={(plan) => {
+                if (isCheckoutState) {
+                  setSelectedPlanId(plan.id);
+                } else {
+                  void handleChangePlan(plan);
+                }
+              }}
+            />
+          )}
+
           <Bv2InvoiceDetailsCard />
         </div>
 
@@ -1441,6 +1693,192 @@ const BillingAndSubscriptionV2Inner = () => {
   );
 };
 
+// ────────── Plan picker (Standard vs Plus) ──────────
+
+const Bv2PlanPickerCard = ({
+  plans,
+  loading,
+  isCheckoutState,
+  selectedPlanId,
+  changingPlan,
+  lockedReason,
+  onSelect,
+}: {
+  plans: AvailablePlan[];
+  loading: boolean;
+  /** True when there's no active subscription — selection feeds checkout. */
+  isCheckoutState: boolean;
+  selectedPlanId: number | null;
+  changingPlan: boolean;
+  /** Non-null when switching plans is currently blocked (active subs only). */
+  lockedReason: string | null;
+  onSelect: (plan: AvailablePlan) => void;
+}) => {
+  const { t } = useTranslation('settings');
+  const { formatDecimalPrice, formatDecimalValue } = useFormatPrice();
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent>
+          <Bv2CardHeader title={t('billing.v2.plans.title')} />
+          <div className="bv2-plans">
+            <Skeleton className="h-56" />
+            <Skeleton className="h-56" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (plans.length === 0) return null;
+
+  const currentTierOrder =
+    SELF_SERVE_TIER_ORDER[plans.find((p) => p.isCurrentPlan)?.tier ?? ''] ?? 0;
+
+  return (
+    <Card>
+      <CardContent>
+        <Bv2CardHeader
+          title={t('billing.v2.plans.title')}
+          subtitle={
+            isCheckoutState
+              ? t('billing.v2.plans.subtitleCheckout')
+              : t('billing.v2.plans.subtitleActive')
+          }
+        />
+        <div className="bv2-plans">
+          {plans.map((plan) => {
+            const isSelected = isCheckoutState && selectedPlanId === plan.id;
+            const isCurrent = !isCheckoutState && plan.isCurrentPlan;
+            const isUpgrade = (SELF_SERVE_TIER_ORDER[plan.tier] ?? 0) > currentTierOrder;
+            const seatCurrencySymbol = plan.pricing
+              ? getCurrencySymbol(plan.pricing.currency)
+              : '';
+            const actionDisabled = isCheckoutState
+              ? isSelected
+              : isCurrent || changingPlan || !!lockedReason;
+            return (
+              <div
+                key={plan.id}
+                className={cn(
+                  'bv2-plan-card',
+                  (isSelected || isCurrent) && 'bv2-selected',
+                )}
+              >
+                <div className="bv2-plan-head">
+                  <div className="bv2-plan-name">
+                    {plan.tier === 'PLUS' && <Sparkles className="h-3.5 w-3.5" />}
+                    {plan.name}
+                  </div>
+                  {isCurrent && (
+                    <span className="bv2-pill bv2-pill-good">
+                      <span className="bv2-dot" />
+                      {t('billing.v2.plans.currentPlan')}
+                    </span>
+                  )}
+                  {isSelected && (
+                    <span className="bv2-pill bv2-pill-info">
+                      <span className="bv2-dot" />
+                      {t('billing.v2.plans.selected')}
+                    </span>
+                  )}
+                </div>
+                <div className="bv2-plan-price">
+                  {plan.pricing ? (
+                    <>
+                      {formatDecimalPrice(plan.pricing.basePlanPrice, plan.pricing.currency)}
+                      <small>{t('billing.v2.hero.perMonthSuffix')}</small>
+                    </>
+                  ) : (
+                    '—'
+                  )}
+                </div>
+                {plan.pricing && plan.pricing.pricePerTeamMember > 0 && (
+                  <div className="bv2-plan-seat-price">
+                    {t('billing.v2.plans.perSeat', {
+                      amount: formatDecimalValue(
+                        plan.pricing.pricePerTeamMember,
+                        plan.pricing.currency,
+                      ),
+                      currency: seatCurrencySymbol,
+                    })}
+                  </div>
+                )}
+                <ul className="bv2-plan-features">
+                  <li>
+                    <CheckIcon className="h-3.5 w-3.5" />
+                    {plan.maxLocations == null
+                      ? t('billing.v2.plans.unlimitedLocations')
+                      : t('billing.v2.plans.maxLocations', { count: plan.maxLocations })}
+                  </li>
+                  <li>
+                    <CheckIcon className="h-3.5 w-3.5" />
+                    {plan.maxTeamMembers == null
+                      ? t('billing.v2.plans.unlimitedTeamMembers')
+                      : t('billing.v2.plans.maxTeamMembers', { count: plan.maxTeamMembers })}
+                  </li>
+                  {plan.features.websiteBuilder ? (
+                    <li>
+                      <CheckIcon className="h-3.5 w-3.5" />
+                      {t('billing.v2.plans.websiteBuilder')}
+                    </li>
+                  ) : (
+                    <li className="bv2-plan-feature-muted">
+                      <XCircle className="h-3.5 w-3.5" />
+                      {t('billing.v2.plans.noWebsiteBuilder')}
+                    </li>
+                  )}
+                </ul>
+                <Button
+                  type="button"
+                  size="sm"
+                  rounded="full"
+                  variant={
+                    isCheckoutState
+                      ? isSelected
+                        ? 'outline'
+                        : 'default'
+                      : isCurrent || !isUpgrade
+                        ? 'outline'
+                        : 'default'
+                  }
+                  className="w-full gap-1.5"
+                  disabled={actionDisabled}
+                  title={
+                    !isCheckoutState && !isCurrent && lockedReason ? lockedReason : undefined
+                  }
+                  onClick={() => onSelect(plan)}
+                >
+                  {!isCheckoutState && !isCurrent && changingPlan ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : null}
+                  {isCheckoutState
+                    ? isSelected
+                      ? t('billing.v2.plans.selectedCta')
+                      : t('billing.v2.plans.chooseCta', { plan: plan.name })
+                    : isCurrent
+                      ? t('billing.v2.plans.currentPlan')
+                      : isUpgrade
+                        ? t('billing.v2.plans.upgradeCta', { plan: plan.name })
+                        : t('billing.v2.plans.downgradeCta', { plan: plan.name })}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+        {lockedReason && !isCheckoutState && (
+          <div className="mt-3">
+            <Bv2Banner tone="neutral" icon={<Lock className="h-4 w-4" />}>
+              {lockedReason}
+            </Bv2Banner>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 // ────────── Plan & Usage card ──────────
 
 const PlanUsageCard = ({
@@ -1458,13 +1896,18 @@ const PlanUsageCard = ({
   const isTrial = viewState === 'trial';
   const isInactive = viewState === 'inactive';
 
-  const maxLocations = summary?.maxLocations ?? 0;
+  const maxLocations = summary?.maxLocations ?? null;
   const usedLocations = summary?.numberOfLocations ?? 0;
-  const seats = summary?.maxTeamMembers ?? 0;
+  const seats = summary?.maxTeamMembers ?? null;
   const usedSeats = summary?.numberOfTeamMembers ?? 0;
 
-  const locPct = maxLocations > 0 ? (usedLocations / maxLocations) * 100 : 0;
-  const seatPct = seats > 0 ? (usedSeats / seats) * 100 : 0;
+  // Null = unlimited (backend contract); -1 kept as legacy sentinel
+  const locationsUnlimited = maxLocations == null || maxLocations === -1;
+  const seatsUnlimited = seats == null || seats === -1;
+
+  const locPct =
+    !locationsUnlimited && maxLocations > 0 ? (usedLocations / maxLocations) * 100 : 0;
+  const seatPct = !seatsUnlimited && seats > 0 ? (usedSeats / seats) * 100 : 0;
 
   const locTone: 'ok' | 'warn' = locPct >= 80 ? 'warn' : 'ok';
   const seatTone: 'ok' | 'warn' = seatPct >= 80 ? 'warn' : 'ok';
@@ -1485,7 +1928,7 @@ const PlanUsageCard = ({
           <div className="bv2-usage-tile">
             <div className="bv2-usage-head">
               <div className="bv2-name">{t('billing.v2.usage.locations')}</div>
-              {maxLocations === -1 ? (
+              {locationsUnlimited ? (
                 <span className="bv2-usage-tag bv2-usage-tag-info">
                   {t('billing.unlimited')}
                 </span>
@@ -1506,23 +1949,27 @@ const PlanUsageCard = ({
             <div className="bv2-figure">
               <span className="bv2-num">{usedLocations}</span>
               <span className="bv2-denom">
-                / {maxLocations === -1 ? '∞' : maxLocations}
+                / {locationsUnlimited ? '∞' : maxLocations}
               </span>
             </div>
-            <div className="bv2-bar-track">
-              <div
-                className={`bv2-bar-fill ${
-                  locTone === 'warn' ? 'bv2-tone-warn' : ''
-                }`}
-                style={{ width: `${Math.min(locPct, 100)}%` }}
-              />
-            </div>
+            {locationsUnlimited ? (
+              <div style={{ height: 5 }} />
+            ) : (
+              <div className="bv2-bar-track">
+                <div
+                  className={`bv2-bar-fill ${
+                    locTone === 'warn' ? 'bv2-tone-warn' : ''
+                  }`}
+                  style={{ width: `${Math.min(locPct, 100)}%` }}
+                />
+              </div>
+            )}
             <div className="bv2-usage-meta">
-              {maxLocations === -1
+              {locationsUnlimited
                 ? t('billing.v2.usage.unlimited')
-                : maxLocations - usedLocations > 0
+                : (maxLocations ?? 0) - usedLocations > 0
                   ? t('billing.v2.usage.locationsAvailable', {
-                      count: maxLocations - usedLocations,
+                      count: (maxLocations ?? 0) - usedLocations,
                     })
                   : t('billing.v2.usage.full')}
             </div>
@@ -1532,7 +1979,7 @@ const PlanUsageCard = ({
           <div className="bv2-usage-tile">
             <div className="bv2-usage-head">
               <div className="bv2-name">{t('billing.v2.usage.teamSeats')}</div>
-              {isTrial ? (
+              {isTrial || seatsUnlimited ? (
                 <span className="bv2-usage-tag bv2-usage-tag-info">
                   {t('billing.v2.usage.unlimited')}
                 </span>
@@ -1557,11 +2004,11 @@ const PlanUsageCard = ({
               ) : (
                 <>
                   <span className="bv2-num">{usedSeats}</span>
-                  <span className="bv2-denom">/ {seats}</span>
+                  <span className="bv2-denom">/ {seatsUnlimited ? '∞' : seats}</span>
                 </>
               )}
             </div>
-            {isTrial ? (
+            {isTrial || seatsUnlimited ? (
               <div style={{ height: 5 }} />
             ) : (
               <div className="bv2-bar-track">
@@ -1576,9 +2023,11 @@ const PlanUsageCard = ({
             <div className="bv2-usage-meta">
               {isTrial ? (
                 <>&nbsp;</>
-              ) : seats - usedSeats > 0 ? (
+              ) : seatsUnlimited ? (
+                t('billing.v2.usage.unlimited')
+              ) : (seats ?? 0) - usedSeats > 0 ? (
                 t('billing.v2.usage.seatsUnfilled', {
-                  count: seats - usedSeats,
+                  count: (seats ?? 0) - usedSeats,
                 })
               ) : (
                 t('billing.v2.usage.seatsAllInvited')

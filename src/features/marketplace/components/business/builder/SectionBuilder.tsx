@@ -16,8 +16,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Monitor, Smartphone, ArrowUpRight } from "lucide-react";
+import { Monitor, Smartphone, ArrowUpRight, Lock, Sparkles } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
+import { useFormatPrice } from "../../../../../shared/hooks/useFormatPrice";
 import {
   modalEyebrow,
   modalTitleCompact,
@@ -39,9 +40,11 @@ import type {
   LocationWithAssignments,
   FaqItem,
   AnnouncementContent,
+  WebsiteVariantCatalogEntry,
 } from "../../../types";
 import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
 import { SectionCard } from "./SectionCard";
+import { VariantPurchaseDialog, variantPriceLabel } from "./VariantPurchaseDialog";
 import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
@@ -107,6 +110,15 @@ interface SectionBuilderProps {
   teamRatings?: Record<number, { rating: number; count: number }>;
   /** Business-wide per-star review counts (from the reviews stats endpoint) for the distribution bars. */
   ratingDistribution?: RatingBars;
+  // Paid section variants: backend catalog merged onto the layout pills by (sectionType, variantKey).
+  /** ACTIVE paid-variant catalog with per-business ownership; absent/empty = everything stays free. */
+  variantCatalog?: WebsiteVariantCatalogEntry[];
+  /** Plan includes the website builder (purchasing needs Plus/trial; locked pills still render without it). */
+  hasWebsiteBuilder?: boolean;
+  /** A checkout session is being created (buy button busy until the Stripe redirect). */
+  isVariantCheckoutLoading?: boolean;
+  /** Confirmed purchase → create the Stripe checkout session and redirect. */
+  onBuyVariant?: (variant: WebsiteVariantCatalogEntry) => void;
 }
 
 /**
@@ -126,6 +138,19 @@ export function SectionBuilder(props: SectionBuilderProps) {
   // Resolve the location-tag dictionaries once (session-cached fetch) and feed them into previewData so the
   // Locations section renders tags without its own authenticated fetch.
   const { dictionaries: tagDictionaries } = useLocationTagDictionaries();
+
+  // Paid variants: catalog lookup by (sectionType, variantKey) + the entry pending purchase
+  // confirmation. A locked pill (paid + unowned) opens the dialog instead of selecting.
+  const { formatPrice } = useFormatPrice();
+  const [purchaseTarget, setPurchaseTarget] = useState<WebsiteVariantCatalogEntry | null>(null);
+  const variantCatalog = props.variantCatalog;
+  const catalogByKey = useMemo(() => {
+    const map = new Map<string, WebsiteVariantCatalogEntry>();
+    for (const entry of variantCatalog ?? []) {
+      map.set(`${entry.sectionType}:${entry.variantKey}`, entry);
+    }
+    return map;
+  }, [variantCatalog]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -226,17 +251,52 @@ export function SectionBuilder(props: SectionBuilderProps) {
               {t("businessPage.builder.variantLabel")}
             </span>
             <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
-              {/* Editor seam for future paid variants/skins: gate each `v` here by entitlement (e.g. a lock pill + upgrade prompt). */}
+              {/* Each pill is gated by the paid-variant catalog: paid + unowned = a lock pill that opens
+                  the purchase dialog (selection is replaced, so an unowned paid variant can't be saved);
+                  paid + owned = selectable with a subtle premium spark; uncatalogued/free = unchanged. */}
               {meta!.variants.map((v) => {
                 const active = entry.variant === v.id;
+                const catalogEntry = catalogByKey.get(`${entry.type}:${v.id}`);
+                const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
+                const lockedVariant = paid && !catalogEntry.owned;
+                if (lockedVariant) {
+                  const price = variantPriceLabel(formatPrice, catalogEntry);
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setPurchaseTarget(catalogEntry)}
+                      aria-pressed={active}
+                      aria-label={t("businessPage.paidVariants.lockedAria", {
+                        name: t(v.labelKey),
+                        price,
+                      })}
+                      title={t("businessPage.paidVariants.lockedTitle", { price })}
+                      className={cn(
+                        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
+                        EASE,
+                        // The saved variant can itself be locked (it turned paid after being saved) —
+                        // keep the active plate so the state reads, but the lock stays.
+                        active
+                          ? "bg-surface text-foreground-2 shadow-sm"
+                          : "text-foreground-3 hover:text-foreground-2",
+                      )}
+                    >
+                      <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
+                      {t(v.labelKey)}
+                      <span className="text-[11px] font-normal text-foreground-3">{price}</span>
+                    </button>
+                  );
+                }
                 return (
                   <button
                     key={v.id}
                     type="button"
                     onClick={() => props.setSectionVariant(index, v.id)}
                     aria-pressed={active}
+                    title={paid ? t("businessPage.paidVariants.ownedTitle") : undefined}
                     className={cn(
-                      "rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
+                      "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
                       EASE,
                       active
                         ? "bg-surface text-primary-700 shadow-sm dark:text-primary-400"
@@ -244,6 +304,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
                     )}
                   >
                     {t(v.labelKey)}
+                    {paid && (
+                      <Sparkles className="h-3 w-3 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
+                    )}
                   </button>
                 );
               })}
@@ -447,6 +510,17 @@ export function SectionBuilder(props: SectionBuilderProps) {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* paid-variant purchase confirmation → Stripe checkout redirect */}
+      <VariantPurchaseDialog
+        variant={purchaseTarget}
+        onOpenChange={(open) => {
+          if (!open) setPurchaseTarget(null);
+        }}
+        hasWebsiteBuilder={props.hasWebsiteBuilder ?? true}
+        isLoading={props.isVariantCheckoutLoading ?? false}
+        onBuy={(variant) => props.onBuyVariant?.(variant)}
+      />
     </>
   );
 }
