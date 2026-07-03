@@ -23,7 +23,9 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation("marketplace");
-  
+  const { t: tIndustry } = useTranslation("industries");
+
+
   const toggleTag = (tag: IndustryTag) => {
     const isSelected = selectedTags.some((t) => t.id === tag.id);
     if (isSelected) {
@@ -83,7 +85,7 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white dark:bg-surface border border-border w-fit shadow-sm">
             <BadgeCheck className="h-4 w-4 text-green-400" />
             <span className="text-sm font-semibold text-foreground-1 capitalize">
-              {businessIndustry.name}
+              {tIndustry(businessIndustry.slug ?? "", businessIndustry.name)}
             </span>
           </div>
         )}
@@ -110,7 +112,7 @@ export const IndustrySection: React.FC<IndustrySectionProps> = ({
                   showCheckmark={true}
                   onClick={() => toggleTag(tag)}
                 >
-                  <span className="text-sm font-medium">{tag.name}</span>
+                  <span className="text-sm font-medium">{tIndustry(`tags.${tag.slug ?? ""}`, tag.name)}</span>
                 </Pill>
               );
             })}

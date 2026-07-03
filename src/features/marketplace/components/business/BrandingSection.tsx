@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Building2, Camera, ChevronDown, Loader2, Lock } from "lucide-react";
+import { Building2, Camera, Check, ChevronDown, Loader2, Lock } from "lucide-react";
 import type { Business } from "../../types";
 import { cn } from "../../../../shared/lib/utils";
 import { uploadBusinessLogo } from "../../../settings/api";
@@ -18,7 +18,6 @@ const PUBLIC_PAGE_BASE = "zavoia.com/b/";
 
 // Shared micro-label for each brand group (mirrors the section-list mono labels).
 const GROUP_LABEL = "text-[11px] font-semibold uppercase text-foreground-3";
-const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
 
 const freeAccents = BRAND_ACCENTS.filter((a) => !a.pro);
 const proAccents = BRAND_ACCENTS.filter((a) => a.pro);
@@ -28,25 +27,25 @@ interface BrandingSectionProps {
   canWrite: boolean;
   pageName: string;
   brandColorHex: string;
-  setBrandColorHex: (value: string) => void;
   /** Active display face — the lockup renders the page name in it so brand choices resolve live. */
   fontKey: string;
 }
 
+interface BrandColorControlProps {
+  canWrite: boolean;
+  brandColorHex: string;
+  setBrandColorHex: (value: string) => void;
+}
+
 /**
- * The brand controls for the horizontal band above the section list, as two grid cells:
- *  1. a live identity lockup — the logo (hover to upload) beside the page name in the chosen display
- *     face and the public address, so logo + typeface + accent resolve exactly as the public page reads;
- *  2. the accent control — a compact current-colour chip that opens the full palette in a popover,
- *     grouped Included / Pro (Pro swatches are previewable but need an upgrade to save).
- * Returns a fragment so each cell sits directly in the band grid alongside the typeface group.
+ * Live identity lockup for the public page: logo upload, page name in the chosen display face,
+ * and the generated public address. Styling controls live beside it in the parent editor surface.
  */
 export function BrandingSection({
   business,
   canWrite,
   pageName,
   brandColorHex,
-  setBrandColorHex,
   fontKey,
 }: BrandingSectionProps) {
   const { t } = useTranslation("marketplace");
@@ -56,12 +55,7 @@ export function BrandingSection({
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
 
   // Selected swatch — falls back to the default accent so it always matches what the preview renders.
-  const activeAccent = (brandColorHex || FALLBACK_BRAND).toLowerCase();
   const accentHex = safeBrandColor(brandColorHex);
-  const activeAccentEntry = BRAND_ACCENTS.find((a) => a.hex.toLowerCase() === activeAccent);
-  const activeAccentName = activeAccentEntry
-    ? t(`businessPage.branding.brandColor.swatches.${activeAccentEntry.key}`)
-    : accentHex.toUpperCase();
 
   // The lockup renders the page name in the active display face (same stack the public page uses).
   const font = displayFontFor(fontKey);
@@ -88,6 +82,96 @@ export function BrandingSection({
     }
   };
 
+  return (
+    <div className="flex min-w-0 items-center gap-3.5 sm:gap-4">
+      <div className="relative size-16 shrink-0">
+        <button
+          type="button"
+          onClick={() => canWrite && !isUploadingLogo && logoInputRef.current?.click()}
+          disabled={!canWrite || isUploadingLogo}
+          aria-label={
+            isUploadingLogo
+              ? t("businessPage.branding.logo.uploading")
+              : t("businessPage.branding.logo.edit")
+          }
+          className={cn(
+            "group/logo relative flex size-16 items-center justify-center overflow-hidden rounded-2xl border border-border bg-surface shadow-xs outline-none transition-[transform,border-color] duration-150 ease-out hover:border-border-strong active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed dark:bg-neutral-900",
+          )}
+        >
+          {logoUrl ? (
+            <img src={logoUrl} alt={t("businessPage.branding.logo.alt")} className="h-full w-full object-cover" />
+          ) : (
+            <Building2 className="h-6 w-6 text-foreground-3" aria-hidden />
+          )}
+          <span
+            className={cn(
+              "absolute inset-0 grid place-items-center bg-neutral-950/45 text-white transition-opacity duration-150 ease-out",
+              isUploadingLogo
+                ? "opacity-100"
+                : "opacity-0 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100",
+            )}
+            aria-hidden
+          >
+            {isUploadingLogo ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Camera className="size-4" />
+            )}
+          </span>
+        </button>
+        <input
+          ref={logoInputRef}
+          type="file"
+          accept={LOGO_ALLOWED}
+          className="hidden"
+          onChange={handleLogoSelect}
+          disabled={!canWrite || isUploadingLogo}
+        />
+      </div>
+
+      <div className="min-w-0">
+        <span className={GROUP_LABEL}>{t("businessPage.branding.title")}</span>
+        <div
+          key={font.key}
+          className="mt-1.5 truncate text-[23px] leading-[1.08] text-foreground-1 sm:text-[25px]"
+          style={{ fontFamily: font.stack, fontWeight: font.weight, letterSpacing: font.tracking }}
+        >
+          {pageName || t("businessPage.branding.namePlaceholder")}
+        </div>
+        {derivedSlug && (
+          <div
+            className="mt-2 flex min-w-0 items-center gap-1.5"
+            title={t("businessPage.branding.slug.autoHint")}
+          >
+            <span
+              className="size-1.5 shrink-0 rounded-full"
+              style={{ backgroundColor: accentHex }}
+              aria-hidden
+            />
+            <span className="min-w-0 truncate font-mono text-[11px] leading-none">
+              <span className="text-foreground-3">{PUBLIC_PAGE_BASE}</span>
+              <span className="text-foreground-2">{derivedSlug}</span>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function BrandColorControl({
+  canWrite,
+  brandColorHex,
+  setBrandColorHex,
+}: BrandColorControlProps) {
+  const { t } = useTranslation("marketplace");
+  const activeAccent = (brandColorHex || FALLBACK_BRAND).toLowerCase();
+  const accentHex = safeBrandColor(brandColorHex);
+  const activeAccentEntry = BRAND_ACCENTS.find((a) => a.hex.toLowerCase() === activeAccent);
+  const activeAccentName = activeAccentEntry
+    ? t(`businessPage.branding.brandColor.swatches.${activeAccentEntry.key}`)
+    : accentHex.toUpperCase();
+
   const renderSwatch = ({ key, hex, pro }: { key: string; hex: string; pro?: boolean }) => {
     const selected = activeAccent === hex.toLowerCase();
     const name = t(`businessPage.branding.brandColor.swatches.${key}`);
@@ -103,15 +187,19 @@ export function BrandingSection({
         onClick={() => setBrandColorHex(hex)}
         style={{ backgroundColor: hex }}
         className={cn(
-          "relative size-7 rounded-full outline-none transition-transform duration-150",
-          EASE,
+          "relative size-6 rounded-full outline-none transition-transform duration-150 ease-out",
           "focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-popover",
-          canWrite ? "cursor-pointer hover:scale-110 active:scale-95" : "cursor-not-allowed opacity-60",
+          canWrite ? "cursor-pointer hover:scale-105 active:scale-95" : "cursor-not-allowed opacity-60",
           selected
-            ? "scale-105 shadow-sm ring-2 ring-foreground-1 ring-offset-2 ring-offset-popover"
+            ? "scale-105 ring-2 ring-foreground-1 ring-offset-2 ring-offset-popover"
             : "ring-1 ring-inset ring-black/10 dark:ring-white/20",
         )}
       >
+        {selected && (
+          <span className="absolute inset-0 grid place-items-center" aria-hidden>
+            <Check className="size-3.5 text-white" strokeWidth={2.4} />
+          </span>
+        )}
         {pro && (
           <span
             aria-hidden
@@ -125,90 +213,8 @@ export function BrandingSection({
   };
 
   return (
-    <>
-      {/* Identity — logo (hover to upload) + a live lockup of the page name in the chosen face + address */}
-      <div className="flex min-w-0 flex-col justify-center rounded-[1.25rem] bg-surface-hover/50 p-4 ring-1 ring-border-subtle">
-        <span className={GROUP_LABEL}>{t("businessPage.branding.title")}</span>
-        <div className="mt-3.5 flex min-w-0 items-center gap-4">
-          <div className="relative size-[72px] shrink-0">
-            <button
-              type="button"
-              onClick={() => canWrite && !isUploadingLogo && logoInputRef.current?.click()}
-              disabled={!canWrite || isUploadingLogo}
-              aria-label={
-                isUploadingLogo
-                  ? t("businessPage.branding.logo.uploading")
-                  : t("businessPage.branding.logo.edit")
-              }
-              className={cn(
-                "group/logo relative flex size-[72px] items-center justify-center overflow-hidden rounded-[1.1rem] border border-border bg-surface shadow-xs outline-none transition-[transform,border-color] duration-150 hover:border-border-strong active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed dark:bg-neutral-900",
-                EASE,
-              )}
-            >
-              {logoUrl ? (
-                <img src={logoUrl} alt={t("businessPage.branding.logo.alt")} className="h-full w-full object-cover" />
-              ) : (
-                <Building2 className="h-6 w-6 text-foreground-3" aria-hidden />
-              )}
-              {/* upload affordance — scrim + camera revealed on hover/focus; spinner while uploading */}
-              <span
-                className={cn(
-                  "absolute inset-0 grid place-items-center bg-neutral-950/45 text-white transition-opacity duration-150",
-                  EASE,
-                  isUploadingLogo
-                    ? "opacity-100"
-                    : "opacity-0 group-hover/logo:opacity-100 group-focus-visible/logo:opacity-100",
-                )}
-                aria-hidden
-              >
-                {isUploadingLogo ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Camera className="size-4" />
-                )}
-              </span>
-            </button>
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept={LOGO_ALLOWED}
-              className="hidden"
-              onChange={handleLogoSelect}
-              disabled={!canWrite || isUploadingLogo}
-            />
-          </div>
-
-          <div className="min-w-0 space-y-2">
-            {/* keyed by face so the name gently reblooms when the typeface changes */}
-            <div
-              key={font.key}
-              className="truncate text-[24px] leading-[1.12] text-foreground-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200 motion-safe:ease-out"
-              style={{ fontFamily: font.stack, fontWeight: font.weight, letterSpacing: font.tracking }}
-            >
-              {pageName || t("businessPage.branding.namePlaceholder")}
-            </div>
-            {derivedSlug && (
-              <div
-                className="flex min-w-0 items-center gap-1.5"
-                title={t("businessPage.branding.slug.autoHint")}
-              >
-                <span
-                  className="size-1.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: accentHex }}
-                  aria-hidden
-                />
-                <span className="min-w-0 truncate font-mono text-[11px] leading-none">
-                  <span className="text-foreground-3">{PUBLIC_PAGE_BASE}</span>
-                  <span className="text-foreground-2">{derivedSlug}</span>
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Accent — a compact current-colour chip that opens the full palette (Included / Pro) in a popover */}
-      <div className="flex min-w-0 flex-col justify-center gap-3 rounded-[1.25rem] bg-surface-hover/35 p-4 ring-1 ring-border-subtle">
+    <div className="space-y-2.5">
+      <div className="flex items-center justify-between gap-3">
         <span className={GROUP_LABEL}>{t("businessPage.branding.brandColor.label")}</span>
         <Popover>
           <PopoverTrigger asChild>
@@ -217,19 +223,18 @@ export function BrandingSection({
               disabled={!canWrite}
               aria-label={t("businessPage.branding.brandColor.label")}
               className={cn(
-                "group/accent flex h-12 w-full items-center gap-3 rounded-[0.9rem] border border-border bg-surface px-3 text-left shadow-xs outline-none transition-[transform,border-color,background-color] duration-150",
-                EASE,
+                "group/accent inline-flex h-8 max-w-[190px] items-center gap-2 rounded-full border border-border bg-surface px-2.5 text-left outline-none transition-[transform,border-color,background-color] duration-150 ease-out",
                 "hover:border-border-strong hover:bg-surface-hover active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-60",
               )}
             >
               <span
-                className="size-7 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/20"
+                className="size-4 shrink-0 rounded-full ring-1 ring-inset ring-black/10 dark:ring-white/20"
                 style={{ backgroundColor: accentHex }}
                 aria-hidden
               />
-              <span className="min-w-0 flex-1 truncate text-sm text-foreground-1">{activeAccentName}</span>
+              <span className="min-w-0 truncate text-[12px] font-medium text-foreground-1">{activeAccentName}</span>
               <ChevronDown
-                className="size-4 shrink-0 text-foreground-3 transition-transform duration-150 ease-out group-data-[state=open]/accent:rotate-180"
+                className="size-3.5 shrink-0 text-foreground-3 transition-transform duration-150 ease-out group-data-[state=open]/accent:rotate-180"
                 strokeWidth={1.8}
                 aria-hidden
               />
@@ -267,7 +272,14 @@ export function BrandingSection({
           </PopoverContent>
         </Popover>
       </div>
-    </>
+      <div
+        role="radiogroup"
+        aria-label={t("businessPage.branding.brandColor.included")}
+        className="flex flex-wrap gap-2"
+      >
+        {freeAccents.map(renderSwatch)}
+      </div>
+    </div>
   );
 }
 

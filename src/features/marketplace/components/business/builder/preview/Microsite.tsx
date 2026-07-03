@@ -30,7 +30,7 @@ import type { PreviewData, LivePreviewProps, T } from "./shared/types";
  * calm placeholders. Fluid type keys off the preview's own width via container-query units, so the
  * same component reads well in the small per-section card and the full-page dialog alike.
  */
-function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1 }: LivePreviewProps) {
+function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusType }: LivePreviewProps) {
   const { t } = useTranslation("marketplace");
   const visible = layout.filter((s) => s.visible);
 
@@ -175,8 +175,10 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1 }: LiveP
           return (
             <div
               key={heroKey}
+              data-preview-section={s.type}
+              data-preview-focus={focusType === s.type ? "true" : undefined}
               ref={overHero && i === 0 ? heroRef : undefined}
-              className={cn("relative", !chrome && s.type === "hero" && "mc-hero-swap")}
+              className={cn("relative scroll-mt-6", !chrome && s.type === "hero" && "mc-hero-swap")}
             >
               <SectionView entry={s} data={data} t={t} no={no} chrome={chrome} layout={layout} />
             </div>

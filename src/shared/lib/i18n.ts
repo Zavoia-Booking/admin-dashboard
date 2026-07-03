@@ -60,6 +60,8 @@ import enBusiness from '../../locales/en/business.json';
 import roBusiness from '../../locales/ro/business.json';
 import enLocationMarketplaceDetails from '../../locales/en/locationMarketplaceDetails.json';
 import roLocationMarketplaceDetails from '../../locales/ro/locationMarketplaceDetails.json';
+import enIndustries from '../../locales/en/industries.json';
+import roIndustries from '../../locales/ro/industries.json';
 
 const resources = {
   en: {
@@ -86,6 +88,7 @@ const resources = {
     setupWizard: setupWizardEn,
     business: enBusiness,
     locationMarketplaceDetails: enLocationMarketplaceDetails,
+    industries: enIndustries,
   },
   ro: {
     services: roServices,
@@ -111,6 +114,7 @@ const resources = {
     setupWizard: setupWizardRo,
     business: roBusiness,
     locationMarketplaceDetails: roLocationMarketplaceDetails,
+    industries: roIndustries,
   },
 };
 

@@ -57,11 +57,24 @@ export interface SectionMeta {
   defaultConfig: Record<string, unknown>;
   /** Hidden by default in a fresh layout (e.g. the promotional announcement). */
   defaultHidden?: boolean;
+  /** Paid-only section seam: visible selections are collected as add-ons until billing owns them. */
+  access?: "included" | "add_on";
+  addOnSku?: string;
+  addOnPriceMinor?: number;
+  addOnCurrency?: string;
 }
 
 const v = (id: string): SectionVariant => ({
   id,
   labelKey: `businessPage.sections.variants.${id}`,
+});
+
+const addOnV = (section: SectionType, id: string, priceMinor = 500, currency = "EUR"): SectionVariant => ({
+  ...v(id),
+  access: "add_on",
+  addOnSku: `business_page.variant.${section}.${id}`,
+  addOnPriceMinor: priceMinor,
+  addOnCurrency: currency,
 });
 
 export const SECTION_META: Record<SectionType, SectionMeta> = {
@@ -75,6 +88,10 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     netNew: true,
     defaultConfig: {},
     defaultHidden: true,
+    access: "add_on",
+    addOnSku: "business_page.section.announcement",
+    addOnPriceMinor: 500,
+    addOnCurrency: "EUR",
   },
   nav: {
     type: "nav",
@@ -105,7 +122,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     descriptionKey: "businessPage.sections.marquee.description",
     // Motion mode: "scroll" glides the band with page scroll (default — the editorial source's behaviour);
     // "loop" runs an always-on auto drift. First entry is the default for a fresh layout.
-    variants: [v("scroll"), v("loop")],
+    variants: [v("scroll"), addOnV("marquee", "loop")],
     netNew: false,
     defaultConfig: {},
     // Decorative band derived from existing data — opt-in so a fresh page isn't busy.
@@ -140,7 +157,12 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     descriptionKey: "businessPage.sections.gallery.description",
     // Four layouts from the source: editorial essay (default), bento, masonry, and a centre-weighted
     // drag carousel. Legacy "grid" saves migrate to "editorial" on read.
-    variants: [v("editorial"), v("bento"), v("masonry"), v("carousel")],
+    variants: [
+      v("editorial"),
+      addOnV("gallery", "bento"),
+      addOnV("gallery", "masonry"),
+      addOnV("gallery", "carousel"),
+    ],
     netNew: false,
     defaultConfig: {},
   },
@@ -151,7 +173,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     descriptionKey: "businessPage.sections.team.description",
     // "portraits" = tall photo cards with a location pin + hover "find at" CTA (default, the source's
     // lookbook grid); "roster" = a numbered editorial list. Legacy grid/list saves migrate on read.
-    variants: [v("portraits"), v("roster")],
+    variants: [v("portraits"), addOnV("team", "roster")],
     netNew: false,
     defaultConfig: {},
   },
@@ -165,6 +187,10 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     defaultConfig: {},
     // Cinematic photo break — opt-in.
     defaultHidden: true,
+    access: "add_on",
+    addOnSku: "business_page.section.interlude",
+    addOnPriceMinor: 800,
+    addOnCurrency: "EUR",
   },
   testimonials: {
     type: "testimonials",
@@ -182,7 +208,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: HelpCircle,
     labelKey: "businessPage.sections.faq.label",
     descriptionKey: "businessPage.sections.faq.description",
-    variants: [v("accordion"), v("list")],
+    variants: [v("accordion"), addOnV("faq", "list")],
     netNew: true,
     defaultConfig: {},
   },

@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   DndContext,
   closestCenter,
@@ -26,6 +27,15 @@ import {
   DialogTitle,
 } from "../../../../../shared/components/ui/dialog";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "../../../../../shared/components/ui/sheet";
+import { Button } from "../../../../../shared/components/ui/button";
+import {
   Collapsible,
   CollapsibleContent,
 } from "../../../../../shared/components/ui/collapsible";
@@ -45,9 +55,107 @@ import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
 import { useLocationTagDictionaries } from "../../../hooks/useLocationTagDictionaries";
+import { aboutHeadline } from "./aboutContent";
 
 /** House ease-out (mirrors --ease-out-strong in globals.css). */
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
+const SECTION_PREVIEW_PREF_KEY = "zavoia:business-page-section-preview";
+
+type PreviewScope = "page" | "section";
+type MarketplaceT = (key: string, options?: Record<string, unknown>) => string;
+
+interface SectionRowInfo {
+  summary: string;
+  status?: SectionCardStatus;
+  noData?: boolean;
+}
+
+interface UndoToastOptions {
+  title: string;
+  description?: string;
+  undoLabel: string;
+  onUndo: () => void;
+}
+
+type SelectedAddOnKind = "section" | "variant";
+
+interface SelectedAddOn {
+  key: string;
+  kind: SelectedAddOnKind;
+  sectionType: string;
+  sectionIndex: number;
+  sectionLabel: string;
+  itemLabel: string;
+  sku?: string;
+  priceMinor?: number;
+  currency?: string;
+}
+
+const isAddOnVariant = (variant?: SectionVariant | null) => variant?.access === "add_on";
+
+const includedVariantIdFor = (meta: SectionMeta) =>
+  meta.variants.find((variant) => !isAddOnVariant(variant))?.id ?? meta.variants[0]?.id;
+
+const formatAddOnPrice = (priceMinor: number | undefined, currency: string | undefined, locale: "en" | "ro") => {
+  if (typeof priceMinor !== "number") return null;
+  const fractionDigits = priceMinor % 100 === 0 ? 0 : 2;
+  return new Intl.NumberFormat(locale === "ro" ? "ro-RO" : "en-US", {
+    style: "currency",
+    currency: currency ?? "EUR",
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(priceMinor / 100);
+};
+
+const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
+  value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
+
+const portfolioPhotoCount = (locations: LocationWithAssignments[]) =>
+  locations.reduce((count, location) => count + (location.portfolioImages?.length ?? 0), 0);
+
+const teamMemberCount = (locations: LocationWithAssignments[]) => {
+  const ids = new Set<number | string>();
+  locations.forEach((location) => {
+    location.teamMembers?.forEach((member) => {
+      ids.add(member.id ?? `${member.firstName ?? ""}-${member.lastName ?? ""}`);
+    });
+  });
+  return ids.size;
+};
+
+const reviewCount = (locations: LocationWithAssignments[], reviews?: PreviewReview[]) => {
+  const aggregate = locations.reduce((count, location) => count + (location.totalReviews ?? 0), 0);
+  return Math.max(aggregate, reviews?.length ?? 0);
+};
+
+const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptions) => {
+  toast.custom(
+    (toastId) => (
+      <div className="flex w-[min(420px,calc(100vw-2rem))] items-center justify-between gap-5 rounded-md border border-border bg-surface px-4 py-3 shadow-sm">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground-1">{title}</p>
+          {description ? (
+            <p className="mt-1 truncate text-xs text-foreground-3 dark:text-foreground-2">{description}</p>
+          ) : null}
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          rounded="default"
+          className="h-8 shrink-0 px-3 text-xs font-semibold"
+          onClick={() => {
+            onUndo();
+            toast.dismiss(toastId);
+          }}
+        >
+          {undoLabel}
+        </Button>
+      </div>
+    ),
+    { duration: 5000 },
+  );
+};
 
 /**
  * Keep a dragged row clamped vertically inside `ref`'s element. Mirrors @dnd-kit's internal
@@ -141,9 +249,17 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const { t, i18n } = useTranslation("marketplace");
   const [openType, setOpenType] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewScope, setPreviewScope] = useState<PreviewScope>("page");
+  const [previewFocusType, setPreviewFocusType] = useState<string | null>(null);
+  const [addOnsOpen, setAddOnsOpen] = useState(false);
   // Sections are edited and previewed in the owner's app language (no language toggle).
   const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [sectionPreviewOpen, setSectionPreviewOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem(SECTION_PREVIEW_PREF_KEY) !== "hidden";
+  });
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Resolve the location-tag dictionaries once (session-cached fetch) and feed them into previewData so the
   // Locations section renders tags without its own authenticated fetch.
@@ -197,12 +313,37 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const modifiers = useMemo(() => [restrictToVerticalAxis, restrictToContainer(listRef)], []);
 
+  const setPreviewTrayOpen = useCallback((open: boolean) => {
+    setSectionPreviewOpen(open);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(SECTION_PREVIEW_PREF_KEY, open ? "shown" : "hidden");
+    }
+  }, []);
+
+  const openPreview = useCallback(
+    (scope: PreviewScope, focusType?: string | null) => {
+      setPreviewScope(scope);
+      setPreviewFocusType(focusType ?? openType);
+      setPreviewOpen(true);
+    },
+    [openType],
+  );
+
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const from = props.layout.findIndex((s) => s.type === active.id);
     const to = props.layout.findIndex((s) => s.type === over.id);
-    if (from !== -1 && to !== -1) props.reorderSections(from, to);
+    if (from !== -1 && to !== -1) {
+      const moved = props.layout[from];
+      const label = isKnownSectionType(moved.type) ? t(SECTION_META[moved.type].labelKey) : moved.type;
+      props.reorderSections(from, to);
+      showUndoToast({
+        title: t("businessPage.builder.toast.sectionMoved", { section: label }),
+        undoLabel: t("businessPage.builder.toast.undo"),
+        onUndo: () => props.reorderSections(to, from),
+      });
+    }
   };
 
   const previewData: PreviewData = useMemo(
@@ -278,6 +419,285 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const items = displaySections.map(({ entry }) => entry.type);
   const shown = displaySections.filter(({ entry }) => entry.visible).length;
 
+  const selectedAddOns = useMemo<SelectedAddOn[]>(() => {
+    return props.layout.flatMap((entry, sectionIndex) => {
+      if (!entry.visible || !isKnownSectionType(entry.type)) return [];
+      const meta = SECTION_META[entry.type];
+      const sectionLabel = t(meta.labelKey);
+      const addOns: SelectedAddOn[] = [];
+
+      if (meta.access === "add_on") {
+        addOns.push({
+          key: `section:${entry.type}`,
+          kind: "section",
+          sectionType: entry.type,
+          sectionIndex,
+          sectionLabel,
+          itemLabel: t("businessPage.builder.addOns.sectionAddOn"),
+          sku: meta.addOnSku,
+          priceMinor: meta.addOnPriceMinor,
+          currency: meta.addOnCurrency,
+        });
+      }
+
+      const activeVariant = meta.variants.find((variant) => variant.id === entry.variant);
+      if (activeVariant && isAddOnVariant(activeVariant)) {
+        addOns.push({
+          key: `variant:${entry.type}:${activeVariant.id}`,
+          kind: "variant",
+          sectionType: entry.type,
+          sectionIndex,
+          sectionLabel,
+          itemLabel: t(activeVariant.labelKey),
+          sku: activeVariant.addOnSku,
+          priceMinor: activeVariant.addOnPriceMinor,
+          currency: activeVariant.addOnCurrency,
+        });
+      }
+
+      return addOns;
+    });
+  }, [props.layout, t]);
+
+  const selectedAddOnTotal = useMemo(() => {
+    if (selectedAddOns.length === 0) return null;
+    const currencies = new Set(selectedAddOns.map((item) => item.currency ?? "EUR"));
+    const allPriced = selectedAddOns.every((item) => typeof item.priceMinor === "number");
+    if (!allPriced || currencies.size !== 1) return null;
+    const currency = Array.from(currencies)[0];
+    const totalMinor = selectedAddOns.reduce((total, item) => total + (item.priceMinor ?? 0), 0);
+    return formatAddOnPrice(totalMinor, currency, locale);
+  }, [locale, selectedAddOns]);
+
+  const previewNumberFor = useCallback(
+    (index: number) =>
+      props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1,
+    [props.layout],
+  );
+
+  const rowInfoFor = useCallback(
+    (entry: SectionEntry): SectionRowInfo => {
+      const fixed = REQUIRED_TYPES.has(entry.type);
+      const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
+      const activeVariant = meta?.variants.find((variant) => variant.id === entry.variant);
+      const addOnStatus: SectionCardStatus | undefined =
+        entry.visible && (meta?.access === "add_on" || isAddOnVariant(activeVariant))
+          ? { label: t("businessPage.builder.addOns.selectedAddOn"), tone: "neutral" }
+          : undefined;
+      const hiddenStatus: SectionCardStatus | undefined = !entry.visible
+        ? meta?.access === "add_on"
+          ? { label: t("businessPage.builder.addOns.addOn"), tone: "neutral" }
+          : { label: t("businessPage.builder.summary.hidden"), tone: "muted" }
+        : undefined;
+      const fixedStatus: SectionCardStatus | undefined = fixed
+        ? { label: t("businessPage.builder.summary.fixed"), tone: "neutral" }
+        : undefined;
+
+      const noDataStatus: SectionCardStatus = {
+        label: t("businessPage.builder.summary.noData"),
+        tone: "warning",
+      };
+      const needsContentStatus: SectionCardStatus = {
+        label: t("businessPage.builder.summary.needsContent"),
+        tone: "danger",
+      };
+
+      const withStatus = (
+        summary: string,
+        status?: SectionCardStatus,
+        noData = false,
+      ): SectionRowInfo => ({
+        summary,
+        status: hiddenStatus ?? status ?? addOnStatus ?? fixedStatus,
+        noData,
+      });
+
+      switch (entry.type) {
+        case "announcement": {
+          const message = firstLocaleText(props.announcementContent.message, locale);
+          const needsContent = entry.visible && !!props.announcementError;
+          return withStatus(
+            message || t("businessPage.builder.summary.noMessage"),
+            needsContent ? needsContentStatus : undefined,
+            !message,
+          );
+        }
+        case "nav":
+          return withStatus(t("businessPage.builder.summary.logoLinksBooking"));
+        case "hero": {
+          const hasCover = !!props.heroImageUrl;
+          const hasSubtitle = props.tagline.trim().length > 0;
+          return withStatus(
+            hasCover
+              ? t("businessPage.builder.summary.coverSet")
+              : hasSubtitle
+                ? t("businessPage.builder.summary.subtitleSet")
+                : t("businessPage.builder.summary.addSubtitle"),
+            props.taglineError ? needsContentStatus : undefined,
+          );
+        }
+        case "marquee": {
+          const count = marqueeItems(props.locations).length;
+          return withStatus(t("businessPage.builder.summary.services", { count }));
+        }
+        case "about": {
+          const headline = aboutHeadline(props.aboutContent);
+          const needsContent = entry.visible && !!props.aboutError;
+          return withStatus(
+            headline || t("businessPage.builder.summary.noHeadline"),
+            needsContent ? needsContentStatus : undefined,
+            !headline,
+          );
+        }
+        case "locations": {
+          const hiddenIds = (entry.config?.hiddenLocationIds as number[] | undefined) ?? [];
+          const total = props.locations.length;
+          const visible = props.locations.filter((location) => !hiddenIds.includes(location.id)).length;
+          return withStatus(
+            total > 0
+              ? t("businessPage.builder.summary.locationsShown", { shown: visible, total })
+              : t("businessPage.builder.summary.locationsEmpty"),
+            total === 0 || visible === 0 ? noDataStatus : undefined,
+            total === 0 || visible === 0,
+          );
+        }
+        case "gallery": {
+          const count = portfolioPhotoCount(props.locations);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.photos", { count })
+              : t("businessPage.builder.summary.photosEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "team": {
+          const count = teamMemberCount(props.locations);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.members", { count })
+              : t("businessPage.builder.summary.membersEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "interlude": {
+          const count = portfolioPhotoCount(props.locations);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.usesPortfolioPhoto")
+              : t("businessPage.builder.summary.noPortfolioPhoto"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "testimonials": {
+          const count = reviewCount(props.locations, props.reviews);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.reviews", { count })
+              : t("businessPage.builder.summary.reviewsEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "faq": {
+          const count = props.faqItems.length;
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.questions", { count })
+              : t("businessPage.builder.summary.questionsEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "footer":
+          return withStatus(t("businessPage.builder.summary.footerContent"));
+        default:
+          return withStatus(t("businessPage.builder.summary.generated"));
+      }
+    },
+    [
+      locale,
+      props.aboutContent,
+      props.aboutError,
+      props.announcementContent.message,
+      props.announcementError,
+      props.faqItems.length,
+      props.heroImageUrl,
+      props.locations,
+      props.reviews,
+      props.tagline,
+      props.taglineError,
+      t,
+    ],
+  );
+
+  const toggleVisibleWithFeedback = useCallback(
+    (entry: SectionEntry, index: number) => {
+      const turningOn = !entry.visible;
+      props.toggleSectionVisible(index);
+      const label = isKnownSectionType(entry.type) ? t(SECTION_META[entry.type].labelKey) : entry.type;
+      showUndoToast({
+        title: t(turningOn ? "businessPage.builder.toast.sectionShown" : "businessPage.builder.toast.sectionHidden", {
+          section: label,
+        }),
+        undoLabel: t("businessPage.builder.toast.undo"),
+        onUndo: () => props.toggleSectionVisible(index),
+      });
+    },
+    [props.toggleSectionVisible, t],
+  );
+
+  const removeSelectedAddOn = useCallback(
+    (item: SelectedAddOn) => {
+      if (item.kind === "section") {
+        props.toggleSectionVisible(item.sectionIndex);
+        if (openType === item.sectionType) setOpenType(null);
+        return;
+      }
+
+      if (!isKnownSectionType(item.sectionType)) return;
+      const includedVariantId = includedVariantIdFor(SECTION_META[item.sectionType]);
+      if (!includedVariantId) return;
+      props.setSectionVariant(item.sectionIndex, includedVariantId);
+    },
+    [openType, props.setSectionVariant, props.toggleSectionVisible],
+  );
+
+  const handleUnlockSelected = useCallback(() => {
+    toast.info(t("businessPage.builder.addOns.checkoutPending"));
+  }, [t]);
+
+  const previewFocusIndex = previewFocusType
+    ? props.layout.findIndex((section) => section.type === previewFocusType)
+    : -1;
+  const previewFocusEntry = previewFocusIndex >= 0 ? props.layout[previewFocusIndex] : null;
+  const modalSectionMode = previewScope === "section" && !!previewFocusEntry;
+  const modalLayout = modalSectionMode
+    ? [{ ...previewFocusEntry!, visible: true }]
+    : props.layout;
+  const modalStartNumber = modalSectionMode ? previewNumberFor(previewFocusIndex) : 1;
+  const modalChrome = !modalSectionMode;
+  const previewFocusLabel =
+    previewFocusEntry && isKnownSectionType(previewFocusEntry.type)
+      ? t(SECTION_META[previewFocusEntry.type].labelKey)
+      : null;
+
+  useEffect(() => {
+    if (!previewOpen || previewScope !== "page" || !previewFocusType) return;
+    const container = previewScrollRef.current;
+    if (!container) return;
+    const target = Array.from(container.querySelectorAll<HTMLElement>("[data-preview-section]")).find(
+      (node) => node.dataset.previewSection === previewFocusType,
+    );
+    if (!target) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+  }, [device, previewFocusType, previewOpen, previewScope, props.layout]);
+
   const renderSettings = (entry: SectionEntry, index: number) => {
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
     // Server-driven pills, matched against the components implemented in code (SECTION_META): a
@@ -297,8 +717,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
       : [];
     const hasVariants = variants.length > 1;
     // The section's real "0N —" ordinal in the full page, so the scoped preview stays in sync with the rest.
-    const previewNumber =
-      props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1;
+    const previewNumber = previewNumberFor(index);
+    const sectionPreviewMotionKey = `${entry.type}:${entry.variant}:${device}`;
     return (
       <div className="space-y-4">
         <fieldset
@@ -384,40 +804,57 @@ export function SectionBuilder(props: SectionBuilderProps) {
               })}
             </div>
           </div>
-        )}
-        <SettingsPanel
-          entry={entry}
-          index={index}
-          locations={props.locations}
-          faqItems={props.faqItems}
-          announcementContent={props.announcementContent}
-          aboutContent={props.aboutContent}
-          tagline={props.tagline}
-          taglineError={props.taglineError}
-          heroImageUrl={props.heroImageUrl}
-          canWrite={props.canWrite}
-          locale={locale}
-          onConfigChange={props.setSectionConfig}
-          onTurnOffSection={() => {
-            if (entry.visible) props.toggleSectionVisible(index);
-            setOpenType(null);
-          }}
-          onFaqChange={props.setFaqItems}
-          onAnnouncementChange={props.setAnnouncementContent}
-          onAboutChange={props.setAboutContent}
-          onTaglineChange={props.setTagline}
-        />
-        </fieldset>
-        <div className="border-t border-border pt-5">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
-            <span className="text-[11px] font-semibold uppercase text-foreground-3">
-              {t("businessPage.builder.sectionPreview")}
-            </span>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-border bg-background">
-            <LivePreview layout={[{ ...entry, visible: true }]} data={previewData} chrome={false} startNumber={previewNumber} />
-          </div>
+          {hasVariants && meta ? (
+            <SectionStylePicker
+              entry={entry}
+              index={index}
+              meta={meta}
+              disabled={!entry.visible || !props.canWrite}
+              locale={locale}
+              onVariantChange={props.setSectionVariant}
+              t={t}
+            />
+          ) : null}
+          {previewingAddOnStyle || previewingAddOnSection ? (
+            <div className="mb-3 rounded-xl border border-border-subtle bg-surface-hover/50 px-3 py-2.5 text-[12px] leading-5 text-foreground-2">
+              <span className="font-semibold text-foreground-1">
+                {previewingAddOnStyle
+                  ? t("businessPage.builder.addOns.previewingStyle")
+                  : t("businessPage.builder.addOns.previewingSection")}
+              </span>{" "}
+              {t("businessPage.builder.addOns.previewingAddOnHelper")}
+            </div>
+          ) : null}
+          <Collapsible open={sectionPreviewOpen}>
+            <CollapsibleContent>
+              <AutoHeight className="pt-1">
+                <div className="overflow-hidden rounded-xl border border-border bg-background">
+                  <div
+                    className={cn(
+                      "mx-auto transform-gpu transition-[max-width,transform] duration-200 motion-reduce:transition-none",
+                      EASE,
+                    )}
+                    style={{ maxWidth: device === "mobile" ? 390 : "100%" }}
+                  >
+                    <div
+                      key={sectionPreviewMotionKey}
+                      className={cn(
+                        "transform-gpu motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200",
+                        EASE,
+                      )}
+                    >
+                      <LivePreview
+                        layout={[{ ...entry, visible: true }]}
+                        data={previewData}
+                        chrome={false}
+                        startNumber={previewNumber}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </AutoHeight>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
     );
@@ -426,12 +863,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
   return (
     <>
       <div className="overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-xs">
-        <div className="px-5 py-5 sm:px-6 lg:px-7">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="px-4 py-4 sm:px-5 lg:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <div className="mb-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] text-foreground-3">
+              <div className="mb-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] text-foreground-3">
                 <span className="inline-flex items-center gap-2 font-medium text-foreground-2">
-                  <span className="size-1.5 rounded-full bg-primary" aria-hidden />
                   {t("businessPage.builder.eyebrow")}
                 </span>
                 <span className="h-1 w-1 rounded-full bg-border-subtle" aria-hidden />
@@ -444,34 +880,28 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   {t("businessPage.builder.sectionsVisible")}
                 </span>
               </div>
-              <h2 className="text-balance text-[23px] font-semibold leading-tight text-foreground-1 sm:text-[26px]">
+              <h2 className="text-balance text-[21px] font-semibold leading-tight text-foreground-1 sm:text-[23px]">
                 {t("businessPage.builder.studioTitle")}
               </h2>
-              <p className="mt-1.5 max-w-[58ch] text-pretty text-sm leading-6 text-foreground-3">
+              <p className="mt-1 max-w-[58ch] text-pretty text-[13px] leading-5 text-foreground-3">
                 {t("businessPage.builder.studioHelper")}
               </p>
             </div>
-            <button
+            <Button
               type="button"
-              onClick={() => setPreviewOpen(true)}
+              variant="outline"
+              size="default"
+              rounded="default"
+              onClick={() => openPreview("page", openType)}
               className={cn(
-                "group inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border bg-surface-hover px-3.5 text-[13px] font-semibold text-foreground-2 outline-none",
-                "transition-[transform,border-color,background-color] duration-150 hover:border-border-strong hover:bg-surface-active active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus",
+                "h-9 shrink-0 self-start px-3.5 text-[13px] font-semibold",
+                "transition-[transform,border-color,background-color] duration-150 active:scale-[0.98]",
                 EASE,
               )}
             >
               {t("businessPage.builder.openPreview")}
-              <span
-                className={cn(
-                  "grid size-6 place-items-center rounded-full bg-surface text-foreground-2 ring-1 ring-border-subtle",
-                  "transition-[transform,color] duration-150 group-hover:text-foreground-1",
-                  "group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:scale-95",
-                  EASE,
-                )}
-              >
-                <ArrowUpRight className="size-3.5" strokeWidth={1.7} aria-hidden />
-              </span>
-            </button>
+              <ArrowUpRight className="size-3.5" strokeWidth={1.8} aria-hidden />
+            </Button>
           </div>
         </div>
 
@@ -479,11 +909,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
             list and each section's scoped preview get the whole module width */}
         <div className="border-t border-border">
           {/* brand band — above the list */}
-          <div className="bg-surface px-5 py-4 sm:px-6 lg:px-7">{props.brandPanel}</div>
+          <div className="bg-surface px-4 py-3.5 sm:px-5 lg:px-6">{props.brandPanel}</div>
 
           {/* sections — the page contents, set as a ruled editorial index */}
-          <div className="border-t border-border bg-surface-hover/35 px-5 py-5 sm:px-6 lg:px-7">
-            <div className="mb-4 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="border-t border-border bg-surface-hover/35 px-3 py-3.5 sm:px-4 lg:px-5">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-[15px] font-semibold text-foreground-1">
                   {t("businessPage.builder.title")}
@@ -536,6 +966,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             entry={entry}
                             meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
                             index={pos + 1}
+                            summary={rowInfo.summary}
+                            status={rowInfo.status}
                             expanded={open}
                             locked={PINNED_TYPES.has(entry.type)}
                             required={REQUIRED_TYPES.has(entry.type)}
@@ -567,15 +999,15 @@ export function SectionBuilder(props: SectionBuilderProps) {
                                   props.setSectionConfig(index, { hiddenLocationIds: [] });
                                 }
                               }
-                              props.toggleSectionVisible(index);
+                              toggleVisibleWithFeedback(entry, index);
                               // Expand a section when it's switched on; collapse it when switched off.
                               if (turningOn) setOpenType(entry.type);
                               else if (open) setOpenType(null);
                             }}
                           />
                           <CollapsibleContent>
-                            <AutoHeight className="relative pb-6 pl-[72px] pr-4 pt-3 sm:pl-[87px]">
-                              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-300 motion-safe:delay-75">
+                            <AutoHeight className="relative pb-5 pl-[72px] pr-4 pt-3 sm:pl-[87px]">
+                              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200">
                                 {renderSettings(entry, index)}
                               </div>
                             </AutoHeight>
@@ -587,6 +1019,59 @@ export function SectionBuilder(props: SectionBuilderProps) {
                 </SortableContext>
               </DndContext>
             </div>
+
+            {selectedAddOns.length > 0 ? (
+              <div
+                className={cn(
+                  "sticky bottom-3 z-20 mt-3 flex flex-col gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 shadow-sm",
+                  "sm:flex-row sm:items-center sm:justify-between",
+                )}
+              >
+                <div className="min-w-0">
+                  <p className="text-[13px] font-semibold text-foreground-1">
+                    {selectedAddOnTotal
+                      ? t("businessPage.builder.addOns.selectedWithTotal", {
+                          count: selectedAddOns.length,
+                          total: selectedAddOnTotal,
+                        })
+                      : t("businessPage.builder.addOns.selected", { count: selectedAddOns.length })}
+                  </p>
+                  <p className="mt-0.5 text-[12px] leading-5 text-foreground-3">
+                    {t("businessPage.builder.addOns.unlockHelper")}
+                  </p>
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    rounded="default"
+                    onClick={() => setAddOnsOpen(true)}
+                    className={cn(
+                      "h-8 px-3 text-[12px] font-semibold",
+                      "transition-[transform,border-color,background-color] duration-150 active:scale-[0.98]",
+                      EASE,
+                    )}
+                  >
+                    {t("businessPage.builder.addOns.review")}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    rounded="default"
+                    onClick={handleUnlockSelected}
+                    className={cn(
+                      "h-8 px-3 text-[12px] font-semibold",
+                      "transition-[transform,background-color] duration-150 active:scale-[0.98]",
+                      EASE,
+                    )}
+                  >
+                    {t("businessPage.builder.addOns.unlockSelected")}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -595,18 +1080,74 @@ export function SectionBuilder(props: SectionBuilderProps) {
       {/* fullscreen */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="flex max-h-[90vh] w-full max-w-[min(1280px,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(1280px,calc(100%-2rem))]">
-          <DialogHeader className="flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border p-4 pr-12 text-left">
-            <DialogTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase text-foreground-2">
-              <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
-              {t("businessPage.builder.previewLabel")}
+          <DialogHeader className="flex flex-row items-center justify-between gap-3 space-y-0 border-b border-border p-4 pr-12 text-left">
+            <DialogTitle className="min-w-0 text-[12px] font-semibold text-foreground-1">
+              <span className="block truncate">
+                {modalSectionMode && previewFocusLabel
+                  ? t("businessPage.builder.currentSectionPreview", { section: previewFocusLabel })
+                  : t("businessPage.builder.previewLabel")}
+              </span>
             </DialogTitle>
-            <div className="flex items-center gap-4 text-[12px]">
+            <div className="flex shrink-0 items-center gap-3 text-[12px]">
+              <div className="hidden rounded-lg border border-border bg-surface-hover p-0.5 sm:inline-flex">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  rounded="default"
+                  onClick={() => setPreviewScope("page")}
+                  aria-pressed={previewScope === "page"}
+                  className={cn(
+                    "h-7 px-3 text-[12px] font-medium shadow-none transition-[background-color,color,transform] duration-150 active:scale-[0.98]",
+                    previewScope === "page"
+                      ? "bg-surface text-foreground-1 shadow-xs hover:bg-surface"
+                      : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
+                  )}
+                >
+                  {t("businessPage.builder.fullPage")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  rounded="default"
+                  onClick={() => previewFocusEntry && setPreviewScope("section")}
+                  disabled={!previewFocusEntry}
+                  aria-pressed={previewScope === "section"}
+                  className={cn(
+                    "h-7 px-3 text-[12px] font-medium shadow-none transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
+                    previewScope === "section"
+                      ? "bg-surface text-foreground-1 shadow-xs hover:bg-surface"
+                      : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
+                  )}
+                >
+                  {t("businessPage.builder.currentSection")}
+                </Button>
+              </div>
+              {selectedAddOns.length > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  rounded="default"
+                  onClick={() => setAddOnsOpen(true)}
+                  className="hidden h-7 px-2.5 text-[12px] font-semibold shadow-none sm:inline-flex"
+                >
+                  {t("businessPage.builder.addOns.previewingAddOns", { count: selectedAddOns.length })}
+                </Button>
+              ) : null}
               <DeviceToggle device={device} setDevice={setDevice} t={t} />
             </div>
           </DialogHeader>
-          <div className="overflow-y-auto bg-surface-hover dark:bg-neutral-900/40">
+          <div ref={previewScrollRef} className="overflow-y-auto bg-surface-hover dark:bg-neutral-900/40">
             <div className={cn("mx-auto", device === "mobile" ? "max-w-[390px] p-3" : "max-w-none")}>
-              <LivePreview layout={props.layout} data={previewData} />
+              <LivePreview
+                layout={modalLayout}
+                data={previewData}
+                chrome={modalChrome}
+                startNumber={modalStartNumber}
+                focusType={modalChrome ? previewFocusType ?? undefined : undefined}
+              />
             </div>
           </div>
         </DialogContent>
@@ -643,6 +1184,94 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
 // ---------------------------------------------------------------------------
 
+function SectionStylePicker({
+  entry,
+  index,
+  meta,
+  disabled,
+  locale,
+  onVariantChange,
+  t,
+}: {
+  entry: SectionEntry;
+  index: number;
+  meta: SectionMeta;
+  disabled: boolean;
+  locale: "en" | "ro";
+  onVariantChange: (index: number, variant: string) => void;
+  t: MarketplaceT;
+}) {
+  return (
+    <div className="mb-3 rounded-xl border border-border bg-surface px-3 py-3">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-3">
+            {t("businessPage.builder.addOns.sectionStyle")}
+          </span>
+          <p className="mt-1 text-[12px] leading-5 text-foreground-3">
+            {t("businessPage.builder.addOns.sectionStyleHelper")}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-2.5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup">
+        {meta.variants.map((variant) => {
+          const active = entry.variant === variant.id;
+          const addOn = isAddOnVariant(variant);
+          const price = formatAddOnPrice(variant.addOnPriceMinor, variant.addOnCurrency, locale);
+          const badge = active && addOn
+            ? t("businessPage.builder.addOns.selectedAddOn")
+            : addOn
+              ? price ?? t("businessPage.builder.addOns.addOn")
+              : t("businessPage.builder.addOns.included");
+
+          return (
+            <button
+              key={variant.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              disabled={disabled}
+              onClick={() => onVariantChange(index, variant.id)}
+              className={cn(
+                "group min-h-[58px] rounded-lg border px-3 py-2.5 text-left outline-none",
+                "transition-[transform,border-color,background-color,box-shadow,color] duration-200 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
+                EASE,
+                active
+                  ? "border-border-strong bg-surface shadow-xs"
+                  : "border-border bg-background hover:border-border-strong hover:bg-surface-hover/45",
+              )}
+            >
+              <span className="flex items-start justify-between gap-3">
+                <span className="min-w-0 truncate text-[13px] font-semibold text-foreground-1">
+                  {t(variant.labelKey)}
+                </span>
+                {active ? (
+                  <span className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground-1 text-surface">
+                    <Check className="size-3" strokeWidth={2.4} aria-hidden />
+                  </span>
+                ) : null}
+              </span>
+              <span
+                className={cn(
+                  "mt-2 inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                  addOn
+                    ? active
+                      ? "border-border-strong bg-surface-hover text-foreground-1"
+                      : "border-border bg-surface-hover/70 text-foreground-2"
+                    : "border-border-subtle bg-transparent text-foreground-3",
+                )}
+              >
+                <span className="truncate">{badge}</span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function DeviceToggle({
   device,
   setDevice,
@@ -650,34 +1279,44 @@ function DeviceToggle({
 }: {
   device: "desktop" | "mobile";
   setDevice: (v: "desktop" | "mobile") => void;
-  t: (k: string) => string;
+  t: MarketplaceT;
 }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <button
+    <span className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
+        rounded="default"
         onClick={() => setDevice("desktop")}
         aria-label={t("businessPage.builder.deviceDesktop")}
         aria-pressed={device === "desktop"}
         className={cn(
-          "transition-colors duration-150 ease-out",
-          device === "desktop" ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
+          "size-7 shadow-none transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96]",
+          device === "desktop"
+            ? "bg-surface-hover text-foreground-1 hover:bg-surface-hover"
+            : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
         )}
       >
         <Monitor className="size-[15px]" strokeWidth={1.5} />
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
+        rounded="default"
         onClick={() => setDevice("mobile")}
         aria-label={t("businessPage.builder.deviceMobile")}
         aria-pressed={device === "mobile"}
         className={cn(
-          "transition-colors duration-150 ease-out",
-          device === "mobile" ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
+          "size-7 shadow-none transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96]",
+          device === "mobile"
+            ? "bg-surface-hover text-foreground-1 hover:bg-surface-hover"
+            : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
         )}
       >
         <Smartphone className="size-[15px]" strokeWidth={1.5} />
-      </button>
+      </Button>
     </span>
   );
 }

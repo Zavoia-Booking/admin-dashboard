@@ -54,13 +54,14 @@ const IndustryOption = memo(function IndustryOption({ id, name, selected, onSele
 
 const IndustrySelector = ({ industries, selectedId, onSelect }: IndustrySelectorProps) => {
   const { t } = useTranslation('setupWizard')
+  const { t: tIndustry } = useTranslation('industries')
   return (
     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3" role="radiogroup" aria-label={t('industrySelector.ariaSelectIndustry')}>
       {industries.map((industry) => (
         <IndustryOption
           key={industry.id}
           id={industry.id}
-          name={industry.name}
+          name={tIndustry(industry.slug, industry.name)}
           selected={selectedId === industry.id}
           onSelect={() => onSelect(industry.id)}
         />

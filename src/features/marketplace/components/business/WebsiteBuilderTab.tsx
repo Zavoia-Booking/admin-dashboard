@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
+import { Lock } from "lucide-react";
 import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
 import type { Business, LocationWithAssignments, WebsiteSectionCatalogEntry, WebsiteVariantCatalogEntry } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
@@ -28,7 +28,7 @@ import {
   selectSectionCart,
 } from "../../selectors";
 import { selectCurrentUser } from "../../../auth/selectors";
-import { BrandingSection } from "./BrandingSection";
+import { BrandColorControl, BrandingSection } from "./BrandingSection";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { VariantCartBar, type CartLineItem } from "./builder/VariantCartBar";
 import { ThemePanel } from "./builder/ThemePanel";
@@ -293,38 +293,46 @@ export function WebsiteBuilderTab({
           aboutContent={form.aboutContent}
           setAboutContent={form.setAboutContent}
           brandPanel={
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(300px,1fr)_minmax(210px,0.58fr)_minmax(360px,1.08fr)]">
-                <BrandingSection
-                  business={business}
-                  canWrite={canWrite}
-                  pageName={form.pageName}
-                  brandColorHex={form.brandColorHex}
-                  setBrandColorHex={form.setBrandColorHex}
-                  fontKey={form.fontKey}
-                />
+            <div className="rounded-[1.25rem] border border-border bg-surface p-4 shadow-xs sm:p-5">
+              <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(260px,0.82fr)_minmax(0,1.35fr)] xl:items-start">
                 <div className="min-w-0">
-                  <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+                  <BrandingSection
+                    business={business}
+                    canWrite={canWrite}
+                    pageName={form.pageName}
+                    brandColorHex={form.brandColorHex}
+                    fontKey={form.fontKey}
+                  />
+                </div>
+                <div className="min-w-0 space-y-3">
+                  <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)] lg:items-start">
+                    <BrandColorControl
+                      canWrite={canWrite}
+                      brandColorHex={form.brandColorHex}
+                      setBrandColorHex={form.setBrandColorHex}
+                    />
+                    <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+                  </div>
+                  {previewingPro && (
+                    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-hover/35 px-3 py-2">
+                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+                        <Lock className="size-3" strokeWidth={2.1} aria-hidden />
+                      </span>
+                      <p className="min-w-[180px] flex-1 text-pretty text-[12.5px] leading-5 text-foreground-2">
+                        <span className="font-medium text-foreground-1">{previewingLabel}</span>
+                        <span className="text-foreground-3">. {t("businessPage.pro.saveHint")}</span>
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleUpgrade}
+                        className="shrink-0 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] font-semibold text-foreground-1 outline-none transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong hover:bg-surface-hover active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus"
+                      >
+                        {t("businessPage.pro.upgrade")}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
-              {previewingPro && (
-                <div className="flex flex-col gap-3 border-t border-border-subtle pt-3 sm:flex-row sm:items-center">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                    <Sparkles className="size-4" strokeWidth={1.8} aria-hidden />
-                  </span>
-                  <p className="min-w-0 flex-1 text-pretty text-[13px] leading-5 text-foreground-2">
-                    <span className="font-medium text-foreground-1">{previewingLabel}</span>
-                    <span className="text-foreground-3">. {t("businessPage.pro.saveHint")}</span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleUpgrade}
-                    className="shrink-0 rounded-full border border-border bg-surface px-4 py-2 text-[13px] font-semibold text-foreground-1 outline-none transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong hover:bg-surface-hover active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    {t("businessPage.pro.upgrade")}
-                  </button>
-                </div>
-              )}
             </div>
           }
           business={business}
