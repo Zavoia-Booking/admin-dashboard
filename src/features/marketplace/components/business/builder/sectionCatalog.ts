@@ -34,7 +34,6 @@ export interface SectionVariant {
   id: string;
   /** i18n key under marketplace:businessPage.sections.variants.<id> */
   labelKey: string;
-  // Seam for future paid variants/skins: a `paid?: boolean` / `sku?: string` field belongs here (catalog is the single source).
 }
 
 export interface SectionMeta {
@@ -43,6 +42,14 @@ export interface SectionMeta {
   /** i18n keys under marketplace:businessPage.sections.<type>.{label,description} */
   labelKey: string;
   descriptionKey: string;
+  /**
+   * Variant keys with an implemented component, NOT the offering. The backend catalog
+   * (GET /website-variants/catalog) decides what surfaces in the builder: its isBase row is the
+   * section's free default, the other offered keys render locked/owned by price + purchase state,
+   * and catalog keys with no component here are ignored. `variants[0]` is only the fallback base
+   * while the catalog is missing or names no (implemented) base for the section.
+   * Shipping a new variant = implement the component, register its key here, add the catalog row.
+   */
   variants: SectionVariant[];
   /** FAQ + Announcement carry their own content; the rest are views over existing data. */
   netNew: boolean;

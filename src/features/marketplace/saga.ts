@@ -16,7 +16,7 @@ import {
   createWebsiteVariantCheckoutApi,
   type LocationMarketplaceFlagsResponse,
 } from "./api";
-import type { MarketplaceListingResponse, BookingSettings, WebsiteVariantCatalogEntry } from "./types";
+import type { MarketplaceListingResponse, BookingSettings, WebsiteCatalogResponse } from "./types";
 import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
@@ -111,13 +111,13 @@ function* handleUpdateBookingSettings(action: ActionType<typeof updateBookingSet
 }
 
 /**
- * Paid-variant catalog fetch. Deliberately silent on failure: the catalog only *enhances*
- * the builder (locked/owned pills); without it the pills render as before and the server
- * still enforces ownership at publish (MARKETPLACE_LISTING.E18).
+ * Website catalog fetch (sections + variants). Deliberately silent on failure: without it
+ * the builder falls back to its code-side defaults and the server still enforces ownership
+ * at publish (MARKETPLACE_LISTING.E18/E19).
  */
 function* handleFetchWebsiteVariantCatalog() {
   try {
-    const catalog: WebsiteVariantCatalogEntry[] = yield call(getWebsiteVariantCatalogApi);
+    const catalog: WebsiteCatalogResponse = yield call(getWebsiteVariantCatalogApi);
     yield put(fetchWebsiteVariantCatalogAction.success(catalog));
   } catch (error: unknown) {
     yield put(fetchWebsiteVariantCatalogAction.failure({ message: getErrorMessage(error) }));
@@ -134,13 +134,17 @@ function* handleCreateWebsiteVariantCheckout(action: ActionType<typeof createWeb
       window.location.href = response.url;
     }
   } catch (error: unknown) {
-    // WEBSITE_VARIANTS codes (E01 not found/inactive, E03 free, E04 already owned,
-    // E05 needs the Plus plan) translate to specific copy via the `messages` namespace.
+    // WEBSITE_VARIANTS / WEBSITE_SECTIONS codes (not found/inactive, free, already
+    // owned, needs the Plus plan) translate to specific copy via the `messages` namespace.
     const message = getErrorMessage(error);
     toast.error(message || i18n.t('marketplace:page.toasts.variantCheckoutFailed'));
-    // Already owned / no longer purchasable — refresh ownership so the pills correct themselves.
+    // Already owned / no longer purchasable — refresh ownership so the UI corrects itself.
     const codes = extractErrorCodes(error);
-    if (codes.includes('WEBSITE_VARIANTS.E04') || codes.includes('WEBSITE_VARIANTS.E01') || codes.includes('WEBSITE_VARIANTS.E03')) {
+    const staleOwnershipCodes = [
+      'WEBSITE_VARIANTS.E04', 'WEBSITE_VARIANTS.E01', 'WEBSITE_VARIANTS.E03',
+      'WEBSITE_SECTIONS.E05', 'WEBSITE_SECTIONS.E01', 'WEBSITE_SECTIONS.E04',
+    ];
+    if (codes.some((c: string) => staleOwnershipCodes.includes(c))) {
       yield put(fetchWebsiteVariantCatalogAction.request());
     }
     yield put(createWebsiteVariantCheckoutAction.failure({ message }));

@@ -19,10 +19,13 @@ const initialState: MarketplaceState = {
   // Booking settings
   bookingSettings: null,
   isSavingBookingSettings: false,
-  // Paid section variants (website builder)
+  // Server-driven website builder offering (sections + variants)
   variantCatalog: [],
+  sectionCatalog: [],
   isLoadingVariantCatalog: false,
   isCreatingVariantCheckout: false,
+  variantCart: [],
+  sectionCart: [],
 };
 
 export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: MarketplaceState = initialState, action: Actions) => {
@@ -143,7 +146,12 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
       return { ...state, isLoadingVariantCatalog: true };
 
     case getType(actions.fetchWebsiteVariantCatalogAction.success):
-      return { ...state, isLoadingVariantCatalog: false, variantCatalog: action.payload };
+      return {
+        ...state,
+        isLoadingVariantCatalog: false,
+        variantCatalog: action.payload.variants,
+        sectionCatalog: action.payload.sections,
+      };
 
     case getType(actions.fetchWebsiteVariantCatalogAction.failure):
       return { ...state, isLoadingVariantCatalog: false };
@@ -158,6 +166,33 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
 
     case getType(actions.createWebsiteVariantCheckoutAction.failure):
       return { ...state, isCreatingVariantCheckout: false };
+
+    // Shopping cart (deduplicated ids; localStorage sync lives in the builder tab).
+    // Variants and section unlocks queue separately, check out together.
+    case getType(actions.addVariantToCartAction):
+      return state.variantCart.includes(action.payload)
+        ? state
+        : { ...state, variantCart: [...state.variantCart, action.payload] };
+
+    case getType(actions.removeVariantFromCartAction):
+      return { ...state, variantCart: state.variantCart.filter((id) => id !== action.payload) };
+
+    case getType(actions.addSectionToCartAction):
+      return state.sectionCart.includes(action.payload)
+        ? state
+        : { ...state, sectionCart: [...state.sectionCart, action.payload] };
+
+    case getType(actions.removeSectionFromCartAction):
+      return { ...state, sectionCart: state.sectionCart.filter((id) => id !== action.payload) };
+
+    case getType(actions.clearVariantCartAction):
+      return { ...state, variantCart: [], sectionCart: [] };
+
+    case getType(actions.hydrateVariantCartAction):
+      return { ...state, variantCart: [...new Set(action.payload)] };
+
+    case getType(actions.hydrateSectionCartAction):
+      return { ...state, sectionCart: [...new Set(action.payload)] };
 
     default:
       return state;

@@ -56,6 +56,14 @@ export const abortPendingPayment = async (): Promise<{ success: boolean }> => {
   return response.data;
 };
 
+/** Exact "due today" proration for an immediate seat change, computed by Stripe. */
+export const getSeatChangePreview = async (
+  seats: number,
+): Promise<{ amountDue: number; currency: string; currentSeats: number; newSeats: number }> => {
+  const response = await apiClient().get(`/billing/seat-change-preview`, { params: { seats } });
+  return response.data;
+};
+
 // Self-serve plans (STANDARD + PLUS) with pricing for the business's country
 export const getPlansList = async (): Promise<PlansListResponse> => {
   const response = await apiClient().get<PlansListResponse>('/plans/list');

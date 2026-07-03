@@ -104,10 +104,15 @@ export const SubscriptionInfo: React.FC<SubscriptionInfoProps> = ({
   const navigate = useNavigate();
   const { isNative } = usePlatform();
 
-  const paidSeats = currentUser?.entitlements?.paidTeamSeats ?? subscriptionSummary?.currentTeamMembersCount ?? 0;
+  // paidSeats must never fall back to the member count — that's usage, not
+  // purchased seats, and it fakes a fully-booked plan as having free seats.
+  const paidSeats = currentUser?.entitlements?.paidTeamSeats ?? subscriptionSummary?.paidSeats ?? 0;
   const usedSeats = subscriptionSummary?.usedSeats ?? 0;
-  const availableSeats = paidSeats - usedSeats;
-  const hasAvailableSeats = availableSeats > 0;
+  // Prefer the server's availableSeats (already clamped) over client subtraction.
+  const availableSeats = subscriptionSummary?.availableSeats ?? Math.max(0, paidSeats - usedSeats);
+  // Don't claim free seats while the summary is still loading (usedSeats
+  // defaults to 0 and would show a false green banner on a full team).
+  const hasAvailableSeats = !!subscriptionSummary && availableSeats > 0;
 
   const subscriptionStatus = currentUser?.subscription?.status;
   const isCancelled = subscriptionStatus === 'canceled';

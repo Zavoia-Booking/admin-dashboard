@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, ChevronRight, Pin } from "lucide-react";
+import { GripVertical, ChevronRight, Pin, Lock, ShoppingCart } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { Switch } from "../../../../../shared/components/ui/switch";
 import type { SectionEntry } from "../../../types";
@@ -20,6 +20,12 @@ interface SectionCardProps {
   required?: boolean;
   /** A pulsing Info cue beside the name — set when this section has a mandatory field still empty. */
   needsAttention?: boolean;
+  /** Paid section not yet unlocked: the switch becomes a lock/price button and every tap routes to the purchase dialog. */
+  paidLocked?: boolean;
+  /** Resolved unlock price label, shown on the lock button while paidLocked. */
+  priceLabel?: string;
+  /** The section unlock is queued in the shopping cart (swaps the lock icon). */
+  inCart?: boolean;
   onSelect: () => void;
   onToggleVisible: () => void;
 }
@@ -37,6 +43,9 @@ export function SectionCard({
   locked,
   required,
   needsAttention,
+  paidLocked,
+  priceLabel,
+  inCart,
   onSelect,
   onToggleVisible,
 }: SectionCardProps) {
@@ -152,19 +161,45 @@ export function SectionCard({
             aria-hidden
           />
           <span className="pointer-events-auto ml-1.5">
-            {/* Required sections (nav/hero/footer) show the toggle on but locked — no off-brand text tag. */}
-            <Switch
-              checked={entry.visible}
-              disabled={required}
-              onCheckedChange={onToggleVisible}
-              aria-label={
-                required
-                  ? t("businessPage.builder.card.alwaysOn")
-                  : live
-                    ? t("businessPage.builder.card.hide")
-                    : t("businessPage.builder.card.show")
-              }
-            />
+            {paidLocked ? (
+              /* Locked paid section: a lock/price chip instead of the switch — tapping it
+                 opens the purchase dialog (the parent routes onToggleVisible there). */
+              <button
+                type="button"
+                onClick={onToggleVisible}
+                aria-label={t("businessPage.paidVariants.lockedAria", { name: label, price: priceLabel ?? "" })}
+                title={
+                  inCart
+                    ? t("businessPage.paidVariants.inCartTitle", { price: priceLabel ?? "" })
+                    : t("businessPage.paidVariants.lockedTitle", { price: priceLabel ?? "" })
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-hover px-2.5 py-1 text-[12px] font-medium text-foreground-2 outline-none",
+                  "transition-[color,border-color,background-color,transform] duration-150 ease-out hover:border-border-strong hover:text-foreground-1 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus",
+                )}
+              >
+                {inCart ? (
+                  <ShoppingCart className="h-3 w-3 shrink-0 text-primary" strokeWidth={2} aria-hidden />
+                ) : (
+                  <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
+                )}
+                {priceLabel}
+              </button>
+            ) : (
+              /* Required sections (nav/hero/footer) show the toggle on but locked — no off-brand text tag. */
+              <Switch
+                checked={entry.visible}
+                disabled={required}
+                onCheckedChange={onToggleVisible}
+                aria-label={
+                  required
+                    ? t("businessPage.builder.card.alwaysOn")
+                    : live
+                      ? t("businessPage.builder.card.hide")
+                      : t("businessPage.builder.card.show")
+                }
+              />
+            )}
           </span>
         </div>
       </div>

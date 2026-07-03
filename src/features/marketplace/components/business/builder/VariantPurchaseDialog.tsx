@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { Loader2, Lock, Sparkles } from "lucide-react";
+import { Loader2, Lock, ShoppingCart, Sparkles } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import {
   Dialog,
@@ -33,30 +33,43 @@ export function variantPriceLabel(
   });
 }
 
-interface VariantPurchaseDialogProps {
-  /** The locked catalog entry being bought; null keeps the dialog closed. */
-  variant: WebsiteVariantCatalogEntry | null;
+/** The fields the dialog needs — satisfied by both variant and section catalog entries. */
+export type PurchasableCatalogItem = Pick<
+  WebsiteVariantCatalogEntry,
+  "id" | "name" | "description" | "priceMinor" | "currency"
+>;
+
+interface VariantPurchaseDialogProps<T extends PurchasableCatalogItem> {
+  /** The locked catalog entry (variant or section unlock) being bought; null keeps the dialog closed. */
+  variant: T | null;
   onOpenChange: (open: boolean) => void;
-  /** Plan includes the website builder — buying paid variants requires it (Plus/trial). */
+  /** Plan includes the website builder — buying paid items requires it (Plus/trial). */
   hasWebsiteBuilder: boolean;
   /** Checkout session being created (ends with a redirect to Stripe). */
   isLoading: boolean;
-  onBuy: (variant: WebsiteVariantCatalogEntry) => void;
+  onBuy: (variant: T) => void;
+  /** The item is already queued in the shopping cart (toggles the cart button). */
+  inCart?: boolean;
+  /** Add to / remove from the shopping cart (combined checkout via the cart bar). */
+  onToggleCart?: (variant: T) => void;
 }
 
 /**
- * Purchase confirmation for a locked (paid, unowned) section layout: name, description,
- * one-time price, "yours forever" note — then a Stripe checkout redirect. When the plan
- * lacks the website builder, a hint points at Account → Billing (purchasing needs Plus);
- * the buy attempt stays enabled and the server-side E05 toast is the authority.
+ * Purchase confirmation for a locked (paid, unowned) section layout or section unlock:
+ * name, description, one-time price, "yours forever" note — then a Stripe checkout
+ * redirect. When the plan lacks the website builder, a hint points at Account → Billing
+ * (purchasing needs Plus); the buy attempt stays enabled and the server-side E05 toast
+ * is the authority.
  */
-export function VariantPurchaseDialog({
+export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
   variant,
   onOpenChange,
   hasWebsiteBuilder,
   isLoading,
   onBuy,
-}: VariantPurchaseDialogProps) {
+  inCart = false,
+  onToggleCart,
+}: VariantPurchaseDialogProps<T>) {
   const { t } = useTranslation("marketplace");
   const { formatPrice } = useFormatPrice();
 
@@ -109,6 +122,23 @@ export function VariantPurchaseDialog({
               >
                 {t("businessPage.paidVariants.cancel")}
               </Button>
+              {onToggleCart && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={isLoading}
+                  onClick={() => {
+                    onToggleCart(variant);
+                    // Adding closes the dialog so the cart bar takes over; removing stays put.
+                    if (!inCart) onOpenChange(false);
+                  }}
+                >
+                  <ShoppingCart className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+                  {inCart
+                    ? t("businessPage.paidVariants.removeFromCart")
+                    : t("businessPage.paidVariants.addToCart")}
+                </Button>
+              )}
               <Button type="button" disabled={isLoading} onClick={() => onBuy(variant)}>
                 {isLoading && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
                 {isLoading

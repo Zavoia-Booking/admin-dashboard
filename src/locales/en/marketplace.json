@@ -121,6 +121,19 @@
       "upgrade": "Upgrade",
       "upgradeToast": "Upgrade flow coming soon."
     },
+    "locked": {
+      "eyebrow": "Included with Plus",
+      "title": "Build your own website",
+      "description": "The website builder isn't included in your current plan. Upgrade to Plus to design and publish your own page on Zavoia.",
+      "nativeDescription": "The website builder isn't included in your current plan.",
+      "features": {
+        "publicPage": "Your own public page at zavoia.com/your-business",
+        "sections": "Customizable sections, themes, colors and fonts",
+        "premiumVariants": "Premium layout variants to make your page stand out"
+      },
+      "preserved": "Already built a page or purchased premium layouts? Everything is preserved and restored the moment you upgrade.",
+      "cta": "Upgrade in Account → Billing"
+    },
     "paidVariants": {
       "eyebrow": "Premium layout",
       "defaultDescription": "A premium layout for this section of your public page.",
@@ -133,7 +146,17 @@
       "lockedAria": "{{name}} — premium layout, {{price}}",
       "lockedTitle": "Premium layout · {{price}} one-time",
       "ownedTitle": "Premium layout · owned",
-      "purchaseSuccessToast": "Payment successful! Your new layout is being unlocked — it can take a few seconds to show as owned."
+      "inCartTitle": "In cart · {{price}} one-time",
+      "purchaseSuccessToast": "Payment successful! Your new layout is being unlocked — it can take a few seconds to show as owned.",
+      "addToCart": "Add to cart",
+      "removeFromCart": "Remove from cart",
+      "cart": {
+        "title": "Your cart",
+        "clear": "Clear all",
+        "removeAria": "Remove {{name}} from cart",
+        "totalLabel": "Total, one-time",
+        "checkout": "Checkout"
+      }
     },
     "branding": {
       "title": "Branding",

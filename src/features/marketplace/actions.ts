@@ -1,5 +1,5 @@
 import { createAction, createAsyncAction } from "typesafe-actions";
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteVariantCatalogEntry, WebsiteVariantCheckoutPayload } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteCatalogResponse, WebsiteVariantCheckoutPayload } from "./types";
 
 export const fetchMarketplaceListingAction = createAsyncAction(
   'marketplace/FETCH_LISTING_REQUEST',
@@ -84,19 +84,30 @@ export const updateBookingSettingsAction = createAsyncAction(
   'marketplace/UPDATE_BOOKING_SETTINGS_FAILURE',
 )<UpdateBookingSettingsPayload, BookingSettings, { message: string }>();
 
-// Paid section variants (website builder): catalog with per-business ownership.
+// Website builder offering (sections + variants): catalog with per-business ownership.
 // Fetched on builder load (and again after returning from Stripe) so locked/owned
 // states always reflect current ownership.
 export const fetchWebsiteVariantCatalogAction = createAsyncAction(
   'marketplace/FETCH_VARIANT_CATALOG_REQUEST',
   'marketplace/FETCH_VARIANT_CATALOG_SUCCESS',
   'marketplace/FETCH_VARIANT_CATALOG_FAILURE',
-)<void, WebsiteVariantCatalogEntry[], { message: string }>();
+)<void, WebsiteCatalogResponse, { message: string }>();
 
-// One-time Stripe checkout for a paid variant; the saga redirects to the session URL.
+// One-time Stripe checkout for one or more paid variants; the saga redirects to the session URL.
 export const createWebsiteVariantCheckoutAction = createAsyncAction(
   'marketplace/CREATE_VARIANT_CHECKOUT_REQUEST',
   'marketplace/CREATE_VARIANT_CHECKOUT_SUCCESS',
   'marketplace/CREATE_VARIANT_CHECKOUT_FAILURE',
 )<WebsiteVariantCheckoutPayload, { url: string }, { message: string }>();
+
+// Shopping cart (client-side; persisted to localStorage per business in the builder tab).
+// Variants and section unlocks queue separately but check out in ONE Stripe session;
+// clearVariantCartAction empties both.
+export const addVariantToCartAction = createAction('marketplace/VARIANT_CART_ADD')<number>();
+export const removeVariantFromCartAction = createAction('marketplace/VARIANT_CART_REMOVE')<number>();
+export const clearVariantCartAction = createAction('marketplace/VARIANT_CART_CLEAR')();
+export const hydrateVariantCartAction = createAction('marketplace/VARIANT_CART_HYDRATE')<number[]>();
+export const addSectionToCartAction = createAction('marketplace/SECTION_CART_ADD')<number>();
+export const removeSectionFromCartAction = createAction('marketplace/SECTION_CART_REMOVE')<number>();
+export const hydrateSectionCartAction = createAction('marketplace/SECTION_CART_HYDRATE')<number[]>();
 

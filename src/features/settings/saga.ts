@@ -1,4 +1,5 @@
-import { takeLatest, call, put, all } from "redux-saga/effects";
+import { takeLatest, call, put, all, delay } from "redux-saga/effects";
+import { toast } from "sonner";
 import {
   getSubscriptionSummaryAction,
   getPlansAction,
@@ -70,15 +71,19 @@ function* handleGetPlans() {
 function* handleCreateCheckoutSession(action: ReturnType<typeof createCheckoutSessionAction.request>) {
   try {
     const response: CheckoutResponse = yield call(createCheckoutSession, action.payload);
-    yield put(createCheckoutSessionAction.success({ checkoutResponse: response }));
 
-    // Redirect to Stripe Checkout if URL is provided
+    // Redirect to Stripe Checkout if URL is provided. Dispatch success (which
+    // re-enables buttons) only after a grace period so a slow navigation can't
+    // be double-clicked into a second checkout session.
     if (response.url) {
       window.location.href = response.url;
+      yield delay(5000);
     }
+    yield put(createCheckoutSessionAction.success({ checkoutResponse: response }));
   } catch (error: any) {
     const message = extractMessage(error, i18n.t('settings:page.errors.createCheckoutSession'));
     yield put(createCheckoutSessionAction.failure({ message }));
+    toast.error(message);
   }
 }
 
@@ -86,15 +91,18 @@ function* handleCreateCheckoutSession(action: ReturnType<typeof createCheckoutSe
 function* handleGetCustomerPortalUrl(action: ReturnType<typeof getCustomerPortalUrlAction.request>) {
   try {
     const response: { url: string } = yield call(getCustomerPortalUrl, action.payload.returnUrl);
-    yield put(getCustomerPortalUrlAction.success({ url: response.url }));
 
-    // Redirect to Customer Portal if URL is provided
+    // Redirect to Customer Portal if URL is provided (success delayed so the
+    // trigger stays disabled through the navigation)
     if (response.url) {
       window.location.href = response.url;
+      yield delay(5000);
     }
+    yield put(getCustomerPortalUrlAction.success({ url: response.url }));
   } catch (error: any) {
     const message = extractMessage(error, i18n.t('settings:page.errors.getCustomerPortalUrl'));
     yield put(getCustomerPortalUrlAction.failure({ message }));
+    toast.error(message);
   }
 }
 
@@ -113,6 +121,7 @@ function* handleModifySubscription(action: ReturnType<typeof modifySubscriptionA
   } catch (error: any) {
     const message = extractMessage(error, i18n.t('settings:page.errors.modifySubscription'));
     yield put(modifySubscriptionAction.failure({ message }));
+    toast.error(message);
   }
 }
 
@@ -129,6 +138,7 @@ function* handleCancelRemoval() {
   } catch (error: any) {
     const message = extractMessage(error, i18n.t('settings:page.errors.cancelRemoval'));
     yield put(cancelRemovalAction.failure({ message }));
+    toast.error(message);
   }
 }
 
@@ -156,15 +166,18 @@ function* handleGetSmsPackages() {
 function* handleCreateSmsCheckout(action: ReturnType<typeof createSmsCheckoutAction.request>) {
   try {
     const response: SmsCheckoutResponse = yield call(createSmsCheckout, action.payload);
-    yield put(createSmsCheckoutAction.success(response));
 
-    // Redirect to Stripe Checkout
+    // Redirect to Stripe Checkout (success delayed so the buy button stays
+    // disabled through the navigation — no double checkout on slow networks)
     if (response.url) {
       window.location.href = response.url;
+      yield delay(5000);
     }
+    yield put(createSmsCheckoutAction.success(response));
   } catch (error: any) {
     const message = extractMessage(error, i18n.t('settings:page.errors.createSmsCheckout'));
     yield put(createSmsCheckoutAction.failure({ message }));
+    toast.error(message);
   }
 }
 

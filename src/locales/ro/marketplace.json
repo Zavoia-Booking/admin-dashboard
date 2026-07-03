@@ -121,6 +121,19 @@
       "upgrade": "Treci la Pro",
       "upgradeToast": "Opțiunea de upgrade va fi disponibilă în curând."
     },
+    "locked": {
+      "eyebrow": "Inclus în planul Plus",
+      "title": "Construiește-ți propriul website",
+      "description": "Constructorul de website nu este inclus în planul tău actual. Treci la Plus ca să îți creezi și să îți publici propria pagină pe Zavoia.",
+      "nativeDescription": "Constructorul de website nu este inclus în planul tău actual.",
+      "features": {
+        "publicPage": "Propria pagină publică la zavoia.com/afacerea-ta",
+        "sections": "Secțiuni personalizabile, teme, culori și fonturi",
+        "premiumVariants": "Aspecte premium care îți scot pagina în evidență"
+      },
+      "preserved": "Ai construit deja o pagină sau ai cumpărat aspecte premium? Totul rămâne salvat și este restaurat imediat ce faci upgrade.",
+      "cta": "Fă upgrade din Cont → Facturare"
+    },
     "paidVariants": {
       "eyebrow": "Aspect premium",
       "defaultDescription": "Un aspect premium pentru această secțiune a paginii tale publice.",
@@ -133,7 +146,17 @@
       "lockedAria": "{{name}} — aspect premium, {{price}}",
       "lockedTitle": "Aspect premium · {{price}}, plată unică",
       "ownedTitle": "Aspect premium · deținut",
-      "purchaseSuccessToast": "Plata a reușit! Noul aspect se deblochează — poate dura câteva secunde până apare ca deținut."
+      "inCartTitle": "În coș · {{price}}, plată unică",
+      "purchaseSuccessToast": "Plata a reușit! Noul aspect se deblochează — poate dura câteva secunde până apare ca deținut.",
+      "addToCart": "Adaugă în coș",
+      "removeFromCart": "Scoate din coș",
+      "cart": {
+        "title": "Coșul tău",
+        "clear": "Golește tot",
+        "removeAria": "Scoate {{name}} din coș",
+        "totalLabel": "Total, plată unică",
+        "checkout": "Finalizează plata"
+      }
     },
     "branding": {
       "title": "Identitate vizuală",

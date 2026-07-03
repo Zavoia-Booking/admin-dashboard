@@ -65,6 +65,7 @@ import {
   abortPendingPayment,
   changePlan as changePlanApi,
   cancelPlanChange as cancelPlanChangeApi,
+  getSeatChangePreview,
 } from '../api';
 import { useConfirmRadix } from '../../../shared/hooks/useConfirm';
 import {
@@ -131,7 +132,9 @@ const SELF_SERVE_TIER_ORDER: Record<string, number> = { STANDARD: 1, PLUS: 2 };
 
 const formatDate = (input: string | null | undefined): string => {
   if (!input) return '—';
-  return new Date(input).toLocaleDateString('en-US', {
+  // Browser locale, matching HistoryCard and the i18n number formatting —
+  // a Romanian user shouldn't see 'Jul 3, 2026' between localized strings.
+  return new Date(input).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -410,7 +413,9 @@ const BillingAndSubscriptionV2Inner = () => {
       cancellationText: t('billing.confirm.cancel'),
     });
     if (!confirmed) return;
-    setUpdatingSeats(true);
+    // Button state is driven by checkoutLoading (redux): the saga keeps it on
+    // through the Stripe redirect and resets it with a toast on failure — no
+    // local flag to get stuck.
     dispatch(
       createCheckoutSessionAction.request({
         planId: selectedPlanId,
@@ -475,6 +480,10 @@ const BillingAndSubscriptionV2Inner = () => {
 
     if (ltdHasNoSeats) {
       if (!ensureConfigured()) return;
+      if ((Number(totalSeats) || 0) <= 0) {
+        toast.info(t('billing.toast.alreadyScheduled'));
+        return;
+      }
       setUpdatingSeats(true);
       try {
         const response = await createLtdSeatsCheckoutSession({
@@ -527,7 +536,7 @@ const BillingAndSubscriptionV2Inner = () => {
         cancellationText: t('billing.confirm.cancel'),
       });
       if (!confirmed) return;
-      setUpdatingSeats(true);
+      // checkoutLoading (redux) drives the button state — see handleRenewSubscription.
       dispatch(
         createCheckoutSessionAction.request({
           planId: selectedPlanId,
@@ -557,17 +566,30 @@ const BillingAndSubscriptionV2Inner = () => {
 
     if (isAdding && !ensureConfigured()) return;
 
-    // For seat increases, read the prorated preview that subscription-summary
-    // already fetched from Stripe. Decreases schedule for next period (no charge today).
+    // For seat increases, ask Stripe for the exact proration this change will
+    // charge right now — the page-load preview in subscription-summary is
+    // single-seat and goes stale as the period advances. Falls back to the
+    // approximate client math if the preview call fails.
+    setIsConfirming(true);
+    let exactDueToday: number | null = null;
+    if (isAdding) {
+      try {
+        const preview = await getSeatChangePreview(desiredTotal);
+        exactDueToday = preview.amountDue;
+      } catch {
+        // keep exactDueToday null → approximate fallback below
+      }
+    }
+
     const proratedInfo = subscriptionSummary?.proratedSeatInfo ?? null;
     let addingContent: React.ReactNode = t('billing.confirm.addingSeatsContent', {
       count: delta,
-      amount: fmtBilling(additionalCost),
+      amount: fmtBilling(exactDueToday ?? additionalCost),
       currency: currencySymbol,
     });
 
     if (isAdding && proratedInfo) {
-      const proratedTotal = delta * proratedInfo.proratedPricePerSeat;
+      const proratedTotal = exactDueToday ?? delta * proratedInfo.proratedPricePerSeat;
       const recurringCost = delta * proratedInfo.fullMonthlyPricePerSeat;
       addingContent = (
         <div className="flex cursor-default flex-col gap-4 pt-1">
@@ -596,7 +618,6 @@ const BillingAndSubscriptionV2Inner = () => {
       );
     }
 
-    setIsConfirming(true);
     const confirmed = await confirm({
       eyebrow: t('billing.confirm.seatChangeEyebrow'),
       title: isAdding ? (
@@ -613,9 +634,10 @@ const BillingAndSubscriptionV2Inner = () => {
         ? t('billing.confirm.payAmount', {
             currency: currencySymbol,
             amount: fmtBilling(
-              proratedInfo
-                ? delta * proratedInfo.proratedPricePerSeat
-                : additionalCost,
+              exactDueToday ??
+                (proratedInfo
+                  ? delta * proratedInfo.proratedPricePerSeat
+                  : additionalCost),
             ),
           })
         : t('billing.confirm.removeSeats'),
@@ -1184,14 +1206,16 @@ const BillingAndSubscriptionV2Inner = () => {
                     title={t('billing.v2.banners.trialEndsIn', { count: trialDaysLeft })}
                   >
                     <div className="bv2-trial-bar">
+                      {/* Trials can be longer than the default 14 days (CRM-granted) —
+                          stretch the denominator so the bar never lies or overflows */}
                       <div className="bv2-trial-strip">
                         <span
                           style={{
-                            width: `${Math.min(100, Math.max(0, 100 - (trialDaysLeft / 14) * 100))}%`,
+                            width: `${Math.min(100, Math.max(0, 100 - (trialDaysLeft / Math.max(14, trialDaysLeft)) * 100))}%`,
                           }}
                         />
                       </div>
-                      <div className="bv2-trial-meta">{trialDaysLeft}/14</div>
+                      <div className="bv2-trial-meta">{trialDaysLeft}/{Math.max(14, trialDaysLeft)}</div>
                     </div>
                     <div className="mt-2 text-[13px] text-foreground-2">
                       {t('billing.v2.banners.trialBody', { date: formatDate(trialEndsAt) })}
@@ -1586,12 +1610,13 @@ const BillingAndSubscriptionV2Inner = () => {
                             : viewState === 'past_due'
                               ? portalLoading
                               : updatingSeats ||
+                                checkoutLoading ||
                                 seatsLocked ||
                                 (viewState === 'active' && seatDelta === 0)
                       }
                       className="gap-1.5 bv2-btn-upgrade"
                     >
-                      {(updatingSeats || cancelRemovalLoading || cancelLoading || (viewState === 'past_due' && portalLoading)) ? (
+                      {(updatingSeats || checkoutLoading || cancelRemovalLoading || cancelLoading || (viewState === 'past_due' && portalLoading)) ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (viewState === 'pending_inc' || viewState === 'pending_dec') ? (
                         <RefreshCcw className="h-3.5 w-3.5" />
@@ -2113,7 +2138,13 @@ const HistoryCard = ({
   const { formatPrice } = useFormatPrice();
 
   const summary = useMemo(() => {
-    const total = invoices.reduce((acc, inv) => acc + (inv.amountMinor || 0), 0);
+    // "Total paid" counts only successful invoices, and only those in the
+    // display currency — a failed renewal or a regional-pricing currency
+    // switch must not inflate the number.
+    const total = invoices
+      .filter((inv) => inv.status !== 'failed')
+      .filter((inv) => !inv.currency || inv.currency.toUpperCase() === currency.toUpperCase())
+      .reduce((acc, inv) => acc + (inv.amountMinor || 0), 0);
     const last = invoices[0]?.createdAt;
     const yearNow = new Date().getFullYear();
     const ytdCount = invoices.filter(
@@ -2125,7 +2156,7 @@ const HistoryCard = ({
       ytdCount,
       last,
     };
-  }, [invoices]);
+  }, [invoices, currency]);
 
   const labelFor = (invoice: BusinessInvoice) => {
     if (invoice.invoiceType === 'sms_purchase') return t('billing.v2.history.types.smsPurchase');

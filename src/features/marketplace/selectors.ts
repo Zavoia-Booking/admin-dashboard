@@ -16,6 +16,9 @@ export const selectUpdatingLocationFlags = (state: RootState) => state.marketpla
 export const selectBookingSettings = (state: RootState) => state.marketplace.bookingSettings;
 export const selectBookingSettingsSaving = (state: RootState) => state.marketplace.isSavingBookingSettings;
 
-// Paid section variants (website builder)
+// Website builder offering (sections + variants)
 export const selectWebsiteVariantCatalog = (state: RootState) => state.marketplace.variantCatalog;
+export const selectWebsiteSectionCatalog = (state: RootState) => state.marketplace.sectionCatalog;
 export const selectVariantCheckoutCreating = (state: RootState) => state.marketplace.isCreatingVariantCheckout;
+export const selectVariantCart = (state: RootState) => state.marketplace.variantCart;
+export const selectSectionCart = (state: RootState) => state.marketplace.sectionCart;

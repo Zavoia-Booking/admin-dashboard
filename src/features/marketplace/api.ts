@@ -1,4 +1,4 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteVariantCatalogEntry, WebsiteVariantCheckoutPayload } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteCatalogResponse, WebsiteVariantCheckoutPayload } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export interface LocationPortfolioMutationResponse {
@@ -130,16 +130,16 @@ export const updateBookingSettingsApi = async (payload: Partial<UpdateBookingSet
 
 
 // ---------------------------------------------------------------------------
-// Paid section variants (website builder) — catalog + one-time Stripe checkout.
+// Website builder offering (sections + variants) — catalog + one-time Stripe checkout.
 // ---------------------------------------------------------------------------
 
-/** ACTIVE paid-variant catalog with a per-business `owned` flag (owner-guarded, readable on any plan). */
-export const getWebsiteVariantCatalogApi = async (): Promise<WebsiteVariantCatalogEntry[]> => {
-  const { data } = await apiClient().get<{ data: WebsiteVariantCatalogEntry[] }>('/website-variants/catalog');
+/** ACTIVE section + variant catalog with per-business `owned` flags (owner-guarded, readable on any plan). */
+export const getWebsiteVariantCatalogApi = async (): Promise<WebsiteCatalogResponse> => {
+  const { data } = await apiClient().get<{ data: WebsiteCatalogResponse }>('/website-variants/catalog');
   return data.data;
 };
 
-/** Creates a one-time Stripe checkout session for a paid variant; returns the session URL to redirect to. */
+/** Creates a one-time Stripe checkout session for paid variants/section unlocks; returns the session URL to redirect to. */
 export const createWebsiteVariantCheckoutApi = async (
   payload: WebsiteVariantCheckoutPayload,
 ): Promise<{ url: string }> => {

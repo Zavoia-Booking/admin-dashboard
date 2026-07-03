@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { useSelector } from "react-redux";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
+import { selectCurrentUser } from "../../auth/selectors";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
 import {
@@ -22,11 +24,19 @@ import { useTranslation } from "react-i18next";
 
 import { BusinessListingTab } from "./business/BusinessListingTab";
 import { WebsiteBuilderTab } from "./business/WebsiteBuilderTab";
+import { WebsiteBuilderLockedView } from "./business/WebsiteBuilderLockedView";
 import { LocationsTab } from "./locations/LocationsTab";
 import { MarketplacePublishStatusStrip } from "./MarketplacePublishStatusStrip";
 import { ReviewsTab } from "../../reviews/components/ReviewsTab";
 
 type MarketplaceTab = "business" | "website" | "locations" | "reviews";
+
+const validTabs: MarketplaceTab[] = [
+  "business",
+  "website",
+  "locations",
+  "reviews",
+];
 
 interface ListingConfigurationViewProps {
   business: Business | null;
@@ -71,11 +81,13 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const pendingNavigationPathRef = useRef<string | null>(null);
   const allowNavigationRef = useRef(false);
 
-  // Future tier hook: derive this from plan entitlements to hide/remove the Website builder tab.
-  const canShowWebsiteBuilderTab = true;
-  const validTabs: MarketplaceTab[] = canShowWebsiteBuilderTab
-    ? ["business", "website", "locations", "reviews"]
-    : ["business", "locations", "reviews"];
+  // Plan entitlement gate (websiteBuilder is Plus/trial-only). The Website tab
+  // stays visible for everyone — without the entitlement it renders an
+  // upgrade/locked view instead of the builder. UX only; the server strips
+  // builder fields for non-entitled plans.
+  const currentUser = useSelector(selectCurrentUser);
+  const hasWebsiteBuilder =
+    currentUser?.entitlements?.features?.websiteBuilder ?? false;
 
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get("tab") as MarketplaceTab | null;
@@ -100,9 +112,6 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     } else if (rawTab === "portfolio") {
       setActiveTab("locations");
       navigate("/marketplace?tab=locations", { replace: true });
-    } else if (rawTab === "website" && !canShowWebsiteBuilderTab) {
-      setActiveTab("business");
-      navigate("/marketplace?tab=business", { replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, navigate]);
@@ -352,28 +361,30 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         </>
       ),
     },
-    ...(canShowWebsiteBuilderTab
-      ? [
-          {
-            id: "website",
-            label: t("configuration.tabs.website"),
-            showBadge: !websiteBuilderOk,
-            content:
-              activeTab === "website" ? (
-                <>
-                  {statusStrip}
-                  <WebsiteBuilderTab
-                    business={business}
-                    canWrite={canWrite}
-                    heroImageUrl={props.heroImageUrl ?? null}
-                    locations={locationsWithAssignments}
-                    form={form}
-                  />
-                </>
-              ) : null,
-          },
-        ]
-      : []),
+    {
+      id: "website",
+      label: t("configuration.tabs.website"),
+      showBadge: hasWebsiteBuilder && !websiteBuilderOk,
+      // Only mount content while active: the builder dispatches review-stats
+      // fetches on mount, and the locked view must never mount it at all.
+      content:
+        activeTab === "website" ? (
+          hasWebsiteBuilder ? (
+            <>
+              {statusStrip}
+              <WebsiteBuilderTab
+                business={business}
+                canWrite={canWrite}
+                heroImageUrl={props.heroImageUrl ?? null}
+                locations={locationsWithAssignments}
+                form={form}
+              />
+            </>
+          ) : (
+            <WebsiteBuilderLockedView />
+          )
+        ) : null,
+    },
     {
       id: "locations",
       label: t("configuration.tabs.locations"),

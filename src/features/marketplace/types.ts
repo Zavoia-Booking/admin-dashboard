@@ -349,12 +349,45 @@ export interface WebsiteVariantCatalogEntry {
   /** Integer minor units (cents); 0 = free. */
   priceMinor: number;
   currency: string;
+  /** The section's free default variant — always offered, unlocked. */
+  isBase: boolean;
   owned: boolean;
 }
 
-/** Payload for POST /website-variants/checkout (one-time Stripe purchase). */
+/**
+ * One ACTIVE entry from the backend SECTION catalog — the builder renders its
+ * section list from these. `priceMinor > 0` and not `owned` = a locked section
+ * card that must be unlocked (one-time purchase) before it can be shown/published.
+ */
+export interface WebsiteSectionCatalogEntry {
+  id: number;
+  uuid: string;
+  sectionType: string;
+  name: string;
+  description: string | null;
+  /** Integer minor units (cents); 0 = free section. */
+  priceMinor: number;
+  currency: string;
+  owned: boolean;
+}
+
+/** GET /website-variants/catalog — the builder's full server-driven offering. */
+export interface WebsiteCatalogResponse {
+  sections: WebsiteSectionCatalogEntry[];
+  variants: WebsiteVariantCatalogEntry[];
+}
+
+/**
+ * Payload for POST /website-variants/checkout (one-time Stripe purchase).
+ * Single purchase: variantId or sectionIds: [id]. Cart purchase: variantIds
+ * and/or sectionIds — all bought in ONE Stripe session (the backend sums them
+ * and invoices them together).
+ */
 export interface WebsiteVariantCheckoutPayload {
-  variantId: number;
+  variantId?: number;
+  variantIds?: number[];
+  /** Section unlocks bought in the same session/cart. */
+  sectionIds?: number[];
   successUrl: string;
   cancelUrl: string;
 }
@@ -376,9 +409,14 @@ export interface MarketplaceState {
   // Booking settings
   bookingSettings: BookingSettings | null;
   isSavingBookingSettings: boolean;
-  // Paid section variants (website builder)
+  // Server-driven website builder offering (sections + their variants)
   variantCatalog: WebsiteVariantCatalogEntry[];
+  sectionCatalog: WebsiteSectionCatalogEntry[];
   isLoadingVariantCatalog: boolean;
   isCreatingVariantCheckout: boolean;
+  /** Shopping cart of catalog variant ids awaiting one combined checkout (persisted to localStorage per business). */
+  variantCart: number[];
+  /** Shopping cart of section catalog ids (unlocks) — checked out together with the variants. */
+  sectionCart: number[];
 }
 

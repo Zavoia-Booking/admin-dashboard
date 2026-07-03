@@ -16,7 +16,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Monitor, Smartphone, ArrowUpRight, Lock, Sparkles } from "lucide-react";
+import { Monitor, Smartphone, ArrowUpRight, Lock, ShoppingCart, Sparkles } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { useFormatPrice } from "../../../../../shared/hooks/useFormatPrice";
 import {
@@ -36,6 +36,7 @@ import type {
   FaqItem,
   AnnouncementContent,
   WebsiteVariantCatalogEntry,
+  WebsiteSectionCatalogEntry,
 } from "../../../types";
 import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
 import { SectionCard } from "./SectionCard";
@@ -105,15 +106,29 @@ interface SectionBuilderProps {
   teamRatings?: Record<number, { rating: number; count: number }>;
   /** Business-wide per-star review counts (from the reviews stats endpoint) for the distribution bars. */
   ratingDistribution?: RatingBars;
-  // Paid section variants: backend catalog merged onto the layout pills by (sectionType, variantKey).
-  /** ACTIVE paid-variant catalog with per-business ownership; absent/empty = everything stays free. */
+  // The builder offering is server-driven: the SECTION catalog decides which section cards
+  // render (locked while paid + not unlocked), and the VARIANT catalog decides which variant
+  // pills render beyond each section's base variant (matched by sectionType:variantKey).
+  /** ACTIVE variant catalog with per-business ownership; absent/empty = only base variants render. */
   variantCatalog?: WebsiteVariantCatalogEntry[];
+  /** ACTIVE section catalog with per-business ownership; absent/empty = all implemented sections render free. */
+  sectionCatalog?: WebsiteSectionCatalogEntry[];
   /** Plan includes the website builder (purchasing needs Plus/trial; locked pills still render without it). */
   hasWebsiteBuilder?: boolean;
   /** A checkout session is being created (buy button busy until the Stripe redirect). */
   isVariantCheckoutLoading?: boolean;
   /** Confirmed purchase → create the Stripe checkout session and redirect. */
   onBuyVariant?: (variant: WebsiteVariantCatalogEntry) => void;
+  /** Confirmed section unlock → create the Stripe checkout session and redirect. */
+  onBuySection?: (section: WebsiteSectionCatalogEntry) => void;
+  /** Variant ids queued in the shopping cart (marks pills and toggles the dialog's cart button). */
+  cartVariantIds?: number[];
+  /** Section catalog ids queued in the shopping cart. */
+  cartSectionIds?: number[];
+  /** Add to / remove from the shopping cart (combined checkout via the cart bar). */
+  onToggleCartVariant?: (variant: WebsiteVariantCatalogEntry) => void;
+  /** Add a section unlock to / remove it from the shopping cart. */
+  onToggleCartSection?: (section: WebsiteSectionCatalogEntry) => void;
 }
 
 /**
@@ -146,6 +161,32 @@ export function SectionBuilder(props: SectionBuilderProps) {
     }
     return map;
   }, [variantCatalog]);
+  // Server-designated base per section (the catalog row flagged isBase — free, always offered).
+  const baseKeyByType = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const entry of variantCatalog ?? []) {
+      if (entry.isBase) map.set(entry.sectionType, entry.variantKey);
+    }
+    return map;
+  }, [variantCatalog]);
+
+  // Server-driven SECTION offering: lookup by type + the entry pending an unlock purchase.
+  // A locked card (paid + not unlocked) routes every interaction to the purchase dialog.
+  const sectionCatalog = props.sectionCatalog;
+  const sectionCatalogByType = useMemo(() => {
+    const map = new Map<string, WebsiteSectionCatalogEntry>();
+    for (const entry of sectionCatalog ?? []) {
+      map.set(entry.sectionType, entry);
+    }
+    return map;
+  }, [sectionCatalog]);
+  const [sectionPurchaseTarget, setSectionPurchaseTarget] = useState<WebsiteSectionCatalogEntry | null>(null);
+  // Required chrome (nav/hero/footer) is never locked — every page needs it regardless of catalog data.
+  const lockedSectionEntry = (type: string): WebsiteSectionCatalogEntry | null => {
+    if (REQUIRED_TYPES.has(type)) return null;
+    const entry = sectionCatalogByType.get(type);
+    return entry && entry.priceMinor > 0 && !entry.owned ? entry : null;
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -218,16 +259,43 @@ export function SectionBuilder(props: SectionBuilderProps) {
   // same helper so the card and the rendered band never disagree. Indices into props.layout are preserved so
   // visibility/variant handlers stay correct; the displayed ordinal counts the shown cards.
   const marqueeReady = marqueeItems(props.locations).length >= MARQUEE_MIN_ITEMS;
+  // The section list itself is server-driven: once the catalog is loaded, a card renders only when
+  // the server offers its type (locked while paid + not unlocked). Safeguards: required chrome
+  // (nav/hero/footer) always renders; a section already VISIBLE in the saved layout is grandfathered
+  // (never silently dropped from the list); an empty/missing catalog falls back to everything; and a
+  // catalog type with no implemented component is ignored via the layout match (the layout only
+  // carries implemented or saved types, and unknown saved types were already render-skipped).
   const displaySections = props.layout
     .map((entry, index) => ({ entry, index }))
-    .filter(({ entry }) => entry.type !== "marquee" || marqueeReady);
+    .filter(({ entry }) => entry.type !== "marquee" || marqueeReady)
+    .filter(({ entry }) => {
+      if (!sectionCatalog || sectionCatalog.length === 0) return true;
+      if (REQUIRED_TYPES.has(entry.type)) return true;
+      if (sectionCatalogByType.has(entry.type)) return true;
+      return entry.visible;
+    });
 
   const items = displaySections.map(({ entry }) => entry.type);
   const shown = displaySections.filter(({ entry }) => entry.visible).length;
 
   const renderSettings = (entry: SectionEntry, index: number) => {
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
-    const hasVariants = !!meta && meta.variants.length > 1;
+    // Server-driven pills, matched against the components implemented in code (SECTION_META): a
+    // catalog key with no matching component is simply ignored, so a backend typo can't break the
+    // builder. The server-designated base always renders; when the server names none — or an
+    // unknown key — the first registered variant stands in. The saved variant also stays visible
+    // even if it left the catalog, so the active state never silently vanishes.
+    const serverBase = baseKeyByType.get(entry.type);
+    const baseId =
+      meta && serverBase && meta.variants.some((v) => v.id === serverBase)
+        ? serverBase
+        : meta?.variants[0]?.id;
+    const variants = meta
+      ? meta.variants.filter(
+          (v) => v.id === baseId || v.id === entry.variant || catalogByKey.has(`${entry.type}:${v.id}`),
+        )
+      : [];
+    const hasVariants = variants.length > 1;
     // The section's real "0N —" ordinal in the full page, so the scoped preview stays in sync with the rest.
     const previewNumber =
       props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1;
@@ -246,16 +314,17 @@ export function SectionBuilder(props: SectionBuilderProps) {
               {t("businessPage.builder.variantLabel")}
             </span>
             <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
-              {/* Each pill is gated by the paid-variant catalog: paid + unowned = a lock pill that opens
-                  the purchase dialog (selection is replaced, so an unowned paid variant can't be saved);
-                  paid + owned = selectable with a subtle premium spark; uncatalogued/free = unchanged. */}
-              {meta!.variants.map((v) => {
+              {/* Each pill's state comes from the catalog entry: paid + unowned = a lock pill that
+                  opens the purchase dialog (selection is replaced, so an unowned paid variant can't
+                  be saved); paid + owned = selectable with a subtle premium spark; free = plain. */}
+              {variants.map((v) => {
                 const active = entry.variant === v.id;
                 const catalogEntry = catalogByKey.get(`${entry.type}:${v.id}`);
                 const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
                 const lockedVariant = paid && !catalogEntry.owned;
                 if (lockedVariant) {
                   const price = variantPriceLabel(formatPrice, catalogEntry);
+                  const inCart = (props.cartVariantIds ?? []).includes(catalogEntry.id);
                   return (
                     <button
                       key={v.id}
@@ -266,7 +335,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
                         name: t(v.labelKey),
                         price,
                       })}
-                      title={t("businessPage.paidVariants.lockedTitle", { price })}
+                      title={
+                        inCart
+                          ? t("businessPage.paidVariants.inCartTitle", { price })
+                          : t("businessPage.paidVariants.lockedTitle", { price })
+                      }
                       className={cn(
                         "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
                         EASE,
@@ -277,7 +350,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
                           : "text-foreground-3 hover:text-foreground-2",
                       )}
                     >
-                      <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
+                      {inCart ? (
+                        <ShoppingCart className="h-3 w-3 shrink-0 text-primary" strokeWidth={2} aria-hidden />
+                      ) : (
+                        <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
+                      )}
                       {t(v.labelKey)}
                       <span className="text-[11px] font-normal text-foreground-3">{price}</span>
                     </button>
@@ -433,12 +510,21 @@ export function SectionBuilder(props: SectionBuilderProps) {
                 <SortableContext items={items} strategy={verticalListSortingStrategy}>
                   <div ref={listRef} className="relative">
                     {displaySections.map(({ entry, index }, pos) => {
-                      const open = openType === entry.type;
+                      // A paid, not-yet-unlocked section: the card renders locked and every
+                      // interaction (expand, toggle) opens the unlock purchase dialog instead.
+                      const paidLocked = lockedSectionEntry(entry.type);
+                      const open = openType === entry.type && !paidLocked;
                       return (
                         <Collapsible
                           key={entry.type}
                           open={open}
-                          onOpenChange={(next) => setOpenType(next ? entry.type : null)}
+                          onOpenChange={(next) => {
+                            if (paidLocked) {
+                              if (next) setSectionPurchaseTarget(paidLocked);
+                              return;
+                            }
+                            setOpenType(next ? entry.type : null);
+                          }}
                           className={cn(
                             "relative",
                             open && "z-10",
@@ -457,8 +543,21 @@ export function SectionBuilder(props: SectionBuilderProps) {
                               (entry.type === "about" && !!props.aboutError) ||
                               (entry.type === "announcement" && !!props.announcementError)
                             }
-                            onSelect={() => setOpenType(open ? null : entry.type)}
+                            paidLocked={!!paidLocked}
+                            priceLabel={paidLocked ? variantPriceLabel(formatPrice, paidLocked) : undefined}
+                            inCart={!!paidLocked && (props.cartSectionIds ?? []).includes(paidLocked.id)}
+                            onSelect={() => {
+                              if (paidLocked) {
+                                setSectionPurchaseTarget(paidLocked);
+                                return;
+                              }
+                              setOpenType(open ? null : entry.type);
+                            }}
                             onToggleVisible={() => {
+                              if (paidLocked) {
+                                setSectionPurchaseTarget(paidLocked);
+                                return;
+                              }
                               const turningOn = !entry.visible;
                               // Re-enabling a locations section that has everything hidden restores all
                               // locations, so it can never be on with nothing to show.
@@ -513,7 +612,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         </DialogContent>
       </Dialog>
 
-      {/* paid-variant purchase confirmation → Stripe checkout redirect */}
+      {/* paid-variant purchase confirmation → Stripe checkout redirect (or add-to-cart) */}
       <VariantPurchaseDialog
         variant={purchaseTarget}
         onOpenChange={(open) => {
@@ -522,6 +621,21 @@ export function SectionBuilder(props: SectionBuilderProps) {
         hasWebsiteBuilder={props.hasWebsiteBuilder ?? true}
         isLoading={props.isVariantCheckoutLoading ?? false}
         onBuy={(variant) => props.onBuyVariant?.(variant)}
+        inCart={!!purchaseTarget && (props.cartVariantIds ?? []).includes(purchaseTarget.id)}
+        onToggleCart={props.onToggleCartVariant}
+      />
+
+      {/* section unlock confirmation → the same Stripe checkout flow (or add-to-cart) */}
+      <VariantPurchaseDialog
+        variant={sectionPurchaseTarget}
+        onOpenChange={(open) => {
+          if (!open) setSectionPurchaseTarget(null);
+        }}
+        hasWebsiteBuilder={props.hasWebsiteBuilder ?? true}
+        isLoading={props.isVariantCheckoutLoading ?? false}
+        onBuy={(section) => props.onBuySection?.(section)}
+        inCart={!!sectionPurchaseTarget && (props.cartSectionIds ?? []).includes(sectionPurchaseTarget.id)}
+        onToggleCart={props.onToggleCartSection}
       />
     </>
   );
