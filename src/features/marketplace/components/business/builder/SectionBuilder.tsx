@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Monitor, Smartphone, ArrowUpRight, Lock, ShoppingCart, Sparkles } from "lucide-react";
+import { Monitor, Smartphone, ArrowUpRight, Check, Lock, ShoppingCart, Sparkles } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { useFormatPrice } from "../../../../../shared/hooks/useFormatPrice";
 import {
@@ -26,14 +26,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../../../../shared/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "../../../../../shared/components/ui/sheet";
 import { Button } from "../../../../../shared/components/ui/button";
 import {
   Collapsible,
@@ -48,8 +40,8 @@ import type {
   WebsiteVariantCatalogEntry,
   WebsiteSectionCatalogEntry,
 } from "../../../types";
-import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
-import { SectionCard } from "./SectionCard";
+import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES, type SectionVariant } from "./sectionCatalog";
+import { SectionCard, type SectionCardStatus } from "./SectionCard";
 import { VariantPurchaseDialog, variantPriceLabel } from "./VariantPurchaseDialog";
 import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
@@ -76,36 +68,6 @@ interface UndoToastOptions {
   undoLabel: string;
   onUndo: () => void;
 }
-
-type SelectedAddOnKind = "section" | "variant";
-
-interface SelectedAddOn {
-  key: string;
-  kind: SelectedAddOnKind;
-  sectionType: string;
-  sectionIndex: number;
-  sectionLabel: string;
-  itemLabel: string;
-  sku?: string;
-  priceMinor?: number;
-  currency?: string;
-}
-
-const isAddOnVariant = (variant?: SectionVariant | null) => variant?.access === "add_on";
-
-const includedVariantIdFor = (meta: SectionMeta) =>
-  meta.variants.find((variant) => !isAddOnVariant(variant))?.id ?? meta.variants[0]?.id;
-
-const formatAddOnPrice = (priceMinor: number | undefined, currency: string | undefined, locale: "en" | "ro") => {
-  if (typeof priceMinor !== "number") return null;
-  const fractionDigits = priceMinor % 100 === 0 ? 0 : 2;
-  return new Intl.NumberFormat(locale === "ro" ? "ro-RO" : "en-US", {
-    style: "currency",
-    currency: currency ?? "EUR",
-    minimumFractionDigits: fractionDigits,
-    maximumFractionDigits: fractionDigits,
-  }).format(priceMinor / 100);
-};
 
 const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
   value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
@@ -251,7 +213,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewScope, setPreviewScope] = useState<PreviewScope>("page");
   const [previewFocusType, setPreviewFocusType] = useState<string | null>(null);
-  const [addOnsOpen, setAddOnsOpen] = useState(false);
   // Sections are edited and previewed in the owner's app language (no language toggle).
   const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
@@ -266,9 +227,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const { dictionaries: tagDictionaries } = useLocationTagDictionaries();
 
   // Paid variants: catalog lookup by (sectionType, variantKey) + the entry pending purchase
-  // confirmation. A locked pill (paid + unowned) opens the dialog instead of selecting.
+  // confirmation. A locked pill can be selected for a local, preview-only render; it is not
+  // written into pageLayout until it is bought/owned.
   const { formatPrice } = useFormatPrice();
   const [purchaseTarget, setPurchaseTarget] = useState<WebsiteVariantCatalogEntry | null>(null);
+  const [previewVariantByType, setPreviewVariantByType] = useState<Record<string, string>>({});
   const variantCatalog = props.variantCatalog;
   const catalogByKey = useMemo(() => {
     const map = new Map<string, WebsiteVariantCatalogEntry>();
@@ -277,6 +240,38 @@ export function SectionBuilder(props: SectionBuilderProps) {
     }
     return map;
   }, [variantCatalog]);
+
+  useEffect(() => {
+    setPreviewVariantByType((current) => {
+      let changed = false;
+      const next: Record<string, string> = {};
+      for (const [type, variantKey] of Object.entries(current)) {
+        const saved = props.layout.find((section) => section.type === type);
+        const catalogEntry = catalogByKey.get(`${type}:${variantKey}`);
+        const stillPreviewOnly =
+          !!saved &&
+          saved.variant !== variantKey &&
+          !!catalogEntry &&
+          catalogEntry.priceMinor > 0 &&
+          !catalogEntry.owned;
+        if (stillPreviewOnly) {
+          next[type] = variantKey;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [catalogByKey, props.layout]);
+
+  const layoutWithPreviewVariants = useMemo(
+    () =>
+      props.layout.map((section) => {
+        const previewVariant = previewVariantByType[section.type];
+        return previewVariant ? { ...section, variant: previewVariant } : section;
+      }),
+    [previewVariantByType, props.layout],
+  );
   // Server-designated base per section (the catalog row flagged isBase — free, always offered).
   const baseKeyByType = useMemo(() => {
     const map = new Map<string, string>();
@@ -419,56 +414,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const items = displaySections.map(({ entry }) => entry.type);
   const shown = displaySections.filter(({ entry }) => entry.visible).length;
 
-  const selectedAddOns = useMemo<SelectedAddOn[]>(() => {
-    return props.layout.flatMap((entry, sectionIndex) => {
-      if (!entry.visible || !isKnownSectionType(entry.type)) return [];
-      const meta = SECTION_META[entry.type];
-      const sectionLabel = t(meta.labelKey);
-      const addOns: SelectedAddOn[] = [];
-
-      if (meta.access === "add_on") {
-        addOns.push({
-          key: `section:${entry.type}`,
-          kind: "section",
-          sectionType: entry.type,
-          sectionIndex,
-          sectionLabel,
-          itemLabel: t("businessPage.builder.addOns.sectionAddOn"),
-          sku: meta.addOnSku,
-          priceMinor: meta.addOnPriceMinor,
-          currency: meta.addOnCurrency,
-        });
-      }
-
-      const activeVariant = meta.variants.find((variant) => variant.id === entry.variant);
-      if (activeVariant && isAddOnVariant(activeVariant)) {
-        addOns.push({
-          key: `variant:${entry.type}:${activeVariant.id}`,
-          kind: "variant",
-          sectionType: entry.type,
-          sectionIndex,
-          sectionLabel,
-          itemLabel: t(activeVariant.labelKey),
-          sku: activeVariant.addOnSku,
-          priceMinor: activeVariant.addOnPriceMinor,
-          currency: activeVariant.addOnCurrency,
-        });
-      }
-
-      return addOns;
-    });
-  }, [props.layout, t]);
-
-  const selectedAddOnTotal = useMemo(() => {
-    if (selectedAddOns.length === 0) return null;
-    const currencies = new Set(selectedAddOns.map((item) => item.currency ?? "EUR"));
-    const allPriced = selectedAddOns.every((item) => typeof item.priceMinor === "number");
-    if (!allPriced || currencies.size !== 1) return null;
-    const currency = Array.from(currencies)[0];
-    const totalMinor = selectedAddOns.reduce((total, item) => total + (item.priceMinor ?? 0), 0);
-    return formatAddOnPrice(totalMinor, currency, locale);
-  }, [locale, selectedAddOns]);
-
   const previewNumberFor = useCallback(
     (index: number) =>
       props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1,
@@ -478,16 +423,20 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const rowInfoFor = useCallback(
     (entry: SectionEntry): SectionRowInfo => {
       const fixed = REQUIRED_TYPES.has(entry.type);
-      const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
-      const activeVariant = meta?.variants.find((variant) => variant.id === entry.variant);
-      const addOnStatus: SectionCardStatus | undefined =
-        entry.visible && (meta?.access === "add_on" || isAddOnVariant(activeVariant))
-          ? { label: t("businessPage.builder.addOns.selectedAddOn"), tone: "neutral" }
+      const sectionCatalogEntry = sectionCatalogByType.get(entry.type);
+      const sectionLocked =
+        !!sectionCatalogEntry && sectionCatalogEntry.priceMinor > 0 && !sectionCatalogEntry.owned;
+      const activeVariantCatalogEntry = catalogByKey.get(`${entry.type}:${entry.variant}`);
+      const variantLocked =
+        !!activeVariantCatalogEntry &&
+        activeVariantCatalogEntry.priceMinor > 0 &&
+        !activeVariantCatalogEntry.owned;
+      const premiumStatus: SectionCardStatus | undefined =
+        entry.visible && (sectionLocked || variantLocked)
+          ? { label: t("businessPage.paidVariants.lockedBadge"), tone: "warning" }
           : undefined;
       const hiddenStatus: SectionCardStatus | undefined = !entry.visible
-        ? meta?.access === "add_on"
-          ? { label: t("businessPage.builder.addOns.addOn"), tone: "neutral" }
-          : { label: t("businessPage.builder.summary.hidden"), tone: "muted" }
+        ? { label: t("businessPage.builder.summary.hidden"), tone: "muted" }
         : undefined;
       const fixedStatus: SectionCardStatus | undefined = fixed
         ? { label: t("businessPage.builder.summary.fixed"), tone: "neutral" }
@@ -508,7 +457,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
         noData = false,
       ): SectionRowInfo => ({
         summary,
-        status: hiddenStatus ?? status ?? addOnStatus ?? fixedStatus,
+        status: hiddenStatus ?? status ?? premiumStatus ?? fixedStatus,
         noData,
       });
 
@@ -629,6 +578,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
       props.reviews,
       props.tagline,
       props.taglineError,
+      catalogByKey,
+      sectionCatalogByType,
       t,
     ],
   );
@@ -649,34 +600,14 @@ export function SectionBuilder(props: SectionBuilderProps) {
     [props.toggleSectionVisible, t],
   );
 
-  const removeSelectedAddOn = useCallback(
-    (item: SelectedAddOn) => {
-      if (item.kind === "section") {
-        props.toggleSectionVisible(item.sectionIndex);
-        if (openType === item.sectionType) setOpenType(null);
-        return;
-      }
-
-      if (!isKnownSectionType(item.sectionType)) return;
-      const includedVariantId = includedVariantIdFor(SECTION_META[item.sectionType]);
-      if (!includedVariantId) return;
-      props.setSectionVariant(item.sectionIndex, includedVariantId);
-    },
-    [openType, props.setSectionVariant, props.toggleSectionVisible],
-  );
-
-  const handleUnlockSelected = useCallback(() => {
-    toast.info(t("businessPage.builder.addOns.checkoutPending"));
-  }, [t]);
-
   const previewFocusIndex = previewFocusType
     ? props.layout.findIndex((section) => section.type === previewFocusType)
     : -1;
-  const previewFocusEntry = previewFocusIndex >= 0 ? props.layout[previewFocusIndex] : null;
+  const previewFocusEntry = previewFocusIndex >= 0 ? layoutWithPreviewVariants[previewFocusIndex] : null;
   const modalSectionMode = previewScope === "section" && !!previewFocusEntry;
   const modalLayout = modalSectionMode
     ? [{ ...previewFocusEntry!, visible: true }]
-    : props.layout;
+    : layoutWithPreviewVariants;
   const modalStartNumber = modalSectionMode ? previewNumberFor(previewFocusIndex) : 1;
   const modalChrome = !modalSectionMode;
   const previewFocusLabel =
@@ -696,7 +627,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
     window.requestAnimationFrame(() => {
       target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
     });
-  }, [device, previewFocusType, previewOpen, previewScope, props.layout]);
+  }, [device, layoutWithPreviewVariants, previewFocusType, previewOpen, previewScope]);
 
   const renderSettings = (entry: SectionEntry, index: number) => {
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
@@ -715,119 +646,175 @@ export function SectionBuilder(props: SectionBuilderProps) {
           (v) => v.id === baseId || v.id === entry.variant || catalogByKey.has(`${entry.type}:${v.id}`),
         )
       : [];
-    const hasVariants = variants.length > 1;
+    const variantOptions: SectionStyleOption[] = variants.map((variant) => {
+      const catalogEntry = catalogByKey.get(`${entry.type}:${variant.id}`);
+      const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
+      return {
+        variant,
+        catalogEntry,
+        paid,
+        locked: paid && !catalogEntry.owned,
+        owned: paid && catalogEntry.owned,
+        inCart: !!catalogEntry && (props.cartVariantIds ?? []).includes(catalogEntry.id),
+        priceLabel: catalogEntry ? variantPriceLabel(formatPrice, catalogEntry) : null,
+      };
+    });
+    const hasVariants = variantOptions.length > 1;
+    const activeCatalogEntry = catalogByKey.get(`${entry.type}:${entry.variant}`);
+    const activeVariantLocked =
+      !!activeCatalogEntry && activeCatalogEntry.priceMinor > 0 && !activeCatalogEntry.owned;
+    const previewVariantId = previewVariantByType[entry.type] ?? entry.variant;
+    const previewEntry =
+      previewVariantId === entry.variant ? entry : { ...entry, variant: previewVariantId };
+    const previewCatalogEntry = catalogByKey.get(`${entry.type}:${previewVariantId}`);
+    const previewingLockedVariant =
+      previewVariantId !== entry.variant &&
+      !!previewCatalogEntry &&
+      previewCatalogEntry.priceMinor > 0 &&
+      !previewCatalogEntry.owned;
+    const lockedCatalogEntryForAction = previewingLockedVariant
+      ? previewCatalogEntry
+      : activeVariantLocked
+        ? activeCatalogEntry
+        : null;
     // The section's real "0N —" ordinal in the full page, so the scoped preview stays in sync with the rest.
     const previewNumber = previewNumberFor(index);
-    const sectionPreviewMotionKey = `${entry.type}:${entry.variant}:${device}`;
+    const sectionPreviewMotionKey = `${entry.type}:${previewVariantId}:${device}`;
     return (
       <div className="space-y-4">
         <fieldset
-          disabled={!entry.visible}
+          disabled={!entry.visible || !props.canWrite}
           className={cn(
             "m-0 min-w-0 space-y-4 border-0 p-0",
-            !entry.visible && "pointer-events-none opacity-60 transition-opacity duration-200",
+            (!entry.visible || !props.canWrite) && "pointer-events-none opacity-60 transition-opacity duration-200",
           )}
         >
-        {hasVariants && (
-          <div className="flex flex-col items-start gap-1.5">
-            <span className="text-[11px] font-semibold uppercase text-foreground-3">
-              {t("businessPage.builder.variantLabel")}
-            </span>
-            <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
-              {/* Each pill's state comes from the catalog entry: paid + unowned = a lock pill that
-                  opens the purchase dialog (selection is replaced, so an unowned paid variant can't
-                  be saved); paid + owned = selectable with a subtle premium spark; free = plain. */}
-              {variants.map((v) => {
-                const active = entry.variant === v.id;
-                const catalogEntry = catalogByKey.get(`${entry.type}:${v.id}`);
-                const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
-                const lockedVariant = paid && !catalogEntry.owned;
-                if (lockedVariant) {
-                  const price = variantPriceLabel(formatPrice, catalogEntry);
-                  const inCart = (props.cartVariantIds ?? []).includes(catalogEntry.id);
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setPurchaseTarget(catalogEntry)}
-                      aria-pressed={active}
-                      aria-label={t("businessPage.paidVariants.lockedAria", {
-                        name: t(v.labelKey),
-                        price,
-                      })}
-                      title={
-                        inCart
-                          ? t("businessPage.paidVariants.inCartTitle", { price })
-                          : t("businessPage.paidVariants.lockedTitle", { price })
-                      }
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
-                        EASE,
-                        // The saved variant can itself be locked (it turned paid after being saved) —
-                        // keep the active plate so the state reads, but the lock stays.
-                        active
-                          ? "bg-surface text-foreground-2 shadow-sm"
-                          : "text-foreground-3 hover:text-foreground-2",
-                      )}
-                    >
-                      {inCart ? (
-                        <ShoppingCart className="h-3 w-3 shrink-0 text-primary" strokeWidth={2} aria-hidden />
-                      ) : (
-                        <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
-                      )}
-                      {t(v.labelKey)}
-                      <span className="text-[11px] font-normal text-foreground-3">{price}</span>
-                    </button>
-                  );
-                }
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => props.setSectionVariant(index, v.id)}
-                    aria-pressed={active}
-                    title={paid ? t("businessPage.paidVariants.ownedTitle") : undefined}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
-                      EASE,
-                      active
-                        ? "bg-surface text-primary-700 shadow-sm dark:text-primary-400"
-                        : "text-foreground-3 hover:text-foreground-2",
-                    )}
-                  >
-                    {t(v.labelKey)}
-                    {paid && (
-                      <Sparkles className="h-3 w-3 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-          {hasVariants && meta ? (
+          {hasVariants ? (
             <SectionStylePicker
               entry={entry}
-              index={index}
-              meta={meta}
+              variants={variantOptions}
+              selectedVariantId={previewVariantId}
               disabled={!entry.visible || !props.canWrite}
-              locale={locale}
-              onVariantChange={props.setSectionVariant}
+              onSelect={(option) => {
+                if (option.locked && option.catalogEntry) {
+                  setPreviewVariantByType((current) => ({
+                    ...current,
+                    [entry.type]: option.variant.id,
+                  }));
+                  if (!sectionPreviewOpen) setPreviewTrayOpen(true);
+                  return;
+                }
+                setPreviewVariantByType((current) => {
+                  if (!current[entry.type]) return current;
+                  const { [entry.type]: _removed, ...rest } = current;
+                  return rest;
+                });
+                props.setSectionVariant(index, option.variant.id);
+              }}
               t={t}
             />
           ) : null}
-          {previewingAddOnStyle || previewingAddOnSection ? (
-            <div className="mb-3 rounded-xl border border-border-subtle bg-surface-hover/50 px-3 py-2.5 text-[12px] leading-5 text-foreground-2">
-              <span className="font-semibold text-foreground-1">
-                {previewingAddOnStyle
-                  ? t("businessPage.builder.addOns.previewingStyle")
-                  : t("businessPage.builder.addOns.previewingSection")}
-              </span>{" "}
-              {t("businessPage.builder.addOns.previewingAddOnHelper")}
+
+          {lockedCatalogEntryForAction ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-warning-border bg-warning-bg px-3 py-2.5 text-[12px] leading-5 text-warning sm:flex-row sm:items-center sm:justify-between">
+              <p className="min-w-0">
+                <span className="font-semibold">{t("businessPage.paidVariants.previewingLockedTitle")}</span>{" "}
+                {t("businessPage.paidVariants.previewingLockedHelper")}
+              </p>
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                {props.onToggleCartVariant ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    rounded="default"
+                    onClick={() => props.onToggleCartVariant?.(lockedCatalogEntryForAction)}
+                    className="h-8 border-warning-border bg-surface px-3 text-[12px] font-semibold text-foreground-1 hover:bg-surface-hover"
+                  >
+                    <ShoppingCart className="size-3.5" strokeWidth={1.8} aria-hidden />
+                    {(props.cartVariantIds ?? []).includes(lockedCatalogEntryForAction.id)
+                      ? t("businessPage.paidVariants.removeFromCart")
+                      : t("businessPage.paidVariants.addToCart")}
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  size="sm"
+                  rounded="default"
+                  onClick={() => setPurchaseTarget(lockedCatalogEntryForAction)}
+                  className="h-8 px-3 text-[12px] font-semibold"
+                >
+                  {t("businessPage.paidVariants.buy", {
+                    price: variantPriceLabel(formatPrice, lockedCatalogEntryForAction),
+                  })}
+                </Button>
+              </div>
             </div>
           ) : null}
+
+          <SettingsPanel
+            entry={entry}
+            index={index}
+            locations={props.locations}
+            faqItems={props.faqItems}
+            announcementContent={props.announcementContent}
+            aboutContent={props.aboutContent}
+            tagline={props.tagline}
+            taglineError={props.taglineError}
+            heroImageUrl={props.heroImageUrl}
+            canWrite={props.canWrite}
+            locale={locale}
+            onConfigChange={props.setSectionConfig}
+            onTurnOffSection={() => {
+              toggleVisibleWithFeedback(entry, index);
+              if (openType === entry.type) setOpenType(null);
+            }}
+            onFaqChange={props.setFaqItems}
+            onAnnouncementChange={props.setAnnouncementContent}
+            onAboutChange={props.setAboutContent}
+            onTaglineChange={props.setTagline}
+          />
+        </fieldset>
+
+        <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground-3">
+                {t("businessPage.builder.sectionPreview")}
+              </p>
+              <p className="mt-0.5 text-[12.5px] leading-5 text-foreground-3">
+                {t("businessPage.builder.previewHelper")}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <DeviceToggle device={device} setDevice={setDevice} t={t} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                rounded="default"
+                onClick={() => setPreviewTrayOpen(!sectionPreviewOpen)}
+                className={cn("h-8 px-3 text-[12px] font-semibold", EASE)}
+              >
+                {sectionPreviewOpen ? t("businessPage.builder.hidePreview") : t("businessPage.builder.showPreview")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                rounded="default"
+                onClick={() => openPreview("page", entry.type)}
+                className={cn("h-8 px-3 text-[12px] font-semibold", EASE)}
+              >
+                {t("businessPage.builder.previewExpand")}
+                <ArrowUpRight className="size-3.5" strokeWidth={1.8} aria-hidden />
+              </Button>
+            </div>
+          </div>
+
           <Collapsible open={sectionPreviewOpen}>
             <CollapsibleContent>
-              <AutoHeight className="pt-1">
+              <AutoHeight>
                 <div className="overflow-hidden rounded-xl border border-border bg-background">
                   <div
                     className={cn(
@@ -844,7 +831,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                       )}
                     >
                       <LivePreview
-                        layout={[{ ...entry, visible: true }]}
+                        layout={[{ ...previewEntry, visible: true }]}
                         data={previewData}
                         chrome={false}
                         startNumber={previewNumber}
@@ -944,6 +931,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                       // interaction (expand, toggle) opens the unlock purchase dialog instead.
                       const paidLocked = lockedSectionEntry(entry.type);
                       const open = openType === entry.type && !paidLocked;
+                      const rowInfo = rowInfoFor(entry);
                       return (
                         <Collapsible
                           key={entry.type}
@@ -1020,58 +1008,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
               </DndContext>
             </div>
 
-            {selectedAddOns.length > 0 ? (
-              <div
-                className={cn(
-                  "sticky bottom-3 z-20 mt-3 flex flex-col gap-3 rounded-xl border border-border bg-surface px-3.5 py-3 shadow-sm",
-                  "sm:flex-row sm:items-center sm:justify-between",
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="text-[13px] font-semibold text-foreground-1">
-                    {selectedAddOnTotal
-                      ? t("businessPage.builder.addOns.selectedWithTotal", {
-                          count: selectedAddOns.length,
-                          total: selectedAddOnTotal,
-                        })
-                      : t("businessPage.builder.addOns.selected", { count: selectedAddOns.length })}
-                  </p>
-                  <p className="mt-0.5 text-[12px] leading-5 text-foreground-3">
-                    {t("businessPage.builder.addOns.unlockHelper")}
-                  </p>
-                </div>
-                <div className="flex shrink-0 flex-wrap items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    rounded="default"
-                    onClick={() => setAddOnsOpen(true)}
-                    className={cn(
-                      "h-8 px-3 text-[12px] font-semibold",
-                      "transition-[transform,border-color,background-color] duration-150 active:scale-[0.98]",
-                      EASE,
-                    )}
-                  >
-                    {t("businessPage.builder.addOns.review")}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    rounded="default"
-                    onClick={handleUnlockSelected}
-                    className={cn(
-                      "h-8 px-3 text-[12px] font-semibold",
-                      "transition-[transform,background-color] duration-150 active:scale-[0.98]",
-                      EASE,
-                    )}
-                  >
-                    {t("businessPage.builder.addOns.unlockSelected")}
-                  </Button>
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -1124,18 +1060,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   {t("businessPage.builder.currentSection")}
                 </Button>
               </div>
-              {selectedAddOns.length > 0 ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  rounded="default"
-                  onClick={() => setAddOnsOpen(true)}
-                  className="hidden h-7 px-2.5 text-[12px] font-semibold shadow-none sm:inline-flex"
-                >
-                  {t("businessPage.builder.addOns.previewingAddOns", { count: selectedAddOns.length })}
-                </Button>
-              ) : null}
               <DeviceToggle device={device} setDevice={setDevice} t={t} />
             </div>
           </DialogHeader>
@@ -1184,21 +1108,29 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
 // ---------------------------------------------------------------------------
 
+interface SectionStyleOption {
+  variant: SectionVariant;
+  catalogEntry?: WebsiteVariantCatalogEntry;
+  paid: boolean;
+  locked: boolean;
+  owned: boolean;
+  inCart: boolean;
+  priceLabel: string | null;
+}
+
 function SectionStylePicker({
   entry,
-  index,
-  meta,
+  variants,
+  selectedVariantId,
   disabled,
-  locale,
-  onVariantChange,
+  onSelect,
   t,
 }: {
   entry: SectionEntry;
-  index: number;
-  meta: SectionMeta;
+  variants: SectionStyleOption[];
+  selectedVariantId: string;
   disabled: boolean;
-  locale: "en" | "ro";
-  onVariantChange: (index: number, variant: string) => void;
+  onSelect: (option: SectionStyleOption) => void;
   t: MarketplaceT;
 }) {
   return (
@@ -1206,24 +1138,28 @@ function SectionStylePicker({
       <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-3">
-            {t("businessPage.builder.addOns.sectionStyle")}
+            {t("businessPage.builder.variantLabel")}
           </span>
           <p className="mt-1 text-[12px] leading-5 text-foreground-3">
-            {t("businessPage.builder.addOns.sectionStyleHelper")}
+            {t("businessPage.paidVariants.styleHelper")}
           </p>
         </div>
       </div>
 
       <div className="mt-2.5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup">
-        {meta.variants.map((variant) => {
-          const active = entry.variant === variant.id;
-          const addOn = isAddOnVariant(variant);
-          const price = formatAddOnPrice(variant.addOnPriceMinor, variant.addOnCurrency, locale);
-          const badge = active && addOn
-            ? t("businessPage.builder.addOns.selectedAddOn")
-            : addOn
-              ? price ?? t("businessPage.builder.addOns.addOn")
-              : t("businessPage.builder.addOns.included");
+        {variants.map((option) => {
+          const { variant } = option;
+          const active = selectedVariantId === variant.id;
+          const previewOnly = active && entry.variant !== variant.id && option.locked;
+          const badge = option.inCart
+            ? t("businessPage.paidVariants.inCartBadge")
+            : option.locked
+              ? previewOnly
+                ? t("businessPage.paidVariants.previewBadge")
+                : option.priceLabel ?? t("businessPage.paidVariants.lockedBadge")
+              : option.owned
+                ? t("businessPage.paidVariants.ownedBadge")
+                : t("businessPage.paidVariants.includedBadge");
 
           return (
             <button
@@ -1232,7 +1168,24 @@ function SectionStylePicker({
               role="radio"
               aria-checked={active}
               disabled={disabled}
-              onClick={() => onVariantChange(index, variant.id)}
+              onClick={() => onSelect(option)}
+              aria-label={
+                option.locked && option.priceLabel
+                  ? t("businessPage.paidVariants.lockedAria", {
+                      name: t(variant.labelKey),
+                      price: option.priceLabel,
+                    })
+                  : t(variant.labelKey)
+              }
+              title={
+                option.locked && option.priceLabel
+                  ? option.inCart
+                    ? t("businessPage.paidVariants.inCartTitle", { price: option.priceLabel })
+                    : t("businessPage.paidVariants.lockedTitle", { price: option.priceLabel })
+                  : option.owned
+                    ? t("businessPage.paidVariants.ownedTitle")
+                    : undefined
+              }
               className={cn(
                 "group min-h-[58px] rounded-lg border px-3 py-2.5 text-left outline-none",
                 "transition-[transform,border-color,background-color,box-shadow,color] duration-200 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
@@ -1250,16 +1203,22 @@ function SectionStylePicker({
                   <span className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground-1 text-surface">
                     <Check className="size-3" strokeWidth={2.4} aria-hidden />
                   </span>
+                ) : option.inCart ? (
+                  <ShoppingCart className="mt-0.5 size-4 shrink-0 text-primary" strokeWidth={1.9} aria-hidden />
+                ) : option.locked ? (
+                  <Lock className="mt-0.5 size-4 shrink-0 text-foreground-3" strokeWidth={1.9} aria-hidden />
+                ) : option.owned ? (
+                  <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
                 ) : null}
               </span>
               <span
                 className={cn(
                   "mt-2 inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                  addOn
-                    ? active
-                      ? "border-border-strong bg-surface-hover text-foreground-1"
-                      : "border-border bg-surface-hover/70 text-foreground-2"
-                    : "border-border-subtle bg-transparent text-foreground-3",
+                  option.locked || option.inCart
+                    ? "border-border bg-surface-hover/70 text-foreground-2"
+                    : option.owned
+                      ? "border-primary/30 bg-primary/10 text-primary"
+                      : "border-border-subtle bg-transparent text-foreground-3",
                 )}
               >
                 <span className="truncate">{badge}</span>

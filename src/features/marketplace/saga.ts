@@ -65,6 +65,20 @@ function* handlePublishMarketplaceListing(action: ActionType<typeof publishMarke
       yield put(publishMarketplaceListingAction.failure({ message }));
       return;
     }
+    // 403 MARKETPLACE_LISTING.E19: the layout has visible paid sections that are not unlocked.
+    const unownedSections = (
+      error as { response?: { data?: { details?: { unownedSections?: Array<{ sectionType?: string; name?: string }> } } } }
+    )?.response?.data?.details?.unownedSections;
+    if (extractErrorCodes(error).includes('MARKETPLACE_LISTING.E19') && Array.isArray(unownedSections) && unownedSections.length > 0) {
+      const names = unownedSections
+        .map((section) => section.name || section.sectionType)
+        .filter(Boolean)
+        .join(', ');
+      toast.error(i18n.t('marketplace:page.toasts.publishUnownedSections', { sections: names }));
+      yield put(fetchWebsiteVariantCatalogAction.request());
+      yield put(publishMarketplaceListingAction.failure({ message }));
+      return;
+    }
     toast.error(message || i18n.t('marketplace:page.toasts.listingPublishFailed'));
     yield put(publishMarketplaceListingAction.failure({ message }));
   }

@@ -135,7 +135,8 @@
     "E15": "Couldn’t load booking settings. Try again",
     "E16": "Couldn’t update booking settings. Try again",
     "E17": "An active subscription is required to publish your marketplace listing",
-    "E18": "Your page uses premium layouts you haven’t purchased yet"
+    "E18": "Your page uses premium layouts you haven’t purchased yet",
+    "E19": "Your page includes premium sections you haven’t unlocked yet"
   },
   "WEBSITE_VARIANTS": {
     "E01": "This premium layout isn’t available anymore",
@@ -144,7 +145,20 @@
     "E04": "You already own this layout",
     "E05": "The website builder requires the Plus plan. Upgrade in Account → Billing to buy premium layouts",
     "E06": "Something went wrong with the layout purchase. Try again",
-    "E07": "A purchased layout’s section and key can’t be changed"
+    "E07": "A purchased layout’s section and key can’t be changed",
+    "E08": "Cart items must use one currency. Remove one item and try again",
+    "E09": "This section already has a base layout",
+    "E10": "Base layouts must be free",
+    "E11": "Premium layouts need a price"
+  },
+  "WEBSITE_SECTIONS": {
+    "E01": "This premium section isn’t available anymore",
+    "E02": "A section with this key already exists",
+    "E03": "A purchased section’s key can’t be changed",
+    "E04": "This section is free, there’s nothing to purchase",
+    "E05": "You already unlocked this section",
+    "E06": "Something went wrong with the section purchase. Try again",
+    "E07": "This section is not available in the builder catalog"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Customer not found",

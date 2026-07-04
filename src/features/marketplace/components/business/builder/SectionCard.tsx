@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, ChevronRight, Pin, Lock, ShoppingCart } from "lucide-react";
+import { GripVertical, ChevronRight, Lock, ShoppingCart } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { Switch } from "../../../../../shared/components/ui/switch";
 import type { SectionEntry } from "../../../types";
@@ -152,6 +152,12 @@ export function SectionCard({
             >
               {label}
             </span>
+            {needsAttention ? (
+              <span
+                className="ml-2 inline-flex size-1.5 shrink-0 rounded-full bg-error shadow-[0_0_0_3px_var(--color-error-bg)]"
+                aria-label={t("businessPage.builder.summary.needsContent")}
+              />
+            ) : null}
           </span>
           {summary && (
             <span
