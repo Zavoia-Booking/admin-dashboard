@@ -21,6 +21,7 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
 import { getErrorMessage } from "../../shared/utils/error";
+import { isNativeApp } from "../../app/config/env";
 
 function* handleFetchMarketplaceListing() {
   try {
@@ -61,6 +62,20 @@ function* handlePublishMarketplaceListing(action: ActionType<typeof publishMarke
         .filter(Boolean)
         .join(', ');
       toast.error(i18n.t('marketplace:page.toasts.publishUnownedVariants', { variants: names }));
+      yield put(fetchWebsiteVariantCatalogAction.request());
+      yield put(publishMarketplaceListingAction.failure({ message }));
+      return;
+    }
+    // 403 MARKETPLACE_LISTING.E19: the layout has visible paid sections that are not unlocked.
+    const unownedSections = (
+      error as { response?: { data?: { details?: { unownedSections?: Array<{ sectionType?: string; name?: string }> } } } }
+    )?.response?.data?.details?.unownedSections;
+    if (extractErrorCodes(error).includes('MARKETPLACE_LISTING.E19') && Array.isArray(unownedSections) && unownedSections.length > 0) {
+      const names = unownedSections
+        .map((section) => section.name || section.sectionType)
+        .filter(Boolean)
+        .join(', ');
+      toast.error(i18n.t('marketplace:page.toasts.publishUnownedSections', { sections: names }));
       yield put(fetchWebsiteVariantCatalogAction.request());
       yield put(publishMarketplaceListingAction.failure({ message }));
       return;
@@ -125,6 +140,12 @@ function* handleFetchWebsiteVariantCatalog() {
 }
 
 function* handleCreateWebsiteVariantCheckout(action: ActionType<typeof createWebsiteVariantCheckoutAction.request>) {
+  if (isNativeApp()) {
+    // Store policy: no Stripe web checkout inside the native webview — purchase UI is hidden,
+    // but this backstops any action that slips through.
+    yield put(createWebsiteVariantCheckoutAction.failure({ message: "" }));
+    return;
+  }
   try {
     const response: { url: string } = yield call(createWebsiteVariantCheckoutApi, action.payload);
     yield put(createWebsiteVariantCheckoutAction.success(response));

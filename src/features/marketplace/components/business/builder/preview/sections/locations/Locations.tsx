@@ -14,7 +14,7 @@ import "./locations.css";
 // Layout registry — add a variant by adding its component file + a catalog entry (sectionCatalog). The
 // resolver below maps the saved variant to its component, falling back to the default layout.
 const VARIANTS: Record<string, React.FC<LocationsVariantProps>> = {
-  default: Default,
+  switcher: Default,
 };
 
 export function Locations({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {

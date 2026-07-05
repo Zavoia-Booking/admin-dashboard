@@ -152,11 +152,10 @@ export function SettingsPanel({
     );
   }
 
-  // Sections that are pure views over existing data: an editorial note explaining what they show. No icon
-  // tile — a brand-tinted left rule reads as an informational aside without the boxy chrome.
+  // Sections that are pure views over existing data: a quiet note explaining what they show.
   const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
   return (
-    <div className="border-l-2 border-primary/30 py-0.5 pl-4">
+    <div className="rounded-xl border border-border-subtle bg-surface-hover/45 px-3.5 py-3">
       <p className={cn(modalBody, "mt-0 text-foreground-1")}>
         {meta ? t(meta.descriptionKey) : t("businessPage.builder.settings.noSettings")}
       </p>

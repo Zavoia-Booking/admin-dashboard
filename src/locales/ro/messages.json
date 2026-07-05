@@ -135,7 +135,8 @@
     "E15": "Nu am putut încărca setările de programare. Încearcă din nou",
     "E16": "Nu am putut actualiza setările de programare. Încearcă din nou",
     "E17": "Ai nevoie de un abonament activ pentru a publica listarea în marketplace",
-    "E18": "Pagina ta folosește aspecte premium pe care nu le-ai cumpărat încă"
+    "E18": "Pagina ta folosește aspecte premium pe care nu le-ai cumpărat încă",
+    "E19": "Pagina ta include secțiuni premium pe care nu le-ai deblocat încă"
   },
   "WEBSITE_VARIANTS": {
     "E01": "Acest aspect premium nu mai este disponibil",
@@ -144,7 +145,20 @@
     "E04": "Deții deja acest aspect",
     "E05": "Constructorul de site-uri necesită planul Plus. Fă upgrade din Cont → Facturare pentru a cumpăra aspecte premium",
     "E06": "Ceva nu a mers bine la cumpărarea aspectului. Încearcă din nou",
-    "E07": "Secțiunea și cheia unui aspect cumpărat nu pot fi modificate"
+    "E07": "Secțiunea și cheia unui aspect cumpărat nu pot fi modificate",
+    "E08": "Elementele din coș trebuie să folosească aceeași monedă. Scoate un element și încearcă din nou",
+    "E09": "Această secțiune are deja un aspect de bază",
+    "E10": "Aspectele de bază trebuie să fie gratuite",
+    "E11": "Aspectele premium au nevoie de un preț"
+  },
+  "WEBSITE_SECTIONS": {
+    "E01": "Această secțiune premium nu mai este disponibilă",
+    "E02": "Există deja o secțiune cu această cheie",
+    "E03": "Cheia unei secțiuni cumpărate nu poate fi modificată",
+    "E04": "Această secțiune este gratuită, nu este nimic de cumpărat",
+    "E05": "Ai deblocat deja această secțiune",
+    "E06": "Ceva nu a mers bine la cumpărarea secțiunii. Încearcă din nou",
+    "E07": "Această secțiune nu este disponibilă în catalogul constructorului"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Clientul nu a fost găsit",

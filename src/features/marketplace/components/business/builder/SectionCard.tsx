@@ -1,20 +1,30 @@
 import { useTranslation } from "react-i18next";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, ChevronRight, Pin, Lock, ShoppingCart } from "lucide-react";
+import { GripVertical, ChevronRight, Lock, ShoppingCart } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { Switch } from "../../../../../shared/components/ui/switch";
 import type { SectionEntry } from "../../../types";
 import type { SectionMeta } from "./sectionCatalog";
-import { InfoPulse } from "./InfoHint";
+
+export type SectionCardStatusTone = "neutral" | "muted" | "warning" | "danger";
+
+export interface SectionCardStatus {
+  label: string;
+  tone?: SectionCardStatusTone;
+}
 
 interface SectionCardProps {
   entry: SectionEntry;
   meta: SectionMeta | null;
   /** 1-based position, set as the editorial index (01, 02, …) in the left margin. */
   index: number;
+  /** Short operational summary, e.g. “3 of 4 locations shown” or “12 photos”. */
+  summary?: string;
+  /** Calm row-level state: Hidden, Fixed, Needs content, No data. */
+  status?: SectionCardStatus;
   expanded?: boolean;
-  /** Pinned to the top (announcement): not draggable; the grip becomes a static pin indicator. */
+  /** Fixed in the page order: not draggable; the grip gutter stays quiet. */
   locked?: boolean;
   /** Always shown (nav / hero / footer): visibility can't be toggled — the switch becomes a static label. */
   required?: boolean;
@@ -24,8 +34,13 @@ interface SectionCardProps {
   paidLocked?: boolean;
   /** Resolved unlock price label, shown on the lock button while paidLocked. */
   priceLabel?: string;
+  /** Native (Capacitor) app: suppress the price text/aria (store policy — no purchase surfaces). */
+  hidePrice?: boolean;
   /** The section unlock is queued in the shopping cart (swaps the lock icon). */
   inCart?: boolean;
+  /** The section catalog is still loading — this row's real lock state isn't known yet, so the
+   *  trailing control renders a neutral skeleton instead of a switch that might flip a moment later. */
+  pending?: boolean;
   onSelect: () => void;
   onToggleVisible: () => void;
 }
@@ -39,13 +54,17 @@ export function SectionCard({
   entry,
   meta,
   index,
+  summary,
+  status,
   expanded,
   locked,
   required,
   needsAttention,
   paidLocked,
   priceLabel,
+  hidePrice,
   inCart,
+  pending,
   onSelect,
   onToggleVisible,
 }: SectionCardProps) {
@@ -63,6 +82,7 @@ export function SectionCard({
 
   const label = meta ? t(meta.labelKey) : entry.type;
   const live = entry.visible;
+  const statusTone = status?.tone ?? "neutral";
 
   return (
     <div
@@ -84,26 +104,26 @@ export function SectionCard({
 
       <div
         className={cn(
-          "pointer-events-none relative z-[1] grid min-h-[54px] grid-cols-[30px_42px_minmax(0,1fr)_auto] items-center",
-          "origin-center transition-transform duration-150 ease-out motion-safe:peer-active:scale-[0.997]",
+          "pointer-events-none relative z-[1] grid min-h-[58px] grid-cols-[34px_42px_minmax(0,1fr)_auto] items-center",
+          "origin-center transition-[background-color,transform] duration-150 ease-out peer-hover:bg-surface-hover/50 motion-safe:peer-active:scale-[0.997]",
+          expanded && "bg-surface-hover/60",
         )}
       >
-        {/* reorder grip (or static pin when locked) — far left, ahead of the index */}
+        {/* reorder grip — far left, ahead of the index. Locked rows keep the same quiet gutter. */}
         {locked ? (
           <span
-            className="col-start-1 grid h-11 w-[26px] place-items-center justify-self-center text-foreground-3 opacity-40"
-            role="img"
-            aria-label={t("businessPage.builder.card.pinned")}
-            title={t("businessPage.builder.card.pinned")}
-          >
-            <Pin className="size-[14px]" strokeWidth={1.6} aria-hidden />
-          </span>
+            className="col-start-1 h-11 w-[30px] justify-self-center"
+            aria-hidden
+          />
         ) : (
           <button
             type="button"
             aria-label={t("businessPage.builder.card.drag")}
             className={cn(
-              "pointer-events-auto col-start-1 grid h-11 w-[26px] cursor-grab touch-none place-items-center justify-self-center rounded-md text-foreground-3 outline-none",
+              "pointer-events-auto relative col-start-1 grid h-11 w-[30px] cursor-grab touch-none place-items-center justify-self-center rounded-md text-foreground-3 outline-none",
+              // Widens the touch target to the ≥44px minimum without changing the visible grip's size —
+              // the pseudo-element still dispatches to this button, so drag listeners are unaffected.
+              "before:absolute before:-inset-x-2 before:inset-y-0 before:content-['']",
               "opacity-50 transition-[opacity,color] duration-200",
               "hover:text-foreground-1 hover:opacity-100 active:cursor-grabbing",
               "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60",
@@ -112,7 +132,7 @@ export function SectionCard({
             {...attributes}
             {...listeners}
           >
-            <GripVertical className="size-[18px]" strokeWidth={1.6} aria-hidden />
+            <GripVertical className="size-[22px]" strokeWidth={1.65} aria-hidden />
           </button>
         )}
 
@@ -131,25 +151,67 @@ export function SectionCard({
           {String(index).padStart(2, "0")}
         </span>
 
-        {/* name — right of the spine */}
-        <span className="col-start-3 flex min-w-0 items-center py-2.5 pl-[15px]">
-          <span
-            className={cn(
-              "min-w-0 truncate text-[16px] font-[450] tracking-[-0.008em] transition-colors duration-200",
-              live ? "text-foreground-1" : "text-foreground-disabled",
-            )}
-          >
-            {label}
+        {/* name + useful context — right of the spine */}
+        <span className="col-start-3 flex min-w-0 flex-col justify-center gap-0.5 py-2.5 pl-[15px]">
+          <span className="flex min-w-0 items-center">
+            <span
+              className={cn(
+                "min-w-0 truncate text-[15px] font-medium tracking-[-0.006em] transition-colors duration-200",
+                live ? "text-foreground-1" : "text-foreground-disabled",
+              )}
+            >
+              {label}
+            </span>
+            {needsAttention ? (
+              <span
+                className="ml-2 inline-flex size-1.5 shrink-0 rounded-full bg-error shadow-[0_0_0_3px_var(--color-error-bg)]"
+                aria-label={t("businessPage.builder.summary.needsContent")}
+              />
+            ) : null}
           </span>
-          {needsAttention && (
-            <span className="ml-2 shrink-0">
-              <InfoPulse />
+          {summary && (
+            <span
+              className={cn(
+                "min-w-0 truncate text-[12px] leading-none transition-colors duration-200",
+                live ? "text-foreground-3" : "text-foreground-disabled",
+              )}
+            >
+              {status && (
+                <span
+                  className={cn(
+                    "font-medium sm:hidden",
+                    statusTone === "danger" && "text-error",
+                    statusTone === "warning" && "text-warning",
+                  )}
+                >
+                  {status.label}
+                  <span aria-hidden> · </span>
+                </span>
+              )}
+              {summary}
             </span>
           )}
         </span>
 
         {/* trailing cluster: chevron · switch */}
-        <div className="col-start-4 flex items-center gap-0.5 pr-4">
+        <div className="col-start-4 flex items-center gap-2 pr-4">
+          {status && (
+            <span
+              className={cn(
+                "hidden max-w-[124px] truncate rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4 sm:inline-flex",
+                statusTone === "danger" &&
+                  "border-error-border bg-error-bg text-error",
+                statusTone === "warning" &&
+                  "border-warning-border bg-warning-bg text-warning",
+                statusTone === "muted" &&
+                  "border-border-subtle bg-surface-hover text-foreground-3",
+                statusTone === "neutral" &&
+                  "border-border-subtle bg-surface text-foreground-3",
+              )}
+            >
+              {status.label}
+            </span>
+          )}
           <ChevronRight
             className={cn(
               "size-[18px] text-foreground-3 transition-[transform,opacity,color] duration-200",
@@ -161,29 +223,37 @@ export function SectionCard({
             aria-hidden
           />
           <span className="pointer-events-auto ml-1.5">
-            {paidLocked ? (
+            {pending ? (
+              <span className="inline-block h-5 w-9 animate-pulse rounded-full bg-surface-hover" aria-hidden />
+            ) : paidLocked ? (
               /* Locked paid section: a lock/price chip instead of the switch — tapping it
                  opens the purchase dialog (the parent routes onToggleVisible there). */
               <button
                 type="button"
                 onClick={onToggleVisible}
-                aria-label={t("businessPage.paidVariants.lockedAria", { name: label, price: priceLabel ?? "" })}
+                aria-label={
+                  hidePrice
+                    ? t("businessPage.paidVariants.lockedAriaNative", { name: label })
+                    : t("businessPage.paidVariants.lockedAria", { name: label, price: priceLabel ?? "" })
+                }
                 title={
-                  inCart
-                    ? t("businessPage.paidVariants.inCartTitle", { price: priceLabel ?? "" })
-                    : t("businessPage.paidVariants.lockedTitle", { price: priceLabel ?? "" })
+                  hidePrice
+                    ? t("businessPage.paidVariants.nativeHint")
+                    : inCart
+                      ? t("businessPage.paidVariants.inCartTitle", { price: priceLabel ?? "" })
+                      : t("businessPage.paidVariants.lockedTitle", { price: priceLabel ?? "" })
                 }
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-hover px-2.5 py-1 text-[12px] font-medium text-foreground-2 outline-none",
                   "transition-[color,border-color,background-color,transform] duration-150 ease-out hover:border-border-strong hover:text-foreground-1 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus",
                 )}
               >
-                {inCart ? (
+                {!hidePrice && inCart ? (
                   <ShoppingCart className="h-3 w-3 shrink-0 text-primary" strokeWidth={2} aria-hidden />
                 ) : (
                   <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
                 )}
-                {priceLabel}
+                {!hidePrice && priceLabel}
               </button>
             ) : (
               /* Required sections (nav/hero/footer) show the toggle on but locked — no off-brand text tag. */
@@ -208,7 +278,7 @@ export function SectionCard({
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute bottom-0 left-[72px] right-4 z-[1] h-[1.5px] origin-left rounded-full bg-primary",
+          "pointer-events-none absolute bottom-0 left-4 right-4 z-[1] h-[1.5px] origin-left rounded-full bg-primary sm:left-[72px]",
           "transition-transform duration-[340ms] ease-[var(--ease-out-strong)]",
           expanded ? "scale-x-100" : "scale-x-0",
         )}

@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Sparkles } from "lucide-react";
 import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
+import { usePlatform } from "../../../../shared/hooks/usePlatform";
 import type { Business, LocationWithAssignments, WebsiteSectionCatalogEntry, WebsiteVariantCatalogEntry } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { fetchReviewStatsAction, fetchHighlightReviewsAction } from "../../../reviews/actions";
@@ -23,16 +23,16 @@ import {
 import {
   selectWebsiteVariantCatalog,
   selectWebsiteSectionCatalog,
+  selectVariantCatalogLoading,
   selectVariantCheckoutCreating,
   selectVariantCart,
   selectSectionCart,
 } from "../../selectors";
-import { selectCurrentUser } from "../../../auth/selectors";
-import { BrandingSection } from "./BrandingSection";
+import { selectHasWebsiteBuilder } from "../../../auth/selectors";
+import { BrandColorControl, BrandingSection } from "./BrandingSection";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { VariantCartBar, type CartLineItem } from "./builder/VariantCartBar";
 import { ThemePanel } from "./builder/ThemePanel";
-import { accentIsPro, fontIsPro } from "./builder/theme";
 import type { PreviewReview, RatingBars } from "./builder/LivePreview";
 
 interface WebsiteBuilderTabProps {
@@ -52,6 +52,7 @@ export function WebsiteBuilderTab({
 }: WebsiteBuilderTabProps) {
   const { t } = useTranslation("marketplace");
   const dispatch = useDispatch();
+  const { isNative } = usePlatform();
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewStats = useSelector(selectReviewStats);
   const highlightReviews = useSelector(selectHighlightReviews);
@@ -60,11 +61,11 @@ export function WebsiteBuilderTab({
   // ownership + the checkout in-flight flag.
   const variantCatalog = useSelector(selectWebsiteVariantCatalog);
   const sectionCatalog = useSelector(selectWebsiteSectionCatalog);
+  const isCatalogLoading = useSelector(selectVariantCatalogLoading);
   const isVariantCheckoutLoading = useSelector(selectVariantCheckoutCreating);
   const variantCart = useSelector(selectVariantCart);
   const sectionCart = useSelector(selectSectionCart);
-  const currentUser = useSelector(selectCurrentUser);
-  const hasWebsiteBuilder = currentUser?.entitlements?.features?.websiteBuilder ?? false;
+  const hasWebsiteBuilder = useSelector(selectHasWebsiteBuilder);
 
   // Shopping cart persistence: hydrate once per page load from localStorage (keyed per
   // business so switching accounts never leaks a cart), then mirror every change back.
@@ -260,18 +261,6 @@ export function WebsiteBuilderTab({
     [highlightReviews],
   );
 
-  const accentPro = accentIsPro(form.brandColorHex);
-  const fontPro = fontIsPro(form.fontKey);
-  const previewingPro = accentPro || fontPro;
-  const previewingLabel =
-    accentPro && fontPro
-      ? t("businessPage.pro.previewingStyles")
-      : accentPro
-        ? t("businessPage.pro.previewingColor")
-        : t("businessPage.pro.previewingFont");
-
-  const handleUpgrade = () => toast(t("businessPage.pro.upgradeToast"));
-
   return (
     <div className="max-w-7xl mb-0 md:mb-8">
       <LimitedAccessBanner className="!px-0 !pt-0" />
@@ -293,38 +282,28 @@ export function WebsiteBuilderTab({
           aboutContent={form.aboutContent}
           setAboutContent={form.setAboutContent}
           brandPanel={
-            <div className="space-y-3">
-              <div className="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(300px,1fr)_minmax(210px,0.58fr)_minmax(360px,1.08fr)]">
-                <BrandingSection
-                  business={business}
-                  canWrite={canWrite}
-                  pageName={form.pageName}
-                  brandColorHex={form.brandColorHex}
-                  setBrandColorHex={form.setBrandColorHex}
-                  fontKey={form.fontKey}
-                />
+            <div className="rounded-[1.25rem] border border-border bg-surface p-4 shadow-xs sm:p-5">
+              <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(260px,0.82fr)_minmax(0,1.35fr)] xl:items-start">
                 <div className="min-w-0">
-                  <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+                  <BrandingSection
+                    business={business}
+                    canWrite={canWrite}
+                    pageName={form.pageName}
+                    brandColorHex={form.brandColorHex}
+                    fontKey={form.fontKey}
+                  />
+                </div>
+                <div className="min-w-0">
+                  <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)] lg:items-start">
+                    <BrandColorControl
+                      canWrite={canWrite}
+                      brandColorHex={form.brandColorHex}
+                      setBrandColorHex={form.setBrandColorHex}
+                    />
+                    <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
+                  </div>
                 </div>
               </div>
-              {previewingPro && (
-                <div className="flex flex-col gap-3 border-t border-border-subtle pt-3 sm:flex-row sm:items-center">
-                  <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                    <Sparkles className="size-4" strokeWidth={1.8} aria-hidden />
-                  </span>
-                  <p className="min-w-0 flex-1 text-pretty text-[13px] leading-5 text-foreground-2">
-                    <span className="font-medium text-foreground-1">{previewingLabel}</span>
-                    <span className="text-foreground-3">. {t("businessPage.pro.saveHint")}</span>
-                  </p>
-                  <button
-                    type="button"
-                    onClick={handleUpgrade}
-                    className="shrink-0 rounded-full border border-border bg-surface px-4 py-2 text-[13px] font-semibold text-foreground-1 outline-none transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong hover:bg-surface-hover active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus"
-                  >
-                    {t("businessPage.pro.upgrade")}
-                  </button>
-                </div>
-              )}
             </div>
           }
           business={business}
@@ -347,6 +326,7 @@ export function WebsiteBuilderTab({
           variantCatalog={variantCatalog}
           sectionCatalog={sectionCatalog}
           hasWebsiteBuilder={hasWebsiteBuilder}
+          isCatalogLoading={isCatalogLoading}
           isVariantCheckoutLoading={isVariantCheckoutLoading}
           onBuyVariant={handleBuyVariant}
           onBuySection={handleBuySection}
@@ -354,9 +334,10 @@ export function WebsiteBuilderTab({
           cartSectionIds={sectionCart}
           onToggleCartVariant={handleToggleCartVariant}
           onToggleCartSection={handleToggleCartSection}
+          isNative={isNative}
         />
       </div>
-      {canWrite && (
+      {canWrite && !isNative && (
         <VariantCartBar
           entries={cartItems}
           isLoading={isVariantCheckoutLoading}

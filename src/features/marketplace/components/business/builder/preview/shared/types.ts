@@ -65,6 +65,8 @@ export interface LivePreviewProps {
    * section's real number in the full page so its "0N —" kicker stays in sync with the others.
    */
   startNumber?: number;
+  /** Optional section type the host wants to scroll to or identify in the preview. */
+  focusType?: string;
 }
 
 export type T = (k: string, o?: Record<string, unknown>) => string;

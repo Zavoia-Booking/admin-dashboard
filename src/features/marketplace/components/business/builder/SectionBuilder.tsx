@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import {
   DndContext,
   closestCenter,
@@ -16,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Monitor, Smartphone, ArrowUpRight, Lock, ShoppingCart, Sparkles } from "lucide-react";
+import { Monitor, Smartphone, ArrowUpRight, ShoppingCart } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { useFormatPrice } from "../../../../../shared/hooks/useFormatPrice";
 import {
@@ -25,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../../../../shared/components/ui/dialog";
+import { Button } from "../../../../../shared/components/ui/button";
 import {
   Collapsible,
   CollapsibleContent,
@@ -39,15 +41,81 @@ import type {
   WebsiteSectionCatalogEntry,
 } from "../../../types";
 import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
-import { SectionCard } from "./SectionCard";
+import { SectionCard, type SectionCardStatus } from "./SectionCard";
 import { VariantPurchaseDialog, variantPriceLabel } from "./VariantPurchaseDialog";
+import { SectionStylePicker, VariantPickerSkeleton, EASE, type MarketplaceT, type SectionStyleOption } from "./SectionStylePicker";
 import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
 import { useLocationTagDictionaries } from "../../../hooks/useLocationTagDictionaries";
+import { aboutHeadline } from "./aboutContent";
 
-/** House ease-out (mirrors --ease-out-strong in globals.css). */
-const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
+const SECTION_PREVIEW_PREF_KEY = "zavoia:business-page-section-preview";
+
+type PreviewScope = "page" | "section";
+
+interface SectionRowInfo {
+  summary: string;
+  status?: SectionCardStatus;
+  noData?: boolean;
+}
+
+interface UndoToastOptions {
+  title: string;
+  description?: string;
+  undoLabel: string;
+  onUndo: () => void;
+}
+
+const firstLocaleText = (value: { en?: string; ro?: string } | undefined, locale: "en" | "ro") =>
+  value?.[locale]?.trim() || value?.en?.trim() || value?.ro?.trim() || "";
+
+const portfolioPhotoCount = (locations: LocationWithAssignments[]) =>
+  locations.reduce((count, location) => count + (location.portfolioImages?.length ?? 0), 0);
+
+const teamMemberCount = (locations: LocationWithAssignments[]) => {
+  const ids = new Set<number | string>();
+  locations.forEach((location) => {
+    location.teamMembers?.forEach((member) => {
+      ids.add(member.id ?? `${member.firstName ?? ""}-${member.lastName ?? ""}`);
+    });
+  });
+  return ids.size;
+};
+
+const reviewCount = (locations: LocationWithAssignments[], reviews?: PreviewReview[]) => {
+  const aggregate = locations.reduce((count, location) => count + (location.totalReviews ?? 0), 0);
+  return Math.max(aggregate, reviews?.length ?? 0);
+};
+
+const showUndoToast = ({ title, description, undoLabel, onUndo }: UndoToastOptions) => {
+  toast.custom(
+    (toastId) => (
+      <div className="flex w-[min(420px,calc(100vw-2rem))] items-center justify-between gap-5 rounded-md border border-border bg-surface px-4 py-3 shadow-sm">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-foreground-1">{title}</p>
+          {description ? (
+            <p className="mt-1 truncate text-xs text-foreground-3 dark:text-foreground-2">{description}</p>
+          ) : null}
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          rounded="default"
+          className="h-8 shrink-0 px-3 text-xs font-semibold"
+          onClick={() => {
+            onUndo();
+            toast.dismiss(toastId);
+          }}
+        >
+          {undoLabel}
+        </Button>
+      </div>
+    ),
+    { duration: 5000 },
+  );
+};
 
 /**
  * Keep a dragged row clamped vertically inside `ref`'s element. Mirrors @dnd-kit's internal
@@ -115,6 +183,10 @@ interface SectionBuilderProps {
   sectionCatalog?: WebsiteSectionCatalogEntry[];
   /** Plan includes the website builder (purchasing needs Plus/trial; locked pills still render without it). */
   hasWebsiteBuilder?: boolean;
+  /** The catalog fetch is in flight — while true AND both catalogs are still empty, price-dependent
+   *  affordances render a neutral skeleton instead of briefly showing as unlocked (catalog fetch
+   *  *failure* keeps the deliberate free-render fallback; this only covers the loading window). */
+  isCatalogLoading?: boolean;
   /** A checkout session is being created (buy button busy until the Stripe redirect). */
   isVariantCheckoutLoading?: boolean;
   /** Confirmed purchase → create the Stripe checkout session and redirect. */
@@ -129,30 +201,41 @@ interface SectionBuilderProps {
   onToggleCartVariant?: (variant: WebsiteVariantCatalogEntry) => void;
   /** Add a section unlock to / remove it from the shopping cart. */
   onToggleCartSection?: (section: WebsiteSectionCatalogEntry) => void;
+  /** Native (Capacitor) app — store policy: no purchase surfaces (prices/Buy/cart) render; preview-before-buy stays fully functional. */
+  isNative?: boolean;
 }
 
 /**
- * Business-page studio — one editorial module: a header, then the section list (left) beside the brand
- * controls (right). Opening a section reveals its editor plus a scoped preview of just that section;
- * the whole page opens in a fullscreen dialog via "Open preview". Reorder via drag or the ↑/↓ buttons.
- * Near-monochrome chrome; the only colour lives inside the rendered preview.
+ * Business-page studio — one editorial module: a header, then the brand controls stacked full-width
+ * above the section list. Opening a section reveals its editor plus a scoped preview of just that
+ * section; the whole page opens in a fullscreen dialog via "Open preview". Reorder via drag (pointer or
+ * keyboard). Near-monochrome chrome; the only colour lives inside the rendered preview.
  */
 export function SectionBuilder(props: SectionBuilderProps) {
   const { t, i18n } = useTranslation("marketplace");
   const [openType, setOpenType] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewScope, setPreviewScope] = useState<PreviewScope>("page");
+  const [previewFocusType, setPreviewFocusType] = useState<string | null>(null);
   // Sections are edited and previewed in the owner's app language (no language toggle).
   const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [sectionPreviewOpen, setSectionPreviewOpen] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.localStorage.getItem(SECTION_PREVIEW_PREF_KEY) !== "hidden";
+  });
+  const previewScrollRef = useRef<HTMLDivElement | null>(null);
 
   // Resolve the location-tag dictionaries once (session-cached fetch) and feed them into previewData so the
   // Locations section renders tags without its own authenticated fetch.
   const { dictionaries: tagDictionaries } = useLocationTagDictionaries();
 
   // Paid variants: catalog lookup by (sectionType, variantKey) + the entry pending purchase
-  // confirmation. A locked pill (paid + unowned) opens the dialog instead of selecting.
+  // confirmation. A locked pill can be selected for a local, preview-only render; it is not
+  // written into pageLayout until it is bought/owned.
   const { formatPrice } = useFormatPrice();
   const [purchaseTarget, setPurchaseTarget] = useState<WebsiteVariantCatalogEntry | null>(null);
+  const [previewVariantByType, setPreviewVariantByType] = useState<Record<string, string>>({});
   const variantCatalog = props.variantCatalog;
   const catalogByKey = useMemo(() => {
     const map = new Map<string, WebsiteVariantCatalogEntry>();
@@ -161,6 +244,38 @@ export function SectionBuilder(props: SectionBuilderProps) {
     }
     return map;
   }, [variantCatalog]);
+
+  useEffect(() => {
+    setPreviewVariantByType((current) => {
+      let changed = false;
+      const next: Record<string, string> = {};
+      for (const [type, variantKey] of Object.entries(current)) {
+        const saved = props.layout.find((section) => section.type === type);
+        const catalogEntry = catalogByKey.get(`${type}:${variantKey}`);
+        const stillPreviewOnly =
+          !!saved &&
+          saved.variant !== variantKey &&
+          !!catalogEntry &&
+          catalogEntry.priceMinor > 0 &&
+          !catalogEntry.owned;
+        if (stillPreviewOnly) {
+          next[type] = variantKey;
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : current;
+    });
+  }, [catalogByKey, props.layout]);
+
+  const layoutWithPreviewVariants = useMemo(
+    () =>
+      props.layout.map((section) => {
+        const previewVariant = previewVariantByType[section.type];
+        return previewVariant ? { ...section, variant: previewVariant } : section;
+      }),
+    [previewVariantByType, props.layout],
+  );
   // Server-designated base per section (the catalog row flagged isBase — free, always offered).
   const baseKeyByType = useMemo(() => {
     const map = new Map<string, string>();
@@ -181,6 +296,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
     return map;
   }, [sectionCatalog]);
   const [sectionPurchaseTarget, setSectionPurchaseTarget] = useState<WebsiteSectionCatalogEntry | null>(null);
+  // First load only (not the empty-catalog failure fallback, which has already resolved by the
+  // time isCatalogLoading goes false): both catalogs are still empty AND the fetch is in flight.
+  const catalogPending = !!props.isCatalogLoading && (variantCatalog?.length ?? 0) === 0 && (sectionCatalog?.length ?? 0) === 0;
   // Required chrome (nav/hero/footer) is never locked — every page needs it regardless of catalog data.
   const lockedSectionEntry = (type: string): WebsiteSectionCatalogEntry | null => {
     if (REQUIRED_TYPES.has(type)) return null;
@@ -197,12 +315,37 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const listRef = useRef<HTMLDivElement | null>(null);
   const modifiers = useMemo(() => [restrictToVerticalAxis, restrictToContainer(listRef)], []);
 
+  const setPreviewTrayOpen = useCallback((open: boolean) => {
+    setSectionPreviewOpen(open);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(SECTION_PREVIEW_PREF_KEY, open ? "shown" : "hidden");
+    }
+  }, []);
+
+  const openPreview = useCallback(
+    (scope: PreviewScope, focusType?: string | null) => {
+      setPreviewScope(scope);
+      setPreviewFocusType(focusType ?? openType);
+      setPreviewOpen(true);
+    },
+    [openType],
+  );
+
   const handleDragEnd = (e: DragEndEvent) => {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const from = props.layout.findIndex((s) => s.type === active.id);
     const to = props.layout.findIndex((s) => s.type === over.id);
-    if (from !== -1 && to !== -1) props.reorderSections(from, to);
+    if (from !== -1 && to !== -1) {
+      const moved = props.layout[from];
+      const label = isKnownSectionType(moved.type) ? t(SECTION_META[moved.type].labelKey) : moved.type;
+      props.reorderSections(from, to);
+      showUndoToast({
+        title: t("businessPage.builder.toast.sectionMoved", { section: label }),
+        undoLabel: t("businessPage.builder.toast.undo"),
+        onUndo: () => props.reorderSections(to, from),
+      });
+    }
   };
 
   const previewData: PreviewData = useMemo(
@@ -278,6 +421,221 @@ export function SectionBuilder(props: SectionBuilderProps) {
   const items = displaySections.map(({ entry }) => entry.type);
   const shown = displaySections.filter(({ entry }) => entry.visible).length;
 
+  const previewNumberFor = useCallback(
+    (index: number) =>
+      props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1,
+    [props.layout],
+  );
+
+  const rowInfoFor = useCallback(
+    (entry: SectionEntry): SectionRowInfo => {
+      const fixed = REQUIRED_TYPES.has(entry.type);
+      const sectionCatalogEntry = sectionCatalogByType.get(entry.type);
+      const sectionLocked =
+        !!sectionCatalogEntry && sectionCatalogEntry.priceMinor > 0 && !sectionCatalogEntry.owned;
+      const activeVariantCatalogEntry = catalogByKey.get(`${entry.type}:${entry.variant}`);
+      const variantLocked =
+        !!activeVariantCatalogEntry &&
+        activeVariantCatalogEntry.priceMinor > 0 &&
+        !activeVariantCatalogEntry.owned;
+      const premiumStatus: SectionCardStatus | undefined =
+        entry.visible && (sectionLocked || variantLocked)
+          ? { label: t("businessPage.paidVariants.lockedBadge"), tone: "warning" }
+          : undefined;
+      const hiddenStatus: SectionCardStatus | undefined = !entry.visible
+        ? { label: t("businessPage.builder.summary.hidden"), tone: "muted" }
+        : undefined;
+      const fixedStatus: SectionCardStatus | undefined = fixed
+        ? { label: t("businessPage.builder.summary.fixed"), tone: "neutral" }
+        : undefined;
+
+      const noDataStatus: SectionCardStatus = {
+        label: t("businessPage.builder.summary.noData"),
+        tone: "warning",
+      };
+      const needsContentStatus: SectionCardStatus = {
+        label: t("businessPage.builder.summary.needsContent"),
+        tone: "danger",
+      };
+
+      const withStatus = (
+        summary: string,
+        status?: SectionCardStatus,
+        noData = false,
+      ): SectionRowInfo => ({
+        summary,
+        status: hiddenStatus ?? status ?? premiumStatus ?? fixedStatus,
+        noData,
+      });
+
+      switch (entry.type) {
+        case "announcement": {
+          const message = firstLocaleText(props.announcementContent.message, locale);
+          const needsContent = entry.visible && !!props.announcementError;
+          return withStatus(
+            message || t("businessPage.builder.summary.noMessage"),
+            needsContent ? needsContentStatus : undefined,
+            !message,
+          );
+        }
+        case "nav":
+          return withStatus(t("businessPage.builder.summary.logoLinksBooking"));
+        case "hero": {
+          const hasCover = !!props.heroImageUrl;
+          const hasSubtitle = props.tagline.trim().length > 0;
+          return withStatus(
+            hasCover
+              ? t("businessPage.builder.summary.coverSet")
+              : hasSubtitle
+                ? t("businessPage.builder.summary.subtitleSet")
+                : t("businessPage.builder.summary.addSubtitle"),
+            props.taglineError ? needsContentStatus : undefined,
+          );
+        }
+        case "marquee": {
+          const count = marqueeItems(props.locations).length;
+          return withStatus(t("businessPage.builder.summary.services", { count }));
+        }
+        case "about": {
+          const headline = aboutHeadline(props.aboutContent);
+          const needsContent = entry.visible && !!props.aboutError;
+          return withStatus(
+            headline || t("businessPage.builder.summary.noHeadline"),
+            needsContent ? needsContentStatus : undefined,
+            !headline,
+          );
+        }
+        case "locations": {
+          const hiddenIds = (entry.config?.hiddenLocationIds as number[] | undefined) ?? [];
+          const total = props.locations.length;
+          const visible = props.locations.filter((location) => !hiddenIds.includes(location.id)).length;
+          return withStatus(
+            total > 0
+              ? t("businessPage.builder.summary.locationsShown", { shown: visible, total })
+              : t("businessPage.builder.summary.locationsEmpty"),
+            total === 0 || visible === 0 ? noDataStatus : undefined,
+            total === 0 || visible === 0,
+          );
+        }
+        case "gallery": {
+          const count = portfolioPhotoCount(props.locations);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.photos", { count })
+              : t("businessPage.builder.summary.photosEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "team": {
+          const count = teamMemberCount(props.locations);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.members", { count })
+              : t("businessPage.builder.summary.membersEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "interlude": {
+          const count = portfolioPhotoCount(props.locations);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.usesPortfolioPhoto")
+              : t("businessPage.builder.summary.noPortfolioPhoto"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "testimonials": {
+          const count = reviewCount(props.locations, props.reviews);
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.reviews", { count })
+              : t("businessPage.builder.summary.reviewsEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "faq": {
+          const count = props.faqItems.length;
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.questions", { count })
+              : t("businessPage.builder.summary.questionsEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
+        }
+        case "footer":
+          return withStatus(t("businessPage.builder.summary.footerContent"));
+        default:
+          return withStatus(t("businessPage.builder.summary.generated"));
+      }
+    },
+    [
+      locale,
+      props.aboutContent,
+      props.aboutError,
+      props.announcementContent.message,
+      props.announcementError,
+      props.faqItems.length,
+      props.heroImageUrl,
+      props.locations,
+      props.reviews,
+      props.tagline,
+      props.taglineError,
+      catalogByKey,
+      sectionCatalogByType,
+      t,
+    ],
+  );
+
+  const toggleVisibleWithFeedback = useCallback(
+    (entry: SectionEntry, index: number) => {
+      const turningOn = !entry.visible;
+      props.toggleSectionVisible(index);
+      const label = isKnownSectionType(entry.type) ? t(SECTION_META[entry.type].labelKey) : entry.type;
+      showUndoToast({
+        title: t(turningOn ? "businessPage.builder.toast.sectionShown" : "businessPage.builder.toast.sectionHidden", {
+          section: label,
+        }),
+        undoLabel: t("businessPage.builder.toast.undo"),
+        onUndo: () => props.toggleSectionVisible(index),
+      });
+    },
+    [props.toggleSectionVisible, t],
+  );
+
+  const previewFocusIndex = previewFocusType
+    ? props.layout.findIndex((section) => section.type === previewFocusType)
+    : -1;
+  const previewFocusEntry = previewFocusIndex >= 0 ? layoutWithPreviewVariants[previewFocusIndex] : null;
+  const modalSectionMode = previewScope === "section" && !!previewFocusEntry;
+  const modalLayout = modalSectionMode
+    ? [{ ...previewFocusEntry!, visible: true }]
+    : layoutWithPreviewVariants;
+  const modalStartNumber = modalSectionMode ? previewNumberFor(previewFocusIndex) : 1;
+  const modalChrome = !modalSectionMode;
+  const previewFocusLabel =
+    previewFocusEntry && isKnownSectionType(previewFocusEntry.type)
+      ? t(SECTION_META[previewFocusEntry.type].labelKey)
+      : null;
+
+  useEffect(() => {
+    if (!previewOpen || previewScope !== "page" || !previewFocusType) return;
+    const container = previewScrollRef.current;
+    if (!container) return;
+    const target = Array.from(container.querySelectorAll<HTMLElement>("[data-preview-section]")).find(
+      (node) => node.dataset.previewSection === previewFocusType,
+    );
+    if (!target) return;
+    const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "start" });
+    });
+  }, [device, layoutWithPreviewVariants, previewFocusType, previewOpen, previewScope]);
+
   const renderSettings = (entry: SectionEntry, index: number) => {
     const meta = isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null;
     // Server-driven pills, matched against the components implemented in code (SECTION_META): a
@@ -295,129 +653,213 @@ export function SectionBuilder(props: SectionBuilderProps) {
           (v) => v.id === baseId || v.id === entry.variant || catalogByKey.has(`${entry.type}:${v.id}`),
         )
       : [];
-    const hasVariants = variants.length > 1;
+    const variantOptions: SectionStyleOption[] = variants.map((variant) => {
+      const catalogEntry = catalogByKey.get(`${entry.type}:${variant.id}`);
+      const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
+      return {
+        variant,
+        catalogEntry,
+        paid,
+        locked: paid && !catalogEntry.owned,
+        owned: paid && catalogEntry.owned,
+        inCart: !!catalogEntry && (props.cartVariantIds ?? []).includes(catalogEntry.id),
+        priceLabel: catalogEntry ? variantPriceLabel(formatPrice, catalogEntry) : null,
+      };
+    });
+    const hasVariants = variantOptions.length > 1;
+    const activeCatalogEntry = catalogByKey.get(`${entry.type}:${entry.variant}`);
+    const activeVariantLocked =
+      !!activeCatalogEntry && activeCatalogEntry.priceMinor > 0 && !activeCatalogEntry.owned;
+    const previewVariantId = previewVariantByType[entry.type] ?? entry.variant;
+    const previewEntry =
+      previewVariantId === entry.variant ? entry : { ...entry, variant: previewVariantId };
+    const previewCatalogEntry = catalogByKey.get(`${entry.type}:${previewVariantId}`);
+    const previewingLockedVariant =
+      previewVariantId !== entry.variant &&
+      !!previewCatalogEntry &&
+      previewCatalogEntry.priceMinor > 0 &&
+      !previewCatalogEntry.owned;
+    const lockedCatalogEntryForAction = previewingLockedVariant
+      ? previewCatalogEntry
+      : activeVariantLocked
+        ? activeCatalogEntry
+        : null;
     // The section's real "0N —" ordinal in the full page, so the scoped preview stays in sync with the rest.
-    const previewNumber =
-      props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1;
+    const previewNumber = previewNumberFor(index);
+    const sectionPreviewMotionKey = `${entry.type}:${previewVariantId}:${device}`;
     return (
       <div className="space-y-4">
         <fieldset
-          disabled={!entry.visible}
+          disabled={!entry.visible || !props.canWrite}
           className={cn(
             "m-0 min-w-0 space-y-4 border-0 p-0",
-            !entry.visible && "pointer-events-none opacity-60 transition-opacity duration-200",
+            (!entry.visible || !props.canWrite) && "pointer-events-none opacity-60 transition-opacity duration-200",
           )}
         >
-        {hasVariants && (
-          <div className="flex flex-col items-start gap-1.5">
-            <span className="text-[11px] font-semibold uppercase text-foreground-3">
-              {t("businessPage.builder.variantLabel")}
-            </span>
-            <div className="inline-flex rounded-lg bg-surface-hover p-0.5" role="group">
-              {/* Each pill's state comes from the catalog entry: paid + unowned = a lock pill that
-                  opens the purchase dialog (selection is replaced, so an unowned paid variant can't
-                  be saved); paid + owned = selectable with a subtle premium spark; free = plain. */}
-              {variants.map((v) => {
-                const active = entry.variant === v.id;
-                const catalogEntry = catalogByKey.get(`${entry.type}:${v.id}`);
-                const paid = !!catalogEntry && catalogEntry.priceMinor > 0;
-                const lockedVariant = paid && !catalogEntry.owned;
-                if (lockedVariant) {
-                  const price = variantPriceLabel(formatPrice, catalogEntry);
-                  const inCart = (props.cartVariantIds ?? []).includes(catalogEntry.id);
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setPurchaseTarget(catalogEntry)}
-                      aria-pressed={active}
-                      aria-label={t("businessPage.paidVariants.lockedAria", {
-                        name: t(v.labelKey),
-                        price,
-                      })}
-                      title={
-                        inCart
-                          ? t("businessPage.paidVariants.inCartTitle", { price })
-                          : t("businessPage.paidVariants.lockedTitle", { price })
-                      }
-                      className={cn(
-                        "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
-                        EASE,
-                        // The saved variant can itself be locked (it turned paid after being saved) —
-                        // keep the active plate so the state reads, but the lock stays.
-                        active
-                          ? "bg-surface text-foreground-2 shadow-sm"
-                          : "text-foreground-3 hover:text-foreground-2",
-                      )}
-                    >
-                      {inCart ? (
-                        <ShoppingCart className="h-3 w-3 shrink-0 text-primary" strokeWidth={2} aria-hidden />
-                      ) : (
-                        <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
-                      )}
-                      {t(v.labelKey)}
-                      <span className="text-[11px] font-normal text-foreground-3">{price}</span>
-                    </button>
-                  );
+          {/* Skeleton only where a picker can actually appear — single-variant sections never get one,
+              so holding space there would just flash a skeleton that resolves into nothing. */}
+          {catalogPending && (meta?.variants.length ?? 0) > 1 ? (
+            <VariantPickerSkeleton />
+          ) : hasVariants ? (
+            <SectionStylePicker
+              entry={entry}
+              variants={variantOptions}
+              selectedVariantId={previewVariantId}
+              disabled={!entry.visible || !props.canWrite}
+              onSelect={(option) => {
+                if (option.locked && option.catalogEntry) {
+                  setPreviewVariantByType((current) => ({
+                    ...current,
+                    [entry.type]: option.variant.id,
+                  }));
+                  if (!sectionPreviewOpen) setPreviewTrayOpen(true);
+                  return;
                 }
-                return (
-                  <button
-                    key={v.id}
+                setPreviewVariantByType((current) => {
+                  if (!current[entry.type]) return current;
+                  const { [entry.type]: _removed, ...rest } = current;
+                  return rest;
+                });
+                props.setSectionVariant(index, option.variant.id);
+              }}
+              t={t}
+              isNative={props.isNative}
+              previewData={previewData}
+              previewNumber={previewNumber}
+            />
+          ) : null}
+
+          {lockedCatalogEntryForAction ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-warning-border bg-warning-bg px-3 py-2.5 text-[12px] leading-5 text-warning sm:flex-row sm:items-center sm:justify-between">
+              <p className="min-w-0">
+                <span className="font-semibold">{t("businessPage.paidVariants.previewingLockedTitle")}</span>{" "}
+                {props.isNative
+                  ? t("businessPage.paidVariants.nativeHint")
+                  : t("businessPage.paidVariants.previewingLockedHelper")}
+              </p>
+              {!props.isNative && (
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {props.onToggleCartVariant ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      rounded="default"
+                      onClick={() => props.onToggleCartVariant?.(lockedCatalogEntryForAction)}
+                      className="h-8 border-warning-border bg-surface px-3 text-[12px] font-semibold text-foreground-1 hover:bg-surface-hover"
+                    >
+                      <ShoppingCart className="size-3.5" strokeWidth={1.8} aria-hidden />
+                      {(props.cartVariantIds ?? []).includes(lockedCatalogEntryForAction.id)
+                        ? t("businessPage.paidVariants.removeFromCart")
+                        : t("businessPage.paidVariants.addToCart")}
+                    </Button>
+                  ) : null}
+                  <Button
                     type="button"
-                    onClick={() => props.setSectionVariant(index, v.id)}
-                    aria-pressed={active}
-                    title={paid ? t("businessPage.paidVariants.ownedTitle") : undefined}
-                    className={cn(
-                      "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-ring/50",
-                      EASE,
-                      active
-                        ? "bg-surface text-primary-700 shadow-sm dark:text-primary-400"
-                        : "text-foreground-3 hover:text-foreground-2",
-                    )}
+                    size="sm"
+                    rounded="default"
+                    onClick={() => setPurchaseTarget(lockedCatalogEntryForAction)}
+                    className="h-8 px-3 text-[12px] font-semibold"
                   >
-                    {t(v.labelKey)}
-                    {paid && (
-                      <Sparkles className="h-3 w-3 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
-                    )}
-                  </button>
-                );
-              })}
+                    {t("businessPage.paidVariants.buy", {
+                      price: variantPriceLabel(formatPrice, lockedCatalogEntryForAction),
+                    })}
+                  </Button>
+                </div>
+              )}
+            </div>
+          ) : null}
+
+          <SettingsPanel
+            entry={entry}
+            index={index}
+            locations={props.locations}
+            faqItems={props.faqItems}
+            announcementContent={props.announcementContent}
+            aboutContent={props.aboutContent}
+            tagline={props.tagline}
+            taglineError={props.taglineError}
+            heroImageUrl={props.heroImageUrl}
+            canWrite={props.canWrite}
+            locale={locale}
+            onConfigChange={props.setSectionConfig}
+            onTurnOffSection={() => {
+              toggleVisibleWithFeedback(entry, index);
+              if (openType === entry.type) setOpenType(null);
+            }}
+            onFaqChange={props.setFaqItems}
+            onAnnouncementChange={props.setAnnouncementContent}
+            onAboutChange={props.setAboutContent}
+            onTaglineChange={props.setTagline}
+          />
+        </fieldset>
+
+        <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold uppercase tracking-[0.08em] text-foreground-3">
+                {t("businessPage.builder.sectionPreview")}
+              </p>
+              <p className="mt-0.5 text-[12.5px] leading-5 text-foreground-3">
+                {t("businessPage.builder.previewHelper")}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <DeviceToggle device={device} setDevice={setDevice} t={t} />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                rounded="default"
+                onClick={() => setPreviewTrayOpen(!sectionPreviewOpen)}
+                className={cn("h-8 px-3 text-[12px] font-semibold", EASE)}
+              >
+                {sectionPreviewOpen ? t("businessPage.builder.hidePreview") : t("businessPage.builder.showPreview")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                rounded="default"
+                onClick={() => openPreview("page", entry.type)}
+                className={cn("h-8 px-3 text-[12px] font-semibold", EASE)}
+              >
+                {t("businessPage.builder.previewExpand")}
+                <ArrowUpRight className="size-3.5" strokeWidth={1.8} aria-hidden />
+              </Button>
             </div>
           </div>
-        )}
-        <SettingsPanel
-          entry={entry}
-          index={index}
-          locations={props.locations}
-          faqItems={props.faqItems}
-          announcementContent={props.announcementContent}
-          aboutContent={props.aboutContent}
-          tagline={props.tagline}
-          taglineError={props.taglineError}
-          heroImageUrl={props.heroImageUrl}
-          canWrite={props.canWrite}
-          locale={locale}
-          onConfigChange={props.setSectionConfig}
-          onTurnOffSection={() => {
-            if (entry.visible) props.toggleSectionVisible(index);
-            setOpenType(null);
-          }}
-          onFaqChange={props.setFaqItems}
-          onAnnouncementChange={props.setAnnouncementContent}
-          onAboutChange={props.setAboutContent}
-          onTaglineChange={props.setTagline}
-        />
-        </fieldset>
-        <div className="border-t border-border pt-5">
-          <div className="mb-3 flex items-center gap-2">
-            <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
-            <span className="text-[11px] font-semibold uppercase text-foreground-3">
-              {t("businessPage.builder.sectionPreview")}
-            </span>
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-border bg-background">
-            <LivePreview layout={[{ ...entry, visible: true }]} data={previewData} chrome={false} startNumber={previewNumber} />
-          </div>
+
+          <Collapsible open={sectionPreviewOpen}>
+            <CollapsibleContent>
+              <AutoHeight>
+                <div className="overflow-hidden rounded-xl border border-border bg-background">
+                  <div
+                    className={cn(
+                      "mx-auto transform-gpu transition-[max-width,transform] duration-200 motion-reduce:transition-none",
+                      EASE,
+                    )}
+                    style={{ maxWidth: device === "mobile" ? 390 : "100%" }}
+                  >
+                    <div
+                      key={sectionPreviewMotionKey}
+                      className={cn(
+                        "transform-gpu motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200",
+                        EASE,
+                      )}
+                    >
+                      <LivePreview
+                        layout={[{ ...previewEntry, visible: true }]}
+                        data={previewData}
+                        chrome={false}
+                        startNumber={previewNumber}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </AutoHeight>
+            </CollapsibleContent>
+          </Collapsible>
         </div>
       </div>
     );
@@ -426,12 +868,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
   return (
     <>
       <div className="overflow-hidden rounded-[1.5rem] border border-border bg-surface shadow-xs">
-        <div className="px-5 py-5 sm:px-6 lg:px-7">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="px-4 py-4 sm:px-5 lg:px-6">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="min-w-0">
-              <div className="mb-2.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] text-foreground-3">
+              <div className="mb-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[12px] text-foreground-3">
                 <span className="inline-flex items-center gap-2 font-medium text-foreground-2">
-                  <span className="size-1.5 rounded-full bg-primary" aria-hidden />
                   {t("businessPage.builder.eyebrow")}
                 </span>
                 <span className="h-1 w-1 rounded-full bg-border-subtle" aria-hidden />
@@ -444,34 +885,28 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   {t("businessPage.builder.sectionsVisible")}
                 </span>
               </div>
-              <h2 className="text-balance text-[23px] font-semibold leading-tight text-foreground-1 sm:text-[26px]">
+              <h2 className="text-balance text-[21px] font-semibold leading-tight text-foreground-1 sm:text-[23px]">
                 {t("businessPage.builder.studioTitle")}
               </h2>
-              <p className="mt-1.5 max-w-[58ch] text-pretty text-sm leading-6 text-foreground-3">
+              <p className="mt-1 max-w-[58ch] text-pretty text-[13px] leading-5 text-foreground-3">
                 {t("businessPage.builder.studioHelper")}
               </p>
             </div>
-            <button
+            <Button
               type="button"
-              onClick={() => setPreviewOpen(true)}
+              variant="outline"
+              size="default"
+              rounded="default"
+              onClick={() => openPreview("page", openType)}
               className={cn(
-                "group inline-flex h-10 shrink-0 items-center gap-2 self-start rounded-full border border-border bg-surface-hover px-3.5 text-[13px] font-semibold text-foreground-2 outline-none",
-                "transition-[transform,border-color,background-color] duration-150 hover:border-border-strong hover:bg-surface-active active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-focus",
+                "h-9 shrink-0 self-start px-3.5 text-[13px] font-semibold",
+                "transition-[transform,border-color,background-color] duration-150 active:scale-[0.98]",
                 EASE,
               )}
             >
               {t("businessPage.builder.openPreview")}
-              <span
-                className={cn(
-                  "grid size-6 place-items-center rounded-full bg-surface text-foreground-2 ring-1 ring-border-subtle",
-                  "transition-[transform,color] duration-150 group-hover:text-foreground-1",
-                  "group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-active:scale-95",
-                  EASE,
-                )}
-              >
-                <ArrowUpRight className="size-3.5" strokeWidth={1.7} aria-hidden />
-              </span>
-            </button>
+              <ArrowUpRight className="size-3.5" strokeWidth={1.8} aria-hidden />
+            </Button>
           </div>
         </div>
 
@@ -479,11 +914,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
             list and each section's scoped preview get the whole module width */}
         <div className="border-t border-border">
           {/* brand band — above the list */}
-          <div className="bg-surface px-5 py-4 sm:px-6 lg:px-7">{props.brandPanel}</div>
+          <div className="bg-surface px-4 py-3.5 sm:px-5 lg:px-6">{props.brandPanel}</div>
 
           {/* sections — the page contents, set as a ruled editorial index */}
-          <div className="border-t border-border bg-surface-hover/35 px-5 py-5 sm:px-6 lg:px-7">
-            <div className="mb-4 flex flex-col gap-1.5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="border-t border-border bg-surface-hover/35 px-3 py-3.5 sm:px-4 lg:px-5">
+            <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <h3 className="text-[15px] font-semibold text-foreground-1">
                   {t("businessPage.builder.title")}
@@ -498,7 +933,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
             <div className="relative overflow-hidden rounded-2xl border border-border bg-surface">
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-[72px] z-0 w-px bg-border-subtle"
+                className="pointer-events-none absolute inset-y-0 left-[72px] z-0 hidden w-px bg-border-subtle sm:block"
               />
               <DndContext
                 sensors={sensors}
@@ -514,6 +949,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                       // interaction (expand, toggle) opens the unlock purchase dialog instead.
                       const paidLocked = lockedSectionEntry(entry.type);
                       const open = openType === entry.type && !paidLocked;
+                      const rowInfo = rowInfoFor(entry);
                       return (
                         <Collapsible
                           key={entry.type}
@@ -529,13 +965,15 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             "relative",
                             open && "z-10",
                             pos > 0 &&
-                              "before:pointer-events-none before:absolute before:left-[72px] before:right-[18px] before:top-0 before:z-0 before:h-px before:bg-border-subtle before:content-['']",
+                              "before:pointer-events-none before:absolute before:left-4 before:right-[18px] before:top-0 before:z-0 before:h-px before:bg-border-subtle before:content-[''] sm:before:left-[72px]",
                           )}
                         >
                           <SectionCard
                             entry={entry}
                             meta={isKnownSectionType(entry.type) ? SECTION_META[entry.type] : null}
                             index={pos + 1}
+                            summary={rowInfo.summary}
+                            status={rowInfo.status}
                             expanded={open}
                             locked={PINNED_TYPES.has(entry.type)}
                             required={REQUIRED_TYPES.has(entry.type)}
@@ -545,7 +983,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             }
                             paidLocked={!!paidLocked}
                             priceLabel={paidLocked ? variantPriceLabel(formatPrice, paidLocked) : undefined}
+                            hidePrice={props.isNative}
                             inCart={!!paidLocked && (props.cartSectionIds ?? []).includes(paidLocked.id)}
+                            pending={catalogPending && !REQUIRED_TYPES.has(entry.type)}
                             onSelect={() => {
                               if (paidLocked) {
                                 setSectionPurchaseTarget(paidLocked);
@@ -567,15 +1007,15 @@ export function SectionBuilder(props: SectionBuilderProps) {
                                   props.setSectionConfig(index, { hiddenLocationIds: [] });
                                 }
                               }
-                              props.toggleSectionVisible(index);
+                              toggleVisibleWithFeedback(entry, index);
                               // Expand a section when it's switched on; collapse it when switched off.
                               if (turningOn) setOpenType(entry.type);
                               else if (open) setOpenType(null);
                             }}
                           />
                           <CollapsibleContent>
-                            <AutoHeight className="relative pb-6 pl-[72px] pr-4 pt-3 sm:pl-[87px]">
-                              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-300 motion-safe:delay-75">
+                            <AutoHeight className="relative pb-5 pl-4 pr-3 pt-3 sm:pl-[87px] sm:pr-4">
+                              <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200">
                                 {renderSettings(entry, index)}
                               </div>
                             </AutoHeight>
@@ -587,6 +1027,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                 </SortableContext>
               </DndContext>
             </div>
+
           </div>
         </div>
 
@@ -595,18 +1036,62 @@ export function SectionBuilder(props: SectionBuilderProps) {
       {/* fullscreen */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="flex max-h-[90vh] w-full max-w-[min(1280px,calc(100%-2rem))] flex-col gap-0 overflow-hidden p-0 sm:max-w-[min(1280px,calc(100%-2rem))]">
-          <DialogHeader className="flex flex-row items-center justify-between gap-2 space-y-0 border-b border-border p-4 pr-12 text-left">
-            <DialogTitle className="flex items-center gap-2 text-[11px] font-semibold uppercase text-foreground-2">
-              <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
-              {t("businessPage.builder.previewLabel")}
+          <DialogHeader className="flex flex-row items-center justify-between gap-3 space-y-0 border-b border-border p-4 pr-12 text-left">
+            <DialogTitle className="min-w-0 text-[12px] font-semibold text-foreground-1">
+              <span className="block truncate">
+                {modalSectionMode && previewFocusLabel
+                  ? t("businessPage.builder.currentSectionPreview", { section: previewFocusLabel })
+                  : t("businessPage.builder.previewLabel")}
+              </span>
             </DialogTitle>
-            <div className="flex items-center gap-4 text-[12px]">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-[12px]">
+              <div className="inline-flex rounded-lg border border-border bg-surface-hover p-0.5">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  rounded="default"
+                  onClick={() => setPreviewScope("page")}
+                  aria-pressed={previewScope === "page"}
+                  className={cn(
+                    "h-7 px-3 text-[12px] font-medium shadow-none transition-[background-color,color,transform] duration-150 active:scale-[0.98]",
+                    previewScope === "page"
+                      ? "bg-surface text-foreground-1 shadow-xs hover:bg-surface"
+                      : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
+                  )}
+                >
+                  {t("businessPage.builder.fullPage")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  rounded="default"
+                  onClick={() => previewFocusEntry && setPreviewScope("section")}
+                  disabled={!previewFocusEntry}
+                  aria-pressed={previewScope === "section"}
+                  className={cn(
+                    "h-7 px-3 text-[12px] font-medium shadow-none transition-[background-color,color,transform] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
+                    previewScope === "section"
+                      ? "bg-surface text-foreground-1 shadow-xs hover:bg-surface"
+                      : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
+                  )}
+                >
+                  {t("businessPage.builder.currentSection")}
+                </Button>
+              </div>
               <DeviceToggle device={device} setDevice={setDevice} t={t} />
             </div>
           </DialogHeader>
-          <div className="overflow-y-auto bg-surface-hover dark:bg-neutral-900/40">
+          <div ref={previewScrollRef} className="overflow-y-auto bg-surface-hover dark:bg-neutral-900/40">
             <div className={cn("mx-auto", device === "mobile" ? "max-w-[390px] p-3" : "max-w-none")}>
-              <LivePreview layout={props.layout} data={previewData} />
+              <LivePreview
+                layout={modalLayout}
+                data={previewData}
+                chrome={modalChrome}
+                startNumber={modalStartNumber}
+                focusType={modalChrome ? previewFocusType ?? undefined : undefined}
+              />
             </div>
           </div>
         </DialogContent>
@@ -650,34 +1135,46 @@ function DeviceToggle({
 }: {
   device: "desktop" | "mobile";
   setDevice: (v: "desktop" | "mobile") => void;
-  t: (k: string) => string;
+  t: MarketplaceT;
 }) {
   return (
-    <span className="inline-flex items-center gap-2.5">
-      <button
+    // Toggling to "mobile" is inert once the container itself is already mobile-width — hidden below
+    // `sm` on both call sites (the scoped card preview and the fullscreen dialog).
+    <span className="hidden items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5 sm:inline-flex">
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
+        rounded="default"
         onClick={() => setDevice("desktop")}
         aria-label={t("businessPage.builder.deviceDesktop")}
         aria-pressed={device === "desktop"}
         className={cn(
-          "transition-colors duration-150 ease-out",
-          device === "desktop" ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
+          "size-7 shadow-none transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96]",
+          device === "desktop"
+            ? "bg-surface-hover text-foreground-1 hover:bg-surface-hover"
+            : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
         )}
       >
         <Monitor className="size-[15px]" strokeWidth={1.5} />
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="ghost"
+        size="icon"
+        rounded="default"
         onClick={() => setDevice("mobile")}
         aria-label={t("businessPage.builder.deviceMobile")}
         aria-pressed={device === "mobile"}
         className={cn(
-          "transition-colors duration-150 ease-out",
-          device === "mobile" ? "text-foreground-1" : "text-foreground-3 hover:text-foreground-2",
+          "size-7 shadow-none transition-[background-color,color,transform] duration-150 ease-out active:scale-[0.96]",
+          device === "mobile"
+            ? "bg-surface-hover text-foreground-1 hover:bg-surface-hover"
+            : "text-foreground-3 hover:bg-transparent hover:text-foreground-2",
         )}
       >
         <Smartphone className="size-[15px]" strokeWidth={1.5} />
-      </button>
+      </Button>
     </span>
   );
 }

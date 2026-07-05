@@ -102,6 +102,7 @@ interface BusinessProfileProps {
 
 const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const { t } = useTranslation('settings');
+  const { t: tIndustry } = useTranslation('industries');
   const dispatch = useDispatch();
   const currentBusiness = useSelector(getCurrentBusinessSelector);
   const user = useSelector((state: RootState) => state.auth.user);
@@ -230,8 +231,8 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
   const selectedIndustryName = useMemo(() => {
     if (formData.industryId == null) return null;
     const found = industries.find(i => i.id === formData.industryId);
-    return found ? toTitleCase(found.name) : null;
-  }, [formData.industryId, industries]);
+    return found ? tIndustry(found.slug, toTitleCase(found.name)) : null;
+  }, [formData.industryId, industries, tIndustry]);
 
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -515,7 +516,7 @@ const BusinessProfile: React.FC<BusinessProfileProps> = ({ onDirtyChange }) => {
                     setFormData((prev) => ({ ...prev, industryId: next }));
                     setErrors(prev => ({ ...prev, industryId: next == null ? t('common:validation.industryRequired') : undefined }));
                   }}
-                  options={industries.map((i) => ({ value: String(i.id), label: toTitleCase(i.name) }))}
+                  options={industries.map((i) => ({ value: String(i.id), label: tIndustry(i.slug, toTitleCase(i.name)) }))}
                   error={touched.industryId ? errors.industryId : undefined}
                 />
               </div>
