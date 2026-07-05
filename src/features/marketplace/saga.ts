@@ -21,6 +21,7 @@ import type { ActionType } from "typesafe-actions";
 import { toast } from "sonner";
 import i18n from "../../shared/lib/i18n";
 import { getErrorMessage } from "../../shared/utils/error";
+import { isNativeApp } from "../../app/config/env";
 
 function* handleFetchMarketplaceListing() {
   try {
@@ -139,6 +140,12 @@ function* handleFetchWebsiteVariantCatalog() {
 }
 
 function* handleCreateWebsiteVariantCheckout(action: ActionType<typeof createWebsiteVariantCheckoutAction.request>) {
+  if (isNativeApp()) {
+    // Store policy: no Stripe web checkout inside the native webview — purchase UI is hidden,
+    // but this backstops any action that slips through.
+    yield put(createWebsiteVariantCheckoutAction.failure({ message: "" }));
+    return;
+  }
   try {
     const response: { url: string } = yield call(createWebsiteVariantCheckoutApi, action.payload);
     yield put(createWebsiteVariantCheckoutAction.success(response));

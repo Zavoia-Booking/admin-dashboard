@@ -45,7 +45,10 @@ export function VariantCartBar({ entries, isLoading, onRemove, onClear, onChecko
   return (
     <div
       className={cn(
-        "fixed bottom-4 left-1/2 z-40 w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2",
+        "fixed left-1/2 z-40 w-[calc(100%-2rem)] max-w-[420px] -translate-x-1/2",
+        // Below md the global bottom nav exists (app-layout gates it on the same 768px breakpoint) —
+        // clear it plus the safe area. Pure CSS so the very first paint is already correct.
+        "bottom-[calc(76px+env(safe-area-inset-bottom,0px)+16px)] md:bottom-[calc(1rem+env(safe-area-inset-bottom,0px))]",
         "rounded-2xl border border-border bg-surface p-4 shadow-lg",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-300",
       )}

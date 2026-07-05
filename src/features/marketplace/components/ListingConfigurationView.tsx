@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSelector } from "react-redux";
 import { useSearchParams, useNavigate, useLocation } from "react-router-dom";
-import { selectCurrentUser } from "../../auth/selectors";
+import { selectHasWebsiteBuilder } from "../../auth/selectors";
 import { useCanWrite } from "../../../shared/components/common/subscription/useCanWrite";
 import { LimitedAccessBanner } from "../../../shared/components/common/subscription/LimitedAccessBanner";
 import {
@@ -85,9 +85,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   // stays visible for everyone — without the entitlement it renders an
   // upgrade/locked view instead of the builder. UX only; the server strips
   // builder fields for non-entitled plans.
-  const currentUser = useSelector(selectCurrentUser);
-  const hasWebsiteBuilder =
-    currentUser?.entitlements?.features?.websiteBuilder ?? false;
+  const hasWebsiteBuilder = useSelector(selectHasWebsiteBuilder);
 
   const getInitialTab = (): MarketplaceTab => {
     const tab = searchParams.get("tab") as MarketplaceTab | null;
@@ -383,7 +381,14 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
               />
             </>
           ) : (
-            <WebsiteBuilderLockedView />
+            <WebsiteBuilderLockedView
+              business={business}
+              locations={locationsWithAssignments}
+              heroImageUrl={props.heroImageUrl ?? null}
+              // Saved values, not the live form draft — the teaser previews what would actually publish.
+              tagline={props.tagline ?? undefined}
+              brandColorHex={props.brandColorHex ?? undefined}
+            />
           )
         ) : null,
     },

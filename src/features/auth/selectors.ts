@@ -34,3 +34,5 @@ export const selectIsLtd = (s: { auth: AuthState }) => s.auth.user?.entitlements
 export const selectIsOnTrial = (s: { auth: AuthState }) => s.auth.user?.entitlements?.status === 'trial';
 export const selectTrialDaysRemaining = (s: { auth: AuthState }) => s.auth.user?.entitlements?.daysRemaining ?? 0;
 export const selectPaidTeamSeats = (s: { auth: AuthState }) => s.auth.user?.entitlements?.paidTeamSeats ?? 0;
+export const selectHasWebsiteBuilder = (s: { auth: AuthState }) =>
+  s.auth.user?.entitlements?.features?.websiteBuilder ?? false;

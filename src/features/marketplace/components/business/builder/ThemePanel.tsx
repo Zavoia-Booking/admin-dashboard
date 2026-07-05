@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { Lock } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { FONT_OPTIONS } from "./theme";
 
@@ -27,7 +26,6 @@ export function ThemePanel({ fontKey, onFontChange }: ThemePanelProps) {
                 type="button"
                 onClick={() => onFontChange(f.key)}
                 aria-pressed={active}
-                aria-label={f.pro ? `${t(f.labelKey)}, ${t("businessPage.pro.badge")}` : undefined}
                 className={cn(
                   "group/font relative flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-2 text-center outline-none transition-[transform,border-color,background-color] duration-150 ease-out active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/50",
                   active
@@ -35,14 +33,6 @@ export function ThemePanel({ fontKey, onFontChange }: ThemePanelProps) {
                     : "border-transparent bg-transparent hover:border-border hover:bg-surface-hover/70",
                 )}
               >
-                {f.pro && (
-                  <span
-                    aria-hidden
-                    className="absolute right-1.5 top-1.5 grid size-4 place-items-center rounded-full bg-surface text-foreground-3 ring-1 ring-border"
-                  >
-                    <Lock className="size-2.5" strokeWidth={2.2} />
-                  </span>
-                )}
                 <span className="shrink-0 text-[21px] leading-none text-foreground-1" style={{ fontFamily: f.stack }}>
                   Aa
                 </span>

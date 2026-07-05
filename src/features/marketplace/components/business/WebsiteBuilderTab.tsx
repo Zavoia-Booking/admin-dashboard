@@ -3,8 +3,8 @@ import { useDispatch, useSelector } from "react-redux";
 import { useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Lock } from "lucide-react";
 import { LimitedAccessBanner } from "../../../../shared/components/common/subscription/LimitedAccessBanner";
+import { usePlatform } from "../../../../shared/hooks/usePlatform";
 import type { Business, LocationWithAssignments, WebsiteSectionCatalogEntry, WebsiteVariantCatalogEntry } from "../../types";
 import type { useMarketplaceForm } from "../../hooks/useMarketplaceForm";
 import { fetchReviewStatsAction, fetchHighlightReviewsAction } from "../../../reviews/actions";
@@ -23,16 +23,16 @@ import {
 import {
   selectWebsiteVariantCatalog,
   selectWebsiteSectionCatalog,
+  selectVariantCatalogLoading,
   selectVariantCheckoutCreating,
   selectVariantCart,
   selectSectionCart,
 } from "../../selectors";
-import { selectCurrentUser } from "../../../auth/selectors";
+import { selectHasWebsiteBuilder } from "../../../auth/selectors";
 import { BrandColorControl, BrandingSection } from "./BrandingSection";
 import { SectionBuilder } from "./builder/SectionBuilder";
 import { VariantCartBar, type CartLineItem } from "./builder/VariantCartBar";
 import { ThemePanel } from "./builder/ThemePanel";
-import { accentIsPro, fontIsPro } from "./builder/theme";
 import type { PreviewReview, RatingBars } from "./builder/LivePreview";
 
 interface WebsiteBuilderTabProps {
@@ -52,6 +52,7 @@ export function WebsiteBuilderTab({
 }: WebsiteBuilderTabProps) {
   const { t } = useTranslation("marketplace");
   const dispatch = useDispatch();
+  const { isNative } = usePlatform();
   const [searchParams, setSearchParams] = useSearchParams();
   const reviewStats = useSelector(selectReviewStats);
   const highlightReviews = useSelector(selectHighlightReviews);
@@ -60,11 +61,11 @@ export function WebsiteBuilderTab({
   // ownership + the checkout in-flight flag.
   const variantCatalog = useSelector(selectWebsiteVariantCatalog);
   const sectionCatalog = useSelector(selectWebsiteSectionCatalog);
+  const isCatalogLoading = useSelector(selectVariantCatalogLoading);
   const isVariantCheckoutLoading = useSelector(selectVariantCheckoutCreating);
   const variantCart = useSelector(selectVariantCart);
   const sectionCart = useSelector(selectSectionCart);
-  const currentUser = useSelector(selectCurrentUser);
-  const hasWebsiteBuilder = currentUser?.entitlements?.features?.websiteBuilder ?? false;
+  const hasWebsiteBuilder = useSelector(selectHasWebsiteBuilder);
 
   // Shopping cart persistence: hydrate once per page load from localStorage (keyed per
   // business so switching accounts never leaks a cart), then mirror every change back.
@@ -260,18 +261,6 @@ export function WebsiteBuilderTab({
     [highlightReviews],
   );
 
-  const accentPro = accentIsPro(form.brandColorHex);
-  const fontPro = fontIsPro(form.fontKey);
-  const previewingPro = accentPro || fontPro;
-  const previewingLabel =
-    accentPro && fontPro
-      ? t("businessPage.pro.previewingStyles")
-      : accentPro
-        ? t("businessPage.pro.previewingColor")
-        : t("businessPage.pro.previewingFont");
-
-  const handleUpgrade = () => toast(t("businessPage.pro.upgradeToast"));
-
   return (
     <div className="max-w-7xl mb-0 md:mb-8">
       <LimitedAccessBanner className="!px-0 !pt-0" />
@@ -304,7 +293,7 @@ export function WebsiteBuilderTab({
                     fontKey={form.fontKey}
                   />
                 </div>
-                <div className="min-w-0 space-y-3">
+                <div className="min-w-0">
                   <div className="grid min-w-0 gap-4 lg:grid-cols-[minmax(220px,0.72fr)_minmax(0,1.28fr)] lg:items-start">
                     <BrandColorControl
                       canWrite={canWrite}
@@ -313,24 +302,6 @@ export function WebsiteBuilderTab({
                     />
                     <ThemePanel fontKey={form.fontKey} onFontChange={form.setFontKey} />
                   </div>
-                  {previewingPro && (
-                    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-surface-hover/35 px-3 py-2">
-                      <span className="grid size-5 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                        <Lock className="size-3" strokeWidth={2.1} aria-hidden />
-                      </span>
-                      <p className="min-w-[180px] flex-1 text-pretty text-[12.5px] leading-5 text-foreground-2">
-                        <span className="font-medium text-foreground-1">{previewingLabel}</span>
-                        <span className="text-foreground-3">. {t("businessPage.pro.saveHint")}</span>
-                      </p>
-                      <button
-                        type="button"
-                        onClick={handleUpgrade}
-                        className="shrink-0 rounded-full border border-border bg-surface px-3 py-1.5 text-[12px] font-semibold text-foreground-1 outline-none transition-[transform,border-color,background-color] duration-150 ease-out hover:border-border-strong hover:bg-surface-hover active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus"
-                      >
-                        {t("businessPage.pro.upgrade")}
-                      </button>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -355,6 +326,7 @@ export function WebsiteBuilderTab({
           variantCatalog={variantCatalog}
           sectionCatalog={sectionCatalog}
           hasWebsiteBuilder={hasWebsiteBuilder}
+          isCatalogLoading={isCatalogLoading}
           isVariantCheckoutLoading={isVariantCheckoutLoading}
           onBuyVariant={handleBuyVariant}
           onBuySection={handleBuySection}
@@ -362,9 +334,10 @@ export function WebsiteBuilderTab({
           cartSectionIds={sectionCart}
           onToggleCartVariant={handleToggleCartVariant}
           onToggleCartSection={handleToggleCartSection}
+          isNative={isNative}
         />
       </div>
-      {canWrite && (
+      {canWrite && !isNative && (
         <VariantCartBar
           entries={cartItems}
           isLoading={isVariantCheckoutLoading}

@@ -11,7 +11,7 @@ import type { AnnouncementVariantProps } from "./types";
 // Layout registry — add a variant by adding its component file + a catalog entry (sectionCatalog). The
 // resolver below maps the saved variant to its component, falling back to the default layout.
 const VARIANTS: Record<string, React.FC<AnnouncementVariantProps>> = {
-  default: Default,
+  bar: Default,
 };
 
 export function AnnouncementBar({ entry, data, t, sample = false }: { entry: SectionEntry; data: PreviewData; t: T; sample?: boolean }) {

@@ -34,8 +34,13 @@ interface SectionCardProps {
   paidLocked?: boolean;
   /** Resolved unlock price label, shown on the lock button while paidLocked. */
   priceLabel?: string;
+  /** Native (Capacitor) app: suppress the price text/aria (store policy — no purchase surfaces). */
+  hidePrice?: boolean;
   /** The section unlock is queued in the shopping cart (swaps the lock icon). */
   inCart?: boolean;
+  /** The section catalog is still loading — this row's real lock state isn't known yet, so the
+   *  trailing control renders a neutral skeleton instead of a switch that might flip a moment later. */
+  pending?: boolean;
   onSelect: () => void;
   onToggleVisible: () => void;
 }
@@ -57,7 +62,9 @@ export function SectionCard({
   needsAttention,
   paidLocked,
   priceLabel,
+  hidePrice,
   inCart,
+  pending,
   onSelect,
   onToggleVisible,
 }: SectionCardProps) {
@@ -113,7 +120,10 @@ export function SectionCard({
             type="button"
             aria-label={t("businessPage.builder.card.drag")}
             className={cn(
-              "pointer-events-auto col-start-1 grid h-11 w-[30px] cursor-grab touch-none place-items-center justify-self-center rounded-md text-foreground-3 outline-none",
+              "pointer-events-auto relative col-start-1 grid h-11 w-[30px] cursor-grab touch-none place-items-center justify-self-center rounded-md text-foreground-3 outline-none",
+              // Widens the touch target to the ≥44px minimum without changing the visible grip's size —
+              // the pseudo-element still dispatches to this button, so drag listeners are unaffected.
+              "before:absolute before:-inset-x-2 before:inset-y-0 before:content-['']",
               "opacity-50 transition-[opacity,color] duration-200",
               "hover:text-foreground-1 hover:opacity-100 active:cursor-grabbing",
               "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/60",
@@ -166,6 +176,18 @@ export function SectionCard({
                 live ? "text-foreground-3" : "text-foreground-disabled",
               )}
             >
+              {status && (
+                <span
+                  className={cn(
+                    "font-medium sm:hidden",
+                    statusTone === "danger" && "text-error",
+                    statusTone === "warning" && "text-warning",
+                  )}
+                >
+                  {status.label}
+                  <span aria-hidden> · </span>
+                </span>
+              )}
               {summary}
             </span>
           )}
@@ -201,29 +223,37 @@ export function SectionCard({
             aria-hidden
           />
           <span className="pointer-events-auto ml-1.5">
-            {paidLocked ? (
+            {pending ? (
+              <span className="inline-block h-5 w-9 animate-pulse rounded-full bg-surface-hover" aria-hidden />
+            ) : paidLocked ? (
               /* Locked paid section: a lock/price chip instead of the switch — tapping it
                  opens the purchase dialog (the parent routes onToggleVisible there). */
               <button
                 type="button"
                 onClick={onToggleVisible}
-                aria-label={t("businessPage.paidVariants.lockedAria", { name: label, price: priceLabel ?? "" })}
+                aria-label={
+                  hidePrice
+                    ? t("businessPage.paidVariants.lockedAriaNative", { name: label })
+                    : t("businessPage.paidVariants.lockedAria", { name: label, price: priceLabel ?? "" })
+                }
                 title={
-                  inCart
-                    ? t("businessPage.paidVariants.inCartTitle", { price: priceLabel ?? "" })
-                    : t("businessPage.paidVariants.lockedTitle", { price: priceLabel ?? "" })
+                  hidePrice
+                    ? t("businessPage.paidVariants.nativeHint")
+                    : inCart
+                      ? t("businessPage.paidVariants.inCartTitle", { price: priceLabel ?? "" })
+                      : t("businessPage.paidVariants.lockedTitle", { price: priceLabel ?? "" })
                 }
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full border border-border bg-surface-hover px-2.5 py-1 text-[12px] font-medium text-foreground-2 outline-none",
                   "transition-[color,border-color,background-color,transform] duration-150 ease-out hover:border-border-strong hover:text-foreground-1 active:scale-[0.97] focus-visible:ring-2 focus-visible:ring-focus",
                 )}
               >
-                {inCart ? (
+                {!hidePrice && inCart ? (
                   <ShoppingCart className="h-3 w-3 shrink-0 text-primary" strokeWidth={2} aria-hidden />
                 ) : (
                   <Lock className="h-3 w-3 shrink-0" strokeWidth={2} aria-hidden />
                 )}
-                {priceLabel}
+                {!hidePrice && priceLabel}
               </button>
             ) : (
               /* Required sections (nav/hero/footer) show the toggle on but locked — no off-brand text tag. */
@@ -248,7 +278,7 @@ export function SectionCard({
       <span
         aria-hidden
         className={cn(
-          "pointer-events-none absolute bottom-0 left-[72px] right-4 z-[1] h-[1.5px] origin-left rounded-full bg-primary",
+          "pointer-events-none absolute bottom-0 left-4 right-4 z-[1] h-[1.5px] origin-left rounded-full bg-primary sm:left-[72px]",
           "transition-transform duration-[340ms] ease-[var(--ease-out-strong)]",
           expanded ? "scale-x-100" : "scale-x-0",
         )}

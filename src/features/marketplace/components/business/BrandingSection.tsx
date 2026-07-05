@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { Building2, Camera, Check, ChevronDown, Loader2, Lock } from "lucide-react";
+import { Building2, Camera, Check, ChevronDown, Loader2 } from "lucide-react";
 import type { Business } from "../../types";
 import { cn } from "../../../../shared/lib/utils";
 import { uploadBusinessLogo } from "../../../settings/api";
@@ -19,8 +19,10 @@ const PUBLIC_PAGE_BASE = "zavoia.com/b/";
 // Shared micro-label for each brand group (mirrors the section-list mono labels).
 const GROUP_LABEL = "text-[11px] font-semibold uppercase text-foreground-3";
 
-const freeAccents = BRAND_ACCENTS.filter((a) => !a.pro);
-const proAccents = BRAND_ACCENTS.filter((a) => a.pro);
+// The inline row (outside the popover) stays to a calm 8 spanning the palette's whole warm→cool→neutral
+// arc (a plain first-8 slice would read all-warm); the popover is the overflow surface for the full set.
+const INLINE_ACCENT_KEYS = new Set(["burgundy", "terracotta", "amber", "olive", "teal", "navy", "plum", "ink"]);
+const INLINE_ACCENTS = BRAND_ACCENTS.filter((a) => INLINE_ACCENT_KEYS.has(a.key));
 
 interface BrandingSectionProps {
   business: Business | null;
@@ -172,7 +174,7 @@ export function BrandColorControl({
     ? t(`businessPage.branding.brandColor.swatches.${activeAccentEntry.key}`)
     : accentHex.toUpperCase();
 
-  const renderSwatch = ({ key, hex, pro }: { key: string; hex: string; pro?: boolean }) => {
+  const renderSwatch = ({ key, hex }: { key: string; hex: string }) => {
     const selected = activeAccent === hex.toLowerCase();
     const name = t(`businessPage.branding.brandColor.swatches.${key}`);
     return (
@@ -181,7 +183,7 @@ export function BrandColorControl({
         type="button"
         role="radio"
         aria-checked={selected}
-        aria-label={pro ? `${name} · ${t("businessPage.pro.badge")}` : name}
+        aria-label={name}
         title={name}
         disabled={!canWrite}
         onClick={() => setBrandColorHex(hex)}
@@ -198,14 +200,6 @@ export function BrandColorControl({
         {selected && (
           <span className="absolute inset-0 grid place-items-center" aria-hidden>
             <Check className="size-3.5 text-white" strokeWidth={2.4} />
-          </span>
-        )}
-        {pro && (
-          <span
-            aria-hidden
-            className="absolute -right-1 -top-1 grid size-3.5 place-items-center rounded-full bg-popover ring-1 ring-black/10 dark:ring-white/15"
-          >
-            <Lock className="size-2 text-foreground-3" strokeWidth={2.5} />
           </span>
         )}
       </button>
@@ -240,44 +234,23 @@ export function BrandColorControl({
               />
             </button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-[336px] p-4 md:w-[336px]">
-            <div className="space-y-3.5">
-              <div className="space-y-2">
-                <span className={GROUP_LABEL}>{t("businessPage.branding.brandColor.included")}</span>
-                <div
-                  role="radiogroup"
-                  aria-label={t("businessPage.branding.brandColor.included")}
-                  className="grid grid-cols-8 gap-2.5"
-                >
-                  {freeAccents.map(renderSwatch)}
-                </div>
-              </div>
-              <div className="space-y-2 border-t border-border-subtle pt-3.5">
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase text-foreground-3">
-                  <Lock className="size-3" strokeWidth={2.2} aria-hidden />
-                  {t("businessPage.branding.brandColor.proGroup")}
-                </span>
-                <div
-                  role="radiogroup"
-                  aria-label={t("businessPage.branding.brandColor.proGroup")}
-                  className="grid grid-cols-8 gap-2.5"
-                >
-                  {proAccents.map(renderSwatch)}
-                </div>
-              </div>
-              <p className="text-[11px] leading-snug text-foreground-3">
-                {t("businessPage.branding.brandColor.previewHint")}
-              </p>
+          <PopoverContent align="start" className="w-[min(336px,calc(100vw-2rem))] p-4">
+            <div
+              role="radiogroup"
+              aria-label={t("businessPage.branding.brandColor.allSwatches")}
+              className="grid grid-cols-8 gap-2.5"
+            >
+              {BRAND_ACCENTS.map(renderSwatch)}
             </div>
           </PopoverContent>
         </Popover>
       </div>
       <div
         role="radiogroup"
-        aria-label={t("businessPage.branding.brandColor.included")}
+        aria-label={t("businessPage.branding.brandColor.label")}
         className="flex flex-wrap gap-2"
       >
-        {freeAccents.map(renderSwatch)}
+        {INLINE_ACCENTS.map(renderSwatch)}
       </div>
     </div>
   );

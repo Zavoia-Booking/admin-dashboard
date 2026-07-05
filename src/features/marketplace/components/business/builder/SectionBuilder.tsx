@@ -17,7 +17,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
-import { Monitor, Smartphone, ArrowUpRight, Check, Lock, ShoppingCart, Sparkles } from "lucide-react";
+import { Monitor, Smartphone, ArrowUpRight, ShoppingCart } from "lucide-react";
 import { cn } from "../../../../../shared/lib/utils";
 import { useFormatPrice } from "../../../../../shared/hooks/useFormatPrice";
 import {
@@ -40,21 +40,19 @@ import type {
   WebsiteVariantCatalogEntry,
   WebsiteSectionCatalogEntry,
 } from "../../../types";
-import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES, type SectionVariant } from "./sectionCatalog";
+import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
 import { SectionCard, type SectionCardStatus } from "./SectionCard";
 import { VariantPurchaseDialog, variantPriceLabel } from "./VariantPurchaseDialog";
+import { SectionStylePicker, VariantPickerSkeleton, EASE, type MarketplaceT, type SectionStyleOption } from "./SectionStylePicker";
 import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
 import { useLocationTagDictionaries } from "../../../hooks/useLocationTagDictionaries";
 import { aboutHeadline } from "./aboutContent";
 
-/** House ease-out (mirrors --ease-out-strong in globals.css). */
-const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
 const SECTION_PREVIEW_PREF_KEY = "zavoia:business-page-section-preview";
 
 type PreviewScope = "page" | "section";
-type MarketplaceT = (key: string, options?: Record<string, unknown>) => string;
 
 interface SectionRowInfo {
   summary: string;
@@ -185,6 +183,10 @@ interface SectionBuilderProps {
   sectionCatalog?: WebsiteSectionCatalogEntry[];
   /** Plan includes the website builder (purchasing needs Plus/trial; locked pills still render without it). */
   hasWebsiteBuilder?: boolean;
+  /** The catalog fetch is in flight — while true AND both catalogs are still empty, price-dependent
+   *  affordances render a neutral skeleton instead of briefly showing as unlocked (catalog fetch
+   *  *failure* keeps the deliberate free-render fallback; this only covers the loading window). */
+  isCatalogLoading?: boolean;
   /** A checkout session is being created (buy button busy until the Stripe redirect). */
   isVariantCheckoutLoading?: boolean;
   /** Confirmed purchase → create the Stripe checkout session and redirect. */
@@ -199,13 +201,15 @@ interface SectionBuilderProps {
   onToggleCartVariant?: (variant: WebsiteVariantCatalogEntry) => void;
   /** Add a section unlock to / remove it from the shopping cart. */
   onToggleCartSection?: (section: WebsiteSectionCatalogEntry) => void;
+  /** Native (Capacitor) app — store policy: no purchase surfaces (prices/Buy/cart) render; preview-before-buy stays fully functional. */
+  isNative?: boolean;
 }
 
 /**
- * Business-page studio — one editorial module: a header, then the section list (left) beside the brand
- * controls (right). Opening a section reveals its editor plus a scoped preview of just that section;
- * the whole page opens in a fullscreen dialog via "Open preview". Reorder via drag or the ↑/↓ buttons.
- * Near-monochrome chrome; the only colour lives inside the rendered preview.
+ * Business-page studio — one editorial module: a header, then the brand controls stacked full-width
+ * above the section list. Opening a section reveals its editor plus a scoped preview of just that
+ * section; the whole page opens in a fullscreen dialog via "Open preview". Reorder via drag (pointer or
+ * keyboard). Near-monochrome chrome; the only colour lives inside the rendered preview.
  */
 export function SectionBuilder(props: SectionBuilderProps) {
   const { t, i18n } = useTranslation("marketplace");
@@ -292,6 +296,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
     return map;
   }, [sectionCatalog]);
   const [sectionPurchaseTarget, setSectionPurchaseTarget] = useState<WebsiteSectionCatalogEntry | null>(null);
+  // First load only (not the empty-catalog failure fallback, which has already resolved by the
+  // time isCatalogLoading goes false): both catalogs are still empty AND the fetch is in flight.
+  const catalogPending = !!props.isCatalogLoading && (variantCatalog?.length ?? 0) === 0 && (sectionCatalog?.length ?? 0) === 0;
   // Required chrome (nav/hero/footer) is never locked — every page needs it regardless of catalog data.
   const lockedSectionEntry = (type: string): WebsiteSectionCatalogEntry | null => {
     if (REQUIRED_TYPES.has(type)) return null;
@@ -689,7 +696,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
             (!entry.visible || !props.canWrite) && "pointer-events-none opacity-60 transition-opacity duration-200",
           )}
         >
-          {hasVariants ? (
+          {/* Skeleton only where a picker can actually appear — single-variant sections never get one,
+              so holding space there would just flash a skeleton that resolves into nothing. */}
+          {catalogPending && (meta?.variants.length ?? 0) > 1 ? (
+            <VariantPickerSkeleton />
+          ) : hasVariants ? (
             <SectionStylePicker
               entry={entry}
               variants={variantOptions}
@@ -712,6 +723,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
                 props.setSectionVariant(index, option.variant.id);
               }}
               t={t}
+              isNative={props.isNative}
+              previewData={previewData}
+              previewNumber={previewNumber}
             />
           ) : null}
 
@@ -719,36 +733,40 @@ export function SectionBuilder(props: SectionBuilderProps) {
             <div className="flex flex-col gap-3 rounded-xl border border-warning-border bg-warning-bg px-3 py-2.5 text-[12px] leading-5 text-warning sm:flex-row sm:items-center sm:justify-between">
               <p className="min-w-0">
                 <span className="font-semibold">{t("businessPage.paidVariants.previewingLockedTitle")}</span>{" "}
-                {t("businessPage.paidVariants.previewingLockedHelper")}
+                {props.isNative
+                  ? t("businessPage.paidVariants.nativeHint")
+                  : t("businessPage.paidVariants.previewingLockedHelper")}
               </p>
-              <div className="flex shrink-0 flex-wrap items-center gap-2">
-                {props.onToggleCartVariant ? (
+              {!props.isNative && (
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {props.onToggleCartVariant ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      rounded="default"
+                      onClick={() => props.onToggleCartVariant?.(lockedCatalogEntryForAction)}
+                      className="h-8 border-warning-border bg-surface px-3 text-[12px] font-semibold text-foreground-1 hover:bg-surface-hover"
+                    >
+                      <ShoppingCart className="size-3.5" strokeWidth={1.8} aria-hidden />
+                      {(props.cartVariantIds ?? []).includes(lockedCatalogEntryForAction.id)
+                        ? t("businessPage.paidVariants.removeFromCart")
+                        : t("businessPage.paidVariants.addToCart")}
+                    </Button>
+                  ) : null}
                   <Button
                     type="button"
-                    variant="outline"
                     size="sm"
                     rounded="default"
-                    onClick={() => props.onToggleCartVariant?.(lockedCatalogEntryForAction)}
-                    className="h-8 border-warning-border bg-surface px-3 text-[12px] font-semibold text-foreground-1 hover:bg-surface-hover"
+                    onClick={() => setPurchaseTarget(lockedCatalogEntryForAction)}
+                    className="h-8 px-3 text-[12px] font-semibold"
                   >
-                    <ShoppingCart className="size-3.5" strokeWidth={1.8} aria-hidden />
-                    {(props.cartVariantIds ?? []).includes(lockedCatalogEntryForAction.id)
-                      ? t("businessPage.paidVariants.removeFromCart")
-                      : t("businessPage.paidVariants.addToCart")}
+                    {t("businessPage.paidVariants.buy", {
+                      price: variantPriceLabel(formatPrice, lockedCatalogEntryForAction),
+                    })}
                   </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  size="sm"
-                  rounded="default"
-                  onClick={() => setPurchaseTarget(lockedCatalogEntryForAction)}
-                  className="h-8 px-3 text-[12px] font-semibold"
-                >
-                  {t("businessPage.paidVariants.buy", {
-                    price: variantPriceLabel(formatPrice, lockedCatalogEntryForAction),
-                  })}
-                </Button>
-              </div>
+                </div>
+              )}
             </div>
           ) : null}
 
@@ -915,7 +933,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
             <div className="relative overflow-hidden rounded-2xl border border-border bg-surface">
               <span
                 aria-hidden
-                className="pointer-events-none absolute inset-y-0 left-[72px] z-0 w-px bg-border-subtle"
+                className="pointer-events-none absolute inset-y-0 left-[72px] z-0 hidden w-px bg-border-subtle sm:block"
               />
               <DndContext
                 sensors={sensors}
@@ -947,7 +965,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             "relative",
                             open && "z-10",
                             pos > 0 &&
-                              "before:pointer-events-none before:absolute before:left-[72px] before:right-[18px] before:top-0 before:z-0 before:h-px before:bg-border-subtle before:content-['']",
+                              "before:pointer-events-none before:absolute before:left-4 before:right-[18px] before:top-0 before:z-0 before:h-px before:bg-border-subtle before:content-[''] sm:before:left-[72px]",
                           )}
                         >
                           <SectionCard
@@ -965,7 +983,9 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             }
                             paidLocked={!!paidLocked}
                             priceLabel={paidLocked ? variantPriceLabel(formatPrice, paidLocked) : undefined}
+                            hidePrice={props.isNative}
                             inCart={!!paidLocked && (props.cartSectionIds ?? []).includes(paidLocked.id)}
+                            pending={catalogPending && !REQUIRED_TYPES.has(entry.type)}
                             onSelect={() => {
                               if (paidLocked) {
                                 setSectionPurchaseTarget(paidLocked);
@@ -994,7 +1014,7 @@ export function SectionBuilder(props: SectionBuilderProps) {
                             }}
                           />
                           <CollapsibleContent>
-                            <AutoHeight className="relative pb-5 pl-[72px] pr-4 pt-3 sm:pl-[87px]">
+                            <AutoHeight className="relative pb-5 pl-4 pr-3 pt-3 sm:pl-[87px] sm:pr-4">
                               <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200">
                                 {renderSettings(entry, index)}
                               </div>
@@ -1024,8 +1044,8 @@ export function SectionBuilder(props: SectionBuilderProps) {
                   : t("businessPage.builder.previewLabel")}
               </span>
             </DialogTitle>
-            <div className="flex shrink-0 items-center gap-3 text-[12px]">
-              <div className="hidden rounded-lg border border-border bg-surface-hover p-0.5 sm:inline-flex">
+            <div className="flex shrink-0 flex-wrap items-center justify-end gap-2 text-[12px]">
+              <div className="inline-flex rounded-lg border border-border bg-surface-hover p-0.5">
                 <Button
                   type="button"
                   variant="ghost"
@@ -1108,129 +1128,6 @@ export function SectionBuilder(props: SectionBuilderProps) {
 
 // ---------------------------------------------------------------------------
 
-interface SectionStyleOption {
-  variant: SectionVariant;
-  catalogEntry?: WebsiteVariantCatalogEntry;
-  paid: boolean;
-  locked: boolean;
-  owned: boolean;
-  inCart: boolean;
-  priceLabel: string | null;
-}
-
-function SectionStylePicker({
-  entry,
-  variants,
-  selectedVariantId,
-  disabled,
-  onSelect,
-  t,
-}: {
-  entry: SectionEntry;
-  variants: SectionStyleOption[];
-  selectedVariantId: string;
-  disabled: boolean;
-  onSelect: (option: SectionStyleOption) => void;
-  t: MarketplaceT;
-}) {
-  return (
-    <div className="mb-3 rounded-xl border border-border bg-surface px-3 py-3">
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-foreground-3">
-            {t("businessPage.builder.variantLabel")}
-          </span>
-          <p className="mt-1 text-[12px] leading-5 text-foreground-3">
-            {t("businessPage.paidVariants.styleHelper")}
-          </p>
-        </div>
-      </div>
-
-      <div className="mt-2.5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4" role="radiogroup">
-        {variants.map((option) => {
-          const { variant } = option;
-          const active = selectedVariantId === variant.id;
-          const previewOnly = active && entry.variant !== variant.id && option.locked;
-          const badge = option.inCart
-            ? t("businessPage.paidVariants.inCartBadge")
-            : option.locked
-              ? previewOnly
-                ? t("businessPage.paidVariants.previewBadge")
-                : option.priceLabel ?? t("businessPage.paidVariants.lockedBadge")
-              : option.owned
-                ? t("businessPage.paidVariants.ownedBadge")
-                : t("businessPage.paidVariants.includedBadge");
-
-          return (
-            <button
-              key={variant.id}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              disabled={disabled}
-              onClick={() => onSelect(option)}
-              aria-label={
-                option.locked && option.priceLabel
-                  ? t("businessPage.paidVariants.lockedAria", {
-                      name: t(variant.labelKey),
-                      price: option.priceLabel,
-                    })
-                  : t(variant.labelKey)
-              }
-              title={
-                option.locked && option.priceLabel
-                  ? option.inCart
-                    ? t("businessPage.paidVariants.inCartTitle", { price: option.priceLabel })
-                    : t("businessPage.paidVariants.lockedTitle", { price: option.priceLabel })
-                  : option.owned
-                    ? t("businessPage.paidVariants.ownedTitle")
-                    : undefined
-              }
-              className={cn(
-                "group min-h-[58px] rounded-lg border px-3 py-2.5 text-left outline-none",
-                "transition-[transform,border-color,background-color,box-shadow,color] duration-200 active:scale-[0.98] focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50",
-                EASE,
-                active
-                  ? "border-border-strong bg-surface shadow-xs"
-                  : "border-border bg-background hover:border-border-strong hover:bg-surface-hover/45",
-              )}
-            >
-              <span className="flex items-start justify-between gap-3">
-                <span className="min-w-0 truncate text-[13px] font-semibold text-foreground-1">
-                  {t(variant.labelKey)}
-                </span>
-                {active ? (
-                  <span className="mt-0.5 inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-foreground-1 text-surface">
-                    <Check className="size-3" strokeWidth={2.4} aria-hidden />
-                  </span>
-                ) : option.inCart ? (
-                  <ShoppingCart className="mt-0.5 size-4 shrink-0 text-primary" strokeWidth={1.9} aria-hidden />
-                ) : option.locked ? (
-                  <Lock className="mt-0.5 size-4 shrink-0 text-foreground-3" strokeWidth={1.9} aria-hidden />
-                ) : option.owned ? (
-                  <Sparkles className="mt-0.5 size-4 shrink-0 text-primary" strokeWidth={1.8} aria-hidden />
-                ) : null}
-              </span>
-              <span
-                className={cn(
-                  "mt-2 inline-flex max-w-full items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold",
-                  option.locked || option.inCart
-                    ? "border-border bg-surface-hover/70 text-foreground-2"
-                    : option.owned
-                      ? "border-primary/30 bg-primary/10 text-primary"
-                      : "border-border-subtle bg-transparent text-foreground-3",
-                )}
-              >
-                <span className="truncate">{badge}</span>
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function DeviceToggle({
   device,
   setDevice,
@@ -1241,7 +1138,9 @@ function DeviceToggle({
   t: MarketplaceT;
 }) {
   return (
-    <span className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5">
+    // Toggling to "mobile" is inert once the container itself is already mobile-width — hidden below
+    // `sm` on both call sites (the scoped card preview and the fullscreen dialog).
+    <span className="hidden items-center gap-0.5 rounded-lg border border-border bg-surface p-0.5 sm:inline-flex">
       <Button
         type="button"
         variant="ghost"

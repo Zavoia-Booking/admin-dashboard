@@ -22,8 +22,6 @@ export interface FontOption {
   tracking: string;
   /** Whether italic pull-quotes/marquee read well in this face (serifs: yes; grotesques: no). */
   italicOk: boolean;
-  /** Pro-tier face — previewable, but saving requires an upgrade (see the builder paywall banner). */
-  pro?: boolean;
 }
 
 /** Body + label faces are constant across personalities (only the display face changes). */
@@ -55,7 +53,6 @@ export const FONT_OPTIONS: FontOption[] = [
     weight: 600,
     tracking: "-0.02em",
     italicOk: true,
-    pro: true,
   },
   {
     key: "friendly",
@@ -64,7 +61,6 @@ export const FONT_OPTIONS: FontOption[] = [
     weight: 600,
     tracking: "-0.02em",
     italicOk: false,
-    pro: true,
   },
 ];
 
@@ -103,29 +99,26 @@ const HEX6 = /^#[0-9a-fA-F]{6}$/;
  * warm → cool → neutral arc; terracotta is the signature default (FALLBACK_BRAND), not necessarily index 0.
  * i18n names live under marketplace:businessPage.branding.brandColor.swatches.<key>.
  */
-// `pro: true` = locked behind the paywall (previewable, save needs an upgrade). The free tier is a
-// curated 8 spanning the warm→cool→neutral arc so a non-paying owner still has real range; the split
-// is just data — a future entitlements backend can flip these flags per business.
-export const BRAND_ACCENTS: { key: string; hex: string; pro?: boolean }[] = [
+export const BRAND_ACCENTS: { key: string; hex: string }[] = [
   { key: "burgundy", hex: "#8E2C45" },
-  { key: "brick", hex: "#7A2E2A", pro: true },
+  { key: "brick", hex: "#7A2E2A" },
   { key: "terracotta", hex: "#C2552F" },
-  { key: "rust", hex: "#9A3B22", pro: true },
+  { key: "rust", hex: "#9A3B22" },
   { key: "amber", hex: "#A66A1E" },
-  { key: "caramel", hex: "#6B3A24", pro: true },
+  { key: "caramel", hex: "#6B3A24" },
   { key: "olive", hex: "#5F6324" },
-  { key: "pine", hex: "#3E6B36", pro: true },
-  { key: "forest", hex: "#1B4332", pro: true },
+  { key: "pine", hex: "#3E6B36" },
+  { key: "forest", hex: "#1B4332" },
   { key: "teal", hex: "#1E6E6E" },
-  { key: "peacock", hex: "#0E3D44", pro: true },
+  { key: "peacock", hex: "#0E3D44" },
   { key: "navy", hex: "#283B52" },
-  { key: "indigo", hex: "#3E4E80", pro: true },
-  { key: "violet", hex: "#3E2E55", pro: true },
+  { key: "indigo", hex: "#3E4E80" },
+  { key: "violet", hex: "#3E2E55" },
   { key: "plum", hex: "#86436F" },
-  { key: "rose", hex: "#7A3850", pro: true },
-  { key: "slate", hex: "#3A3F3D", pro: true },
-  { key: "greige", hex: "#4A4039", pro: true },
-  { key: "graphite", hex: "#2A2E33", pro: true },
+  { key: "rose", hex: "#7A3850" },
+  { key: "slate", hex: "#3A3F3D" },
+  { key: "greige", hex: "#4A4039" },
+  { key: "graphite", hex: "#2A2E33" },
   { key: "ink", hex: "#26211C" },
 ];
 
@@ -134,21 +127,6 @@ export const FALLBACK_BRAND = "#C2552F";
 
 export function safeBrandColor(hex: string | null | undefined): string {
   return hex && HEX6.test(hex) ? hex : FALLBACK_BRAND;
-}
-
-/**
- * Paywall predicates. A Pro accent/font is fully previewable (it drives the live render) but can't be
- * saved until the owner upgrades — the builder surfaces that with a preview banner. Today nothing Pro is
- * owned, so "is this pick Pro?" === "is this a preview-only pick?"; when entitlements land, subtract the
- * business's owned SKUs here.
- */
-export function accentIsPro(hex: string | null | undefined): boolean {
-  const h = safeBrandColor(hex).toLowerCase();
-  return BRAND_ACCENTS.some((a) => a.pro === true && a.hex.toLowerCase() === h);
-}
-
-export function fontIsPro(key: string | null | undefined): boolean {
-  return displayFontFor(key).pro === true;
 }
 
 /** Readable on-accent text colour (warm white or near-black) from relative luminance. */
