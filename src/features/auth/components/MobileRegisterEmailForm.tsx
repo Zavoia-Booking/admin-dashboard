@@ -17,7 +17,6 @@ type FormValues = {
 type Status =
   | { kind: 'form' }
   | { kind: 'sent'; email: string }
-  | { kind: 'account_exists' }
 
 export function MobileRegisterEmailForm() {
   const { t } = useTranslation('auth')
@@ -39,16 +38,8 @@ export function MobileRegisterEmailForm() {
       const locale = i18n.language?.startsWith('ro') ? 'ro' : 'en'
       await mobileRegisterRequestApi({ email: values.email, locale })
       setStatus({ kind: 'sent', email: values.email })
-    } catch (err: any) {
-      const status = err?.response?.status
-      const code = err?.response?.data?.code
-      if (status === 409 && code === 'account_already_exists') {
-        setStatus({ kind: 'account_exists' })
-      } else if (status === 429) {
-        setSubmitError(t('mobileRegister.errorGeneric'))
-      } else {
-        setSubmitError(t('mobileRegister.errorGeneric'))
-      }
+    } catch {
+      setSubmitError(t('mobileRegister.errorGeneric'))
     } finally {
       setSubmitting(false)
     }
@@ -79,30 +70,6 @@ export function MobileRegisterEmailForm() {
         </CardHeader>
         <CardFooter className="flex flex-col gap-3 px-6 md:px-8 pb-6 md:pb-8">
           <Button type="button" variant="outline" rounded="full" className="w-full h-10 md:h-12" onClick={resetToForm}>
-            {t('mobileRegister.sendAnother')}
-          </Button>
-        </CardFooter>
-      </Card>
-    )
-  }
-
-  if (status.kind === 'account_exists') {
-    return (
-      <Card className="w-full max-w-lg mx-auto">
-        <CardHeader className="space-y-2 px-6 py-6 md:px-8 md:py-8 items-center text-center">
-          <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-warning/10">
-            <AlertCircle className="h-6 w-6 text-warning" />
-          </div>
-          <CardTitle className="text-xl md:text-2xl text-center">{t('mobileRegister.accountExistsTitle')}</CardTitle>
-          <CardDescription className="text-center text-sm">
-            {t('mobileRegister.accountExistsDescription')}
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex flex-col gap-3 px-6 md:px-8 pb-6 md:pb-8">
-          <Button type="button" rounded="full" className="w-full h-10 md:h-12" onClick={() => navigate('/login')}>
-            {t('mobileRegister.accountExistsCta')}
-          </Button>
-          <Button type="button" variant="ghost" rounded="full" className="w-full" onClick={resetToForm}>
             {t('mobileRegister.sendAnother')}
           </Button>
         </CardFooter>

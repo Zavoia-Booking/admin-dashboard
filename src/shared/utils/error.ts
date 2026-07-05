@@ -60,6 +60,20 @@ export function getErrorMessage(error: unknown): string {
     const axiosError = error as any;
     const response = axiosError.response;
 
+    // Rate-limit guards respond with developer-facing English strings
+    // ("Too many requests. Please try again later.") or bare message codes.
+    // Show a friendly localized message unless the code has a real translation.
+    if (response?.status === 429) {
+      const raw = Array.isArray(response.data?.message)
+        ? response.data.message[0]
+        : response.data?.message;
+      const translated = typeof raw === "string" ? translateMessageCode(raw) : "";
+      if (translated && translated !== raw) {
+        return translated;
+      }
+      return i18n.t("messages:rateLimited");
+    }
+
     if (response?.data) {
       // Backend sends message codes (e.g., 'CATEGORY.E06') in the message field
       if (response.data.message) {

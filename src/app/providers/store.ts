@@ -6,6 +6,7 @@ import setupWizardReducer from "../../features/setupWizard/reducer";
 import teamMembersReducer from "../../features/teamMembers/reducer";
 import { LocationsReducer } from "../../features/locations/reducer";
 import { initApiClient } from "../../shared/lib/http";
+import { initNativeSessionResume } from "../../shared/lib/nativeSessionResume";
 import { ServicesReducer } from "../../features/services/reducer.ts";
 import { CalendarReducer } from "../../features/calendar/reducer.ts";
 import settingsReducer from "../../features/settings/reducer";
@@ -63,6 +64,9 @@ sagaMiddleware.run(rootSaga);
 
 // --- init axios client with the store (needed for interceptors to access state/dispatch) ---
 initApiClient(store);
+
+// --- native: refresh a stale session when the app returns to the foreground ---
+initNativeSessionResume(store);
 
 // --- types ---
 export type AppStore = typeof store;

@@ -25,6 +25,13 @@ interface UseMarketplaceFormProps {
   useBusinessPhone: boolean;
   useBusinessDescription: boolean;
   selectedIndustryTags: { id: number; name: string }[];
+  /**
+   * websiteBuilder plan entitlement. Without it the builder tab is locked, so
+   * builder-only validation (about headline, announcement) must not gate
+   * publish — the user has no way to fix it, and the server strips the builder
+   * slice from the payload anyway.
+   */
+  hasWebsiteBuilder: boolean;
   onSave: (data: PublishMarketplaceListingPayload) => void;
 }
 
@@ -46,6 +53,7 @@ export function useMarketplaceForm({
   useBusinessPhone: initialUseBusinessPhone,
   useBusinessDescription: initialUseBusinessDescription,
   selectedIndustryTags: initialSelectedIndustryTags,
+  hasWebsiteBuilder,
   onSave,
 }: UseMarketplaceFormProps) {
 
@@ -70,15 +78,21 @@ export function useMarketplaceForm({
 
   // A shown About section needs a headline — an empty one would publish a blank section. Gate it like the
   // announcement CTA link: required only while the section is visible (off-page sections can't be reached).
+  // Builder-only errors are suppressed entirely without the websiteBuilder entitlement: the locked tab
+  // makes them unfixable, and the server strips pageLayout/announcement from the publish payload anyway
+  // (a fresh business would otherwise be permanently blocked — the default layout shows an About section
+  // whose headline is still empty).
   const aboutVisible = builder.layout.some((s) => s.type === 'about' && s.visible);
   const aboutError =
-    aboutVisible && aboutHeadline(profile.aboutContent) === ''
+    hasWebsiteBuilder && aboutVisible && aboutHeadline(profile.aboutContent) === ''
       ? t('businessPage.errors.aboutHeadlineRequired')
       : null;
 
   // Any announcement problem that blocks publish: a missing/invalid CTA link, or — while the section is
   // shown — a missing message (an empty bar renders nothing). Drives both the publish gate and the card cue.
-  const announcementError = builder.announcementUrlError || builder.announcementMessageError;
+  const announcementError = hasWebsiteBuilder
+    ? builder.announcementUrlError || builder.announcementMessageError
+    : null;
 
   // Save is dirty if either the profile/branding fields or the section builder changed.
   const isDirty = profile.isDirty || builder.isDirty;

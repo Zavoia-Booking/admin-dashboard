@@ -16,6 +16,13 @@ export type MobileRegisterTokenValidation = {
   email: string;
 };
 
+/** Pre-flight info for the /link-business-account page. */
+export type BusinessLinkTokenValidation = {
+  email: string;
+  hasPassword: boolean;
+  googleLinked: boolean;
+};
+
 export type AuthUser = {
   id: number;
   email: string;

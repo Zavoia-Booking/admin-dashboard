@@ -103,8 +103,17 @@ export function createApiClient(store: Store<{ auth: AuthState } & any>): AxiosI
       const isExpiredBody = code === "token_expired" || (typeof errStr === "string" && /expired/i.test(errStr));
       const isExpired = isExpiredHeader || isExpiredBody;
 
-      // Do not attempt refresh for logout calls
-      if (!is401 || isRefreshCall || isLogoutCall || original?._retry || !isExpired) {
+      // A 401 on a request that carried a Bearer token means our session is
+      // stale even when the JWT itself hasn't expired (e.g. the access-token
+      // record was revoked server-side) - the refresh flow re-mints it.
+      // Credential 401s (wrong password on login / link confirmation) carry no
+      // Authorization header and are rejected untouched, as before.
+      const sentBearer = typeof original?.headers?.get === "function"
+        ? !!original.headers.get("Authorization")
+        : !!original?.headers?.["Authorization"];
+
+      // Do not attempt refresh for refresh/logout calls or already-retried requests
+      if (!is401 || isRefreshCall || isLogoutCall || original?._retry || !(isExpired || sentBearer)) {
         return Promise.reject(error);
       }
 
@@ -223,6 +232,13 @@ async function ensureRefreshInFlight(): Promise<string> {
       } catch (e: any) {
         refreshQueue.forEach((cb) => cb(null));
         refreshQueue = [];
+        // Server definitively rejected the refresh token (revoked/expired/invalid):
+        // drop the persisted copy on native so it isn't retried after an app
+        // restart. Network errors (no response) keep it - a restart may recover.
+        const rejectedByServer = [400, 401, 403].includes(e?.response?.status);
+        if (isNativeApp() && rejectedByServer) {
+          tokenStorage.clearRefreshToken().catch(() => {});
+        }
         if (_storeRef) {
           _storeRef.dispatch(hydrateSessionAction.failure({ message: i18n.t("auth:page.errors.sessionExpired") }));
           _storeRef.dispatch(logoutRequestAction.success());

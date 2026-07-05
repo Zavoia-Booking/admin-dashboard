@@ -6,7 +6,7 @@ import { usePlatform } from "../../../../shared/hooks/usePlatform";
 
 /**
  * Upgrade/locked view rendered in place of the WebsiteBuilderTab when the plan
- * lacks the websiteBuilder entitlement (Standard, expired trial, downgraded).
+ * lacks the websiteBuilder entitlement (trialing, Standard, expired, downgraded).
  * Purely presentational — mounts none of the builder and fetches nothing, so
  * deep-linking ?tab=website without the entitlement is safe.
  *

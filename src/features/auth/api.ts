@@ -1,4 +1,4 @@
-import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation } from "./types";
+import type { RegisterOwnerPayload, AuthResponse, AuthUser, CheckTeamInvitationResponse, CompleteTeamInvitationPayload, CompleteTeamInvitationResponse, AccountActionResponse, MobileRegisterRequestResponse, MobileRegisterTokenValidation, BusinessLinkTokenValidation } from "./types";
 import { apiClient } from "../../shared/lib/http";
 import i18n from "../../shared/lib/i18n";
 
@@ -85,6 +85,18 @@ export const linkGoogleByCodeApi = async (payload: { code: string; redirectUri: 
 
 export const selectBusinessApi = async (payload: { selectionToken: string; businessId: number }): Promise<AuthResponse> => {
     const { data } = await apiClient().post<AuthResponse>(`/auth/select-business`, payload);
+    return data;
+};
+
+export const validateBusinessLinkTokenApi = async (token: string): Promise<BusinessLinkTokenValidation> => {
+    const { data } = await apiClient().get<BusinessLinkTokenValidation>(`/auth/link-business-account/validate`, {
+        params: { token },
+    });
+    return data;
+};
+
+export const completeBusinessLinkApi = async (payload: { token: string; password: string }): Promise<AuthResponse> => {
+    const { data } = await apiClient().post<AuthResponse>(`/auth/link-business-account`, payload);
     return data;
 };
 

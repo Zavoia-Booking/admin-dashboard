@@ -242,5 +242,6 @@
     "E01": "Coordonate invalide",
     "E03": "Nu am putut încărca harta. Încearcă din nou"
   },
+  "rateLimited": "Ai încercat de prea multe ori într-un timp scurt. Te rugăm să aștepți puțin și să încerci din nou.",
   "fallback": "A apărut o problemă. Încearcă din nou sau contactează suportul"
 }

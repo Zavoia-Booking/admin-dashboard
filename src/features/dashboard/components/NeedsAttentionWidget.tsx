@@ -71,6 +71,25 @@ interface AttentionItem {
   unresolvedCount?: number;
 }
 
+// The dashboard swaps its widget tree for a skeleton on every loading toggle
+// (locations fetch, per-location data fetch), remounting this widget several
+// times in quick succession. Cache the SMS-low check module-wide with a short
+// TTL so those remounts share one request instead of refiring it each time.
+const SMS_LOW_CHECK_TTL_MS = 60_000;
+let smsLowCheck: { at: number; promise: Promise<boolean> } | null = null;
+
+function checkSmsLowNotification(): Promise<boolean> {
+  if (!smsLowCheck || Date.now() - smsLowCheck.at > SMS_LOW_CHECK_TTL_MS) {
+    smsLowCheck = {
+      at: Date.now(),
+      promise: listNotificationsRequest(0, 20)
+        .then(res => res.data.data.some(n => n.type === 'sms_credits_low' && !n.read))
+        .catch(() => false),
+    };
+  }
+  return smsLowCheck.promise;
+}
+
 export function NeedsAttentionWidget({
   pendingAppointments,
   needsAttentionItems,
@@ -84,12 +103,11 @@ export function NeedsAttentionWidget({
   const locale = i18n.language === 'ro' ? 'ro-RO' : 'en-US';
 
   useEffect(() => {
-    listNotificationsRequest(0, 20)
-      .then(res => {
-        const found = res.data.data.some(n => n.type === 'sms_credits_low' && !n.read);
-        setHasSmsLow(found);
-      })
-      .catch(() => {});
+    let cancelled = false;
+    checkSmsLowNotification().then(found => {
+      if (!cancelled) setHasSmsLow(found);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   // Extract unresolved appointments from the needs attention data

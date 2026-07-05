@@ -12,6 +12,8 @@ interface MarketplacePublishStatusStripProps {
   hasValidationErrors: boolean;
   industryTagOk: boolean;
   businessDetailsOk: boolean;
+  /** Plan entitlement — without it the builder is locked, so its checklist item is irrelevant */
+  hasWebsiteBuilder: boolean;
   websiteBuilderOk: boolean;
   locations: LocationWithAssignments[];
   onPublish: () => void;
@@ -50,6 +52,7 @@ export function MarketplacePublishStatusStrip({
   hasValidationErrors,
   industryTagOk,
   businessDetailsOk,
+  hasWebsiteBuilder,
   websiteBuilderOk,
   locations,
   onPublish,
@@ -67,8 +70,10 @@ export function MarketplacePublishStatusStrip({
       ? t("configuration.buttons.saveChanges")
       : t("configuration.buttons.publish");
 
+  // Dirtiness only gates re-saves of an already-listed page — the first publish
+  // IS the action (unlisted → live), so a clean-but-valid form must stay clickable.
   const publishDisabled =
-    isPublishing || !isDirty || hasValidationErrors || !industryTagOk;
+    isPublishing || (isListed && !isDirty) || hasValidationErrors || !industryTagOk;
 
   return (
     <div className="overflow-hidden rounded-[1.125rem] border border-border bg-surface shadow-xs">
@@ -102,7 +107,9 @@ export function MarketplacePublishStatusStrip({
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
                 <ChecklistItem ok={industryTagOk} label={t("statusStrip.checklist.industryTag")} />
                 <ChecklistItem ok={businessDetailsOk} label={t("statusStrip.checklist.detailsValid")} />
-                <ChecklistItem ok={websiteBuilderOk} label={t("statusStrip.checklist.websiteBuilder")} />
+                {hasWebsiteBuilder && (
+                  <ChecklistItem ok={websiteBuilderOk} label={t("statusStrip.checklist.websiteBuilder")} />
+                )}
               </div>
             </div>
           )}

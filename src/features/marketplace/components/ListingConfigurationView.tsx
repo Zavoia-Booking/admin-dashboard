@@ -81,7 +81,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
   const pendingNavigationPathRef = useRef<string | null>(null);
   const allowNavigationRef = useRef(false);
 
-  // Plan entitlement gate (websiteBuilder is Plus/trial-only). The Website tab
+  // Plan entitlement gate (websiteBuilder is Plus-only; trials stay locked). The Website tab
   // stays visible for everyone — without the entitlement it renders an
   // upgrade/locked view instead of the builder. UX only; the server strips
   // builder fields for non-entitled plans.
@@ -134,6 +134,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
     useBusinessPhone: props.useBusinessPhone ?? true,
     useBusinessDescription: props.useBusinessDescription ?? true,
     selectedIndustryTags: props.selectedIndustryTags,
+    hasWebsiteBuilder,
     onSave: props.onSave,
   });
 
@@ -336,6 +337,7 @@ export function ListingConfigurationView(props: ListingConfigurationViewProps) {
         hasValidationErrors={form.hasValidationErrors}
         industryTagOk={industryTagOk}
         businessDetailsOk={businessDetailsOk}
+        hasWebsiteBuilder={hasWebsiteBuilder}
         websiteBuilderOk={websiteBuilderOk}
         locations={locationsWithAssignments}
         onPublish={handleCombinedSave}

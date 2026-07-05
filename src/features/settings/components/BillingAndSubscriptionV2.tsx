@@ -817,10 +817,15 @@ const BillingAndSubscriptionV2Inner = () => {
           }
           toast.error(error.message || t('billing.toast.paymentFailed'));
         } else {
-          toast.success(t('billing.toast.planUpgraded', { plan: plan.name }));
+          // Full-page hop to the success screen (same pattern as seat updates): the
+          // reload + reading time gives the plan-change webhook room to sync the plan
+          // and entitlements, so billing and the website builder come back unlocked.
+          window.location.href = '/info?type=plan-upgrade-success';
+          return;
         }
       } else if (response.action === 'upgraded') {
-        toast.success(t('billing.toast.planUpgraded', { plan: plan.name }));
+        window.location.href = '/info?type=plan-upgrade-success';
+        return;
       } else if (response.action === 'downgrade_scheduled') {
         toast.success(
           t('billing.toast.planDowngradeScheduled', {

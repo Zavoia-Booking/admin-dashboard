@@ -242,5 +242,6 @@
     "E01": "Invalid map location",
     "E03": "Couldn’t load map. Try again"
   },
+  "rateLimited": "That was attempted too many times in a row. Please wait a moment and try again.",
   "fallback": "Something went wrong. Please try again or contact support"
 }

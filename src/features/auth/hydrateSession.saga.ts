@@ -1,10 +1,10 @@
 import { call, put, takeLatest, select, delay, all } from "redux-saga/effects";
 import { refreshSession, readCookie, CSRF_COOKIE_NAME } from "../../shared/lib/http";
-import { hydrateSessionAction, setTokensAction } from "./actions";
+import { hydrateSessionAction, setTokensAction, logoutRequestAction } from "./actions";
 import type { RootState } from "../../app/providers/store";
 import { isNativeApp } from "../../app/config/env";
+import { tokenStorage } from "../../shared/lib/tokenStorage";
 import i18n from "../../shared/lib/i18n";
-import { getErrorMessage } from "../../shared/utils/error";
 // no-op
 
 
@@ -40,11 +40,26 @@ function* hydrateSessionWorker(): Generator<any, void, any> {
       return;
     }
 
+    // Native equivalent of the CSRF guard above: with no token in Redux and no
+    // persisted refresh token there is no session to restore - refreshing would
+    // just 400 and surface an error toast on the login screen.
+    if (isNativeApp()) {
+      const storedRefreshToken: string | null = hasAccessToken
+        ? null
+        : yield call([tokenStorage, 'loadRefreshToken']);
+      if (!hasAccessToken && !storedRefreshToken) {
+        yield put(hydrateSessionAction.failure({ message: "Skipped hydration - no active session" }));
+        return;
+      }
+    }
+
     // Trigger refresh via single-flight helper (also updates redux)
     // refreshSession already updates Redux state; nothing else needed here
     yield call(refreshSession);
-  } catch (e: any) {
-    yield put(hydrateSessionAction.failure({ message: getErrorMessage(e) || i18n.t('auth:page.errors.hydrateSessionFailed') }));
+  } catch {
+    // Never surface internal error strings ("Session refresh failed") - the
+    // login form toasts whatever lands in auth.error verbatim.
+    yield put(hydrateSessionAction.failure({ message: i18n.t('auth:page.errors.hydrateSessionFailed') }));
   }
 }
 
@@ -81,10 +96,14 @@ function* scheduleProactiveRefresh(_action?: any): Generator<any, void, any> {
 }
 
 function* watchProactiveRefresh(): Generator<any, void, any> {
-  // takeLatest cancels the previous scheduled delay when any of these actions fire
+  // takeLatest cancels the previous scheduled delay when any of these actions
+  // fire. logoutRequestAction.success is included so a timer armed during the
+  // previous session can't fire on the login screen (the restarted task sees
+  // no access token and exits immediately).
   yield takeLatest([
-    setTokensAction, 
-    hydrateSessionAction.success, 
+    setTokensAction,
+    hydrateSessionAction.success,
+    logoutRequestAction.success,
   ], scheduleProactiveRefresh);
 }
 

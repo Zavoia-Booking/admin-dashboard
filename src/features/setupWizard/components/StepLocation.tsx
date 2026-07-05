@@ -766,8 +766,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
           )}
         </div>
 
-        {/* Map Pin Verification Dialog */}
-        {isMapOpen && (() => {
+        {/* Map Pin Verification Dialog.
+            Kept mounted (isOpen-driven) so vaul can play its exit animation:
+            unmounting it mid-tap lets the browser's synthesized post-touch
+            click fall through to whatever overlay sits beneath on touch
+            devices (see AddLocationSlider). */}
+        {(() => {
           const hasValidCoords = initialMapCenter[0] !== 0 && initialMapCenter[1] !== 0;
           
           return (

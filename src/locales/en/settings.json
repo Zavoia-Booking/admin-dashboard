@@ -581,6 +581,12 @@
       "goToDashboard": "Go to dashboard",
       "backToBilling": "Back to billing"
     },
+    "planUpgradeSuccess": {
+      "title": "Plan upgraded",
+      "description": "Your subscription has been upgraded successfully. All your new plan's features are now unlocked.",
+      "goToDashboard": "Go to Dashboard",
+      "backToBilling": "Back to Billing"
+    },
     "seatsUpdateSuccess": {
       "title": "Team seats updated",
       "description": "Your subscription has been updated successfully.",

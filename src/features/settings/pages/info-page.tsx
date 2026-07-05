@@ -75,6 +75,27 @@ const InfoPageComponent: React.FC = () => {
           ],
         };
 
+      case 'plan-upgrade-success':
+        return {
+          title: t('infoPages.planUpgradeSuccess.title'),
+          description: t('infoPages.planUpgradeSuccess.description'),
+          icon: CheckCircle2,
+          iconColor: 'green' as const,
+          buttons: [
+            {
+              label: t('infoPages.planUpgradeSuccess.goToDashboard'),
+              onClick: () => navigate('/dashboard'),
+              icon: Home,
+            },
+            {
+              label: t('infoPages.planUpgradeSuccess.backToBilling'),
+              onClick: () => navigate('/account?tab=billing'),
+              variant: 'outline' as const,
+              icon: ArrowLeft,
+            },
+          ],
+        };
+
       case 'seats-update-success':
         return {
           title: t('infoPages.seatsUpdateSuccess.title'),

@@ -583,6 +583,12 @@
       "goToDashboard": "Mergi la tabloul de bord",
       "backToBilling": "Înapoi la facturare"
     },
+    "planUpgradeSuccess": {
+      "title": "Plan actualizat",
+      "description": "Abonamentul tău a fost actualizat cu succes. Toate funcționalitățile noului plan sunt acum deblocate.",
+      "goToDashboard": "Mergi la Tabloul de Bord",
+      "backToBilling": "Înapoi la Facturare"
+    },
     "seatsUpdateSuccess": {
       "title": "Locuri echipă actualizate",
       "description": "Abonamentul tău a fost actualizat cu succes.",

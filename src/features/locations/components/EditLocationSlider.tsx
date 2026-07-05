@@ -1004,8 +1004,12 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         />
       )}
 
-      {/* Map Pin Verification Dialog – never pass [0,0] to map (ocean); use Bucharest fallback */}
-      {isMapOpen && (() => {
+      {/* Map Pin Verification Dialog – never pass [0,0] to map (ocean); use Bucharest fallback.
+          Kept mounted (isOpen-driven) so vaul can play its exit animation:
+          unmounting it mid-tap lets the browser's synthesized post-touch
+          click fall through to the outer slider's overlay on touch devices,
+          dismissing the whole slider. */}
+      {(() => {
         const safeCenter: [number, number] = isInvalidCenter(initialMapCenter) ? FALLBACK_MAP_CENTER : initialMapCenter;
         const hasValidCoords = !isInvalidCenter(safeCenter);
 

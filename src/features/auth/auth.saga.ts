@@ -609,7 +609,28 @@ function* handleSendBusinessLinkEmail(action: ReturnType<typeof sendBusinessLink
       toast.success(i18n.t('auth:page.toasts.emailLinkSent'));
     } catch {}
   } catch (error: any) {
-    const message = getErrorMessage(error);
+    const status = error?.response?.status;
+    const code = error?.response?.data?.code;
+
+    // A valid link is already in the user's inbox (backend throttles resends).
+    // For the user this is the same outcome as sending one - close the modal
+    // and point them at their inbox instead of surfacing a raw error code.
+    if (status === 429 && code === 'token_already_sent') {
+      yield put(sendBusinessLinkEmailAction.success({ message: code }));
+      try {
+        const { toast } = yield import('sonner');
+        toast.info(i18n.t('auth:page.toasts.emailLinkAlreadySent'));
+      } catch {}
+      return;
+    }
+
+    // Backend failures arrive as bare message codes (e.g. "AUTH.S14",
+    // "SYSTEM.E01") which downstream toasts show verbatim - replace them
+    // with a friendly generic message. Machine-readable snake_case codes
+    // (e.g. "account_not_found") are left intact for flow logic.
+    const raw = getErrorMessage(error);
+    const isBareMessageCode = /^[A-Z_]+\.[A-Z]\d+$/.test(raw ?? '');
+    const message = isBareMessageCode ? i18n.t('auth:page.errors.emailLinkSendFailed') : raw;
     yield put(sendBusinessLinkEmailAction.failure({ message }));
   }
 }
