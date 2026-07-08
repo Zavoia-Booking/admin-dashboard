@@ -588,8 +588,7 @@
     "noBundles": "No bundles yet",
     "teamMember_one": "Team member",
     "teamMember_other": "Team members",
-    "noTeamMembers": "No team members yet",
-    "remoteAvailable": "Remote services available"
+    "noTeamMembers": "No team members yet"
   },
   "portfolio": {
     "visualIdentity": {

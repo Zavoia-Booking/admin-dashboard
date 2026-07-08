@@ -19,6 +19,14 @@
     "saveFailed": "Nu s-a putut salva profilul",
     "saveSuccess": "Profil salvat cu succes!"
   },
+  "visibility": {
+    "title": "Ascunde-mi profilul din marketplace",
+    "visibleDescription": "Clienții îți pot vedea în continuare profilul în marketplace — de exemplu la favorite. Activează pentru a-l ascunde. Dacă te alături unei organizații, profilul redevine vizibil automat.",
+    "hiddenDescription": "Profilul tău este ascuns din marketplace. Clienții nu te mai pot vedea, nici măcar la favorite.",
+    "hiddenToast": "Profilul tău este acum ascuns din marketplace",
+    "visibleToast": "Profilul tău este din nou vizibil în marketplace",
+    "updateFailed": "Nu am putut actualiza vizibilitatea. Încearcă din nou"
+  },
   "noProfileYet": {
     "greeting": "Salut {{name}}, hai să-ți construim marca personală",
     "fallbackName": "acolo",

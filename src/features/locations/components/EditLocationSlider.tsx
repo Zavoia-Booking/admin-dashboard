@@ -11,8 +11,6 @@ import { FormFooter } from '../../../shared/components/forms/FormFooter';
 import { TextField } from '../../../shared/components/forms/fields/TextField';
 import { TextareaField } from '../../../shared/components/forms/fields/TextareaField';
 import AddressComposer from '../../../shared/components/address/AddressComposer';
-import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
-import TimezoneField from '../../../shared/components/common/TimezoneField';
 import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
@@ -61,7 +59,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const [useBusinessContact, setUseBusinessContact] = useState<boolean>(false);
   const [isAddressValid, setIsAddressValid] = useState(true);
   const [addressComposerKey, setAddressComposerKey] = useState(0);
-  const prevIsRemoteRef = useRef<boolean>(false);
   const originalEmailRef = useRef<string>("");
   const originalPhoneRef = useRef<string>("");
   const justOpenedRef = useRef(false);
@@ -87,7 +84,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     reset,
     watch,
     setValue,
-    resetField,
     trigger,
     formState,
   } = useForm<EditLocationType>({
@@ -99,7 +95,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       addressManualMode: (location as any).addressManualMode,
       mapPinConfirmed: location.mapPinConfirmed || false,
     } : {
-      isRemote: false,
       open247: false,
       workingHours: defaultWorkingHours,
       mapPinConfirmed: false,
@@ -107,7 +102,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     mode: "onChange",
   });
 
-  const isRemote = watch('isRemote') ?? false;
   const currentWorkingHours = watch('workingHours') as WorkingHours || defaultWorkingHours;
   const open247 = watch('open247') ?? false;
 
@@ -141,7 +135,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        if (isRemote) return true;
         if (!value || value.trim().length === 0) {
           return t("addLocation.validation.addressRequired");
         }
@@ -356,20 +349,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     toast.success(t("editLocation.toasts.pinConfirmed"));
   };
 
-  const { field: timezoneField, fieldState: timezoneState } = useController<EditLocationType, "timezone">({
-    name: "timezone",
-    control,
-    rules: {
-      validate: (value) => {
-        if (!isRemote) return true;
-        if (!value || value.trim().length === 0) {
-          return t("addLocation.validation.timezoneRequired");
-        }
-        return true;
-      },
-    },
-  });
-
   // Initialize form with location data when slider opens
   useEffect(() => {
     if (location && isOpen) {
@@ -385,7 +364,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
       const shouldUseBusinessContact = emailMatchesBusiness && phoneMatchesBusiness && !!businessEmail && !!businessPhone;
 
       setUseBusinessContact(shouldUseBusinessContact);
-      prevIsRemoteRef.current = location.isRemote;
 
       // Always reset to server data when opening to ensure we don't keep unsaved changes
       reset({
@@ -505,37 +483,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
     }
   }, [isLocationLoading, isSubmitting, locationError, onClose]);
 
-  // Re-validate timezone and address when isRemote changes (rules depend on isRemote)
-  useEffect(() => {
-    trigger("timezone");
-    trigger("address");
-  }, [isRemote, trigger]);
-
-  // When toggling to physical: remount address composer. When switching back to remote: clear address data.
-  useEffect(() => {
-    const prev = prevIsRemoteRef.current;
-    if (prev && !isRemote) {
-      setAddressComposerKey((k) => k + 1);
-    }
-    if (!prev && isRemote) {
-      // Switching back to remote: clear address data so user must re-enter and confirm pin if they go physical again
-      setValue('address', '', { shouldDirty: true });
-      setValue('addressComponents', undefined as any, { shouldDirty: true });
-      setValue('addressManualMode', false, { shouldDirty: true });
-      setValue('mapPinConfirmed' as any, false, { shouldDirty: true });
-      setIsPinConfirmed(false);
-      setPinWasModified(false);
-      originalAddressRef.current = '';
-      setAddressComposerKey((k) => k + 1);
-      setAdjustedCoordinates(null);
-      setSearchedAddressData(null);
-      setInitialMapCenter([0, 0]);
-      mapInstanceRef.current = null;
-      void trigger('address');
-    }
-    prevIsRemoteRef.current = isRemote;
-  }, [isRemote, setValue, trigger]);
-
   const handleContactToggleChange = useCallback(
     (checked: boolean) => {
       setUseBusinessContact(checked);
@@ -569,31 +516,25 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
   const addressValue = watch("address");
   const emailValue = watch("email");
   const phoneValue = watch("phone");
-  const timezoneValue = watch("timezone");
 
   const areRequiredFieldsFilled =
     nameValue &&
     nameValue.trim().length > 0 &&
-    (isRemote || (addressValue && addressValue.trim().length > 0)) &&
+    addressValue &&
+    addressValue.trim().length > 0 &&
     emailValue &&
     emailValue.trim().length > 0 &&
     phoneValue &&
     phoneValue.trim().length > 0 &&
-    (isRemote ? (timezoneValue && timezoneValue.trim().length > 0) : true) &&
-    (isRemote || isAddressValid) &&
-    (isRemote || isPinConfirmed); // Require pin confirmation for physical locations
+    isAddressValid &&
+    isPinConfirmed; // Require pin confirmation
 
-  // When remote: only count changes to remote-relevant fields (address/pin don't apply).
-  // When physical: count any form dirty or pin confirmation.
-  const REMOTE_RELEVANT_FIELDS = ['name', 'email', 'phone', 'timezone', 'description', 'workingHours', 'open247', 'isRemote'] as const;
-  const dirtyFieldsObj = formState.dirtyFields as Partial<Record<string, unknown>> | undefined;
-  const hasRemoteRelevantDirty = dirtyFieldsObj && REMOTE_RELEVANT_FIELDS.some((f) => dirtyFieldsObj[f]);
-  const hasRelevantChanges = isRemote ? hasRemoteRelevantDirty : (formState.isDirty || pinWasModified);
+  const hasRelevantChanges = formState.isDirty || pinWasModified;
 
   // Form should be disabled if:
   // - formState is not valid (has validation errors)
   // - Required fields are empty
-  // - No relevant changes (for remote: only remote-relevant fields; for physical: any dirty or pin)
+  // - No changes (any dirty field or pin confirmation)
   const isFormDisabled =
     !formState.isValid ||
     !areRequiredFieldsFilled ||
@@ -689,24 +630,7 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
         >
           <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
             <div className="max-w-2xl mx-auto space-y-6 cursor-default">
-              {/* Remote Location Toggle - First */}
-              <RemoteLocationToggle
-                id="edit-location-isRemote"
-                isRemote={isRemote}
-                onChange={(checked) => {
-                  setValue('isRemote', checked, { shouldDirty: true });
-                  // Clear description and address when toggling between remote/physical
-                  if (checked !== location.isRemote) {
-                    resetField("description", { defaultValue: location.description || "" });
-                    resetField("address", { defaultValue: location.address || "" });
-                    resetField("addressComponents", { defaultValue: undefined });
-                  }
-                }}
-              />
-
-              {/* Physical Location */}
-              {!isRemote && (
-                <div className="space-y-4">
+              <div className="space-y-4">
                   <TextField
                     id="edit-location-name"
                     value={nameField.value || ""}
@@ -829,89 +753,6 @@ const EditLocationSlider: React.FC<EditLocationSliderProps> = ({
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Remote Location */}
-              {isRemote && (
-                <div className="space-y-4">
-                  <TextField
-                    id="edit-location-name-remote"
-                    value={nameField.value || ""}
-                    onChange={nameField.onChange}
-                    error={nameState.error?.message}
-                    label={t("editLocation.form.remoteNameLabel")}
-                    placeholder={t("editLocation.form.remoteNamePlaceholder")}
-                    required
-                    maxLength={70}
-                    icon={MapPin}
-                    isRemote
-                  />
-
-                  <TimezoneField
-                    value={timezoneField.value || ""}
-                    onChange={(tz) => timezoneField.onChange(tz)}
-                    error={timezoneState.error?.message}
-                    required
-                  />
-
-                  {/* Contact Information Toggle */}
-                  <ContactInformationToggle
-                    id="edit-location-contact-toggle-remote"
-                    useInheritedContact={useBusinessContact}
-                    onToggleChange={handleContactToggleChange}
-                    inheritedEmail={businessEmail}
-                    inheritedPhone={businessPhone}
-                    inheritedLabel={t("editLocation.form.inheritedLabel")}
-                    localEmail={emailField.value || ""}
-                    localPhone={phoneField.value || ""}
-                    onEmailChange={(email) => {
-                      emailField.onChange(email);
-                    }}
-                    onPhoneChange={(phone) => {
-                      const sanitized = sanitizePhoneToE164Draft(phone || "");
-                      phoneField.onChange(sanitized);
-                    }}
-                    emailError={emailState.error?.message}
-                    phoneError={phoneState.error?.message}
-                    title={t("editLocation.form.contactTitle")}
-                    emailLabel={t("editLocation.form.emailLabel")}
-                    phoneLabel={t("editLocation.form.phoneLabel")}
-                    helperTextOn={t("editLocation.form.helperTextOnRemote")}
-                    helperTextOff={t("editLocation.form.helperTextOffRemote")}
-                  />
-
-                  <div className="pt-4">
-                    <TextareaField
-                      id="edit-location-description-remote"
-                      value={descriptionField.value || ""}
-                      onChange={descriptionField.onChange}
-                      error={descriptionState.error?.message}
-                      label={t("editLocation.form.descriptionLabel")}
-                      placeholder={t("editLocation.form.descriptionPlaceholderRemote")}
-                      rows={4}
-                    />
-                  </div>
-
-                  <div className="space-y-2 pt-4">
-                    <Label className="text-base font-medium">{t("editLocation.form.workingHoursLabel")}</Label>
-                    <Open247Toggle
-                      id="edit-location-open247-remote"
-                      open247={open247}
-                      onChange={(checked) => {
-                        setValue('open247', checked, { shouldDirty: true });
-                      }}
-                    />
-                    <div
-                      className={open247 ? "opacity-50 pointer-events-none" : ""}
-                    >
-                      <WorkingHoursEditor
-                        value={currentWorkingHours}
-                        onChange={applyWorkingHours}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Divider */}
               <div className="flex items-end gap-2 mb-6 pt-4">

@@ -20,8 +20,7 @@
       "service": "Serviciu",
       "services": "Servicii",
       "teamMember": "Membru echipă",
-      "teamMembers": "Membri echipă",
-      "remoteLocation": "Locație la distanță"
+      "teamMembers": "Membri echipă"
     },
     "actionsLabel": {
       "editLocation": "Editează locația"
@@ -43,7 +42,6 @@
     "subtitle": "Creează o locație nouă pentru afacerea ta",
     "form": {
       "nameLabel": "Nume locație",
-      "remoteNameLabel": "Nume locație online",
       "descriptionLabel": "Descriere",
       "namePlaceholder": "ex. Birou Central",
       "addressLabel": "Adresă *",
@@ -53,8 +51,6 @@
       "inheritedLabel": "afacerea ta",
       "helperTextOn": "Informațiile de contact ale afacerii tale vor fi folosite pentru această locație.",
       "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
-      "helperTextOnRemote": "Informațiile de contact ale afacerii vor fi folosite pentru această locație.",
-      "helperTextOffRemote": "Furnizează detalii de contact diferite pentru această locație.",
       "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
       "workingHoursLabel": "Program",
       "teamMembersTitle": "Membri echipă",
@@ -64,8 +60,7 @@
       "servicesDescription": "Selectează ce servicii sunt disponibile la această locație. Toate serviciile sunt selectate implicit.",
       "servicesEnabled": "/ {{total}} activate",
       "noServices": "Nu există servicii disponibile încă.",
-      "manageServices": "Gestionează servicii",
-      "remoteNamePlaceholder": "Online"
+      "manageServices": "Gestionează servicii"
     },
     "validation": {
       "nameRequired": "Introdu numele locației",
@@ -76,7 +71,6 @@
       "emailRequired": "Introdu o adresă de email validă",
       "phoneRequired": "Numărul de telefon este obligatoriu",
       "phoneInvalid": "Introdu un număr de telefon valid",
-      "timezoneRequired": "Fusul orar este obligatoriu",
       "descriptionMaxLength": "Sunt permise maximum {{max}} caractere",
       "descriptionInvalidChars": "Caracterele speciale < > nu sunt permise"
     },
@@ -119,14 +113,9 @@
       "inheritedLabel": "afacerea ta",
       "helperTextOn": "Informațiile de contact ale afacerii tale vor fi folosite pentru această locație.",
       "helperTextOff": "Furnizează detalii de contact diferite pentru această locație.",
-      "helperTextOnRemote": "Informațiile de contact ale afacerii vor fi folosite pentru această locație.",
-      "helperTextOffRemote": "Furnizează detalii de contact diferite pentru această locație.",
       "descriptionLabel": "Descriere",
       "descriptionPlaceholder": "Descrie această locație (ex. Birou principal cu parcare)",
-      "descriptionPlaceholderRemote": "Descrie această locație (ex. Link Zoom, Google Meet, etc.)",
-      "workingHoursLabel": "Program",
-      "remoteNameLabel": "Nume locație online",
-      "remoteNamePlaceholder": "ex. Sesiuni online"
+      "workingHoursLabel": "Program"
     },
     "assignments": {
       "title": "Alocări",

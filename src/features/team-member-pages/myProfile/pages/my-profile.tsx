@@ -10,8 +10,10 @@ import { ResponsiveTabs, type ResponsiveTabItem } from '../../../../shared/compo
 import { LimitedAccessBanner } from '../../../../shared/components/common/subscription/LimitedAccessBanner';
 import ConfirmDialog from '../../../../shared/components/common/ConfirmDialog';
 import { useIsMobile } from '../../../../shared/hooks/use-mobile';
+import { usePermissions } from '../../../../shared/hooks/usePermissions';
 import { ProfileTab, type ProfileTabRef } from '../components/ProfileTab';
 import { NoProfileYetView } from '../components/NoProfileYetView';
+import { MarketplaceVisibilitySection } from '../components/MarketplaceVisibilitySection';
 import { PortfolioImagesSection } from '../components/PortfolioImagesSection';
 import { MyReviewsTab } from '../components/MyReviewsTab';
 import { getMarketplaceProfile, type MarketplaceProfile } from '../api';
@@ -48,9 +50,13 @@ export default function MyProfilePage() {
   const [searchParams] = useSearchParams();
   const isMobile = useIsMobile();
   const profileTabRef = useRef<ProfileTabRef>(null);
-  
+  // Marketplace opt-out is only offered to dashboard users (no active business
+  // membership) — team members are always visible through their business listing.
+  const { isDashboardUser } = usePermissions();
+
   // Data state
   const [profile, setProfile] = useState<MarketplaceProfile | null>(null);
+  const [hiddenFromMarketplace, setHiddenFromMarketplace] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [hasProfile, setHasProfile] = useState(false);
   const [showProfileForm, setShowProfileForm] = useState(false);
@@ -82,6 +88,7 @@ export default function MyProfilePage() {
       try {
         setIsLoading(true);
         const response = await getMarketplaceProfile();
+        setHiddenFromMarketplace(response.hiddenFromMarketplace ?? false);
         if (response.marketplaceProfile) {
           setProfile(response.marketplaceProfile);
           setHasProfile(true);
@@ -237,6 +244,12 @@ export default function MyProfilePage() {
       <AppLayout>
         <div className="px-4">
           <NoProfileYetView onCreateProfile={handleCreateProfile} />
+          {isDashboardUser && (
+            <MarketplaceVisibilitySection
+              hidden={hiddenFromMarketplace}
+              onChanged={setHiddenFromMarketplace}
+            />
+          )}
         </div>
       </AppLayout>
     );
@@ -250,6 +263,12 @@ export default function MyProfilePage() {
       content: (
         <>
           <LimitedAccessBanner className="!px-0 !pt-0" />
+          {isDashboardUser && (
+            <MarketplaceVisibilitySection
+              hidden={hiddenFromMarketplace}
+              onChanged={setHiddenFromMarketplace}
+            />
+          )}
           <ProfileTab
             ref={profileTabRef}
             initialProfile={profile}

@@ -1,10 +1,8 @@
 {
   "page": {
-    "errors": {
-      "saveFailed": "Failed to save progress",
-      "loadDraftFailed": "Failed to load draft",
-      "completeFailed": "Something went wrong, please try again"
-    }
+    "progressSavedTitle": "Progress Saved",
+    "progressSavedDescription": "You can continue setup anytime from your dashboard.",
+    "completeError": "We couldn't finish your setup"
   },
   "layout": {
     "businessSetupWizard": "Business Setup Wizard",
@@ -29,7 +27,7 @@
     },
     "location": {
       "title": "Where Do You Offer Services?",
-      "subtitle": "Help customers find you or let them know you offer remote services"
+      "subtitle": "Help customers find you"
     },
     "team": {
       "title": "Want to Add Your Team?",
@@ -69,20 +67,16 @@
   },
   "stepLocation": {
     "namePhysicalPlaceholder": "e.g. Downtown Office",
-    "nameRemotePlaceholder": "Online",
     "addressLabel": "Address *",
     "contactInfoTitle": "Contact information",
     "contactInheritedLabel": "the previous step",
     "locationEmail": "Location Email *",
     "locationPhone": "Location Phone *",
     "useBusinessContactPhysicalOn": "Your business contact info will be used for this location.",
-    "useBusinessContactRemoteOn": "Business contact info will be used for this location.",
     "useBusinessContactOff": "Provide different contact details for this location.",
     "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
     "workingHours": "Working Hours",
-    "validation": {
-      "timezoneRequired": "Timezone is required"
-    },
+    "validation": {},
     "toasts": {
       "enterAddress": "Please enter a valid address first",
       "geocodeNotFound": "Could not find location on map. Please search for the correct address in the map.",
@@ -132,7 +126,6 @@
     "business": "Business",
     "allSet": "All set",
     "location": "Location",
-    "remote": "Remote",
     "onSite": "On-site",
     "team": "Team",
     "teamMemberInvited_one": "team member invited",
@@ -159,10 +152,5 @@
   },
   "industrySelector": {
     "ariaSelectIndustry": "Select industry"
-  },
-  "page": {
-    "progressSavedTitle": "Progress Saved",
-    "progressSavedDescription": "You can continue setup anytime from your dashboard.",
-    "completeError": "We couldn't finish your setup"
   }
 }

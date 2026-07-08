@@ -100,9 +100,9 @@ export default function LocationsPage() {
                 {/* Locations Grid */}
                 <div className="grid grid-cols-1 gap-2">
                   {filteredLocations.map((location) => {
-                // Build metadata array (address when not remote, phone, email)
+                // Build metadata array (address, phone, email)
                 const metadata: ItemCardMetadata[] = [];
-                if (!location.isRemote && location.address) {
+                if (location.address) {
                   metadata.push({
                     icon: MapPin,
                     label: text("page.metadata.address"),
@@ -134,13 +134,6 @@ export default function LocationsPage() {
                     icon: Users,
                   });
                 }
-                if (location.isRemote) {
-                  badges.push({
-                    label: text("page.badges.remoteLocation"),
-                    variant: "info",
-                  });
-                }
-
                 return (
                   <ItemCard
                     key={location.id}
@@ -148,7 +141,7 @@ export default function LocationsPage() {
                     customContent={<div className="text-foreground-2 line-clamp-2 mt-1">{location.description}</div>}
                     badges={badges}
                     metadata={metadata}
-                    metadataLayout={location.isRemote ? "secondaryOnly" : "default"}
+                    metadataLayout="default"
                     actions={[
                       {
                         icon: Edit,

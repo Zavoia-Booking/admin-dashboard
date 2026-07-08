@@ -1,7 +1,7 @@
 import React, { useId } from "react";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
-import { AlertCircle, MapPin, Monitor } from "lucide-react";
+import { AlertCircle, MapPin } from "lucide-react";
 
 export interface TextFieldProps {
   value: string;
@@ -10,7 +10,6 @@ export interface TextFieldProps {
   label?: string;
   hint?: React.ReactNode; // optional helper rendered directly under the label
   placeholder?: string;
-  isRemote?: boolean;
   required?: boolean;
   maxLength?: number;
   id?: string;
@@ -34,7 +33,6 @@ export const TextField: React.FC<TextFieldProps> = ({
   label = "Location Name",
   hint,
   placeholder = "Main Location",
-  isRemote = false,
   required = false,
   maxLength = 70,
   id: providedId,
@@ -52,14 +50,12 @@ export const TextField: React.FC<TextFieldProps> = ({
 }) => {
   const generatedId = useId();
   const id = providedId ?? generatedId;
-  const Icon = icon ?? (isRemote ? Monitor : MapPin);
-  const displayLabel =
-    isRemote && label === "Location Name" ? "Online Location Name" : label;
+  const Icon = icon ?? MapPin;
 
   return (
     <div className={`space-y-2 ${className} pt-2`}>
       <Label htmlFor={id} className="text-base font-medium">
-        {displayLabel} {required && "*"}
+        {label} {required && "*"}
       </Label>
       {hint}
       <div className="relative">

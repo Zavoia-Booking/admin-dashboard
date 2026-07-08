@@ -215,7 +215,9 @@
     "E17": "Couldn’t delete portfolio image. Try again",
     "E18": "Couldn’t load assigned locations. Try again",
     "E19": "You don’t have access to this location",
-    "E20": "Couldn’t load location assignments. Try again"
+    "E20": "Couldn’t load location assignments. Try again",
+    "E21": "You can’t hide your profile while you’re part of a business",
+    "E22": "Couldn’t update marketplace visibility. Try again"
   },
   "DASHBOARD": {
     "E01": "Couldn’t load dashboard. Try again",

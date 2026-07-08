@@ -20,8 +20,7 @@
       "service": "Service",
       "services": "Services",
       "teamMember": "Team Member",
-      "teamMembers": "Team Members",
-      "remoteLocation": "Remote location"
+      "teamMembers": "Team Members"
     },
     "actionsLabel": {
       "editLocation": "Edit Location"
@@ -43,7 +42,6 @@
     "subtitle": "Create a new location for your business",
     "form": {
       "nameLabel": "Location Name",
-      "remoteNameLabel": "Online Location Name",
       "descriptionLabel": "Description",
       "namePlaceholder": "e.g. Downtown Office",
       "addressLabel": "Address *",
@@ -53,8 +51,6 @@
       "inheritedLabel": "your business",
       "helperTextOn": "Your business contact info will be used for this location.",
       "helperTextOff": "Provide different contact details for this location.",
-      "helperTextOnRemote": "Business contact info will be used for this location.",
-      "helperTextOffRemote": "Provide different contact details for this location.",
       "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
       "workingHoursLabel": "Working Hours",
       "teamMembersTitle": "Team Members",
@@ -64,8 +60,7 @@
       "servicesDescription": "Select which services are available at this location. All services are selected by default.",
       "servicesEnabled": "/ {{total}} enabled",
       "noServices": "No services available yet.",
-      "manageServices": "Manage Services",
-      "remoteNamePlaceholder": "Online"
+      "manageServices": "Manage Services"
     },
     "validation": {
       "nameRequired": "Please enter a location name",
@@ -76,7 +71,6 @@
       "emailRequired": "Please enter a valid email address",
       "phoneRequired": "Phone number is required",
       "phoneInvalid": "Enter a valid phone number",
-      "timezoneRequired": "Timezone is required",
       "descriptionMaxLength": "Maximum {{max}} characters allowed",
       "descriptionInvalidChars": "Special characters < > aren't allowed"
     },
@@ -119,14 +113,9 @@
       "inheritedLabel": "your business",
       "helperTextOn": "Your business contact info will be used for this location.",
       "helperTextOff": "Provide different contact details for this location.",
-      "helperTextOnRemote": "Business contact info will be used for this location.",
-      "helperTextOffRemote": "Provide different contact details for this location.",
       "descriptionLabel": "Description",
       "descriptionPlaceholder": "Describe this location (e.g. Main office with parking)",
-      "descriptionPlaceholderRemote": "Describe this location (e.g. Link to Zoom, Google Meet, etc.)",
-      "workingHoursLabel": "Working Hours",
-      "remoteNameLabel": "Online Location Name",
-      "remoteNamePlaceholder": "e.g. Online Sessions"
+      "workingHoursLabel": "Working Hours"
     },
     "assignments": {
       "title": "Assignments",

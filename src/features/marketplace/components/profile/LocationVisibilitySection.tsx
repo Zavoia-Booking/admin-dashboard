@@ -313,18 +313,6 @@ export const LocationVisibilitySection: React.FC<LocationVisibilitySectionProps>
                     <span>{t("locationVisibility.noTeamMembers")}</span>
                   )}
                 </Badge>
-
-                {location.isRemote && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs px-3 py-1 rounded-full font-medium flex items-center gap-1.5 bg-blue-50 border-blue-200 hover:bg-blue-100"
-                  >
-                    <div className="h-2 w-2 rounded-full bg-blue-500" />
-                    <span className="text-neutral-900">
-                      {t("locationVisibility.remoteAvailable")}
-                    </span>
-                  </Badge>
-                )}
                 </div>
 
                 <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2 w-full md:w-auto md:ml-auto mt-2 md:mt-0">

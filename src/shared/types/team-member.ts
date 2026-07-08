@@ -9,7 +9,6 @@ export interface TeamMemberSummary {
 export interface TeamMemberLocation {
   id: number;
   name: string;
-  isRemote: boolean;
   address: string;
 }
 

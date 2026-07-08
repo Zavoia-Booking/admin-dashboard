@@ -39,7 +39,6 @@ export interface NewLocationPayload {
   mapPinConfirmed?: boolean; // Track if user confirmed the pin location on the map (top-level)
   timezone: string;
   workingHours: WorkingHours;
-  isRemote: boolean;
   open247?: boolean;
   useBusinessContact?: boolean; // Track if using business contact info
   teamMemberIds?: number[];
@@ -54,7 +53,6 @@ export interface EditLocationType {
   phone: string;
   description: string;
   timezone: string;
-  isRemote: boolean;
   workingHours?: WorkingHours;
   open247?: boolean;
   // Address components for editing (optional, used for pre-filling on load)

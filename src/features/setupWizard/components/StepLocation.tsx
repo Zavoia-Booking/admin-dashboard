@@ -10,8 +10,6 @@ import AddressComposer from "../../../shared/components/address/AddressComposer"
 import WorkingHoursEditor from "../../../shared/components/common/WorkingHoursEditor";
 import TextField from "../../../shared/components/forms/fields/TextField";
 import TextareaField from "../../../shared/components/forms/fields/TextareaField";
-import RemoteLocationToggle from "../../../shared/components/common/RemoteLocationToggle";
-import TimezoneField from "../../../shared/components/common/TimezoneField";
 import ContactInformationToggle from "../../../shared/components/common/ContactInformationToggle";
 import Open247Toggle from "../../../shared/components/common/Open247Toggle";
 import { Label } from "../../../shared/components/ui/label";
@@ -50,7 +48,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       getValues,
       setValue,
       reset,
-      resetField,
       trigger,
       formState: { errors, isValid: formIsValid },
     } = useForm<WizardData>({
@@ -60,9 +57,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
 
     const [isAddressValid, setIsAddressValid] = useState(true);
     const [addressComposerKey, setAddressComposerKey] = useState(0);
-    const prevIsRemoteRef = useRef<boolean>(
-      !!watch("location" satisfies WizardFieldPath)?.isRemote
-    );
 
     // Map pin confirmation state
     const [isPinConfirmed, setIsPinConfirmed] = useState(false);
@@ -74,7 +68,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
     const mapInstanceRef = useRef<any>(null);
     const isConfirmingFromMap = useRef(false); // Flag to prevent reset during map confirmation
 
-    const isRemote = watch("location.isRemote" satisfies WizardFieldPath) === true;
     const businessEmail = (watch("businessInfo.email" satisfies WizardFieldPath) as string) || "";
     const businessPhone = (watch("businessInfo.phone" satisfies WizardFieldPath) as string) || "";
     const businessCountryCode = (watch("businessInfo.countryCode" satisfies WizardFieldPath) as string) || "";
@@ -152,25 +145,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
             if (!value || !value.trim()) return true; // Optional field
             const error = validateDescription(value, t, 500);
             return error === null ? true : error;
-          },
-        },
-      });
-
-    // Controlled timezone with validation (required only when remote)
-    const { field: timezoneField, fieldState: timezoneState } =
-      useController<WizardData, "location.timezone">({
-        name: "location.timezone",
-        control,
-        rules: {
-          validate: (value) => {
-            // Get current isRemote value from form (not closure) to handle toggle changes
-            const currentIsRemote = getValues("location.isRemote" satisfies WizardFieldPath) === true;
-            // Only require timezone when location is remote
-            if (!currentIsRemote) return true; // Skip validation for physical locations
-            if (!value || value.trim().length === 0) {
-              return tw('stepLocation.validation.timezoneRequired');
-            }
-            return true;
           },
         },
       });
@@ -390,12 +364,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       data,
       section: 'location',
     });
-    const timezoneHasDraft = useFieldDraftValidation({
-      fieldName: 'timezone',
-      trigger,
-      data,
-      section: 'location',
-    });
 
     // Notify parent when validity changes
     useEffect(() => {
@@ -403,10 +371,11 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         const valid =
           formIsValid &&
           Object.keys(errors).length === 0 &&
-          (isRemote || (isAddressValid && isPinConfirmed));
+          isAddressValid &&
+          isPinConfirmed;
         onValidityChange(valid);
       }
-    }, [formIsValid, errors, isAddressValid, isRemote, isPinConfirmed, onValidityChange]);
+    }, [formIsValid, errors, isAddressValid, isPinConfirmed, onValidityChange]);
 
     // Expose methods to parent via ref
     useImperativeHandle(
@@ -439,12 +408,12 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         isValid: () => {
           // Check if there are any errors
           if (Object.keys(errors).length > 0) return false;
-          if (!isRemote && !isAddressValid) return false;
-          if (!isRemote && !isPinConfirmed) return false;
+          if (!isAddressValid) return false;
+          if (!isPinConfirmed) return false;
           return formIsValid;
         },
       }),
-      [watch, trigger, errors, formIsValid, isAddressValid, isRemote, isPinConfirmed, useBusinessContact, emailField, phoneField, timezoneField]
+      [watch, trigger, errors, formIsValid, isAddressValid, isPinConfirmed, useBusinessContact, emailField, phoneField]
     );
 
     // Reset form ONLY once when wizard finishes loading (same pattern as business step)
@@ -455,22 +424,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       reset(data);
       hasInitialized.current = true;
     }, [isWizardLoading, data, reset]);
-
-    // Re-validate timezone when isRemote changes (to clear errors when switching to physical)
-    useEffect(() => {
-      if (isWizardLoading) return;
-      trigger("location.timezone" satisfies WizardFieldPath);
-    }, [isRemote, isWizardLoading, trigger]);
-
-    // Remount address composer when toggling to physical location
-    useEffect(() => {
-      const prev = prevIsRemoteRef.current;
-      if (prev && !isRemote) {
-        setAddressComposerKey((k) => k + 1);
-        setIsPinConfirmed(false); // Reset pin confirmation when switching to physical
-      }
-      prevIsRemoteRef.current = isRemote;
-    }, [isRemote]);
 
     // Reset pin confirmation when address changes (but not during map confirmation)
     const addressValue = watch("location.address" satisfies WizardFieldPath) as string;
@@ -484,7 +437,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
       }
       
       // Only reset if address actually changed (not just initial load or mapPinConfirmed change)
-      if (!isRemote && addressValue && prevAddressRef.current && prevAddressRef.current !== addressValue) {
+      if (addressValue && prevAddressRef.current && prevAddressRef.current !== addressValue) {
         setIsPinConfirmed(false);
         // Also reset mapPinConfirmed in form data
         const currentComponents = getValues("location.addressComponents" satisfies WizardFieldPath) as any;
@@ -498,7 +451,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
         }
       }
       prevAddressRef.current = addressValue;
-    }, [addressValue, isRemote, setValue, getValues]);
+    }, [addressValue, setValue, getValues]);
 
     const currentWorkingHours = watch("location" satisfies WizardFieldPath)
       ?.workingHours as WorkingHours;
@@ -550,29 +503,7 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
     return (
       <div className="space-y-6">
         <div className="space-y-6">
-          {/* Remote Services Toggle */}
-          <RemoteLocationToggle
-            isRemote={isRemote}
-            onChange={makeWizardToggleHandler({
-              setValue,
-              watch,
-              updateData,
-              section: 'location',
-              field: 'isRemote',
-              onToggleExtra: () => {
-                // Clear description and address when toggling between remote/physical
-                // Keep name field - it works for both modes and better UX to preserve user input
-                // Use resetField to clear both value and field state (touched, dirty, error)
-                resetField("location.description" satisfies WizardFieldPath, { defaultValue: "" });
-                resetField("location.address" satisfies WizardFieldPath, { defaultValue: "" });
-                resetField("location.addressComponents" satisfies WizardFieldPath, { defaultValue: undefined });
-              },
-            })}
-          />
-
-          {/* Physical Location */}
-          {!isRemote && (
-            <div className="space-y-4">
+          <div className="space-y-4">
               <TextField
                 value={(nameField.value as string) || ""}
                 onChange={(value) => nameField.onChange(value)}
@@ -691,79 +622,6 @@ const StepLocation = forwardRef<StepHandle, StepProps>(
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Remote Location */}
-          {isRemote && (
-            <div className="space-y-4">
-              <TextField
-                value={(nameField.value as string) || ""}
-                onChange={(value) => nameField.onChange(value)}
-                error={(nameState.isTouched || nameState.isDirty || nameHasDraft) ? (nameState.error?.message as unknown as string) : undefined}
-                isRemote
-                required
-                placeholder={tw('stepLocation.nameRemotePlaceholder')}
-              />
-
-              <TimezoneField
-                value={(timezoneField.value as string) || ""}
-                onChange={(tz) => timezoneField.onChange(tz)}
-                error={
-                  (timezoneState.isTouched || timezoneState.isDirty || timezoneHasDraft)
-                    ? (timezoneState.error?.message as string)
-                    : undefined
-                }
-                required
-              />
-
-              {/* Contact Information Toggle */}
-              <ContactInformationToggle
-                useInheritedContact={useBusinessContact}
-                onToggleChange={handleContactToggleChange}
-                inheritedEmail={businessEmail}
-                inheritedPhone={businessPhone}
-                inheritedLabel={tw('stepLocation.contactInheritedLabel')}
-                localEmail={(emailField.value as string) || ""}
-                localPhone={(phoneField.value as string) || ""}
-                onEmailChange={(email) => {
-                  emailField.onChange(email);
-                }}
-                onPhoneChange={(phone) => {
-                  const sanitized = sanitizePhoneToE164Draft(phone || "");
-                  phoneField.onChange(sanitized);
-                }}
-                emailError={!useBusinessContact && (emailState.isTouched || emailState.isDirty || emailHasDraft) ? (emailState.error?.message as unknown as string) : undefined}
-                phoneError={!useBusinessContact && (phoneState.isTouched || phoneState.isDirty || phoneHasDraft) ? (phoneState.error?.message as unknown as string) : undefined}
-                title={tw('stepLocation.contactInfoTitle')}
-                emailLabel={tw('stepLocation.locationEmail')}
-                phoneLabel={tw('stepLocation.locationPhone')}
-                helperTextOn={tw('stepLocation.useBusinessContactRemoteOn')}
-                helperTextOff={tw('stepLocation.useBusinessContactOff')}
-              />
-
-              <div className="space-y-2 pt-4">
-                <Label className="text-base font-medium">{tw('stepLocation.workingHours')}</Label>
-                <Open247Toggle
-                  open247={open247}
-                  onChange={makeWizardToggleHandler({
-                    setValue,
-                    watch,
-                    updateData,
-                    section: 'location',
-                    field: 'open247',
-                  })}
-                />
-                <div
-                  className={open247 ? "opacity-50 pointer-events-none" : ""}
-                >
-                  <WorkingHoursEditor
-                    value={currentWorkingHours}
-                    onChange={applyWorkingHours}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Map Pin Verification Dialog.

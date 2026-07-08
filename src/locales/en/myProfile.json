@@ -19,6 +19,14 @@
     "saveFailed": "Failed to save profile",
     "saveSuccess": "Profile saved successfully!"
   },
+  "visibility": {
+    "title": "Hide my profile from the marketplace",
+    "visibleDescription": "Clients can still see your profile on the marketplace — for example in their favorites. Turn this on to hide it. If you join a business, your profile becomes visible again automatically.",
+    "hiddenDescription": "Your profile is hidden from the marketplace. Clients can no longer see you, not even in their favorites.",
+    "hiddenToast": "Your profile is now hidden from the marketplace",
+    "visibleToast": "Your profile is visible on the marketplace again",
+    "updateFailed": "Couldn’t update marketplace visibility. Try again"
+  },
   "noProfileYet": {
     "greeting": "Hey {{name}}, let's build your personal brand",
     "fallbackName": "there",

@@ -228,47 +228,23 @@ const StepLaunch: React.FC<StepLaunchProps> = ({
                 </div>
               </div>
               <div className="space-y-2.5">
-                {location?.isRemote ? (
-                  <>
-                    {location?.name && (
-                      <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
-                        {location.name}
-                      </div>
-                    )}
-                    <div
-                      className={
-                        location?.name
-                          ? "text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed"
-                          : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
-                      }
-                    >
-                      {t("stepLaunch.remote")}
-                    </div>
-                    <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      {location?.timezone || business?.timezone || "—"}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {location?.name && (
-                      <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
-                        {location.name}
-                      </div>
-                    )}
-                    <div
-                      className={
-                        location?.name
-                          ? "text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed"
-                          : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
-                      }
-                    >
-                      {t("stepLaunch.onSite")}
-                    </div>
-                    <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
-                      {location?.timezone || business?.timezone || "—"}
-                    </div>
-                  </>
+                {location?.name && (
+                  <div className="text-lg font-bold text-foreground-1 leading-tight tracking-tight">
+                    {location.name}
+                  </div>
                 )}
+                <div
+                  className={
+                    location?.name
+                      ? "text-sm text-foreground-3 dark:text-foreground-2 leading-relaxed"
+                      : "text-lg font-bold text-foreground-1 leading-tight tracking-tight"
+                  }
+                >
+                  {t("stepLaunch.onSite")}
+                </div>
+                <div className="text-xs text-foreground-3 dark:text-foreground-2 leading-relaxed">
+                  {location?.timezone || business?.timezone || "—"}
+                </div>
               </div>
             </div>
           </div>

@@ -215,7 +215,9 @@
     "E17": "Nu am putut șterge imaginea. Încearcă din nou",
     "E18": "Nu am putut încărca locațiile. Încearcă din nou",
     "E19": "Nu ai acces la această locație",
-    "E20": "Nu am putut încărca alocările. Încearcă din nou"
+    "E20": "Nu am putut încărca alocările. Încearcă din nou",
+    "E21": "Nu îți poți ascunde profilul cât timp faci parte dintr-o organizație",
+    "E22": "Nu am putut actualiza vizibilitatea. Încearcă din nou"
   },
   "DASHBOARD": {
     "E01": "Nu am putut încărca dashboard-ul. Încearcă din nou",

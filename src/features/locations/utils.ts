@@ -21,7 +21,6 @@ export const mapLocationForEdit = (location: LocationType): any => {
         phone: location.phone,
         description: location.description,
         timezone: location.timezone,
-        isRemote: location.isRemote,
         workingHours: location.workingHours,
         open247: location.open247,
         mapPinConfirmed: location.mapPinConfirmed,

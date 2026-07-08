@@ -487,15 +487,12 @@ export function LocationAssignmentsView() {
     );
   }, [managingMemberId, selectedLocation]);
 
-  // Transform locations for list panel (no subtitle for remote locations with no address)
+  // Transform locations for list panel
   const listItems: ListItem[] = useMemo(() => {
     return filteredLocations.map((location: LocationType) => ({
       id: location.id,
       title: location.name,
-      subtitle:
-        !location.isRemote && location.address
-          ? location.address
-          : undefined,
+      subtitle: location.address || undefined,
       badges: [],
     }));
   }, [filteredLocations]);

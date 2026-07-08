@@ -22,6 +22,8 @@ export interface MarketplaceProfile {
 
 export interface GetMarketplaceProfileResponse {
   marketplaceProfile: MarketplaceProfile | null;
+  /** Marketplace opt-out; only togglable by dashboard users (no active business membership). */
+  hiddenFromMarketplace: boolean;
 }
 
 export interface UpdateMarketplaceProfilePayload {
@@ -46,6 +48,16 @@ export const getMarketplaceProfile = async (): Promise<GetMarketplaceProfileResp
 
 export const updateMarketplaceProfile = async (payload: UpdateMarketplaceProfilePayload): Promise<UpdateMarketplaceProfileResponse> => {
   const response = await apiClient().post<UpdateMarketplaceProfileResponse>('/team-member-account/marketplace-profile', payload);
+  return response.data;
+};
+
+export interface UpdateMarketplaceVisibilityResponse {
+  message: string;
+  hiddenFromMarketplace: boolean;
+}
+
+export const updateMarketplaceVisibility = async (hidden: boolean): Promise<UpdateMarketplaceVisibilityResponse> => {
+  const response = await apiClient().post<UpdateMarketplaceVisibilityResponse>('/team-member-account/marketplace-visibility', { hidden });
   return response.data;
 };
 

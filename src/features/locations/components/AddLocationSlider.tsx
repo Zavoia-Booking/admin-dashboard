@@ -13,8 +13,6 @@ import { TextareaField } from '../../../shared/components/forms/fields/TextareaF
 import { Pill } from '../../../shared/components/ui/pill';
 import { ManageServicesSheet } from '../../../shared/components/common/ManageServicesSheet';
 import AddressComposer from '../../../shared/components/address/AddressComposer';
-import RemoteLocationToggle from '../../../shared/components/common/RemoteLocationToggle';
-import TimezoneField from '../../../shared/components/common/TimezoneField';
 import ContactInformationToggle from '../../../shared/components/common/ContactInformationToggle';
 import WorkingHoursEditor from '../../../shared/components/common/WorkingHoursEditor';
 import Open247Toggle from '../../../shared/components/common/Open247Toggle';
@@ -51,7 +49,6 @@ const getDefaultTimezone = () => {
 };
 
 const defaultValues: NewLocationPayload = {
-  isRemote: false,
   name: '',
   address: '',
   email: '',
@@ -84,7 +81,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const [isAddressValid, setIsAddressValid] = useState(true);
   const [isServicesSheetOpen, setIsServicesSheetOpen] = useState(false);
   const [addressComposerKey, setAddressComposerKey] = useState(0);
-  const prevIsRemoteRef = useRef<boolean>(false);
   const justOpenedRef = useRef(false);
   const dataFetchedRef = useRef(false);
 
@@ -106,14 +102,11 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     reset,
     watch,
     setValue,
-    resetField,
-    trigger,
   } = useForm<NewLocationPayload>({
     defaultValues,
     mode: "onChange",
   });
 
-  const isRemote = watch('isRemote');
   const currentWorkingHours = watch('workingHours') as WorkingHours;
   const open247 = !!watch('open247');
 
@@ -304,7 +297,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     control,
     rules: {
       validate: (value) => {
-        if (isRemote) return true; // Address not required for remote locations
         if (!value || value.trim().length === 0) {
           return t("addLocation.validation.addressRequired");
         }
@@ -356,28 +348,12 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     },
   });
 
-  const { field: timezoneField, fieldState: timezoneState } = useController<NewLocationPayload, "timezone">({
-    name: "timezone",
-    control,
-    rules: {
-      validate: (value) => {
-        // Only require timezone when location is remote
-        if (!isRemote) return true; // Skip validation for physical locations
-        if (!value || value.trim().length === 0) {
-          return t("addLocation.validation.timezoneRequired");
-        }
-        return true;
-      },
-    },
-  });
-
   useEffect(() => {
     if (!isOpen) {
       reset(defaultValues);
       setUseBusinessContact(true);
       setIsAddressValid(true);
       setAddressComposerKey(0);
-      prevIsRemoteRef.current = false;
       // Do NOT reset isSubmitting here - keep it true during closing animation
       // to prevent button from being re-enabled
     }
@@ -460,20 +436,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     }
   }, [isLocationLoading, isSubmitting, locationError, onClose]);
 
-  // Re-validate timezone when isRemote changes
-  useEffect(() => {
-    trigger("timezone");
-  }, [isRemote, trigger]);
-
-  // Remount address composer when toggling to physical location
-  useEffect(() => {
-    const prev = prevIsRemoteRef.current;
-    if (prev && !isRemote) {
-      setAddressComposerKey((k) => k + 1);
-    }
-    prevIsRemoteRef.current = isRemote;
-  }, [isRemote]);
-
   // Reset pin confirmation when address changes (user-initiated only)
   useEffect(() => {
     const addressValue = watch('address');
@@ -538,19 +500,18 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
   const addressValue = watch("address");
   const emailValue = watch("email");
   const phoneValue = watch("phone");
-  const timezoneValue = watch("timezone");
 
   const areRequiredFieldsFilled =
     nameValue &&
     nameValue.trim().length > 0 &&
-    (isRemote || (addressValue && addressValue.trim().length > 0)) &&
+    addressValue &&
+    addressValue.trim().length > 0 &&
     emailValue &&
     emailValue.trim().length > 0 &&
     phoneValue &&
     phoneValue.trim().length > 0 &&
-    (isRemote ? (timezoneValue && timezoneValue.trim().length > 0) : true) &&
-    (isRemote || isAddressValid) &&
-    (isRemote || isPinConfirmed); // Require pin confirmation for physical locations
+    isAddressValid &&
+    isPinConfirmed; // Require pin confirmation
 
   // Only check for actual validation errors (not untouched optional fields)
   const hasValidationErrors =
@@ -558,8 +519,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
     !!emailState.error ||
     !!phoneState.error ||
     !!descriptionState.error ||
-    (!isRemote && !!addressState.error) ||
-    (isRemote && !!timezoneState.error);
+    !!addressState.error;
 
   const isFormDisabled = hasValidationErrors || !areRequiredFieldsFilled;
 
@@ -624,22 +584,7 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
         >
           <div className="flex-1 overflow-y-auto p-1 py-6 pt-0 md:p-6 md:pt-0 bg-surface">
             <div className="max-w-2xl mx-auto space-y-6 cursor-default">
-              {/* Remote Location Toggle - First */}
-              <RemoteLocationToggle
-                id="add-location-isRemote"
-                isRemote={isRemote}
-                onChange={(checked) => {
-                  setValue('isRemote', checked);
-                  // Clear description and address when toggling between remote/physical
-                  resetField("description", { defaultValue: "" });
-                  resetField("address", { defaultValue: "" });
-                  resetField("addressComponents", { defaultValue: undefined });
-                }}
-              />
-
-              {/* Physical Location */}
-              {!isRemote && (
-                <div className="space-y-4">
+              <div className="space-y-4">
                   <TextField
                     id="add-location-name"
                     value={nameField.value || ""}
@@ -869,75 +814,6 @@ const AddLocationSlider: React.FC<AddLocationSliderProps> = ({
                     </div>
                   </div>
                 </div>
-              )}
-
-              {/* Remote Location */}
-              {isRemote && (
-                <div className="space-y-4">
-                  <TextField
-                    id="add-location-name-remote"
-                    value={nameField.value || ""}
-                    onChange={nameField.onChange}
-                    error={nameState.error?.message}
-                    label={t("addLocation.form.remoteNameLabel")}
-                    isRemote
-                    required
-                    placeholder={t("addLocation.form.remoteNamePlaceholder")}
-                  />
-
-                  <TimezoneField
-                    value={timezoneField.value || ""}
-                    onChange={(tz) => timezoneField.onChange(tz)}
-                    error={timezoneState.error?.message}
-                    required
-                  />
-
-                  {/* Contact Information Toggle */}
-                  <ContactInformationToggle
-                    id="add-location-contact-toggle-remote"
-                    useInheritedContact={useBusinessContact}
-                    onToggleChange={handleContactToggleChange}
-                    inheritedEmail={businessEmail}
-                    inheritedPhone={businessPhone}
-                    inheritedLabel={t("addLocation.form.inheritedLabel")}
-                    localEmail={emailField.value || ""}
-                    localPhone={phoneField.value || ""}
-                    onEmailChange={(email) => {
-                      emailField.onChange(email);
-                    }}
-                    onPhoneChange={(phone) => {
-                      const sanitized = sanitizePhoneToE164Draft(phone || "");
-                      phoneField.onChange(sanitized);
-                    }}
-                    emailError={emailState.error?.message}
-                    phoneError={phoneState.error?.message}
-                    title={t("addLocation.form.contactTitle")}
-                    emailLabel={t("addLocation.form.emailLabel")}
-                    phoneLabel={t("addLocation.form.phoneLabel")}
-                    helperTextOn={t("addLocation.form.helperTextOnRemote")}
-                    helperTextOff={t("addLocation.form.helperTextOffRemote")}
-                  />
-
-                  <div className="space-y-2 pt-4">
-                    <Label className="text-base font-medium">{t("addLocation.form.workingHoursLabel")}</Label>
-                    <Open247Toggle
-                      id="add-location-open247-remote"
-                      open247={open247}
-                      onChange={(checked) => {
-                        setValue('open247', checked);
-                      }}
-                    />
-                    <div
-                      className={open247 ? "opacity-50 pointer-events-none" : ""}
-                    >
-                      <WorkingHoursEditor
-                        value={currentWorkingHours}
-                        onChange={applyWorkingHours}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </form>

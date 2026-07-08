@@ -1,10 +1,8 @@
 {
   "page": {
-    "errors": {
-      "saveFailed": "Salvarea progresului a eșuat",
-      "loadDraftFailed": "Încărcarea schiței a eșuat",
-      "completeFailed": "Ceva nu a funcționat, te rugăm să încerci din nou"
-    }
+    "progressSavedTitle": "Progres salvat",
+    "progressSavedDescription": "Poți continua configurarea oricând din dashboard.",
+    "completeError": "Nu am putut finaliza configurarea"
   },
   "layout": {
     "businessSetupWizard": "Configurare afacere",
@@ -29,7 +27,7 @@
     },
     "location": {
       "title": "Unde oferi serviciile?",
-      "subtitle": "Ajută clienții să te găsească sau anunță-i că oferi servicii la distanță"
+      "subtitle": "Ajută clienții să te găsească"
     },
     "team": {
       "title": "Vrei să adaugi echipa?",
@@ -69,20 +67,16 @@
   },
   "stepLocation": {
     "namePhysicalPlaceholder": "ex. Birou central",
-    "nameRemotePlaceholder": "Online",
     "addressLabel": "Adresă *",
     "contactInfoTitle": "Informații de contact",
     "contactInheritedLabel": "pasul anterior",
     "locationEmail": "Email locație *",
     "locationPhone": "Telefon locație *",
     "useBusinessContactPhysicalOn": "Datele de contact ale afacerii vor fi folosite pentru această locație.",
-    "useBusinessContactRemoteOn": "Datele de contact ale afacerii vor fi folosite pentru această locație.",
     "useBusinessContactOff": "Folosește alte date de contact pentru această locație.",
     "descriptionPlaceholder": "Descrie această locație (ex. Sediul principal cu parcare)",
     "workingHours": "Program de lucru",
-    "validation": {
-      "timezoneRequired": "Fusul orar este obligatoriu"
-    },
+    "validation": {},
     "toasts": {
       "enterAddress": "Te rugăm să introduci mai întâi o adresă validă",
       "geocodeNotFound": "Locația nu a fost găsită pe hartă. Te rugăm să cauți adresa corectă pe hartă.",
@@ -133,7 +127,6 @@
     "business": "Afacere",
     "allSet": "Gata",
     "location": "Locație",
-    "remote": "La distanță",
     "onSite": "La sediu",
     "team": "Echipă",
     "teamMemberInvited_one": "membru invitat",
@@ -161,10 +154,5 @@
   },
   "industrySelector": {
     "ariaSelectIndustry": "Selectează industria"
-  },
-  "page": {
-    "progressSavedTitle": "Progres salvat",
-    "progressSavedDescription": "Poți continua configurarea oricând din dashboard.",
-    "completeError": "Nu am putut finaliza configurarea"
   }
 }

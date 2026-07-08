@@ -64,7 +64,6 @@ const initialState: WizardState = {
     },
     useAccountEmail: true, // Default: use account email as business email
     location: {
-      isRemote: false,
       name: undefined as unknown as string,
       description: undefined as unknown as string,
       phone: undefined as unknown as string,

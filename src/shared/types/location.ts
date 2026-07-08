@@ -24,7 +24,6 @@ export interface LocationType {
   workingHours: WorkingHours;
   createdAt: string;
   timezone: string;
-  isRemote: boolean;
   open247?: boolean;
   servicesCount?: number;
   teamMembersCount?: number;

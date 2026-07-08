@@ -28,13 +28,12 @@ export const telHref = (phone: string): string => `tel:${phone.trim().startsWith
  *  unreliable on desktop (IP geolocation), so the route's start point comes out wrong. With search, the user
  *  taps Directions from the card where Maps uses their real location. On Apple devices `ll`+`q` pins the exact
  *  coords AND labels them with the business name; Google can't label bare coords without a Place ID (and
- *  discourages coordinate queries), so it gets the address string. Null when remote or no usable location.
+ *  discourages coordinate queries), so it gets the address string. Null when no usable location.
  *  https://developers.google.com/maps/documentation/urls/get-started */
 const isApplePlatform = (): boolean =>
   typeof navigator !== "undefined" && /iPhone|iPad|iPod|Macintosh/.test(navigator.userAgent);
 
 export const mapHref = (l: LocationWithAssignments): string | null => {
-  if (l.isRemote) return null;
   const c = l.addressComponents;
   const coords = typeof c?.latitude === "number" && typeof c?.longitude === "number" ? `${c.latitude},${c.longitude}` : "";
   const addr = l.address?.trim();

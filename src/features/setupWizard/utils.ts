@@ -94,9 +94,9 @@ export const prepareWizardDataForSubmission = (wizardData: WizardData): WizardDa
   ensureBusinessCurrency(payload);
   applyBusinessContactToLocation(payload);
   
-  // Final validation: Ensure coordinate fields are present for physical locations
+  // Final validation: Ensure coordinate fields are present
   const location = payload.location as any;
-  if (!location.isRemote && location.addressComponents) {
+  if (location.addressComponents) {
     // Ensure latitude exists
     if (typeof location.addressComponents.latitude !== 'number') {
       console.warn('[Wizard] Missing latitude for physical location');

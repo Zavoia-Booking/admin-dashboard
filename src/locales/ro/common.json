@@ -102,11 +102,6 @@
     "blockerMemberSecondaryCta": "Mergi la contul meu",
     "blockerSignOut": "Deconectare"
   },
-  "remoteLocation": {
-    "label": "Ofer servicii la distanță/online",
-    "descriptionOn": "Întâlnirile au loc în afara Zavoia. Adaugă linkul Zoom/Meet/Teams sau instrucțiunile și alege fusul orar corect ca clienții să se conecteze la ora potrivită.",
-    "descriptionOff": "Activează dacă ții ședințe prin Zoom, Google Meet, Teams etc."
-  },
   "open247": {
     "label": "Deschis non-stop",
     "descriptionOn": "Deschis toată ziua, în fiecare zi. Orele zilnice sunt dezactivate.",
@@ -289,4 +284,3 @@
     }
   }
 }
-

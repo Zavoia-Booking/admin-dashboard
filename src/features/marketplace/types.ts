@@ -176,7 +176,6 @@ export interface Location {
   name: string;
   description: string;
   phone: string;
-  isRemote: boolean;
   email: string;
   address: string;
   addressComponents: {

@@ -152,16 +152,6 @@ export const useSetupWizard = () => {
         return hasName && hasIndustry && hasValidPhone;
       }
       case 2:
-        if (reducerData.location.isRemote) {
-          const hasContact =
-            (reducerData.location.email?.trim() ?? "") !== "" ||
-            reducerData.location.phone?.trim() !== "";
-          return (
-            reducerData.location.name?.trim() !== "" &&
-            reducerData.location.timezone?.trim() !== "" &&
-            hasContact
-          );
-        }
         return (
           reducerData.location.name?.trim() !== "" &&
           reducerData.location.address?.trim() !== "" &&
