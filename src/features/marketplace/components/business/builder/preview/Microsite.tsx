@@ -186,7 +186,9 @@ function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusTy
         })
       )}
       </div>
-      {chrome && footerOn && stacked.length > 0 && <Footer data={data} t={t} footerRef={footerRef} />}
+      {chrome && footerOn && stacked.length > 0 && (
+        <Footer data={data} t={t} footerRef={footerRef} variant={layout.find((s) => s.type === "footer")?.variant} />
+      )}
     </div>
   );
 }
@@ -212,7 +214,7 @@ function SectionView({ entry, data, t, no, chrome, layout }: { entry: SectionEnt
       return <ScopedNav data={data} layout={layout} t={t} />;
     case "footer":
       // Only reached in the scoped one-section preview (the full page renders the footer as pinned chrome).
-      return <ScopedFooter data={data} t={t} />;
+      return <ScopedFooter data={data} t={t} variant={entry.variant} />;
     case "marquee":
       return <Marquee entry={entry} data={data} chrome={chrome} />;
     case "interlude":
@@ -243,9 +245,9 @@ function ScopedNav({ data, layout, t }: { data: PreviewData; layout: SectionEntr
 
 /** Static footer for the scoped one-section preview: the reveal engine only runs in the full page, so it
  *  renders as a normal block here (--mc-reveal defaults to 1 → the settled paper state). */
-function ScopedFooter({ data, t }: { data: PreviewData; t: T }) {
+function ScopedFooter({ data, t, variant }: { data: PreviewData; t: T; variant?: string }) {
   const ref = useRef<HTMLElement>(null);
-  return <Footer data={data} t={t} footerRef={ref} />;
+  return <Footer data={data} t={t} footerRef={ref} variant={variant} />;
 }
 
 export default LivePreview;

@@ -20,6 +20,7 @@ export const selectBookingSettingsSaving = (state: RootState) => state.marketpla
 export const selectWebsiteVariantCatalog = (state: RootState) => state.marketplace.variantCatalog;
 export const selectWebsiteSectionCatalog = (state: RootState) => state.marketplace.sectionCatalog;
 export const selectVariantCatalogLoading = (state: RootState) => state.marketplace.isLoadingVariantCatalog;
+export const selectWebsiteCatalogLoaded = (state: RootState) => state.marketplace.websiteCatalogLoaded;
 export const selectVariantCheckoutCreating = (state: RootState) => state.marketplace.isCreatingVariantCheckout;
 export const selectVariantCart = (state: RootState) => state.marketplace.variantCart;
 export const selectSectionCart = (state: RootState) => state.marketplace.sectionCart;

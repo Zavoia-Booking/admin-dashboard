@@ -78,15 +78,23 @@ export function SectionStylePicker({
     if (radios.length === 0) return;
     e.preventDefault();
     const current = radios.indexOf(document.activeElement as HTMLButtonElement);
-    const next =
-      e.key === "Home"
-        ? 0
-        : e.key === "End"
-          ? radios.length - 1
-          : current === -1
-            ? 0
-            : (current + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1) + radios.length) %
-              radios.length;
+    // Above the @md container breakpoint the strip becomes a real 2-up grid — there Up/Down must
+    // step a visual row (one column-count), not act as Left/Right aliases. Read the layout from
+    // computed style so the container query stays the single source of truth.
+    const style = window.getComputedStyle(e.currentTarget);
+    const cols = style.display === "grid" ? style.gridTemplateColumns.split(" ").length : 1;
+    let next: number;
+    if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = radios.length - 1;
+    else if (current === -1) next = 0;
+    else if (cols > 1 && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
+      next = current + (e.key === "ArrowDown" ? cols : -cols);
+      if (next < 0 || next >= radios.length) return; // vertical steps don't wrap
+    } else {
+      next =
+        (current + (e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : -1) + radios.length) %
+        radios.length;
+    }
     radios[next]?.focus();
   };
 

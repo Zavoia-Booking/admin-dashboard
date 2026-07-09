@@ -56,6 +56,15 @@ export interface HeroConfig {
   coverLayout?: "full" | "plate";
 }
 
+/** Announcement tone — an independent axis layered under the layout variant; colours the whole ribbon. */
+export type AnnouncementTone = "neutral" | "offer" | "alert";
+
+/** Typed view of an announcement section's `config`. The layout is the section `variant`; the tone (colour)
+ *  is config, so it composes with any layout. */
+export interface AnnouncementConfig {
+  tone?: AnnouncementTone;
+}
+
 /**
  * Typed view of a locations section's `config`: which locations to hide, plus optional bilingual copy
  * overrides for the section heading + sub-lede. Blank/absent copy falls back to the default editorial
@@ -412,6 +421,11 @@ export interface MarketplaceState {
   variantCatalog: WebsiteVariantCatalogEntry[];
   sectionCatalog: WebsiteSectionCatalogEntry[];
   isLoadingVariantCatalog: boolean;
+  /** The catalog fetch has SUCCEEDED at least once. Flips the builder from permissive (every
+   *  implemented section renders) to authoritative (only catalogued content renders). A later
+   *  failure keeps this true and the last-good arrays, so a transient error never empties the
+   *  builder; only a genuine empty success hides content. */
+  websiteCatalogLoaded: boolean;
   isCreatingVariantCheckout: boolean;
   /** Shopping cart of catalog variant ids awaiting one combined checkout (persisted to localStorage per business). */
   variantCart: number[];

@@ -6,6 +6,7 @@ import type {
   LocationWithAssignments,
   FaqItem,
   AnnouncementContent,
+  AnnouncementConfig,
   HeroConfig,
   LocationsConfig,
   TeamConfig,
@@ -104,8 +105,11 @@ export function SettingsPanel({
       <AnnouncementEditor
         value={announcementContent}
         onChange={onAnnouncementChange}
+        config={(entry.config ?? {}) as AnnouncementConfig}
+        onConfigChange={(patch) => onConfigChange(index, patch as Record<string, unknown>)}
         locale={locale}
         required={entry.visible}
+        canWrite={canWrite}
       />
     );
   }

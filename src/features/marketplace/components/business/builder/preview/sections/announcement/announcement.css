@@ -1,0 +1,65 @@
+/* ── Announcement (mirrors the source SecAnnouncement) ────────────────────────
+   The promo ribbon pinned above the nav. Two independent axes: a layout (`mc-anno--lay-<variant>`:
+   bar/split/hairline) and a tone (`mc-anno--<tone>`: neutral/offer/alert) layered under it. The
+   orchestrator owns the root + the trailing dismiss affordance; each variant renders the `.mc-anno-in`
+   body. Positioning is handled by Microsite's sticky wrapper, so (unlike the source) the bar is a normal
+   in-flow block — `position: relative` only anchors the absolute dismiss button. */
+.mc-anno { position: relative; background: var(--mc-fg); color: var(--mc-bg); }
+.mc-anno-in { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 9px 48px; font-size: 12.5px; line-height: 1.35; flex-wrap: wrap; }
+.mc-anno-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mc-accent); flex: none; }
+.mc-anno-txt { letter-spacing: 0.01em; }
+.mc-anno-count { font-family: var(--mc-mono); font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; background: color-mix(in oklch, var(--mc-bg) 16%, transparent); white-space: nowrap; flex: none; font-variant-numeric: tabular-nums; }
+.mc-anno-in a { display: inline-flex; align-items: center; gap: 5px; color: var(--mc-bg); font-family: var(--mc-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none; cursor: pointer; padding-bottom: 1px; border-bottom: 1.5px solid color-mix(in oklch, var(--mc-bg) 45%, transparent); transition: border-color 0.25s var(--ease-out-strong); }
+.mc-anno-in a:hover { border-bottom-color: var(--mc-bg); }
+.mc-anno-x { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; background: transparent; color: var(--mc-bg); opacity: 0.55; cursor: pointer; border-radius: 50%; transition: opacity 0.2s var(--ease-out-strong), background-color 0.2s var(--ease-out-strong); }
+.mc-anno-x:hover { opacity: 1; background: color-mix(in oklch, var(--mc-bg) 16%, transparent); }
+
+/* Tone · Offer (accent-filled) */
+.mc-anno--offer { background: var(--mc-accent); color: #fff; }
+.mc-anno--offer .mc-anno-dot { background: #fff; }
+.mc-anno--offer .mc-anno-in a, .mc-anno--offer .mc-anno-x { color: #fff; }
+.mc-anno--offer .mc-anno-in a { border-bottom-color: rgba(255, 255, 255, 0.5); }
+.mc-anno--offer .mc-anno-in a:hover { border-bottom-color: #fff; }
+.mc-anno--offer .mc-anno-count { background: rgba(255, 255, 255, 0.2); }
+.mc-anno--offer .mc-anno-x:hover { background: rgba(255, 255, 255, 0.18); }
+
+/* Tone · Alert (notices / closures) */
+.mc-anno--alert { background: #8a2b22; color: #fff; }
+.mc-anno--alert .mc-anno-dot { background: #ffb4a2; }
+.mc-anno--alert .mc-anno-in a, .mc-anno--alert .mc-anno-x { color: #fff; }
+.mc-anno--alert .mc-anno-in a { border-bottom-color: rgba(255, 255, 255, 0.5); }
+.mc-anno--alert .mc-anno-in a:hover { border-bottom-color: #fff; }
+.mc-anno--alert .mc-anno-count { background: rgba(255, 255, 255, 0.18); }
+.mc-anno--alert .mc-anno-x:hover { background: rgba(255, 255, 255, 0.18); }
+
+@media (prefers-reduced-motion: no-preference) {
+  .mc-anno--alert .mc-anno-dot { animation: mcAnnoPulse 1.8s ease-in-out infinite; }
+}
+@keyframes mcAnnoPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 180, 162, 0.7); }
+  50% { box-shadow: 0 0 0 5px rgba(255, 180, 162, 0); }
+}
+
+/* ── Split — message left, countdown + CTA right ── */
+.mc-anno--lay-split .mc-anno-in { justify-content: space-between; text-align: left; padding-left: clamp(18px, 4cqw, 56px); padding-right: 52px; }
+.mc-anno-left { display: inline-flex; align-items: center; gap: 12px; min-width: 0; }
+.mc-anno-right { display: inline-flex; align-items: center; gap: 14px; flex: none; }
+
+/* ── Hairline — quiet paper rule, italic serif message (upright for grotesque faces via --mc-anno-italic) ── */
+.mc-anno--lay-hairline { background: var(--mc-bg); color: var(--mc-fg); border-bottom: 1px solid var(--mc-line); }
+.mc-anno--lay-hairline .mc-anno-txt { font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-style: var(--mc-anno-italic, italic); font-size: 14.5px; letter-spacing: var(--mc-display-tracking); }
+.mc-anno--lay-hairline .mc-anno-in a { color: var(--mc-accent); border-bottom-color: color-mix(in oklch, var(--mc-accent) 45%, transparent); }
+.mc-anno--lay-hairline .mc-anno-in a:hover { border-bottom-color: var(--mc-accent); }
+.mc-anno--lay-hairline .mc-anno-count { background: color-mix(in oklch, var(--mc-fg) 7%, transparent); color: var(--mc-fg); }
+.mc-anno--lay-hairline .mc-anno-x { color: var(--mc-fg); }
+.mc-anno--lay-hairline .mc-anno-x:hover { background: color-mix(in oklch, var(--mc-fg) 8%, transparent); }
+.mc-anno--lay-hairline.mc-anno--offer { color: var(--mc-accent); }
+.mc-anno--lay-hairline.mc-anno--offer .mc-anno-dot { background: var(--mc-accent); }
+.mc-anno--lay-hairline.mc-anno--alert { color: #8a2b22; }
+.mc-anno--lay-hairline.mc-anno--alert .mc-anno-dot { background: #8a2b22; }
+
+/* Narrow preview: split stacks into a left-aligned column (text row, then countdown + CTA row). */
+@container (max-width: 600px) {
+  .mc-anno--lay-split .mc-anno-in { flex-direction: column; align-items: flex-start; gap: 8px; padding-right: 44px; }
+  .mc-anno--lay-split .mc-anno-right { width: 100%; justify-content: flex-start; }
+}

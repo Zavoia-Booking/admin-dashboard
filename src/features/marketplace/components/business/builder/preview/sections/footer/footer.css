@@ -69,6 +69,60 @@ a.mc-foot-link:hover { color: var(--mc-accent); }
 .mc-foot-base { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-family: var(--mc-mono); font-size: 11.5px; color: var(--mc-muted); border-top: 1px solid var(--mc-line); padding-top: clamp(14px, 2cqw, 22px); }
 .mc-foot-zav { display: inline-flex; align-items: center; gap: 7px; }
 
+/* ── Poster — inverted ink block, wordmark front and centre ───────────────────
+   `.mc-footer--poster` recolours the whole panel dark (paper text on ink); the reveal lightens it as it's
+   uncovered. Its own dark background wins over the narrow-preview `.mc-footer` paper override by specificity,
+   so the poster stays inverted even when the footer collapses to a static block. */
+.mc-footer--poster { color: var(--mc-bg); background: color-mix(in oklch, var(--mc-fg), #000 calc((1 - var(--mc-reveal, 0)) * 30%)); }
+.mc-footer--poster .mc-foot-base { color: rgba(255, 255, 255, 0.55); border-color: rgba(255, 255, 255, 0.16); }
+.mc-fpo { display: flex; flex-direction: column; align-items: center; text-align: center; gap: clamp(14px, 2.2cqw, 22px); }
+.mc-fpo .mc-foot-name { align-self: stretch; text-align: center; color: var(--mc-bg); }
+.mc-fpo-mark { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; font-family: var(--mc-display); font-weight: var(--mc-display-weight); font-size: 24px; color: var(--mc-bg); border: 1px solid rgba(255, 255, 255, 0.4); }
+.mc-fpo-tag { margin: 0; font-size: clamp(14.5px, 1.5cqw, 17px); line-height: 1.55; color: rgba(255, 255, 255, 0.68); max-width: 52ch; text-wrap: pretty; }
+.mc-fpo .mc-foot-social { justify-content: center; margin-top: 10px; }
+.mc-footer--poster .mc-foot-soc { color: var(--mc-bg); border-color: rgba(255, 255, 255, 0.28); }
+.mc-footer--poster .mc-foot-soc:hover { color: var(--mc-on-accent); background: var(--mc-accent); border-color: var(--mc-accent); }
+
+/* ── Minimal — one quiet deck: brand + socials, then a single mono contact line ── */
+.mc-fmin-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 20px 32px; }
+.mc-fmin-brand { display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 420px; }
+.mc-fmin-mid { display: flex; flex-wrap: wrap; gap: 10px clamp(20px, 3cqw, 36px); border-top: 1px solid var(--mc-line); margin-top: clamp(20px, 3cqw, 30px); padding-top: clamp(16px, 2.4cqw, 24px); }
+.mc-fmin-mid a, .mc-fmin-mid button { font-family: var(--mc-mono); font-size: 12px; letter-spacing: 0.04em; color: var(--mc-fg); text-decoration: none; background: none; border: 0; padding: 0; cursor: pointer; transition: color 0.2s var(--ease-out-strong); }
+.mc-fmin-mid a:hover, .mc-fmin-mid button:hover { color: var(--mc-accent); }
+
+/* ── Mega — one enormous action over a hairline row of essentials ── */
+.mc-fmg { display: flex; flex-direction: column; gap: clamp(26px, 4cqw, 44px); }
+.mc-fmg-kick { margin-bottom: -8px; }
+.mc-fmg-btn { display: flex; align-items: center; gap: clamp(16px, 2.6cqw, 34px); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; color: var(--mc-fg); font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(38px, 6.6cqw, 104px); line-height: 0.94; min-width: 0; }
+.mc-fmg-arr { flex: none; width: clamp(52px, 6cqw, 88px); aspect-ratio: 1; border-radius: 50%; border: 1px solid color-mix(in oklch, var(--mc-fg) 30%, transparent); display: grid; place-items: center; color: var(--mc-fg); transition: background-color 0.35s var(--ease-out-strong), color 0.35s var(--ease-out-strong), border-color 0.35s var(--ease-out-strong), transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mc-fmg-arr svg { width: 44%; height: 44%; }
+.mc-fmg-btn:hover .mc-fmg-arr { background: var(--mc-accent); border-color: var(--mc-accent); color: var(--mc-on-accent); transform: translateX(8px); }
+.mc-fmg-row { display: flex; flex-wrap: wrap; gap: 22px clamp(30px, 4.5cqw, 70px); border-top: 1px solid var(--mc-line); padding-top: clamp(20px, 3cqw, 32px); }
+.mc-fmg-cell { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.mc-fmg-cities { display: flex; flex-direction: column; gap: 5px; align-items: flex-start; }
+.mc-fmg-city { background: none; border: 0; padding: 0; cursor: pointer; font-size: 14px; color: var(--mc-fg); transition: color 0.2s; text-align: left; }
+.mc-fmg-city:hover, .mc-fmg-city[data-on="1"] { color: var(--mc-accent); }
+
+/* ── Index — the footer as a numbered ledger ── */
+.mc-fix { border-top: 1px solid var(--mc-line); }
+.mc-fix-row { border-bottom: 1px solid var(--mc-line); }
+.mc-fix-head { display: grid; grid-template-columns: clamp(36px, 4.6cqw, 64px) minmax(0, 1fr) auto; align-items: center; gap: clamp(14px, 2.4cqw, 32px); width: 100%; text-align: left; background: none; border: 0; padding: clamp(16px, 2.2cqw, 26px) 4px; color: var(--mc-fg); transition: padding-left 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+div.mc-fix-head, span.mc-fix-head { cursor: default; }
+.mc-fix-no { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--mc-muted); }
+.mc-fix-ttl { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(21px, 2.6cqw, 36px); line-height: 1; }
+.mc-fix-end { display: inline-flex; align-items: center; gap: 14px; font-family: var(--mc-mono); font-size: 12px; color: var(--mc-muted); }
+a.mc-fix-head { cursor: pointer; text-decoration: none; }
+a.mc-fix-head:hover { padding-left: 14px; }
+a.mc-fix-head:hover .mc-fix-no, a.mc-fix-head:hover .mc-fix-end { color: var(--mc-accent); }
+.mc-fix-sub { padding: 0 4px clamp(16px, 2.2cqw, 24px) calc(clamp(36px, 4.6cqw, 64px) + clamp(14px, 2.4cqw, 32px)); display: flex; flex-direction: column; }
+.mc-fix-loc { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 8px 0; border-top: 1px dashed color-mix(in oklch, var(--mc-fg) 12%, transparent); font-size: 14px; color: var(--mc-fg); text-decoration: none; }
+.mc-fix-loc:first-child { border-top: 0; padding-top: 0; }
+.mc-fix-loc-nm { font-weight: 600; }
+.mc-fix-loc-x { font-family: var(--mc-mono); font-size: 12px; color: var(--mc-muted); text-align: right; }
+.mc-fix-inline { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.mc-fix-inline a { color: var(--mc-fg); text-decoration: none; font-size: 14px; transition: color 0.2s; }
+.mc-fix-inline a:hover { color: var(--mc-accent); }
+
 /* Narrow preview: drop the fixed reveal — footer becomes a normal block. */
 @container (max-width: 640px) {
   .mc-foot-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; }

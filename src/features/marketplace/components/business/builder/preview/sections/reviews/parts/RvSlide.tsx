@@ -1,17 +1,8 @@
 import { Fragment, useEffect, useState, type CSSProperties } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Stars } from "../../../shared/primitives";
+import { formatReviewDate } from "../../../shared/util";
 import type { PreviewReview, T } from "../../../shared/types";
-
-function formatReviewDate(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "";
-  try {
-    return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
-  } catch {
-    return "";
-  }
-}
 
 export function RvSlide({ item, animateIn, italic, t }: { item: PreviewReview; animateIn: boolean; italic: boolean; t: T }) {
   // Resting state is visible; only hide-then-rise when actually animating in, so a frozen first paint

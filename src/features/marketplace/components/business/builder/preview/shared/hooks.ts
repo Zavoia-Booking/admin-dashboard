@@ -1,5 +1,39 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { findScrollParent } from "./util";
+
+/** IntersectionObserver gate (F5): tracks whether `ref` is in view (continuously, so callers can pause motion
+ *  when scrolled away), defaulting to true where IO is unavailable. `once` latches true on first intersect
+ *  (for entrance reveals like the rating-distribution bars). Shared by the reviews marquee/spotlight/deck. */
+export function useInView(
+  ref: React.RefObject<HTMLElement | null>,
+  { threshold = 0.25, once = false }: { threshold?: number; once?: boolean } = {},
+): boolean {
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (es) =>
+        es.forEach((e) => {
+          if (once) {
+            if (e.isIntersecting) {
+              setInView(true);
+              io.disconnect();
+            }
+          } else {
+            setInView(e.isIntersecting);
+          }
+        }),
+      { threshold },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [ref, threshold, once]);
+  return inView;
+}
 
 /** Footer reveal: drive `--mc-reveal` (0 hidden → 1 fully shown) off the preview's scroll container so the
  *  pinned footer dims while covered and lightens to paper as the lifting page uncovers it. Mirrors the

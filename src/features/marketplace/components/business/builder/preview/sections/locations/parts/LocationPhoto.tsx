@@ -1,12 +1,8 @@
 import type { LocationWithAssignments } from "../../../../../../../types";
 import { DISPLAY } from "../../../shared/constants";
-import { prettyAddress } from "../../../shared/contact";
+import { locationPhoto, prettyAddress } from "../../../shared/contact";
 import type { T } from "../../../shared/types";
 import { StagePhoto } from "./StagePhoto";
-
-/** Featured photo for a location — the featured image, else the first portfolio image, else none. */
-const locationPhoto = (l: LocationWithAssignments): string | null =>
-  l.featuredImage || l.portfolioImages?.[0]?.url || null;
 
 /** Right plate: the selected location's photo as a full-height editorial panel with the caption overlay
  *  (name, blurb, address). Stretches to match the left column; falls back to an accent field with no photo. */

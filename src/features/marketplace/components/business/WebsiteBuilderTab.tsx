@@ -24,6 +24,7 @@ import {
   selectWebsiteVariantCatalog,
   selectWebsiteSectionCatalog,
   selectVariantCatalogLoading,
+  selectWebsiteCatalogLoaded,
   selectVariantCheckoutCreating,
   selectVariantCart,
   selectSectionCart,
@@ -62,6 +63,7 @@ export function WebsiteBuilderTab({
   const variantCatalog = useSelector(selectWebsiteVariantCatalog);
   const sectionCatalog = useSelector(selectWebsiteSectionCatalog);
   const isCatalogLoading = useSelector(selectVariantCatalogLoading);
+  const catalogLoaded = useSelector(selectWebsiteCatalogLoaded);
   const isVariantCheckoutLoading = useSelector(selectVariantCheckoutCreating);
   const variantCart = useSelector(selectVariantCart);
   const sectionCart = useSelector(selectSectionCart);
@@ -327,6 +329,7 @@ export function WebsiteBuilderTab({
           sectionCatalog={sectionCatalog}
           hasWebsiteBuilder={hasWebsiteBuilder}
           isCatalogLoading={isCatalogLoading}
+          catalogLoaded={catalogLoaded}
           isVariantCheckoutLoading={isVariantCheckoutLoading}
           onBuyVariant={handleBuyVariant}
           onBuySection={handleBuySection}

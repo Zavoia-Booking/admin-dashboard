@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Phone, Mail, MapPin } from "lucide-react";
 import type { LocationWithAssignments } from "../../../../../../../types";
-import type { ChipOption, ResolvedTagDictionaries } from "../../../../../../../hooks/useLocationTagDictionaries";
+import type { ResolvedTagDictionaries } from "../../../../../../../hooks/useLocationTagDictionaries";
 import { cn } from "../../../../../../../../../shared/lib/utils";
 import { DISPLAY, MONO } from "../../../shared/constants";
 import { hasOpeningHours, mapHref, prettyAddress, telHref } from "../../../shared/contact";
@@ -10,31 +10,7 @@ import type { T } from "../../../shared/types";
 import { ContactRow } from "./ContactRow";
 import { StageHours } from "./StageHours";
 import { LocationTags } from "./LocationTags";
-import type { LocationTagGroup } from "../types";
-
-/** A location's selected marketplace tags resolved + grouped by category, in reading order — mirrors the
- *  owner-facing amenities slider so the page is scannable. Each group has its own id space (separate
- *  dictionary tables), so IDs are resolved against their own dictionary group. */
-const TAG_GROUP_ORDER: { ids: keyof LocationWithAssignments; dict: keyof ResolvedTagDictionaries }[] = [
-  { ids: "amenityTagIds", dict: "amenities" },
-  { ids: "accessibilityTagIds", dict: "accessibility" },
-  { ids: "paymentMethodTagIds", dict: "paymentMethods" },
-  { ids: "valueTagIds", dict: "values" },
-  { ids: "audienceTagIds", dict: "audience" },
-  { ids: "languageTagIds", dict: "languages" },
-];
-function buildLocationTagGroups(loc: LocationWithAssignments, dict: ResolvedTagDictionaries | null): LocationTagGroup[] {
-  if (!dict) return [];
-  const out: LocationTagGroup[] = [];
-  for (const g of TAG_GROUP_ORDER) {
-    const ids = (loc[g.ids] as number[] | undefined) ?? [];
-    if (ids.length === 0) continue;
-    const byId = new Map(dict[g.dict].map((o) => [o.id, o]));
-    const items = ids.map((id) => byId.get(id)).filter((x): x is ChipOption => !!x);
-    if (items.length > 0) out.push({ key: g.dict, items });
-  }
-  return out;
-}
+import { buildLocationTagGroups } from "../util";
 
 /** Left data card (under the picker): opening hours + rating/team stats + contact in a compact split that
  *  stacks when the card is narrow (its own `@container/panel`), then the collapsible tag band, then a

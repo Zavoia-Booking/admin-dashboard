@@ -67,11 +67,12 @@ const v = (id: string): SectionVariant => ({
 export const SECTION_META: Record<SectionType, SectionMeta> = {
   announcement: {
     type: "announcement",
-    // Always a sticky ribbon pinned above the nav — no layout choice, no reordering (see PINNED_TYPES).
+    // Sticky ribbon pinned above the nav — position is fixed (see PINNED_TYPES), but the layout (bar /
+    // split / hairline) and tone are selectable.
     icon: Megaphone,
     labelKey: "businessPage.sections.announcement.label",
     descriptionKey: "businessPage.sections.announcement.description",
-    variants: [v("bar")],
+    variants: [v("bar"), v("split"), v("hairline")],
     netNew: true,
     defaultConfig: {},
     defaultHidden: true,
@@ -116,8 +117,10 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: AlignLeft,
     labelKey: "businessPage.sections.about.label",
     descriptionKey: "businessPage.sections.about.description",
-    // Single editorial layout — About has no image of its own, so there's no layout choice to make.
-    variants: [v("simple")],
+    // Layouts over the same lede/body + derived stat cells: the editorial split (simple, base), a centred
+    // manifesto with a counter band, a photo portrait with a 2-up stat grid, and a numbered stats ledger.
+    // (sticky lands in a later pass.)
+    variants: [v("simple"), v("manifesto"), v("portrait"), v("ledger")],
     netNew: false,
     defaultConfig: {},
   },
@@ -126,9 +129,9 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: MapPin,
     labelKey: "businessPage.sections.locations.label",
     descriptionKey: "businessPage.sections.locations.description",
-    // Single editorial "switcher": a numbered index of places + a featured stage that re-scopes to the
-    // selected one (one location drops the index and shows the stage full-width). No layout choice to make.
-    variants: [v("switcher")],
+    // Editorial "switcher" (index + featured stage, base), a "cards" shelf, or an "atlas" (tab strip over a
+    // wide stage + detail sheet); all drive the same selected-location state. A single location collapses.
+    variants: [v("switcher"), v("cards"), v("atlas")],
     netNew: false,
     // Owner picks which locations to hide; empty = show all.
     defaultConfig: { hiddenLocationIds: [] as number[] },
@@ -169,11 +172,12 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
   testimonials: {
     type: "testimonials",
     icon: Quote,
-    // Single editorial layout (mirrors the source): rating summary + per-star distribution + an
-    // auto-playing quote showcase. Legacy cards/quote saves collapse on read.
+    // Rating summary + per-star distribution (constant), then the chosen voices: the auto-playing showcase
+    // (default), a pinboard wall, two drifting marquee lanes, a centred spotlight, or a tap-through deck.
+    // Legacy cards/quote saves collapse to default on read.
     labelKey: "businessPage.sections.testimonials.label",
     descriptionKey: "businessPage.sections.testimonials.description",
-    variants: [v("default")],
+    variants: [v("default"), v("wall"), v("marquee"), v("spotlight"), v("deck")],
     netNew: false,
     defaultConfig: {},
   },
@@ -182,7 +186,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: HelpCircle,
     labelKey: "businessPage.sections.faq.label",
     descriptionKey: "businessPage.sections.faq.description",
-    variants: [v("accordion"), v("list")],
+    variants: [v("accordion"), v("split"), v("list"), v("chips"), v("grid"), v("index")],
     netNew: true,
     defaultConfig: {},
   },
@@ -192,7 +196,7 @@ export const SECTION_META: Record<SectionType, SectionMeta> = {
     icon: PanelBottom,
     labelKey: "businessPage.sections.footer.label",
     descriptionKey: "businessPage.sections.footer.description",
-    variants: [v("default")],
+    variants: [v("default"), v("poster"), v("minimal"), v("mega"), v("index")],
     netNew: false,
     defaultConfig: {},
   },
@@ -282,12 +286,15 @@ export function buildInitialLayout(saved?: SectionEntry[] | null): SectionEntry[
     config: s.config ? { ...s.config } : {},
   }));
   const result = [...normalizedSaved, ...appended];
-  // Announcement is pinned to the top of the page and is always the "bar" ribbon — enforce both on read
-  // so a legacy save (different order / "inline" variant) opens in the locked arrangement.
+  // Announcement is pinned to the top of the page — enforce its position on read. Its layout variant is
+  // preserved when it's a known one (bar/split/hairline); an unknown/legacy id (e.g. "inline") collapses to
+  // the base "bar", mirroring the hero/marquee normalization. (Previously this forced "bar" unconditionally,
+  // silently erasing any chosen layout.)
   const ai = result.findIndex((s) => s.type === "announcement");
   if (ai !== -1) {
     const [a] = result.splice(ai, 1);
-    result.unshift({ ...a, variant: "bar" });
+    const variant = SECTION_META.announcement.variants.some((vr) => vr.id === a.variant) ? a.variant : "bar";
+    result.unshift({ ...a, variant });
   }
   // Hero is pinned second (right after the announcement) and not reorderable — enforce its position on
   // read. The hero is now single-variant; a legacy "split" save carries its layout intent into the new

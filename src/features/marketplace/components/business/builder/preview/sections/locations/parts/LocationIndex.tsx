@@ -1,10 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Star, ArrowRight } from "lucide-react";
 import type { LocationWithAssignments } from "../../../../../../../types";
-
-/** City/area line for a location — prefers the structured city, falls back to the address head. */
-const locationArea = (l: LocationWithAssignments): string =>
-  l.addressComponents?.city?.trim() || l.address?.split(",")[0]?.trim() || "";
+import { locationArea } from "../../../shared/contact";
 
 /** Left index: selectable rows + a sliding accent indicator that springs to the active row. */
 export function LocationIndex({ shown, active, onSelect }: { shown: LocationWithAssignments[]; active: number; onSelect: (i: number) => void }) {

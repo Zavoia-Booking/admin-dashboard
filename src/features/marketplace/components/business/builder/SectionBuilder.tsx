@@ -179,7 +179,8 @@ interface SectionBuilderProps {
   // pills render beyond each section's base variant (matched by sectionType:variantKey).
   /** ACTIVE variant catalog with per-business ownership; absent/empty = only base variants render. */
   variantCatalog?: WebsiteVariantCatalogEntry[];
-  /** ACTIVE section catalog with per-business ownership; absent/empty = all implemented sections render free. */
+  /** ACTIVE section catalog with per-business ownership. Once {@link catalogLoaded} is true it is
+   *  authoritative: only its content types render (chrome always renders). Before then, all render. */
   sectionCatalog?: WebsiteSectionCatalogEntry[];
   /** Plan includes the website builder (purchasing needs Plus/trial; locked pills still render without it). */
   hasWebsiteBuilder?: boolean;
@@ -187,6 +188,10 @@ interface SectionBuilderProps {
    *  affordances render a neutral skeleton instead of briefly showing as unlocked (catalog fetch
    *  *failure* keeps the deliberate free-render fallback; this only covers the loading window). */
   isCatalogLoading?: boolean;
+  /** The catalog has loaded SUCCESSFULLY at least once. Until then the builder stays permissive
+   *  (every implemented section renders) so a first-load or transient failure never empties it;
+   *  once true the catalog is authoritative — only offered content sections render. */
+  catalogLoaded?: boolean;
   /** A checkout session is being created (buy button busy until the Stripe redirect). */
   isVariantCheckoutLoading?: boolean;
   /** Confirmed purchase → create the Stripe checkout session and redirect. */
@@ -306,6 +311,23 @@ export function SectionBuilder(props: SectionBuilderProps) {
     return entry && entry.priceMinor > 0 && !entry.owned ? entry : null;
   };
 
+  // Once the catalog has successfully loaded it governs which CONTENT sections exist at all. Before
+  // then (never loaded, still loading, or a fetch that failed before any success) it stays permissive
+  // so the builder is never emptied by a transient error — see props.catalogLoaded.
+  const catalogAuthoritative = !!props.catalogLoaded;
+  // Single source of truth for "may this section appear (in the list AND the preview)". Required chrome
+  // always appears; before a successful load everything appears; after, only catalogued content types.
+  // Deliberately NOT grandfathered by entry.visible: content sections default to visible, so a visible
+  // gate would leak every un-offered section on a fresh page — exactly what the catalog must suppress.
+  const isSectionOffered = useCallback(
+    (type: string) => {
+      if (REQUIRED_TYPES.has(type)) return true;
+      if (!catalogAuthoritative) return true;
+      return sectionCatalogByType.has(type);
+    },
+    [catalogAuthoritative, sectionCatalogByType],
+  );
+
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -402,29 +424,25 @@ export function SectionBuilder(props: SectionBuilderProps) {
   // same helper so the card and the rendered band never disagree. Indices into props.layout are preserved so
   // visibility/variant handlers stay correct; the displayed ordinal counts the shown cards.
   const marqueeReady = marqueeItems(props.locations).length >= MARQUEE_MIN_ITEMS;
-  // The section list itself is server-driven: once the catalog is loaded, a card renders only when
-  // the server offers its type (locked while paid + not unlocked). Safeguards: required chrome
-  // (nav/hero/footer) always renders; a section already VISIBLE in the saved layout is grandfathered
-  // (never silently dropped from the list); an empty/missing catalog falls back to everything; and a
-  // catalog type with no implemented component is ignored via the layout match (the layout only
-  // carries implemented or saved types, and unknown saved types were already render-skipped).
+  // The section list is server-driven via isSectionOffered: required chrome always shows, and once the
+  // catalog is authoritative only its content types survive (a card never renders for a type the server
+  // doesn't offer — so future paid-only or unseeded sections stay hidden rather than blank). The marquee
+  // additionally self-gates on having enough services. A catalog type with no implemented component is
+  // ignored via the layout match (the layout only carries implemented or saved types).
   const displaySections = props.layout
     .map((entry, index) => ({ entry, index }))
     .filter(({ entry }) => entry.type !== "marquee" || marqueeReady)
-    .filter(({ entry }) => {
-      if (!sectionCatalog || sectionCatalog.length === 0) return true;
-      if (REQUIRED_TYPES.has(entry.type)) return true;
-      if (sectionCatalogByType.has(entry.type)) return true;
-      return entry.visible;
-    });
+    .filter(({ entry }) => isSectionOffered(entry.type));
 
   const items = displaySections.map(({ entry }) => entry.type);
   const shown = displaySections.filter(({ entry }) => entry.visible).length;
 
   const previewNumberFor = useCallback(
     (index: number) =>
-      props.layout.slice(0, index).filter((s) => s.visible && !UNNUMBERED.has(s.type)).length + 1,
-    [props.layout],
+      props.layout
+        .slice(0, index)
+        .filter((s) => s.visible && !UNNUMBERED.has(s.type) && isSectionOffered(s.type)).length + 1,
+    [props.layout, isSectionOffered],
   );
 
   const rowInfoFor = useCallback(
@@ -612,9 +630,12 @@ export function SectionBuilder(props: SectionBuilderProps) {
     : -1;
   const previewFocusEntry = previewFocusIndex >= 0 ? layoutWithPreviewVariants[previewFocusIndex] : null;
   const modalSectionMode = previewScope === "section" && !!previewFocusEntry;
+  // The full-page preview mirrors the real page: gate it by the same offering as the section list, so an
+  // un-offered content section never appears in the preview either. Section-scoped mode targets a single
+  // already-offered card (the owner opened it), so it renders as-is.
   const modalLayout = modalSectionMode
     ? [{ ...previewFocusEntry!, visible: true }]
-    : layoutWithPreviewVariants;
+    : layoutWithPreviewVariants.filter((entry) => isSectionOffered(entry.type));
   const modalStartNumber = modalSectionMode ? previewNumberFor(previewFocusIndex) : 1;
   const modalChrome = !modalSectionMode;
   const previewFocusLabel =
@@ -696,8 +717,11 @@ export function SectionBuilder(props: SectionBuilderProps) {
             (!entry.visible || !props.canWrite) && "pointer-events-none opacity-60 transition-opacity duration-200",
           )}
         >
-          {/* Skeleton only where a picker can actually appear — single-variant sections never get one,
-              so holding space there would just flash a skeleton that resolves into nothing. */}
+          {/* Skeleton only where a picker can plausibly appear. The static meta count is a pre-fetch
+              heuristic: single-variant sections never get a picker, so they skip the skeleton entirely;
+              a multi-variant section can still resolve to nothing if the server's ACTIVE catalog narrows
+              the set below 2 — accepted, since the alternative (no skeleton) pops the picker in late for
+              the common full-catalog case. */}
           {catalogPending && (meta?.variants.length ?? 0) > 1 ? (
             <VariantPickerSkeleton />
           ) : hasVariants ? (

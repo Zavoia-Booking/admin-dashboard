@@ -13,6 +13,18 @@ export function aggregateReviews(locations: LocationWithAssignments[]) {
   return { rating, count };
 }
 
+/** A review's ISO timestamp → a short "Mon YYYY" label (visitor locale); empty on an unparseable date.
+ *  Shared by the reviews showcase slide + the wall/deck cards. */
+export function formatReviewDate(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  try {
+    return d.toLocaleDateString(undefined, { month: "short", year: "numeric" });
+  } catch {
+    return "";
+  }
+}
+
 export type HeroMode = "cinematic" | "coverPlate" | "drenched";
 /** Resolve the hero's render mode from its cover photo + the cover-layout toggle. No cover ⇒ the hero
  *  floods with the brand accent (the drenched field). With a cover, the owner's `coverLayout` picks the

@@ -23,6 +23,7 @@ const initialState: MarketplaceState = {
   variantCatalog: [],
   sectionCatalog: [],
   isLoadingVariantCatalog: false,
+  websiteCatalogLoaded: false,
   isCreatingVariantCheckout: false,
   variantCart: [],
   sectionCart: [],
@@ -151,6 +152,9 @@ export const MarketplaceReducer: Reducer<MarketplaceState, any> = (state: Market
         isLoadingVariantCatalog: false,
         variantCatalog: action.payload.variants,
         sectionCatalog: action.payload.sections,
+        // Latch: the catalog is now authoritative. A later failure keeps this true (and the
+        // arrays above stay as last-good), so a transient error never empties the builder.
+        websiteCatalogLoaded: true,
       };
 
     case getType(actions.fetchWebsiteVariantCatalogAction.failure):

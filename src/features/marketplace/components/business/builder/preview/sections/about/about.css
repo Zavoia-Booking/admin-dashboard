@@ -1,0 +1,60 @@
+/* About — the editorial stat band (restored) + the manifesto and ledger layouts, mirroring
+   Web app/microsite.css .lb-stats / .lb-abm-* / .lb-abl-*. Themed to --mc-*; vw→cqw; --ease-out→
+   --ease-out-strong; the display face is baked into the number/lede classes (the design applied a shared
+   `mc-display` class in JSX). The editorial split itself stays inline-Tailwind in variants/Default.tsx;
+   only the stat band + the two new layouts need rules here. Portrait + sticky land in a later pass. */
+
+.mc-about-ghost { opacity: 0.35; user-select: none; }
+
+/* Editorial stat band (shared by the editorial default) — auto-columns so 2-3 real cells fill evenly (the
+   design's fixed repeat(4) assumed a curated 4th "established" cell the data model has no field for). */
+.mc-stats { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 24px; border-top: 1px solid var(--mc-line); padding-top: 30px; margin-top: clamp(40px, 6cqw, 76px); }
+.mc-stat-n { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(30px, 4cqw, 58px); line-height: 1; }
+.mc-stat-l { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-muted); margin-top: 8px; }
+
+/* ── Manifesto — centred statement + a counter band ── */
+.mc-abm { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.mc-abm-kick { display: flex; justify-content: center; }
+.mc-abm-lede { margin: 6px 0 0; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(28px, 4.4cqw, 60px); line-height: 1.14; text-wrap: balance; }
+.mc-abm-body { font-size: 16px; line-height: 1.7; color: var(--mc-muted); max-width: 58ch; margin: 26px auto 0; text-wrap: pretty; }
+.mc-abm-band { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; margin-top: clamp(40px, 6cqw, 76px); border-top: 1px solid var(--mc-line); border-bottom: 1px solid var(--mc-line); }
+.mc-abm-cell { display: flex; flex-direction: column; align-items: center; gap: 9px; padding: clamp(22px, 3cqw, 36px) 12px; }
+.mc-abm-cell + .mc-abm-cell { border-left: 1px solid var(--mc-line); }
+.mc-abm-n { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(30px, 4.2cqw, 62px); line-height: 0.9; }
+.mc-abm-l { font-family: var(--mc-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-muted); }
+
+/* ── Ledger — lede/body head, then each real stat as a full-width numbered row ── */
+.mc-abl-head { max-width: 900px; }
+.mc-abl-lede { margin: 4px 0 0; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(25px, 3.4cqw, 48px); line-height: 1.18; text-wrap: balance; }
+.mc-abl-body { font-size: 16px; line-height: 1.7; color: var(--mc-muted); max-width: 62ch; margin: 20px 0 0; text-wrap: pretty; }
+.mc-abl { margin-top: clamp(34px, 5cqw, 60px); border-top: 1px solid var(--mc-line); }
+.mc-abl-row { display: grid; grid-template-columns: clamp(40px, 5cqw, 72px) minmax(0, 1fr) auto; align-items: baseline; gap: clamp(14px, 2.4cqw, 40px); padding: clamp(16px, 2.2cqw, 26px) 0; border-bottom: 1px solid var(--mc-line); transition: background-color 0.3s var(--ease-out-strong); }
+.mc-abl-idx { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--mc-muted); }
+.mc-abl-n { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(38px, 5.6cqw, 84px); line-height: 0.88; }
+.mc-abl-l { font-family: var(--mc-mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--mc-muted); justify-self: end; text-align: right; }
+.mc-abl-row:hover { background: color-mix(in oklch, var(--mc-accent) 3.5%, transparent); }
+
+/* Narrow preview: the manifesto band restacks to 2-up; the ledger row drops its label under the number. */
+@container (max-width: 720px) {
+  .mc-abm-band { grid-auto-flow: row; grid-template-columns: repeat(2, 1fr); }
+  .mc-abm-cell + .mc-abm-cell { border-left: 0; }
+  .mc-abm-cell:nth-child(even) { border-left: 1px solid var(--mc-line); }
+  .mc-abm-cell:nth-child(n + 3) { border-top: 1px solid var(--mc-line); }
+}
+@container (max-width: 480px) {
+  .mc-abl-row { grid-template-columns: clamp(34px, 8cqw, 50px) 1fr; }
+  .mc-abl-n { grid-column: 2; }
+  .mc-abl-l { grid-column: 2; text-align: left; }
+}
+
+/* ── Portrait — a photo column beside the lede/body, stats in a 2-up grid (source .lb-abp-*) ── */
+.mc-abp { display: grid; grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr); gap: clamp(28px, 5cqw, 84px); align-items: start; }
+.mc-abp-img { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: 6px; }
+.mc-abp-cap { display: block; font-family: var(--mc-mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--mc-muted); margin-top: 11px; }
+.mc-abp-lede { margin: 4px 0 0; font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(24px, 3cqw, 42px); line-height: 1.2; text-wrap: balance; }
+.mc-abp-body { font-size: 16px; line-height: 1.7; color: var(--mc-muted); max-width: 58ch; margin: 22px 0 0; text-wrap: pretty; }
+.mc-abp-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(18px, 2.4cqw, 30px) clamp(20px, 3cqw, 44px); margin-top: clamp(28px, 3.6cqw, 46px); }
+.mc-abp-stat { display: flex; flex-direction: column; gap: 7px; border-top: 1px solid var(--mc-line); padding-top: 14px; }
+.mc-abp-n { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(28px, 3.4cqw, 50px); line-height: 0.9; }
+.mc-abp-l { font-family: var(--mc-mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-muted); }
+@container (max-width: 860px) { .mc-abp { grid-template-columns: 1fr; gap: 26px; } .mc-abp-fig { max-width: 480px; } }

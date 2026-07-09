@@ -30,3 +30,45 @@
 @media (prefers-reduced-motion: reduce) {
   .mc-locx-img, .mc-locx-rise, .mc-chev-bob { animation: none !important; }
 }
+
+/* Shared open/closed status pill (source .lb-ct-status) — dot + label; the green "open" dot carries a soft glow. */
+.mc-ct-status { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mc-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--mc-muted); }
+.mc-ct-status i { width: 7px; height: 7px; border-radius: 50%; background: var(--mc-muted); flex: none; }
+.mc-ct-status[data-open="1"] { color: var(--mc-fg); }
+.mc-ct-status[data-open="1"] i { background: oklch(0.62 0.16 150); box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.62 0.16 150) 24%, transparent); }
+
+/* ── Cards — a shelf of place cards; clicking one drives the live selection (source .lb-locc-*) ── */
+.mc-locc { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr)); gap: clamp(14px, 2cqw, 26px); }
+.mc-locc-card { display: flex; flex-direction: column; background: var(--mc-card, #fff); border-radius: 14px; overflow: hidden; box-shadow: 0 1px 2px rgba(28, 28, 26, 0.04), 0 10px 28px rgba(28, 28, 26, 0.07); cursor: pointer; border: 0; text-align: left; padding: 0; position: relative; transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s var(--ease-out-strong); }
+.mc-locc-card:hover { transform: translateY(-4px); box-shadow: 0 2px 4px rgba(28, 28, 26, 0.05), 0 22px 54px -12px rgba(28, 28, 26, 0.16); }
+.mc-locc-card[data-on="1"] { box-shadow: 0 0 0 2px var(--mc-accent), 0 18px 44px -12px rgba(28, 28, 26, 0.14); }
+.mc-locc-fig { position: relative; aspect-ratio: 16 / 10; overflow: hidden; }
+.mc-locc-body { display: flex; flex-direction: column; gap: 7px; padding: clamp(16px, 1.8cqw, 24px); flex: 1; }
+.mc-locc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.mc-locc-nm { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(21px, 2cqw, 27px); line-height: 1.04; }
+.mc-locc-rate { display: inline-flex; align-items: center; gap: 5px; font-family: var(--mc-mono); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--mc-fg); flex: none; }
+.mc-locc-area { font-size: 13px; color: var(--mc-muted); }
+.mc-locc-addr { font-size: 13px; color: var(--mc-muted); }
+.mc-locc-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--mc-line); }
+.mc-locc-book { display: inline-flex; align-items: center; gap: 7px; font-family: var(--mc-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--mc-accent); flex: none; transition: gap 0.25s var(--ease-out-strong); }
+.mc-locc-card:hover .mc-locc-book { gap: 11px; }
+
+/* ── Atlas — a tab strip over a wide photo stage + a detail sheet (source .lb-cta-tab* / .lb-loca-*) ── */
+.mc-cta-tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--mc-line); }
+.mc-cta-tab { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 6px clamp(18px, 2.6cqw, 34px) 15px 0; margin-right: clamp(8px, 1.6cqw, 22px); background: none; border: 0; cursor: pointer; text-align: left; }
+.mc-cta-tab::after { content: ""; position: absolute; left: 0; right: 100%; bottom: -1px; height: 2px; background: var(--mc-accent); transition: right 0.4s var(--ease-out-strong); }
+.mc-cta-tab[data-on="1"]::after { right: clamp(18px, 2.6cqw, 34px); }
+.mc-cta-tab-nm { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(18px, 2cqw, 25px); color: color-mix(in oklch, var(--mc-fg) 55%, var(--mc-bg)); transition: color 0.3s; }
+.mc-cta-tab[data-on="1"] .mc-cta-tab-nm, .mc-cta-tab:hover .mc-cta-tab-nm { color: var(--mc-fg); }
+.mc-cta-tab-area { font-size: 12px; color: var(--mc-muted); }
+.mc-loca { display: grid; grid-template-columns: minmax(0, 1.22fr) minmax(0, 0.78fr); gap: clamp(16px, 2.4cqw, 32px); margin-top: clamp(22px, 3cqw, 36px); align-items: stretch; }
+.mc-loca-fig { position: relative; border-radius: 14px; overflow: hidden; min-height: clamp(340px, 48cqw, 560px); }
+.mc-loca-scrim { position: absolute; inset: 0; background: linear-gradient(to top, rgba(12, 10, 9, 0.62) 0%, rgba(12, 10, 9, 0.12) 42%, rgba(12, 10, 9, 0) 66%); }
+.mc-loca-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: clamp(18px, 2.6cqw, 34px); color: #fff; }
+.mc-loca-cap-nm { font-family: var(--mc-display); font-weight: var(--mc-display-weight); letter-spacing: var(--mc-display-tracking); font-size: clamp(30px, 3.6cqw, 50px); line-height: 0.96; }
+.mc-loca-cap-blurb { margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, 0.88); max-width: 48ch; text-wrap: pretty; }
+.mc-loca-sheet { display: flex; flex-direction: column; gap: 18px; background: var(--mc-card, #fff); border-radius: 14px; box-shadow: 0 1px 2px rgba(28, 28, 26, 0.04), 0 18px 44px -12px rgba(28, 28, 26, 0.12); padding: clamp(20px, 2.4cqw, 32px); }
+@container (max-width: 880px) {
+  .mc-loca { grid-template-columns: 1fr; }
+  .mc-loca-fig { min-height: clamp(300px, 60cqw, 440px); }
+}

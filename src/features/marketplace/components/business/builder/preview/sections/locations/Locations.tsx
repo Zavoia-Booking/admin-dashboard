@@ -3,6 +3,8 @@ import type { SectionEntry, LocationsConfig } from "../../../../../../types";
 import { Section, SectionHead, Placeholder } from "../../shared/primitives";
 import type { PreviewData, T } from "../../shared/types";
 import { Default } from "./variants/Default";
+import { Cards } from "./variants/Cards";
+import { Atlas } from "./variants/Atlas";
 import type { LocationsVariantProps } from "./types";
 import "./locations.css";
 
@@ -15,6 +17,8 @@ import "./locations.css";
 // resolver below maps the saved variant to its component, falling back to the default layout.
 const VARIANTS: Record<string, React.FC<LocationsVariantProps>> = {
   switcher: Default,
+  cards: Cards,
+  atlas: Atlas,
 };
 
 export function Locations({ entry, data, t, no }: { entry: SectionEntry; data: PreviewData; t: T; no: string }) {

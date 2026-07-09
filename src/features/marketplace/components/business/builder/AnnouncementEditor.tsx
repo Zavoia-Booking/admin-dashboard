@@ -17,22 +17,28 @@ import {
   laterCalendarWallDate,
 } from "../../../../calendar/timezone";
 import { validateUrlField } from "../../../../../shared/utils/validation";
+import { cn } from "../../../../../shared/lib/utils";
 import { AutoHeight } from "./AutoHeight";
 import { InfoHint } from "./InfoHint";
-import type { AnnouncementContent, AnnouncementCta } from "../../../types";
+import type { AnnouncementContent, AnnouncementConfig, AnnouncementCta, AnnouncementTone } from "../../../types";
 
 const MAX_MESSAGE = 140;
 const MAX_CTA_LABEL = 40;
 const MAX_URL = 300;
 
 const GROUP_LABEL = "text-[11px] font-medium uppercase tracking-[0.14em] text-foreground-3";
+const TONES = ["neutral", "offer", "alert"] as const;
 
 interface AnnouncementEditorProps {
   value: AnnouncementContent;
   onChange: (value: AnnouncementContent) => void;
+  /** Section `config` — holds the tone (the layout is the section variant). */
+  config: AnnouncementConfig;
+  onConfigChange: (patch: Partial<AnnouncementConfig>) => void;
   locale: "en" | "ro";
   /** True when the announcement section is visible → a message is required (an empty bar renders nothing). */
   required?: boolean;
+  canWrite?: boolean;
 }
 
 /** A picker `Date` (local midnight) → the stored `YYYY-MM-DD` calendar key. */
@@ -45,8 +51,9 @@ const toDateKey = (d: Date) =>
  * shows the bar so it stays editable. Reuses the app's validated TextField, DatePicker and a native
  * radio list so it matches the rest of the dashboard.
  */
-export function AnnouncementEditor({ value, onChange, locale, required }: AnnouncementEditorProps) {
+export function AnnouncementEditor({ value, onChange, config, onConfigChange, locale, required, canWrite = true }: AnnouncementEditorProps) {
   const { t } = useTranslation("marketplace");
+  const tone: AnnouncementTone = config.tone ?? "neutral";
 
   // A shown announcement needs a message in either language (mirrors the bar self-hiding when blank).
   const messageMissing =
@@ -111,6 +118,42 @@ export function AnnouncementEditor({ value, onChange, locale, required }: Announ
           ) : undefined
         }
       />
+
+      {/* Tone — colours the whole ribbon (neutral / offer / alert); an independent axis under the layout. */}
+      <div className="border-t border-border pt-4">
+        <span className={GROUP_LABEL}>{t("businessPage.builder.announcement.tone.title")}</span>
+        <p className="mt-1 text-[12px] leading-5 text-foreground-3">
+          {t("businessPage.builder.announcement.tone.hint")}
+        </p>
+        <div
+          role="radiogroup"
+          aria-label={t("businessPage.builder.announcement.tone.title")}
+          className="mt-3 inline-flex rounded-lg bg-surface-hover p-0.5"
+        >
+          {TONES.map((opt) => {
+            const active = tone === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                disabled={!canWrite}
+                onClick={() => onConfigChange({ tone: opt })}
+                className={cn(
+                  "rounded-md px-3 py-1.5 text-[12.5px] font-medium outline-none transition-[color,background-color,box-shadow,transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-2 focus-visible:ring-ring/50",
+                  canWrite ? "cursor-pointer active:scale-[0.97]" : "cursor-not-allowed opacity-60",
+                  active
+                    ? "bg-surface text-primary-700 shadow-sm dark:text-primary-400"
+                    : "text-foreground-3 hover:text-foreground-2",
+                )}
+              >
+                {t(`businessPage.builder.announcement.tone.${opt}`)}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Call to action — opt-in; the whole block expands when the owner turns the button on. */}
       <div className="space-y-3 border-t border-border pt-4">
