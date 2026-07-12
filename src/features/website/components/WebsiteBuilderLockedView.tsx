@@ -39,7 +39,7 @@ export function WebsiteBuilderLockedView({
   tagline,
   brandColorHex,
 }: WebsiteBuilderLockedViewProps) {
-  const { t, i18n } = useTranslation("marketplace");
+  const { t, i18n } = useTranslation("website");
   const navigate = useNavigate();
   const { isNative } = usePlatform();
   const locale: "en" | "ro" = i18n.language?.toLowerCase().startsWith("ro") ? "ro" : "en";

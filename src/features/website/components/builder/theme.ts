@@ -1,5 +1,5 @@
 /**
- * Theme tokens for the business-page builder preview.
+ * Theme tokens for the Website Builder preview.
  *
  * The preview is a faithful, scaled-down render of the public "lookbook" microsite: a warm paper
  * canvas with an editorial serif display, a mono label face, and a single owner-controlled accent.
@@ -13,7 +13,7 @@ import type { CSSProperties } from "react";
 
 export interface FontOption {
   key: string;
-  /** i18n key under marketplace:businessPage.theme.fonts.<key> */
+  /** i18n key under website:businessPage.theme.fonts.<key> */
   labelKey: string;
   /** Display (heading) stack — varies per personality. */
   stack: string;
@@ -97,7 +97,7 @@ const HEX6 = /^#[0-9a-fA-F]{6}$/;
  * deep enough that warm-white text (#FBF7F0) clears WCAG AA on a fully drenched hero field — every hex
  * verified at ≥5.5:1 (relative luminance ≤ ~0.19), so brandField() leaves them unchanged. Ordered as a
  * warm → cool → neutral arc; terracotta is the signature default (FALLBACK_BRAND), not necessarily index 0.
- * i18n names live under marketplace:businessPage.branding.brandColor.swatches.<key>.
+ * i18n names live under website:businessPage.branding.brandColor.swatches.<key>.
  */
 export const BRAND_ACCENTS: { key: string; hex: string }[] = [
   { key: "burgundy", hex: "#8E2C45" },

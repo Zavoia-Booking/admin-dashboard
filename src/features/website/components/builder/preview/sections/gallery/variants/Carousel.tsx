@@ -100,10 +100,22 @@ export function Carousel({ images, onOpen, t }: GalleryVariantProps) {
           ))}
         </div>
         <div className="mc-galcar-arrows">
-          <button type="button" className="mc-galcar-arr" disabled={active === 0} onClick={() => go(active - 1)} aria-label="Previous">
+          <button
+            type="button"
+            className="mc-galcar-arr"
+            disabled={active === 0}
+            onClick={() => go(active - 1)}
+            aria-label={t("businessPage.builder.preview.aria.previousImage")}
+          >
             <ArrowRight className="h-[18px] w-[18px]" style={{ transform: "rotate(180deg)" }} strokeWidth={1.8} />
           </button>
-          <button type="button" className="mc-galcar-arr" disabled={active === n - 1} onClick={() => go(active + 1)} aria-label="Next">
+          <button
+            type="button"
+            className="mc-galcar-arr"
+            disabled={active === n - 1}
+            onClick={() => go(active + 1)}
+            aria-label={t("businessPage.builder.preview.aria.nextImage")}
+          >
             <ArrowRight className="h-[18px] w-[18px]" strokeWidth={1.8} />
           </button>
         </div>

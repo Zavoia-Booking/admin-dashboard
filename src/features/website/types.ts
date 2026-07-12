@@ -250,7 +250,7 @@ export interface WebsiteHeroMutationResponse {
 /**
  * One entry from the backend variant catalog (GET /website-variants/catalog).
  * Merged onto the static section catalog by (sectionType, variantKey): a `priceMinor > 0`
- * entry that is not `owned` renders as a locked, purchasable layout pill. `owned` is
+ * entry that is not `owned` renders as a locked, purchasable style. `owned` is
  * per-business (a COMPLETED one-time purchase) and permanent — it survives downgrades
  * and catalog deactivation (`available: false` = no longer purchasable, still usable).
  */

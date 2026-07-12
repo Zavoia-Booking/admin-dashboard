@@ -15,7 +15,7 @@ interface TeamEditorProps {
  * Layout (portraits vs roster) is the variant pill rendered by the SectionBuilder.
  */
 export function TeamEditor({ config, locale, onConfigChange }: TeamEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
 
   const setCopy = (field: "heading" | "sublede", value: string) => {
     const current = config[field] ?? { en: "", ro: "" };

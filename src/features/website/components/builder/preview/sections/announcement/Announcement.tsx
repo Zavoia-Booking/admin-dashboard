@@ -39,8 +39,8 @@ export function AnnouncementBar({ entry, data, t, sample = false }: { entry: Sec
   const showArrow = isEmpty ? true : cta.showArrow;
   const countdownEnd = isEmpty ? null : (data.announcement.schedule?.end ?? null);
 
-  // Layout from the saved variant (unknown/unentitled → base `bar`). Tone is a separate axis — the CSS is
-  // ready for offer/alert; until the owner-facing control lands it stays neutral.
+  // Layout from the saved variant (unknown/unentitled → base `bar`). Tone is a separate axis controlled by
+  // the announcement settings and composes with every layout.
   const variant = Object.hasOwn(VARIANTS, entry.variant) ? entry.variant : "bar";
   const Inner = VARIANTS[variant];
   // Tone is a separate axis (config, not variant) so it composes with any layout; unknown/absent → neutral.
@@ -54,7 +54,12 @@ export function AnnouncementBar({ entry, data, t, sample = false }: { entry: Sec
     .join(" ");
 
   return (
-    <div className={className} style={{ "--mc-anno-italic": italic ? "italic" : "normal" } as CSSProperties} role="region" aria-label="Announcement">
+    <div
+      className={className}
+      style={{ "--mc-anno-italic": italic ? "italic" : "normal" } as CSSProperties}
+      role="region"
+      aria-label={t("businessPage.builder.preview.aria.announcement")}
+    >
       <Inner msg={msg} ctaLabel={ctaLabel} showCta={showCta} showArrow={showArrow} countdownEnd={countdownEnd} t={t} />
       {/* Decorative in the preview; the live page wires it to dismissal. */}
       <span className="mc-anno-x" aria-hidden>

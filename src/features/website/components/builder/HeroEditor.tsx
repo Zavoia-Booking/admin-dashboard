@@ -37,7 +37,7 @@ export function HeroEditor({
   onConfigChange,
   hasReviews,
 }: HeroEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const showEyebrow = config.showEyebrow !== false;
   const showRating = config.showRating !== false;
   const coverLayout = config.coverLayout ?? "full";

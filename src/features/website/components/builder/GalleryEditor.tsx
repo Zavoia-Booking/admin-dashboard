@@ -15,7 +15,7 @@ interface GalleryEditorProps {
  * variant pill rendered by the SectionBuilder.
  */
 export function GalleryEditor({ config, locale, onConfigChange }: GalleryEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
 
   const setHeading = (value: string) => {
     const current = config.heading ?? { en: "", ro: "" };

@@ -44,7 +44,7 @@ interface HeroImageUploadProps {
  * success advances only the saved baseline (unsaved text/layout edits are preserved).
  */
 export function HeroImageUpload({ heroImageUrl, canWrite }: HeroImageUploadProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const dispatch = useDispatch();
   const draft = useSelector(selectWebsiteDraft);
   const inputRef = useRef<HTMLInputElement | null>(null);

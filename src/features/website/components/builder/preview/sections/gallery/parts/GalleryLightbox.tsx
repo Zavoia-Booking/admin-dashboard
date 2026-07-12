@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { ArrowRight, X } from "lucide-react";
 import { cn } from "../../../../../../../../shared/lib/utils";
 import { previewVars } from "../../../../theme";
+import type { T } from "../../../shared/types";
 import { prefersReducedMotion } from "../../../shared/util";
 import type { GalleryImage } from "../types";
 
@@ -56,6 +57,7 @@ export function GalleryLightbox({
   rootRef,
   brandColor,
   fontKey,
+  t,
 }: {
   images: GalleryImage[];
   index: number;
@@ -63,6 +65,7 @@ export function GalleryLightbox({
   rootRef: React.RefObject<HTMLElement | null>;
   brandColor: string;
   fontKey: string;
+  t: T;
 }) {
   const [dir, setDir] = useState(0);
   const [figVisible, setFigVisible] = useState(false);
@@ -156,7 +159,12 @@ export function GalleryLightbox({
           </span>{" "}
           <span>/ {num(images.length)}</span>
         </span>
-        <button type="button" className="mc-lbox-close" onClick={close} aria-label="Close">
+        <button
+          type="button"
+          className="mc-lbox-close"
+          onClick={close}
+          aria-label={t("businessPage.builder.preview.aria.closeGallery")}
+        >
           <X className="h-[18px] w-[18px]" strokeWidth={1.8} />
         </button>
       </div>
@@ -168,7 +176,7 @@ export function GalleryLightbox({
           e.stopPropagation();
           nav(-1);
         }}
-        aria-label="Previous"
+        aria-label={t("businessPage.builder.preview.aria.previousImage")}
       >
         <ArrowRight className="h-[22px] w-[22px]" style={{ transform: "rotate(180deg)" }} strokeWidth={1.8} />
       </button>
@@ -185,7 +193,7 @@ export function GalleryLightbox({
           e.stopPropagation();
           nav(1);
         }}
-        aria-label="Next"
+        aria-label={t("businessPage.builder.preview.aria.nextImage")}
       >
         <ArrowRight className="h-[22px] w-[22px]" strokeWidth={1.8} />
       </button>

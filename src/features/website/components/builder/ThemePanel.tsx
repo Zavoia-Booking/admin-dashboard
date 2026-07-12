@@ -12,7 +12,7 @@ interface ThemePanelProps {
  *  band group: live "Aa" specimens in a row, the active one inked, the rest receded. Radiogroup semantics
  *  with roving tabindex — one Tab stop, arrows move (and apply) the selection, like the colour swatches. */
 export function ThemePanel({ fontKey, onFontChange }: ThemePanelProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp", "Home", "End"].includes(e.key)) return;

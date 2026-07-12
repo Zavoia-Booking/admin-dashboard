@@ -80,7 +80,7 @@ export function BrandColorControl({
   brandColorHex,
   setBrandColorHex,
 }: BrandColorControlProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const activeAccent = (brandColorHex || FALLBACK_BRAND).toLowerCase();
   const accentHex = safeBrandColor(brandColorHex);
   const activeAccentEntry = BRAND_ACCENTS.find((a) => a.hex.toLowerCase() === activeAccent);

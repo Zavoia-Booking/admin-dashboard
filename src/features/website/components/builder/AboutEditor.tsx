@@ -28,7 +28,7 @@ interface AboutEditorProps {
  * then reveals with the section accordion's animation.
  */
 export function AboutEditor({ value, onChange, required }: AboutEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
 
   const { title, body } = splitAboutContent(value);
   const headlineMissing = !!required && title.trim() === "";

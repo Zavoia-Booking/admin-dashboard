@@ -87,7 +87,7 @@ export function SectionCard({
   onMoveUp,
   onMoveDown,
 }: SectionCardProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: entry.type,
     disabled: locked || readOnly || paidLocked || pending,

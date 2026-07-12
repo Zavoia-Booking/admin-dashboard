@@ -1,89 +1,636 @@
 {
   "page": {
     "title": "Website",
-    "eyebrow": "Website",
-    "description": "Arrange and style your Website draft.",
-    "loadError": "We couldn't load your website data. Please try again.",
+    "loadError": "We couldn't load your website. Try again.",
     "retry": "Try again",
     "toasts": {
-      "loadFailed": "Failed to load website data",
-      "draftSaved": "Draft saved",
-      "draftSaveFailed": "Couldn't save your draft",
-      "draftConflict": "A newer version of this draft was saved elsewhere. Reload to continue.",
-      "checkoutFailed": "Couldn't start the payment",
-      "purchaseCompleted": "Purchase confirmed — your unlocks are ready to use",
-      "purchasePartial": "The confirmed items are unlocked. The rest stay in your pending unlocks.",
-      "purchaseFailed": "The payment didn't complete. Your pending unlocks are unchanged.",
-      "purchasePending": "Payment is still processing — we'll unlock your items as soon as it lands.",
-      "purchaseCancelled": "Payment cancelled. Your pending unlocks are unchanged.",
-      "purchaseStatusUnavailable": "We couldn't confirm this payment. Your pending unlocks are unchanged.",
-      "published": "Website published — your latest changes are live",
-      "unpublished": "Website unpublished — it is no longer visible to visitors",
-      "publishFailed": "Couldn't publish the website",
-      "unpublishFailed": "Couldn't unpublish the website",
-      "publishLockedItems": "Some sections or styles on your page need to be unlocked before publishing"
+      "loadFailed": "We couldn't load your website",
+      "draftSaved": "Changes saved",
+      "draftSaveFailed": "We couldn't save your changes",
+      "draftConflict": "A newer version is available. Reload to continue.",
+      "checkoutFailed": "We couldn't start the payment",
+      "purchaseCompleted": "Payment confirmed. Your premium options are ready to use.",
+      "purchasePartial": "Some premium options are unlocked. The rest remain selected.",
+      "purchaseFailed": "The payment didn't complete. Your premium selection is unchanged.",
+      "purchasePending": "Payment is still processing. We'll update your premium access once it is confirmed.",
+      "purchaseCancelled": "Payment cancelled. Your premium selection is unchanged.",
+      "purchaseStatusUnavailable": "We couldn't confirm this payment. Your premium selection is unchanged.",
+      "published": "Your website is live with your latest saved changes.",
+      "unpublished": "Your website is offline. Your content is still saved.",
+      "publishFailed": "We couldn't publish your website",
+      "unpublishFailed": "We couldn't take your website offline",
+      "publishLockedItems": "Unlock or replace premium options before publishing"
     },
     "status": {
       "saved": "Saved",
       "unsaved": "Unsaved changes",
       "saving": "Saving…",
-      "lastSaved": "Last saved {{time}}",
-      "checkingPurchase": "Confirming your purchase…",
+      "lastSaved": "{{time}}",
+      "checkingPurchase": "Confirming your payment…",
       "publishing": "Publishing…",
-      "published": "Published",
-      "publishedStale": "Published · unpublished changes",
-      "notPublished": "Not published"
+      "published": "Live",
+      "publishedStale": "Live · changes not published",
+      "notPublished": "Not live"
     },
     "actions": {
       "save": "Save",
-      "preview": "Preview",
-      "editor": "Editor",
-      "reload": "Reload latest",
-      "backToEditor": "Back to editor",
+      "reload": "Load newer version",
       "publish": "Publish",
-      "unpublish": "Unpublish",
+      "unpublish": "Take website offline",
       "savePublish": "Save & publish",
       "more": "More actions"
     },
     "conflict": {
-      "title": "Newer draft on the server",
-      "description": "This page was saved from another tab or device. Reload to pick up the latest draft — your unsaved edits here will be discarded.",
-      "reload": "Reload latest draft",
+      "title": "A newer version is available",
+      "description": "This website was updated in another tab or device. Load the newer version to continue; your unsaved changes here will be discarded.",
+      "reload": "Load newer version",
       "keepEditing": "Keep editing"
     },
     "unsaved": {
       "title": "Unsaved changes",
-      "description": "Your website draft has unsaved changes. If you leave now they will be lost.",
+      "description": "Your website has unsaved changes. If you leave now, they will be lost.",
       "stay": "Stay",
       "discard": "Discard changes"
     },
     "identity": {
-      "title": "Business identity",
-      "helper": "Your website inherits the business name, logo and contact details.",
+      "title": "Business profile",
       "edit": "Edit business profile"
     },
-    "language": {
-      "label": "Content language",
-      "en": "EN",
-      "ro": "RO"
-    },
     "unpublishConfirm": {
-      "title": "Unpublish website?",
-      "description": "Your website goes offline immediately. Your content stays saved and you can publish again anytime.",
-      "confirm": "Unpublish",
+      "title": "Take website offline?",
+      "description": "Your website will go offline immediately. Your content stays saved, and you can publish again anytime.",
+      "confirm": "Take offline",
       "cancel": "Keep online"
     },
     "publishBlockers": {
-      "title": "Unlock before you publish.",
-      "helper": "Unlock these items, switch to an included style, or hide the section — then publish.",
-      "openAria": "Open {{name}} in the editor"
+      "title": "Premium options need attention.",
+      "helper": "Unlock these options, choose an included style, or hide the section before publishing.",
+      "openAria": "Open {{name}} in the editor",
+      "fallback_one": "{{count}} premium option",
+      "fallback_other": "{{count}} premium options"
     },
     "publishReason": {
-      "readOnly": "Your plan has read-only access",
-      "locked": "Your page uses premium items that aren't unlocked yet",
+      "readOnly": "Your current access doesn't allow editing",
+      "locked": "Some visible sections use premium options that aren't unlocked",
       "errors": "Fix the highlighted fields first",
-      "busy": "Wait for the current operation to finish",
-      "current": "Everything is already live"
+      "busy": "Wait for the current update to finish",
+      "current": "Your latest saved changes are already live"
+    }
+  },
+  "businessPage": {
+    "errors": {
+      "taglineTooLong": "Subtitle must be 200 characters or fewer.",
+      "brandColorInvalid": "Enter a 6-digit hex color, e.g. #1B9C85.",
+      "aboutHeadlineRequired": "Add a headline to your About section, or hide it."
+    },
+    "locked": {
+      "eyebrow": "Included with Plus",
+      "title": "Build your website",
+      "nativeDescription": "Website Builder isn't included in your current plan.",
+      "teaserCaption": "Website preview",
+      "features": {
+        "preview": "Preview your website on desktop, tablet, and mobile",
+        "sections": "Customize sections, colors, and fonts",
+        "premiumVariants": "Add optional premium styles with a one-time payment"
+      },
+      "preserved": "Your existing website and unlocked premium styles stay saved if you change plans.",
+      "cta": "Upgrade to Plus"
+    },
+    "paidVariants": {
+      "eyebrow": "Premium style",
+      "defaultDescription": "A premium style for this website section.",
+      "oneTime": "one-time",
+      "foreverNote": "Pay once to unlock this option permanently, even if you change plans.",
+      "plusHint": "Premium styles require the Plus plan. Upgrade from Account > Billing.",
+      "buy": "Unlock now · {{price}}",
+      "processing": "Preparing secure payment…",
+      "cancel": "Cancel",
+      "lockedAria": "{{name}}, premium style, {{price}}",
+      "lockedAriaNative": "{{name}}, premium style, manage it from the web dashboard",
+      "nativeHint": "Manage premium options from the web dashboard at zavoia.com.",
+      "lockedTitle": "Premium style · {{price}} one-time",
+      "ownedTitle": "Premium style · unlocked",
+      "styleHelper": "Included styles are ready to use. Unlock a premium style once and keep it permanently.",
+      "includedBadge": "Included",
+      "lockedBadge": "Premium",
+      "ownedBadge": "Unlocked",
+      "inCartBadge": "Selected",
+      "previewBadge": "Previewing",
+      "previewingLockedTitle": "Previewing a premium style.",
+      "previewingLockedHelper": "You can inspect it here, but it won't be saved until you unlock it.",
+      "inCartTitle": "Selected · {{price}} one-time",
+      "addToCart": "Add to selection",
+      "removeFromCart": "Remove from selection",
+      "previewOnlyCount": "{{count}} preview-only",
+      "previewOnlyHint": "Premium styles you only preview aren't saved and won't be published.",
+      "unlocks": {
+        "title": "Selected premium options",
+        "triggerLabel": "Premium selection",
+        "clear": "Clear all",
+        "removeAria": "Remove {{name}} from selection",
+        "totalLabel": "Total, one-time",
+        "subtotalsLabel": "Subtotals, one-time",
+        "mixedCurrency": "Selected options must use one currency. Remove options in another currency to continue.",
+        "complete": "Unlock selected",
+        "alreadyOwnedRemoved": "{{name}} is already unlocked and was removed from your selection."
+      },
+      "sectionEyebrow": "Premium section",
+      "sectionDefaultDescription": "A premium section for your website.",
+      "sectionLockedAria": "{{name}}, premium section, {{price}}",
+      "sectionLockedAriaNative": "{{name}}, premium section, manage it from the web dashboard",
+      "sectionLockedTitle": "Premium section · {{price}}, one-time",
+      "appliedLockedTitle": "This section uses a premium style that isn't unlocked.",
+      "appliedLockedHelper": "Unlock it, choose an included style, or hide the section before publishing.",
+      "separateNote": "This payment unlocks only this option. Other selected options stay selected."
+    },
+    "branding": {
+      "tagline": {
+        "label": "Subtitle",
+        "placeholder": "e.g. Modern cuts & color in the heart of the city"
+      },
+      "hero": {
+        "label": "Cover image",
+        "description": "A wide image at the top of your website.",
+        "alt": "Website cover image",
+        "uploadCta": "Add a cover image",
+        "uploading": "Uploading…",
+        "hint": "JPG, PNG, WEBP or AVIF · up to 10 MB",
+        "replace": "Replace",
+        "remove": "Remove cover image"
+      },
+      "brandColor": {
+        "label": "Accent color",
+        "allSwatches": "All colors",
+        "swatches": {
+          "burgundy": "Burgundy",
+          "brick": "Brick",
+          "terracotta": "Terracotta",
+          "rust": "Rust",
+          "amber": "Amber",
+          "caramel": "Caramel",
+          "olive": "Olive",
+          "pine": "Pine",
+          "forest": "Forest",
+          "teal": "Teal",
+          "peacock": "Peacock",
+          "navy": "Navy",
+          "indigo": "Indigo",
+          "violet": "Violet",
+          "plum": "Plum",
+          "rose": "Rose",
+          "slate": "Slate",
+          "greige": "Greige",
+          "graphite": "Graphite",
+          "ink": "Ink"
+        }
+      }
+    },
+    "about": {
+      "titleLabel": "Headline",
+      "titlePlaceholder": "A short, bold line that sums up what you're about.",
+      "titleHelp": "Shown large at the top — it wraps on its own, no line breaks needed.",
+      "bodyLabel": "Story",
+      "bodyPlaceholder": "The rest of your story — your approach, your specialties, and what clients can expect when they visit.",
+      "headlineRequired": "A headline is required while About is shown — add one, or hide the section."
+    },
+    "sections": {
+      "announcement": {
+        "label": "Announcement",
+        "description": "Highlight an offer or update at the top of your website."
+      },
+      "nav": {
+        "label": "Navigation",
+        "description": "Help visitors browse your website and book."
+      },
+      "hero": {
+        "label": "Cover",
+        "description": "Introduce your business with a cover image, name, subtitle, and booking action."
+      },
+      "marquee": {
+        "label": "Services strip",
+        "description": "Show your services in a moving strip between sections."
+      },
+      "about": {
+        "label": "About",
+        "description": "Explain what makes your business worth choosing."
+      },
+      "locations": {
+        "label": "Locations",
+        "description": "Show where to find you, opening hours, contact details, and booking."
+      },
+      "gallery": {
+        "label": "Gallery",
+        "description": "Showcase portfolio photos from your locations."
+      },
+      "team": {
+        "label": "Team",
+        "description": "Introduce your team and where each person works."
+      },
+      "interlude": {
+        "label": "Photo break",
+        "description": "Create a full-width photo break between sections."
+      },
+      "testimonials": {
+        "label": "Reviews",
+        "description": "Build trust with your rating and verified customer reviews."
+      },
+      "faq": {
+        "label": "FAQ",
+        "description": "Answer common questions before visitors book."
+      },
+      "footer": {
+        "label": "Footer",
+        "description": "Close with your locations, contact details, and booking action."
+      },
+      "variants": {
+        "default": "Default",
+        "scroll": "On scroll",
+        "loop": "Loop",
+        "bar": "Top bar",
+        "inline": "Inline",
+        "split": "Split",
+        "simple": "Simple",
+        "portrait": "Portrait",
+        "switcher": "Switcher",
+        "cards": "Cards",
+        "atlas": "Atlas",
+        "list": "List",
+        "grid": "Grid",
+        "carousel": "Carousel",
+        "accordion": "Accordion",
+        "quote": "Quote",
+        "portraits": "Portraits",
+        "roster": "Roster",
+        "editorial": "Editorial",
+        "bento": "Bento",
+        "masonry": "Masonry",
+        "chips": "Chips",
+        "index": "Index",
+        "manifesto": "Manifesto",
+        "ledger": "Ledger",
+        "poster": "Poster",
+        "minimal": "Minimal",
+        "hairline": "Hairline",
+        "wall": "Wall",
+        "mega": "Mega",
+        "marquee": "Marquee",
+        "spotlight": "Spotlight",
+        "deck": "Deck"
+      },
+      "variantDescriptions": {
+        "announcement": {
+          "bar": "A full-width message bar with an optional action.",
+          "split": "Message on the left, action on the right.",
+          "hairline": "A restrained single-line announcement."
+        },
+        "nav": {
+          "default": "Logo, section links, and booking action."
+        },
+        "hero": {
+          "default": "Business name and booking action over your cover."
+        },
+        "marquee": {
+          "scroll": "Services move as visitors scroll.",
+          "loop": "Services move continuously."
+        },
+        "about": {
+          "simple": "Story and key details in a clean split presentation.",
+          "manifesto": "A centered statement with key business facts.",
+          "portrait": "Story beside a location photo and key facts.",
+          "ledger": "Story followed by a structured facts list."
+        },
+        "locations": {
+          "switcher": "One featured location with a quick location switcher.",
+          "cards": "Locations shown as visual cards.",
+          "atlas": "Location tabs with a wide photo and details."
+        },
+        "gallery": {
+          "editorial": "A varied editorial photo arrangement.",
+          "bento": "A compact mosaic of portfolio photos.",
+          "masonry": "A flowing photo grid with natural image heights.",
+          "carousel": "A focused horizontal gallery visitors can browse."
+        },
+        "team": {
+          "portraits": "Large team portraits with location details.",
+          "roster": "A compact list of team members and ratings."
+        },
+        "interlude": {
+          "default": "A full-width photo break between sections."
+        },
+        "testimonials": {
+          "default": "A featured review with rating summary.",
+          "wall": "A multi-column wall of customer reviews.",
+          "marquee": "Two moving rows of customer reviews.",
+          "spotlight": "One review at a time with simple navigation.",
+          "deck": "A stack of reviews visitors can browse."
+        },
+        "faq": {
+          "accordion": "Questions in a clean expandable list.",
+          "split": "Questions beside a booking and contact prompt.",
+          "list": "A simple numbered question list.",
+          "chips": "Question buttons with one answer in focus.",
+          "grid": "Questions and answers in a two-column grid.",
+          "index": "A numbered editorial question list."
+        },
+        "footer": {
+          "default": "Brand, locations, contact details, and booking.",
+          "poster": "A bold closing panel centered on your business name.",
+          "minimal": "A compact brand and social-links footer.",
+          "mega": "A large booking action with essential contact details.",
+          "index": "A structured list of booking, locations, and contact details."
+        }
+      }
+    },
+    "catalog": {
+      "styleName": "{{section}} · {{style}}",
+      "unknownSection": "Website section",
+      "unknownStyle": "Style"
+    },
+    "theme": {
+      "fontLabel": "Font style",
+      "fonts": {
+        "modern": "Modern",
+        "classic": "Classic",
+        "elegant": "Elegant",
+        "friendly": "Friendly"
+      }
+    },
+    "builder": {
+      "eyebrow": "Design & content",
+      "studioTitle": "Website Builder",
+      "openPreview": "Preview website",
+      "sectionsVisible": "visible",
+      "sectionsHelper": "Choose what visitors see, then open a section to edit its content and style.",
+      "sectionPreview": "Section preview",
+      "moveUp": "Move section up",
+      "moveDown": "Move section down",
+      "title": "Page sections",
+      "previewLabel": "Website preview",
+      "currentSectionPreview": "Preview: {{section}}",
+      "previewExpand": "Open full preview",
+      "previewHelper": "Updates as you edit.",
+      "hidePreview": "Hide preview",
+      "showPreview": "Show preview",
+      "fullPage": "Full page",
+      "currentSection": "Current section",
+      "variantLabel": "Section style",
+      "stylePosition": "Style {{current}} of {{total}}",
+      "deviceGroup": "Preview device",
+      "deviceDesktop": "Desktop",
+      "deviceTablet": "Tablet",
+      "deviceMobile": "Mobile",
+      "workspaceEditor": "Editor",
+      "workspacePreview": "Preview",
+      "card": {
+        "drag": "Reorder",
+        "alwaysOn": "Always shown",
+        "hide": "Hide section",
+        "show": "Show section"
+      },
+      "summary": {
+        "fixed": "Fixed",
+        "hidden": "Hidden",
+        "needsContent": "Needs content",
+        "noData": "No content yet",
+        "generated": "Uses your business details",
+        "newerVersion": "Created in a newer version",
+        "logoLinksBooking": "Logo, links and booking button",
+        "footerContent": "Contact, locations and footer",
+        "noMessage": "No message yet",
+        "coverSet": "Cover image set",
+        "subtitleSet": "Subtitle set",
+        "addSubtitle": "Add a subtitle",
+        "noHeadline": "No headline yet",
+        "locationsShown": "{{shown}} of {{total}} locations shown",
+        "locationsEmpty": "No locations yet",
+        "photos_one": "{{count}} photo",
+        "photos_other": "{{count}} photos",
+        "photosEmpty": "No photos yet",
+        "members_one": "{{count}} member",
+        "members_other": "{{count}} members",
+        "membersEmpty": "No team members yet",
+        "usesPortfolioPhoto": "Uses portfolio photos",
+        "noPortfolioPhoto": "Add portfolio photos first",
+        "reviews_one": "{{count}} review",
+        "reviews_other": "{{count}} reviews",
+        "reviewsEmpty": "No reviews yet",
+        "questions_one": "{{count}} question",
+        "questions_other": "{{count}} questions",
+        "questionsEmpty": "No questions yet",
+        "services_one": "{{count}} service",
+        "services_other": "{{count}} services",
+        "servicesEmpty": "Add services"
+      },
+      "toast": {
+        "undo": "Undo",
+        "sectionMoved": "{{section}} moved.",
+        "sectionShown": "{{section}} shown.",
+        "sectionHidden": "{{section}} hidden."
+      },
+      "settings": {
+        "locationsHint": "Choose which locations appear on your website.",
+        "locationsNone": "You don't have any locations yet.",
+        "locationVisibility": "Show {{name}}",
+        "locationsHeadingLabel": "Heading",
+        "locationsSubledeLabel": "Subtitle",
+        "locationsCustomize": "Customize {{field}}",
+        "headingLabel": "Heading",
+        "subledeLabel": "Subtitle",
+        "customize": "Customize {{field}}",
+        "teamHint": "Customize the heading. Your team is pulled from your locations.",
+        "galleryHint": "Customize the heading. Photos come from your locations' portfolios.",
+        "reviewsHint": "Customize the heading. Reviews come from your customers.",
+        "reviewsDistributionLabel": "Show rating breakdown",
+        "noSettings": "This section has no extra settings.",
+        "viewOnlyHint": "Built automatically from your business details."
+      },
+      "faq": {
+        "add": "Add question",
+        "remove": "Remove question {{number}}",
+        "empty": "No questions yet. Add your first one.",
+        "questionLabel": "Question {{number}}",
+        "answerLabel": "Answer",
+        "questionPlaceholder": "e.g. How far in advance should I book?",
+        "answerPlaceholder": "Add the answer visitors should see."
+      },
+      "announcement": {
+        "messageLabel": "Message",
+        "messagePlaceholder": "e.g. 20% off your first visit",
+        "messageRequiredHint": "A message is required while the announcement is shown; add one or hide the section.",
+        "sampleMessage": "20% off your first visit",
+        "sampleCta": "Book now",
+        "endsIn": "Ends in {{time}}",
+        "tone": {
+          "title": "Emphasis",
+          "hint": "Choose how strongly the announcement stands out.",
+          "neutral": "Neutral",
+          "offer": "Offer",
+          "alert": "Important"
+        },
+        "cta": {
+          "title": "Button",
+          "enableLabel": "Show a button",
+          "enableHint": "Link to booking, an offer, or another page.",
+          "labelLabel": "Button text",
+          "labelPlaceholder": "e.g. Book now, See offers",
+          "labelHint": "The button appears once you add text.",
+          "urlLabel": "Link",
+          "newTab": "Open in a new tab",
+          "showArrow": "Show arrow",
+          "urlRequiredHint": "Add a link so the button works on your page."
+        },
+        "schedule": {
+          "title": "Display period",
+          "enableLabel": "Set display period",
+          "hint": "Show the announcement only between the selected dates.",
+          "start": "Show from",
+          "end": "Hide after",
+          "datePlaceholder": "Select a date",
+          "tz": "Dates use the {{tz}} time zone.",
+          "orderError": "The start date must be before the end date."
+        }
+      },
+      "hero": {
+        "eyebrowTitle": "Location summary",
+        "eyebrowToggle": "Show location summary",
+        "eyebrowHint": "Shows the number of locations above your business name.",
+        "ratingTitle": "Rating & reviews",
+        "ratingToggle": "Show rating & reviews",
+        "ratingHint": "Shows once your business has reviews.",
+        "coverLayoutTitle": "Cover style",
+        "coverLayoutHint": "Choose how the image and text share the cover.",
+        "coverLayout_full": "Full image",
+        "coverLayout_plate": "Text panel"
+      },
+      "preview": {
+        "allHidden": "All sections are hidden. Show at least one to preview your page.",
+        "book": "Book now",
+        "bookNow": "Book now",
+        "getStarted": "Book now",
+        "menu": "Menu",
+        "closeMenu": "Close menu",
+        "aria": {
+          "announcement": "Announcement",
+          "closeGallery": "Close gallery",
+          "previousImage": "Previous image",
+          "nextImage": "Next image"
+        },
+        "businessNamePlaceholder": "Your business",
+        "aboutTitle": "About us",
+        "aboutGhostLede": "A short, bold line about what makes your business different.",
+        "aboutGhostBody": "A sentence or two on your approach, your specialties, and what clients can expect when they visit.",
+        "locationsTitle": "Locations",
+        "locationsEmpty": "Your locations will appear here.",
+        "noAddress": "Address not set",
+        "galleryTitle": "Gallery",
+        "galleryEmpty": "Add portfolio photos to your locations to fill this gallery.",
+        "teamTitle": "Our team",
+        "teamEmpty": "Your team members will appear here.",
+        "teamMember": "Team member",
+        "teamRoleOwner": "Owner",
+        "teamFind": "Works at {{location}}",
+        "testimonialsTitle": "What clients say",
+        "testimonialsEmpty": "Your reviews will appear here once you have some.",
+        "reviewsCount_one": "{{count}} review",
+        "reviewsCount_other": "{{count}} reviews",
+        "inTheTeam": "in the team",
+        "bookAt": "Book at {{name}}",
+        "callLabel": "Call {{name}}",
+        "emailLabel": "Email {{name}}",
+        "mapLabel": "View {{name}} on the map",
+        "tagsShowAll": "Show all",
+        "tagsShowLess": "Show less",
+        "faqTitle": "FAQ",
+        "faqEmpty": "Add questions in the FAQ section settings.",
+        "faqStillCurious": "Still curious?",
+        "faqBookVisit": "Book now",
+        "faqWriteUs": "Write to us",
+        "faqCantFind": "Can't find it?",
+        "faqCantFindBody": "Write to us or book now.",
+        "statLocations": "Locations",
+        "statTeam": "Team",
+        "statRating": "Rating",
+        "contactTitle": "Get in touch",
+        "galleryHeading": "A look inside.",
+        "galleryViewFull": "View full",
+        "reviewsHeading": "Loved by our clients.",
+        "reviewsSublede": "Reviews from verified bookings.",
+        "reviewsVerifiedCount_one": "{{count}} verified review",
+        "reviewsVerifiedCount_other": "{{count}} verified reviews",
+        "reviewsOutOf": "Average rating out of 5",
+        "reviewsVerified": "Verified",
+        "reviewsPrev": "Previous review",
+        "reviewsNext": "Next review",
+        "reviewsDeckHint": "Select a card to show another review",
+        "contactHeadingLoc": "Come to {{name}}.",
+        "contactReach": "Get in touch",
+        "footerComeFind": "Come find us.",
+        "footerWhere": "Where",
+        "footerMore": "more locations",
+        "footerReady": "Ready when you are",
+        "footerBookVisit": "Book now",
+        "footerBookAVisit": "Book now",
+        "footerWrite": "Write",
+        "footerWriteToUs": "Write to us",
+        "footerCall": "Call us",
+        "footerCallLoc": "Call {{name}}",
+        "footerFollow": "Follow",
+        "contactHours": "Opening hours",
+        "contactClosed": "Closed",
+        "contactOpen247": "Open 24h",
+        "statusOpenUntil": "Open now · until {{time}}",
+        "statusOpensAt": "Opens at {{time}}",
+        "locBook": "Book now",
+        "locVisit": "Visit us",
+        "days": {
+          "monday": "Mon",
+          "tuesday": "Tue",
+          "wednesday": "Wed",
+          "thursday": "Thu",
+          "friday": "Fri",
+          "saturday": "Sat",
+          "sunday": "Sun"
+        },
+        "daysFull": {
+          "monday": "Monday",
+          "tuesday": "Tuesday",
+          "wednesday": "Wednesday",
+          "thursday": "Thursday",
+          "friday": "Friday",
+          "saturday": "Saturday",
+          "sunday": "Sunday"
+        },
+        "locationCount_one": "{{count}} location",
+        "locationCount_other": "{{count}} locations",
+        "footer": {
+          "poweredBy": "Powered by Zavoia",
+          "rights": "© {{year}} {{name}}"
+        },
+        "hero": {
+          "scrollCue": "Scroll",
+          "locationsAcross": "{{num}} locations across {{place}}"
+        },
+        "subhead": {
+          "locations_one": "Where to find us.",
+          "locations_other": "{{count}} locations, one team.",
+          "team": "Meet the team.",
+          "faq": "Questions, answered."
+        },
+        "sublede": {
+          "locations_one": "Come see us in person, we'd love to welcome you.",
+          "locations_other": "Each location has its own team and hours. Choose where you'd like to visit; everything below updates to match.",
+          "team": "The people who'll look after you."
+        },
+        "kicker": {
+          "about": "About",
+          "locations": "Locations",
+          "gallery": "Gallery",
+          "team": "Team",
+          "reviews": "Reviews",
+          "faq": "FAQ"
+        }
+      },
+      "previewNarrowHint": "Open the full preview in a wider window to see the desktop view."
     }
   }
 }

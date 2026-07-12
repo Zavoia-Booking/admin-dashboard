@@ -31,7 +31,7 @@ import type { PreviewData, LivePreviewProps, T } from "./shared/types";
  * same component reads well in the small per-section card and the full-page dialog alike.
  */
 function LivePreviewImpl({ layout, data, chrome = true, startNumber = 1, focusType }: LivePreviewProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const visible = layout.filter((s) => s.visible);
 
   // The announcement is the sticky ribbon above the nav; the nav + footer are chrome pinned at the top /

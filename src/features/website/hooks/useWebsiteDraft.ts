@@ -152,7 +152,7 @@ function reorderLayout(prev: SectionEntry[], from: number, to: number): SectionE
  * the seeded content fields keep their identity, so no re-seed fires).
  */
 export function useWebsiteDraft({ draft, lastSavedRequestId, onSave, onPublish }: UseWebsiteDraftProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const [baseline, setBaseline] = useState<DraftBaseline>(() => baselineFromDraft(draft));
   const baselineRef = useRef<DraftBaseline>(baseline);
   const [tagline, setTagline] = useState<string>(baseline.values.tagline);

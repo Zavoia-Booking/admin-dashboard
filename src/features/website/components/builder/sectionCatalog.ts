@@ -16,7 +16,7 @@ import {
 import type { SectionEntry, SectionType } from "../../types";
 
 /**
- * Section catalog — the single source of truth for the business-page builder's data layer.
+ * Section catalog — the single source of truth for the Website Builder's data layer.
  *
  * The page is a themed *arrangement* over existing business data: each section is a configurable
  * view (order / visibility / variant + small refs in `config`). Only the FAQ and Announcement
@@ -32,14 +32,14 @@ export const DEFAULT_FONT_KEY = "elegant";
 
 export interface SectionVariant {
   id: string;
-  /** i18n key under marketplace:businessPage.sections.variants.<id> */
+  /** i18n key under website:businessPage.sections.variants.<id> */
   labelKey: string;
 }
 
 export interface SectionMeta {
   type: SectionType;
   icon: LucideIcon;
-  /** i18n keys under marketplace:businessPage.sections.<type>.{label,description} */
+  /** i18n keys under website:businessPage.sections.<type>.{label,description} */
   labelKey: string;
   descriptionKey: string;
   /**

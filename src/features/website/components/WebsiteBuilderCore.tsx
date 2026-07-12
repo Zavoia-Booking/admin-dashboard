@@ -44,6 +44,10 @@ import {
 } from "./builder/PendingUnlocksTray";
 import { ThemePanel } from "./builder/ThemePanel";
 import { aboutHeadline } from "./builder/aboutContent";
+import {
+  localizeWebsiteSectionCatalog,
+  localizeWebsiteVariantCatalog,
+} from "./builder/catalogCopy";
 import type { PreviewReview, RatingBars } from "./builder/LivePreview";
 
 interface WebsiteBuilderCoreProps {
@@ -69,14 +73,22 @@ export function WebsiteBuilderCore({
   form,
   focusSection,
 }: WebsiteBuilderCoreProps) {
-  const { t } = useTranslation("marketplace");
+  const { t, i18n } = useTranslation("website");
   const dispatch = useDispatch();
   const { isNative } = usePlatform();
   const reviewStats = useSelector(selectReviewStats);
   const highlightReviews = useSelector(selectHighlightReviews);
 
-  const variantCatalog = useSelector(selectWebsiteVariantCatalog);
-  const sectionCatalog = useSelector(selectWebsiteSectionCatalog);
+  const rawVariantCatalog = useSelector(selectWebsiteVariantCatalog);
+  const rawSectionCatalog = useSelector(selectWebsiteSectionCatalog);
+  const variantCatalog = useMemo(
+    () => localizeWebsiteVariantCatalog(rawVariantCatalog, t),
+    [i18n.resolvedLanguage, rawVariantCatalog, t],
+  );
+  const sectionCatalog = useMemo(
+    () => localizeWebsiteSectionCatalog(rawSectionCatalog, t),
+    [i18n.resolvedLanguage, rawSectionCatalog, t],
+  );
   const isCatalogLoading = useSelector(selectWebsiteCatalogLoading);
   const catalogLoaded = useSelector(selectWebsiteCatalogLoaded);
   const isVariantCheckoutLoading = useSelector(selectWebsiteCheckoutCreating);

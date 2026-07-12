@@ -10,7 +10,7 @@ import type { LocationTagGroup } from "../types";
  *  toggle that springs the band open/closed (max-height tween). Re-mounts per location via key, so it
  *  resets to collapsed and re-measures on switch. */
 export function LocationTags({ groups }: { groups: LocationTagGroup[] }) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   // Category labels reuse the owner-facing slider's namespace so copy stays in lockstep (en + ro).
   const { t: tTags } = useTranslation("locationMarketplaceDetails");
   const innerRef = useRef<HTMLDivElement>(null);

@@ -45,7 +45,7 @@ interface UnlockListProps extends PendingUnlocksProps {
  * under the live preview instead of hiding behind a popover. Renders nothing while empty.
  */
 export function PendingUnlocksPanel(props: PendingUnlocksProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   if (props.entries.length === 0) return null;
 
   return (
@@ -77,7 +77,7 @@ export function PendingUnlocksPanel(props: PendingUnlocksProps) {
  * bottom sheet on portrait tablet/phone. It never covers the editor by default.
  */
 export function PendingUnlocksTrigger(props: PendingUnlocksProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [tabletLandscape, setTabletLandscape] = useState(false);
 
@@ -148,7 +148,7 @@ function UnlockList({
   bare = false,
   className,
 }: UnlockListProps & { bare?: boolean }) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
 
   // A Stripe session accepts one currency. Keep subtotals separate rather than displaying

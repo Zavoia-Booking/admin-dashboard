@@ -51,7 +51,7 @@ import type {
 import { SECTION_META, isKnownSectionType, PINNED_TYPES, REQUIRED_TYPES } from "./sectionCatalog";
 import { SectionCard, type SectionCardStatus } from "./SectionCard";
 import { VariantPurchaseDialog, variantPriceLabel } from "./VariantPurchaseDialog";
-import { SectionStylePicker, VariantPickerSkeleton, EASE, type MarketplaceT, type SectionStyleOption } from "./SectionStylePicker";
+import { SectionStylePicker, VariantPickerSkeleton, EASE, type WebsiteT, type SectionStyleOption } from "./SectionStylePicker";
 import { SettingsPanel } from "./SettingsPanel";
 import { LivePreview, marqueeItems, MARQUEE_MIN_ITEMS, UNNUMBERED, type PreviewData, type PreviewReview, type RatingBars } from "./LivePreview";
 import { AutoHeight } from "./AutoHeight";
@@ -218,7 +218,7 @@ interface SectionBuilderProps {
  * Reorder remains keyboard and pointer accessible, with explicit move actions where dragging is awkward.
  */
 export function SectionBuilder(props: SectionBuilderProps) {
-  const { t, i18n } = useTranslation("marketplace");
+  const { t, i18n } = useTranslation("website");
   const isMobile = useIsMobile();
   const [openType, setOpenType] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
@@ -601,7 +601,13 @@ export function SectionBuilder(props: SectionBuilderProps) {
         }
         case "marquee": {
           const count = marqueeItems(props.locations).length;
-          return withStatus(t("businessPage.builder.summary.services", { count }));
+          return withStatus(
+            count > 0
+              ? t("businessPage.builder.summary.services", { count })
+              : t("businessPage.builder.summary.servicesEmpty"),
+            count === 0 ? noDataStatus : undefined,
+            count === 0,
+          );
         }
         case "about": {
           const headline = aboutHeadline(props.aboutContent);
@@ -1454,7 +1460,7 @@ function WorkspacePaneToggle({
 }: {
   workspacePane: WorkspacePane;
   setWorkspacePane: (pane: WorkspacePane) => void;
-  t: MarketplaceT;
+  t: WebsiteT;
 }) {
   return (
     <div
@@ -1507,7 +1513,7 @@ function DeviceToggle({
 }: {
   device: PreviewDevice;
   setDevice: (v: PreviewDevice) => void;
-  t: MarketplaceT;
+  t: WebsiteT;
 }) {
   const options: Array<{ id: PreviewDevice; label: string; Icon: typeof Monitor }> = [
     { id: "desktop", label: t("businessPage.builder.deviceDesktop"), Icon: Monitor },

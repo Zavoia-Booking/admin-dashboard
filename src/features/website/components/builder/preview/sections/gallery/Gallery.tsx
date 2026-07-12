@@ -61,6 +61,7 @@ export function Gallery({ entry, data, t, no }: { entry: SectionEntry; data: Pre
               rootRef={rootRef}
               brandColor={data.brandColor}
               fontKey={data.fontKey}
+              t={t}
             />
           )}
         </div>

@@ -52,7 +52,7 @@ const toDateKey = (d: Date) =>
  * radio list so it matches the rest of the dashboard.
  */
 export function AnnouncementEditor({ value, onChange, config, onConfigChange, locale, required, canWrite = true }: AnnouncementEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const tone: AnnouncementTone = config.tone ?? "neutral";
 
   // A shown announcement needs a message in either language (mirrors the bar self-hiding when blank).

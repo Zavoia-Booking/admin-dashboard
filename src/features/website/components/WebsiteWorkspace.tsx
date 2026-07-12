@@ -41,6 +41,10 @@ import {
 } from "../../../shared/components/ui/dropdown-menu";
 import { Spinner } from "../../../shared/components/ui/spinner";
 import { WebsiteBuilderCore } from "./WebsiteBuilderCore";
+import {
+  localizeWebsiteSectionCatalog,
+  localizeWebsiteVariantCatalog,
+} from "./builder/catalogCopy";
 
 interface WebsiteWorkspaceProps {
   identity: WebsiteIdentity;
@@ -71,8 +75,16 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
   const publish = useSelector(selectWebsitePublish);
   const isPublishing = useSelector(selectWebsitePublishing);
   const isUnpublishing = useSelector(selectWebsiteUnpublishing);
-  const variantCatalog = useSelector(selectWebsiteVariantCatalog);
-  const sectionCatalog = useSelector(selectWebsiteSectionCatalog);
+  const rawVariantCatalog = useSelector(selectWebsiteVariantCatalog);
+  const rawSectionCatalog = useSelector(selectWebsiteSectionCatalog);
+  const variantCatalog = useMemo(
+    () => localizeWebsiteVariantCatalog(rawVariantCatalog, t),
+    [i18n.resolvedLanguage, rawVariantCatalog, t],
+  );
+  const sectionCatalog = useMemo(
+    () => localizeWebsiteSectionCatalog(rawSectionCatalog, t),
+    [i18n.resolvedLanguage, rawSectionCatalog, t],
+  );
   const catalogLoaded = useSelector(selectWebsiteCatalogLoaded);
   const serverLockedItems = useSelector(selectWebsitePublishLockedItems);
   const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
@@ -355,8 +367,8 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
       <LimitedAccessBanner className="!px-0 !pt-0" />
 
       {/* Publish blockers: unowned premium content on visible sections. Client-computed chips
-          jump to the section; the server-named list (E07) is the fallback when the catalog
-          hasn't resolved the same picture. */}
+          jump to the section. If the server finds newer catalog data, show only a localized
+          count so backend catalog names never leak into the dashboard language. */}
       {(hasLockedBlockers || (serverLockedItems?.length ?? 0) > 0) && (
         <div
           className="mb-4 rounded-xl border border-warning-border bg-warning-bg px-3.5 py-3 md:mb-5"
@@ -382,15 +394,14 @@ export function WebsiteWorkspace({ identity, draft, locations, businessId }: Web
                     {b.name}
                   </button>
                 ))
-              : (serverLockedItems ?? []).map((name) => (
-                  <span
-                    key={name}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-warning-border bg-surface px-3 py-1 text-[12px] font-medium text-foreground-1"
-                  >
+              : (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-warning-border bg-surface px-3 py-1 text-[12px] font-medium text-foreground-1">
                     <Lock className="size-3.5 text-warning" strokeWidth={1.9} aria-hidden />
-                    {name}
+                    {t("page.publishBlockers.fallback", {
+                      count: serverLockedItems?.length ?? 0,
+                    })}
                   </span>
-                ))}
+                )}
           </div>
         </div>
       )}

@@ -66,7 +66,7 @@ export function SettingsPanel({
   onAboutChange,
   onTaglineChange,
 }: SettingsPanelProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
 
   if (entry.type === "hero") {
     // Mirrors the hero rating gate in LivePreview (aggregateReviews → count > 0).

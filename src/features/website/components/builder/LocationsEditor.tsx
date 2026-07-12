@@ -25,7 +25,7 @@ export function LocationsEditor({
   onConfigChange,
   onTurnOffSection,
 }: LocationsEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const hidden = new Set(config.hiddenLocationIds ?? []);
   const shownCount = locations.filter((l) => !hidden.has(l.id)).length;
 
@@ -62,7 +62,7 @@ export function LocationsEditor({
               >
                 <span className="min-w-0 truncate text-sm text-foreground-1">{l.name}</span>
                 <Switch
-                  aria-label={l.name}
+                  aria-label={t("businessPage.builder.settings.locationVisibility", { name: l.name })}
                   checked={!hidden.has(l.id)}
                   onCheckedChange={(v) => toggleLocation(l.id, v)}
                 />

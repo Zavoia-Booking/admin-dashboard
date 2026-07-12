@@ -82,7 +82,7 @@ export function VariantPurchaseDialog<T extends PurchasableCatalogItem>({
   onToggleCart,
   pendingCount = 0,
 }: VariantPurchaseDialogProps<T>) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
   const { formatPrice } = useFormatPrice();
   const { isNative } = usePlatform();
   const isMobile = useIsMobile();

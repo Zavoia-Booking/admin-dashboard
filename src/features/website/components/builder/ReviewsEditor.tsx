@@ -15,7 +15,7 @@ interface ReviewsEditorProps {
  * owner controls only the heading + sub-lede and whether the rating-breakdown bars show.
  */
 export function ReviewsEditor({ config, locale, onConfigChange }: ReviewsEditorProps) {
-  const { t } = useTranslation("marketplace");
+  const { t } = useTranslation("website");
 
   const setCopy = (field: "heading" | "sublede", value: string) => {
     const current = config[field] ?? { en: "", ro: "" };

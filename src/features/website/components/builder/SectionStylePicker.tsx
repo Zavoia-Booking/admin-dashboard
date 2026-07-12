@@ -9,7 +9,7 @@ import type { PreviewData } from "./preview/shared/types";
 /** House ease-out (mirrors --ease-out-strong in globals.css). */
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]";
 
-export type MarketplaceT = (key: string, options?: Record<string, unknown>) => string;
+export type WebsiteT = (key: string, options?: Record<string, unknown>) => string;
 
 export interface SectionStyleOption {
   variant: SectionVariant;
@@ -60,7 +60,7 @@ export function SectionStylePicker({
   selectedVariantId: string;
   disabled: boolean;
   onSelect: (option: SectionStyleOption) => void;
-  t: MarketplaceT;
+  t: WebsiteT;
   isNative?: boolean;
   previewData: PreviewData;
   previewNumber: number;
@@ -225,7 +225,7 @@ function VariantOptionCard({
   tabStop: boolean;
   disabled: boolean;
   onSelect: (option: SectionStyleOption) => void;
-  t: MarketplaceT;
+  t: WebsiteT;
   isNative?: boolean;
   previewData: PreviewData;
   previewNumber: number;
