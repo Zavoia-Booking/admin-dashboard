@@ -1,0 +1,24 @@
+import type { RootState } from "../../app/providers/store";
+
+export const selectWebsiteLoading = (state: RootState) => state.website.isLoading;
+export const selectWebsiteError = (state: RootState) => state.website.error;
+export const selectWebsiteIdentity = (state: RootState) => state.website.identity;
+export const selectWebsiteDraft = (state: RootState) => state.website.draft;
+export const selectWebsiteLocations = (state: RootState) => state.website.locations;
+export const selectWebsiteAccess = (state: RootState) => state.website.access;
+export const selectWebsitePublish = (state: RootState) => state.website.publish;
+export const selectWebsitePublishing = (state: RootState) => state.website.isPublishing;
+export const selectWebsiteUnpublishing = (state: RootState) => state.website.isUnpublishing;
+export const selectWebsiteSaving = (state: RootState) => state.website.isSaving;
+export const selectWebsiteHeroMutating = (state: RootState) => state.website.isHeroMutating;
+export const selectWebsiteLastSavedRequestId = (state: RootState) => state.website.lastSavedRequestId;
+export const selectWebsiteConflict = (state: RootState) => state.website.conflict;
+export const selectWebsitePublishLockedItems = (state: RootState) => state.website.publishLockedItems;
+export const selectWebsiteVariantCatalog = (state: RootState) => state.website.variantCatalog;
+export const selectWebsiteSectionCatalog = (state: RootState) => state.website.sectionCatalog;
+export const selectWebsiteCatalogLoading = (state: RootState) => state.website.isLoadingCatalog;
+export const selectWebsiteCatalogLoaded = (state: RootState) => state.website.catalogLoaded;
+export const selectWebsiteCheckoutCreating = (state: RootState) => state.website.isCreatingCheckout;
+export const selectWebsiteVariantCart = (state: RootState) => state.website.variantCart;
+export const selectWebsiteSectionCart = (state: RootState) => state.website.sectionCart;
+export const selectWebsiteCartBusinessId = (state: RootState) => state.website.cartBusinessId;

@@ -1,9 +1,6 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { Business, SectionEntry, PageTheme, FaqItem, AnnouncementContent, PublishMarketplaceListingPayload } from '../types';
+import type { Business, PublishMarketplaceListingPayload } from '../types';
 import { useProfileDetails } from './useProfileDetails';
-import { useBusinessPageBuilder } from './useBusinessPageBuilder';
-import { aboutHeadline } from '../components/business/builder/aboutContent';
 
 interface UseMarketplaceFormProps {
   business: Business | null;
@@ -11,49 +8,30 @@ interface UseMarketplaceFormProps {
   marketplaceEmail?: string | null;
   marketplacePhone?: string | null;
   marketplaceDescription?: string | null;
-  // Business-page (microsite) content
-  tagline?: string | null;
-  aboutContent?: string | null;
-  brandColorHex?: string | null;
-  // Section builder (v1)
-  pageLayout?: SectionEntry[] | null;
-  pageTheme?: PageTheme | null;
-  faq?: FaqItem[] | null;
-  announcement?: AnnouncementContent | null;
   useBusinessName: boolean;
   useBusinessEmail: boolean;
   useBusinessPhone: boolean;
   useBusinessDescription: boolean;
   selectedIndustryTags: { id: number; name: string }[];
-  /**
-   * websiteBuilder plan entitlement. Without it the builder tab is locked, so
-   * builder-only validation (about headline, announcement) must not gate
-   * publish — the user has no way to fix it, and the server strips the builder
-   * slice from the payload anyway.
-   */
-  hasWebsiteBuilder: boolean;
   onSave: (data: PublishMarketplaceListingPayload) => void;
 }
 
+/**
+ * Marketplace profile form: identity overrides, contact toggles, and industry tags.
+ * Website content edits/saves live entirely in features/website (PUT /website-builder) —
+ * Website dirty state or validation can never block a Marketplace save.
+ */
 export function useMarketplaceForm({
   business,
   marketplaceName,
   marketplaceEmail,
   marketplacePhone,
   marketplaceDescription,
-  tagline: initialTagline,
-  aboutContent: initialAboutContent,
-  brandColorHex: initialBrandColorHex,
-  pageLayout,
-  pageTheme,
-  faq,
-  announcement,
   useBusinessName: initialUseBusinessName,
   useBusinessEmail: initialUseBusinessEmail,
   useBusinessPhone: initialUseBusinessPhone,
   useBusinessDescription: initialUseBusinessDescription,
   selectedIndustryTags: initialSelectedIndustryTags,
-  hasWebsiteBuilder,
   onSave,
 }: UseMarketplaceFormProps) {
 
@@ -63,9 +41,6 @@ export function useMarketplaceForm({
     marketplaceEmail,
     marketplacePhone,
     marketplaceDescription,
-    tagline: initialTagline,
-    aboutContent: initialAboutContent,
-    brandColorHex: initialBrandColorHex,
     useBusinessName: initialUseBusinessName,
     useBusinessEmail: initialUseBusinessEmail,
     useBusinessPhone: initialUseBusinessPhone,
@@ -73,36 +48,10 @@ export function useMarketplaceForm({
     selectedIndustryTags: initialSelectedIndustryTags,
   });
 
-  const builder = useBusinessPageBuilder({ pageLayout, pageTheme, faq, announcement });
-  const { t } = useTranslation('marketplace');
-
-  // A shown About section needs a headline — an empty one would publish a blank section. Gate it like the
-  // announcement CTA link: required only while the section is visible (off-page sections can't be reached).
-  // Builder-only errors are suppressed entirely without the websiteBuilder entitlement: the locked tab
-  // makes them unfixable, and the server strips pageLayout/announcement from the publish payload anyway
-  // (a fresh business would otherwise be permanently blocked — the default layout shows an About section
-  // whose headline is still empty).
-  const aboutVisible = builder.layout.some((s) => s.type === 'about' && s.visible);
-  const aboutError =
-    hasWebsiteBuilder && aboutVisible && aboutHeadline(profile.aboutContent) === ''
-      ? t('businessPage.errors.aboutHeadlineRequired')
-      : null;
-
-  // Any announcement problem that blocks publish: a missing/invalid CTA link, or — while the section is
-  // shown — a missing message (an empty bar renders nothing). Drives both the publish gate and the card cue.
-  const announcementError = hasWebsiteBuilder
-    ? builder.announcementUrlError || builder.announcementMessageError
-    : null;
-
-  // Save is dirty if either the profile/branding fields or the section builder changed.
-  const isDirty = profile.isDirty || builder.isDirty;
+  const isDirty = profile.isDirty;
 
   const handleSave = useCallback(() => {
-    const isProfileValid = profile.validateBeforeSave();
-    if (!isProfileValid || !!announcementError || !!aboutError) return;
-
-    // Brand colour lives in the profile form (single source); merged into pageTheme by the builder.
-    const brandColor = profile.brandColorHex.trim() || null;
+    if (!profile.validateBeforeSave()) return;
 
     onSave({
       marketplaceName: profile.useBusinessName ? (business?.name || '') : profile.name,
@@ -116,17 +65,10 @@ export function useMarketplaceForm({
       useBusinessPhone: profile.useBusinessPhone,
       useBusinessDescription: profile.useBusinessDescription,
       industryTagIds: profile.selectedIndustryTags.map((tag) => tag.id),
-      // tagline/aboutContent have no format validator → send the raw value (incl. "") so a
-      // saved value can be cleared, matching the clearable marketplaceDescription pattern.
-      tagline: profile.tagline,
-      aboutContent: profile.aboutContent,
-      // brandColorHex has a @Matches validator that rejects "" → send undefined when empty.
-      brandColorHex: brandColor ?? undefined,
-      // businessSlug is system-generated on the backend (V1, non-editable) — not sent.
-      // Section builder slice: ordered layout + theme (brand colour + font) + net-new content.
-      ...builder.getBuilderPayload(brandColor),
+      // Website Builder fields are NEVER sent through Marketplace publish by this client —
+      // they save through the dedicated PUT /website-builder with optimistic concurrency.
     });
-  }, [profile, builder, aboutError, announcementError, business, onSave]);
+  }, [profile, business, onSave]);
 
   return {
     // Profile state
@@ -138,22 +80,13 @@ export function useMarketplaceForm({
     email: profile.email,
     phone: profile.phone,
     description: profile.description,
-    tagline: profile.tagline,
-    aboutContent: profile.aboutContent,
-    brandColorHex: profile.brandColorHex,
-    // Effective public name → the read-only page-address slug is derived from this in the UI.
-    pageName: profile.useBusinessName ? (business?.name ?? '') : profile.name,
     selectedIndustryTags: profile.selectedIndustryTags,
     nameError: profile.nameError,
     emailError: profile.emailError,
     phoneError: profile.phoneError,
     descriptionError: profile.descriptionError,
     industryTagsError: profile.industryTagsError,
-    taglineError: profile.taglineError,
-    brandColorError: profile.brandColorError,
-    announcementError,
-    aboutError,
-    hasValidationErrors: profile.hasValidationErrors || !!announcementError || !!aboutError,
+    hasValidationErrors: profile.hasValidationErrors,
 
     isDirty,
 
@@ -165,23 +98,7 @@ export function useMarketplaceForm({
     setEmail: profile.setEmail,
     setPhone: profile.setPhone,
     setDescription: profile.setDescription,
-    setTagline: profile.setTagline,
-    setAboutContent: profile.setAboutContent,
-    setBrandColorHex: profile.setBrandColorHex,
     setSelectedIndustryTags: profile.setSelectedIndustryTags,
-
-    // Section builder state + operations (consumed by the builder UI)
-    layout: builder.layout,
-    fontKey: builder.fontKey,
-    faqItems: builder.faqItems,
-    announcementContent: builder.announcementContent,
-    reorderSections: builder.reorder,
-    toggleSectionVisible: builder.toggleVisible,
-    setSectionVariant: builder.setVariant,
-    setSectionConfig: builder.setSectionConfig,
-    setFontKey: builder.setFontKey,
-    setFaqItems: builder.setFaqItems,
-    setAnnouncementContent: builder.setAnnouncementContent,
 
     handleSave,
   };

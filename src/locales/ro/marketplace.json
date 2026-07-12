@@ -114,11 +114,11 @@
     },
     "locked": {
       "eyebrow": "Inclus în planul Plus",
-      "title": "Transformă vizitatorii în programări",
+      "title": "Modelează ciorna website-ului tău",
       "nativeDescription": "Constructorul de website nu este inclus în planul tău actual.",
-      "teaserCaption": "Doar previzualizare — încă nu e publicată",
+      "teaserCaption": "Previzualizare ciornă",
       "features": {
-        "publicPage": "Propria pagină publică la zavoia.com/afacerea-ta",
+        "preview": "Previzualizează ciorna la dimensiuni desktop și mobile",
         "sections": "Secțiuni personalizabile, teme, culori și fonturi",
         "premiumVariants": "Aspecte premium care îți scot pagina în evidență"
       },
@@ -127,37 +127,50 @@
     },
     "paidVariants": {
       "eyebrow": "Aspect premium",
-      "defaultDescription": "Un aspect premium pentru această secțiune a paginii tale publice.",
+      "defaultDescription": "Un aspect premium pentru această secțiune a ciornei website-ului.",
       "oneTime": "plată unică",
       "foreverNote": "Plătești o singură dată și rămâne al tău pentru totdeauna. Rămâne deblocat chiar dacă schimbi planul.",
       "plusHint": "Cumpărarea aspectelor premium necesită planul Plus. Poți face upgrade din Cont → Facturare.",
-      "buy": "Cumpără cu {{price}}",
+      "buy": "Deblochează · {{price}}",
       "processing": "Pregătim plata…",
       "cancel": "Renunță",
       "lockedAria": "{{name}} — aspect premium, {{price}}",
       "lockedAriaNative": "{{name}} — aspect premium, gestionează din contul web",
-      "nativeHint": "Gestionează aspectele premium ale paginii din contul web, pe zavoia.com.",
+      "nativeHint": "Gestionează elementele premium din contul web, pe zavoia.com.",
       "lockedTitle": "Aspect premium · {{price}}, plată unică",
       "ownedTitle": "Aspect premium · deținut",
-      "styleHelper": "Stilurile incluse pot fi publicate acum. Stilurile premium se cumpără o singură dată și rămân disponibile.",
+      "styleHelper": "Stilurile incluse sunt gata de folosit. Stilurile premium se deblochează o singură dată și rămân ale tale.",
       "includedBadge": "Inclus",
       "lockedBadge": "Premium",
       "ownedBadge": "Deținut",
-      "inCartBadge": "În coș",
+      "inCartBadge": "În așteptare",
       "previewBadge": "Previzualizare",
       "previewingLockedTitle": "Previzualizezi un stil premium.",
-      "previewingLockedHelper": "Îl poți verifica aici, dar nu va fi publicat până nu îl cumperi.",
-      "inCartTitle": "În coș · {{price}}, plată unică",
-      "purchaseSuccessToast": "Plata a reușit! Noul aspect se deblochează. Poate dura câteva secunde până apare ca deținut.",
-      "addToCart": "Adaugă în coș",
-      "removeFromCart": "Scoate din coș",
-      "cart": {
-        "title": "Coșul tău",
+      "previewingLockedHelper": "Îl poți verifica aici, dar nu este salvat în ciornă până nu îl deblochezi.",
+      "inCartTitle": "În așteptare · {{price}}, plată unică",
+      "addToCart": "Adaugă la deblocări",
+      "removeFromCart": "Elimină din deblocări",
+      "previewOnlyCount": "{{count}} doar în previzualizare",
+      "previewOnlyHint": "Stilurile previzualizate fără a fi deblocate nu sunt salvate în ciornă și nu vor fi publicate.",
+      "unlocks": {
+        "title": "Deblocări în așteptare",
+        "triggerLabel": "Deblocări",
         "clear": "Golește tot",
-        "removeAria": "Scoate {{name}} din coș",
+        "removeAria": "Elimină {{name}}",
         "totalLabel": "Total, plată unică",
-        "checkout": "Finalizează plata"
-      }
+        "subtotalsLabel": "Subtotaluri, plată unică",
+        "mixedCurrency": "Plata are nevoie de o singură monedă. Elimină elementele în altă monedă pentru a continua.",
+        "complete": "Finalizează cumpărarea",
+        "alreadyOwnedRemoved": "{{name}} este deja al tău — eliminat din deblocările în așteptare."
+      },
+      "sectionEyebrow": "Secțiune premium",
+      "sectionDefaultDescription": "O secțiune premium pentru ciorna website-ului.",
+      "sectionLockedAria": "{{name}} — secțiune premium, {{price}}",
+      "sectionLockedAriaNative": "{{name}} — secțiune premium, gestionează din contul web",
+      "sectionLockedTitle": "Secțiune premium · {{price}}, plată unică",
+      "appliedLockedTitle": "Stilul actual al acestei secțiuni nu este deblocat.",
+      "appliedLockedHelper": "Este salvat în ciornă și blochează publicarea până îl deblochezi sau alegi un stil inclus.",
+      "separateNote": "Această plată acoperă doar acest element. Deblocările în așteptare rămân pentru o plată separată."
     },
     "branding": {
       "title": "Identitate vizuală",
@@ -175,7 +188,7 @@
       },
       "hero": {
         "label": "Imagine de copertă",
-        "description": "Un banner lat afișat în partea de sus a paginii tale publice.",
+        "description": "Un banner lat în partea de sus a ciornei website-ului tău.",
         "alt": "Imaginea de copertă a paginii afacerii",
         "uploadCta": "Adaugă o imagine de copertă",
         "uploading": "Se încarcă…",
@@ -190,7 +203,7 @@
       "brandColor": {
         "label": "Culoare de accent",
         "allSwatches": "Toate culorile",
-        "description": "Folosită pentru a evidenția butoanele și linkurile de pe pagina ta publică.",
+        "description": "Folosită pentru a evidenția butoanele și linkurile din ciorna website-ului tău.",
         "swatches": {
           "burgundy": "Bordo",
           "brick": "Cărămiziu",
@@ -318,13 +331,12 @@
       }
     },
     "builder": {
-      "eyebrow": "Site public",
+      "eyebrow": "Ciornă website",
       "studioTitle": "Constructor site",
-      "studioHelper": "Conturează pagina văzută de clienți: identitate, secțiuni și previzualizare.",
       "openPreview": "Deschide previzualizarea",
       "sectionsShown": "{{shown}} din {{total}} afișate",
       "sectionsVisible": "vizibile",
-      "sectionsHelper": "Trage pentru a seta ordinea. Deschide o secțiune pentru a-i edita aspectul și conținutul.",
+      "sectionsHelper": "Setează ordinea, apoi deschide o secțiune pentru a-i edita aspectul și conținutul.",
       "sectionPreview": "Previzualizare · această secțiune",
       "moveUp": "Mută secțiunea în sus",
       "moveDown": "Mută secțiunea în jos",
@@ -332,7 +344,7 @@
       "description": "Trage pentru a reordona, afișează sau ascunde secțiuni și deschide una pentru a o edita. Previzualizarea de mai jos se actualizează pe măsură ce lucrezi.",
       "sectionsLabel": "Secțiuni",
       "sectionLabel": "Secțiune",
-      "previewLabel": "Previzualizare live",
+      "previewLabel": "Previzualizare ciornă",
       "currentSectionPreview": "Previzualizare {{section}}",
       "previewExpand": "Previzualizează pagina",
       "previewHelper": "Se actualizează live pe măsură ce editezi această secțiune.",
@@ -340,14 +352,18 @@
       "showPreview": "Arată previzualizarea",
       "fullPage": "Pagina completă",
       "currentSection": "Secțiunea curentă",
-      "previewCta": "Previzualizează pagina",
+      "previewCta": "Previzualizează ciorna",
       "variantLabel": "Stil secțiune",
+      "stylePosition": "Stilul {{current}} din {{total}}",
       "visibilityLabel": "Vizibil",
       "contentLanguage": "Limba conținutului",
       "langGroup": "Limba previzualizării",
       "deviceGroup": "Dispozitiv de previzualizare",
       "deviceDesktop": "Desktop",
+      "deviceTablet": "Tabletă",
       "deviceMobile": "Mobil",
+      "workspaceEditor": "Editor",
+      "workspacePreview": "Previzualizare",
       "card": {
         "drag": "Reordonează",
         "pinned": "Fixat pe loc",
@@ -364,6 +380,7 @@
         "needsContent": "Necesită conținut",
         "noData": "Fără date",
         "generated": "Generată din datele tale",
+        "newerVersion": "Creată într-o versiune mai nouă",
         "logoLinksBooking": "Logo, linkuri și buton de programare",
         "footerContent": "Contact, locații și subsol",
         "messageSet": "Mesaj adăugat",
@@ -458,7 +475,8 @@
           "start": "Afișează de la",
           "end": "Ascunde după",
           "datePlaceholder": "Alege o dată",
-          "tz": "Datele folosesc fusul orar {{tz}}."
+          "tz": "Datele folosesc fusul orar {{tz}}.",
+          "orderError": "Data de început trebuie să fie înainte de data de sfârșit."
         }
       },
       "hero": {
@@ -526,6 +544,9 @@
         "reviewsVerifiedCount_other": "{{count}} de recenzii verificate",
         "reviewsOutOf": "Rating mediu · din 5.0",
         "reviewsVerified": "Verificat",
+        "reviewsPrev": "Recenzia anterioară",
+        "reviewsNext": "Următoarea recenzie",
+        "reviewsDeckHint": "atinge cardul pentru a amesteca",
         "contactHeadingLoc": "Vino la {{name}}.",
         "contactReach": "Contact",
         "footerComeFind": "Treci pe la noi.",
@@ -595,7 +616,8 @@
           "reviews": "Recenzii",
           "faq": "Întrebări"
         }
-      }
+      },
+      "previewNarrowHint": "Aspectul complet de desktop are nevoie de o fereastră mai lată — deschide previzualizarea pe tot ecranul."
     }
   },
   "statusStrip": {
@@ -844,10 +866,7 @@
       "locationVisibilityUpdateFailed": "Vizibilitatea locației nu a putut fi actualizată. Te rugăm să încerci din nou.",
       "onlineBookingUpdateFailed": "Setările pentru programări online nu au putut fi actualizate. Te rugăm să încerci din nou.",
       "bookingSettingsSaveFailed": "Setările de programare nu au putut fi salvate. Te rugăm să încerci din nou.",
-      "listingDataLoadFailed": "Datele listării nu au putut fi încărcate. Te rugăm să încerci din nou.",
-      "publishUnownedVariants": "Pagina ta folosește aspecte premium pe care nu le deții încă: {{variants}}. Cumpără-le sau schimbă aspectul, apoi publică din nou.",
-      "publishUnownedSections": "Pagina ta include secțiuni premium blocate: {{sections}}. Deblochează-le sau ascunde-le, apoi publică din nou.",
-      "variantCheckoutFailed": "Nu am putut porni plata. Te rugăm să încerci din nou."
+      "listingDataLoadFailed": "Datele listării nu au putut fi încărcate. Te rugăm să încerci din nou."
     },
     "loadError": "Nu am putut încărca datele de marketplace.",
     "retry": "Încearcă din nou"

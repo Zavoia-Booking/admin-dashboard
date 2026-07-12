@@ -190,8 +190,11 @@ async function performRefresh(): Promise<string> {
     await tokenStorage.saveRefreshToken(newRefreshToken);
   }
 
-  const decoded = decodeJwt<{ tid?: string; sub?: string; roles?: string[]; email?: string }>(newAccessToken);
-  const businessId = (decoded as any)?.tid ?? _storeRef.getState().auth.businessId;
+  // The access token's claims are { userId, userGuid, userRole, businessId } — there is no
+  // tid claim. businessId is numeric in the JWT; normalize to string to match auth state.
+  const decoded = decodeJwt<{ businessId?: number | string; sub?: string; roles?: string[]; email?: string }>(newAccessToken);
+  const claimBusinessId = decoded?.businessId ?? (decoded as any)?.tid;
+  const businessId = claimBusinessId != null ? String(claimBusinessId) : _storeRef.getState().auth.businessId;
   const user = decoded?.sub ? { id: decoded.sub, email: decoded?.email, roles: decoded?.roles } : undefined;
 
   _storeRef.dispatch(setTokensAction({ accessToken: newAccessToken, csrfToken: newCsrfToken, refreshToken: newRefreshToken }));

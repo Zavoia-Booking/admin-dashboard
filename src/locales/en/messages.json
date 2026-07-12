@@ -152,7 +152,13 @@
     "E08": "Cart items must use one currency. Remove one item and try again",
     "E09": "This section already has a base layout",
     "E10": "Base layouts must be free",
-    "E11": "Premium layouts need a price"
+    "E11": "Premium layouts need a price",
+    "E12": "The checkout couldn’t start from this page. Refresh and try again",
+    "E13": "A checkout for one of these items is already in progress. Wait a minute and try again",
+    "E14": "Regional prices overlap for a country",
+    "E15": "We couldn’t find that checkout session",
+    "E16": "This layout’s regional pricing is invalid",
+    "E17": "This layout isn’t supported by the builder yet"
   },
   "WEBSITE_SECTIONS": {
     "E01": "This premium section isn’t available anymore",
@@ -161,7 +167,19 @@
     "E04": "This section is free, there’s nothing to purchase",
     "E05": "You already unlocked this section",
     "E06": "Something went wrong with the section purchase. Try again",
-    "E07": "This section is not available in the builder catalog"
+    "E07": "This section is not available in the builder catalog",
+    "E08": "This section isn’t supported by the builder yet",
+    "E09": "This section still has layouts attached, so its key can’t be changed"
+  },
+  "WEBSITE_BUILDER": {
+    "E01": "The website builder requires the Plus plan. Upgrade in Account → Billing",
+    "E02": "A newer version of your site exists. Reload to continue",
+    "E03": "Your page has content that can’t be saved. Review your sections and try again",
+    "E04": "Some selected locations no longer belong to your business. Refresh and adjust your locations section",
+    "E05": "Your website couldn’t be loaded. Refresh to try again",
+    "E06": "Something went wrong with the website builder. Try again",
+    "E07": "Your page uses premium styles or sections you haven’t unlocked yet",
+    "E08": "Save your page before publishing it"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Customer not found",

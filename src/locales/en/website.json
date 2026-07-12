@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "Website",
+    "eyebrow": "Website",
+    "description": "Arrange and style your Website draft.",
+    "loadError": "We couldn't load your website data. Please try again.",
+    "retry": "Try again",
+    "toasts": {
+      "loadFailed": "Failed to load website data",
+      "draftSaved": "Draft saved",
+      "draftSaveFailed": "Couldn't save your draft",
+      "draftConflict": "A newer version of this draft was saved elsewhere. Reload to continue.",
+      "checkoutFailed": "Couldn't start the payment",
+      "purchaseCompleted": "Purchase confirmed — your unlocks are ready to use",
+      "purchasePartial": "The confirmed items are unlocked. The rest stay in your pending unlocks.",
+      "purchaseFailed": "The payment didn't complete. Your pending unlocks are unchanged.",
+      "purchasePending": "Payment is still processing — we'll unlock your items as soon as it lands.",
+      "purchaseCancelled": "Payment cancelled. Your pending unlocks are unchanged.",
+      "purchaseStatusUnavailable": "We couldn't confirm this payment. Your pending unlocks are unchanged.",
+      "published": "Website published — your latest changes are live",
+      "unpublished": "Website unpublished — it is no longer visible to visitors",
+      "publishFailed": "Couldn't publish the website",
+      "unpublishFailed": "Couldn't unpublish the website",
+      "publishLockedItems": "Some sections or styles on your page need to be unlocked before publishing"
+    },
+    "status": {
+      "saved": "Saved",
+      "unsaved": "Unsaved changes",
+      "saving": "Saving…",
+      "lastSaved": "Last saved {{time}}",
+      "checkingPurchase": "Confirming your purchase…",
+      "publishing": "Publishing…",
+      "published": "Published",
+      "publishedStale": "Published · unpublished changes",
+      "notPublished": "Not published"
+    },
+    "actions": {
+      "save": "Save",
+      "preview": "Preview",
+      "editor": "Editor",
+      "reload": "Reload latest",
+      "backToEditor": "Back to editor",
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "savePublish": "Save & publish",
+      "more": "More actions"
+    },
+    "conflict": {
+      "title": "Newer draft on the server",
+      "description": "This page was saved from another tab or device. Reload to pick up the latest draft — your unsaved edits here will be discarded.",
+      "reload": "Reload latest draft",
+      "keepEditing": "Keep editing"
+    },
+    "unsaved": {
+      "title": "Unsaved changes",
+      "description": "Your website draft has unsaved changes. If you leave now they will be lost.",
+      "stay": "Stay",
+      "discard": "Discard changes"
+    },
+    "identity": {
+      "title": "Business identity",
+      "helper": "Your website inherits the business name, logo and contact details.",
+      "edit": "Edit business profile"
+    },
+    "language": {
+      "label": "Content language",
+      "en": "EN",
+      "ro": "RO"
+    },
+    "unpublishConfirm": {
+      "title": "Unpublish website?",
+      "description": "Your website goes offline immediately. Your content stays saved and you can publish again anytime.",
+      "confirm": "Unpublish",
+      "cancel": "Keep online"
+    },
+    "publishBlockers": {
+      "title": "Unlock before you publish.",
+      "helper": "Unlock these items, switch to an included style, or hide the section — then publish.",
+      "openAria": "Open {{name}} in the editor"
+    },
+    "publishReason": {
+      "readOnly": "Your plan has read-only access",
+      "locked": "Your page uses premium items that aren't unlocked yet",
+      "errors": "Fix the highlighted fields first",
+      "busy": "Wait for the current operation to finish",
+      "current": "Everything is already live"
+    }
+  }
+}

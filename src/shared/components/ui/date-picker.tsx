@@ -13,6 +13,7 @@ interface DatePickerProps {
   placeholder?: string;
   viewMode?: 'day' | 'week' | 'month';
   minDate?: Date;
+  maxDate?: Date;
   /** When true, trigger is rounded and connects to popover with open/close animation (e.g. add-appointment flow). */
   connectedPopover?: boolean;
   /** Optional class for popover content when connectedPopover (e.g. add-appointment-popover-expand). */
@@ -33,6 +34,7 @@ const DatePicker: React.FC<DatePickerProps> = ({
   placeholder = 'Select date',
   viewMode = 'day',
   minDate,
+  maxDate,
   connectedPopover = false,
   contentClassName,
   popoverHeaderSlot,
@@ -188,10 +190,16 @@ const DatePicker: React.FC<DatePickerProps> = ({
   };
 
   const isDateDisabled = (date: Date) => {
-    if (minDate == null) return false;
     const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const minDayStart = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
-    return dayStart < minDayStart;
+    if (minDate != null) {
+      const minDayStart = new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate());
+      if (dayStart < minDayStart) return true;
+    }
+    if (maxDate != null) {
+      const maxDayStart = new Date(maxDate.getFullYear(), maxDate.getMonth(), maxDate.getDate());
+      if (dayStart > maxDayStart) return true;
+    }
+    return false;
   };
 
   const handleDateSelect = (date: Date) => {
@@ -231,6 +239,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
     const today = new Date();
     setCurrentMonth(today);
     setCurrentYear(today.getFullYear());
+    // Today can sit outside the min/max window — navigate to it, but never select a disabled day.
+    if (isDateDisabled(today)) return;
     onChange(today);
     setIsOpen(false);
   };

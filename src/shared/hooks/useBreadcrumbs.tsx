@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { 
   Home, 
@@ -10,6 +10,7 @@ import {
   Users,
   User,
   Store,
+  Globe,
   Headphones,
   LayoutDashboard,
 } from 'lucide-react';
@@ -26,6 +27,7 @@ const routeToKey: Record<string, string> = {
   '/team-members': 'breadcrumbs.teamMembers',
   '/customers': 'breadcrumbs.customers',
   '/marketplace': 'breadcrumbs.marketplace',
+  '/website': 'breadcrumbs.website',
   '/my-profile': 'breadcrumbs.marketplace',
   '/support': 'breadcrumbs.support',
   '/account': 'breadcrumbs.account',
@@ -42,6 +44,7 @@ const routeIcons: Record<string, React.ReactNode> = {
   '/team-members': <Users className="w-4 h-4" />,
   '/customers': <User className="w-4 h-4" />,
   '/marketplace': <Store className="w-4 h-4" />,
+  '/website': <Globe className="w-4 h-4" />,
   '/my-profile': <Store className="w-4 h-4" />,
   '/support': <Headphones className="w-4 h-4" />,
   '/account': <Settings className="w-4 h-4" />,
@@ -50,7 +53,6 @@ const routeIcons: Record<string, React.ReactNode> = {
 
 export function useBreadcrumbs(): BreadcrumbItemType[] {
   const location = useLocation();
-  const params = useParams();
   const { t } = useTranslation('navigation');
 
   return useMemo(() => {
@@ -100,6 +102,5 @@ export function useBreadcrumbs(): BreadcrumbItemType[] {
     });
 
     return breadcrumbs;
-  }, [location.pathname, params, t]);
+  }, [location.pathname, t]);
 }
-

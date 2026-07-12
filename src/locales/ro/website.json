@@ -1,0 +1,89 @@
+{
+  "page": {
+    "title": "Website",
+    "eyebrow": "Website",
+    "description": "Aranjează și stilizează ciorna website-ului tău.",
+    "loadError": "Nu am putut încărca datele website-ului. Încearcă din nou.",
+    "retry": "Încearcă din nou",
+    "toasts": {
+      "loadFailed": "Datele website-ului nu au putut fi încărcate",
+      "draftSaved": "Ciornă salvată",
+      "draftSaveFailed": "Ciorna nu a putut fi salvată",
+      "draftConflict": "O versiune mai nouă a ciornei a fost salvată în altă parte. Reîncarcă pentru a continua.",
+      "checkoutFailed": "Nu am putut porni plata",
+      "purchaseCompleted": "Plată confirmată — deblocările tale sunt gata de folosit",
+      "purchasePartial": "Elementele confirmate sunt deblocate. Restul rămân în deblocările în așteptare.",
+      "purchaseFailed": "Plata nu s-a finalizat. Deblocările în așteptare rămân neschimbate.",
+      "purchasePending": "Plata încă se procesează — deblocăm elementele imediat ce se confirmă.",
+      "purchaseCancelled": "Plata a fost anulată. Deblocările în așteptare rămân neschimbate.",
+      "purchaseStatusUnavailable": "Nu am putut confirma această plată. Deblocările în așteptare rămân neschimbate.",
+      "published": "Site-ul a fost publicat — ultimele modificări sunt live",
+      "unpublished": "Site-ul a fost retras — nu mai este vizibil pentru vizitatori",
+      "publishFailed": "Site-ul nu a putut fi publicat",
+      "unpublishFailed": "Site-ul nu a putut fi retras",
+      "publishLockedItems": "Unele secțiuni sau stiluri de pe pagină trebuie deblocate înainte de publicare"
+    },
+    "status": {
+      "saved": "Salvat",
+      "unsaved": "Modificări nesalvate",
+      "saving": "Se salvează…",
+      "lastSaved": "Ultima salvare {{time}}",
+      "checkingPurchase": "Confirmăm achiziția ta…",
+      "publishing": "Se publică…",
+      "published": "Publicat",
+      "publishedStale": "Publicat · modificări nepublicate",
+      "notPublished": "Nepublicat"
+    },
+    "actions": {
+      "save": "Salvează",
+      "preview": "Previzualizare",
+      "editor": "Editor",
+      "reload": "Reîncarcă ultima versiune",
+      "backToEditor": "Înapoi la editor",
+      "publish": "Publică",
+      "unpublish": "Retrage",
+      "savePublish": "Salvează și publică",
+      "more": "Mai multe acțiuni"
+    },
+    "conflict": {
+      "title": "Există o ciornă mai nouă pe server",
+      "description": "Această pagină a fost salvată din alt tab sau dispozitiv. Reîncarcă pentru a prelua ultima ciornă — modificările nesalvate de aici vor fi pierdute.",
+      "reload": "Reîncarcă ultima ciornă",
+      "keepEditing": "Continuă editarea"
+    },
+    "unsaved": {
+      "title": "Modificări nesalvate",
+      "description": "Ciorna website-ului are modificări nesalvate. Dacă pleci acum, acestea se vor pierde.",
+      "stay": "Rămâi",
+      "discard": "Renunță la modificări"
+    },
+    "identity": {
+      "title": "Identitatea afacerii",
+      "helper": "Website-ul preia numele afacerii, logo-ul și datele de contact.",
+      "edit": "Editează profilul afacerii"
+    },
+    "language": {
+      "label": "Limba conținutului",
+      "en": "EN",
+      "ro": "RO"
+    },
+    "unpublishConfirm": {
+      "title": "Retragi site-ul?",
+      "description": "Site-ul tău devine indisponibil imediat. Conținutul rămâne salvat și poți publica din nou oricând.",
+      "confirm": "Retrage",
+      "cancel": "Păstrează online"
+    },
+    "publishBlockers": {
+      "title": "Deblochează înainte să publici.",
+      "helper": "Deblochează aceste elemente, alege un stil inclus sau ascunde secțiunea — apoi publică.",
+      "openAria": "Deschide {{name}} în editor"
+    },
+    "publishReason": {
+      "readOnly": "Planul tău are acces doar de citire",
+      "locked": "Pagina folosește elemente premium încă nedeblocate",
+      "errors": "Corectează mai întâi câmpurile marcate",
+      "busy": "Așteaptă finalizarea operațiunii curente",
+      "current": "Totul este deja publicat"
+    }
+  }
+}

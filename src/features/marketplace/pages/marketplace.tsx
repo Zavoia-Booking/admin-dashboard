@@ -62,9 +62,7 @@ export default function MarketplacePage() {
   };
 
   const handleSaveConfiguration = (data: PublishMarketplaceListingPayload) => {
-    // The form (useMarketplaceForm) already produces the full publish payload — profile/branding
-    // fields plus the section-builder slice (pageLayout / pageTheme / faq / announcement). Spread it
-    // so new fields never get silently dropped here; we only stamp the always-on visibility flags.
+    // The form produces Marketplace-only data. Website Builder content is saved separately.
     // Note: portfolioImages + featured image are saved immediately on upload/delete/select, and
     // per-location publicity / online-booking flags are toggled inline per location — not here.
     const payload: PublishMarketplaceListingPayload = {
@@ -133,14 +131,6 @@ export default function MarketplacePage() {
             useBusinessEmail={listing.useBusinessEmail}
             useBusinessPhone={listing.useBusinessPhone}
             useBusinessDescription={listing.useBusinessDescription}
-            heroImageUrl={listing.heroImageUrl}
-            tagline={listing.tagline}
-            aboutContent={listing.aboutContent}
-            brandColorHex={listing.brandColorHex}
-            pageLayout={listing.pageLayout}
-            pageTheme={listing.pageTheme}
-            faq={listing.faq}
-            announcement={listing.announcement}
             industries={industries}
             industryTags={industryTags}
             selectedIndustryTags={selectedIndustryTags}

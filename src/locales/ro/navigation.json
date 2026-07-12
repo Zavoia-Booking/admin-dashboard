@@ -12,6 +12,7 @@
     "teamMembers": "Membri echipă",
     "customers": "Clienți",
     "marketplace": "Marketplace",
+    "website": "Website",
     "support": "Suport",
     "account": "Cont",
     "home": "Acasă",
@@ -26,6 +27,7 @@
     "locations": "Locații",
     "customers": "Clienți",
     "marketplace": "Marketplace",
+    "website": "Website",
     "support": "Suport",
     "account": "Cont",
     "logOut": "Deconectare",
@@ -77,4 +79,3 @@
     "light": "Luminos"
   }
 }
-

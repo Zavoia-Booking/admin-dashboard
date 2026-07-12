@@ -91,6 +91,9 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         ...state,
         isAuthenticated: true,
         user,
+        // Keep businessId in sync with the user — the feature reducers' scope guards
+        // (marketplace/website/reviews) compare against this exact value.
+        businessId: user?.businessId?.toString() ?? state.businessId,
         error: null,
         isLoading: false,
         status: AuthStatusEnum.AUTHENTICATED,
@@ -137,6 +140,7 @@ export const AuthReducer: Reducer<AuthState, any> = (state: AuthState = initialS
         ...state,
         isAuthenticated: !!action.payload.user,
         user: action.payload.user,
+        businessId: action.payload.user?.businessId?.toString() ?? state.businessId,
         status: action.payload ? AuthStatusEnum.AUTHENTICATED : AuthStatusEnum.UNAUTHENTICATED,
       };
     }

@@ -78,6 +78,10 @@ export enum Permission {
   VIEW_MARKETPLACE = 'view:marketplace',
   MANAGE_MARKETPLACE = 'manage:marketplace',
 
+  // Website Builder (owner workspace at /website)
+  ACCESS_WEBSITE = 'access:website',
+  MANAGE_WEBSITE = 'manage:website',
+
   // Settings (business settings)
   ACCESS_SETTINGS = 'access:settings',
   ACCESS_SETTINGS_PROFILE = 'access:settings_profile', // Business profile
@@ -164,6 +168,9 @@ const OWNER_PERMISSIONS: Permission[] = [
   Permission.ACCESS_MARKETPLACE_PORTFOLIO,
   Permission.ACCESS_MARKETPLACE_PROMOTIONS,
   Permission.ACCESS_MARKETPLACE_REVIEWS,
+
+  Permission.ACCESS_WEBSITE,
+  Permission.MANAGE_WEBSITE,
 
   Permission.ACCESS_SETTINGS,
   Permission.ACCESS_SETTINGS_PROFILE,
@@ -302,6 +309,7 @@ export const ROUTE_PERMISSIONS: Record<string, Permission> = {
   '/customers': Permission.ACCESS_CUSTOMERS,
   '/assignments': Permission.ACCESS_ASSIGNMENTS,
   '/marketplace': Permission.ACCESS_MARKETPLACE,
+  '/website': Permission.ACCESS_WEBSITE,
   '/account': Permission.ACCESS_SETTINGS,
 
   // ===========================================

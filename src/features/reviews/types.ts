@@ -126,6 +126,8 @@ export interface FetchTeamMemberReviewsPayload {
 export type ReviewSubTab = "business" | "team-members";
 
 export interface ReviewsState {
+  /** Account/business scope that owns every value in this slice. */
+  scopeBusinessId: string | null;
   stats: ReviewStatsData | null;
   statsLoading: boolean;
   businessReviews: BusinessReview[];

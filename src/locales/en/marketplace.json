@@ -114,11 +114,11 @@
     },
     "locked": {
       "eyebrow": "Included with Plus",
-      "title": "Turn visitors into booked appointments",
+      "title": "Shape your Website draft",
       "nativeDescription": "The website builder isn't included in your current plan.",
-      "teaserCaption": "Preview only — not live yet",
+      "teaserCaption": "Draft preview",
       "features": {
-        "publicPage": "Your own public page at zavoia.com/your-business",
+        "preview": "Preview your draft at desktop and mobile sizes",
         "sections": "Customizable sections, themes, colors and fonts",
         "premiumVariants": "Premium layout variants to make your page stand out"
       },
@@ -127,37 +127,50 @@
     },
     "paidVariants": {
       "eyebrow": "Premium layout",
-      "defaultDescription": "A premium layout for this section of your public page.",
+      "defaultDescription": "A premium layout for this Website draft section.",
       "oneTime": "one-time",
       "foreverNote": "Pay once and it's yours forever. It stays unlocked even if you change plans.",
       "plusHint": "Purchasing premium layouts requires the Plus plan. You can upgrade in Account → Billing.",
-      "buy": "Buy for {{price}}",
-      "processing": "Preparing checkout…",
+      "buy": "Unlock for {{price}}",
+      "processing": "Preparing secure payment…",
       "cancel": "Cancel",
       "lockedAria": "{{name}} — premium layout, {{price}}",
       "lockedAriaNative": "{{name}} — premium layout, manage from the web dashboard",
-      "nativeHint": "Manage premium page styles from the web dashboard at zavoia.com.",
+      "nativeHint": "Manage premium items from the web dashboard, at zavoia.com.",
       "lockedTitle": "Premium layout · {{price}} one-time",
       "ownedTitle": "Premium layout · owned",
-      "styleHelper": "Included styles can be published now. Premium styles can be bought once and reused.",
+      "styleHelper": "Included styles are ready to use. Premium styles unlock once and stay yours.",
       "includedBadge": "Included",
       "lockedBadge": "Premium",
       "ownedBadge": "Owned",
-      "inCartBadge": "In cart",
+      "inCartBadge": "Queued",
       "previewBadge": "Previewing",
       "previewingLockedTitle": "Previewing a premium style.",
-      "previewingLockedHelper": "You can inspect it here, but it will not publish until you buy it.",
-      "inCartTitle": "In cart · {{price}} one-time",
-      "purchaseSuccessToast": "Payment successful! Your new layout is being unlocked. It can take a few seconds to show as owned.",
-      "addToCart": "Add to cart",
-      "removeFromCart": "Remove from cart",
-      "cart": {
-        "title": "Your cart",
+      "previewingLockedHelper": "You can inspect it here, but it is not saved to your draft until you unlock it.",
+      "inCartTitle": "Queued · {{price}} one-time",
+      "addToCart": "Add to unlocks",
+      "removeFromCart": "Remove from unlocks",
+      "previewOnlyCount": "{{count}} preview-only",
+      "previewOnlyHint": "Styles you preview without unlocking aren't saved to the draft and won't be published.",
+      "unlocks": {
+        "title": "Pending unlocks",
+        "triggerLabel": "Unlocks",
         "clear": "Clear all",
-        "removeAria": "Remove {{name}} from cart",
+        "removeAria": "Remove {{name}}",
         "totalLabel": "Total, one-time",
-        "checkout": "Checkout"
-      }
+        "subtotalsLabel": "Subtotals, one-time",
+        "mixedCurrency": "Payment needs one currency. Remove the items in another currency to continue.",
+        "complete": "Complete purchase",
+        "alreadyOwnedRemoved": "{{name}} is already yours — removed from your pending unlocks."
+      },
+      "sectionEyebrow": "Premium section",
+      "sectionDefaultDescription": "A premium section for your Website draft.",
+      "sectionLockedAria": "{{name}} — premium section, {{price}}",
+      "sectionLockedAriaNative": "{{name}} — premium section, manage from the web dashboard",
+      "sectionLockedTitle": "Premium section · {{price}}, one-time",
+      "appliedLockedTitle": "This section's current style isn't unlocked.",
+      "appliedLockedHelper": "It is saved in your draft and blocks publishing until you unlock it or switch to an included style.",
+      "separateNote": "This payment covers only this item. Your pending unlocks stay queued for a separate payment."
     },
     "branding": {
       "title": "Branding",
@@ -175,7 +188,7 @@
       },
       "hero": {
         "label": "Cover image",
-        "description": "A wide banner shown at the top of your public page.",
+        "description": "A wide banner at the top of your Website draft.",
         "alt": "Business page cover image",
         "uploadCta": "Add a cover image",
         "uploading": "Uploading…",
@@ -190,7 +203,7 @@
       "brandColor": {
         "label": "Accent color",
         "allSwatches": "All colors",
-        "description": "Used to highlight buttons and links on your public page.",
+        "description": "Used to highlight buttons and links in your Website draft.",
         "swatches": {
           "burgundy": "Burgundy",
           "brick": "Brick",
@@ -318,13 +331,12 @@
       }
     },
     "builder": {
-      "eyebrow": "Public site",
+      "eyebrow": "Website draft",
       "studioTitle": "Website builder",
-      "studioHelper": "Shape the page your clients see: identity, sections, and preview.",
       "openPreview": "Open preview",
       "sectionsShown": "{{shown}} of {{total}} shown",
       "sectionsVisible": "visible",
-      "sectionsHelper": "Drag to set the order. Open a section to edit its layout and content.",
+      "sectionsHelper": "Set the order, then open a section to edit its layout and content.",
       "sectionPreview": "Preview · this section",
       "moveUp": "Move section up",
       "moveDown": "Move section down",
@@ -332,7 +344,7 @@
       "description": "Drag to reorder, show or hide sections, and open one to edit it. The preview below updates as you go.",
       "sectionsLabel": "Sections",
       "sectionLabel": "Section",
-      "previewLabel": "Live preview",
+      "previewLabel": "Draft preview",
       "currentSectionPreview": "{{section}} preview",
       "previewExpand": "Preview page",
       "previewHelper": "Updates live as you edit this section.",
@@ -340,14 +352,18 @@
       "showPreview": "Show preview",
       "fullPage": "Full page",
       "currentSection": "Current section",
-      "previewCta": "Preview my page",
+      "previewCta": "Preview draft",
       "variantLabel": "Section style",
+      "stylePosition": "Style {{current}} of {{total}}",
       "visibilityLabel": "Visible",
       "contentLanguage": "Content language",
       "langGroup": "Preview language",
       "deviceGroup": "Preview device",
       "deviceDesktop": "Desktop",
+      "deviceTablet": "Tablet",
       "deviceMobile": "Mobile",
+      "workspaceEditor": "Editor",
+      "workspacePreview": "Preview",
       "card": {
         "drag": "Reorder",
         "pinned": "Pinned in place",
@@ -364,6 +380,7 @@
         "needsContent": "Needs content",
         "noData": "No data",
         "generated": "Generated from your data",
+        "newerVersion": "Created in a newer version",
         "logoLinksBooking": "Logo, links and booking button",
         "footerContent": "Contact, locations and footer",
         "messageSet": "Message set",
@@ -453,7 +470,8 @@
           "start": "Show from",
           "end": "Hide after",
           "datePlaceholder": "Select a date",
-          "tz": "Dates use the {{tz}} time zone."
+          "tz": "Dates use the {{tz}} time zone.",
+          "orderError": "The start date must be before the end date."
         }
       },
       "hero": {
@@ -589,7 +607,8 @@
           "reviews": "Reviews",
           "faq": "FAQ"
         }
-      }
+      },
+      "previewNarrowHint": "The full desktop layout needs a wider window — open the fullscreen preview for a true view."
     }
   },
   "statusStrip": {
@@ -837,10 +856,7 @@
       "locationVisibilityUpdateFailed": "Could not update location visibility. Please try again.",
       "onlineBookingUpdateFailed": "Could not update online booking settings. Please try again.",
       "bookingSettingsSaveFailed": "Could not save booking settings. Please try again.",
-      "listingDataLoadFailed": "Could not load marketplace listing data. Please try again.",
-      "publishUnownedVariants": "Your page uses premium layouts you don't own yet: {{variants}}. Buy them or switch layouts, then publish again.",
-      "publishUnownedSections": "Your page includes locked premium sections: {{sections}}. Unlock them or hide them, then publish again.",
-      "variantCheckoutFailed": "Could not start the checkout. Please try again."
+      "listingDataLoadFailed": "Could not load marketplace listing data. Please try again."
     },
     "loadError": "We couldn't load your marketplace data.",
     "retry": "Try again"

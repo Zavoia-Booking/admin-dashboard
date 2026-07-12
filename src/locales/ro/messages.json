@@ -152,7 +152,13 @@
     "E08": "Elementele din coș trebuie să folosească aceeași monedă. Scoate un element și încearcă din nou",
     "E09": "Această secțiune are deja un aspect de bază",
     "E10": "Aspectele de bază trebuie să fie gratuite",
-    "E11": "Aspectele premium au nevoie de un preț"
+    "E11": "Aspectele premium au nevoie de un preț",
+    "E12": "Plata nu a putut porni din această pagină. Reîncarcă și încearcă din nou",
+    "E13": "O plată pentru unul dintre aceste elemente este deja în curs. Așteaptă un minut și încearcă din nou",
+    "E14": "Prețurile regionale se suprapun pentru o țară",
+    "E15": "Nu am găsit această sesiune de plată",
+    "E16": "Prețurile regionale ale acestui aspect sunt invalide",
+    "E17": "Acest aspect nu este încă suportat de constructor"
   },
   "WEBSITE_SECTIONS": {
     "E01": "Această secțiune premium nu mai este disponibilă",
@@ -161,7 +167,19 @@
     "E04": "Această secțiune este gratuită, nu este nimic de cumpărat",
     "E05": "Ai deblocat deja această secțiune",
     "E06": "Ceva nu a mers bine la cumpărarea secțiunii. Încearcă din nou",
-    "E07": "Această secțiune nu este disponibilă în catalogul constructorului"
+    "E07": "Această secțiune nu este disponibilă în catalogul constructorului",
+    "E08": "Această secțiune nu este încă suportată de constructor",
+    "E09": "Această secțiune are încă aspecte atașate, deci cheia ei nu poate fi modificată"
+  },
+  "WEBSITE_BUILDER": {
+    "E01": "Constructorul de site-uri necesită planul Plus. Fă upgrade din Cont → Facturare",
+    "E02": "Există o versiune mai nouă a site-ului tău. Reîncarcă pentru a continua",
+    "E03": "Pagina ta are conținut care nu poate fi salvat. Verifică secțiunile și încearcă din nou",
+    "E04": "Unele locații selectate nu mai aparțin afacerii tale. Reîncarcă și ajustează secțiunea de locații",
+    "E05": "Site-ul tău nu a putut fi încărcat. Reîncarcă pentru a încerca din nou",
+    "E06": "Ceva nu a mers bine în constructorul de site-uri. Încearcă din nou",
+    "E07": "Pagina ta folosește stiluri sau secțiuni premium pe care nu le-ai deblocat încă",
+    "E08": "Salvează pagina înainte să o publici"
   },
   "BUSINESS_CUSTOMER": {
     "E01": "Clientul nu a fost găsit",

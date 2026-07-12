@@ -59,4 +59,12 @@
   animation: accordion-up 0.3s ease-out;
 }
 
+/* Reduced motion: the expand/collapse snaps instead of animating height. */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="collapsible-content"][data-state="open"],
+  [data-slot="collapsible-content"][data-state="closed"] {
+    animation-duration: 0.01ms;
+  }
+}
+
 

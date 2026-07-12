@@ -6,6 +6,7 @@ import {
   MapPin,
   Briefcase,
   Store,
+  Globe,
   UserCircle,
   MessageCircle,
   ClipboardList,
@@ -45,6 +46,8 @@ const allMainNavItems: BottomNavItem[] = [
 ];
 
 const allMoreNavItems: BottomNavItem[] = [
+  // Website joins the More drawer — the five-slot bottom bar stays unchanged.
+  { i18nKey: 'sidebar.website', url: '/website', icon: Globe, requiredPermission: Permission.ACCESS_WEBSITE },
   { i18nKey: 'sidebar.teamMembers', url: '/team-members', icon: Users, requiredPermission: Permission.ACCESS_TEAM_MEMBERS },
   { i18nKey: 'sidebar.services', url: '/services', icon: Briefcase, requiredPermission: Permission.ACCESS_SERVICES },
   { i18nKey: 'sidebar.locations', url: '/locations', icon: MapPin, requiredPermission: Permission.ACCESS_LOCATIONS },

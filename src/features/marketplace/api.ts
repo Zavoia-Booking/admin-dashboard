@@ -1,4 +1,4 @@
-import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData, WebsiteCatalogResponse, WebsiteVariantCheckoutPayload } from "./types";
+import type { MarketplaceListingResponse, PublishMarketplaceListingPayload, BookingSettings, UpdateBookingSettingsPayload, PortfolioImageData } from "./types";
 import { apiClient } from "../../shared/lib/http";
 
 export interface LocationPortfolioMutationResponse {
@@ -54,31 +54,6 @@ export const publishMarketplaceListingApi = async (payload: PublishMarketplaceLi
   await apiClient().post('/marketplace-listing/publish', payload);
 }
 
-// ---------------------------------------------------------------------------
-// Business-page hero image.
-// ---------------------------------------------------------------------------
-
-export interface HeroImageResponse {
-  heroImageUrl: string | null;
-  heroImageKey: string | null;
-}
-
-export const uploadHeroImageApi = async (file: File): Promise<HeroImageResponse> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  const { data } = await apiClient().post<HeroImageResponse>(
-    '/marketplace-listing/hero',
-    formData,
-    { headers: { 'Content-Type': 'multipart/form-data' } },
-  );
-  return data;
-};
-
-export const deleteHeroImageApi = async (): Promise<HeroImageResponse> => {
-  const { data } = await apiClient().delete<HeroImageResponse>('/marketplace-listing/hero');
-  return data;
-};
-
 export interface LocationMarketplaceFlagsResponse {
   id: number;
   isPublic: boolean;
@@ -128,24 +103,6 @@ export const updateBookingSettingsApi = async (payload: Partial<UpdateBookingSet
   return (data as { settings?: BookingSettings }).settings ?? (data as BookingSettings);
 }
 
-
-// ---------------------------------------------------------------------------
-// Website builder offering (sections + variants) — catalog + one-time Stripe checkout.
-// ---------------------------------------------------------------------------
-
-/** ACTIVE section + variant catalog with per-business `owned` flags (owner-guarded, readable on any plan). */
-export const getWebsiteVariantCatalogApi = async (): Promise<WebsiteCatalogResponse> => {
-  const { data } = await apiClient().get<{ data: WebsiteCatalogResponse }>('/website-variants/catalog');
-  return data.data;
-};
-
-/** Creates a one-time Stripe checkout session for paid variants/section unlocks; returns the session URL to redirect to. */
-export const createWebsiteVariantCheckoutApi = async (
-  payload: WebsiteVariantCheckoutPayload,
-): Promise<{ url: string }> => {
-  const { data } = await apiClient().post<{ url: string }>('/website-variants/checkout', payload);
-  return data;
-};
 
 // ---------------------------------------------------------------------------
 // Location marketplace tags — dictionaries + per-location load/save.

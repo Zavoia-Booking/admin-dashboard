@@ -12,6 +12,7 @@
     "teamMembers": "Team Members",
     "customers": "Customers",
     "marketplace": "Marketplace",
+    "website": "Website",
     "support": "Support",
     "account": "Account",
     "home": "Home",
@@ -26,6 +27,7 @@
     "locations": "Locations",
     "customers": "Customers",
     "marketplace": "Marketplace",
+    "website": "Website",
     "support": "Support",
     "account": "Account",
     "logOut": "Log Out",
@@ -77,4 +79,3 @@
     "light": "Light"
   }
 }
-

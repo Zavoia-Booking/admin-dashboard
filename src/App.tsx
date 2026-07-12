@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { createBrowserRouter, createRoutesFromElements, Navigate, Outlet, Route, RouterProvider, useLocation } from 'react-router-dom'
 import ProtectedRoute from './features/auth/components/ProtectedRoute'
 import PublicRoute from './features/auth/components/PublicRoute'
 import AccountLinkingModal from './features/auth/components/AccountLinkingModal'
@@ -35,6 +35,7 @@ const TeamInvitationPage = lazy(() => import('./features/auth/pages/team-invitat
 const SupportPage = lazy(() => import('./features/support/pages/support'))
 const CustomersPage = lazy(() => import('./features/customers/pages/customers'))
 const MarketplacePage = lazy(() => import('./features/marketplace/pages/marketplace'))
+const WebsitePage = lazy(() => import('./features/website/pages/website'))
 const LegalPage = lazy(() => import('./features/legal/pages/legal-page'))
 
 // Notifications
@@ -53,65 +54,18 @@ function RouteFallback() {
   )
 }
 
-function App() {
+/**
+ * Root layout route: the shared chrome that used to live directly inside BrowserRouter.
+ * splash-app-root wraps every route so the splash exit can rise the page up into view as a
+ * single unit; the account/seat/subscription modals ride along on every route.
+ */
+function RootLayout() {
   return (
-    <BrowserRouter>
-      {/* splash-app-root: wraps every route so the splash exit can rise
-       * the page up into view as a single unit. Without this, individual
-       * routes (Dashboard, etc) would just appear during/after the
-       * splash exit instead of animating in. */}
+    <>
       <div className="splash-app-root">
-      <Suspense fallback={<RouteFallback />}>
-        <Routes>
-          <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
-          <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
-
-          {/* Auth — shared AuthLayout keeps the hero panel mounted across
-              tab switches between /login and /register so its animation
-              isn't interrupted on navigation. */}
-          <Route element={<PublicRoute element={<AuthLayout />} />}>
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterPage />} />
-          </Route>
-          <Route path="/team-invitation" element={<TeamInvitationPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/verify-email" element={<VerifyEmailPage />} />
-          <Route path="/link-business-account" element={<LinkBusinessAccountPage />} />
-          <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
-
-          {/* Main */}
-          <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
-          <Route path="/dashboard/:locationId" element={<ProtectedRoute element={<DashboardPage />} />} />
-          <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
-          <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
-          <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
-          <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
-          <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
-          <Route path="/customers" element={<ProtectedRoute element={<CustomersPage />} />} />
-          <Route path="/marketplace" element={<ProtectedRoute element={<MarketplacePage />} />} />
-          <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
-          <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
-          <Route path="/account" element={<ProtectedRoute element={<SettingsPage />} />} />
-
-          {/* Team Member Only */}
-          <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
-          <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
-          <Route path="/my-account" element={<ProtectedRoute element={<MyAccountPage />} />} />
-
-          {/* Legal */}
-          <Route path="/terms" element={<LegalPage />} />
-          <Route path="/cookies" element={<LegalPage />} />
-          <Route path="/privacy" element={<LegalPage />} />
-
-          {/* Info Pages */}
-          <Route path="/info" element={<InfoPageComponent />} />
-          <Route path="/account-info" element={<ProtectedRoute element={<AccountWebInfoPage />} />} />
-          <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/calendar" replace />} />
-        </Routes>
-      </Suspense>
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet />
+        </Suspense>
       </div>
       <AccountLinkingModal />
       <BusinessSelectorModal />
@@ -121,8 +75,87 @@ function App() {
       <SubscriptionBlocker />
       <PushListenersBootstrap />
       <SplashGate />
-    </BrowserRouter>
+    </>
   )
+}
+
+/** Resolve the retired Marketplace Website Builder tab before Marketplace mounts or fetches. */
+function MarketplaceRoute() {
+  const location = useLocation()
+  const params = new URLSearchParams(location.search)
+
+  if (params.get('tab') === 'website') {
+    const websiteParams = new URLSearchParams()
+    for (const key of ['session_id', 'variantPurchase']) {
+      const value = params.get(key)
+      if (value) websiteParams.set(key, value)
+    }
+    const search = websiteParams.toString()
+    return <Navigate to={search ? `/website?${search}` : '/website'} replace />
+  }
+
+  return <ProtectedRoute element={<MarketplacePage />} />
+}
+
+// Data router (createBrowserRouter, not <BrowserRouter>): required for useBlocker — the
+// route-aware unsaved-changes guard on /website (and later My Profile) depends on it.
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootLayout />}>
+      <Route path="/" element={<ProtectedRoute element={<DashboardPage />} />} />
+      <Route path="/welcome" element={<ProtectedRoute element={<SetupWizardPage />} />} />
+
+      {/* Auth — shared AuthLayout keeps the hero panel mounted across
+          tab switches between /login and /register so its animation
+          isn't interrupted on navigation. */}
+      <Route element={<PublicRoute element={<AuthLayout />} />}>
+        <Route path="/login" element={<LoginForm />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Route>
+      <Route path="/team-invitation" element={<TeamInvitationPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/link-business-account" element={<LinkBusinessAccountPage />} />
+      <Route path="/auth/callback" element={<GoogleOAuthCallback />} />
+
+      {/* Main */}
+      <Route path="/dashboard" element={<ProtectedRoute element={<DashboardPage />} />} />
+      <Route path="/dashboard/:locationId" element={<ProtectedRoute element={<DashboardPage />} />} />
+      <Route path="/calendar" element={<ProtectedRoute element={<CalendarPage />} />} />
+      <Route path="/locations" element={<ProtectedRoute element={<LocationsPage />} />} />
+      <Route path="/services" element={<ProtectedRoute element={<ServicesPage />} />} />
+      <Route path="/assignments" element={<ProtectedRoute element={<AssignmentsPage />} />} />
+      <Route path="/team-members" element={<ProtectedRoute element={<TeamMembersPage />} />} />
+      <Route path="/customers" element={<ProtectedRoute element={<CustomersPage />} />} />
+      <Route path="/marketplace" element={<MarketplaceRoute />} />
+      <Route path="/website" element={<ProtectedRoute element={<WebsitePage />} />} />
+      <Route path="/support" element={<ProtectedRoute element={<SupportPage />} />} />
+      <Route path="/notifications" element={<ProtectedRoute element={<NotificationsPage />} />} />
+      <Route path="/account" element={<ProtectedRoute element={<SettingsPage />} />} />
+
+      {/* Team Member Only */}
+      <Route path="/my-assignments" element={<ProtectedRoute element={<MyAssignmentsPage />} />} />
+      <Route path="/my-profile" element={<ProtectedRoute element={<MyProfilePage />} />} />
+      <Route path="/my-account" element={<ProtectedRoute element={<MyAccountPage />} />} />
+
+      {/* Legal */}
+      <Route path="/terms" element={<LegalPage />} />
+      <Route path="/cookies" element={<LegalPage />} />
+      <Route path="/privacy" element={<LegalPage />} />
+
+      {/* Info Pages */}
+      <Route path="/info" element={<InfoPageComponent />} />
+      <Route path="/account-info" element={<ProtectedRoute element={<AccountWebInfoPage />} />} />
+      <Route path="/team-members/invitation-success" element={<ProtectedRoute element={<InvitationSuccessPage />} />} />
+
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/calendar" replace />} />
+    </Route>,
+  ),
+)
+
+function App() {
+  return <RouterProvider router={router} />
 }
 
 export default App
